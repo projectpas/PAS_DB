@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[SalesOrderQuoteSettingsAudit] (
+    [SalesOrderQuoteSettingAuditId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [SalesOrderQuoteSettingId]      BIGINT        NOT NULL,
+    [QuoteTypeId]                   INT           NOT NULL,
+    [ValidDays]                     INT           NOT NULL,
+    [Prefix]                        VARCHAR (20)  NULL,
+    [Sufix]                         VARCHAR (20)  NULL,
+    [StartCode]                     BIGINT        NULL,
+    [CurrentNumber]                 BIGINT        NULL,
+    [DefaultStatusId]               INT           NOT NULL,
+    [DefaultPriorityId]             BIGINT        NOT NULL,
+    [SOQListViewId]                 INT           NOT NULL,
+    [SOQListStatusId]               INT           NOT NULL,
+    [MasterCompanyId]               INT           NOT NULL,
+    [CreatedBy]                     VARCHAR (256) NOT NULL,
+    [UpdatedBy]                     VARCHAR (256) NOT NULL,
+    [CreatedDate]                   DATETIME2 (7) NOT NULL,
+    [UpdatedDate]                   DATETIME2 (7) NOT NULL,
+    [IsActive]                      BIT           NOT NULL,
+    [IsDeleted]                     BIT           NOT NULL,
+    [IsApprovalRule]                BIT           NULL,
+    [EffectiveDate]                 DATETIME2 (7) NULL,
+    CONSTRAINT [PK_SalesOrderQuoteSettingsAudit] PRIMARY KEY CLUSTERED ([SalesOrderQuoteSettingAuditId] ASC),
+    CONSTRAINT [FK_SalesOrderQuoteSettingsAudit_SalesOrderQuoteSettings] FOREIGN KEY ([SalesOrderQuoteSettingId]) REFERENCES [dbo].[SalesOrderQuoteSettings] ([SalesOrderQuoteSettingId])
+);
+

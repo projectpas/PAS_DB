@@ -1,0 +1,21 @@
+﻿CREATE TYPE [dbo].[WorkflowPublicationType] AS TABLE (
+    [WorkflowPublicationsId] BIGINT         NULL,
+    [PublicationId]          BIGINT         NULL,
+    [PublicationDescription] VARCHAR (500)  NULL,
+    [PublicationType]        VARCHAR (500)  NULL,
+    [Sequence]               VARCHAR (500)  NULL,
+    [Source]                 VARCHAR (500)  NULL,
+    [AircraftManufacturer]   INT            NULL,
+    [Model]                  BIGINT         NULL,
+    [Location]               VARCHAR (500)  NULL,
+    [Revision]               VARCHAR (500)  NULL,
+    [RevisionDate]           VARCHAR (500)  NULL,
+    [VerifiedBy]             VARCHAR (500)  NULL,
+    [VerifiedDate]           VARCHAR (500)  NULL,
+    [Status]                 VARCHAR (500)  NULL,
+    [Image]                  VARCHAR (1000) NULL,
+    [TaskId]                 BIGINT         NULL,
+    [WorkflowId]             BIGINT         NULL,
+    [Order]                  INT            NULL,
+    [IsDeleted]              BIT            NULL);
+

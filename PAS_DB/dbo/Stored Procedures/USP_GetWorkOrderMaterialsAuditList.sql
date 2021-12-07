@@ -1,6 +1,6 @@
 ﻿
 /*************************************************************           
- ** File:   [USP_GetWorkOrderMaterialsList]           
+ ** File:   [USP_GetWorkOrderMaterialsAuditList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
  ** Purpose:         
@@ -19,7 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
      
- EXECUTE USP_GetWorkOrderMaterialsAuditList 352
+ EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
 **************************************************************/ 
     
@@ -99,7 +99,10 @@ SET NOCOUNT ON
 					MSTL.Quantity AS StocklineQuantity,
 					QuantityIssued = WOM.QuantityIssued,
 					WOM.QuantityReserved,
-					QunatityRemaining = WOM.Quantity - (WOM.QuantityReserved),
+					QunatityRemaining = ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)),
+					WOM.QtyOnOrder, 
+					WOM.QtyOnBkOrder,
+					WOM.PONum AS PurchaseOrderNumber,
 					WOM.Quantity,
 					WOM.ConditionCodeId,
 					WOM.UnitOfMeasureId,
@@ -130,7 +133,9 @@ SET NOCOUNT ON
 					WOM.CreatedBy,
 					WOM.UpdatedBy,
 					WOM.CreatedDate,
-					WOM.UpdatedDate
+					WOM.UpdatedDate,
+					ROP.EstRecordDate 'RONextDlvrDate',
+					RO.RepairOrderNumber
 				FROM dbo.WorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 					JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -145,6 +150,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Bin B WITH (NOLOCK) ON B.BinId = IM.BinId
 					LEFT JOIN dbo.SubWorkOrderMaterialMapping SBWOMM WITH (NOLOCK) ON SBWOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId
 			END
 		COMMIT  TRANSACTION

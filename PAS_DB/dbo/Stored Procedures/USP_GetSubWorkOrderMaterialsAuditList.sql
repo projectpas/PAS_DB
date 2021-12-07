@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/23/2021   Subhash Saliya Created
+	2    12/07/2021   Hemant Saliya  Added new field for Audit log
      
  EXECUTE USP_GetSubWorkOrderMaterialsAuditList 68
 
@@ -96,8 +97,8 @@ SET NOCOUNT ON
 										WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId ),
 							MSTL.Quantity AS StocklineQuantity,
 							QuantityIssued = WOM.QuantityIssued,
-							WOM.QuantityReserved,
-							QunatityRemaining = WOM.Quantity - (WOM.QuantityReserved),
+							WOM.QuantityReserved,	
+							QunatityRemaining = ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0)),							
 							WOM.Quantity,
 							WOM.ConditionCodeId,
 							WOM.UnitOfMeasureId,
@@ -125,7 +126,9 @@ SET NOCOUNT ON
 							WOM.CreatedBy,
 							WOM.UpdatedBy,
 							WOM.CreatedDate,
-							WOM.UpdatedDate
+							WOM.UpdatedDate,
+							ROP.EstRecordDate 'RONextDlvrDate',
+							RO.RepairOrderNumber
 					FROM dbo.SubWorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -142,7 +145,9 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Location L WITH (NOLOCK) ON L.LocationId = IM.LocationId
 						LEFT JOIN dbo.Shelf SLF WITH (NOLOCK) ON SLF.ShelfId = IM.ShelfId
 						LEFT JOIN dbo.Bin B WITH (NOLOCK) ON B.BinId = IM.BinId
-						WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
+						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
+					WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 
 				END
 			COMMIT  TRANSACTION

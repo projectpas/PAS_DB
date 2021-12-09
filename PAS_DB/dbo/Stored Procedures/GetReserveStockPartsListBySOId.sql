@@ -136,8 +136,8 @@ BEGIN
 		, (SELECT sor.AltPartMasterPartId FROM SalesOrderReserveParts SOR WHERE SOP.SalesOrderPartId = SOR.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId) AS AltPartMasterPartId
 		, (SELECT sor.EquPartMasterPartId FROM SalesOrderReserveParts SOR WHERE SOP.SalesOrderPartId = SOR.SalesOrderPartId AND SOR.SalesOrderId = @SalesOrderId) AS EquPartMasterPartId
 		, 0 AS QtyToReserve
-		, (CASE WHEN (sop.MethodType = 'I') THEN ISNULL(sop.QtyRequested, 0) ELSE ISNULL(sop.Qty, 0) END - 
-		CASE WHEN (sop.MethodType = 'I') THEN 
+		, (CASE WHEN (sop.MethodType = 'I' AND sop.StockLineId is null) THEN ISNULL(sop.QtyRequested, 0) ELSE ISNULL(sop.Qty, 0) END - 
+		CASE WHEN (sop.MethodType = 'I' AND sop.StockLineId is null) THEN 
 		(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM SalesOrderReserveParts SOR WHERE IM.ItemMasterId = SOR.ItemMasterId AND SOR.SalesOrderId = @SalesOrderId)
 		ELSE
 		(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM SalesOrderReserveParts SOR WHERE SOP.StockLineId = SOR.StockLineId AND SOR.SalesOrderId = @SalesOrderId) 
@@ -162,8 +162,9 @@ BEGIN
 		AND 
 		((sop.MethodType <> 'I' AND sl.StockLineId = sop.StockLineId)
         OR ((sop.MethodType = 'I' AND sop.StockLineId is null) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId)
-        --OR ((sop.MethodType = 'I' AND sl.StockLineId = sop.StockLineId) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
-		OR ((sop.MethodType = 'I') AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
+        OR ((sop.MethodType = 'I' AND sl.StockLineId = sop.StockLineId) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId)
+		)
+		--OR ((sop.MethodType = 'I') AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
 		GROUP BY so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description,
 		im.PartNumber, im.PartDescription
 		, sl.QuantityAvailable

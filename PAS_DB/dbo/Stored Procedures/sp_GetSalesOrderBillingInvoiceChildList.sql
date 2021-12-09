@@ -10,7 +10,8 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				SELECT DISTINCT sosi.SalesOrderShippingId, 
-				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS SOBillingInvoicingId,
+				--(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS SOBillingInvoicingId,
+				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where b.SalesOrderShippingId = sosi.SalesOrderShippingId) AS SOBillingInvoicingId,
 				(SELECT TOP 1 a.InvoiceDate FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceDate,
 				(SELECT TOP 1 a.InvoiceNo FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceNo,
 				sos.SOShippingNum, sosi.QtyShipped as QtyToBill, 

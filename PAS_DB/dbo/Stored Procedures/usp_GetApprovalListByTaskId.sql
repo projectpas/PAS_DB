@@ -1,5 +1,5 @@
 ﻿
---exec [usp_GetApprovalListByTaskId] 5, 58
+--exec [usp_GetApprovalListByTaskId] 5, 62
 CREATE Procedure [dbo].[usp_GetApprovalListByTaskId]
 @TaskId  bigint,
 @ID bigint
@@ -56,10 +56,10 @@ ELSE IF @TaskType = 'Sales Quote Approval'
 BEGIN
 SET @TotalCostText = 'Total SOQ Cost'
 
-DECLARE @TotalCharges AS DECIMAL(18, 2);
-DECLARE @FlatCharges AS DECIMAL(18, 2);
+DECLARE @TotalCharges AS DECIMAL(18, 2) = 0;
+DECLARE @FlatCharges AS DECIMAL(18, 2) = 0;
 
-SELECT @TotalCharges = SUM(ISNULL(soqc.BillingAmount, 0)) FROM DBO.SalesOrderQuoteCharges soqc WITH (NOLOCK) WHERE soqc.SalesOrderQuoteId = @ID 
+SELECT @TotalCharges = ISNULL(SUM(soqc.BillingAmount), 0) FROM DBO.SalesOrderQuoteCharges soqc WITH (NOLOCK) WHERE soqc.SalesOrderQuoteId = @ID 
 				AND soqc.IsActive = 1 AND soqc.IsDeleted = 0
 DECLARE @BillingMethod INT;
 
@@ -93,10 +93,10 @@ SET @TotalCostText = 'Total SO Cost'
 --	  INNER JOIN dbo.SalesOrder so WITH(NOLOCK) on sos.SalesOrderId = so.SalesOrderId
 --	  WHERE sos.SalesOrderId = @ID
 
-DECLARE @TotalCharges_SO AS DECIMAL(18, 2);
-DECLARE @FlatCharges_SO AS DECIMAL(18, 2);
+DECLARE @TotalCharges_SO AS DECIMAL(18, 2) = 0;
+DECLARE @FlatCharges_SO AS DECIMAL(18, 2) = 0;
 
-SELECT @TotalCharges = SUM(ISNULL(soc.BillingAmount, 0)) FROM DBO.SalesOrderCharges soc WITH (NOLOCK) WHERE soc.SalesOrderId = @ID 
+SELECT @TotalCharges = ISNULL(SUM(soc.BillingAmount), 0) FROM DBO.SalesOrderCharges soc WITH (NOLOCK) WHERE soc.SalesOrderId = @ID 
 				AND soc.IsActive = 1 AND soc.IsDeleted = 0
 DECLARE @BillingMethod_SO INT;
 
@@ -114,7 +114,7 @@ ELSE
 BEGIN
 	SET @TotalCost = @TotalCost + @TotalCharges_SO
 END
-
+PRINT @TotalCost
 SELECT @MSID = ManagementStructureId,
 		@EID = so.EmployeeId,
 		@MasterCompanyID = so.MasterCompanyId

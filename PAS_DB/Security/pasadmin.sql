@@ -1,2 +1,2 @@
-﻿CREATE USER [pasadmin];
+﻿--CREATE USER [pasadmin];
 

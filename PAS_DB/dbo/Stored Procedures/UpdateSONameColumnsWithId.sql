@@ -4,7 +4,7 @@
 -- Create date: 23-Dec-2020
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
 -- =============================================
---  EXEC [dbo].[UpdateSONameColumnsWithId] 5
+--  EXEC [dbo].[UpdateSONameColumnsWithId] 62
 CREATE PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
 AS
@@ -98,7 +98,8 @@ BEGIN
 		Where SO.SalesOrderId = @SalesOrderId
 
 		Update SOP
-		SET UnitSalesPricePerUnit = (sop.GrossSalePricePerUnit - sop.DiscountAmount)
+		SET UnitSalesPricePerUnit = (sop.GrossSalePricePerUnit - sop.DiscountAmount),
+		NetSales = (sop.GrossSalePricePerUnit - sop.DiscountAmount) * sop.Qty
 		FROM [dbo].[SalesOrderPart] sop WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sop.StockLineId = sl.StockLineId

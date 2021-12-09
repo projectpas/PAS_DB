@@ -162,7 +162,9 @@ BEGIN
 		AND 
 		((sop.MethodType <> 'I' AND sl.StockLineId = sop.StockLineId)
         OR ((sop.MethodType = 'I' AND sop.StockLineId is null) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId)
-        OR ((sop.MethodType = 'I' AND sl.StockLineId = sop.StockLineId) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
+        OR ((sop.MethodType = 'I' AND sl.StockLineId = sop.StockLineId) AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId)
+		)
+		--OR ((sop.MethodType = 'I') AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
 		GROUP BY so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description,
 		im.PartNumber, im.PartDescription
 		, sl.QuantityAvailable

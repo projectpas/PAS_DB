@@ -1,6 +1,7 @@
 ﻿CREATE Procedure [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	@SalesOrderId  bigint,
-	@SalesOrderPartId bigint
+	@SalesOrderPartId bigint,
+	@ConditionId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -38,7 +39,7 @@ BEGIN
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId
 				LEFT JOIN DBO.SalesOrderFreight sof WITH (NOLOCK) ON so.SalesOrderId = sof.SalesOrderId AND sof.IsActive = 1 AND sof.IsDeleted = 0
 				LEFT JOIN DBO.SalesOrderCharges socg WITH (NOLOCK) ON so.SalesOrderId = socg.SalesOrderId AND socg.IsActive = 1 AND socg.IsDeleted = 0
-				WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId
+				WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 				GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 				sl.SerialNumber, cr.[Name], sop.ItemNo, sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code,
 				sobi.InvoiceStatus, sosi.QtyShipped,

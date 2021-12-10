@@ -1,6 +1,7 @@
 ﻿CREATE Procedure [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	@SalesOrderId  bigint,
-	@SalesOrderPartId bigint
+	@SalesOrderPartId bigint,
+	@ConditionId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -9,7 +10,8 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				SELECT DISTINCT sosi.SalesOrderShippingId, 
-				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS SOBillingInvoicingId,
+				--(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS SOBillingInvoicingId,
+				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where b.SalesOrderShippingId = sosi.SalesOrderShippingId) AS SOBillingInvoicingId,
 				(SELECT TOP 1 a.InvoiceDate FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceDate,
 				(SELECT TOP 1 a.InvoiceNo FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceNo,
 				sos.SOShippingNum, sosi.QtyShipped as QtyToBill, 
@@ -38,7 +40,7 @@ BEGIN
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId
 				LEFT JOIN DBO.SalesOrderFreight sof WITH (NOLOCK) ON so.SalesOrderId = sof.SalesOrderId AND sof.IsActive = 1 AND sof.IsDeleted = 0
 				LEFT JOIN DBO.SalesOrderCharges socg WITH (NOLOCK) ON so.SalesOrderId = socg.SalesOrderId AND socg.IsActive = 1 AND socg.IsDeleted = 0
-				WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId
+				WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 				GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 				sl.SerialNumber, cr.[Name], sop.ItemNo, sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code,
 				sobi.InvoiceStatus, sosi.QtyShipped,

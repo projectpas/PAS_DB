@@ -10,19 +10,67 @@ BEGIN
 
 	BEGIN TRY
 		BEGIN
-			;WITH Ranked
-			AS
-			(
-			   SELECT *, CAST(DENSE_RANK() OVER(ORDER BY ItemMasterId, ConditionId, CreatedBy) AS INT) row_num
-			   FROM DBO.SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId
-			   AND IsDeleted = 0
+			--;WITH Ranked
+			--AS
+			--(
+			--   SELECT *, CAST(DENSE_RANK() OVER(ORDER BY SalesOrderQuotePartId, ItemMasterId, ConditionId) AS INT) row_num
+			--   FROM DBO.SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId
+			--   AND IsDeleted = 0
+			--)
+
+			--UPDATE Ranked
+			--SET ItemNo = row_num;
+
+			--SELECT PartNumber as [value] FROM SalesOrderQuotePart Where SalesOrderQuoteId = @SalesOrderQuoteId
+			IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuotePart') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpSalesOrderQuotePart 
+			END
+
+			CREATE TABLE #tmpSalesOrderQuotePart 
+			( 
+			  ID bigint IDENTITY,
+			  SalesOrderQuotePartid   bigint,
+			  ItemMasterId bigint,
+			  ConditionId bigint,
+			  LineId int NULL default 0
 			)
 
-			UPDATE Ranked
-			SET ItemNo = row_num;
+			INSERT INTO #tmpSalesOrderQuotePart(SalesOrderQuotePartid,ItemMasterId,ConditionId)
+			       SELECT SalesOrderQuotePartId,ItemMasterId,ConditionId
+				       FROM dbo.SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId AND IsDeleted = 0  order by SalesOrderQuotePartId DESC
 
-			SELECT PartNumber as [value] FROM SalesOrderQuotePart Where SalesOrderQuoteId = @SalesOrderQuoteId
+			DECLARE  @MasterLoopID as bigint  = 0;
+			DECLARE  @ConditionID as bigint  = 0;
+			DECLARE  @ItemMasterID as bigint  = 0;
+			DECLARE  @RankID as bigint  = 1;
+			SELECT @MasterLoopID = MAX(ID) FROM #tmpSalesOrderQuotePart
 
+			WHILE (@MasterLoopID > 0)
+			BEGIN
+				 SELECT  @ConditionID = ConditionId,
+				         @ItemMasterID = ItemMasterId FROM #tmpSalesOrderQuotePart WHERE ID = @MasterLoopID  
+
+                 UPDATE #tmpSalesOrderQuotePart 
+				      SET LineId =  @RankID 
+					  FROM #tmpSalesOrderQuotePart WHERE ConditionId = @ConditionID 
+					                          AND ItemMasterId = @ItemMasterID
+											  AND LineId = 0
+
+                 IF EXISTS (SELECT ID FROM #tmpSalesOrderQuotePart wHERE LineId = 0 ) 
+				 BEGIN
+				    SET @RankID = @RankID +  1;
+				 END
+
+				 SET @MasterLoopID = @MasterLoopID - 1;
+			END
+			
+			UPDATE SalesOrderQuotePart
+			SET ItemNo = t.LineId
+			   FROM dbo.SalesOrderQuotePart SOP WITH(NOLOCK) INNER JOIN #tmpSalesOrderQuotePart t
+			        ON SOP.SalesOrderQuotePartId = t.SalesOrderQuotePartId		
+
+			SELECT CustomerReference as [value] FROM SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId
 		END
 
 	END TRY    

@@ -1,24 +1,6 @@
-﻿/*************************************************************           
- ** File:   [GetReserveStockPartsListBySOId]          
- ** Author:   Vishal Suthar
- ** Description: This stored procedure is used to get the stocklines to be reserved from SO Parts
- ** Purpose:         
- ** Date: 
-         
- ** PARAMETERS:
-         
- ** RETURN VALUE:           
- 
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/08/2021   Vishal Suthar Modified the logic
-     
- EXEC [dbo].[GetReserveStockPartsListBySOId] 190
-**************************************************************/
-CREATE PROC [dbo].[GetReserveStockPartsListBySOId]
+﻿
+-- EXEC [dbo].[GetReserveStockPartsListBySOId_NEW] 62
+CREATE PROC [dbo].[GetReserveStockPartsListBySOId_NEW]
 @SalesOrderId  bigint
 AS
 BEGIN
@@ -319,6 +301,7 @@ BEGIN
 			PartDescription, Quantity, ReservedById, IssuedById, PartStatusId, IsAltPart, IsEquPart,
 			AltPartMasterPartId, EquPartMasterPartId, QtyToReserve, QtyToBeReserved, QuantityReserved, QuantityAvailable, QuantityOnHand, 
 			QuantityOnOrder, StockLineId, StockLineNumber, ControlNumber, StockType, MasterCompanyId FROM #tmpReservedSalesOrderParts
+		
 	END
 	COMMIT  TRANSACTION
 	END TRY    
@@ -329,7 +312,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetReserveStockPartsListBySOId' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

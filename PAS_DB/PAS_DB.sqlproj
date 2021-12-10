@@ -1561,5 +1561,7 @@
     <Build Include="dbo\User Defined Types\WorkflowEquipmentType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowDirectionsType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowChargesType.sql" />
+    <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_Old.sql" />
+    <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_NEW.sql" />
   </ItemGroup>
 </Project>

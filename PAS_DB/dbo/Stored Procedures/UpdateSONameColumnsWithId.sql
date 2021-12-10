@@ -98,7 +98,8 @@ BEGIN
 		Where SO.SalesOrderId = @SalesOrderId
 
 		Update SOP
-		SET UnitSalesPricePerUnit = (sop.GrossSalePricePerUnit - sop.DiscountAmount)
+		SET UnitSalesPricePerUnit = (sop.GrossSalePricePerUnit - sop.DiscountAmount),
+		NetSales = (sop.GrossSalePricePerUnit - sop.DiscountAmount) * sop.Qty
 		FROM [dbo].[SalesOrderPart] sop WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sop.StockLineId = sl.StockLineId

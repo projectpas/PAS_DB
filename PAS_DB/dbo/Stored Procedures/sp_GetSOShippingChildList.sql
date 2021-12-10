@@ -1,6 +1,7 @@
 ﻿CREATE Procedure [dbo].[sp_GetSOShippingChildList]
-@SalesOrderId  bigint,
-@SalesOrderPartId bigint
+	@SalesOrderId  bigint,
+	@SalesOrderPartId bigint,
+	@ConditionId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -31,8 +32,9 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId 
 					AND SPI.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
-		WHERE sopt.SalesOrderId = @SalesOrderId 
+		WHERE sopt.SalesOrderId = @SalesOrderId
 		AND sop.ItemMasterId = @SalesOrderPartId
+		AND sop.ConditionId = @ConditionId
 		AND sopt.IsConfirmed = 1
 	END
 	COMMIT  TRANSACTION

@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/08/2021   Vishal Suthar Modified the logic
      
- EXEC [dbo].[GetReserveStockPartsListBySOId] 190
+ EXEC [dbo].[GetReserveStockPartsListBySOId] 69
 **************************************************************/
 CREATE PROC [dbo].[GetReserveStockPartsListBySOId]
 @SalesOrderId  bigint
@@ -199,7 +199,7 @@ BEGIN
 				INNER JOIN #tmpUniqueSalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) on sop.ItemMasterId = im.ItemMasterId
 				INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId
+				LEFT JOIN DBO.StockLine SL WITH (NOLOCK) ON sl.StockLineId = SOP.StockLineId --im.ItemMasterId = sl.ItemMasterId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 				WHERE so.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId
 				AND SL.QuantityAvailable > 0

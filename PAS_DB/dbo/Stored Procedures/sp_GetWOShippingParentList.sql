@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_GetWOShippingParentList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Shipping List    
@@ -19,12 +20,11 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 
      
- EXECUTE [sp_GetWOShippingParentList] 154, null
+ EXECUTE [sp_GetWOShippingParentList] 34, 39
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetWOShippingParentList]
 @WorkOrderId  bigint,
 @WorkOrderPartId bigint
-
 AS
 BEGIN
 
@@ -44,13 +44,15 @@ BEGIN
 					wop.ID as WorkOrderPartId,
 					SUM(ISNULL(wopt.QtyToShip, 0)) - SUM(ISNULL(wosi.QtyShipped,0)) as QtyRemaining,
 					CASE WHEN SUM(ISNULL(wopt.QtyToShip, 0)) = SUM(ISNULL(wosi.QtyShipped, 0)) THEN 'Fullfilled'
-					ELSE 'Fullfilling' END as [Status],1 as ItemNo,isnull(cds.ShipViaId,0) as ShipViaId
+					ELSE 'Fullfilling' END as [Status],1 as ItemNo,
+					isnull(cds.ShipViaId,0) as ShipViaId
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)
 					LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 					INNER JOIN DBO.WOPickTicket wopt  WITH(NOLOCK) on wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
-					LEFT JOIN DBO.CustomerDomensticShippingShipVia cds WITH(NOLOCK) on cds.CustomerId = wo.CustomerId and cds.IsPrimary=1
+					LEFT JOIN DBO.CustomerDomensticShipping CDSD WITH(NOLOCK) ON CDSD.CustomerId = wo.CustomerId and CDSD.IsPrimary=1
+					LEFT JOIN DBO.CustomerDomensticShippingShipVia cds WITH(NOLOCK) ON CDSD.CustomerDomensticShippingId = cds.CustomerDomensticShippingId and cds.IsPrimary=1					
 					LEFT JOIN DBO.WorkOrderShippingItem wosi  WITH(NOLOCK) on wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId and wos.WorkOrderId = wo.WorkOrderId
 				WHERE wop.WorkOrderId = @WorkOrderId AND wopt.IsConfirmed = 1 --and wop.ID=@WorkOrderPartId

@@ -12,6 +12,10 @@
     [IsActive]                    BIT           NOT NULL,
     [IsDeleted]                   BIT           NOT NULL,
     [Effectivedate]               DATETIME2 (7) NULL,
+    [PriorityId]                  BIGINT        NULL,
+    [Priority]                    VARCHAR (100) NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
+
+
 

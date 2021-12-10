@@ -11,9 +11,13 @@
     [IsActive]               BIT           CONSTRAINT [DF_PurchaseOrderSettingMaster_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT           CONSTRAINT [DF_PurchaseOrderSettingMaster_IsDelete] DEFAULT ((0)) NOT NULL,
     [Effectivedate]          DATETIME2 (7) NULL,
+    [PriorityId]             BIGINT        NULL,
+    [Priority]               VARCHAR (100) NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

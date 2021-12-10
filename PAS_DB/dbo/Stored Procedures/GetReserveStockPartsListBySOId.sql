@@ -223,7 +223,8 @@ BEGIN
 				,sop.SalesOrderPartId
 				,SOP.StockLineId
 				Having (ISNULL(sop.QtyRequested, 0) - 
-				(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SL.StockLineId = SOR.StockLineId AND SOR.SalesOrderId = @SalesOrderId)) > 0
+				(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SOR.ItemMasterId = @ItemMasterID AND SOR.SalesOrderId = @SalesOrderId) -
+				(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0
 
 				INSERT INTO #tmpReservedSalesOrderParts
 				SELECT * FROM #tmpb Where StockLineId NOT IN (SELECT StockLineId FROM #tmpReservedSalesOrderParts) ORDER BY StockLineId 
@@ -302,7 +303,7 @@ BEGIN
 				,SOP.QtyRequested,
 				SOP.SalesOrderPartid
 				Having (ISNULL(SUM(sop.QtyRequested), 0) -
-				(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SL.StockLineId = SOR.StockLineId AND SOR.SalesOrderId = @SalesOrderId)) > 0
+				(SELECT ISNULL(SUM(SalesP.Qty), 0) FROM DBO.SalesOrderPart SalesP WITH (NOLOCK) WHERE SalesP.ItemMasterId = SL.ItemMasterId AND SalesP.ConditionId = SL.ConditionId AND SalesP.MethodType = 'I' AND SalesP.StockLineId IS NOT NULL AND SalesP.SalesOrderId = @SalesOrderId)) > 0
 
 				INSERT INTO #tmpReservedSalesOrderParts
 				SELECT * FROM #tmpc Where StockLineId NOT IN (SELECT StockLineId FROM #tmpReservedSalesOrderParts)

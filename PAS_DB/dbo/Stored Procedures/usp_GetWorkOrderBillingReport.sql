@@ -87,35 +87,34 @@ BEGIN
       END
 
       SELECT DISTINCT
-        (C.Name) 'Customer Name',
-        C.CustomerCode 'Customer Code',
-        (IM.partnumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        RC.SerialNumber 'Serial Num',
-        WS.WorkScopeCode 'work scope',
-        WO.WorkOrderNum 'WO Num',
+        UPPER(C.Name) 'Customer Name',
+        UPPER(C.CustomerCode) 'Customer Code',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(RC.SerialNumber) 'Serial Num',
+        UPPER(WS.WorkScopeCode) 'work scope',
+        UPPER(WO.WorkOrderNum) 'WO Num',
         (WOPN.ReceivedDate) 'Received Date',
         (WO.OpenDate) 'WO Open Date',
         WOBI.InvoiceNo 'Invoice Num',
         WOBI.InvoiceDate 'InvoiceDate',
         WOBI.GrandTotal 'Revenue',
-        WOQ.QuoteNumber 'Quote Num',
+        UPPER(WOQ.QuoteNumber) 'Quote Num',
         WOQ.SentDate 'Quote Date',
         WOQ.ApprovedDate 'Quote Approval Date',
         WOS.ShipDate 'Ship Date',
-        --WO.mastercompanyid,
         CASE
           WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RC.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
           WHEN ApprovedDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RC.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
           WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RC.ReceivedDate)
           WHEN RC.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RC.ReceivedDate, GETDATE())
         END AS 'TAT',
-		WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4,        
-        E.FirstName + ' ' + E.LastName 'Sales Person',
-        E1.FirstName + ' ' + E1.LastName 'CSR'
+		UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4,        
+        UPPER(E.FirstName + ' ' + E.LastName) 'Sales Person',
+        UPPER(E1.FirstName + ' ' + E1.LastName) 'CSR'
       FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
       LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK)
         ON WOBI.WorkOrderId = WO.WorkOrderId
@@ -148,7 +147,6 @@ BEGIN
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = WOBI.ManagementStructureId
       WHERE C.Name IN (@name) OR @name = ' '
-      --AND WOBI.invoicedate BETWEEN (@FromDate) AND (@ToDate)
 	  AND CAST(WOBI.invoicedate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)
       AND WO.mastercompanyid = @mastercompanyid
 

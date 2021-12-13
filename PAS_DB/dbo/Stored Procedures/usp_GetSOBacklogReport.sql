@@ -88,24 +88,24 @@ BEGIN
 
 
       SELECT DISTINCT
-        SO.SalesOrderNumber 'SONum',
+        UPPER(SO.SalesOrderNumber) 'SONum',
         CONVERT(varchar, SO.openDate, 101) 'OpenDate',
-        SOQ.SalesOrderQuoteNumber 'Quote Num',
-		ST.name AS 'Status',        
-        IM.partnumber AS 'PN',
-        IM.PartDescription AS 'PNDescription',
-        C.Name AS 'Customer',
-        SO.customerreference 'Cust Ref',
+        UPPER(SOQ.SalesOrderQuoteNumber) 'Quote Num',
+		UPPER(ST.name) AS 'Status',        
+        UPPER(IM.partnumber) AS 'PN',
+        UPPER(IM.PartDescription) AS 'PNDescription',
+        UPPER(C.Name) AS 'Customer',
+        UPPER(SO.customerreference) 'Cust Ref',
         SOP.qty 'Qty',
         SOP.unitcost 'Unit Cost',
         SOP.qty * SOP.unitcost 'Ext cost',
         SOP.CustomerRequestDate AS 'Cust Request Date',
         SOP.EstimatedShipDate AS ' Ship Date',
         SO.Statuschangedate 'SO Approved Date',
-        SOBI.level1 AS LEVEL1,
-		SOBI.level2 AS LEVEL2,
-		SOBI.level3 AS LEVEL3,
-		SOBI.level4 AS LEVEL4
+        UPPER(SO.level1) AS LEVEL1,
+		UPPER(SO.level2) AS LEVEL2,
+		UPPER(SO.level3) AS LEVEL3,
+		UPPER(SO.level4) AS LEVEL4
       FROM DBO.salesorder SO WITH (NOLOCK)
 	  JOIN dbo.MasterSalesOrderQuoteStatus ST WITH (NOLOCK) ON SO.StatusId = ST.id
       LEFT JOIN DBO.SalesOrderquote SOQ WITH (NOLOCK)

@@ -56,7 +56,7 @@ BEGIN
 				if(isnull(@count,0) != 0)
 				begin
 
-					select ManagementStructureId as LEVEL2, (Code + '-' +  [Name])  as BU from dbo.ManagementStructure 
+					select ManagementStructureId as LEVEL2, UPPER(Code + '-' +  [Name])  as BU from dbo.ManagementStructure 
 					Where ParentId in ( select ManagementStructureId FROM #ManagmetnStrcture) AND (MasterCompanyId = @mastercompanyid)
 					UNION 
 					SELECT 0 as LEVEL2, 'NULL' as BU

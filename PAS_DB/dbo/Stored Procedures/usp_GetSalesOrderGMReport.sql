@@ -75,19 +75,19 @@ BEGIN
       END
 
       SELECT DISTINCT
-        C.NAME 'Customer Name',
-        C.customercode 'Customer Code',
-        IM.partnumber 'PN',
-        IM.partdescription 'PN Description',
-        CDTN.description 'Condition',
-        SO.salesordernumber 'SO Num',
-        WO.workordernum 'WO Num',
+        UPPER(C.NAME) 'Customer Name',
+        UPPER(C.customercode) 'Customer Code',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.partdescription) 'PN Description',
+        UPPER(CDTN.description) 'Condition',
+        UPPER(SO.salesordernumber) 'SO Num',
+        UPPER(WO.workordernum) 'WO Num',
         CONVERT(varchar, STL.receiveddate, 101) 'Received Date',
         CONVERT(varchar, SO.opendate, 101) ' Open Date',
-        SOBI.invoiceno 'Invoice Num',
+        UPPER(SOBI.invoiceno) 'Invoice Num',
         SOBI.invoicedate 'InvoiceDate',
         SOP.netsales 'Netsales',
-        SOMS.misc 'Misc',
+        UPPER(SOMS.misc) 'Misc',
         (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
         SOMS.productcost 'Direct Cost',
         ((SOMS.productcost) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) '%TD of Rev',
@@ -99,13 +99,13 @@ BEGIN
           WHEN soq.statusid = 5 THEN soq.statuschangedate
         END AS 'Quote Approval Date',
         SOBI.shipdate 'Ship Date',
-		SOBI.level1 AS LEVEL1,
-		SOBI.level2 AS LEVEL2,
-		SOBI.level3 AS LEVEL3,
-		SOBI.level4 AS LEVEL4,        
-        E.firstname + ' ' + E.lastname
+		UPPER(SOBI.level1) AS LEVEL1,
+		UPPER(SOBI.level2) AS LEVEL2,
+		UPPER(SOBI.level3) AS LEVEL3,
+		UPPER(SOBI.level4) AS LEVEL4,        
+        UPPER(E.firstname + ' ' + E.lastname)
         'Sales Person',
-        E1.firstname + ' ' + E1.lastname
+        UPPER(E1.firstname + ' ' + E1.lastname)
         'CSR'
       FROM dbo.salesorder SO WITH (NOLOCK)
       LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK)

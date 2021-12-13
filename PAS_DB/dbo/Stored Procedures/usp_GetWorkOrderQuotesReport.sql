@@ -90,29 +90,29 @@ BEGIN
 
 	  --select * FROM #ManagmetnStrcture
       SELECT DISTINCT
-        (IM.PartNumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        RCW.SerialNumber 'Serial Num',
-        WS.WorkScopeCode 'Workscope',
-        WOQ.QuoteNumber 'Quote Num',
-        WOQ.Versionno 'Version',
-        WOQS.Description 'Quote Status',
+        UPPER(IM.PartNumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(RCW.SerialNumber) 'Serial Num',
+        UPPER(WS.WorkScopeCode) 'Workscope',
+        UPPER(WOQ.QuoteNumber) 'Quote Num',
+        UPPER(WOQ.Versionno) 'Version',
+        UPPER(WOQS.Description) 'Quote Status',
         WOQ.sentDate 'QuoteDate',
         WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount 'Revenue',
         WOQD.MaterialCost + WOQD.laborcost + WOQD.ChargesCost 'Direct Cost',
         (WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount) - (WOQD.MaterialCost + WOQD.laborcost + WOQD.ChargesCost) 'Margin',
         ((WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount) - (WOQD.MaterialCost + WOQD.laborcost + WOQD.ChargesCost)) / NULLIF(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount, 0) 'Margin %',
-        (C.Name) 'Customer Name',
-        C.CustomerCode 'CustomerCode',
-        (ISNULL(Contact.FirstName, '') + ' ' + ISNULL(Contact.LastName, '')) AS 'Customercontact',
-        C.Email 'Email',
-        C.CustomerPhone 'Phone',
-		WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4, 
-        E.FirstName + ' ' + E.lastname 'Sales Person',
-        E1.FirstName 'CSR'
+        UPPER(C.Name) 'Customer Name',
+        UPPER(C.CustomerCode) 'CustomerCode',
+        UPPER((ISNULL(Contact.FirstName, '') + ' ' + ISNULL(Contact.LastName, ''))) AS 'Customercontact',
+        UPPER(C.Email) 'Email',
+        UPPER(C.CustomerPhone) 'Phone',
+		UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4, 
+        UPPER(E.FirstName + ' ' + E.lastname) 'Sales Person',
+        UPPER(E1.FirstName) 'CSR'
       FROM DBO.WorkOrder WO WITH (NOLOCK)
       INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK)
         ON WO.WorkOrderId = WOQ.WorkOrderId
@@ -143,15 +143,7 @@ BEGIN
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
           ON WO.MasterCompanyId = MC.MasterCompanyId
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
-          ON MS.ManagementStructureId = WOPN.ManagementStructureId
-        JOIN DBO.ManagementStructure level4 WITH (NOLOCK)
-          ON WOPN.ManagementStructureId = level4.ManagementStructureId
-        LEFT JOIN DBO.ManagementStructure level3 WITH (NOLOCK)
-          ON level4.ParentId = level3.ManagementStructureId
-        LEFT JOIN DBO.ManagementStructure level2 WITH (NOLOCK)
-          ON level3.ParentId = level2.ManagementStructureId
-        LEFT JOIN DBO.ManagementStructure level1 WITH (NOLOCK)
-          ON level2.ParentId = level1.ManagementStructureId
+          ON MS.ManagementStructureId = WOPN.ManagementStructureId        
       WHERE (C.Name IN (@name) OR isnull(@name,'') = '')
 	  AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)
       AND WO.mastercompanyid = @mastercompanyid

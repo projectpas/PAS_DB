@@ -88,17 +88,17 @@ BEGIN
       END
 
       SELECT DISTINCT
-        WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4,
-        IM.partnumber 'MPN',
-        IM.PartDescription 'MPN Description',
-        WO.WorkOrderNum 'WO Num',
-        RCW.serialnumber 'Serial Num',
-        WOT.Description 'WO Type',
-        s.Stage 'Stage',
-        st.Description 'Status',
+        UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4,
+        UPPER(IM.partnumber) 'MPN',
+        UPPER(IM.PartDescription) 'MPN Description',
+        UPPER(WO.WorkOrderNum) 'WO Num',
+        UPPER(RCW.serialnumber) 'Serial Num',
+        UPPER(WOT.Description) 'WO Type',
+        UPPER(s.Stage) 'Stage',
+        UPPER(st.Description) 'Status',
         WOPN.ReceivedDate 'ReceivedDate',
         WO.OpenDate 'Open Date',
         STL.purchaseorderunitcost ' Original Value',
@@ -108,12 +108,12 @@ BEGIN
         WOC.ChargesCost + WOC.FreightCost 'Misc Charge',
         WOC.OtherCost 'Other',
         (STL.PurchaseOrderUnitCost + WOC.PartsCost + WOC.LaborCost + WOC.OverHeadCost + WOC.OtherCost) 'Total',
-        '?' 'Transferred Out',
-        '?' 'Transferred to WO',
-        '?' 'Transferred to Inventory',
+        'N/A' 'Transferred Out',
+        'N/A' 'Transferred to WO',
+        'N/A' 'Transferred to Inventory',
         (STL.PurchaseOrderUnitCost + WOC.PartsCost + WOC.LaborCost + WOC.OverHeadCost + WOC.OtherCost) 'NetWIP',
         DATEDIFF(DAY, RCW.ReceivedDate, GETDATE()) AS 'WO Age (Days)',
-        E.FirstName + ' ' + E.LastName 'Tech Name'
+        UPPER(E.FirstName + ' ' + E.LastName) 'Tech Name'
       FROM DBO.WorkOrder WO WITH (NOLOCK)
       LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK)
         ON WO.WorkOrderId = WOPN.WorkOrderId

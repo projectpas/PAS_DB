@@ -86,27 +86,27 @@ BEGIN
       END
 
       SELECT DISTINCT
-        (RCW.customerName) 'Customer Name',
-        RCW.CustomerCode 'Customer Code',
-        RCW.ReceivingNumber 'Receiver Num',
-        (IM.partnumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        RCW.SerialNumber 'Serial Num',
-        WS.WorkScopeCode 'work scope',
+        UPPER(RCW.customerName) 'Customer Name',
+        UPPER(RCW.CustomerCode) 'Customer Code',
+        UPPER(RCW.ReceivingNumber) 'Receiver Num',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(RCW.SerialNumber) 'Serial Num',
+        UPPER(WS.WorkScopeCode) 'work scope',
         CONVERT(date, RCW.ReceivedDate, 101) 'Received Date',
-        WO.WorkOrderNum 'WO Num',
+        UPPER(WO.WorkOrderNum) 'WO Num',
         CONVERT(date, WO.OpenDate, 101) 'WO Open Date',
-        (WOS.code + '-' + stage) 'Stage Code',
-        WOSS.Description 'Status',
+        UPPER(WOS.code + '-' + stage) 'Stage Code',
+        UPPER(WOSS.Description) 'Status',
         WOPN.NTE 'NTE',
         WOQD.MaterialRevenue + WOQD.LaborRevenue + WOQD.ChargesRevenue + WOQD.FreightRevenue 'Estimated Revenue',
-        WOT.Description 'WO Type',
-        E1.FirstName + ' ' + E1.LastName 'Sales Person',
-        E2.FirstName + ' ' + E2.LastName 'CSR',
-        RCW.level1 'LEVEL1',
-        RCW.level2 'LEVEL2',
-        RCW.level3 'LEVEL3',
-        RCW.level4 'LEVEL4'
+        UPPER(WOT.Description) 'WO Type',
+        UPPER(E1.FirstName + ' ' + E1.LastName) 'Sales Person',
+        UPPER(E2.FirstName + ' ' + E2.LastName) 'CSR',
+        UPPER(RCW.level1) 'LEVEL1',
+        UPPER(RCW.level2) 'LEVEL2',
+        UPPER(RCW.level3) 'LEVEL3',
+        UPPER(RCW.level4) 'LEVEL4'
       FROM DBO.ReceivingCustomerWork RCW WITH (NOLOCK)
       LEFT JOIN DBO.Customer C WITH (NOLOCK)
         ON RCW.CustomerId = C.CustomerId

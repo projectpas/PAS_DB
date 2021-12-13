@@ -89,18 +89,18 @@ BEGIN
 
       --select * FROM #ManagmetnStrctureselect distinct
       SELECT DISTINCT
-        (C.Name) 'Customer Name',
-        C.CustomerCode 'Customer Code',
-        (IM.partnumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        RC.SerialNumber 'Serial Num',
-        WS.WorkScopeCode 'work scope',
-        WO.WorkOrderNum 'WO Num',
+        UPPER(C.Name) 'Customer Name',
+        UPPER(C.CustomerCode) 'Customer Code',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(RC.SerialNumber) 'Serial Num',
+        UPPER(WS.WorkScopeCode) 'work scope',
+        UPPER(WO.WorkOrderNum) 'WO Num',
         CONVERT(varchar, WOPN.ReceivedDate, 101) 'Received Date',
         CONVERT(varchar, WO.OpenDate, 101) 'WO Open Date',
-        WOBI.InvoiceNo 'Invoice Num',
+        UPPER(WOBI.InvoiceNo) 'Invoice Num',
         CONVERT(varchar, WOBI.InvoiceDate, 101) 'InvoiceDate',
-        WOQ.QuoteNumber 'Quote Num',
+        UPPER(WOQ.QuoteNumber) 'Quote Num',
         CONVERT(varchar, WOQ.SentDate, 101) 'Quote Date',
         CONVERT(varchar, WOQ.ApprovedDate, 101) 'Quote Approval Date',
         CONVERT(varchar, WOS.ShipDate, 101) 'Ship Date',
@@ -121,12 +121,12 @@ BEGIN
           WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, Rc.ReceivedDate)
           WHEN RC.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, Rc.ReceivedDate, GETDATE())
         END AS 'TAT',
-		WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4, 
-        E.firstname + ' ' + E.lastname 'Sales Person',
-        E1.firstname + ' ' + E1.lastname 'CSR'
+		UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4, 
+        UPPER(E.firstname + ' ' + E.lastname) 'Sales Person',
+        UPPER(E1.firstname + ' ' + E1.lastname) 'CSR'
       FROM DBO.WorkOrder WO WITH (NOLOCK)
       JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK)
         ON WO.WorkOrderId = WOC.WorkOrderId

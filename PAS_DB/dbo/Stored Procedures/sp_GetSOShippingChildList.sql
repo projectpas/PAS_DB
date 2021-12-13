@@ -1,4 +1,5 @@
-﻿CREATE Procedure [dbo].[sp_GetSOShippingChildList]
+﻿
+CREATE Procedure [dbo].[sp_GetSOShippingChildList]
 	@SalesOrderId  bigint,
 	@SalesOrderPartId bigint,
 	@ConditionId bigint
@@ -16,7 +17,8 @@ BEGIN
 		sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, sop.ItemNo,
 		sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,
 		sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId, 
-		CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo'
+		CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',
+		SOBI.SalesOrderShippingId AS  SOShippingId
 		FROM DBO.SOPickTicket sopt WITH (NOLOCK) 
 		INNER JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId 
 					AND sop.SalesOrderPartId = sopt.SalesOrderPartId
@@ -32,6 +34,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId 
 					AND SPI.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
+		LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.SalesOrderShippingId
 		WHERE sopt.SalesOrderId = @SalesOrderId
 		AND sop.ItemMasterId = @SalesOrderPartId
 		AND sop.ConditionId = @ConditionId

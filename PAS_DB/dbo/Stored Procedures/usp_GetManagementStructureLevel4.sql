@@ -55,7 +55,7 @@ BEGIN
 				if(isnull(@count,0) != 0)
 				begin
 
-					select ManagementStructureId as LEVEL4, (Code + '-' +  [Name])  as DEPT from dbo.ManagementStructure 
+					select ManagementStructureId as LEVEL4, UPPER(Code + '-' +  [Name])  as DEPT from dbo.ManagementStructure 
 					Where ParentId in ( select ManagementStructureId FROM #ManagmetnStrcture) AND (MasterCompanyId = @mastercompanyid)
 					UNION
 					select  0 as LEVEL4, 'NULL' as DEPT

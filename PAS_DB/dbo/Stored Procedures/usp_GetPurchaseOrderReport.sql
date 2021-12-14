@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3	        	  Hemant Added Updated for Upper Case
      
 EXECUTE   [dbo].[usp_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 EXECUTE   [dbo].[usp_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
@@ -91,30 +92,30 @@ BEGIN
 
       --select * FROM #ManagmetnStrcture
       SELECT
-        PO.Level1,
-        PO.Level2,
-        PO.Level3,
-        PO.Level4,
-        PO.PurchaseOrderNumber 'PO NUM',
-        (PO.OpenDate) 'PO Date',
-        (POP.partnumber) 'PN',
-        (POP.PartDescription) 'PN Description',
-        POP.itemtype 'Item Type',
-        POP.stocktype 'StockType',
-        PO.status 'Status',
+        UPPER(PO.Level1),
+        UPPER(PO.Level2),
+        UPPER(PO.Level3),
+        UPPER(PO.Level4),
+        UPPER(PO.PurchaseOrderNumber) 'PO NUM',
+        UPPER(PO.OpenDate) 'PO Date',
+        UPPER(POP.partnumber) 'PN',
+        UPPER(POP.PartDescription) 'PN Description',
+        UPPER(POP.itemtype) 'Item Type',
+        UPPER(POP.stocktype) 'StockType',
+        UPPER(PO.status) 'Status',
         DATEDIFF(DAY, PO.OpenDate, GETDATE()) 'PO Age',
-        (PO.VendorName) 'Vendor Name',
-        PO.VendorCode 'Vendor Code',
-        POP.unitofmeasure 'UOM',
-        PO.Approvedby 'Approver',
-        PO.Requisitioner 'Requisitioner ',
-        POP.QuantityOrdered 'Qty',
-        POP.UnitCost 'Unit Cost',
-        POP.functionalcurrency 'Currency',
-        pop.ExtendedCost 'ExtendedCost',
-        POP.NeedByDate 'Need By',
-        '?' 'Promise Date',
-        '?' 'Next Del Date'
+        UPPER(PO.VendorName) 'Vendor Name',
+        UPPER(PO.VendorCode) 'Vendor Code',
+        UPPER(POP.unitofmeasure) 'UOM',
+        UPPER(PO.Approvedby) 'Approver',
+        UPPER(PO.Requisitioner) 'Requisitioner ',
+        UPPER(POP.QuantityOrdered) 'Qty',
+        UPPER(POP.UnitCost) 'Unit Cost',
+        UPPER(POP.functionalcurrency) 'Currency',
+        UPPER(pop.ExtendedCost) 'ExtendedCost',
+        UPPER(POP.NeedByDate) 'Need By',
+        'NA' 'Promise Date',
+        'NA' 'Next Del Date'
 
       FROM dbo.PurchaseOrder PO WITH (NOLOCK)
       INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK)

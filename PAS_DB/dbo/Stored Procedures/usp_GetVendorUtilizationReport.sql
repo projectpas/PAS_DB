@@ -88,15 +88,15 @@ BEGIN
       END
 
       SELECT DISTINCT
-        PO.Level1,
-        PO.Level2,
-        PO.Level3,
-        PO.Level4,
-        PO.PurchaseOrderNumber 'PO NUM',
+        UPPER(PO.Level1),
+        UPPER(PO.Level2),
+        UPPER(PO.Level3),
+        UPPER(PO.Level4),
+        UPPER(PO.PurchaseOrderNumber) 'PO NUM',
         CONVERT(varchar, PO.OpenDate, 101) 'PO Date',
-        IM.partnumber 'PN',
-        IM.PartDescription 'PN Description',
-        STL.itemtype 'Item Type',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(STL.itemtype) 'Item Type',
         CASE
           WHEN stl.isPma = 1 AND
             stl.IsDER = 1 THEN 'PMA&DER'
@@ -108,10 +108,10 @@ BEGIN
             stl.IsDER = 1 THEN 'DER'
           ELSE 'OEM'
         END AS 'StockType',
-        PO.status 'Status',
-        (PO.VendorName) 'Vendor Name',
-        PO.VendorCode 'Vendor Code',
-        POP.unitofmeasure 'UOM',
+        UPPER(PO.status) 'Status',
+        UPPER(PO.VendorName) 'Vendor Name',
+        UPPER(PO.VendorCode) 'Vendor Code',
+        UPPER(POP.unitofmeasure) 'UOM',
         POP.QuantityOrdered 'Qty',
         POP.PurchaseOrderId,
         POP.PurchaseOrderPartRecordId,
@@ -134,17 +134,17 @@ BEGIN
             AND WOM.ConditionCodeId = POP.ConditionId)
             )) AS QTY,
         STL.UnitCost 'Unit Cost',
-        POP.functionalcurrency 'Currency',
+        UPPER(POP.functionalcurrency) 'Currency',
         STL.PurchaseOrderExtendedCost 'Ext.Amount',
-        '?' 'Local Amount',
+        'N/A' 'Local Amount',
         CONVERT(varchar, POP.NeedByDate, 101) 'Request date',
-        POP.workorderno 'WO Num',
-        (IM1.partnumber) 'WO MPN',
-        (IM1.partdescription) 'MPN Description',
-        POP.salesorderno 'SO Num',
+        UPPER(POP.workorderno) 'WO Num',
+        UPPER(IM1.partnumber) 'WO MPN',
+        UPPER(IM1.partdescription) 'MPN Description',
+        UPPER(POP.salesorderno) 'SO Num',
         '' as  'SO PN',
         '' as 'SOPN Description',
-        C.name 'Customer'
+        UPPER(C.name) 'Customer'
       FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId
@@ -174,15 +174,15 @@ BEGIN
 	  Union all
 
 	  SELECT DISTINCT
-        PO.Level1,
-        PO.Level2,
-        PO.Level3,
-        PO.Level4,
-        PO.PurchaseOrderNumber 'PO NUM',
+        UPPER(PO.Level1),
+        UPPER(PO.Level2),
+        UPPER(PO.Level3),
+        UPPER(PO.Level4),
+        UPPER(PO.PurchaseOrderNumber) 'PO NUM',
         CONVERT(varchar, PO.OpenDate, 101) 'PO Date',
-        IM.partnumber 'PN',
-        IM.PartDescription 'PN Description',
-        STL.itemtype 'Item Type',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(STL.itemtype) 'Item Type',
         CASE
           WHEN stl.isPma = 1 AND
             stl.IsDER = 1 THEN 'PMA&DER'
@@ -194,9 +194,9 @@ BEGIN
             stl.IsDER = 1 THEN 'DER'
           ELSE 'OEM'
         END AS 'StockType',
-        PO.status 'Status',
-        (PO.VendorName) 'Vendor Name',
-        PO.VendorCode 'Vendor Code',
+        UPPER(PO.status) 'Status',
+        UPPER(PO.VendorName) 'Vendor Name',
+        UPPER(PO.VendorCode) 'Vendor Code',
         POP.unitofmeasure 'UOM',
         POP.QuantityOrdered 'Qty',
         POP.PurchaseOrderId,
@@ -211,17 +211,17 @@ BEGIN
             AND SOP.ItemMasterId = POP.ItemMasterId
             AND SOP.ConditionId = POP.ConditionId)) AS QTY,
         STL.UnitCost 'Unit Cost',
-        POP.functionalcurrency 'Currency',
+        UPPER(POP.functionalcurrency) 'Currency',
         STL.PurchaseOrderExtendedCost 'Ext.Amount',
-        '?' 'Local Amount',
+        'N/A' 'Local Amount',
         CONVERT(varchar, POP.NeedByDate, 101) 'Request date',
-        POP.workorderno 'WO Num',
+        UPPER(POP.workorderno) 'WO Num',
         '' as  'WO MPN',
         '' as 'MPN Description',
-        POP.salesorderno 'SO Num',
-        (IM2.partnumber) 'SO PN',
-        (IM2.partdescription) 'SOPN Description',
-        C.name 'Customer'
+        UPPER(POP.salesorderno) 'SO Num',
+        UPPER(IM2.partnumber) 'SO PN',
+        UPPER(IM2.partdescription) 'SOPN Description',
+        UPPER(C.name) 'Customer'
       FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId

@@ -88,14 +88,14 @@ BEGIN
       END
 
       SELECT DISTINCT
-        (Customer.Name) 'Customer Name',
-        Customer.CustomerCode 'CustomerCode',
-        (IM.PartNumber) 'PN',
-        (IM.PartDescription) 'PN Description',
+        UPPER(Customer.Name) 'Customer Name',
+        UPPER(Customer.CustomerCode) 'CustomerCode',
+        UPPER(IM.PartNumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
         WOPN.Quantity 'Qty',
-        WS.WorkScopeCode 'Workscope',
-        (CDTN.Description) 'Condition',
-        WO.WorkOrderNum 'WO Num',
+        UPPER(WS.WorkScopeCode) 'Workscope',
+        UPPER(CDTN.Description) 'Condition',
+        UPPER(WO.WorkOrderNum) 'WO Num',
         WOPN.ReceivedDate 'Received Date',
         WO.opendate 'Open Date',
         WOQ.sentDate 'Quote Date',
@@ -106,11 +106,11 @@ BEGIN
         DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'Days to Ship',
         DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) + DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'TAT',
         WBI.InvoiceDate 'Invoice Date',
-		WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4,
-        E.FirstName + ' ' + E.LastName 'Tech'
+		UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4,
+        UPPER(E.FirstName + ' ' + E.LastName) 'Tech'
       FROM DBO.WorkOrder WO WITH (NOLOCK)
       LEFT JOIN DBO.Customer WITH (NOLOCK)
         ON WO.CustomerId = Customer.CustomerId

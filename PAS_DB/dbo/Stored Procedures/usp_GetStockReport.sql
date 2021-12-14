@@ -87,14 +87,14 @@ BEGIN
       END
 
       SELECT
-        (im.partnumber) AS 'PN',
-        (im.PartDescription) AS 'PN Description',
-        stl.SerialNumber 'Serial Num',
-        stl.stocklineNumber 'SL Num',
-        (stl.condition) 'Cond',
-        (stl.itemgroup) 'Item Group',
-        stl.unitofmeasure 'UOM',
-        stl.itemtype 'Item Type',
+        UPPER(im.partnumber) AS 'PN',
+        UPPER(im.PartDescription) AS 'PN Description',
+        UPPER(stl.SerialNumber) 'Serial Num',
+        UPPER(stl.stocklineNumber) 'SL Num',
+        UPPER(stl.condition) 'Cond',
+        UPPER(stl.itemgroup) 'Item Group',
+        UPPER(stl.unitofmeasure) 'UOM',
+        UPPER(stl.itemtype) 'Item Type',
         CASE
           WHEN stl.isPma = 1 AND
             stl.IsDER = 1 THEN 'PMA&DER'
@@ -106,40 +106,40 @@ BEGIN
             stl.IsDER = 1 THEN 'DER'
           ELSE 'OEM'
         END AS StockType,
-        (POP.altequipartnumber) 'Alt/Equiv',
-        (VNDR.VendorName) 'Vendor Name',
-        VNDR.VendorCode 'Vendor Code',
+        UPPER(POP.altequipartnumber) 'Alt/Equiv',
+        UPPER(VNDR.VendorName) 'Vendor Name',
+        UPPER(VNDR.VendorCode) 'Vendor Code',
         stl.QuantityOnHand 'QTY on Hand',
         stl.QuantityReserved 'Qty Reserved',
-        stl.QuantityAvailable 'Qty Available',
-        '?' 'Qty Scrapped',
+        UPPER(stl.QuantityAvailable) 'Qty Available',
+        'NA' 'Qty Scrapped',
         CASE
           WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN STl.QuantityOnHand - stladj.ChangedTo
         END AS 'Qty Adjusted',
         stl.purchaseorderUnitCost 'Unit Cost',
         stl.PurchaseOrderExtendedCost 'Extended Cost',        
-        stl.OwnerName 'Owner',
-        stl.TraceableToname 'Traceable To',
-        stl.Obtainfromname 'Obtain From',
-        (stl.manufacturer) 'Mfg',
+        UPPER(stl.OwnerName) 'Owner',
+        UPPER(stl.TraceableToname) 'Traceable To',
+        UPPER(stl.Obtainfromname) 'Obtain From',
+        UPPER(stl.manufacturer) 'Mfg',
         stl.UnitSalesPrice 'unit_price',
-        '?' AS extendedPrice,
-        stl.Level1 AS Level1,
-		stl.Level2 AS Level2,
-		stl.Level3 AS Level3,
-		stl.Level4 AS Level4,
-        (stl.site) 'Site',
-        (stl.warehouse) 'Warehouse',
-        (stl.location) 'Location',
-        (stl.shelf) 'Shelf',
-        (stl.bin) 'Bin',
-        stl.glAccountname 'GL Account',
-        pox.PurchaseOrderNumber 'PO Num',
-        rox.RepairOrderNumber 'RO Num',
+        'NA' AS extendedPrice,
+        UPPER(stl.Level1) AS Level1,
+		UPPER(stl.Level2) AS Level2,
+		UPPER(stl.Level3) AS Level3,
+		UPPER(stl.Level4) AS Level4,
+        UPPER(stl.site) 'Site',
+        UPPER(stl.warehouse) 'Warehouse',
+        UPPER(stl.location) 'Location',
+        UPPER(stl.shelf) 'Shelf',
+        UPPER(stl.bin) 'Bin',
+        UPPER(stl.glAccountname) 'GL Account',
+        UPPER(pox.PurchaseOrderNumber) 'PO Num',
+        UPPER(rox.RepairOrderNumber) 'RO Num',
         stl.RepairOrderUnitCost 'RO Cost',
         CONVERT(date, stl.ReceivedDate) 'Received Date',
-        stl.ReceiverNumber 'Receiver Num',
-        stl.ReconciliationNumber 'Receiver Recon'
+        UPPER(stl.ReceiverNumber) 'Receiver Num',
+        UPPER(stl.ReconciliationNumber) 'Receiver Recon'
       FROM DBO.stockline stl WITH (NOLOCK)
       LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK)
         ON stl.ItemMasterId = im.ItemMasterId

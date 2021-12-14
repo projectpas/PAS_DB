@@ -86,15 +86,15 @@ BEGIN
       END
 
       SELECT DISTINCT
-        SOQ.CustomerName 'Customer Name',
-        SOQ.CustomerCode 'CustomerCode',
+        UPPER(SOQ.CustomerName) 'Customer Name',
+        UPPER(SOQ.CustomerCode) 'CustomerCode',
         (SOQP.PartNumber) 'PN',
         (SOQP.PartDescription) 'PNDescription',
-        STL.SerialNumber 'Serial Num',
-        SOQP.ConditionName 'Condition',
-        SOQ.SalesOrderQuoteNumber 'Quote Num',
-        SOQ.Versionnumber 'Version',
-        SOQ.statusname 'QuoteStatus',
+        UPPER(STL.SerialNumber) 'Serial Num',
+        UPPER(SOQP.ConditionName) 'Condition',
+        UPPER(SOQ.SalesOrderQuoteNumber) 'Quote Num',
+        UPPER(SOQ.Versionnumber) 'Version',
+        UPPER(SOQ.statusname) 'QuoteStatus',
         CONVERT(varchar, SOQ.OpenDate, 101) 'QuoteDate',
         ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Revenue',
         ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Direct Cost',
@@ -104,8 +104,8 @@ BEGIN
         ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0))) /
         NULLIF(((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)), 0) 'Margin % ',
         SOQ.QuoteSentDate 'Date Sent',
-        SOQ.CustomerContactName 'ContactName',
-        SOQ.CustomerContactemail 'Email',
+        UPPER(SOQ.CustomerContactName) 'ContactName',
+        UPPER(SOQ.CustomerContactemail) 'Email',
         CASE
           WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
             level3.code + '-' + level3.NAME IS NOT NULL AND
@@ -148,8 +148,8 @@ BEGIN
             level1.code + '-' + level1.NAME IS NOT NULL THEN level4.code + '-' + level4.NAME
           ELSE ''
         END AS LEVEL4,
-        E1.firstname + ' ' + E1.LastName 'Salesperson',
-        E.firstname + ' ' + E.lastname 'CSR'
+        UPPER(E1.firstname + ' ' + E1.LastName) 'Salesperson',
+        UPPER(E.firstname + ' ' + E.lastname) 'CSR'
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
         ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId

@@ -8,7 +8,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				select DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
+				select DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 
 				--SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyToBill,
 				--ISNULL(sop.Qty, 0) as Qty,
 				--(SELECT ISNULL(SUM(NoofPieces), 0) FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS QtyBilled,
@@ -28,7 +28,7 @@ BEGIN
 							AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sosi.QtyShipped
 				WHERE sop.SalesOrderId = @SalesOrderId
 				GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
-				sop.SalesOrderId, imt.ItemMasterId,sop.Qty
+				sop.SalesOrderId, imt.ItemMasterId, sop.Qty, sop.ConditionId
 			END
 			COMMIT  TRANSACTION
 

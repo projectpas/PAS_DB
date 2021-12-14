@@ -20,7 +20,8 @@ BEGIN
 
 		UPDATE dbo.SalesOrderPart
 		SET 
-		Qty = POP.QuantityOrdered, PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
+		--Qty = POP.QuantityOrdered, 
+		PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.SalesOrderPart SOP ON SOP.SalesOrderId = POP.SalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId

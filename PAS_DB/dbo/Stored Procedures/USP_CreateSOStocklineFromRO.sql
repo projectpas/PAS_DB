@@ -16,8 +16,9 @@
  ** PR   Date         Author    Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/25/2021   Vishal Suthar Created
+    2    12/09/2021   Vishal Suthar Added a condition such that it will execute only if Sales Order Number is selected in the part
      
- EXECUTE USP_CreateSOStocklineFromRO 134
+ EXECUTE USP_CreateSOStocklineFromRO 27
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
@@ -142,15 +143,16 @@ BEGIN
 
 			SET @QtyFulfilled = @Quantity;
 
-          SELECT @LoopID = MAX(ID) FROM #StockLineData
-          WHILE (@LoopID > 0)
+		  IF((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH(NOLOCK) WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND ISNULL(RP.SalesOrderId, 0) > 0) > 0)
+		  BEGIN
+			  SELECT @LoopID = MAX(ID) FROM #StockLineData
+			  WHILE (@LoopID > 0)
           BEGIN
             SELECT @StocklineId = StocklineId FROM #StockLineData WHERE ID = @LoopID
             IF (@QtyFulfilled > 0)
             BEGIN
               IF ((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH (NOLOCK) JOIN #StockLine SL
-                  ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId WHERE ISNULL(RP.RevisedPartId, 0) > 0
-                AND SL.StockLineId = @StocklineId) > 0)
+                  ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId WHERE ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId) > 0)
               BEGIN
 				DELETE FROM #ROStockLineRevisedPart
                 --CASE 1 REVISED PART
@@ -169,9 +171,17 @@ BEGIN
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
                   WHERE SL.StockLineId = @StocklineId
 
+				SET @SalesOrderPartId = 0;
+				SELECT @SalesOrderPartId = ISNULL(SalesOrderPartId, 0) FROM dbo.SalesOrderPart SOP WITH(NOLOCK) 
+						JOIN #ROStockLineRevisedPart ROS ON ROS.SalesOrderId = SOP.SalesOrderId
+				WHERE ROS.ConditionId = SOP.ConditionId AND ROS.ItemMasterId = SOP.ItemMasterId
+
+				SET @SalesOrderPartId = ISNULL(@SalesOrderPartId, 0);
+				SELECT * FROM #ROStockLineRevisedPart
+
                 IF ((SELECT COUNT(1) FROM dbo.SalesOrderPart WITH (NOLOCK) WHERE SalesOrderPartId = ISNULL(@SalesOrderPartId, 0)) = 0)
                 BEGIN
-                  INSERT INTO dbo.SalesOrderPart (SalesOrderId, ItemMasterId, StockLineId, FxRate, Qty, UnitSalePrice, MarkUpPercentage, SalesBeforeDiscount, Discount,
+					INSERT INTO dbo.SalesOrderPart (SalesOrderId, ItemMasterId, StockLineId, FxRate, Qty, UnitSalePrice, MarkUpPercentage, SalesBeforeDiscount, Discount,
                   DiscountAmount, NetSales, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsDeleted, UnitCost,
                   MethodType, SalesPriceExtended, MarkupExtended, SalesDiscountExtended, NetSalePriceExtended, UnitCostExtended,
                   MarginAmount, MarginAmountExtended, MarginPercentage, ConditionId, SalesOrderQuoteId, SalesOrderQuotePartId,
@@ -240,11 +250,11 @@ BEGIN
 					AND SL.IsParent = 1 AND SOP.SalesOrderId = @SalesOrderId
                     WHERE SL.StockLineId = @StocklineId;
 
-                  SELECT @SalesOrderPartId = SCOPE_IDENTITY()
+					SELECT @SalesOrderPartId = SCOPE_IDENTITY()
 
-				  INSERT INTO #SalesOrderPartDetails (SalesOrderPartId) SELECT @SalesOrderPartId
+					INSERT INTO #SalesOrderPartDetails (SalesOrderPartId) SELECT @SalesOrderPartId
 
-				  INSERT INTO [dbo].[SalesOrderReserveParts]
+					INSERT INTO [dbo].[SalesOrderReserveParts]
 								   ([SalesOrderId]
 								   ,[StockLineId]
 								   ,[ItemMasterId]
@@ -277,59 +287,59 @@ BEGIN
 							 FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
 
 					INSERT INTO [dbo].[SalesOrderReservedStock]
-								   ([SalesOrderId]
-								   ,[SalesOrderPartId]
-								   ,[StockLIneId]
-								   ,[ConditionId]
-								   ,[ItemMasterId]
-								   ,[Quantity]
-								   ,[AltPartMasterPartId]
-								   ,[EquPartMasterPartId]
-								   ,[IsAltPart]
-								   ,[IsEquPart]
-								   ,[ReservedById]
-								   ,[ReservedDate]
-								   ,[MasterCompanyId]
-								   ,[CreatedBy]
-								   ,[UpdatedBy]
-								   ,[CreatedDate]
-								   ,[UpdatedDate]
-								   ,[IsActive]
-								   ,[IsDeleted])
-							SELECT SOP.SalesOrderId, @SalesOrderPartId, SOP.StockLineId, SOP.ConditionId,
-							SOP.ItemMasterId, SOP.Qty, NULL, NULL, 0, 0,
-							(SELECT TOP 1 EmployeeId FROM DBO.Employee Where MasterCompanyId = @MasterCompanyId ORDER BY EmployeeId),
-							GETDATE(), @MasterCompanyId, SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
-							FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
+								([SalesOrderId]
+								,[SalesOrderPartId]
+								,[StockLIneId]
+								,[ConditionId]
+								,[ItemMasterId]
+								,[Quantity]
+								,[AltPartMasterPartId]
+								,[EquPartMasterPartId]
+								,[IsAltPart]
+								,[IsEquPart]
+								,[ReservedById]
+								,[ReservedDate]
+								,[MasterCompanyId]
+								,[CreatedBy]
+								,[UpdatedBy]
+								,[CreatedDate]
+								,[UpdatedDate]
+								,[IsActive]
+								,[IsDeleted])
+						SELECT SOP.SalesOrderId, @SalesOrderPartId, SOP.StockLineId, SOP.ConditionId,
+						SOP.ItemMasterId, SOP.Qty, NULL, NULL, 0, 0,
+						(SELECT TOP 1 EmployeeId FROM DBO.Employee Where MasterCompanyId = @MasterCompanyId ORDER BY EmployeeId),
+						GETDATE(), @MasterCompanyId, SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
+						FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
 
 					INSERT INTO [dbo].[SalesOrderStockLine]
-									   ([SalesOrderId]
-									   ,[SalesOrderPartId]
-									   ,[StockLIneId]
-									   ,[ItemMasterId]
-									   ,[ConditionId]
-									   ,[Quantity]
-									   ,[QtyReserved]
-									   ,[QtyIssued]
-									   ,[AltPartMasterPartId]
-									   ,[EquPartMasterPartId]
-									   ,[IsAltPart]
-									   ,[IsEquPart]
-									   ,[UnitCost]
-									   ,[ExtendedCost]
-									   ,[UnitPrice]
-									   ,[ExtendedPrice]
-									   ,[MasterCompanyId]
-									   ,[CreatedBy]
-									   ,[UpdatedBy]
-									   ,[CreatedDate]
-									   ,[UpdatedDate]
-									   ,[IsActive]
-									   ,[IsDeleted])
-									SELECT SOP.SalesOrderId, @SalesOrderPartId, SOP.StockLineId, SOP.ItemMasterId, SOP.ConditionId,
-									SOP.Qty, SOP.Qty, 0, NULL, NULL, 0, 0, 0.00, 0.00, 0.00, 0.00, @MasterCompanyId,
-									SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
-									FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
+									([SalesOrderId]
+									,[SalesOrderPartId]
+									,[StockLIneId]
+									,[ItemMasterId]
+									,[ConditionId]
+									,[Quantity]
+									,[QtyReserved]
+									,[QtyIssued]
+									,[AltPartMasterPartId]
+									,[EquPartMasterPartId]
+									,[IsAltPart]
+									,[IsEquPart]
+									,[UnitCost]
+									,[ExtendedCost]
+									,[UnitPrice]
+									,[ExtendedPrice]
+									,[MasterCompanyId]
+									,[CreatedBy]
+									,[UpdatedBy]
+									,[CreatedDate]
+									,[UpdatedDate]
+									,[IsActive]
+									,[IsDeleted])
+								SELECT SOP.SalesOrderId, @SalesOrderPartId, SOP.StockLineId, SOP.ItemMasterId, SOP.ConditionId,
+								SOP.Qty, SOP.Qty, 0, NULL, NULL, 0, 0, 0.00, 0.00, 0.00, 0.00, @MasterCompanyId,
+								SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
+								FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
 
 					SELECT @StlQuantity = SOP.Qty FROM dbo.SalesOrderPart SOP Where SOP.SalesOrderPartId = @SalesOrderPartId
 					UPDATE Stockline SET QuantityAvailable = QuantityAvailable - @StlQuantity, QuantityReserved = @StlQuantity WHERE StockLineId = @StocklineId
@@ -373,7 +383,6 @@ BEGIN
               END
               ELSE
               BEGIN
-				--PRINT 'Else 1'
                 --CASE 2 SAME AS PART
                 INSERT INTO #ROStockLineSamePart (ItemMasterId, ConditionId, StockLineId, OldStockLineId, SalesOrderId, RepairOrderId, MasterCompanyId, RepairOrderNumber)
                   SELECT DISTINCT TOP 1
@@ -584,8 +593,9 @@ BEGIN
 
 			  SELECT @LoopID SET @LoopID = @LoopID - 1;
           END
-
+		  END
           SET @MasterLoopID = @MasterLoopID - 1;
+		  
         END
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
         BEGIN
@@ -623,7 +633,7 @@ BEGIN
 		,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
 		,@AdhocComments varchar(150) = 'USP_CreateSOStocklineFromRO'
-		,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@RepairOrderId, '') + ''
+		,@ProcedureParameters varchar(3000) = '@Parameter1 = '''
 		,@ApplicationName varchar(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName,

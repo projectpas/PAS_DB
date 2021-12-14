@@ -1,4 +1,5 @@
-﻿CREATE Procedure [dbo].[sp_GetSOShippingParentList]
+﻿-- [dbo].[sp_GetSOShippingParentList] 60
+CREATE Procedure [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
 AS
 BEGIN
@@ -8,7 +9,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
+		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
 		SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
 		SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
 		sop.SalesOrderId,
@@ -19,13 +20,13 @@ BEGIN
 		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId
+		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
 					AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
 					AND sos.SalesOrderId = sopt.SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
-		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId
+		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId, sop.ConditionId
 	END
 	COMMIT  TRANSACTION
 

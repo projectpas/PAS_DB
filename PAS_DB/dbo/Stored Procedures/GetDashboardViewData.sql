@@ -94,24 +94,28 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 5)
 			BEGIN
-				SELECT DISTINCT
+				SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SOM.NetSales AS GrandTotal, cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.SOMarginSummary SOM WITH (NOLOCK)
-				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOM.SalesOrderId
+				SUM(SOP.NetSales) AS GrandTotal, cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
+				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-				LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
 				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SO.ManagementStructureId
 				WHERE
 				SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
+				AND SOP.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+					INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+					Where SOS.SalesOrderId = SOP.SalesOrderId AND SO.MasterCompanyId = @MasterCompanyId)
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
 				AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt)
 				AND SO.MasterCompanyId = @MasterCompanyId
 				AND EMS.EmployeeId = @EmployeeId
+				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName
+				ORDER BY SO.SalesOrderNumber
 			END
 			ELSE IF (@DashboardType = 6)
 			BEGIN

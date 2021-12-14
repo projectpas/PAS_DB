@@ -1563,5 +1563,6 @@
     <Build Include="dbo\User Defined Types\WorkflowChargesType.sql" />
     <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_Old.sql" />
     <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_NEW.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWithFK.sql" />
   </ItemGroup>
 </Project>

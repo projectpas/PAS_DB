@@ -52,13 +52,17 @@ BEGIN
 		WHERE WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 		WHERE MasterCompanyId = @MasterCompanyId
 		AND EMS.EmployeeId = @EmployeeId
-		AND IsActive = 1 AND IsDeleted = 0) AND
+		AND IsActive = 1 AND IsDeleted = 0)
+		AND WOP.IsClosed = 0 AND
 		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND WOP.MasterCompanyId = @MasterCompanyId
 
-		SELECT @PartsSaleWorkable = SUM(SOM.NetSales) FROM DBO.SOMarginSummary SOM WITH (NOLOCK) 
+		SELECT @PartsSaleWorkable = SUM(SOM.NetSales) FROM DBO.SalesOrderPart SOM WITH (NOLOCK) 
 		INNER JOIN DBO.SalesOrder SO ON SO.SalesOrderId = SOM.SalesOrderId
 		INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SO.ManagementStructureId
 		WHERE SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
+		AND SOM.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+		INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+		Where SOS.SalesOrderId = SO.SalesOrderId)
 		AND EMS.EmployeeId = @EmployeeId
 		AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND SO.MasterCompanyId = @MasterCompanyId
 

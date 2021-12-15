@@ -1,8 +1,4 @@
-﻿
-
-
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSOApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -20,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
 
-EXEC [dbo].[USP_GetSOApprovalList]  126
+EXEC [dbo].[USP_GetSOApprovalList]  64
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
 (
@@ -140,6 +136,9 @@ BEGIN
 			sqp.RejectedById,
 			sqp.RejectedByName,
 			sqp.RejectedDate,
+			sqp.InternalRejectedById,
+			sqp.InternalRejectedByName,
+			sqp.InternalRejectedDate,
 			sqp.InternalMemo,
 			sqp.CustomerMemo,
 			sqp.CreatedBy,

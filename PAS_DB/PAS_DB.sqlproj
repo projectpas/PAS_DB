@@ -66,7 +66,6 @@
     <Folder Include="dbo\Stored Procedures\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
-    <Folder Include="DB Script" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -1562,7 +1561,6 @@
     <Build Include="dbo\User Defined Types\WorkflowEquipmentType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowDirectionsType.sql" />
     <Build Include="dbo\User Defined Types\WorkflowChargesType.sql" />
-    <Build Include="DB Script\Column_Rename_Script.sql" />
-    <Build Include="DB Script\13-12-2021_ModuleHierarchyMaster_PR1089.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllWOAssignmentOpenItem.sql" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 ﻿
--- EXEC AutoCompleteDropdownsWithFK 'Location', 'LocationId', 'Name', '', 1, 'WareHouseId', 0, '0', 1
+-- EXEC AutoCompleteDropdownsWithFK 'Warehouse', 'WarehouseId', 'Name', '', 0, 'SiteId', 0, '0', 1
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsWithFK]
 @TableName VARCHAR(50) = null,
 @Parameter1 VARCHAR(50) = null,
@@ -67,15 +67,17 @@ BEGIN
      END    
      ELSE    
      BEGIN  
-			SET @Sql = N'INSERT INTO #TempTable (Value, Label, MasterCompanyId) 
+			SET @Sql = N'INSERT INTO #TempTable (Value, Label, ForeignKey, MasterCompanyId) 
 	                         SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
 							 CAST('+ @Parameter2+  ' AS VARCHAR) AS Label,
+							 CAST ('+ @Parameter5 + ' AS VARCHAR) AS ForeignKey,
 							 MasterCompanyId FROM  dbo.'+@TableName+     
 			' WITH(NOLOCK) WHERE MasterCompanyId = ' + CAST ( @MasterCompanyId AS nvarchar(50) ) + ' AND CAST ( '+@Parameter1+' AS VARCHAR ) IN (SELECT Item FROM DBO.SPLITSTRING('''+ @Idlist +''','',''))    
              
-			INSERT INTO #TempTable (Value, Label, MasterCompanyId) 
+			INSERT INTO #TempTable (Value, Label, ForeignKey, MasterCompanyId) 
 		          SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
 				  CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label,
+				  CAST ('+ @Parameter5 + ' AS VARCHAR) AS ForeignKey,
 				  MasterCompanyId FROM dbo.'+@TableName+     
 			' WITH(NOLOCK) WHERE MasterCompanyId = ' + CAST ( @MasterCompanyId AS nvarchar(50) ) + ' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR) !='''' AND '+@Parameter2+'  LIKE ''%'+ @Parameter3 +'%''  ORDER BY Label';    
      END    

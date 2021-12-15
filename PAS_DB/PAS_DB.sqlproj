@@ -66,6 +66,7 @@
     <Folder Include="dbo\Stored Procedures\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
+    <Folder Include="DB Scripts" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -1564,5 +1565,6 @@
     <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_Old.sql" />
     <Build Include="dbo\Stored Procedures\GetReserveStockPartsListBySOId_NEW.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWithFK.sql" />
+    <Build Include="DB Scripts\DB_Changes.sql" />
   </ItemGroup>
 </Project>

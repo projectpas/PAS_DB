@@ -19,4 +19,3 @@ GO
 Update ModuleHierarchyMaster set DisplayOrder=4 where PermissionConstant='Asset_Calibration' and name='Calibration'
 Update ModuleHierarchyMaster set DisplayOrder=5 where PermissionConstant='Asset_MaintenanceAndWarranty' and name='Maintenance & Warranty'
 
-

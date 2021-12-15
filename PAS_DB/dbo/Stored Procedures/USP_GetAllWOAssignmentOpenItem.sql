@@ -86,7 +86,7 @@ SET NOCOUNT ON
 							LEFT JOIN dbo.WorkOrderLaborHeader wlh WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1
 							LEFT JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.IsDeleted = 0 AND wl.IsActive = 1 AND wl.TaskStatusId != @CloseTaskStatusId
 							LEFT JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
-						WHERE wo.MasterCompanyId= @MasterCompanyId AND WOP.IsClosed = 0 
+						WHERE wo.MasterCompanyId= @MasterCompanyId AND ISNULL(WOP.IsClosed, 0) = 0 
 				        GROUP BY WOP.ID
 						),
 
@@ -113,14 +113,14 @@ SET NOCOUNT ON
 									im.ItemMasterId,
 									WOP.CreatedDate As AssignedDate
 								FROM dbo.WorkOrder wo 
-									INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId
+									INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId AND ISNULL(WOP.IsClosed, 0) = 0 
 									INNER JOIN dbo.WorkOrderStage ws WITH (NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId
 									INNER JOIN dbo.WorkOrderStatus wst WITH (NOLOCK) ON wst.Id = wop.WorkOrderStatusId
 									INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 									LEFT JOIN CTE as CTE WITH (NOLOCK) ON CTE.WorkOrderPartNoId = WOP.ID
 									LEFT JOIN dbo.Employee empTech WITH (NOLOCK) ON empTech.EmployeeId = wop.TechnicianId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
-								WHERE wo.MasterCompanyId= @MasterCompanyId AND wst.Id != @CloseWOStatusId 
+								WHERE wo.MasterCompanyId= @MasterCompanyId AND wst.Id != @CloseWOStatusId  
 					), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult2 from  Result
 					WHERE (

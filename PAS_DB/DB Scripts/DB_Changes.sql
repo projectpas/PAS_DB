@@ -32,3 +32,8 @@ Update EmailTemplate
 SET EmailBody = '<div>Dear Customer,</div><br/><div>Please review the attached Quotation and provide approval and/comment. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
 Where EmailTemplateTypeId = 3
 GO
+
+Update EmailTemplate 
+SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>The attached Work Order is submitted for your review and approval. If you have any question, please contact me.</div><br/><div>Regards,</div>'
+Where EmailTemplateTypeId = 48
+GO

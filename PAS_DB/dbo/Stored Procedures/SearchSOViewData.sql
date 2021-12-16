@@ -31,7 +31,10 @@ CREATE PROCEDURE [dbo].[SearchSOViewData]
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
 	@MasterCompanyId int = null,
-	@OpenDate datetime=null
+	@OpenDate datetime=null,
+	@ShippedDate varchar(50)=null,
+	@RequestedDateType varchar(50)=null,
+	@EstimatedShipDateType varchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -200,7 +203,10 @@ BEGIN
 								(M.CustomerTypeName like '%' +@GlobalFilter+'%') OR 
 								(M.CreatedBy like '%' +@GlobalFilter+'%') OR
 								(M.UpdatedBy like '%' +@GlobalFilter+'%') OR
-								(OpenDate like '%' +@GlobalFilter+'%')
+								(OpenDate like '%' +@GlobalFilter+'%') OR
+								(M.ShippedDate like '%' +@GlobalFilter+'%') OR
+								(D.RequestedDateType like '%' +@GlobalFilter+'%') OR
+								(D.EstimatedShipDateType like '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND (IsNull(@SOQNumber,'') ='' OR M.SalesQuoteNumber like '%'+@SOQNumber+'%') and 
@@ -220,7 +226,10 @@ BEGIN
 								(IsNull(@UpdatedBy,'') ='' OR M.UpdatedBy like '%'+@UpdatedBy+'%') and
 								(IsNull(@CreatedDate,'') ='' OR Cast(M.CreatedDate as Date)=Cast(@CreatedDate as date)) and
 								(IsNull(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate as date)=Cast(@UpdatedDate as date)) and
-								(IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)))
+								(IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and
+								(IsNull(@ShippedDate,'') ='' OR Cast(M.ShippedDate as Date) = Cast(@ShippedDate as date)) and
+								(IsNull(@RequestedDateType,'') ='' OR D.RequestedDateType like '%'+@RequestedDateType+'%') and
+								(IsNull(@EstimatedShipDateType,'') ='' OR D.EstimatedShipDateType like '%'+@EstimatedShipDateType+'%') )
 								)
 						), CTE_Count AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)
 						SELECT SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, VersionNumber, QuoteDate, OpenDate, CustomerId, CustomerName, CustomerReference,

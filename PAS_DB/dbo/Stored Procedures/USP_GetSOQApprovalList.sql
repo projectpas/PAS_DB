@@ -2,7 +2,6 @@
 
 
 
-
 /*************************************************************           
  ** File:   [USP_GetSOQApprovalList]          
  ** Author:   Vishal Suthar
@@ -140,9 +139,6 @@ BEGIN
 			sqp.RejectedById,
 			sqp.RejectedByName,
 			sqp.RejectedDate,
-			sqp.InternalRejectedById,
-			sqp.InternalRejectedByName,
-			sqp.InternalRejectedDate,
 			sqp.InternalMemo,
 			sqp.CustomerMemo,
 			sqp.CreatedBy,

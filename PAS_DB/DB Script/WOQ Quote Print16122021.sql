@@ -120,9 +120,9 @@ UPDATE EmailTemplate SET TemplateDescription='<html>
                       <th class="font-12" style="min-width: 100px; display: ##showpn##">Parts/Material List PN</th>
                       <th class="font-12" style="min-width: 220px; display: ##showpnDescription##">PN Description</th>
                       <th class="font-12" style="min-width: 20px; display: ##showuom##">UOM</th>
-                      <th class="font-12" style="min-width: 40px; display: ##showqty##">Qty</th>
-                      <th class="font-12" style="min-width: 20px; display: ##showUnitprice##">Unit Price</th>
-                      <th class="font-12" style="min-width: 20px; display: ##showExtPrice##">Ext price</th>
+                      <th colspan="##qtyColSpan##" class="font-12" style="min-width: 40px; display: ##showqty##">Qty</th>
+                      <th colspan="##unitpriceColSpan##" class="font-12" style="min-width: 20px; display: ##showUnitprice##">Unit Price</th>
+                      <th colspan="##extpriceColSpan##" class="font-12" style="min-width: 20px; display: ##showExtPrice##">Ext price</th>
                     </tr>
                   </thead>
                   <tbody>

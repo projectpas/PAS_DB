@@ -1,6 +1,6 @@
 ﻿-- =============================================
 -- Description:	Get Search Data for SOQ, SO  search for from part list tab
--- EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
+-- EXEC [dbo].[SearchStockLineSOQPop] '125', 29, 147
 -- =============================================
 CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
@@ -86,7 +86,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,'S' AS MethodType
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
-					,imps.PP_FXRatePerc AS FixRate
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -113,8 +112,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Customer cusOwner WITH(NOLOCK) ON sl.Owner = cusOwner.CustomerId
 			LEFT JOIN DBO.Vendor vOwner WITH(NOLOCK) ON sl.Owner = vOwner.VendorId
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
-			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
@@ -189,7 +186,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,'S' AS MethodType
 					,CONVERT(BIT,0) AS PMA
 					,mf.Name as StkLineManufacturer
-					,imps.PP_FXRatePerc AS FixRate
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -216,8 +212,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Customer cusOwner WITH(NOLOCK) ON sl.Owner = cusOwner.CustomerId
 			LEFT JOIN DBO.Vendor vOwner WITH(NOLOCK) ON sl.Owner = vOwner.VendorId
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
-			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
 		END
 		COMMIT  TRANSACTION
@@ -247,4 +241,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
 		END CATCH
+
+	
 END

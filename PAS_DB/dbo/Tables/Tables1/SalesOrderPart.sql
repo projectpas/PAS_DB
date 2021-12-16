@@ -63,8 +63,10 @@
     CONSTRAINT [FK_SalesOrderPart_SalesOrderQuoteId] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderPart_SalesOrderQuotePartId] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePart] ([SalesOrderQuotePartId]),
     CONSTRAINT [FK_SalesOrderPart_StockLineId] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
-    CONSTRAINT [Unique_SalesOrderPart] UNIQUE NONCLUSTERED ([SalesOrderId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ControlNumber] ASC, [IdNumber] ASC)
+    CONSTRAINT [Unique_SalesOrderPart] UNIQUE NONCLUSTERED ([SalesOrderId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ConditionId] ASC)
 );
+
+
 
 
 GO

@@ -4,7 +4,7 @@
 -- Create date: 23-Dec-2020
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
 -- =============================================
---  EXEC [dbo].[UpdateSONameColumnsWithId] 62
+--  EXEC [dbo].[UpdateSONameColumnsWithId] 5
 CREATE PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
 AS

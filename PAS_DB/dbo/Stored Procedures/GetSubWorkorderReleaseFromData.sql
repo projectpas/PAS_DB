@@ -69,8 +69,8 @@ BEGIN
 						LEFT JOIN DBO.ManagementStructure ms  WITH(NOLOCK) on ms.ManagementStructureId  = @ManagementStructureId
 						LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = ms.LegalEntityId 
 						LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
-						LEFT JOIN DBO.SubWorkOrderSettlementDetails ws WITH(NOLOCK) ON ws.SubWOPartNoId = wop.SubWOPartNoId AND ws.SubWorkOrderId = wop.SubWorkOrderId AND ws.WorkOrderSettlementId = @WorkOrderSettlementId
-						LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = ws.ConditionId
+						--LEFT JOIN DBO.SubWorkOrderSettlementDetails ws WITH(NOLOCK) ON ws.SubWOPartNoId = wop.SubWOPartNoId AND ws.SubWorkOrderId = wop.SubWorkOrderId AND ws.WorkOrderSettlementId = @WorkOrderSettlementId
+						LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
 						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 						LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 						LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

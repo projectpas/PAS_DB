@@ -1564,5 +1564,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetAllWOAssignmentOpenItem.sql" />
     <Build Include="dbo\Tables\ReceivingInspectionAudit_1.sql" />
     <Build Include="dbo\Tables\ReceivingInspection_1.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWithFK.sql" />
   </ItemGroup>
 </Project>

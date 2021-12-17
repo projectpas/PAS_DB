@@ -99,7 +99,7 @@ SET NOCOUNT ON
 					MSTL.Quantity AS StocklineQuantity,
 					QuantityIssued = WOM.QuantityIssued,
 					WOM.QuantityReserved,
-					QunatityRemaining = ISNULL(WOM.QuantityIssued, 0),
+					QunatityRemaining = ISNULL(WOM.Quantity, 0) - ISNULL(WOM.QuantityIssued, 0),
 					WOM.QtyOnOrder, 
 					WOM.QtyOnBkOrder,
 					WOM.PONum AS PurchaseOrderNumber,

@@ -34,21 +34,12 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				--SELECT  mt.Quantity,
-				--        mt.QuantityIssued,
-				--		imt.partnumber as partnumber,
-				--		imt.PartDescription as PartDescription
-				--FROM WorkOrderMaterials mt WITH(NOLOCK)
-				--	INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
-				--	LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
-				--WHERE mt.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
-
 				SELECT  mt.Quantity,
 				        mt.QuantityIssued,
 						imt.partnumber as partnumber,
 						imt.PartDescription as PartDescription
 				FROM WorkOrderMaterials mt WITH(NOLOCK)
-					INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
+					--INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
 				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0
 			END

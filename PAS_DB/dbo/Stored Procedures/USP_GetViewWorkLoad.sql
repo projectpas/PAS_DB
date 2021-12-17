@@ -98,7 +98,7 @@ SET NOCOUNT ON
 										wlh.WorkOrderLaborHeaderId,
 										wl.WorkOrderLaborId
 									FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
-										INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.TaskStatusId != @CloseTaskStatusId
+										INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
 										INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 										INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID AND ISNULL(WOP.IsClosed, 0) = 0
 										INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId
@@ -136,7 +136,7 @@ SET NOCOUNT ON
 										wop.NTE as nte,
 										wss.Description as mpnstatus
 									FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
-										INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.TaskStatusId != @CloseTaskStatusId
+										INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
 										INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId and wl.WorkOrderLaborId=CTE.WorkOrderLaborId
 										INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 										INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID AND ISNULL(WOP.IsClosed, 0) = 0 
@@ -146,7 +146,7 @@ SET NOCOUNT ON
 										INNER JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 										INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 										LEFT JOIN dbo.TaskStatus st WITH (NOLOCK) ON st.TaskStatusId = wl.TaskStatusId
-										INNER JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
+										LEFT JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
 										INNER JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 										LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 										LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
@@ -288,7 +288,7 @@ SET NOCOUNT ON
 								wop.NTE as nte,
 								wss.Description as mpnstatus
 								FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
-									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.TaskStatusId != @CloseTaskStatusId
+									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
 									INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId and wl.WorkOrderLaborId=CTE.WorkOrderLaborId
 									INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 									INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID AND ISNULL(WOP.IsClosed, 0) = 0 
@@ -298,7 +298,7 @@ SET NOCOUNT ON
 									INNER JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 									INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 									LEFT JOIN dbo.TaskStatus st WITH (NOLOCK) ON st.TaskStatusId = wl.TaskStatusId
-									INNER JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
+									LEFT JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
 									INNER JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 									LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
@@ -401,7 +401,7 @@ SET NOCOUNT ON
 									wlh.WorkOrderLaborHeaderId,
 									wl.WorkOrderLaborId
 								FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
-									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.TaskStatusId != @CloseTaskStatusId
+									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
 									INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 									INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID AND ISNULL(WOP.IsClosed, 0) = 0
 									INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId
@@ -439,7 +439,7 @@ SET NOCOUNT ON
 									wop.NTE as nte,
 									wss.Description as mpnstatus
 								FROM dbo.WorkOrderLaborHeader wlh WITH (NOLOCK)
-									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.TaskStatusId != @CloseTaskStatusId
+									INNER JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
 									INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId and wl.WorkOrderLaborId=CTE.WorkOrderLaborId
 									INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 									INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID AND ISNULL(WOP.IsClosed, 0) = 0
@@ -449,7 +449,7 @@ SET NOCOUNT ON
 									INNER JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 									INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 									LEFT JOIN dbo.TaskStatus st WITH (NOLOCK) ON st.TaskStatusId = wl.TaskStatusId
-									INNER JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
+									LEFT JOIN dbo.Task t WITH (NOLOCK) ON t.TaskId = wl.TaskId
 									INNER JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 									LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId

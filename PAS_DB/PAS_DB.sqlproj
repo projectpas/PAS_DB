@@ -1566,5 +1566,13 @@
     <Build Include="dbo\Tables\ReceivingInspectionAudit_1.sql" />
     <Build Include="dbo\Tables\ReceivingInspection_1.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWithFK.sql" />
+    <Build Include="DB Script\13-12-2021_ModuleHierarchyMaster_PR1089.sql" />
+    <Build Include="DB Script\DB_Script_Update_ExistingRecords_WO_Assign_Date_17122021.sql" />
+    <Build Include="DB Script\INSERTSCRIPT.sql" />
+    <Build Include="DB Script\INSERTSCRIPT14-12-2021.sql" />
+    <Build Include="DB Script\internal rejected by Script 15-12-2021.sql" />
+    <Build Include="DB Script\ReceivingInspection.sql" />
+    <Build Include="DB Script\WOQ Quote Print15122021.sql" />
+    <Build Include="DB Script\WOQ Quote Print16122021.sql" />
   </ItemGroup>
 </Project>

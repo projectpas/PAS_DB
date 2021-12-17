@@ -111,7 +111,7 @@ SET NOCOUNT ON
 									WOP.ID AS workOrderPartNoId,
 									wo.CustomerId,
 									im.ItemMasterId,
-									WOP.CreatedDate As AssignedDate
+									WOP.AssignDate As AssignedDate
 								FROM dbo.WorkOrder wo 
 									INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId AND ISNULL(WOP.IsClosed, 0) = 0 
 									INNER JOIN dbo.WorkOrderStage ws WITH (NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId

@@ -74,7 +74,7 @@ BEGIN
           FROM dbo.[Splitstring](@Level1, ',')
       END
 
-      SELECT DISTINCT
+      SELECT --DISTINCT
         UPPER(C.NAME) 'Customer Name',
         UPPER(C.customercode) 'Customer Code',
         UPPER(IM.partnumber) 'PN',
@@ -88,7 +88,7 @@ BEGIN
         SOBI.invoicedate 'InvoiceDate',
         SOP.netsales 'Netsales',
         UPPER(SOMS.misc) 'Misc',
-        (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
+        (SOP.UnitSalesPricePerUnit) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
         SOMS.productcost 'Direct Cost',
         ((SOMS.productcost) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) '%TD of Rev',
         SOMS.marginamount 'Gross Margin',
@@ -111,7 +111,7 @@ BEGIN
       LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK)
         ON So.salesorderid = SOP.salesorderid
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
-          ON SO.salesorderid = SOQ.salesorderquoteid
+          ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
           ON SO.salesorderid = SOBI.salesorderid
         LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK)

@@ -2,6 +2,7 @@
 
 
 
+
 /*************************************************************           
  ** File:   [USP_GetSOQApprovalList]          
  ** Author:   Vishal Suthar
@@ -20,7 +21,7 @@
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
 
-EXEC [dbo].[USP_GetSOQApprovalList]  31
+EXEC [dbo].[USP_GetSOQApprovalList]  71
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
@@ -139,6 +140,9 @@ BEGIN
 			sqp.RejectedById,
 			sqp.RejectedByName,
 			sqp.RejectedDate,
+			sqp.InternalRejectedById,
+			sqp.InternalRejectedByName,
+			sqp.InternalRejectedDate,
 			sqp.InternalMemo,
 			sqp.CustomerMemo,
 			sqp.CreatedBy,

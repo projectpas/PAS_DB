@@ -1574,5 +1574,8 @@
     <Build Include="DB Script\ReceivingInspection.sql" />
     <Build Include="DB Script\WOQ Quote Print15122021.sql" />
     <Build Include="DB Script\WOQ Quote Print16122021.sql" />
+    <Build Include="DB Script\Asset_Inventory_Script _20122021.sql" />
+    <Build Include="DB Script\ReceivingInspectionEmailBody_20122021.sql" />
+    <Build Include="DB Script\TemplateScript_20122021.sql" />
   </ItemGroup>
 </Project>

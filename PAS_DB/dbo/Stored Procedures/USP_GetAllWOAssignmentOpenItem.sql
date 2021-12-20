@@ -80,14 +80,14 @@ SET NOCOUNT ON
 							SUM(ISNULL(wl.Adjustments,0)) AS [Adjustments],
 							SUM(ISNULL(wl.AdjustedHours,0)) AS [AdjustedHours],
 							SUM(ISNULL(wl.BurdenRateAmount,0)) AS BurdenRateAmount,
-							WOP.ID AS WorkOrderPartNoId
-                        FROM dbo.WorkOrder wo WITH (NOLOCK)
-							INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId
-							LEFT JOIN dbo.WorkOrderLaborHeader wlh WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1
-							LEFT JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.IsDeleted = 0 AND wl.IsActive = 1 AND wl.TaskStatusId != @CloseTaskStatusId
-							LEFT JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
-						WHERE wo.MasterCompanyId= @MasterCompanyId AND ISNULL(WOP.IsClosed, 0) = 0 
-				        GROUP BY WOP.ID
+							wowf.WorkOrderPartNoId  AS WorkOrderPartNoId
+						FROM dbo.WorkOrder wo WITH (NOLOCK)
+							INNER JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wo.WorkOrderId = wowf.WorkOrderId
+							INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.ID = wowf.WorkFlowWorkOrderId							
+							LEFT JOIN dbo.WorkOrderLaborHeader wlh WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1
+							LEFT JOIN dbo.WorkOrderLabor wl WITH (NOLOCK) ON wl.WorkOrderLaborHeaderId = wlh.WorkOrderLaborHeaderId AND wl.IsDeleted = 0 AND wl.IsActive = 1 AND ISNULL(wl.TaskStatusId, 0) != @CloseTaskStatusId
+						WHERE wo.MasterCompanyId= @MasterCompanyId AND ISNULL(WOP.IsClosed, 0) = 0
+				        GROUP BY wowf.WorkFlowWorkOrderId, wowf.WorkOrderPartNoId
 						),
 
 					Result AS(

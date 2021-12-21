@@ -22,7 +22,7 @@ INSERT INTO [dbo].[EmailTemplateType]
            ,GETDATE()
            ,1
            ,0);
-		   
+GO		   
 
 INSERT INTO [dbo].[EmailTemplate]
            ([TemplateName]
@@ -45,13 +45,13 @@ INSERT INTO [dbo].[EmailTemplate]
 		   ('ReceivingInspectionEmailBody','',3,'admin','admin',GETDATE(),GETDATE(),1,0,'',63,'ReceivingInspectionEmailBody',1,GETDATE()),
 		   ('ReceivingInspectionEmailBody','',4,'admin','admin',GETDATE(),GETDATE(),1,0,'',63,'ReceivingInspectionEmailBody',1,GETDATE()),
 		   ('ReceivingInspectionEmailBody','',5,'admin','admin',GETDATE(),GETDATE(),1,0,'',63,'ReceivingInspectionEmailBody',1,GETDATE());
-		      
+
+GO		      
 
 UPDATE EmailTemplate SET EmailBody = 
 '<html><body><div><h4>Dear Valued Supplier</h4>     </div>     <div>       <p style="margin-left:56px;">The attached RECEIVING INSPECTION is hereby submitted. We received this part. If you have any question about this order, please contact me.</p>     </div>     <div>       <p>Regards,</p>     </div>     <tbody></tbody>     </table>   </body> </html>'
 WHERE TemplateName = 'ReceivingInspectionEmailBody';
 
-
-
+GO
 
 

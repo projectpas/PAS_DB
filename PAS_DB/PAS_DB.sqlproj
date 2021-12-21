@@ -1577,5 +1577,6 @@
     <Build Include="DB Script\Asset_Inventory_Script _20122021.sql" />
     <Build Include="DB Script\ReceivingInspectionEmailBody_20122021.sql" />
     <Build Include="DB Script\TemplateScript_20122021.sql" />
+    <Build Include="DB Script\DB_Changes_12202021.sql" />
   </ItemGroup>
 </Project>

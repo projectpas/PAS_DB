@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3	13-Dec 2021	  Hemant Added Updated for Upper Case
      
 EXECUTE   [dbo].[usp_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -86,39 +87,39 @@ BEGIN
       END
 
       SELECT DISTINCT
-		STL.Level1,
-		STL.Level2,
-		STL.Level3,
-		STL.Level4,        
-        STL.ReceiverNumber 'Receiving Num',
+		UPPER(STL.Level1),
+		UPPER(STL.Level2),
+		UPPER(STL.Level3),
+		UPPER(STL.Level4),        
+        UPPER(STL.ReceiverNumber) 'Receiving Num',
         STL.OrderDate 'Order Date',
-        STL.ReceivedDate 'Received Date',
-        PO.PurchaseOrderNumber AS 'PO/RO Num',
-        PO.status 'PO/RO Status',
-        STL.ControlNumber 'Control Num',
-        STL.IdNumber 'ID Num',
-        STL.StockLineNumber 'SL Num',
-        (IM.partnumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        STL.SerialNumber 'Serial Num',
-        POP.stocktype 'StockType',
-        POP.AltEquiPartNumber 'Alt/Equiv',
-        POP.manufacturer 'Manufacturer',
-        POP.itemtype 'Item Type',
-        POP.QuantityOrdered 'Qty Ordered',
-        POP.QuantityBackOrdered 'Qty Received',
-        POP.UnitCost 'Unit Cost',
-        POP.ExtendedCost 'Extended Cost',
-        POP.QuantityRejected 'Qty Rejected',
-        '?' 'Qty on Backlog',
+		STL.ReceivedDate 'Received Date',
+        UPPER(PO.PurchaseOrderNumber) AS 'PO/RO Num',
+        UPPER(PO.status) 'PO/RO Status',
+        UPPER(STL.ControlNumber) 'Control Num',
+        UPPER(STL.IdNumber) 'ID Num',
+        UPPER(STL.StockLineNumber) 'SL Num',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(STL.SerialNumber) 'Serial Num',
+        UPPER(POP.stocktype) 'StockType',
+        UPPER(POP.AltEquiPartNumber) 'Alt/Equiv',
+        UPPER(POP.manufacturer) 'Manufacturer',
+        UPPER(POP.itemtype) 'Item Type',
+        UPPER(POP.QuantityOrdered) 'Qty Ordered',
+        UPPER(POP.QuantityBackOrdered) 'Qty Received',
+        UPPER(POP.UnitCost) 'Unit Cost',
+        UPPER(POP.ExtendedCost) 'Extended Cost',
+        UPPER(POP.QuantityRejected) 'Qty Rejected',
+        'NA' 'Qty on Backlog',
         STL.ReceivedDate 'Last Received Date',
-        PO.Requisitioner 'Requestor',
-        PO.approvedby 'Approver',
-        STL.Site 'Site',
-        STL.Warehouse 'Warehouse',
-        STL.Location 'Location',
-        STL.Shelf 'Shelf',
-        STL.bin 'Bin'
+        UPPER(PO.Requisitioner) 'Requestor',
+        UPPER(PO.approvedby) 'Approver',
+        UPPER(STL.Site) 'Site',
+        UPPER(STL.Warehouse) 'Warehouse',
+        UPPER(STL.Location) 'Location',
+        UPPER(STL.Shelf) 'Shelf',
+        UPPER(STL.bin) 'Bin'
       FROM DBO.PurchaseOrder PO WITH (NOLOCK)
     
         INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK)

@@ -92,13 +92,13 @@ BEGIN
 
       --select * FROM #ManagmetnStrcture
       SELECT DISTINCT
-        (Customer.Name) 'Customer Name',
-        Customer.CustomerCode 'CustomerCode',
-        (IM.PartNumber) 'PN',
-        (IM.PartDescription) 'PN Description',
-        WS.WorkScopeCode 'Workscope',
-        (CDTN.Description) 'Condition',
-        WO.WorkOrderNum 'WO Num',
+        UPPER(Customer.Name) 'Customer Name',
+        UPPER(Customer.CustomerCode) 'CustomerCode',
+        UPPER(IM.PartNumber) 'PN',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(WS.WorkScopeCode) 'Workscope',
+        UPPER(CDTN.Description) 'Condition',
+        UPPER(WO.WorkOrderNum) 'WO Num',
         WOPN.ReceivedDate 'Received Date',
         WOQ.sentDate 'Quote Date',
         WOQ.approveddate 'Approved Date',
@@ -107,15 +107,15 @@ BEGIN
         WOPN.promiseddate 'Promise Date',
         WBI.InvoiceDate 'Invoice Date',
         (CASE
-          WHEN WOS.ShipDate <= WOPN.PromisedDate THEN 'Yes'
-          ELSE 'No'
+          WHEN WOS.ShipDate <= WOPN.PromisedDate THEN 'YES'
+          ELSE 'NO'
         END) AS [PerformedonTime],
-		WOPN.Level1 AS LEVEL1,
-		WOPN.Level2 AS LEVEL2,
-		WOPN.Level3 AS LEVEL3,
-		WOPN.Level4 AS LEVEL4, 
-        E.FirstName + ' ' + E.lastname 'Salesperson',
-        E1.firstname + ' ' + E1.lastname 'CSR'
+		UPPER(WOPN.Level1) AS LEVEL1,
+		UPPER(WOPN.Level2) AS LEVEL2,
+		UPPER(WOPN.Level3) AS LEVEL3,
+		UPPER(WOPN.Level4) AS LEVEL4, 
+        UPPER(E.FirstName + ' ' + E.lastname) 'Salesperson',
+        UPPER(E1.firstname + ' ' + E1.lastname) 'CSR'
       FROM DBO.WorkOrder WO WITH (NOLOCK)
       LEFT JOIN DBO.Customer WITH (NOLOCK)
         ON WO.CustomerId = Customer.CustomerId

@@ -54,7 +54,7 @@ BEGIN
 
 				if(isnull(@count,0) != 0)
 				begin
-					select ManagementStructureId as LEVEL3, (Code + '-' +  [Name])  as DIV from dbo.ManagementStructure 
+					select ManagementStructureId as LEVEL3, UPPER(Code + '-' +  [Name])  as DIV from dbo.ManagementStructure 
 					Where ParentId in ( select ManagementStructureId FROM #ManagmetnStrcture) AND (MasterCompanyId = @mastercompanyid)
 					UNION 
 					SELECT 0 as LEVEL3, 'NULL' as DIV

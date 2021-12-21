@@ -19,11 +19,13 @@
     1    06/02/2020   Subhash Saliya Created
      
 --EXEC [GetWorkOrderPrintPdfData] 274,258
+--EXEC [GetWorkOrderPirntMateriallist] 37,42
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderPirntMateriallist]
 @WorkorderId bigint,
-@workOrderPartNoId bigint
+@workOrderPartNoId bigint,
+@workFlowWorkOrderId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -37,9 +39,9 @@ BEGIN
 						imt.partnumber as partnumber,
 						imt.PartDescription as PartDescription
 				FROM WorkOrderMaterials mt WITH(NOLOCK)
-					INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
+					--INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
-				WHERE mt.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
+				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0
 			END
 		COMMIT  TRANSACTION
 

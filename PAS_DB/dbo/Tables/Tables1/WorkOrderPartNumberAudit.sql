@@ -63,6 +63,9 @@
     [IsFinishGood]            BIT            DEFAULT ((0)) NULL,
     [RevisedConditionId]      BIGINT         NULL,
     [CustomerReference]       VARCHAR (256)  NULL,
+    [AssignDate]              DATETIME2 (7)  NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 

@@ -30,6 +30,9 @@
     [RejectedById]              BIGINT         NULL,
     [RejectedByName]            VARCHAR (100)  NULL,
     [RejectedDate]              DATETIME2 (7)  NULL,
+    [InternalRejectedById]      BIGINT         NULL,
+    [InternalRejectedByName]    VARCHAR (100)  NULL,
+    [InternalRejectedDate]      DATETIME2 (7)  NULL,
     CONSTRAINT [PK_SalesOrderQuoteApproval] PRIMARY KEY CLUSTERED ([SalesOrderQuoteApprovalId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteApproval_CustomerApprovedById] FOREIGN KEY ([CustomerApprovedById]) REFERENCES [dbo].[Contact] ([ContactId]),
     CONSTRAINT [FK_SalesOrderQuoteApproval_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -38,6 +41,8 @@
     CONSTRAINT [FK_SalesOrderQuoteApproval_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderQuoteApproval_SalesOrderQuotePart] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePart] ([SalesOrderQuotePartId])
 );
+
+
 
 
 GO

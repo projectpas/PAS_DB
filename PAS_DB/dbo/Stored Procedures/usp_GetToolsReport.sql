@@ -85,24 +85,24 @@ BEGIN
       END
 
       SELECT DISTINCT
-        Asset.assetid 'Asset ID',
-        IM.PartDescription 'PN Description',
-        AI.InventoryNumber 'Inventory Num',
-        AI.serialno 'Serial Num',
-        asty.AssetAttributeTypeName 'Asset Class',
+        UPPER(Asset.assetid) 'Asset ID',
+        UPPER(IM.PartDescription) 'PN Description',
+        UPPER(AI.InventoryNumber) 'Inventory Num',
+        UPPER(AI.serialno) 'Serial Num',
+        UPPER(asty.AssetAttributeTypeName) 'Asset Class',
         CONVERT(varchar, Asset.EntryDate, 101) 'Entry Date',
-        AssetStatus.name 'Status',
-        case when Isnull(AC.calibrationrequired,0) = 0 then 'No' else 'Yes'  end  'Calibration Required',
-        '?' 'Last Calibrated Date',
-        VNDR.vendorname 'Last Calibrated By',
-        '?' 'Next Calibrated Date',
-         case when Isnull(AC.certificationrequired,0) = 0 then 'No' else 'Yes'  end 'Certification Required',
-        VNDR1.vendorname 'Last Certified By',
-        '?' 'Next Certified Date',
-        case when Isnull(AC.inspectionrequired,0) = 0 then 'No' else 'Yes'  end  'Inspection Required',
-        case when Isnull(AC.verificationrequired,0) = 0 then 'No' else 'Yes' end  'Verification Required',
-        '?' 'Non Calibrated',
-        AL.Code + '-' + AL.name 'Location'        
+        UPPER(AssetStatus.name) 'Status',
+        case when Isnull(AC.calibrationrequired,0) = 0 then 'NO' else 'YES'  end  'Calibration Required',
+        'N/A' 'Last Calibrated Date',
+        UPPER(VNDR.vendorname) 'Last Calibrated By',
+        'N/A' 'Next Calibrated Date',
+         case when Isnull(AC.certificationrequired,0) = 0 then 'NO' else 'YES'  end 'Certification Required',
+        UPPER(VNDR1.vendorname) 'Last Certified By',
+        'N/A' 'Next Certified Date',
+        case when Isnull(AC.inspectionrequired,0) = 0 then 'NO' else 'YES'  end  'Inspection Required',
+        case when Isnull(AC.verificationrequired,0) = 0 then 'NO' else 'YES' end  'Verification Required',
+        'N/A' 'Non Calibrated',
+        UPPER(AL.Code + '-' + AL.name) 'Location'        
       FROM dbo.asset WITH (NOLOCK)
       LEFT JOIN DBO.Assetinventory AI WITH (NOLOCK)
         ON Asset.assetrecordid = AI.AssetRecordId

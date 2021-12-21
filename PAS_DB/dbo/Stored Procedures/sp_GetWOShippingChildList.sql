@@ -1,6 +1,4 @@
-﻿
-
-CREATE Procedure [dbo].[sp_GetWOShippingChildList]
+﻿CREATE Procedure [dbo].[sp_GetWOShippingChildList]
 @WorkOrderId bigint,
 @WorkOrderPartId bigint
 AS
@@ -30,7 +28,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						wop.WorkOrderId,wop.ID as WorkOrderPartId,
 						wop.ItemMasterId,
 						wos.AirwayBill,
-						wPB.PackagingSlipNo,wPB.PackagingSlipId
+						wPB.PackagingSlipNo,wPB.PackagingSlipId,
+						wobii.WorkOrderShippingId AS WOShippingId
 					FROM DBO.WOPickTicket wopt WITH (NOLOCK) 
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkOrderId  and wop.id=wopt.OrderPartId
 						LEFT JOIN DBO.WorkOrderShippingItem wosi on wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId
@@ -40,8 +39,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH (NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
-						LEFT JOIN DBO.WorkOrderPackaginSlipItems wPI ON wopt.PickTicketId = wPI.WOPickTicketId AND wPI.WOPartNoId = wop.id
-						LEFT JOIN DBO.WorkOrderPackaginSlipHeader wPB ON wPB.PackagingSlipId = wPI.PackagingSlipId
+						LEFT JOIN DBO.WorkOrderPackaginSlipItems wPI  WITH (NOLOCK) ON wopt.PickTicketId = wPI.WOPickTicketId AND wPI.WOPartNoId = wop.id
+						LEFT JOIN DBO.WorkOrderPackaginSlipHeader wPB  WITH (NOLOCK) ON wPB.PackagingSlipId = wPI.PackagingSlipId
+						OUTER APPLY (SELECT TOP 1 WorkOrderShippingId FROM DBO.WorkOrderBillingInvoicing WOBI 
+										WHERE wosi.WorkOrderShippingId = WOBI.WorkOrderShippingId) AS wobii
+						
 					WHERE wopt.WorkOrderId=@WorkOrderId AND wopt.IsConfirmed=1 AND wopt.OrderPartId=@WorkOrderPartId 
 				END
 			COMMIT  TRANSACTION

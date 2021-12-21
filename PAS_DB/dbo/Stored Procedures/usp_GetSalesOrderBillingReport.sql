@@ -15,8 +15,9 @@
  **************************************************************           
  ** S NO   Date         Author    Change Description            
  ** --   --------     -------    --------------------------------          
-    1              Swetha Created
-    2              Swetha Added Transaction & NO LOCK
+    1					Swetha Created
+    2					Swetha Added Transaction & NO LOCK
+	3	13-Dec 2021		Hemant Added Updated for Upper Case
      
 EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -89,78 +90,27 @@ BEGIN
       END
 
       SELECT DISTINCT
-        C.NAME 'Customer Name',
-        C.customercode 'Customer Code',
-        IM.partnumber 'PN',
-        IM.partdescription 'PN Description',
-        CDTN.description 'Condition',
-        SO.salesordernumber 'SO Num',
-        WO.workordernum 'WO Num',
-        STL.receiveddate 'Received Date',
+        UPPER(C.NAME) 'Customer Name',
+        UPPER(C.customercode) 'Customer Code',
+        UPPER(IM.partnumber) 'PN',
+        UPPER(IM.partdescription) 'PN Description',
+        UPPER(CDTN.description) 'Condition',
+        UPPER(SO.salesordernumber) 'SO Num',
+        UPPER(WO.workordernum) 'WO Num',
+		STL.receiveddate 'Received Date',
         SO.opendate ' Open Date',
-        SOBI.invoiceno 'Invoice Num',
+        UPPER(SOBI.invoiceno) 'Invoice Num',
         SOBI.invoicedate 'InvoiceDate',
-        --(SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
-		(isnull(SOP.SalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) )as  'Revenue',
+		(isnull(SOP.SalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges sc WITH (NOLOCK) where sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) )as  'Revenue',
         SOQ.OpenDate 'Quote Date',
-        --CASE
-        --  WHEN soq.StatusName = 'Approved' THEN soq.ApprovedDate
-        --END AS 'Quote Approval Date',
 		soq.ApprovedDate AS 'Quote Approval Date',
-        --SOQ.approveddate 'Quote Approval Date',
         SOBI.shipdate 'Ship Date',
-		SOBI.level1 AS LEVEL1,
-		SOBI.level2 AS LEVEL2,
-		SOBI.level3 AS LEVEL3,
-		SOBI.level4 AS LEVEL4,
-        --CASE
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL AND
-        --    level1.code + '-' + level1.NAME IS NOT NULL THEN level1.code + '-' + level1.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL THEN level2.code + '-' + level2.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL THEN level3.code + '-' + level3.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL THEN level4.code + '-' + level4.NAME
-        --  ELSE ''
-        --END
-        --AS LEVEL1,
-        --CASE
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL AND
-        --    level1.code + '-' + level1.NAME IS NOT NULL THEN level2.code + '-' + level2.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL THEN level3.code + '-' + level3.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL THEN level4.code + '-' + level4.NAME
-        --  ELSE ''
-        --END
-        --AS LEVEL2,
-        --CASE
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL AND
-        --    level1.code + '-' + level1.NAME IS NOT NULL THEN level3.code + '-' + level3.NAME
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL THEN level4.code + '-' + level4.NAME
-        --  ELSE ''
-        --END
-        --AS LEVEL3,
-        --CASE
-        --  WHEN level4.code + '-' + level4.NAME IS NOT NULL AND
-        --    level3.code + '-' + level3.NAME IS NOT NULL AND
-        --    level2.code + '-' + level2.NAME IS NOT NULL AND
-        --    level1.code + '-' + level1.NAME IS NOT NULL THEN level4.code + '-' + level4.NAME
-        --  ELSE ''
-        --END
-        --AS LEVEL4,
-        E.firstname + ' ' + E.lastname 'Sales Person',
-        E1.firstname + ' ' + E1.lastname 'CSR'
+		UPPER(SOBI.level1) AS LEVEL1,
+		UPPER(SOBI.level2) AS LEVEL2,
+		UPPER(SOBI.level3) AS LEVEL3,
+		UPPER(SOBI.level4) AS LEVEL4,        
+        UPPER(E.firstname + ' ' + E.lastname) 'Sales Person',
+        UPPER(E1.firstname + ' ' + E1.lastname) 'CSR'
       FROM dbo.salesorder SO WITH (NOLOCK)
       LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
@@ -184,20 +134,9 @@ BEGIN
           ON SO.mastercompanyid = MC.mastercompanyid
         INNER JOIN #managmetnstrcture MS WITH (NOLOCK)
           ON MS.managementstructureid = SO.managementstructureid
-        --JOIN dbo.managementstructure level4 WITH (NOLOCK)
-        --  ON SO.managementstructureid = level4.managementstructureid
-        --LEFT JOIN dbo.managementstructure level3 WITH (NOLOCK)
-        --  ON level4.parentid = level3.managementstructureid
-        --LEFT JOIN dbo.managementstructure level2 WITH (NOLOCK)
-        --  ON level3.parentid = level2.managementstructureid
-        --LEFT JOIN dbo.managementstructure level1 WITH (NOLOCK)
-        --  ON level2.parentid = level1.managementstructureid
-
       WHERE C.Name IN (@name) OR @name = ' '
-      --AND SOBI.invoicedate BETWEEN (@Fromdate) AND (@Todate)
 	  AND CAST(SOBI.invoicedate AS DATETIME) BETWEEN CAST(@FromDate AS DATETIME) AND CAST(@ToDate AS DATETIME)
       AND SO.mastercompanyid = @mastercompanyid
-
     COMMIT TRANSACTION
   END TRY
 

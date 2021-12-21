@@ -20,7 +20,7 @@
      
 EXECUTE   [dbo].[usp_GetManagementStructureLevel1] '4',4
 **************************************************************/
-Create PROCEDURE [dbo].[usp_GetManagementStructureLevel1] 
+CREATE PROCEDURE [dbo].[usp_GetManagementStructureLevel1] 
 @mastercompanyid int
 
 
@@ -33,7 +33,7 @@ BEGIN
  
     BEGIN TRANSACTION
 
-			      select ManagementStructureId as LEVEL1, (Code + '-' +  [Name])  as CO from dbo.ManagementStructure 
+			      select ManagementStructureId as LEVEL1, UPPER(Code + '-' +  [Name])  as CO from dbo.ManagementStructure 
 					Where ParentId is null and (MasterCompanyId = @mastercompanyid)
 	
 

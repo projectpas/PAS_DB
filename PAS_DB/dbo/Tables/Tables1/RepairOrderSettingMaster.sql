@@ -11,9 +11,13 @@
     [IsActive]             BIT           CONSTRAINT [DF_RepairOrderSettingMaster_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT           CONSTRAINT [DF_RepairOrderSettingMaster_IsDeleted] DEFAULT ((0)) NOT NULL,
     [Effectivedate]        DATETIME2 (7) NULL,
+    [PriorityId]           BIGINT        NULL,
+    [Priority]             VARCHAR (100) NULL,
     CONSTRAINT [PK_RepairOrderSettingMaster] PRIMARY KEY CLUSTERED ([RepairOrderSettingId] ASC),
     CONSTRAINT [FK_RepairOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

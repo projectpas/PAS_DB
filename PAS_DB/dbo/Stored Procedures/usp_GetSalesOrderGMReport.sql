@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetSalesOrderGMReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrder GM Report 
@@ -74,7 +73,7 @@ BEGIN
           FROM dbo.[Splitstring](@Level1, ',')
       END
 
-      SELECT --DISTINCT
+      SELECT DISTINCT
         UPPER(C.NAME) 'Customer Name',
         UPPER(C.customercode) 'Customer Code',
         UPPER(IM.partnumber) 'PN',
@@ -88,7 +87,7 @@ BEGIN
         SOBI.invoicedate 'InvoiceDate',
         SOP.netsales 'Netsales',
         UPPER(SOMS.misc) 'Misc',
-        (SOP.UnitSalesPricePerUnit) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
+        (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
         SOMS.productcost 'Direct Cost',
         ((SOMS.productcost) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) '%TD of Rev',
         SOMS.marginamount 'Gross Margin',

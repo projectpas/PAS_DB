@@ -8,3 +8,16 @@ SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>The attached Work Ord
 --SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>Please find attached invoice for services provided. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
 Where EmailTemplateTypeId = 48
 GO
+
+Update EmailTemplate 
+SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>Please find attached invoice for services provided. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
+Where EmailTemplateTypeId = 14
+GO
+
+ALTER TABLE DBO.ItemMaster
+ADD CurrentStlNo BIGINT NULL
+GO
+
+ALTER TABLE DBO.ItemMasterAudit
+ADD CurrentStlNo BIGINT NULL
+GO

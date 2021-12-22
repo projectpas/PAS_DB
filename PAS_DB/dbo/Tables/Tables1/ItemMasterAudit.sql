@@ -123,6 +123,9 @@
     [LocationName]                      VARCHAR (250)   NULL,
     [ShelfName]                         VARCHAR (250)   NULL,
     [BinName]                           VARCHAR (250)   NULL,
+    [CurrentStlNo]                      BIGINT          NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
+
+
 

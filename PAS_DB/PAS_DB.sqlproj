@@ -1565,5 +1565,6 @@
     <Build Include="dbo\Tables\ReceivingInspectionAudit.sql" />
     <Build Include="dbo\Tables\ReceivingInspection.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllWOAssignmentOpenItem.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceiverStockPO.sql" />
   </ItemGroup>
 </Project>

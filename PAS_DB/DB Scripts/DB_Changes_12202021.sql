@@ -4,6 +4,12 @@ Where EmailTemplateTypeId = 18
 GO
 
 Update EmailTemplate 
-SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>Please find attached invoice for services provided. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
+SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>The attached Work Order is submitted for your review and approval. If you have any question, please contact me.</div><br/><div>Regards,</div>'
+--SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>Please find attached invoice for services provided. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
 Where EmailTemplateTypeId = 48
+GO
+
+Update EmailTemplate 
+SET EmailBody = '<div>Dear Valued Customer,</div><br/><div>Please find attached invoice for services provided. If you have any questions, please contact me.</div><br/><div>Regards,</div>'
+Where EmailTemplateTypeId = 14
 GO

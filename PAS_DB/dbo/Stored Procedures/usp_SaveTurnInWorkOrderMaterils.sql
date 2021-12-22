@@ -96,6 +96,36 @@ BEGIN
 						 StartsFrom BIGINT NULL,
 					)
 
+					/* PN Manufacturer Combination Stockline logic */
+					CREATE TABLE #tmpPNManufacturer
+					(
+						 ID BIGINT NOT NULL IDENTITY, 
+						 ItemMasterId BIGINT NULL,
+						 ManufacturerId BIGINT NULL,
+						 StockLineNumber VARCHAR(100) NULL,
+						 CurrentStlNo BIGINT NULL,
+						 isSerialized BIT NULL
+					)
+
+					;WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId) AS
+					(
+						SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId
+						FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1 CROSS JOIN
+							(SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2 LEFT JOIN
+							DBO.Stockline ac WITH (NOLOCK)
+							ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
+						WHERE ac.MasterCompanyId = @MasterCompanyId
+						GROUP BY ac.ItemMasterId, ac.ManufacturerId
+						HAVING COUNT(ac.ItemMasterId) > 0
+					)
+
+					INSERT INTO #tmpPNManufacturer (ItemMasterId, ManufacturerId, StockLineNumber, CurrentStlNo, isSerialized)
+					SELECT CSTL.ItemMasterId, CSTL.ManufacturerId, StockLineNumber, ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo, IM.isSerialized
+					FROM CTE_Stockline CSTL INNER JOIN DBO.Stockline STL WITH (NOLOCK) 
+					INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId
+					ON CSTL.StockLineId = STL.StockLineId
+					/* PN Manufacturer Combination Stockline logic */
+
 					SELECT @PartNumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
 					SELECT @WorkOrderNumber = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 					SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
@@ -105,14 +135,33 @@ BEGIN
 					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
+					DECLARE @currentNo AS BIGINT;
+					DECLARE @stockLineCurrentNo AS BIGINT;
+
+					IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
+					BEGIN
+						SELECT @currentNo = CurrentStlNo FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
+
+						IF (@currentNo <> 0)
+						BEGIN
+							SET @stockLineCurrentNo = @currentNo + 1
+						END
+						ELSE
+						BEGIN
+							SET @stockLineCurrentNo = 1
+						END
+					END
+
 					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 					BEGIN 
-						SELECT 
-							@SLCurrentNummber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) + 1 
-								ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-						FROM #tmpCodePrefixes WHERE CodeTypeId = 30
+						--SELECT @SLCurrentNummber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) + 1 
+						--		ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+						--FROM #tmpCodePrefixes WHERE CodeTypeId = 30
+						SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
 
-						SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@SLCurrentNummber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
+						UPDATE DBO.ItemMaster
+						SET CurrentStlNo = @stockLineCurrentNo
+						WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 					END
 					ELSE 
 					BEGIN
@@ -207,7 +256,12 @@ BEGIN
 
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 					BEGIN
-					DROP TABLE #tmpCodePrefixes 
+						DROP TABLE #tmpCodePrefixes 
+					END
+
+					IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpPNManufacturer 
 					END
 				END
 			COMMIT  TRANSACTION

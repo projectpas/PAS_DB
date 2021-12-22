@@ -66,6 +66,7 @@
     <Folder Include="dbo\Stored Procedures\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
+    <Folder Include="Snapshots" />
     <Folder Include="DB Script" />
   </ItemGroup>
   <ItemGroup>
@@ -1566,17 +1567,27 @@
     <Build Include="dbo\Tables\ReceivingInspectionAudit_1.sql" />
     <Build Include="dbo\Tables\ReceivingInspection_1.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWithFK.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceiverStockPO.sql" />
     <Build Include="DB Script\13-12-2021_ModuleHierarchyMaster_PR1089.sql" />
+    <Build Include="DB Script\Asset_Inventory_Script _20122021.sql" />
+    <Build Include="DB Script\DB_Changes_12202021.sql" />
     <Build Include="DB Script\DB_Script_Update_ExistingRecords_WO_Assign_Date_17122021.sql" />
     <Build Include="DB Script\INSERTSCRIPT.sql" />
     <Build Include="DB Script\INSERTSCRIPT14-12-2021.sql" />
     <Build Include="DB Script\internal rejected by Script 15-12-2021.sql" />
     <Build Include="DB Script\ReceivingInspection.sql" />
+    <Build Include="DB Script\ReceivingInspectionEmailBody_20122021.sql" />
+    <Build Include="DB Script\TemplateScript_20122021.sql" />
     <Build Include="DB Script\WOQ Quote Print15122021.sql" />
     <Build Include="DB Script\WOQ Quote Print16122021.sql" />
     <Build Include="DB Script\Asset_Inventory_Script _20122021.sql" />
     <Build Include="DB Script\ReceivingInspectionEmailBody_20122021.sql" />
     <Build Include="DB Script\TemplateScript_20122021.sql" />
     <Build Include="DB Script\DB_Changes_12202021.sql" />
+    <Build Include="DB Script\2__Receiver Stock PDF_22122021.sql" />
+    <Build Include="DB Script\3__ReceivingstockEmailBody_22122021.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />
   </ItemGroup>
 </Project>

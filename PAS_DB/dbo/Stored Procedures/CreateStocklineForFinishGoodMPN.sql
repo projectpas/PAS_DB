@@ -64,19 +64,61 @@ BEGIN
 					 StartsFrom BIGINT NULL,
 				)
 
+				/* PN Manufacturer Combination Stockline logic */
+				CREATE TABLE #tmpPNManufacturer
+				(
+						ID BIGINT NOT NULL IDENTITY, 
+						ItemMasterId BIGINT NULL,
+						ManufacturerId BIGINT NULL,
+						StockLineNumber VARCHAR(100) NULL,
+						CurrentStlNo BIGINT NULL,
+						isSerialized BIT NULL
+				)
+
+				;WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId) AS
+				(
+					SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId
+					FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1 CROSS JOIN
+						(SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2 LEFT JOIN
+						DBO.Stockline ac WITH (NOLOCK)
+						ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
+					WHERE ac.MasterCompanyId = @MasterCompanyId
+					GROUP BY ac.ItemMasterId, ac.ManufacturerId
+					HAVING COUNT(ac.ItemMasterId) > 0
+				)
+
+				INSERT INTO #tmpPNManufacturer (ItemMasterId, ManufacturerId, StockLineNumber, CurrentStlNo, isSerialized)
+				SELECT CSTL.ItemMasterId, CSTL.ManufacturerId, StockLineNumber, ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo, IM.isSerialized
+				FROM CTE_Stockline CSTL INNER JOIN DBO.Stockline STL WITH (NOLOCK) 
+				INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId
+				ON CSTL.StockLineId = STL.StockLineId
+				/* PN Manufacturer Combination Stockline logic */
+
 				INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 				WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
+				DECLARE @currentNo AS BIGINT;
+				DECLARE @stockLineCurrentNo AS BIGINT;
+
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 				BEGIN 
-					SELECT 
-						@SLCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-							ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = 30
+					--SELECT 
+					--	@SLCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+					--		ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+					--FROM #tmpCodePrefixes WHERE CodeTypeId = 30
 
-					SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@SLCurrentNumber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
+					SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
+
+					DECLARE @ItemMasterId AS BIGINT;
+					DECLARE @ManufacturerId AS BIGINT;
+
+					SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
+
+					UPDATE DBO.ItemMaster
+					SET CurrentStlNo = @stockLineCurrentNo
+					WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 				END
 				ELSE 
 				BEGIN

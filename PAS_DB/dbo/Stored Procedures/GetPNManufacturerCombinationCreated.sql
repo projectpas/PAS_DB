@@ -17,8 +17,9 @@ BEGIN
 			HAVING COUNT(ac.ItemMasterId) > 0
 		)
 
-		SELECT CSTL.ItemMasterId, CSTL.ManufacturerId, StockLineNumber 
+		SELECT CSTL.ItemMasterId, CSTL.ManufacturerId, StockLineNumber, ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo, IM.isSerialized
 		FROM CTE_Stockline CSTL INNER JOIN DBO.Stockline STL WITH (NOLOCK) 
+		INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId
 		ON CSTL.StockLineId = STL.StockLineId
 
 	END TRY

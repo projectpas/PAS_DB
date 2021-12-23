@@ -99,26 +99,26 @@ BEGIN
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 				WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-				DECLARE @currentNo AS BIGINT;
+				DECLARE @currentNo AS BIGINT = 0;
 				DECLARE @stockLineCurrentNo AS BIGINT;
 				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT;
 
 				SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 
-				IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
-				BEGIN
-					SELECT @currentNo = CurrentStlNo FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
+				--IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
+				--BEGIN
+				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 
-					IF (@currentNo <> 0)
-					BEGIN
-						SET @stockLineCurrentNo = @currentNo + 1
-					END
-					ELSE
-					BEGIN
-						SET @stockLineCurrentNo = 1
-					END
+				IF (@currentNo <> 0)
+				BEGIN
+					SET @stockLineCurrentNo = @currentNo + 1
 				END
+				ELSE
+				BEGIN
+					SET @stockLineCurrentNo = 1
+				END
+				--END
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 				BEGIN 

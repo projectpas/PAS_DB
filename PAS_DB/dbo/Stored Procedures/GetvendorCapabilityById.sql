@@ -7,7 +7,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY		
 			DECLARE @VendorId Bigint;
-			select @VendorId =VendorId from VendorCapability where VendorCapabilityId=@VendorCapsID
+
+			SELECT @VendorId =VendorId FROM VendorCapability WHERE VendorCapabilityId=@VendorCapsID
+
 			SELECT	DISTINCT
 					vc.VendorId, 
 					vc.VendorCapabilityId,
@@ -33,13 +35,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					vc.UpdatedBy,
 					vc.CurrencyId,
 					vc.Currency,
-					vc.EmployeeId
-					FROM dbo.VendorCapability vc  WITH (NOLOCK)
+					vc.EmployeeId,
+					ct.Description as CapabilityType,
+					ct.CapabilityTypeDesc as CapDescription
+			FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
 					LEFT JOIN dbo.Manufacturer m  WITH (NOLOCK) ON im.ManufacturerId = m.ManufacturerId
 					LEFT JOIN dbo.capabilityType ct  WITH (NOLOCK) ON vc.CapabilityTypeId = ct.CapabilityTypeId
-					WHERE vc.VendorId=@VendorId and vc.IsDeleted=0 and vc.IsActive=1
+			WHERE vc.VendorId=@VendorId and vc.IsDeleted=0 and vc.IsActive=1
 			
 		END TRY    
 		BEGIN CATCH      

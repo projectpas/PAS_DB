@@ -1570,6 +1570,14 @@
     <Build Include="dbo\Stored Procedures\GetvendorCapabilityById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrdMaterialsStocklineListForReserve.sql" />
     <Build Include="dbo\Stored Procedures\GetReceiverStockRO.sql" />
+    <Build Include="dbo\Tables\VendorRFQStatus.sql" />
+    <Build Include="dbo\Tables\VendorRFQPurchaseOrderPartAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPurchaseOrderPart.sql" />
+    <Build Include="dbo\Tables\VendorRFQPurchaseOrderAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPurchaseOrder.sql" />
+    <Build Include="dbo\Stored Procedures\PROCUpdateVendorRFQPurchaseOrderDetail.sql" />
+    <Build Include="dbo\Stored Procedures\PROCGetVendorRFQPoEditID.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPurchaseOrderList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

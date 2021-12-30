@@ -1581,6 +1581,10 @@
     <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPurchaseOrderPart.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorRFQPurchaseOrderParts.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQPurchaseOrderPartType.sql" />
+    <Build Include="dbo\Tables\VendorRFQRepairOrderAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQRepairOrderDetail.sql" />
+    <Build Include="dbo\Stored Procedures\PROCGetVendorRFQROEditID.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

@@ -24,6 +24,7 @@
     [CustomerType]            VARCHAR (200)   NULL,
     [CreditLimit]             DECIMAL (18, 2) CONSTRAINT [DF_WorkOrder_CreditLimit] DEFAULT ((0)) NULL,
     [CreditTerms]             VARCHAR (200)   NULL,
+    [TearDownTypes]           VARCHAR (300)   NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -36,6 +37,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO
@@ -73,94 +76,44 @@ BEGIN
 
 END
 GO
-
-
-
-
 ----------------------------------------------
-
 CREATE TRIGGER [dbo].[Trg_WorkOrderAudit]
-
    ON  [dbo].[WorkOrder]
-
    AFTER INSERT,UPDATE
-
 AS 
 
 BEGIN
-
-	
-
 	DECLARE @StatusId BIGINT,@CustomerId BIGINT,@ContactId BIGINT,@CreditTermsId BIGINT,@SalesPersonId BIGINT,@CSRId BIGINT,@EmployeeId BIGINT
-
-
-
 	DECLARE @Status VARCHAR(256),@ContactName VARCHAR(256),@ContactPhone VARCHAR(30),--@CreditLimit DECIMAL(20,2), @CustomerName VARCHAR(256), @CreditTerms VARCHAR(256),
 
-	@SalesPerson VARCHAR(256),@CSR VARCHAR(256),@Employee VARCHAR(256)
+	@SalesPerson VARCHAR(256),@CSR VARCHAR(256),@Employee VARCHAR(256), @TearDownTypes VARCHAR(300)
 
-
-
-	SELECT @StatusId=WorkOrderStatusId,@CustomerId=CustomerId,@ContactId=CustomerContactId,@SalesPersonId=SalesPersonId,
-
-	@CSRId=CSRId,@EmployeeId=EmployeeId
-
+	SELECT @StatusId=WorkOrderStatusId,@CustomerId=CustomerId,@ContactId=CustomerContactId,@SalesPersonId=SalesPersonId,@CSRId=CSRId,@EmployeeId=EmployeeId, @TearDownTypes=TearDownTypes
 	FROM INSERTED
-
-
 
 	SELECT @Status=Status FROM WorkOrderStatus WHERE Id=@StatusId
 
-
-
 	--SELECT @CustomerName=Name FROM Customer WHERE CustomerId=@CustomerId
 
-
-
 	SELECT @ContactName=C.FirstName+' '+C.LastName,@ContactPhone=C.WorkPhone+' '+c.WorkPhoneExtn FROM CustomerContact CC
-
 	INNER JOIN Contact C ON CC.ContactId=C.ContactId
-
 	WHERE CustomerContactId=@ContactId
 
-
-
 	--SELECT @CreditTerms= CT.Name,@CreditLimit=CF.CreditLimit FROM CustomerFinancial CF
-
 	--JOIN CreditTerms CT ON CF.CreditTermsId=CT.CreditTermsId
-
 	--WHERE CustomerId=@CustomerId
 
-
-
 	SELECT @SalesPerson=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@SalesPersonId
-
-
-
 	SELECT @CSR=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@CSRId
-
-
-
 	SELECT @Employee=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@EmployeeId
-
-
-
-
-
+	
 	INSERT INTO [dbo].[WorkOrderAudit] 
 
     SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
-
 	MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
-
-	Memo,Notes,CustomerContactId,@Status,CustomerName,
-
-	@ContactName,@ContactPhone,CreditLimit,CreditTerms,@SalesPerson,@CSR,@Employee --,
-
+	Memo, Notes, CustomerContactId, @Status, CustomerName,
+	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes
 	FROM INSERTED 
 
 	SET NOCOUNT ON;
-
-
-
 END

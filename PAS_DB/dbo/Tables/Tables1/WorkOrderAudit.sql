@@ -30,6 +30,9 @@
     [SalesPerson]             VARCHAR (256)   NULL,
     [CSR]                     VARCHAR (256)   NULL,
     [Employee]                VARCHAR (256)   NULL,
+    [TearDownTypes]           VARCHAR (300)   NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 

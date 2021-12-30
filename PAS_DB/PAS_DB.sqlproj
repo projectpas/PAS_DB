@@ -1566,5 +1566,12 @@
     <Build Include="dbo\Tables\ReceivingInspection.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllWOAssignmentOpenItem.sql" />
     <Build Include="dbo\Stored Procedures\GetReceiverStockPO.sql" />
+    <Build Include="dbo\Tables\CommonWorkOrderTearDownAudit.sql" />
+    <Build Include="dbo\Tables\CommonWorkOrderTearDown.sql" />
+    <Build Include="dbo\Tables\CommonTeardownTypeAudit.sql" />
+    <Build Include="dbo\Tables\CommonTeardownType.sql" />
+    <Build Include="dbo\Stored Procedures\InserUpdateCommonWorkOrderTeardown.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonWorkOrderTeardownView.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonWorkOrderTearDownPrintView.sql" />
   </ItemGroup>
 </Project>

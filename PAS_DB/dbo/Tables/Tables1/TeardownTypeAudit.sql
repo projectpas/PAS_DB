@@ -10,6 +10,10 @@
     [UpdatedDate]         DATETIME2 (7) NOT NULL,
     [IsActive]            BIT           NOT NULL,
     [IsDeleted]           BIT           NOT NULL,
+    [TearDownCode]        VARCHAR (200) NULL,
+    [Sequence]            INT           NULL,
     CONSTRAINT [PK_TeardownTypeAudit] PRIMARY KEY CLUSTERED ([TeardownTypeAuditId] ASC)
 );
+
+
 

@@ -52,6 +52,7 @@ BEGIN
 					DECLARE @SubModuleId INT;
 					DECLARE @SubReferenceId BIGINT;
 					DECLARE @ReservePartStatus INT;
+					DECLARE @WorkOrderMaterialsId BIGINT;
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 31; -- For WORK ORDER Materials Module
@@ -154,6 +155,18 @@ BEGIN
                         QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.QuantityActReserved,0),
 						WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 					FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+					
+					--FOR UPDATE TOTAL WORK ORDER COST
+					WHILE @count<= @TotalCounts
+					BEGIN
+						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
+						FROM #tmpReserveWOMaterialsStockline tmpWOM 
+						WHERE tmpWOM.ID = @count
+
+						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+						
+						SET @count = @count + 1;
+					END;
 
 					--FOR STOCK LINE HISTORY
 					WHILE @slcount<= @TotalCounts
@@ -168,7 +181,6 @@ BEGIN
 						EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
 						
 						SET @slcount = @slcount + 1;
-						PRINT @slcount;
 					END;
 
 					IF OBJECT_ID(N'tempdb..#tmpReserveWOMaterialsStockline') IS NOT NULL

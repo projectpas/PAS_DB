@@ -1585,6 +1585,9 @@
     <Build Include="dbo\Tables\VendorRFQRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\UpdateVendorRFQRepairOrderDetail.sql" />
     <Build Include="dbo\Stored Procedures\PROCGetVendorRFQROEditID.sql" />
+    <Build Include="dbo\Stored Procedures\usp_ReserveWorkOrderMaterialsStockline.sql" />
+    <Build Include="dbo\Stored Procedures\SP_GetVendorRFQPNViewList.sql" />
+    <Build Include="dbo\User Defined Types\ReserveWOMaterialsStocklineType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

@@ -38,13 +38,45 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
+
+				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpStockline
+				END
+
+				CREATE TABLE #tmpStockline
+					(
+						 ID BIGINT NOT NULL IDENTITY, 						 
+						[StockLineId] [bigint] NOT NULL,
+						[ItemMasterId] [bigint] NULL,
+						[ConditionId] [bigint] NOT NULL,
+						[QuantityOnHand] [int] NOT NULL,
+						[QuantityReserved] [int] NULL,
+						[QuantityAvailable] [int] NULL,
+						[QuantityTurnIn] [int] NULL,
+						[QuantityOnOrder] [int] NULL,
+						[IsParent] [bit] NULL,
+					)
+
+				INSERT INTO #tmpStockline SELECT 						
+						SL.StockLineId, 						
+						SL.ItemMasterId,
+						SL.ConditionId,
+						SL.QuantityOnHand,
+						SL.QuantityReserved,
+						SL.QuantityAvailable,
+						SL.QuantityTurnIn,
+						SL.QuantityOnOrder,
+						SL.IsParent
+				FROM dbo.Stockline SL WITH(NOLOCK) 
+				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
+
 				SELECT  IM.PartNumber,
 						IM.PartDescription, 
 						IM.ItemGroup,
 						IM.ManufacturerName,
 						SL.WorkOrderNumber,
 						SWO.SubWorkOrderNo,
-						--SubWorkOrderNo = (SELECT TOP 1 (SWOS.SubWorkOrderNo) FROM dbo.SubWorkOrder SWOS WITH (NOLOCK) WHERE SWOS.SubWorkOrderId = SL.SubWorkOrderId ),
 						WOM.WorkOrderId,
 						'' AS SalesOrder,
 						IM.SiteName AS Site,
@@ -86,24 +118,24 @@ SET NOCOUNT ON
 						SL.ReceiverNumber AS Receiver,
 						SL.QuantityOnHand AS StockLineQuantityOnHand,
 						SL.QuantityAvailable AS StockLineQuantityAvailable,
-						PartQuantityOnHand = (SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM dbo.StockLine sl WITH (NOLOCK)
+						PartQuantityOnHand = (SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										),
-						PartQuantityAvailable = (SELECT SUM(ISNULL(sl.QuantityAvailable,0)) FROM dbo.StockLine sl WITH (NOLOCK)
+						PartQuantityAvailable = (SELECT SUM(ISNULL(sl.QuantityAvailable,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1
 										),
 						PartQuantityReserved = (SELECT SUM(ISNULL(sl.QuantityReserved,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
-										JOIN dbo.StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId 
+										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId 
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
 						PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
-										JOIN dbo.StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
 						PartQuantityOnOrder = (SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
-										JOIN dbo.StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
@@ -154,7 +186,6 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						--CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreaetd,
 						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreaetd,
 						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
@@ -175,11 +206,15 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId
 						LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
-						--LEFT JOIN dbo.SubWorkOrderMaterialMapping SBWOMM WITH (NOLOCK) ON SBWOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND SBWOMM
 						LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND SWO.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId AND ISNULL(WOM.IsAltPart,0) = 0 AND ISNULL(WOM.IsEquPart,0) = 0;
+
+				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpStockline
+				END
 			END
 		COMMIT  TRANSACTION
 

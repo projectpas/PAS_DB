@@ -36,6 +36,10 @@
     [UpdatedDate]                  DATETIME2 (7)   NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_VendorRFQPurchaseOrderPartAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_VendorRFQPurchaseOrderPartAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [PurchaseOrderId]              BIGINT          NULL,
+    [PurchaseOrderNumber]          VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordAuditId] ASC)
 );
+
+
 

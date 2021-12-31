@@ -35,6 +35,8 @@
     [UpdatedDate]              DATETIME2 (7)   NOT NULL,
     [IsActive]                 BIT             CONSTRAINT [VendorRFQPurchaseOrderPart_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT             CONSTRAINT [DF__VendorRFQPurchaseOrderPart__IsDel__6BBB7E0D] DEFAULT ((0)) NOT NULL,
+    [PurchaseOrderId]          BIGINT          NULL,
+    [PurchaseOrderNumber]      VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -48,6 +50,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

@@ -18,7 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2021   Vishal Suthar Created
      
---EXEC [GetCommonWorkOrderTearDownPrintView] 64
+--EXEC [GetCommonWorkOrderTearDownPrintView] 21
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTearDownPrintView]
 	@workOrderId bigint = 0
@@ -30,7 +30,11 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-			   SELECT tdt.CommonTearDownTypeId,
+				DECLARE @ItemMasterIdlist VARCHAR(max) = '0';
+
+				SELECT @ItemMasterIdlist = TearDownTypes FROM DBO.WorkOrder WHERE WorkOrderId = @workOrderId
+
+			    SELECT tdt.CommonTearDownTypeId,
 					ISNULL(td.ReasonName,'') ReasonName,
                     ISNULL(td.TechnicalName,'') as Technician,
                     ISNULL(td.InspectorName,'') as Inspector,
@@ -49,6 +53,7 @@ BEGIN
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
 				AND td.WorkOrderId = @workOrderId
+				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END
 		COMMIT  TRANSACTION

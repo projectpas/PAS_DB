@@ -18,7 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2021   Vishal Suthar Created
      
---EXEC [GetCommonWorkOrderTeardownView] 64
+--EXEC [GetCommonWorkOrderTeardownView] 5
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTeardownView]
 	@wowfId  bigint = 0

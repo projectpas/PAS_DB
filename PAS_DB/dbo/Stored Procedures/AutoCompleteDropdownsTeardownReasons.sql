@@ -37,22 +37,22 @@ BEGIN
 	BEGIN TRY
 		--BEGIN TRANSACTION
 		--	BEGIN  
-				IF(@Count = '0') 
+				IF (@Count = '0') 
 				BEGIN
-					SET @Count='20';	
+					SET @Count = '20';
 				END	
 				SELECT 
 					tr.TeardownReasonId AS Value, 
 					tr.Reason AS Label
 				FROM dbo.TeardownReason tr WITH(NOLOCK) 						
-				WHERE (tr.IsActive=1 AND ISNULL(tr.IsDeleted,0)=0  and tr.TeardownTypeId=@TeardownTypeId
+				WHERE (tr.IsActive = 1 AND ISNULL(tr.IsDeleted, 0) = 0 AND tr.CommonTeardownTypeId = @TeardownTypeId
 					      AND tr.MasterCompanyId = @MasterCompanyId)    
 				UNION     
 				SELECT 
 					tr.TeardownReasonId AS Value, 
 					tr.Reason AS Label
 				FROM dbo.TeardownReason tr WITH(NOLOCK) 
-				WHERE   tr.TeardownTypeId=@TeardownTypeId AND tr.MasterCompanyId = @MasterCompanyId AND tr.TeardownReasonId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
+				WHERE tr.CommonTeardownTypeId = @TeardownTypeId AND tr.MasterCompanyId = @MasterCompanyId AND tr.TeardownReasonId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY Label	
 		--	END
 		--COMMIT  TRANSACTION

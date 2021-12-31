@@ -10,8 +10,10 @@
     [UpdatedDate]           DATETIME2 (7)  NOT NULL,
     [IsActive]              BIT            NOT NULL,
     [IsDeleted]             BIT            NOT NULL,
-    [TeardownTypeId]        BIGINT         DEFAULT ((0)) NOT NULL,
+    [CommonTeardownTypeId]  BIGINT         DEFAULT ((0)) NOT NULL,
     [TeardownType]          VARCHAR (256)  NULL,
     CONSTRAINT [PK_TeardownReasonAudit] PRIMARY KEY CLUSTERED ([AuditTeardownReasonId] ASC)
 );
+
+
 

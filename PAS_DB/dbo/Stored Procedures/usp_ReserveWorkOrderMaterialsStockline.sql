@@ -100,6 +100,21 @@ BEGIN
 								 [IsSerialized] BIT
 							)
 
+					IF OBJECT_ID(N'tempdb..#tmpIgnoredStockline') IS NOT NULL
+					BEGIN
+					DROP TABLE #tmpIgnoredStockline
+					END
+			
+					CREATE TABLE #tmpIgnoredStockline
+							(
+								 ID BIGINT NOT NULL IDENTITY, 
+								 [Condition] VARCHAR(500) NULL,
+								 [PartNumber] VARCHAR(500) NULL,
+								 [ControlNo] VARCHAR(500) NULL,
+								 [ControlId] VARCHAR(500) NULL,
+								 [StockLineNumber] VARCHAR(500) NULL,
+							)
+
 					INSERT INTO #tmpReserveWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [ReservedById], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActReserved], [ControlNo], [ControlId],
 							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UnitCost], [IsSerialized])
@@ -110,6 +125,10 @@ BEGIN
 					WHERE SL.QuantityAvailable > 0 AND SL.QuantityAvailable >= tblMS.QuantityActReserved
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
+
+					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
+					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
+					WHERE tblMS.StockLineId NOT IN (SELECT StockLineId FROM #tmpReserveWOMaterialsStockline)
 		
 					--UPDATE WORK ORDER MATERIALS DETAILS
 					WHILE @count<= @TotalCounts
@@ -182,6 +201,13 @@ BEGIN
 						
 						SET @slcount = @slcount + 1;
 					END;
+
+					SELECT * FROM #tmpIgnoredStockline
+
+					IF OBJECT_ID(N'tempdb..#tmpIgnoredStockline') IS NOT NULL
+					BEGIN
+					DROP TABLE #tmpIgnoredStockline
+					END
 
 					IF OBJECT_ID(N'tempdb..#tmpReserveWOMaterialsStockline') IS NOT NULL
 					BEGIN

@@ -55,7 +55,7 @@ BEGIN
 					DECLARE @WorkOrderMaterialsId BIGINT;
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
-					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 31; -- For WORK ORDER Materials Module
+					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 					SET @ReservePartStatus = 1; -- FOR RESERTVE
 					SET @IsAddUpdate = 0;
 					SET @ExecuteParentChild = 1;

@@ -23,7 +23,13 @@
     [PartDescription]           VARCHAR (255)   NULL,
     [ManufacturerId]            BIGINT          NULL,
     [ManufactureName]           VARCHAR (100)   NULL,
+    [CostDate]                  DATETIME        NULL,
+    [CurrencyId]                INT             NULL,
+    [Currency]                  VARCHAR (50)    NULL,
+    [EmployeeId]                INT             NULL,
     CONSTRAINT [PK_VendorCapabiliyAudit] PRIMARY KEY CLUSTERED ([AuditVendorCapabilityId] ASC),
     CONSTRAINT [FK_VendorCapabiliyAudit_VendorCapabiliy] FOREIGN KEY ([VendorCapabilityId]) REFERENCES [dbo].[VendorCapability] ([VendorCapabilityId])
 );
+
+
 

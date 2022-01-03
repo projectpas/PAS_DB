@@ -22,6 +22,10 @@
     [IsActive]                       BIT            NOT NULL,
     [IsDeleted]                      BIT            NOT NULL,
     [MasterCompanyId]                INT            NOT NULL,
+    [IsSubWorkOrder]                 BIT            NULL,
+    [SubWorkOrderId]                 BIGINT         NULL,
     CONSTRAINT [PK_CommonWorkOrderTearDownAudit] PRIMARY KEY CLUSTERED ([CommonWorkOrderTearDownAuditId] ASC)
 );
+
+
 

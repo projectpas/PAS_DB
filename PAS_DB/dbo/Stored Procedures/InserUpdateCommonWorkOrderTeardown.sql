@@ -19,8 +19,10 @@ CREATE PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
     @CommonWorkOrderTeardownId bigint = 0,
     @CommonTeardownTypeId bigint = 0,
 	@WorkOrderId bigint = 0,
+	@SubWorkOrderId bigint = 0,
 	@WorkFlowWorkOrderId bigint = 0,
 	@WOPartNoId bigint = null,
+	@IsSubWorkOrder bit = 0,
 	@Memo varchar(max) = null,
 	@ReasonId bigint = null,
 	@technicianId bigint = null,
@@ -66,7 +68,9 @@ BEGIN
 								   ,[UpdatedDate]
 								   ,[IsActive]
 								   ,[IsDeleted]
-								   ,[MasterCompanyId])
+								   ,[MasterCompanyId]
+								   ,[IsSubWorkOrder]
+								   ,[SubWorkOrderId])
 									values(
 									@CommonTeardownTypeId,
 									@WorkOrderId,
@@ -86,7 +90,9 @@ BEGIN
 									@UpdatedDate,
 									@IsActive,
 									@IsDeleted,
-									@MasterCompanyId)
+									@MasterCompanyId,
+									@IsSubWorkOrder,
+									@SubWorkOrderId)
 
 						SELECT @CommonWorkOrderTeardownId = SCOPE_IDENTITY()
 

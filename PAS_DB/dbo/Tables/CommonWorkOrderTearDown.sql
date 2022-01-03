@@ -21,9 +21,13 @@
     [IsActive]                  BIT            DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT            DEFAULT ((0)) NOT NULL,
     [MasterCompanyId]           INT            DEFAULT ((1)) NOT NULL,
+    [IsSubWorkOrder]            BIT            NULL,
+    [SubWorkOrderId]            BIGINT         NULL,
     CONSTRAINT [PK_CommonWorkOrderTearDown] PRIMARY KEY CLUSTERED ([CommonWorkOrderTearDownId] ASC),
     CONSTRAINT [FK_CommonWorkOrderTearDown_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

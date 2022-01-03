@@ -18,7 +18,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
-	1    07/22/2021   Hemant Saliya Update WO & Sub WO Field Mapping to Get it from Stockline
+	2    07/22/2021   Hemant Saliya Update WO & Sub WO Field Mapping to Get it from Stockline
+	3    01/03/2021   Hemant Saliya Update for Performance Improvement
      
  EXECUTE USP_GetWorkOrderMaterialsList 99,115
 
@@ -44,6 +45,11 @@ SET NOCOUNT ON
 				DROP TABLE #tmpStockline
 				END
 
+				IF OBJECT_ID(N'tempdb..#tmpWOMStockline') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpWOMStockline
+				END
+
 				CREATE TABLE #tmpStockline
 					(
 						 ID BIGINT NOT NULL IDENTITY, 						 
@@ -58,6 +64,18 @@ SET NOCOUNT ON
 						[IsParent] [bit] NULL,
 					)
 
+				CREATE TABLE #tmpWOMStockline
+				(
+					 ID BIGINT NOT NULL IDENTITY, 						 
+					[StockLineId] [bigint] NOT NULL,
+					[WorkOrderMaterialsId] [bigint] NULL,
+					[ConditionId] [bigint] NOT NULL,
+					[QtyIssued] [int] NOT NULL,
+					[QtyReserved] [int] NULL,
+					[IsActive] BIT NULL,
+					[IsDeleted] BIT NULL,
+				)
+
 				INSERT INTO #tmpStockline SELECT 						
 						SL.StockLineId, 						
 						SL.ItemMasterId,
@@ -70,6 +88,18 @@ SET NOCOUNT ON
 						SL.IsParent
 				FROM dbo.Stockline SL WITH(NOLOCK) 
 				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
+
+				INSERT INTO #tmpWOMStockline SELECT 						
+						WOMS.StockLineId, 						
+						WOMS.WorkOrderMaterialsId,
+						WOMS.ConditionId,
+						WOMS.QtyIssued,
+						WOMS.QtyReserved,
+						WOMS.IsActive,
+						WOMS.IsDeleted
+				FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) 
+				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId 
+				AND WOM.WorkFlowWorkOrderId = @WFWOId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 
 				SELECT  IM.PartNumber,
 						IM.PartDescription, 
@@ -124,17 +154,17 @@ SET NOCOUNT ON
 						PartQuantityAvailable = (SELECT SUM(ISNULL(sl.QuantityAvailable,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1
 										),
-						PartQuantityReserved = (SELECT SUM(ISNULL(sl.QuantityReserved,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+						PartQuantityReserved = (SELECT SUM(ISNULL(sl.QuantityReserved,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)
 										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId 
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
-						PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+						PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)
 										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
-						PartQuantityOnOrder = (SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+						PartQuantityOnOrder = (SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)
 										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
@@ -144,11 +174,11 @@ SET NOCOUNT ON
 						Currency = (SELECT TOP 1 CUR.Code FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) 
 									LEFT JOIN dbo.Currency CUR WITH (NOLOCK)  ON IMPS.PP_CurrencyId = CUR.CurrencyId 
 									WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId ),
-						QuantityIssued = (SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK) 
+						QuantityIssued = (SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK) 
+						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = WOM.Quantity - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK) 
+						QunatityRemaining = WOM.Quantity - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),
@@ -214,6 +244,11 @@ SET NOCOUNT ON
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
 				DROP TABLE #tmpStockline
+				END
+
+				IF OBJECT_ID(N'tempdb..#tmpWOMStockline') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpWOMStockline
 				END
 			END
 		COMMIT  TRANSACTION

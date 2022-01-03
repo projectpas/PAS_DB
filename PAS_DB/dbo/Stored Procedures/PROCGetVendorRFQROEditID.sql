@@ -1,4 +1,6 @@
 ﻿
+
+
 CREATE PROCEDURE [dbo].[PROCGetVendorRFQROEditID]
 @VendorRFQRepairOrderId  bigint
 AS
@@ -22,30 +24,21 @@ BEGIN
 
 		INSERT INTO #RFQROEditList ([Value],Label)
 		SELECT ISNULL(VendorId,0), 'VENDOR' FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
-
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(ROPartSplitUserId,0), 'VENDOR' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND ROPartSplitUserTypeId = 2
-
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(ROPartSplitUserId,0), 'COMPANY' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND ROPartSplitUserTypeId = 9
-
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(ROPartSplitUserId,0), 'CUSTOMER' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND ROPartSplitUserTypeId = 1
-
+		
 		INSERT INTO #RFQROEditList ([Value],Label)
 		SELECT  ISNULL(RequisitionerId,0), 'EMPLOYEE' FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
 		INSERT INTO #RFQROEditList ([Value],Label)
 		SELECT  ISNULL(PriorityId,0), 'PRIORITY' FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(PriorityId,0), 'PRIORITY' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(PriorityId,0), 'PRIORITY' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(ConditionId,0), 'CONDITION' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(ConditionId,0), 'CONDITION' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(RevisedPartId,0), 'REVISEDPART' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND RevisedPartId > 0
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(RevisedPartId,0), 'REVISEDPART' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND RevisedPartId > 0
 
 		--INSERT INTO #RFQROEditList ([Value],Label)
 		--SELECT  ISNULL(FunctionalCurrencyId,0), 'CURRENCY' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID
@@ -56,14 +49,14 @@ BEGIN
 		--INSERT INTO #RFQROEditList ([Value],Label)
 		--SELECT  ISNULL(ApproverId,0), 'EMPLOYEE' FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(WorkOrderId,0), 'WONO' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND WorkOrderId > 0
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(WorkOrderId,0), 'WONO' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND WorkOrderId > 0
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(SubWorkOrderId,0), 'SOWONO' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND SubWorkOrderId > 0
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(SubWorkOrderId,0), 'SOWONO' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND SubWorkOrderId > 0
 
-		--INSERT INTO #RFQROEditList ([Value],Label)
-		--SELECT  ISNULL(SalesOrderId,0), 'SONO' FROM dbo.RepairOrderPart WITH(NOLOCK) Where RepairOrderId = @roID AND SalesOrderId > 0
+		INSERT INTO #RFQROEditList ([Value],Label)
+		SELECT  ISNULL(SalesOrderId,0), 'SONO' FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) Where VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND SalesOrderId > 0
 
 		INSERT INTO #RFQROEditList ([Value],Label)
 		SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQRepairOrder PO WITH(NOLOCK) 

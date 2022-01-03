@@ -1,5 +1,6 @@
 ﻿
 
+
     --EXEC UpdateVendorRFQRepairOrderDetail 1
 CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
 @VendorRFQRepairOrderId  bigint
@@ -92,81 +93,62 @@ BEGIN
 		LEFT JOIN dbo.Priority PR WITH (NOLOCK)  ON  PR.PriorityId = RO.PriorityId
 		WHERE RO.VendorRFQRepairOrderId = @VendorRFQRepairOrderId;					   							
 
-		--UPDATE dbo.RepairOrderPart SET
-		--   PartNumber = IM.partnumber,
-		--   PartDescription = IM.PartDescription,
-		--   AltEquiPartNumber = AIM.PartNumber,
-		--   AltEquiPartDescription = AIM.PartDescription,
-		--   StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
-		--					'PMA&DER' 
-		--					WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
-		--					WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
-		--					ELSE 'OEM'
-		--					END),
-		--   Manufacturer = MF.[NAME],
-		--   [Priority] = PR.[Description],
-		--   Condition = CO.[Description],
-		--   FunctionalCurrency = CR.Code,
-		--   ReportCurrency= RC.Code,
-		--   StockLineNumber = SL.StockLineNumber,
-		--   ControlId = SL.IdNumber,
-		--   ControlNumber = SL.ControlNumber,
-		--   PurchaseOrderNumber= Po.PurchaseOrderNumber, 
-		--   WorkOrderNo =  WO.WorkOrderNum ,
-		--   SubWorkOrderNo =SWO.SubWorkOrderNo, 
-		--   SalesOrderNo = SO.SalesOrderNumber,
-		--   ItemTypeId = IM.ItemTypeId,
-		--   ItemType = IT.[Description],   
-		--   GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
-		--   UnitOfMeasure = UOM.ShortName,
-		--   Level1 = RMS.Level1,
-		--   Level2 = RMS.Level2,
-		--   Level3 = RMS.Level3,
-		--   Level4 = RMS.Level4,	
-		--   RoPartSplitUserType = M.ModuleName, 
-		--   ROPartSplitUser = CASE WHEN ROP.RoPartSplitUserTypeId = 1 THEN CUST.[Name] 
-		--						  WHEN ROP.RoPartSplitUserTypeId = 2 THEN VEN.VendorName
-		--						  WHEN ROP.RoPartSplitUserTypeId = 9 THEN COM.[Name]						 
-		--					 END,
-		--   RoPartSplitSiteName =  (CASE WHEN ROPartSplitUserTypeId = 1 THEN
- 	--								(select TOP 1 ISNULL(SiteName,'') from CustomerDomensticShipping WITH (NOLOCK) where CustomerDomensticShippingId = ROP.ROPartSplitSiteId) 
- 	--								WHEN ROPartSplitUserTypeId = 2 THEN
- 	--								(select TOP 1 ISNULL(SiteName,'') from VendorShippingAddress WITH (NOLOCK) where VendorShippingAddressId = ROP.ROPartSplitSiteId) 
- 	--								WHEN ROPartSplitUserTypeId = 9 THEN
- 	--								(select TOP 1 ISNULL(SiteName,'') from LegalEntityShippingAddress WITH (NOLOCK) where LegalEntityShippingAddressId = ROP.ROPartSplitSiteId)
- 	--								END),
-		--   RevisedPartNumber = RIM.partnumber,
-		--   WorkPerformed = WP.WorkPerformedCode
+		UPDATE dbo.VendorRFQRepairOrderPart SET
+		   PartNumber = IM.partnumber,
+		   PartDescription = IM.PartDescription,
+		   AltEquiPartNumber = AIM.PartNumber,
+		   AltEquiPartDescription = AIM.PartDescription,
+		   StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
+							'PMA&DER' 
+							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
+							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
+							ELSE 'OEM'
+							END),
+		   Manufacturer = MF.[NAME],
+		   [Priority] = PR.[Description],
+		   Condition = CO.[Description],
+		   --FunctionalCurrency = CR.Code,
+		   --ReportCurrency= RC.Code,
+		   --StockLineNumber = SL.StockLineNumber,
+		   --ControlId = SL.IdNumber,
+		   --ControlNumber = SL.ControlNumber,
+		   --PurchaseOrderNumber= Po.PurchaseOrderNumber, 
+		   WorkOrderNo =  WO.WorkOrderNum ,
+		   SubWorkOrderNo =SWO.SubWorkOrderNo, 
+		   SalesOrderNo = SO.SalesOrderNumber,
+		   ItemTypeId = IM.ItemTypeId,
+		   ItemType = IT.[Description],   
+		   --GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
+		   UnitOfMeasure = UOM.ShortName,
+		   Level1 = RMS.Level1,
+		   Level2 = RMS.Level2,
+		   Level3 = RMS.Level3,
+		   Level4 = RMS.Level4,	
+		   RevisedPartNumber = RIM.partnumber,
+		   WorkPerformed = WP.WorkPerformedCode
 
+		FROM  dbo.VendorRFQRepairOrderPart ROP WITH (NOLOCK)
+			  INNER JOIN #VendorRFQRepairOrderPartMSDAT RMS ON RMS.MSID = ROP.ManagementStructureId
+			  --INNER JOIN RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId	
+			  INNER JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
+			  INNER JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
+			  INNER JOIN Priority PR WITH (NOLOCK) ON PR.PriorityId = ROP.PriorityId
+			  --INNER JOIN Currency CR WITH (NOLOCK) ON CR.CurrencyId = ROP.FunctionalCurrencyId
+			  --INNER JOIN Currency RC WITH (NOLOCK) ON RC.CurrencyId = ROP.ReportCurrencyId
+			  INNER JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
+			  --INNER JOIN GLAccount    GLA WITH (NOLOCK) ON GLA.GLAccountId = ROP.GlAccountId
+			  INNER JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
+			  LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = ROP.WorkOrderId
+			  LEFT JOIN ItemType ITP WITH (NOLOCK) ON ITP.ItemTypeId= ROP.ItemTypeId
+			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
+			  LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = ROP.SalesOrderId
+			  LEFT JOIN ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = ROP.AltEquiPartNumberId			  
+			  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
+			  LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
+			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
+			  LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
 
-		--FROM  dbo.RepairOrderPart ROP WITH (NOLOCK)
-		--	  INNER JOIN #VendorRFQRepairOrderPartMSDAT RMS ON RMS.MSID = ROP.ManagementStructureId
-		--	  INNER JOIN RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId	
-		--	  INNER JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
-		--	  INNER JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
-		--	  INNER JOIN Priority PR WITH (NOLOCK) ON PR.PriorityId = ROP.PriorityId
-		--	  INNER JOIN Currency CR WITH (NOLOCK) ON CR.CurrencyId = ROP.FunctionalCurrencyId
-		--	  INNER JOIN Currency RC WITH (NOLOCK) ON RC.CurrencyId = ROP.ReportCurrencyId
-		--	  INNER JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
-		--	  INNER JOIN GLAccount    GLA WITH (NOLOCK) ON GLA.GLAccountId = ROP.GlAccountId
-		--	  INNER JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
-		--	  LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = ROP.WorkOrderId
-		--	  LEFT JOIN ItemType ITP WITH (NOLOCK) ON ITP.ItemTypeId= ROP.ItemTypeId
-		--	  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
-		--	  LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = ROP.SalesOrderId
-		--	  LEFT JOIN ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = ROP.AltEquiPartNumberId
-		--	  LEFT JOIN Customer CUST WITH (NOLOCK) ON CUST.CustomerId = ROP.RoPartSplitUserId
-		--	  LEFT JOIN Vendor VEN WITH (NOLOCK) ON VEN.VendorId = ROP.RoPartSplitUserId
-		--	  LEFT JOIN LegalEntity COM WITH (NOLOCK) ON COM.LegalEntityId = ROP.RoPartSplitUserId
-		--	  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
-		--	  LEFT JOIN StockLine SL WITH (NOLOCK) ON SL.StockLineId=ROP.StockLineId	
-		--	  LEFT JOIN Purchaseorder PO WITH (NOLOCK) ON SL.PurchaseOrderId=PO.PurchaseOrderId	
-		--	  LEFT JOIN  ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
-		--	  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = ROP.RoPartSplitUserTypeId	
-		--	  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
-		--	  LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
-
-		--WHERE ROP.RepairOrderId  = @RepairOrderId 
+		WHERE ROP.VendorRFQRepairOrderId = @VendorRFQRepairOrderId; 
 		
 		SELECT VendorRFQRepairOrderNumber AS value FROM dbo.VendorRFQRepairOrder PO WITH (NOLOCK) WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId
 

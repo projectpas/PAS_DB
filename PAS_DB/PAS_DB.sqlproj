@@ -1588,6 +1588,13 @@
     <Build Include="dbo\Stored Procedures\usp_ReserveWorkOrderMaterialsStockline.sql" />
     <Build Include="dbo\Stored Procedures\SP_GetVendorRFQPNViewList.sql" />
     <Build Include="dbo\User Defined Types\ReserveWOMaterialsStocklineType.sql" />
+    <Build Include="dbo\Tables\VendorRFQRepairOrderPartAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQRepairOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\usp_IssueWorkOrderMaterialsStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrdMaterialsStocklineListForIssue.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQRepairOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQRepairOrderParts.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQRepairOrderPartType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

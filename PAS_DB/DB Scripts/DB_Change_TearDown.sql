@@ -1,0 +1,15 @@
+TRUNCATE TABLE DBO.WorkOrderAdditionalComments
+TRUNCATE TABLE DBO.WorkOrderBulletinsModification
+TRUNCATE TABLE DBO.WorkOrderDiscovery
+TRUNCATE TABLE DBO.WorkOrderFinalInspection
+TRUNCATE TABLE DBO.WorkOrderFinalTest
+TRUNCATE TABLE DBO.WorkOrderPmaDerBulletins
+TRUNCATE TABLE DBO.WorkOrderPreAssemblyInspection
+TRUNCATE TABLE DBO.WorkOrderPreAssmentResults
+TRUNCATE TABLE DBO.WorkOrderPreliinaryReview
+TRUNCATE TABLE DBO.WorkOrderRemovalReasons
+TRUNCATE TABLE DBO.WorkOrderTestDataUsed
+TRUNCATE TABLE DBO.WorkOrderWorkPerformed
+
+DELETE FROM TeardownReason
+DELETE FROM TeardownReasonAudit

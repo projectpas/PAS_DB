@@ -95,7 +95,7 @@ BEGIN
 		UPDATE dbo.VendorRFQPurchaseOrderPart
 		SET PartNumber = IM.partnumber,
 			PartDescription = IM.PartDescription,		  
-			aStockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER' 
+			StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER' 
 							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
 							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
 							ELSE 'OEM'

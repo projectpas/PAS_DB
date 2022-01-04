@@ -13,6 +13,9 @@
     [SequenceNo]            INT            NOT NULL,
     [CapabilityTypeDesc]    VARCHAR (256)  NULL,
     [WorkScopeId]           BIGINT         NULL,
+    [ConditionId]           INT            NULL,
     CONSTRAINT [PK_CapabilityTypeAudit] PRIMARY KEY CLUSTERED ([AuditCapabilityTypeId] ASC)
 );
+
+
 

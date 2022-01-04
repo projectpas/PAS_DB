@@ -38,8 +38,12 @@
     [IsDeleted]                    BIT             CONSTRAINT [DF_VendorRFQPurchaseOrderPartAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PurchaseOrderId]              BIGINT          NULL,
     [PurchaseOrderNumber]          VARCHAR (50)    NULL,
+    [UOMId]                        BIGINT          NULL,
+    [UnitOfMeasure]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordAuditId] ASC)
 );
+
+
 
 
 

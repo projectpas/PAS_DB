@@ -413,6 +413,127 @@ BEGIN
 				LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = ExchSO.ExchangeSalesOrderId and SOQSV.ModuleId = @ModuleID
 			WHERE ExchSO.ExchangeSalesOrderId = @Id;
 		END
+
+		ELSE IF(@AddressType = 'VRFQPO')
+		BEGIN
+		 SELECT PO.VendorRFQPurchaseOrderId,
+				PO.MasterCompanyId,
+				PO.IsActive,
+				PO.IsDeleted,
+				PO.CreatedDate,
+				PO.UpdatedDate,
+				PO.CreatedBy,
+				PO.UpdatedBy,
+				ISNULL(POA.AllAddressId, 0) AS ShipToPOAddressId,
+				ISNULL(POA.UserType, 0) AS ShipToUserType,
+				ISNULL(POA.UserId, 0) AS ShipToUserId,
+				ISNULL(POA.SiteId, 0) AS ShipToSiteId,
+				ISNULL(POA.SiteName, '') AS ShipToSiteName,
+				POA.IsModuleOnly AS ShipAddIsPoOnly,
+				ISNULL(POA.ContactId, 0) AS ShipToContactId,
+				ISNULL(POA.ContactName, '') AS ShipToContact,
+				ISNULL(POA.Memo, '') AS ShipToMemo,
+				ISNULL(POA.AddressId, 0) AS ShipToAddressId,
+				ISNULL(POA.Line1, '') AS ShipToAddress1,
+				ISNULL(POA.Line2, '') AS ShipToAddress2,
+				ISNULL(POA.City, '') AS ShipToCity,
+				ISNULL(POA.CountryId, 0) AS ShipToCountryId,
+				ISNULL(POA.Country, '') AS ShipToCountryName,
+				ISNULL(POA.StateOrProvince, '') AS ShipToState,
+				ISNULL(POA.PostalCode, '') AS ShipToPostalCode,
+				ISNULL(POSV.AllShipViaId, 0) AS POShipViaId,
+				ISNULL(POSV.ShippingViaId, 0) AS ShippingViaId,
+				ISNULL(POSV.ShipVia, '') AS ShipVia,
+				ISNULL(POSV.ShipViaId, 0) AS ShipViaId,
+				ISNULL(POSV.ShippingCost, 0) AS ShippingCost,
+				ISNULL(POSV.HandlingCost, 0) AS HandlingCost,
+				ISNULL(POSV.ShippingAccountNo, '') AS ShippingAccountNo,
+				ISNULL(POAS.AllAddressId, 0) AS BillToPOAddressId,
+				ISNULL(POAS.UserType, 0) AS BillToUserType,
+				ISNULL(POAS.UserId, 0) AS BillToUserId,
+				ISNULL(POAS.SiteId, 0) AS BillToSiteId,
+				ISNULL(POAS.SiteName, '') AS BillToSiteName,
+				POAS.IsModuleOnly AS BillAddIsPoOnly,
+				ISNULL(POAS.ContactId, 0) AS BillToContactId,
+				ISNULL(POAS.ContactName, '') AS BillToContactName,			
+				ISNULL(POAS.Memo, '') AS BillToMemo,
+				ISNULL(POAS.AddressId, 0) AS BillToAddressId,
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(POAS.Line1, '') AS BillToAddress1,
+				ISNULL(POAS.Line2, '') AS BillToAddress2,
+				ISNULL(POAS.City, '') AS BillToCity,
+				ISNULL(POAS.CountryId, 0) AS BillToCountryId,
+				ISNULL(POAS.Country, '') AS BillToCountryName,
+				ISNULL(POAS.StateOrProvince, '') AS BillToState,
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
+			
+		FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
+			LEFT JOIN AllAddress POA WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
+			LEFT JOIN AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
+			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQPurchaseOrderId and POSV.ModuleId = @ModuleID
+		WHERE PO.VendorRFQPurchaseOrderId = @Id;
+		END
+
+		ELSE IF(@AddressType = 'VRFQRO')
+		BEGIN
+		 SELECT PO.VendorRFQRepairOrderId,
+				PO.MasterCompanyId,
+				PO.IsActive,
+				PO.IsDeleted,
+				PO.CreatedDate,
+				PO.UpdatedDate,
+				PO.CreatedBy,
+				PO.UpdatedBy,
+				ISNULL(POA.AllAddressId, 0) AS ShipToPOAddressId,
+				ISNULL(POA.UserType, 0) AS ShipToUserType,
+				ISNULL(POA.UserId, 0) AS ShipToUserId,
+				ISNULL(POA.SiteId, 0) AS ShipToSiteId,
+				ISNULL(POA.SiteName, '') AS ShipToSiteName,
+				POA.IsModuleOnly AS ShipAddIsPoOnly,
+				ISNULL(POA.ContactId, 0) AS ShipToContactId,
+				ISNULL(POA.ContactName, '') AS ShipToContact,
+				ISNULL(POA.Memo, '') AS ShipToMemo,
+				ISNULL(POA.AddressId, 0) AS ShipToAddressId,
+				ISNULL(POA.Line1, '') AS ShipToAddress1,
+				ISNULL(POA.Line2, '') AS ShipToAddress2,
+				ISNULL(POA.City, '') AS ShipToCity,
+				ISNULL(POA.CountryId, 0) AS ShipToCountryId,
+				ISNULL(POA.Country, '') AS ShipToCountryName,
+				ISNULL(POA.StateOrProvince, '') AS ShipToState,
+				ISNULL(POA.PostalCode, '') AS ShipToPostalCode,
+				ISNULL(POSV.AllShipViaId, 0) AS POShipViaId,
+				ISNULL(POSV.ShippingViaId, 0) AS ShippingViaId,
+				ISNULL(POSV.ShipVia, '') AS ShipVia,
+				ISNULL(POSV.ShipViaId, 0) AS ShipViaId,
+				ISNULL(POSV.ShippingCost, 0) AS ShippingCost,
+				ISNULL(POSV.HandlingCost, 0) AS HandlingCost,
+				ISNULL(POSV.ShippingAccountNo, '') AS ShippingAccountNo,
+				ISNULL(POAS.AllAddressId, 0) AS BillToPOAddressId,
+				ISNULL(POAS.UserType, 0) AS BillToUserType,
+				ISNULL(POAS.UserId, 0) AS BillToUserId,
+				ISNULL(POAS.SiteId, 0) AS BillToSiteId,
+				ISNULL(POAS.SiteName, '') AS BillToSiteName,
+				POAS.IsModuleOnly AS BillAddIsPoOnly,
+				ISNULL(POAS.ContactId, 0) AS BillToContactId,
+				ISNULL(POAS.ContactName, '') AS BillToContactName,			
+				ISNULL(POAS.Memo, '') AS BillToMemo,
+				ISNULL(POAS.AddressId, 0) AS BillToAddressId,
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(POAS.Line1, '') AS BillToAddress1,
+				ISNULL(POAS.Line2, '') AS BillToAddress2,
+				ISNULL(POAS.City, '') AS BillToCity,
+				ISNULL(POAS.CountryId, 0) AS BillToCountryId,
+				ISNULL(POAS.Country, '') AS BillToCountryName,
+				ISNULL(POAS.StateOrProvince, '') AS BillToState,
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
+			
+		FROM VendorRFQRepairOrder PO WITH (NOLOCK)
+			LEFT JOIN AllAddress POA WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
+			LEFT JOIN AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
+			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQRepairOrderId and POSV.ModuleId = @ModuleID
+		WHERE PO.VendorRFQRepairOrderId = @Id;
+	    END
+
 	COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

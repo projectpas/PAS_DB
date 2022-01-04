@@ -1,5 +1,6 @@
 ﻿
 
+
 CREATE PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
@@ -34,7 +35,8 @@ BEGIN
 						TARGET.[UpdatedBy] = SOURCE.UpdatedBy,
 						TARGET.[UpdatedDate] = SOURCE.UpdatedDate,
 						TARGET.[IsActive] = SOURCE.IsActive,
-						TARGET.[IsDeleted] = SOURCE.IsDeleted
+						TARGET.[IsDeleted] = SOURCE.IsDeleted,
+						TARGET.[UOMId] = SOURCE.UOMId
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -43,17 +45,17 @@ BEGIN
 								   [ConditionId],[Condition],[QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],
 								   [WorkOrderNo],[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],[SalesOrderNo],
 								   [ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],
-								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[UOMId])
 							VALUES(SOURCE.VendorRFQPurchaseOrderId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.PartDescription,SOURCE.StockType,
 								   SOURCE.ManufacturerId,SOURCE.Manufacturer,SOURCE.PriorityId,SOURCE.Priority,SOURCE.NeedByDate,SOURCE.PromisedDate,
 								   SOURCE.ConditionId,SOURCE.Condition,SOURCE.QuantityOrdered,SOURCE.UnitCost,SOURCE.ExtendedCost,SOURCE.WorkOrderId,
 								   SOURCE.WorkOrderNo,SOURCE.SubWorkOrderId,SOURCE.SubWorkOrderNo,SOURCE.SalesOrderId,SOURCE.SalesOrderNo,
 								   SOURCE.ManagementStructureId,SOURCE.Level1,SOURCE.Level2,SOURCE.Level3,SOURCE.Level4,SOURCE.Memo,SOURCE.MasterCompanyId,
-								   SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted);
+								   SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.UOMId);
 					
 					  													     
 					 
-				   	     EXEC PROCUpdateVendorRFQPurchaseOrderDetail @VendorRFAPOId;									    
+				   	        EXEC PROCUpdateVendorRFQPurchaseOrderDetail @VendorRFAPOId;									    
 					END
 					
 				END

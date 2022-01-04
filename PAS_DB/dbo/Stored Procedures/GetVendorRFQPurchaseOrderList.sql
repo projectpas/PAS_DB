@@ -31,7 +31,8 @@
 @WorkOrderNo VARCHAR(50)=NULL,
 @SubWorkOrderNo VARCHAR(50)=NULL,
 @SalesOrderNo	VARCHAR(50)=NULL,
-@PurchaseOrderNumber VARCHAR(50)=NULL
+@PurchaseOrderNumber VARCHAR(50)=NULL,
+@mgmtStructure	VARCHAR(200)=null
 AS
 BEGIN
 
@@ -68,7 +69,7 @@ BEGIN
 		BEGIN	
 
 		;WITH Result AS(									
-		   	 SELECT DISTINCT PO.VendorRFQPurchaseOrderId,
+		   	 SELECT PO.VendorRFQPurchaseOrderId,
 		            PO.VendorRFQPurchaseOrderNumber,					
                     PO.OpenDate,
 					PO.ClosedDate,
@@ -105,11 +106,11 @@ BEGIN
 					VPOP.PurchaseOrderId,
 					VPOP.PurchaseOrderNumber as 'PurchaseOrderNumberType'
 			  FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
-			  left outer JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId
-			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId		              			  
+			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId
+			  left outer JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId			  		              			  
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
 			      AND EMS.EmployeeId = 	@EmployeeId AND PO.MasterCompanyId = @MasterCompanyId	
-				  AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
+				  --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
 			), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -128,6 +129,10 @@ BEGIN
 					(WorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR
 					(SubWorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR
 					(SalesOrderNoType LIKE '%' +@GlobalFilter+'%') OR
+					--(Level1Type LIKE '%' +@mgmtStructure+'%') OR
+					--(Level2Type LIKE '%' +@mgmtStructure+'%') OR
+					--(Level3Type LIKE '%' +@mgmtStructure+'%') OR
+					--(Level4Type LIKE '%' +@mgmtStructure+'%') OR
 					(PurchaseOrderNumberType LIKE '%' +@GlobalFilter+'%') OR
 					([Status]  LIKE '%' +@GlobalFilter+'%')))
 					OR   
@@ -147,12 +152,16 @@ BEGIN
 					(ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@Priority,'') ='' OR PriorityType LIKE '%' + @Priority + '%') AND
 					(ISNULL(@Condition,'') ='' OR ConditionType LIKE '%' + @Condition + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
-					(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
+					--(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
+					--(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
 					(ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNoType LIKE '%' + @WorkOrderNo + '%') AND
 					(ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND
 					(ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND
-					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level1Type LIKE '%' + @mgmtStructure + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level2Type LIKE '%' + @mgmtStructure + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level3Type LIKE '%' + @mgmtStructure + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level4Type LIKE '%' + @mgmtStructure + '%') AND
+					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND					
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 
@@ -165,7 +174,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='vendorName')  THEN VendorName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorName')  THEN VendorName END DESC,			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorName')  THEN VendorName END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN Status END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Status')  THEN Status END DESC,	
 			CASE WHEN (@SortOrder=1  AND @SortColumn='RequestedBy')  THEN RequestedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedBy')  THEN RequestedBy END DESC,			         
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
@@ -183,6 +194,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescriptionType')  THEN PartDescriptionType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='StockTypeType')  THEN StockTypeType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='StockTypeType')  THEN StockTypeType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionType')  THEN ConditionType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionType')  THEN ConditionType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PriorityType')  THEN PriorityType END ASC,
@@ -195,14 +208,18 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QuantityOrdered')  THEN QuantityOrdered END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityOrdered')  THEN QuantityOrdered END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='WorkOrderNo')  THEN WorkOrderNoType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkOrderNo')  THEN WorkOrderNoType END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='SubWorkOrderNo')  THEN SubWorkOrderNoType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='SubWorkOrderNo')  THEN SubWorkOrderNoType END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='SalesOrderNo')  THEN SalesOrderNoType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='SalesOrderNo')  THEN SalesOrderNoType END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumberType END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumberType END DESC
+			CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderNoType')  THEN WorkOrderNoType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderNoType')  THEN WorkOrderNoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='SubWorkOrderNoType')  THEN SubWorkOrderNoType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SubWorkOrderNoType')  THEN SubWorkOrderNoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='SalesOrderNoType')  THEN SalesOrderNoType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SalesOrderNoType')  THEN SalesOrderNoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='MemoType')  THEN MemoType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='MemoType')  THEN MemoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='mgmtStructure')  THEN Level1Type END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='mgmtStructure')  THEN Level1Type END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumberType')  THEN PurchaseOrderNumberType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumberType')  THEN PurchaseOrderNumberType END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

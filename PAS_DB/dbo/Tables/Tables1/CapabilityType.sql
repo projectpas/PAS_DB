@@ -12,11 +12,14 @@
     [SequenceNo]         INT            NOT NULL,
     [CapabilityTypeDesc] VARCHAR (256)  NULL,
     [WorkScopeId]        BIGINT         NULL,
+    [ConditionId]        INT            NULL,
     CONSTRAINT [PK_CapabilityType] PRIMARY KEY CLUSTERED ([CapabilityTypeId] ASC),
     CONSTRAINT [FK_CapabilityType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CapabilityType] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_CapabilityTypeSeqNo] UNIQUE NONCLUSTERED ([SequenceNo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO
@@ -50,14 +53,6 @@ END
 GO
 
 
-
-
-
-
-
-
-
-
 CREATE TRIGGER [dbo].[Trg_CapabilityType_WorkScope_Insert]
 
    ON  [dbo].[CapabilityType]
@@ -72,9 +67,9 @@ BEGIN
 
 	
 
-	INSERT INTO [dbo].[WorkScope](WorkScopeCode,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, IsActive, IsDeleted, WorkScopeCodeNew )
+	INSERT INTO [dbo].[WorkScope](WorkScopeCode,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, IsActive, IsDeleted, WorkScopeCodeNew,ConditionId )
 
-	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted,CapabilityTypeDesc FROM INSERTED
+	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted,CapabilityTypeDesc,ConditionId FROM INSERTED
 
 
 
@@ -153,15 +148,6 @@ BEGIN
 END
 GO
 
-
-
-
-
-
-
-
-
-
 CREATE TRIGGER [dbo].[Trg_CapabilityType_WorkScope_Update]
 
    ON  [dbo].[CapabilityType]
@@ -176,7 +162,7 @@ BEGIN
 
 	UPDATE [dbo].[WorkScope] SET WorkScopeCode = ins.CapabilityTypeDesc, [Description]=ins.Description ,
 
-	Memo = ins.SequenceMemo, IsActive = ins.IsActive, IsDeleted = ins.IsDeleted
+	Memo = ins.SequenceMemo, IsActive = ins.IsActive, IsDeleted = ins.IsDeleted, ConditionId=ins.ConditionId
 
 	FROM [dbo].[WorkScope] WS JOIN INSERTED ins ON ws.WorkScopeId = ins.WorkScopeId
 

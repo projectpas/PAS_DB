@@ -43,7 +43,7 @@ BEGIN
 
 		INSERT INTO #MSDATA (MSID)
 		  SELECT DISTINCT POP.ManagementStructureId
-			 FROM dbo.VendorRFQPurchaseOrder POP Where POP.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId
+			 FROM dbo.VendorRFQPurchaseOrderPart POP Where POP.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId
 				  AND POP.ManagementStructureId 
 				  NOT IN (SELECT MSID FROM #MSDATA)
 
@@ -95,7 +95,7 @@ BEGIN
 		UPDATE dbo.VendorRFQPurchaseOrderPart
 		SET PartNumber = IM.partnumber,
 			PartDescription = IM.PartDescription,		  
-			StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER' 
+			aStockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER' 
 							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
 							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
 							ELSE 'OEM'
@@ -109,7 +109,8 @@ BEGIN
 		    Level1 = PMS.Level1,
 		    Level2 = PMS.Level2,
 		    Level3 = PMS.Level3,
-		    Level4 = PMS.Level4
+		    Level4 = PMS.Level4,
+			UnitOfMeasure = UOM.ShortName
 			
 		FROM  dbo.VendorRFQPurchaseOrderPart POP WITH (NOLOCK)
 			  INNER JOIN #VendorRFQPurchaseOrderMSDATA PMS ON PMS.MSID = POP.ManagementStructureId
@@ -119,7 +120,8 @@ BEGIN
 			  INNER JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId			  
 			  LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = POP.WorkOrderId
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId			  
-			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId	
+			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
+			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
 		WHERE POP.VendorRFQPurchaseOrderId  = @VendorRFQPurchaseOrderId; 
 
 		SELECT VendorRFQPurchaseOrderNumber AS value FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId	

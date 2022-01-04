@@ -33,6 +33,23 @@ BEGIN
 
 		INSERT INTO #POEditList ([Value],Label)
 		SELECT ISNULL(UserId,0), 'SHIP_USERID' FROM dbo.AllAddress WITH(NOLOCK) Where ReffranceId = @poID AND ModuleId = @ModuleID AND IsShippingAdd = 1
+		
+		IF @ModuleID = 31
+		BEGIN
+			INSERT INTO #POEditList ([Value],Label)
+			SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQPurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
+			ON PO.ManagementStructureId = MS.ManagementStructureId
+			WHERE PO.VendorRFQPurchaseOrderId = @poID;
+		END
+
+		IF @ModuleID = 32
+		BEGIN
+			INSERT INTO #POEditList ([Value],Label)
+			SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQRepairOrder RO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
+			ON RO.ManagementStructureId = MS.ManagementStructureId
+			WHERE RO.VendorRFQRepairOrderId = @poID; 
+		END
+
 
 		IF @ModuleID = 14 
 		BEGIN

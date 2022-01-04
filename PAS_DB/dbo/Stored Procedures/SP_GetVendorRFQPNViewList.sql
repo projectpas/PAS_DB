@@ -31,7 +31,8 @@
 @WorkOrderNo VARCHAR(50)=NULL,
 @SubWorkOrderNo VARCHAR(50)=NULL,
 @SalesOrderNo	VARCHAR(50)=NULL,
-@PurchaseOrderNumber VARCHAR(50)=NULL
+@PurchaseOrderNumber VARCHAR(50)=NULL,
+@mgmtStructure varchar(200)=null
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -75,8 +76,9 @@ SET NOCOUNT ON;
 			  FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
 			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId			  
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
-			      AND EMS.EmployeeId = 	@EmployeeId AND PO.MasterCompanyId = @MasterCompanyId	
-				  AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
+			     AND EMS.EmployeeId = 	@EmployeeId 
+				  AND PO.MasterCompanyId = @MasterCompanyId	
+				  --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
 			),	
 			
 			DatesCTE AS(
@@ -167,19 +169,19 @@ SET NOCOUNT ON;
 						
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.WorkOrderNo,'')) >0) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.WorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
 						as 'WorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
 						as 'SubWorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.SalesOrderNo,'')) >0) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SalesOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
 						as 'SalesOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0) Then 'Multiple' ELse  isnull(SP.PurchaseOrderNumber,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.PurchaseOrderNumber,'')   End)
 						as 'PurchaseOrderNumberType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
@@ -241,7 +243,7 @@ SET NOCOUNT ON;
 					(@GlobalFilter='' AND (ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber+'%') AND 
 					(ISNULL(@CreatedBy,'') ='' OR M.CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR M.UpdatedBy LIKE '%' + @UpdatedBy + '%') AND					
-					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
+					--(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND
 					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND									
 					(ISNULL(@OpenDate,'') ='' OR CAST(M.OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
@@ -254,16 +256,20 @@ SET NOCOUNT ON;
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@Priority,'') ='' OR Priority LIKE '%' + @Priority + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
-					(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
+					--(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
+					--(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
 					(ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNo LIKE '%' + @WorkOrderNo + '%') AND
 					(ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNo LIKE '%' + @SubWorkOrderNo + '%') AND
 					(ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNo LIKE '%' + @SalesOrderNo + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @PartNumber + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level2 LIKE '%' + @PartNumber + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level3 LIKE '%' + @PartNumber + '%') AND
+					--(ISNULL(@mgmtStructure,'') ='' OR Level4 LIKE '%' + @PartNumber + '%') AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 				   GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],--UnitCost,M.QuantityOrdered,
+					M.UpdatedBy,M.IsActive,M.IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
 					SP.StockType
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
@@ -279,7 +285,7 @@ SET NOCOUNT ON;
 					
 					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType
 					FROM result,CTE_Count
-					
+				
 			ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,
@@ -304,6 +310,8 @@ SET NOCOUNT ON;
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='StockTypeType')  THEN StockTypeType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='StockTypeType')  THEN StockTypeType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionType')  THEN ConditionType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionType')  THEN ConditionType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PriorityType')  THEN PriorityType END ASC,
@@ -322,6 +330,12 @@ SET NOCOUNT ON;
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SubWorkOrderNoType')  THEN SubWorkOrderNoType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SalesOrderNoType')  THEN SalesOrderNoType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SalesOrderNoType')  THEN SalesOrderNoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='MemoType')  THEN MemoType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='MemoType')  THEN MemoType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='mgmtStructure')  THEN Level1Type END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='mgmtStructure')  THEN Level1Type END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN Status END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Status')  THEN Status END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumberType')  THEN PurchaseOrderNumberType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumberType')  THEN PurchaseOrderNumberType END DESC
 

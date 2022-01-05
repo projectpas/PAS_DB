@@ -160,6 +160,9 @@
     [CertType]                            VARCHAR (MAX)   NULL,
     [TagTypeId]                           BIGINT          NULL,
     [IsFinishGood]                        BIT             DEFAULT ((0)) NULL,
+    [IsTurnIn]                            BIT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 

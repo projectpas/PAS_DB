@@ -32,7 +32,8 @@
 @SubWorkOrderNo VARCHAR(50)=NULL,
 @SalesOrderNo	VARCHAR(50)=NULL,
 @PurchaseOrderNumber VARCHAR(50)=NULL,
-@mgmtStructure varchar(200)=null
+@mgmtStructure varchar(200)=null,
+@Memo VARCHAR(200) =NULL
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -256,13 +257,13 @@ SET NOCOUNT ON;
 					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@Priority,'') ='' OR Priority LIKE '%' + @Priority + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
-					--(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
-					--(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
+					(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
 					(ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNo LIKE '%' + @WorkOrderNo + '%') AND
 					(ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNo LIKE '%' + @SubWorkOrderNo + '%') AND
 					(ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNo LIKE '%' + @SalesOrderNo + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @PartNumber + '%') AND
+					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
 					--(ISNULL(@mgmtStructure,'') ='' OR Level2 LIKE '%' + @PartNumber + '%') AND
 					--(ISNULL(@mgmtStructure,'') ='' OR Level3 LIKE '%' + @PartNumber + '%') AND
 					--(ISNULL(@mgmtStructure,'') ='' OR Level4 LIKE '%' + @PartNumber + '%') AND

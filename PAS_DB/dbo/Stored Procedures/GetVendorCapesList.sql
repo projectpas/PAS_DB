@@ -1,6 +1,4 @@
-﻿
-
-CREATE PROCEDURE [dbo].[GetVendorCapesList]
+﻿CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -25,6 +23,7 @@ CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,	
 	@MasterCompanyId bigint=NULL,
+	@ConditionId int=null,
 	@CostDate datetime=null
 AS
 BEGIN
@@ -97,6 +96,7 @@ BEGIN
 					vc.CreatedBy,
 					vc.UpdatedDate,
 					vc.UpdatedBy
+					,ct.ConditionId
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
@@ -132,7 +132,8 @@ BEGIN
 					(ISNULL(@ItemMasterIds,'') ='' OR ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIds,','))) AND
 					(ISNULL(@CapabilityTypeIds,'') ='' OR CapabilityTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@CapabilityTypeIds,','))) and
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
-					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
+					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND 
+					--(ISNULL(@ConditionId,'') ='' OR CAST(ISNULL(ConditionId,'') as varchar) LIKE '%' + @ConditionId+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)) AND
 					(ISNULL(@CostDate,'') ='' OR CAST(CostDate as date)=CAST(@CostDate as date)))

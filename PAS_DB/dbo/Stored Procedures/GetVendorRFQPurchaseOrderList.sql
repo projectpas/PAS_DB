@@ -32,7 +32,8 @@
 @SubWorkOrderNo VARCHAR(50)=NULL,
 @SalesOrderNo	VARCHAR(50)=NULL,
 @PurchaseOrderNumber VARCHAR(50)=NULL,
-@mgmtStructure	VARCHAR(200)=null
+@mgmtStructure	VARCHAR(200)=null,
+@Memo	varchar(200)=NULL
 AS
 BEGIN
 
@@ -98,11 +99,11 @@ BEGIN
 					VPOP.WorkOrderNo as 'WorkOrderNoType',
 					VPOP.SubWorkOrderNo as 'SubWorkOrderNoType',
 					VPOP.SalesOrderNo as 'SalesOrderNoType',
-					VPOP.Level1 as 'Level1Type',
-					VPOP.Level2 as 'Level2Type',
-					VPOP.Level3 as 'Level3Type',
-					VPOP.Level4 as 'Level4Type',
-					VPOP.Memo as 'MemoType',
+					ISNULL(VPOP.Level1,'') as 'Level1Type',
+					ISNULL(VPOP.Level2,'') as 'Level2Type',
+					ISNULL(VPOP.Level3,'') as 'Level3Type',
+					ISNULL(VPOP.Level4,'') as 'Level4Type',
+					ISNULL(VPOP.Memo,'') as 'MemoType',
 					VPOP.PurchaseOrderId,
 					VPOP.PurchaseOrderNumber as 'PurchaseOrderNumberType'
 			  FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
@@ -152,13 +153,13 @@ BEGIN
 					(ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND
 					(ISNULL(@Priority,'') ='' OR PriorityType LIKE '%' + @Priority + '%') AND
 					(ISNULL(@Condition,'') ='' OR ConditionType LIKE '%' + @Condition + '%') AND
-					--(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
-					--(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
+					(ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND
 					(ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNoType LIKE '%' + @WorkOrderNo + '%') AND
 					(ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND
 					(ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level1Type LIKE '%' + @mgmtStructure + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level2Type LIKE '%' + @mgmtStructure + '%') AND
+					(ISNULL(@mgmtStructure,'') ='' OR Level1Type LIKE '%' + @mgmtStructure + '%') AND
+					(ISNULL(@Memo,'') ='' OR MemoType LIKE '%' + @Memo + '%') AND
 					--(ISNULL(@mgmtStructure,'') ='' OR Level3Type LIKE '%' + @mgmtStructure + '%') AND
 					--(ISNULL(@mgmtStructure,'') ='' OR Level4Type LIKE '%' + @mgmtStructure + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND					

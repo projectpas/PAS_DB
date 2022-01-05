@@ -46,6 +46,10 @@ BEGIN
 		      ,PP.[UpdatedDate]
 		      ,PP.[IsActive]
 		      ,PP.[IsDeleted]
+			  ,PP.[PurchaseOrderId]
+			  ,PP.[PurchaseOrderNumber]
+			  ,PP.[UOMId]
+			  ,PP.[UnitOfMeasure]
 		  FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK)
 		  WHERE PP.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND PP.IsDeleted = 0;
 

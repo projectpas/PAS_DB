@@ -36,8 +36,13 @@
     [InternalRejectedById]      BIGINT         NULL,
     [InternalRejectedByName]    VARCHAR (100)  NULL,
     [InternalRejectedDate]      DATETIME2 (7)  NULL,
+    [InternalSentToId]          BIGINT         NULL,
+    [InternalSentToName]        VARCHAR (100)  NULL,
+    [InternalSentById]          BIGINT         NULL,
     CONSTRAINT [PK_SalesOrderApprovalAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderApprovalId] ASC)
 );
+
+
 
 
 

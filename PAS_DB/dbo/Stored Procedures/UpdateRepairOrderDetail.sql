@@ -53,10 +53,12 @@ BEGIN
 		UPDATE RepairOrderApproval
 		SET ApprovedByName = AE.FirstName + ' ' + AE.LastName,
 			RejectedByName = RE.FirstName + ' ' + RE.LastName,
-			StatusName = ASS.Description
+			StatusName = ASS.Description,
+			InternalSentToName = (INST.FirstName + ' ' + INST.LastName)
 		FROM dbo.RepairOrderApproval PA
 			 LEFT JOIN dbo.Employee AE on PA.ApprovedById = AE.EmployeeId
 			 LEFT JOIN dbo.Employee RE on PA.RejectedBy = RE.EmployeeId
+			 LEFT JOIN DBO.Employee INST WITH (NOLOCK) ON INST.EmployeeId = PA.InternalSentToId
 			 LEFT JOIN dbo.ApprovalStatus ASS on PA.StatusId = ASS.ApprovalStatusId;
 
 

@@ -21,6 +21,11 @@
     [UpdatedDate]                  DATETIME2 (7)  NOT NULL,
     [IsActive]                     BIT            NOT NULL,
     [IsDeleted]                    BIT            NOT NULL,
+    [InternalSentToId]             BIGINT         NULL,
+    [InternalSentToName]           VARCHAR (100)  NULL,
+    [InternalSentById]             BIGINT         NULL,
     CONSTRAINT [PK_PurchaseOrderApprovalAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderApprovalAuditId] ASC)
 );
+
+
 

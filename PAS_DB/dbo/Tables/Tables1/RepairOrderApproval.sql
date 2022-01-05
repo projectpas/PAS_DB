@@ -20,6 +20,9 @@
     [ApprovedByName]        VARCHAR (256)  NULL,
     [RejectedByName]        VARCHAR (256)  NULL,
     [StatusName]            VARCHAR (50)   NULL,
+    [InternalSentToId]      BIGINT         NULL,
+    [InternalSentToName]    VARCHAR (100)  NULL,
+    [InternalSentById]      BIGINT         NULL,
     CONSTRAINT [PK_RepairOrderApprovals] PRIMARY KEY CLUSTERED ([RepairOrderApprovalId] ASC),
     CONSTRAINT [FK_RepairOrderApproval_ApprovalStatus] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ApprovalStatus] ([ApprovalStatusId]),
     CONSTRAINT [FK_RepairOrderApproval_EmployeeApprovedby] FOREIGN KEY ([ApprovedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -28,6 +31,8 @@
     CONSTRAINT [FK_RepairOrderApproval_RepairOrder] FOREIGN KEY ([RepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
     CONSTRAINT [FK_RepairOrderApproval_RepairOrderPart] FOREIGN KEY ([RepairOrderPartId]) REFERENCES [dbo].[RepairOrderPart] ([RepairOrderPartRecordId])
 );
+
+
 
 
 GO

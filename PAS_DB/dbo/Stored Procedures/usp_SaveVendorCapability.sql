@@ -14,7 +14,7 @@ BEGIN
 				BEGIN
 				DROP TABLE #VendorCapabilityType 
 				END
-
+				print '1';
 				CREATE TABLE #VendorCapabilityType 
 				(
 				 ID BIGINT NOT NULL IDENTITY, 
@@ -24,15 +24,15 @@ BEGIN
 				 [CapabilityTypeName] [varchar](100) NULL,
 				 [CapabilityTypeDescription] [varchar](100) NULL,
 				 [ManufacturerId] [bigint]  NULL,		
-				 [ManufacturerName] [varchar](100) NULL,
+				 [ManufacturerName] [varchar](max) NULL,
 				 [VendorRanking] [int] NULL,
 				 [ItemMasterId] [bigint]  NULL,
 				 [PartNumber] [varchar](100) NULL,
-				 [PartDescription] [varchar](100) NULL,
+				 [PartDescription] [varchar](max) NULL,
 				 [TAT] [int] NULL,
 				 [Cost] [decimal] NULL,
 				 [Memo] [nvarchar](max) NULL,
-				 [capabilityDescription] [varchar](100) NULL,
+				 [capabilityDescription] [varchar](max) NULL,
 				 [IsPMA] [bit] NULL,
 				 [IsDER] [bit] NULL,
 				 [CostDate] [datetime] NULL,
@@ -49,7 +49,7 @@ BEGIN
 				 isvalid bit default 1,
 				 [message] [varchar](100) NULL
 				)
-
+				print  123
 				INSERT INTO #VendorCapabilityType ([VendorCapabilityId],[VendorId],[CapabilityTypeId],[CapabilityTypeName],[CapabilityTypeDescription],
 													[ManufacturerId],[ManufacturerName],[VendorRanking],[ItemMasterId],[PartNumber],[PartDescription],
 													[TAT],[Cost],[Memo],[IsPMA],[IsDER],[CostDate],[CurrencyId],[Currency],[EmployeeId]
@@ -77,7 +77,7 @@ BEGIN
 										AND t.ItemMasterId = vc.ItemMasterId
 										AND t.VendorCapabilityId = 0
 
-				
+			
 
 			INSERT INTO [dbo].[VendorCapability]
            ([VendorId],[CapabilityTypeId],[CapabilityTypeName],[ItemMasterId],[CapabilityTypeDescription]
@@ -91,6 +91,8 @@ BEGIN
 			FROM #VendorCapabilityType tmp
 			where tmp.isvalid=1 AND tmp.VendorCapabilityId = 0
 			---------------------------------Update Caps---------------------
+			
+
 				UPDATE [dbo].[VendorCapability]
 			   SET [VendorId] = t.VendorId
 				  ,[CapabilityTypeId] = t.CapabilityTypeId
@@ -105,19 +107,20 @@ BEGIN
 				  ,[Memo] = t.Memo
 				  ,[MasterCompanyId] = t.MasterCompanyId    
 				  ,[UpdatedBy] = t.UpdatedBy     
-				  ,[UpdatedDate] = t.UpdatedDate
+				  ,[UpdatedDate] = getdate()
 				  ,[IsActive] = t.IsActive
 				  ,[IsDeleted] = t.IsDeleted
 				  ,[PartNumber] = t.PartNumber
 				  ,[PartDescription] = t.PartDescription
 				  ,[ManufacturerId] = t.ManufacturerId
 				  ,[ManufacturerName] = t.ManufacturerName
-				  ,[CostDate] = t.CostDate
+				  ,[CostDate] = cast( t.CostDate as datetime)
 				  ,[CurrencyId] = t.CurrencyId
 				  ,[Currency] = t.Currency
 				  ,[EmployeeId] = t.EmployeeId
 				  FROM #VendorCapabilityType t
-			 WHERE t.isvalid=1 AND t.VendorCapabilityId > 0
+				  INNER JOIN dbo.VendorCapability vc WITH (NOLOCK) on vc.VendorCapabilityId=t.VendorCapabilityId
+			 WHERE t.isvalid=1 AND t.VendorCapabilityId > 0  
 
 
 				SELECT * FROM  #VendorCapabilityType  where isvalid=0				

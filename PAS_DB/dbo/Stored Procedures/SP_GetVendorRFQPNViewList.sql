@@ -33,6 +33,9 @@
 @SalesOrderNo	VARCHAR(50)=NULL,
 @PurchaseOrderNumber VARCHAR(50)=NULL,
 @mgmtStructure varchar(200)=null,
+@Level2Type varchar(200)=null,
+@Level3Type varchar(200)=null,
+@Level4Type varchar(200)=null,
 @Memo VARCHAR(200) =NULL
 AS
 BEGIN
@@ -264,9 +267,10 @@ SET NOCOUNT ON;
 					(ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNo LIKE '%' + @SalesOrderNo + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
 					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level2 LIKE '%' + @PartNumber + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level3 LIKE '%' + @PartNumber + '%') AND
-					--(ISNULL(@mgmtStructure,'') ='' OR Level4 LIKE '%' + @PartNumber + '%') AND
+					(ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @mgmtStructure + '%') AND
+					(ISNULL(@Level2Type,'') ='' OR Level2 LIKE '%' + @Level2Type + '%') AND
+					(ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND
+					(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND					
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 				   GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,

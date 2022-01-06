@@ -1,7 +1,25 @@
 ﻿
 
+/*************************************************************           
+ ** File:  [GetVendorRFQPurchaseOrderParts]           
+ ** Author:  Moin Bloch
+ ** Description: This stored procedure is used to Get vendor RFQ PO Part List
+ ** Purpose:         
+ ** Date:   04/01/2022        
+          
+ ** PARAMETERS: @VendorRFQPurchaseOrderId bigint,
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    04/01/2022  Moin Bloch     Created
+     
+-- EXEC [GetVendorRFQPurchaseOrderParts] 25
+************************************************************************/
 
--- EXEC GetVendorRFQPurchaseOrderParts 10
 CREATE PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]
 @VendorRFQPurchaseOrderId bigint
 AS
@@ -50,9 +68,11 @@ BEGIN
 			  ,PP.[PurchaseOrderNumber]
 			  ,PP.[UOMId]
 			  ,PP.[UnitOfMeasure]
-		  FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK)
+			  ,PO.[CreatedDate] AS POCreatedDate
+			  ,PO.[Status] AS POStatus
+		  FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK) LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
+					ON PP.PurchaseOrderId = PO.PurchaseOrderId
 		  WHERE PP.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND PP.IsDeleted = 0;
-
 	END
 	END TRY    
 	BEGIN CATCH

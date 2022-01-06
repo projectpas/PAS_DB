@@ -35,7 +35,10 @@ BEGIN
       OR @AddressType = 'SO'
       OR @AddressType = 'RO'
       OR @AddressType = 'EQ'
-      OR @AddressType = 'ExchSO')
+      OR @AddressType = 'ExchSO'
+	  OR @AddressType = 'VRFQPO'
+	  OR @AddressType = 'VRFQRO'	  
+	  )
     BEGIN
       SELECT
         ModuleName,

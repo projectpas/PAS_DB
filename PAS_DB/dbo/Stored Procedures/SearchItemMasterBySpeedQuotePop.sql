@@ -27,8 +27,8 @@ BEGIN
 					,im.PartDescription AS Description
 					,im.PurchaseUnitOfMeasureId  AS unitOfMeasureId
 					,im.PurchaseUnitOfMeasure AS unitOfMeasure
-					,(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM StockLine sl Where sl.ItemMasterId = im.ItemMasterId AND IsActive = 1 AND IsDeleted = 0) AS QtyAvailable
-					,(SELECT SUM(ISNULL(sl.QuantityOnHand, 0)) FROM StockLine sl Where sl.ItemMasterId = im.ItemMasterId  AND IsActive = 1 AND IsDeleted = 0) AS QtyOnHand
+					,(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM DBO.StockLine sl WITH (NOLOCK) Where sl.ItemMasterId = im.ItemMasterId AND sl.IsCustomerStock = 0 AND IsActive = 1 AND IsDeleted = 0) AS QtyAvailable
+					,(SELECT SUM(ISNULL(sl.QuantityOnHand, 0)) FROM DBO.StockLine sl WITH (NOLOCK) Where sl.ItemMasterId = im.ItemMasterId AND sl.IsCustomerStock = 0 AND IsActive = 1 AND IsDeleted = 0) AS QtyOnHand
 					,ig.Description AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId

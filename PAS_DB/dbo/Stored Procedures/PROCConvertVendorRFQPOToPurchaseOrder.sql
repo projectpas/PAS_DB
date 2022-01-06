@@ -108,26 +108,25 @@ BEGIN
 
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 				
+				    UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+
 					UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber 
 												    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
-					SELECT	@Result = 1;
-					print 'Success'					
+					SELECT	@Result = 1;									
 				END
 				ELSE
-				BEGIN
-					print 'Enter Code Prifix'
+				BEGIN					
 					SELECT	@Result = 10;
 				END
 			END
 		ELSE
-		BEGIN
-			print 'Already Exist in Purchase Order'
+		BEGIN			
 			SELECT	@Result = 20;
 		END
 		END
 		IF(@Opr = 2)
 		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId )
+			IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId)
 			BEGIN
 				SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)
 						WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
@@ -189,16 +188,23 @@ BEGIN
 								 [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],NULL,[PromisedDate]
                             FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId; 
 
-					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
-				
+					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;									
+
 					UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber 
 												    WHERE [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId; 
-					SELECT	@Result = 1;
-					print 'Success'					
+					
+					IF EXISTS (SELECT * FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] IS NULL)
+					BEGIN
+						  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+					END
+					ELSE
+					BEGIN
+						  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+					END
+					SELECT	@Result = 1;								
 				END
 				ELSE
-				BEGIN
-					print 'Enter Code Prifix'
+				BEGIN					
 					SELECT	@Result = 10;
 				END
 			END
@@ -248,7 +254,15 @@ BEGIN
 
 				UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = @PurchaseOrderId,[PurchaseOrderNumber] = @PONumber 
 												    WHERE [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId; 
-                print 'Success'	
+
+				IF EXISTS (SELECT * FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] IS NULL)
+				BEGIN
+					  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+				END
+				ELSE
+				BEGIN
+					  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+				END               
 				SELECT	@Result = 1;
 			END
 		END

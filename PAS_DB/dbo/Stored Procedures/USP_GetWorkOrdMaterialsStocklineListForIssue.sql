@@ -55,6 +55,19 @@ SET NOCOUNT ON
 					 [QtyToShip] INT NULL,
 				)
 
+				IF OBJECT_ID(N'tempdb..#tmpWorkorderPickTicketMaterials') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpWorkorderPickTicketMaterials
+				END
+			
+				CREATE TABLE #tmpWorkorderPickTicketMaterials
+				(
+					 ID BIGINT NOT NULL IDENTITY, 
+					 [WorkOrderId] BIGINT NULL,
+					 [WorkOrderMaterialsId] BIGINT NULL,
+					 [QtyToShip] INT NULL,
+				)
+
 				SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 				SELECT @WorkOrderTypeId = Id FROM dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER([Description]) = 'CUSTOMER' AND IsActive = 1 AND IsDeleted = 0;
 				SELECT @MasterCompanyId = MasterCompanyId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND IsActive = 1 AND IsDeleted = 0;
@@ -63,6 +76,12 @@ SET NOCOUNT ON
 
 				if(@IsEnforcePickTicket = 1)
 				BEGIN
+
+					INSERT INTO #tmpWorkorderPickTicketMaterials (WorkOrderId, WorkOrderMaterialsId, QtyToShip)
+					SELECT WorkOrderId, WorkOrderMaterialsId, SUM(QtyToShip)
+					FROM dbo.WorkorderPickTicket WITH(NOLOCK) 
+					WHERE WorkorderId = @WorkOrderId AND IsConfirmed = 1 AND QtyToShip > 0 
+					GROUP BY WorkOrderId, WorkOrderMaterialsId
 
 					INSERT INTO #tmpWorkorderPickTicket (WorkOrderId, WorkOrderMaterialsId, StocklineId, QtyToShip)
 					SELECT WorkOrderId, WorkOrderMaterialsId, StocklineId, SUM(QtyToShip)
@@ -112,6 +131,7 @@ SET NOCOUNT ON
 						WOMS.QtyReserved AS MSQuantityReserved,
 						WOMS.QtyIssued AS MSQuantityIssued,
 						PTKT.QtyToShip AS QuantityPicked,
+						MPTKT.QtyToShip AS MaterialsQuantityPicked,
 						WOMS.QtyReserved AS MSQtyToBeIssued,
 						CASE WHEN WOMS.WOMStockLineId > 0 THEN WOMS.UnitCost ELSE SL.UnitCost END AS SLUnitCost,
 						MSQunatityRemaining = ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)),
@@ -123,6 +143,7 @@ SET NOCOUNT ON
 						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						JOIN #tmpWorkorderPickTicket PTKT WITH (NOLOCK) ON PTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND PTKT.StockLineId = WOMS.StockLineId 
+						JOIN #tmpWorkorderPickTicketMaterials MPTKT WITH (NOLOCK) ON MPTKT.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId						
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
@@ -173,6 +194,7 @@ SET NOCOUNT ON
 						WOMS.QtyReserved AS MSQuantityReserved,
 						WOMS.QtyIssued AS MSQuantityIssued,
 						WOMS.QtyReserved AS QuantityPicked,
+						WOM.QuantityReserved AS MaterialsQuantityPicked,
 						WOMS.QtyReserved AS MSQtyToBeIssued,
 						CASE WHEN WOMS.WOMStockLineId > 0 THEN WOMS.UnitCost ELSE SL.UnitCost END AS SLUnitCost,
 						MSQunatityRemaining = ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)),

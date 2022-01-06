@@ -1,11 +1,4 @@
-﻿
--- =============================================
--- Author:		Moin Bloch
--- Create date: 03-Jan-2021
--- Description:	Get Search Data for Vendnor RFQ Ro List
--- =============================================
---EXEC ProcGetVendorRFQRoList 1,10,CreatedDate,-1,1,'',null,null,null,null,null,'Open',null,null,null,null,null,0,15,2,null
-CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
+﻿CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=null,
 	@PageSize int=null,
@@ -27,7 +20,8 @@ CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
     @IsDeleted bit = null,
 	@EmployeeId bigint=null,
     @MasterCompanyId bigint=null,
-	@VendorId bigint= null
+	@VendorId bigint= null,
+	@ViewType	varchar(10)=null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -57,7 +51,8 @@ BEGIN
 		BEGIN
 			SET @StatusID = null			
 		END	
-		
+	if @ViewType='pnview'
+	BEGIN
 	;With Result AS(
 			SELECT DISTINCT 
 			       RO.VendorRFQRepairOrderId,
@@ -131,6 +126,7 @@ BEGIN
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
+	END
 	END TRY    
 	BEGIN CATCH      
 		DECLARE @ErrorLogID INT

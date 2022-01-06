@@ -165,8 +165,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='COSTDATE')  THEN CostDate END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		

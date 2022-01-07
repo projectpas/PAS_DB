@@ -60,7 +60,7 @@ BEGIN
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1
+				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND sl.IsCustomerStock = 0
 			LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
 				AND sl.IsDeleted = 0
 			--LEFT JOIN DBO.PurchaseOrderPart pop WITH (NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 

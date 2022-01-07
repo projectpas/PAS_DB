@@ -19,7 +19,7 @@
     1    09/09/2021   Hemant Saliya		Created
 	2    28/09/2021   Hemant Saliya		Update for Existing STL & PN
      
--- EXEC [CreateStocklineForFinishGoodMPN] 6
+-- EXEC [CreateStocklineForFinishGoodMPN] 55
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -99,8 +99,26 @@ BEGIN
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 				WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-				DECLARE @currentNo AS BIGINT;
+				DECLARE @currentNo AS BIGINT = 0;
 				DECLARE @stockLineCurrentNo AS BIGINT;
+				DECLARE @ItemMasterId AS BIGINT;
+				DECLARE @ManufacturerId AS BIGINT;
+
+				SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
+
+				--IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
+				--BEGIN
+				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
+
+				IF (@currentNo <> 0)
+				BEGIN
+					SET @stockLineCurrentNo = @currentNo + 1
+				END
+				ELSE
+				BEGIN
+					SET @stockLineCurrentNo = 1
+				END
+				--END
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 				BEGIN 
@@ -110,11 +128,6 @@ BEGIN
 					--FROM #tmpCodePrefixes WHERE CodeTypeId = 30
 
 					SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
-
-					DECLARE @ItemMasterId AS BIGINT;
-					DECLARE @ManufacturerId AS BIGINT;
-
-					SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 
 					UPDATE DBO.ItemMaster
 					SET CurrentStlNo = @stockLineCurrentNo
@@ -212,16 +225,20 @@ BEGIN
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN
-				DROP TABLE #tmpCodePrefixes 
+					DROP TABLE #tmpCodePrefixes 
 				END
-		
+
+				IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpPNManufacturer 
+				END		
 			END
 		COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'
+				--PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 

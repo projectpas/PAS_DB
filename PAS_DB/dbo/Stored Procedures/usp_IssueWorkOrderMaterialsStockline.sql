@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
@@ -61,7 +60,7 @@ BEGIN
 					SET @ExecuteParentChild = 1;
 					SET @UpdateQuantities = 1;
 					SET @IsOHUpdated = 0;
-					SET @AddHistoryForNonSerialized = 1;					
+					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
 

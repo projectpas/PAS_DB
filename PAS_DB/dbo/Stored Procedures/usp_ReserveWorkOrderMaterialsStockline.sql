@@ -63,7 +63,7 @@ BEGIN
 					SET @ExecuteParentChild = 1;
 					SET @UpdateQuantities = 1;
 					SET @IsOHUpdated = 0;
-					SET @AddHistoryForNonSerialized = 1;					
+					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
 

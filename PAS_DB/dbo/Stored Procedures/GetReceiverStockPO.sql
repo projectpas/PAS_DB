@@ -2,7 +2,8 @@
 	@PurchaseOrderId bigint,
 	@isParentData varchar(10),
 	@ItemMasterId bigint,
-	@ConditionId int
+	@ConditionId int,
+	@ReceiverNumber varchar(100)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -12,10 +13,10 @@ BEGIN
 	BEGIN
 		IF(@isParentData = '1')
 		BEGIN
-			SELECT i.ItemMasterId,sl.ConditionId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure from Stockline sl WITH(NOLOCK)
+			SELECT i.ItemMasterId,sl.ConditionId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure,sl.ReceiverNumber,sl.ReceivedDate from Stockline sl WITH(NOLOCK)
 			INNER JOIN ItemMaster i WITH(NOLOCK) on i.ItemMasterId = sl.ItemMasterId
 			WHERE PurchaseOrderId=@PurchaseOrderId and IsParent=1
-			GROUP BY i.ItemMasterId,ConditionId,sl.PurchaseUnitOfMeasureId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure;
+			GROUP BY i.ItemMasterId,ConditionId,sl.PurchaseUnitOfMeasureId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure,sl.ReceiverNumber,sl.ReceivedDate;
 		END
 		IF(@isParentData = '0')
 		BEGIN
@@ -28,7 +29,8 @@ BEGIN
 			LEFT JOIN Bin bn WITH(NOLOCK) on bn.BinId = sl.BinId
 			LEFT JOIN Shelf sf WITH(NOLOCK) on sf.ShelfId = sl.ShelfId
 			LEFT JOIN Location lc WITH(NOLOCK) on lc.LocationId = sl.LocationId
-			where PurchaseOrderId=@PurchaseOrderId AND sl.ItemMasterId = @ItemMasterId AND sl.ConditionId = @ConditionId and IsParent=1
+			where PurchaseOrderId=@PurchaseOrderId AND sl.ItemMasterId = @ItemMasterId AND sl.ConditionId = @ConditionId
+			and sl.ReceiverNumber = @ReceiverNumber and IsParent=1
 		END
 	END
 	COMMIT  TRANSACTION

@@ -47,6 +47,10 @@
     [UpdatedDate]                  DATETIME2 (7)   NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_VendorRFQRepairOrderPartAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_VendorRFQRepairOrderPartAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [RepairOrderId]                BIGINT          NULL,
+    [RepairOrderNumber]            VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordAuditId] ASC)
 );
+
+
 

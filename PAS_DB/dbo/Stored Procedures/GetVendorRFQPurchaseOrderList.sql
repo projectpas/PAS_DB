@@ -1,4 +1,8 @@
-﻿CREATE PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]
+﻿
+
+
+
+CREATE PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -89,6 +93,7 @@ BEGIN
 					PO.VendorCode,					
 					PO.[Status],
 					PO.Requisitioner AS RequestedBy,
+					VPOP.VendorRFQPOPartRecordId,  
 					VPOP.PartNumber as 'PartNumberType',
 					VPOP.PartDescription as 'PartDescriptionType',
 					VPOP.StockType as 'StockTypeType',

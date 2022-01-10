@@ -1601,6 +1601,8 @@
     <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQPOToPurchaseOrder.sql" />
     <Build Include="dbo\Views\vw_CapabilityTypes.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsWorkOrderItemMaster.sql" />
+    <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQROToRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQRORepairOrderPart.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

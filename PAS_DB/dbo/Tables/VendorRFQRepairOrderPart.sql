@@ -46,6 +46,8 @@
     [UpdatedDate]             DATETIME2 (7)   NULL,
     [IsActive]                BIT             CONSTRAINT [DF__VendorRFQRepairOrderPart__IsAct__00CA12DE] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF__VendorRFQRepairOrderPart__IsDel__34563A8A] DEFAULT ((0)) NOT NULL,
+    [RepairOrderId]           BIGINT          NULL,
+    [RepairOrderNumber]       VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -58,6 +60,8 @@
     CONSTRAINT [FK_VendorRFQRepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

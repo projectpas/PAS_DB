@@ -55,7 +55,7 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 3)
 			BEGIN
-				SELECT
+				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
 				sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)

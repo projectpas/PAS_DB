@@ -59,9 +59,50 @@ BEGIN
 
 		IF (@AddHistoryForNonSerialized = 1)
 		BEGIN
-			INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
-			SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
-			FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+			DECLARE @IsNewStkCreated BIT = 0;
+
+			IF NOT EXISTS (SELECT TOP 1 [StocklineId] FROM [dbo].[StocklineHistory] WHERE StockLineId = @StocklineId)
+			BEGIN
+				INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+				SELECT @ModuleId, @ReferenceId, @StockLineId, 1, 1, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
+				FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+
+				SET @IsNewStkCreated = 1;
+			END
+			
+			IF EXISTS (SELECT TOP 1 [StocklineId] FROM [dbo].[StocklineHistory] WHERE StockLineId = @StocklineId)
+			BEGIN
+				DECLARE @AvailableQty INT;
+				DECLARE @ReservedQty INT;
+				DECLARE @OnHandQty INT;
+				DECLARE @IdNum VARCHAR(50);
+
+				SELECT @AvailableQty = QuantityAvailable,
+					@ReservedQty = QuantityReserved,
+					@OnHandQty = QuantityOnHand,
+					@IdNum = IdNumber FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StocklineId
+
+				IF @ReservedQty > 0
+				BEGIN
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Reserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
+					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+				END
+
+				IF (@AvailableQty > 0)
+				BEGIN
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') UnReserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
+					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+				END
+
+				IF @OnHandQty <= 0
+				BEGIN
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Removed from OH', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
+					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+				END
+			END
 		END
 		ELSE IF (@UpdateQuantities = 0)
 		BEGIN

@@ -46,8 +46,8 @@ BEGIN
 						getdate() as DatePrinted,
 						wo.CreatedDate as workreqDate,
 						p.Description as Priority,
-						CASE WHEN wop.IsPMA=1 THEN 'Yes' else 'No' END AS RestrictPMA,
-						CASE WHEN wop.IsDER=1 THEN 'Yes' else 'No' END AS RestrictDER,
+						CASE WHEN wop.IsPMA = 1 THEN 'Yes' else 'No' END AS RestrictPMA,
+						CASE WHEN wop.IsDER = 1 THEN 'Yes' else 'No' END AS RestrictDER,
 						'' as wty,
 						'' as wtyCode,
 						imt.partnumber as IncomingPN,
@@ -85,7 +85,15 @@ BEGIN
 						wop.ManagementStructureId,
 						wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,
 						rc.Reference,
-						wo.UpdatedDate
+						wo.UpdatedDate,
+						NHAPNs = STUFF((SELECT DISTINCT ', ' + imtt.partnumber 
+							FROM Dbo.ItemMaster imtt WITH(NOLOCK) INNER JOIN Dbo.Nha_Tla_Alt_Equ_ItemMapping nhatae WITH(NOLOCK) 
+							on nhatae.MappingItemMasterId = imtt.ItemMasterId 
+							WHERE nhatae.ItemMasterId = imt.ItemMasterId
+							AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0
+							FOR XML PATH('')
+							), 1, 1, ''
+						)
 				FROM Dbo.WorkOrder wo WITH(NOLOCK)
 					INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wo.WorkOrderId 
 					LEFT JOIN Dbo.WorkOrderQuote woq WITH(NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0

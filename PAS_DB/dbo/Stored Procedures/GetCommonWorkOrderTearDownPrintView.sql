@@ -18,7 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2021   Vishal Suthar Created
      
---EXEC [GetCommonWorkOrderTearDownPrintView] 21
+--EXEC [GetCommonWorkOrderTearDownPrintView] 67
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTearDownPrintView]
 	@workOrderId bigint = 0
@@ -34,7 +34,7 @@ BEGIN
 
 				SELECT @ItemMasterIdlist = TearDownTypes FROM DBO.WorkOrder WHERE WorkOrderId = @workOrderId
 
-			    SELECT tdt.CommonTearDownTypeId,
+			    SELECT DISTINCT tdt.CommonTearDownTypeId,
 					ISNULL(td.ReasonName,'') ReasonName,
                     ISNULL(td.TechnicalName,'') as Technician,
                     ISNULL(td.InspectorName,'') as Inspector,

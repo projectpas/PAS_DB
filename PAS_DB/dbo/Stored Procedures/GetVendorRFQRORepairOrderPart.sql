@@ -1,7 +1,4 @@
 ﻿
-
-
-
 /*************************************************************           
  ** File:   [GetVendorRFQRORepairOrderPart]           
  ** Author:  Moin Bloch
@@ -22,15 +19,29 @@
 -- EXEC [GetVendorRFQRORepairOrderPart] 31
 ************************************************************************/
 
-CREATE PROCEDURE GetVendorRFQRORepairOrderPart
-@VendorRFQRepairOrderId bigint
+CREATE PROCEDURE [dbo].[GetVendorRFQRORepairOrderPart]
+@VendorRFQRepairOrderId bigint,
+@VendorRFQROPartRecordId bigint
 AS
 BEGIN
-	 SELECT [VendorRFQROPartRecordId],
-			[ItemMasterId],
-			[PartNumber],
-			[ConditionId],
-			[Condition],
-			[QuantityOrdered] 
-	   FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL;
+	 IF(@VendorRFQROPartRecordId > 0)
+	 BEGIN
+		 SELECT [VendorRFQROPartRecordId],
+				[ItemMasterId],
+				[PartNumber],
+				[ConditionId],
+				[Condition],
+				[QuantityOrdered] 
+		   FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) WHERE [VendorRFQROPartRecordId]=@VendorRFQROPartRecordId AND RepairOrderId IS NULL;
+	  END
+	  ELSE
+	  BEGIN
+		  SELECT [VendorRFQROPartRecordId],
+				 [ItemMasterId],
+				 [PartNumber],
+				 [ConditionId],
+				 [Condition],
+				 [QuantityOrdered] 
+		   FROM dbo.VendorRFQRepairOrderPart WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL;
+	  END
 END

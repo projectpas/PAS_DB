@@ -112,7 +112,8 @@ BEGIN
 				   RP.Level2 as 'Level2Type',
 				   RP.Level3 as 'Level3Type',
 				   RP.Level4 as 'Level4Type',
-				   RP.Memo as 'MemoType'
+				   RP.Memo as 'MemoType',
+				   RP.RepairOrderNumber as 'RepairOrderNumberType'
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
 			 INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
 			 LEFT JOIN dbo.VendorRFQRepairOrderPart RP WITH (NOLOCK) ON RP.VendorRFQRepairOrderId=RO.VendorRFQRepairOrderId
@@ -158,6 +159,7 @@ BEGIN
 					(ISNULL(@Level2Type   ,'') ='' OR	Level2Type LIKE '%' +   @Level2Type    + '%') AND
 					(ISNULL(@Level3Type   ,'') ='' OR	Level3Type LIKE '%' +   @Level3Type    + '%') AND
 					(ISNULL(@Level4Type   ,'') ='' OR	Level4Type LIKE '%' +   @Level4Type    + '%') AND
+					--(ISNULL(@Level4Type   ,'') ='' OR	Level4Type LIKE '%' +   @Level4Type    + '%') AND
 					(ISNULL(@Memo   ,'') ='' OR MemoType LIKE '%' +   @Memo    + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
 					(ISNULL(@ClosedDate,'') ='' OR CAST(ClosedDate AS Date) = CAST(@ClosedDate AS date)) AND
@@ -370,20 +372,24 @@ BEGIN
 						
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId AND LEN(isnull(SP.WorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1 ) --AND LEN(isnull(SP.WorkOrderNo,'')) >0
+						Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
 						as 'WorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1 )--AND LEN(isnull(SP.SubWorkOrderNo,'')) >0
+						Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
 						as 'SubWorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId AND LEN(isnull(SP.SalesOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1 ) --AND LEN(isnull(SP.SalesOrderNo,'')) >0
+						Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
 						as 'SalesOrderNoType',
-						--(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
-						--FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						--WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.PurchaseOrderNumber,'')   End)
-						--as 'PurchaseOrderNumberType',
+						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
+						FROM  dbo.VendorRFQRepairOrderPart VRPP 
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1 ) --AND LEN(isnull(SP.RepairOrderNumber,'')) >0
+						Then 'Multiple' ELse  isnull(SP.RepairOrderNumber,'')   End)
+						as 'RepairOrderNumberType',
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
 						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 AND LEN(isnull(SP.Memo,'')) >0) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)
@@ -475,16 +481,16 @@ BEGIN
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 				   GROUP BY M.VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,
+					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
-					SP.StockType
+					SP.StockType,SP.RepairOrderNumber
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
 					,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.AltEquiPartNumber,SP.RevisedPartNumber,SP.WorkPerformed--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId
 			), 
 			CTE_Count AS (Select COUNT(VendorRFQRepairOrderId) AS NumberOfItems FROM result)
 			SELECT VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
 					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered
-					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,
+					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,RepairOrderNumberType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType--,PurchaseOrderNumberType
 					
 					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,AltEquiPartNumberType,RevisedPartNumberType,WorkPerformedType

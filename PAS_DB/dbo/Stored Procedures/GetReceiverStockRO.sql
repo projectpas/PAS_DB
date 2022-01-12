@@ -13,15 +13,15 @@ BEGIN
 	BEGIN
 		IF(@isParentData = '1')
 		BEGIN
-			SELECT i.ItemMasterId,sl.ConditionId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure,sl.ReceiverNumber,cast(sl.ReceivedDate as date) as ReceivedDate from Stockline sl WITH(NOLOCK)
+			SELECT sl.ReceiverNumber,cast(sl.ReceivedDate as date) as ReceivedDate from Stockline sl WITH(NOLOCK)
 			INNER JOIN ItemMaster i WITH(NOLOCK) on i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
-			GROUP BY i.ItemMasterId,ConditionId,sl.PurchaseUnitOfMeasureId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure,sl.ReceiverNumber,cast(sl.ReceivedDate as date);
+			GROUP BY sl.ReceiverNumber,cast(sl.ReceivedDate as date);
 		END
 		IF(@isParentData = '0')
 		BEGIN
 			SELECT i.ItemMasterId,sl.ConditionId,sl.PurchaseUnitOfMeasureId,i.partnumber,i.PartDescription,sl.Condition,sl.UnitOfMeasure,
-			sl.StockLineId,sl.StockLineNumber,sl.SerialNumber,sl.Quantity as Qty,sl.ControlNumber,sl.IdNumber,
+			sl.StockLineId,sl.StockLineNumber,sl.SerialNumber,sl.Quantity as Qty,sl.ControlNumber,sl.IdNumber,sl.ReceiverNumber,cast(sl.ReceivedDate as date) as ReceivedDate,
 			s.[Name] as 'SiteName',w.[Name] as 'WareHouseName',bn.[Name] as 'BinName',sf.[Name] as 'ShelfName',lc.[Name] as 'LocationName' from Stockline sl WITH(NOLOCK)
 			INNER JOIN ItemMaster i WITH(NOLOCK) on i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN [Site] s WITH(NOLOCK) on s.SiteId = sl.SiteId
@@ -29,7 +29,8 @@ BEGIN
 			LEFT JOIN Bin bn WITH(NOLOCK) on bn.BinId = sl.BinId
 			LEFT JOIN Shelf sf WITH(NOLOCK) on sf.ShelfId = sl.ShelfId
 			LEFT JOIN Location lc WITH(NOLOCK) on lc.LocationId = sl.LocationId
-			where RepairOrderId=@RepairOrderId AND sl.ItemMasterId = @ItemMasterId AND sl.ConditionId = @ConditionId
+			where RepairOrderId=@RepairOrderId 
+			--AND sl.ItemMasterId = @ItemMasterId AND sl.ConditionId = @ConditionId
 			and sl.ReceiverNumber = @ReceiverNumber and IsParent=1
 		END
 	END

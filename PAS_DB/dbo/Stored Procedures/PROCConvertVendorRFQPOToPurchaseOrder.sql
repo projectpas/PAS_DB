@@ -1,9 +1,4 @@
-﻿
-
-
-
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [PROCConvertVendorRFQPOToPurchaseOrder]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to convert vendor RFQ PO to Purchase Order  
@@ -20,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/01/2022  Moin Bloch     Created
      
--- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 36,54,0,2,22,2,1
+-- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 39,62,0,2,22,2,2
 ************************************************************************/
 
 CREATE PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]
@@ -118,17 +113,18 @@ BEGIN
 				    UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
 
 					UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber 
-												    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
-					SELECT	@Result = 1;									
+												    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
+													
+					SELECT	@Result = IDENT_CURRENT('PurchaseOrder');									
 				END
 				ELSE
 				BEGIN					
-					SELECT	@Result = 10;
+					SELECT	@Result = -1;
 				END
 			END
 		ELSE
 		BEGIN			
-			SELECT	@Result = 20;
+			SELECT	@Result = -2;
 		END
 		END
 		IF(@Opr = 2)
@@ -213,17 +209,18 @@ BEGIN
 					BEGIN
 						  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
 					END
-					SELECT	@Result = 1;								
+
+					SELECT	@Result = IDENT_CURRENT('PurchaseOrder');								
 				END
 				ELSE
 				BEGIN					
-					SELECT	@Result = 10;
+					SELECT	@Result = -1;
 				END
 			END
 			ELSE
 			BEGIN
 				SELECT TOP 1 @PurchaseOrderId = [PurchaseOrderId],
-					         @PONumber = [PurchaseOrderNumber] FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
+					         @PONumber = [PurchaseOrderNumber] FROM dbo.VendorRFQPurchaseOrderPart WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND [PurchaseOrderId] > 0;
 
 				INSERT INTO [dbo].[PurchaseOrderPart]([PurchaseOrderId],[ItemMasterId],[PartNumber],[PartDescription],[AltEquiPartNumberId],[AltEquiPartNumber],
 								 [AltEquiPartDescription],[StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[ConditionId],
@@ -280,7 +277,7 @@ BEGIN
 				BEGIN
 					  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
 				END               
-				SELECT	@Result = 1;
+				SELECT	@Result = @PurchaseOrderId;
 			END
 		END
 	END
@@ -306,5 +303,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
-		END CATCH
+	END CATCH
 END

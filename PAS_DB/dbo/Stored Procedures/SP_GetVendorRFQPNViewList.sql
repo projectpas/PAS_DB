@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE SP_GetVendorRFQPNViewList
+﻿CREATE PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -156,58 +156,68 @@ SET NOCOUNT ON;
 					PC.PartNumber,PDC.PartDescription,PC.PartNumberType,PDC.PartDescriptionType,
 					(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.StockType,'')) >0) Then 'Multiple' ELse  isnull(SP.StockType,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1 --AND LEN(isnull(SP.StockType,'')) >0
+						) Then 'Multiple' ELse  isnull(SP.StockType,'')   End)
 						as 'StockTypeType',
-						(Case When (SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse  isnull(SP.Manufacturer,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1 --AND LEN(isnull(SP.Manufacturer,'')) >0
+						) Then 'Multiple' ELse  isnull(SP.Manufacturer,'')   End)
 						as 'ManufacturerType',
-						(Case When (SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse  isnull(SP.Priority,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1 --AND LEN(isnull(SP.Priority,'')) >0
+						)Then 'Multiple' ELse  isnull(SP.Priority,'')   End)
 						as 'PriorityType',
-						(Case When (SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse  isnull(SP.Condition,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId  ) > 1 --AND LEN(isnull(SP.Condition,'')) >0
+						)Then 'Multiple' ELse  isnull(SP.Condition,'')   End)
 						as 'ConditionType',
 						
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.WorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.WorkOrderNo,'')) >0) > 1 
+						) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)
 						as 'WorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) > 1 
+						) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)
 						as 'SubWorkOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SalesOrderNo,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.SalesOrderNo,'')) >0) > 1 
+						) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)
 						as 'SalesOrderNoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0) > 1 ) Then 'Multiple' ELse  isnull(SP.PurchaseOrderNumber,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1 --AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0
+						) Then 'Multiple' ELse  isnull(SP.PurchaseOrderNumber,'')   End)
 						as 'PurchaseOrderNumberType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.Memo,'')) >0) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Memo,'')) >0
+						) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)
 						as 'MemoType',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.Level1,'')) >0 ) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
+						) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
 						as 'Level1Type',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.Level2,'')) >0 
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level2,'')) >0) > 1  
 						 ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)
 						as 'Level2Type',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.Level3,'')) >0 
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level3,'')) >0) > 1  
 						) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)
 						as 'Level3Type',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId) > 1 AND LEN(isnull(SP.Level4,'')) >0 
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level4,'')) >0) > 1  
 						 ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)
 						as 'Level4Type',
 						D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType
@@ -274,7 +284,7 @@ SET NOCOUNT ON;
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 				   GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,
+					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
 					SP.StockType
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
@@ -290,7 +300,13 @@ SET NOCOUNT ON;
 					
 					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType
 					FROM result,CTE_Count
-				
+			group by
+			VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
+					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered
+					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,
+					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType
+					
+					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType
 			ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,

@@ -1,6 +1,23 @@
 ﻿
-
--- EXEC GetVendorRFQRepairOrderParts 15
+/*************************************************************           
+ ** File:   [GetVendorRFQRepairOrderParts]           
+ ** Author:  Moin Bloch
+ ** Description: This stored procedure is used to GET vendor RFQ RO Parts List
+ ** Purpose:         
+ ** Date:   04/01/2022        
+          
+ ** PARAMETERS: @VendorRFQRepairOrderId bigint
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    05/01/2022  Moin Bloch     Created
+     
+-- EXEC [GetVendorRFQRepairOrderParts] 1
+************************************************************************/
 CREATE PROCEDURE [dbo].[GetVendorRFQRepairOrderParts]
 @VendorRFQRepairOrderId bigint
 AS
@@ -56,7 +73,12 @@ BEGIN
               ,PP.[UpdatedDate]
               ,PP.[IsActive]
               ,PP.[IsDeleted]
-		FROM [dbo].[VendorRFQRepairOrderPart] PP WITH (NOLOCK) WHERE PP.[VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND PP.IsDeleted = 0;
+			  ,RO.[RepairOrderId]
+			  ,RO.[RepairOrderNumber]
+			  ,RO.[CreatedDate] AS ROCreatedDate
+			  ,RO.[Status] AS ROStatus
+		 FROM [dbo].[VendorRFQRepairOrderPart] PP WITH (NOLOCK) LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON PP.RepairOrderId = RO.RepairOrderId					
+		WHERE PP.[VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND PP.IsDeleted = 0;
 
 	END
 	END TRY    

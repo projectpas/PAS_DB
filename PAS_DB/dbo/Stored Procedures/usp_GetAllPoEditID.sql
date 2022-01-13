@@ -71,6 +71,9 @@ BEGIN
 		INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON PO.ManagementStructureId = MS.ManagementStructureId
 		WHERE PurchaseOrderId = @poID 
 
+		INSERT INTO #POEditList ([Value],Label)
+		SELECT ISNULL(ExchangeSalesOrderId,0), 'EXCHSONO' FROM dbo.PurchaseOrderPart WITH(NOLOCK) Where PurchaseOrderID = @poID AND ExchangeSalesOrderId > 0
+
 		SELECT * FROM #POEditList
 
 	COMMIT  TRANSACTION

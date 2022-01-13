@@ -61,6 +61,12 @@
     [LetterSentDate]                DATETIME2 (7)  NULL,
     [LetterTypeId]                  INT            NULL,
     [Memo]                          NVARCHAR (MAX) NULL,
+    [ExpdCoreSN]                    VARCHAR (100)  NULL,
+    [POId]                          BIGINT         NULL,
+    [PONumber]                      VARCHAR (100)  NULL,
+    [PONextDlvrDate]                DATETIME       NULL,
     CONSTRAINT [PK_ExchangeSalesOrderPartAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderPartId] ASC)
 );
+
+
 

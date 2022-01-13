@@ -36,7 +36,8 @@ CREATE PROCEDURE [dbo].[SearchSpeedQuoteViewData]
 	@Probability varchar(50)='',
 	@QuoteExpireDate datetime=null,
 	@AccountTypeName varchar(50)='',
-	@LeadSourceReference varchar(50)=''
+	@LeadSourceReference varchar(50)='',
+	@ConditionCodeType varchar(50)=''
 
 AS
 BEGIN
@@ -147,17 +148,33 @@ BEGIN
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID)) 
 						--Group By SQ.SpeedQuoteId,A.PriorityDescription
 						--),
+						PartConditionCodeCTE AS(
+						Select SQ.SpeedQuoteId,(Case When Count(SP.SpeedQuotePartId) > 1 Then 'Multiple' ELse A.ConditionCode End)  as 'ConditionCodeType',A.ConditionCode from SpeedQuote SQ WITH (NOLOCK)
+						Left Join SpeedQuotePart SP WITH (NOLOCK) On SQ.SpeedQuoteId=SP.SpeedQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
+						Outer Apply(
+							SELECT 
+							   STUFF((SELECT DISTINCT ', ' + cn.Code
+									  FROM SpeedQuotePart S WITH (NOLOCK)
+									  Inner join Condition cn WITH (NOLOCK) on cn.ConditionId = S.ConditionId
+									  Where S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+									  FOR XML PATH('')), 1, 1, '') ConditionCode
+						) A
+						Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))
+						Group By SQ.SpeedQuoteId,A.ConditionCode
+						),
 						Result AS(
 						Select M.SpeedQuoteId,M.SpeedQuoteNumber,M.OpenDate as 'QuoteDate',M.CustomerId,M.Name as 'CustomerName',M.Status,
 									M.VersionNumber,IsNull(M.SoAmount,0) as 'QuoteAmount',M.IsNewVersionCreated,M.StatusId,M.CustomerReference,
 									--PR.PriorityDescription as 'Priority',PR.PriorityType,
 									M.SalesPerson,PT.PartNumber,PT.PartNumberType,PD.PartDescription,
 									PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',IsNULL(M.SoAmount,0) as 'SoAmount',M.CreatedDate,
-									M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.CustomerCode,M.QuoteExpireDate,M.AccountTypeName,M.LeadSourceReference,M.LeadSourceName,M.Probability
+									M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.CustomerCode,M.QuoteExpireDate,M.AccountTypeName,M.LeadSourceReference,M.LeadSourceName,M.Probability,
+									PC.ConditionCode,PC.ConditionCodeType
 									from Main M 
 						Left Join PartCTE PT On M.SpeedQuoteId=PT.SpeedQuoteId
 						Left Join PartDescCTE PD on PD.SpeedQuoteId=M.SpeedQuoteId
 						--Left Join PriorityCTE PR on PR.SpeedQuoteId=M.SpeedQuoteId
+						Left Join PartConditionCodeCTE PC on PC.SpeedQuoteId=M.SpeedQuoteId
 						Where (
 						(@GlobalFilter <>'' AND ((M.SpeedQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SpeedQuoteNumber like '%' +@GlobalFilter+'%') OR
 								--(M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR
@@ -177,7 +194,8 @@ BEGIN
 								(M.Probability like '%' +@GlobalFilter+'%') OR
 								--(M.QuoteExpireDate like '%' +@GlobalFilter+'%') OR
 								(M.AccountTypeName like '%' +@GlobalFilter+'%') OR
-								(M.LeadSourceReference like '%' +@GlobalFilter+'%')
+								(M.LeadSourceReference like '%' +@GlobalFilter+'%') OR
+								(PC.ConditionCodeType like '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND (IsNull(@SpeedQuoteNumber,'') ='' OR M.SpeedQuoteNumber like '%'+@SpeedQuoteNumber+'%') and 
@@ -203,7 +221,8 @@ BEGIN
 								(IsNull(@Probability,'') ='' OR M.Probability like  '%'+@Probability+'%') and
 								(IsNull(@QuoteExpireDate,'') ='' OR Cast(M.QuoteExpireDate as Date)=Cast(@QuoteExpireDate as date)) and
 								(IsNull(@AccountTypeName,'') ='' OR M.AccountTypeName like  '%'+@AccountTypeName+'%') and
-								(IsNull(@LeadSourceReference,'') ='' OR M.LeadSourceReference like  '%'+@LeadSourceReference+'%'))
+								(IsNull(@LeadSourceReference,'') ='' OR M.LeadSourceReference like  '%'+@LeadSourceReference+'%') and
+								(IsNull(@ConditionCodeType,'') ='' OR PC.ConditionCodeType like '%'+@ConditionCodeType+'%'))
 								)
 					
 			
@@ -211,7 +230,7 @@ BEGIN
 						SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 						,CustomerReference,
 						--Priority,PriorityType,
-						SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,
+						SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ConditionCode,ConditionCodeType,
 						--SalesOrderNumber,
 						CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,CustomerCode,LeadSourceName,Probability,QuoteExpireDate,AccountTypeName,LeadSourceReference FROM Result,CTE_Count
 						ORDER BY  
@@ -239,6 +258,7 @@ BEGIN
 						CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEEXPIREDATE')  THEN QuoteExpireDate END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='ACCOUNTTYPENAME')  THEN AccountTypeName END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END ASC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
 						--CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,
@@ -262,7 +282,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 and @SortColumn='PROBABILITY')  THEN Probability END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEEXPIREDATE')  THEN QuoteExpireDate END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='ACCOUNTTYPENAME')  THEN AccountTypeName END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END ASC
+						CASE WHEN (@SortOrder=-1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END Desc,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY
 					END

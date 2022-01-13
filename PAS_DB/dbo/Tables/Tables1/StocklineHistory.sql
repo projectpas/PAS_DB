@@ -13,8 +13,12 @@
     [UpdatedBy]          VARCHAR (256)  NOT NULL,
     [UpdatedDate]        DATETIME2 (7)  NOT NULL,
     [MasterCompanyId]    INT            NULL,
+    [SubReferenceId]     BIGINT         NULL,
+    [SubModuleId]        BIGINT         NULL,
     CONSTRAINT [PK_StocklineHisto] PRIMARY KEY CLUSTERED ([StocklineHistoryId] ASC)
 );
+
+
 
 
 

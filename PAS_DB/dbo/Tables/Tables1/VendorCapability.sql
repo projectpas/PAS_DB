@@ -22,6 +22,10 @@
     [PartDescription]           VARCHAR (255)   NULL,
     [ManufacturerId]            BIGINT          NULL,
     [ManufacturerName]          VARCHAR (100)   NULL,
+    [CostDate]                  DATETIME        NULL,
+    [CurrencyId]                INT             NULL,
+    [Currency]                  VARCHAR (50)    NULL,
+    [EmployeeId]                INT             NULL,
     CONSTRAINT [PK_VendorCapabiliy] PRIMARY KEY CLUSTERED ([VendorCapabilityId] ASC),
     CONSTRAINT [FK_VendorCapability_CapabilityTypeId] FOREIGN KEY ([CapabilityTypeId]) REFERENCES [dbo].[CapabilityType] ([CapabilityTypeId]),
     CONSTRAINT [FK_VendorCapability_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -30,6 +34,8 @@
     CONSTRAINT [FK_VendorCapabiliy_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [Unique_VendorCapability] UNIQUE NONCLUSTERED ([VendorId] ASC, [CapabilityTypeId] ASC, [ItemMasterId] ASC, [MasterCompanyId] ASC, [IsPMA] ASC, [IsDER] ASC)
 );
+
+
 
 
 GO

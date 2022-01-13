@@ -1,23 +1,4 @@
-﻿/*********************           
- ** File:   [GetVendorCapesList]           
- ** Author:   Hemant Saliya
- ** Description: Get Search Data for Vendor Capes List    
- ** Purpose:         
- ** Date:   19-Dec-2020        
-          
- ** RETURN VALUE:           
-  
- **********************           
- ** Change History           
- **********************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/19/2020   Hemant Saliya Created
-
- EXECUTE [GetVendorCapesList] 1, 10, null, -1, 1, '', 'VEN','','','','',0,'','','','145,146,147','15,18','','',1
-**********************/ 
-
-CREATE PROCEDURE [dbo].[GetVendorCapesList]
+﻿CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -41,7 +22,9 @@ CREATE PROCEDURE [dbo].[GetVendorCapesList]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,	
-	@MasterCompanyId bigint=NULL
+	@MasterCompanyId bigint=NULL,
+	@ConditionId int=null,
+	@CostDate datetime=null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -105,13 +88,15 @@ BEGIN
 					ct.CapabilityTypeDesc AS CapabilityTypeName,
 					vc.TAT,
 					vc.Cost,
+					vc.CostDate,
 					vc.Memo,
 					vc.IsActive,
 					vc.IsDeleted,
 					vc.CreatedDate,
 					vc.CreatedBy,
 					vc.UpdatedDate,
-					vc.UpdatedBy					
+					vc.UpdatedBy
+					,ct.ConditionId
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
@@ -147,9 +132,11 @@ BEGIN
 					(ISNULL(@ItemMasterIds,'') ='' OR ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIds,','))) AND
 					(ISNULL(@CapabilityTypeIds,'') ='' OR CapabilityTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@CapabilityTypeIds,','))) and
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
-					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
+					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND 
+					--(ISNULL(@ConditionId,'') ='' OR CAST(ISNULL(ConditionId,'') as varchar) LIKE '%' + @ConditionId+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)) AND
+					(ISNULL(@CostDate,'') ='' OR CAST(CostDate as date)=CAST(@CostDate as date)))
 					)
 
 		SELECT @Count = COUNT(VendorId) from #TempResult			
@@ -157,18 +144,33 @@ BEGIN
 		SELECT *, @Count AS NumberOfItems FROM #TempResult
 		ORDER BY  
 		CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORCODE')  THEN VendorCode END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORCODE')  THEN VendorCode END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORNAME')  THEN VendorName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN partnumber END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN partnumber END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
-		CASE WHEN (@SortOrder=1 AND @SortColumn='CAPABILITYTYPEDESC')  THEN CapabilityTypeName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='capabilityTypeName')  THEN CapabilityTypeName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='capabilityTypeName')  THEN CapabilityTypeName END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRANKING')  THEN VendorRanking END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRANKING')  THEN VendorRanking END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='TAT')  THEN TAT END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='TAT')  THEN TAT END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='COST')  THEN Cost END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='COST')  THEN Cost END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='MEMO')  THEN Memo END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='MEMO')  THEN Memo END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC
+		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='COSTDATE')  THEN CostDate END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		
 
@@ -200,7 +202,9 @@ BEGIN
 			  + '@Parameter20 = ''' + CAST(ISNULL(@CreatedBy  , '') AS varchar(100))
 			  + '@Parameter21 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
 			  + '@Parameter22 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
-			  + '@Parameter23 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))  			                                           
+			  + '@Parameter23 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))  
+			  + '@Parameter24 = ''' + CAST(ISNULL(@CostDate, '') AS varchar(100)) 
+			  
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

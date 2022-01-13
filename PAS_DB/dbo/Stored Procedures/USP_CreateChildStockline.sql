@@ -14,7 +14,8 @@
  **************************************************************           
  ** PR   Date         Author    Change Description            
  ** --   --------     -------		--------------------------------          
-    1    09/14/2021   Vishal Suthar Created
+    1    09/14/2021   Vishal Suthar		Created
+    2    12/30/2021  HEMANT SALIYA		Added Sub Module Id and Sub Reference Id for WO Materials 
 
 EXEC [dbo].[USP_CreateChildStockline]  883, 5, 15, 166, 1, 1, 0, 0
 **************************************************************/
@@ -28,7 +29,9 @@ CREATE PROCEDURE [dbo].[USP_CreateChildStockline]
 	@ExecuteParentChild BIT = 0,
 	@UpdateQuantities BIT = 0,
 	@IsOHUpdated BIT = 0,
-	@AddHistoryForNonSerialized BIT = 0
+	@AddHistoryForNonSerialized BIT = 0,
+	@SubModuleId INT = NULL,
+	@SubReferenceId BIGINT = NULL
 )
 AS
 BEGIN
@@ -56,6 +59,16 @@ BEGIN
 		
 		DECLARE @StkLineNumber VARCHAR(100);
 		SELECT @StkLineNumber = StockLineNumber FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId
+
+		IF(@SubReferenceId = 0)
+		BEGIN
+			 SET @SubReferenceId = NULL;
+		END
+
+		IF(@SubModuleId = 0)
+		BEGIN
+			 SET @SubModuleId = NULL;
+		END
 
 		IF (@AddHistoryForNonSerialized = 1)
 		BEGIN
@@ -517,18 +530,18 @@ BEGIN
 			-- Add Stockline History
 			IF (@IsAddUpdate = 1) --Stockline Create
 				BEGIN
-					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
-					VALUES (@ModuleId, @ReferenceId, @StockLineId, @Qty, @Qty, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId)
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					VALUES (@ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, @Qty, @Qty, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId)
 			END
 			ELSE IF @IsAddUpdate = 0
 				BEGIN
-					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
-					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ STL.StockLineNumber +') has been updated.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ STL.StockLineNumber +') has been updated.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
 				END
 			ELSE
 				BEGIN
-					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
-					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'New Stockline ('+ STL.StockLineNumber +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'New Stockline ('+ STL.StockLineNumber +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
 				END
 		END
 		ELSE
@@ -721,8 +734,8 @@ BEGIN
 
 				IF (@AllIdNumbers <> '')
 				BEGIN
-					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
-					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @AllIdNumbers +') ' + @ActionMsg, 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
+					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
+					SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @AllIdNumbers +') ' + @ActionMsg, 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
 					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
 				END
 				/* END: Update Qty into Child rows */

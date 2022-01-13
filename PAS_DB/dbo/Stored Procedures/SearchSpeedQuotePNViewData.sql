@@ -31,7 +31,8 @@
 	@Probability varchar(50)='',
 	@QuoteExpireDate datetime=null,
 	@AccountTypeName varchar(50)='',
-	@LeadSourceReference varchar(50)=''
+	@LeadSourceReference varchar(50)='',
+	@ConditionCodeType varchar(50)=''
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -91,7 +92,7 @@ BEGIN
 				--SOP.UnitSalePrice as 'SoAmount',
 				SOQ.QuoteExpireDate,SOQ.AccountTypeName,SOQ.LeadSourceReference,
 				SOQ.LeadSourceName,P.PercentValue as 'Probability',
-				SOQ.UpdatedDate,SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber'
+				SOQ.UpdatedDate,SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',cn.Code as 'ConditionCode', cn.Code as 'ConditionCodeType'
 				--,(select count(*) fron SpeedQuoteExclusionPart spe where spe.SpeedQuoteId = SOQ.SpeedQuoteId) as 'count'
 				from SpeedQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSpeedQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
@@ -101,6 +102,7 @@ BEGIN
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left join [Percent] p WITH (NOLOCK) on P.PercentId = SOQ.ProbabilityId
+				Left join [Condition] cn WITH (NOLOCK) on cn.ConditionId = SP.ConditionId
 				--Left join SpeedQuoteExclusionPart spe on spe.SpeedQuoteId = SOQ.SpeedQuoteId
 				Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,CustomerCode,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
@@ -110,7 +112,7 @@ BEGIN
 			--SalesOrderNumber,
 			--SoAmount,
 			QuoteExpireDate,AccountTypeName,LeadSourceReference,
-			LeadSourceName,Probability,CreatedDate,UpdatedDate, CreatedBy,UpdatedBy from Result
+			LeadSourceName,Probability,CreatedDate,UpdatedDate, CreatedBy,UpdatedBy,ConditionCode,ConditionCodeType from Result
 				Where (
 					(@GlobalFilter <>'' AND ((SpeedQuoteNumber like '%' +@GlobalFilter+'%' ) OR 
 							--(SalesOrderNumber like '%' +@GlobalFilter+'%') OR
@@ -129,7 +131,8 @@ BEGIN
 							(LeadSourceName like '%' +@GlobalFilter+'%') OR
 							(Probability like '%' +@GlobalFilter+'%') OR
 							(AccountTypeName like '%' +@GlobalFilter+'%') OR
-							(LeadSourceReference like '%' +@GlobalFilter+'%')
+							(LeadSourceReference like '%' +@GlobalFilter+'%') OR
+							(ConditionCodeType like '%' +@GlobalFilter+'%')
 							))
 							OR   
 							(@GlobalFilter='' AND (IsNull(@SpeedQuoteNumber,'') ='' OR SpeedQuoteNumber like  '%'+ @SpeedQuoteNumber+'%') and 
@@ -153,7 +156,8 @@ BEGIN
 							(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%'+ @CreatedBy+'%') and
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
-							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
+							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
+							(IsNull(@ConditionCodeType,'') ='' OR ConditionCodeType like  '%'+@ConditionCodeType+'%'))
 							)),
 					ResultCount AS (Select COUNT(SpeedQuoteId) AS NumberOfItems FROM FinalResult)
 					SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,CustomerCode,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
@@ -164,7 +168,7 @@ BEGIN
 					--SalesOrderNumber,
 					QuoteExpireDate,AccountTypeName,LeadSourceReference,
 					LeadSourceName,Probability,
-					CreatedDate,UpdatedDate, CreatedBy,UpdatedBy, NumberOfItems from FinalResult, ResultCount
+					CreatedDate,UpdatedDate, CreatedBy,UpdatedBy, NumberOfItems,ConditionCode,ConditionCodeType from FinalResult, ResultCount
 				ORDER BY  
 				 CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='SPEEDQUOTENUMBER')  THEN SpeedQuoteNumber END ASC,
@@ -187,7 +191,8 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
-				 CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
+					CASE WHEN (@SortOrder=1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END ASC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,
@@ -206,7 +211,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END ASC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 					Print @SortOrder

@@ -27,6 +27,15 @@ BEGIN
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.SalesOrderId > 0
 
+		UPDATE dbo.ExchangeSalesOrderPart
+		SET 
+		--Qty = POP.QuantityOrdered, 
+		PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
+		from dbo.PurchaseOrderPart POP
+		INNER JOIN dbo.ExchangeSalesOrderPart SOP ON SOP.ExchangeSalesOrderId = POP.ExchangeSalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId
+		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
+		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.ExchangeSalesOrderId > 0
+
 		UPDATE PO SET
 		PO.StatusId = (SELECT POStatusID FROM dbo.POStatus Where IsActive = 1 and IsDeleted = 0  and Memo = 'Fulfilling' ),
 		PO.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.PurchaseOrderApproval PA WITH (NOLOCK) INNER JOIN
@@ -193,7 +202,8 @@ BEGIN
 		POP.RepairOrderId = pop1.RepairOrderId,
 		POP.SalesOrderId = POP1.SalesOrderId,
 		POP.AltEquiPartNumberId = POP1.AltEquiPartNumberId,
-		POP.EstDeliveryDate = POP1.EstDeliveryDate
+		POP.EstDeliveryDate = POP1.EstDeliveryDate,
+		POP.ExchangeSalesOrderId = POP1.ExchangeSalesOrderId
 		FROM 
 		dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.PurchaseOrderPart POP1 ON POP.ParentId = POP1.PurchaseOrderPartRecordId AND POP.PurchaseOrderId =  @PurchaseOrderId 
@@ -241,7 +251,8 @@ BEGIN
 									WHEN POPartSplitUserTypeId = 9 THEN
 									(select TOP 1 ISNULL(SiteName,'') from LegalEntityShippingAddress where LegalEntityShippingAddressId = POP.POPartSplitSiteId)
 									END),  
-			DiscountPercentValue = PV.[PercentValue]
+			DiscountPercentValue = PV.[PercentValue],
+			ExchangeSalesOrderNo = ExchSO.ExchangeSalesOrderNumber
 		FROM  dbo.PurchaseOrderPart POP WITH (NOLOCK)
 			  INNER JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = POP.ManagementStructureId
 			  INNER JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId		 
@@ -263,7 +274,7 @@ BEGIN
 			  LEFT JOIN  dbo.ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
 			  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = POP.POPartSplitUserTypeId	
 			  LEFT JOIN  dbo.[Percent] PV WITH (NOLOCK) ON POP.DiscountPercent = PV.PercentId	
-
+			  LEFT JOIN dbo.ExchangeSalesOrder ExchSO WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = POP.ExchangeSalesOrderId
 		WHERE POP.PurchaseOrderId  = @PurchaseOrderId 
 
 

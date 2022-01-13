@@ -75,7 +75,10 @@
     [IsDeleted]                 BIT             CONSTRAINT [DF__PurchaseO__IsDel__6BBB7E0D] DEFAULT ((0)) NOT NULL,
     [DiscountPercentValue]      DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_DiscountPercentValue] DEFAULT ((0)) NULL,
     [EstDeliveryDate]           DATETIME2 (7)   NULL,
+    [ExchangeSalesOrderId]      BIGINT          NULL,
+    [ExchangeSalesOrderNo]      VARCHAR (250)   NULL,
     CONSTRAINT [PK_PurchaseOrderPart] PRIMARY KEY CLUSTERED ([PurchaseOrderPartRecordId] ASC),
+    CONSTRAINT [FK_ExchangeSalesOrder_PurchaseOrderPart] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_PurchaseOrderPart_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_PurchaseOrderPart_Currency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -98,6 +101,8 @@
     CONSTRAINT [FK_PurchaseOrderPart_UOMId] FOREIGN KEY ([UOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_PurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

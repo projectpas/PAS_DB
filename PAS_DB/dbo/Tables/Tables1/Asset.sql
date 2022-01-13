@@ -52,9 +52,10 @@
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Asset_TangibleClassId] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
     CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
-    CONSTRAINT [Asset_Assetid] UNIQUE NONCLUSTERED ([AssetId] ASC, [MasterCompanyId] ASC),
-    CONSTRAINT [Asset_Name] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [Asset_Assetid] UNIQUE NONCLUSTERED ([AssetId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

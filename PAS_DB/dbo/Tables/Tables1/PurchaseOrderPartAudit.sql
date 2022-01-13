@@ -76,6 +76,10 @@
     [IsDeleted]                 BIT             NOT NULL,
     [DiscountPercentValue]      DECIMAL (18, 2) NULL,
     [EstDeliveryDate]           DATETIME2 (7)   NULL,
+    [ExchangeSalesOrderId]      BIGINT          NULL,
+    [ExchangeSalesOrderNo]      VARCHAR (250)   NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
+
+
 

@@ -95,21 +95,21 @@ BEGIN
 					@OnHandQty = QuantityOnHand,
 					@IdNum = IdNumber FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StocklineId
 
-				IF @ReservedQty > 0
+				IF (@ReservedQty > 0 AND @IsNewStkCreated = 0)
 				BEGIN
 					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
 					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Reserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
 					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
 				END
 
-				IF (@AvailableQty > 0)
+				IF (@AvailableQty > 0 AND @IsNewStkCreated = 0)
 				BEGIN
 					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
 					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') UnReserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 
 					FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId
 				END
 
-				IF @OnHandQty <= 0
+				IF (@OnHandQty <= 0 AND @IsNewStkCreated = 0)
 				BEGIN
 					INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])
 					SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Removed from OH', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId 

@@ -33,8 +33,6 @@ BEGIN
 		ISNULL((SELECT (SUM(ISNULL(sorpp.QtyToReserve, 0)) - SUM(ISNULL(sopt.QtyToShip, 0))) FROM SalesOrderPart sopp WITH(NOLOCK) 
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON 
 		sopp.SalesOrderId = sorpp.SalesOrderId AND
-		--sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND 
-		--sopp.ItemMasterId = imt.ItemMasterId AND
 		sopp.SalesOrderId = @SalesOrderId), 0) as TotalReadyToPick
 
 		from dbo.SalesOrderPart sop WITH(NOLOCK)
@@ -42,12 +40,12 @@ BEGIN
 		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = sop.SalesOrderQuoteId
-		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId --and sopt.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
 		INNER JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId
 					AND soapr.CustomerStatusId = 2
-		LEFT JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
+		INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
-		where sop.SalesOrderId=@SalesOrderId AND (sor.QtyToReserve > 0 OR sopt.SalesOrderPartId IS NOT NULL)
+		where sop.SalesOrderId=@SalesOrderId AND (sor.QtyToReserve > 0)-- OR sopt.SalesOrderPartId IS NOT NULL)
 		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId

@@ -23,7 +23,8 @@
 
 CREATE PROCEDURE [dbo].[GetWorkOrderQoutePirntMateriallist]
 @WorkflowWorkOrderId bigint,
-@workOrderPartNoId bigint
+@workOrderPartNoId bigint,
+@workOrderQuoteDetailsId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -41,7 +42,8 @@ BEGIN
 				FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)  
 					INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId 
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
-				WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId 
+				--WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId
+				WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId
 			END
 		COMMIT  TRANSACTION
 

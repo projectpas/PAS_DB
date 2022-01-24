@@ -63,7 +63,7 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wo.WorkOrderId --AND wop.ID = wopt.OrderPartId
 					LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 					LEFT JOIN dbo.Customer c WITH(NOLOCK) on c.Customerid = wo.Customerid
-				WHERE wo.WorkOrderId = @WorkorderId and WorkflowWorkOrderId = @workflowWorkorderId and WQD.IsVersionIncrease = 0  --AND wop.ID = @workOrderPartNoId 
+				WHERE wo.WorkOrderId = @WorkorderId and WorkflowWorkOrderId = @workflowWorkorderId and WQD.IsVersionIncrease = 0 AND wop.ID = @workOrderPartNoId 
 		END
 		COMMIT  TRANSACTION
 

@@ -5,8 +5,7 @@
  ** Purpose:         
  ** Date:   15-march-2021        
           
- ** PARAMETERS:           
- @POId varchar(60)   
+ ** PARAMETERS: @POId varchar(60)   
          
  ** RETURN VALUE:           
   
@@ -22,30 +21,32 @@
      
  EXECUTE [GetWorkOrderQuoteList] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'
 **************************************************************/ 
-
 CREATE PROCEDURE [dbo].[GetWorkOrderQuoteList]
 	@PageNumber int,
 	@PageSize int,
-	@SortColumn varchar(50)=null,
+	@SortColumn varchar(50) = null,
 	@SortOrder int,
 	@GlobalFilter varchar(50) = '',
 	@quoteNumber varchar(50) = null,
-	@workOrderNum varchar(50)=null,
-	@customerName varchar(50)=null,
-	@customerCode varchar(50)=null,
-	@openDate datetime=null,
-    @promiseDate datetime=null,
-    @estCompletionDate datetime=null,
-    @estShipDate datetime=null,
-    @StatusId int=null,
-    @CreatedDate datetime=null,
-    @UpdatedDate  datetime=null,
-	@CreatedBy  varchar(50)=null,
-	@UpdatedBy  varchar(50)=null,
-	@MasterCompanyId varchar(200)=null,
-	@quoteStatus varchar(200)=null,
-	@VersionNo varchar(20)=null
-AS
+	@workOrderNum varchar(50) = null,
+	@customerName varchar(50) = null,
+	@customerCode varchar(50) = null,
+	@openDate datetime = null,
+    @promiseDate datetime = null,
+    @estCompletionDate datetime = null,
+    @estShipDate datetime = null,
+    @StatusId int = null,
+    @CreatedDate datetime = null,
+    @UpdatedDate datetime = null,
+	@CreatedBy varchar(50) = null,
+	@UpdatedBy varchar(50) = null,
+	@MasterCompanyId varchar(200) = null,
+	@quoteStatus varchar(200) = null,
+	@VersionNo varchar(20) = null,
+	@PartNumber varchar(20) = null,
+	@PartDescription varchar(20) = null,
+	@SerialNumber varchar(20) = null
+AS 
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
@@ -79,13 +80,16 @@ BEGIN
 					Set @SortColumn=Upper(@SortColumn)
 				END
 				;WITH Result AS(
-					    SELECT	
+					    SELECT
 						     woq.WorkOrderQuoteId as WorkOrderQuoteId,
                              wo.WorkOrderId as WorkOrderId,
                              woq.QuoteNumber as quoteNumber,
                              wo.WorkOrderNum,
                              cust.Name as customerName,
                              cust.CustomerCode,
+							 im.partnumber as PartNumber,
+							 im.PartDescription,
+							 stl.SerialNumber,
                              woq.OpenDate,
                              (SELECT TOP 1 wop.PromisedDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as  promisedDate,
                              (SELECT TOP 1 wop.EstimatedShipDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estShipDate,
@@ -101,9 +105,12 @@ BEGIN
 							 woq.VersionNo
 					FROM dbo.WorkOrderQuote woq WITH (NOLOCK)
                            JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId
+                           JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
+                           JOIN dbo.ItemMaster im WITH (NOLOCK) on wopn.ItemMasterId = im.ItemMasterId
+                           LEFT JOIN dbo.Stockline stl WITH (NOLOCK) on wopn.StockLineId = stl.StockLineId
                            JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId
                            JOIN dbo.Customer cust WITH (NOLOCK) on woq.CustomerId = cust.CustomerId
-                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted,0) = 0 AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)
+                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)
 					), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)
 						SELECT * INTO #TempResult FROM  Result
 						WHERE (
@@ -121,7 +128,10 @@ BEGIN
 						(quoteStatusId like '%' +@GlobalFilter+'%') OR
 						(CreatedBy like '%' +@GlobalFilter+'%') OR
 							(quoteStatus like '%' +@GlobalFilter+'%') OR
-						(UpdatedBy like '%' +@GlobalFilter+'%') 
+						(UpdatedBy like '%' +@GlobalFilter+'%') OR
+						(PartNumber like '%' +@GlobalFilter+'%') OR
+						(PartDescription like '%' +@GlobalFilter+'%') OR
+						(SerialNumber like '%' +@GlobalFilter+'%')
 						))
 						OR   
 						(@GlobalFilter='' AND (IsNull(@workOrderNum,'') ='' OR WorkOrderNum like '%' + @workOrderNum+'%') AND
@@ -138,8 +148,10 @@ BEGIN
 						(IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date)=Cast(@OpenDate as date)) AND
 						(IsNull(@estCompletionDate,'') ='' OR Cast(estCompletionDate as Date)=Cast(@estCompletionDate as date)) AND
 						(IsNull(@promiseDate,'') ='' OR Cast(promisedDate as Date)=Cast(@promiseDate as date)) AND
-						(IsNull(@EstShipDate,'') ='' OR Cast(estShipDate as Date)=Cast(@EstShipDate as date))
-					
+						(IsNull(@EstShipDate,'') ='' OR Cast(estShipDate as Date)=Cast(@EstShipDate as date)) AND
+						(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND
+						(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND
+						(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%')
 						))
 
 						SELECT @Count = COUNT(WorkOrderQuoteId) from #TempResult			
@@ -161,6 +173,9 @@ BEGIN
 						CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,
 
 						CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTENUMBER')  THEN quoteNumber END DESC,
@@ -176,7 +191,10 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTESTATUSID')  THEN quoteStatusId END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTESTATUS')  THEN quoteStatus END DESC,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+						CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
 
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY

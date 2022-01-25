@@ -32,7 +32,8 @@ CREATE PROCEDURE [dbo].[GetWorkOrderList]
 	@WorkOrderStatusType varchar(200)=null,
 	@WorkOrderType varchar(50)=null,
 	@TechName  varchar(50)=null,
-	@TechStation  varchar(50)=null
+	@TechStation  varchar(50)=null,
+	@SerialNumber  varchar(50)=null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -156,13 +157,15 @@ BEGIN
 								WPN.WorkOrderStatusId,
 								WT.Description AS WorkOrderType,
 								EMP.FirstName + ' ' + EMP.LastName AS TechName,
-								EMPS.StationName AS TechStation
+								EMPS.StationName AS TechStation,
+								STL.SerialNumber
 							FROM WorkOrder WO WITH(NOLOCK)
 								JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
 								JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 								JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId
 								JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId
 								JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
+								LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
 								JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId
 								JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId	
 								LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId
@@ -187,7 +190,8 @@ BEGIN
 								(WorkOrderStatus like '%'+@GlobalFilter+'%') OR
 								(WorkOrderStatusType like '%'+@GlobalFilter+'%') OR
 								(CreatedBy like '%' +@GlobalFilter+'%') OR
-								(UpdatedBy like '%' +@GlobalFilter+'%') 
+								(UpdatedBy like '%' +@GlobalFilter+'%') OR
+								(SerialNumber like '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND
@@ -210,7 +214,8 @@ BEGIN
 								(IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND
 								(IsNull(@ShipDate,'') ='' OR Cast(EstimatedCompletionDate as Date)=Cast(@ShipDate as date)) AND					
 								(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
-								(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date))
+								(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND
+								(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%')
 								))
 
 								SELECT @Count = COUNT(CustomerId) from #TempResult			
@@ -250,6 +255,7 @@ BEGIN
 								CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+								CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER') THEN SerialNumber END ASC,
 
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,
@@ -283,7 +289,8 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-								CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+								CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+								CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
 
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY

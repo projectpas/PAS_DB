@@ -26,7 +26,7 @@
     
 CREATE PROCEDURE [dbo].[USP_CreateWOStocklineFromRO]    
 (    
-@RepairOrderId  BIGINT  = NULL
+	@RepairOrderId  BIGINT  = NULL
 )    
 AS    
 BEGIN    
@@ -500,11 +500,51 @@ SET NOCOUNT ON
 
 										IF(@QtyFulfilled <= 0)
 										BEGIN
+											DECLARE @WorkOrderIdFoundZero BIGINT = 0;
+											DECLARE @ItemMasterIdFoundZero BIGINT = 0;
+											DECLARE @WorkFlowWorkOrderIdFoundZero BIGINT = 0;
+
+											SELECT @WorkOrderIdFoundZero = WorkOrderId, @ItemMasterIdFoundZero = ItemMasterId, @WorkFlowWorkOrderIdFoundZero = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials 
+											WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+
 											DELETE WOMS FROM dbo.WorkOrderMaterialStockLine WOMS WHERE WOMS.WOMStockLineId = @ExWorkOrderMaterialStockLineId;
 
 											IF (@OldConditionId <> @NewConditionId)
 											BEGIN
-												UPDATE dbo.WorkOrderMaterials SET ConditionCodeId = @NewConditionId WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+												IF((SELECT COUNT(1) FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderIdFoundZero 
+													AND ItemMasterId = @ItemMasterIdFoundZero
+													AND WorkFlowWorkOrderId = @WorkFlowWorkOrderIdFoundZero
+													AND ConditionCodeId = @NewConditionId) = 0)
+												BEGIN
+													UPDATE dbo.WorkOrderMaterials 
+													SET ConditionCodeId = @NewConditionId,
+													TotalReserved = TotalReserved + @StlQuantity,
+													QuantityReserved = QuantityReserved + @StlQuantity,
+													UpdatedDate = GETDATE()
+													WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+												END
+												ELSE
+												BEGIN
+													DECLARE @WorkOrderMaterialsIdFound_01 BIGINT = 0;
+
+													SELECT @WorkOrderMaterialsIdFound_01 = WorkOrderMaterialsId FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) 
+															WHERE WorkOrderId = @WorkOrderIdFoundZero AND ItemMasterId = @ItemMasterIdFoundZero 
+															AND ConditionCodeId = @NewConditionId
+															AND WorkFlowWorkOrderId = @WorkFlowWorkOrderIdFoundZero
+
+													UPDATE [dbo].[WorkOrderMaterials]
+													SET Quantity = Quantity + @StlQuantity,
+													TotalReserved = TotalReserved + @StlQuantity,
+													QuantityReserved = QuantityReserved + @StlQuantity,
+													UnitCost = UnitCost + @UnitCost,
+													ExtendedCost = ISNULL(UnitCost + @UnitCost, 0) * ISNULL(Quantity + @StlQuantity, 0),
+													UpdatedDate = GETDATE()
+													WHERE WorkOrderMaterialsId = @WorkOrderMaterialsIdFound_01
+
+													UPDATE dbo.WorkOrderMaterialStockLine
+													SET WorkOrderMaterialsId = @WorkOrderMaterialsIdFound_01
+													WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+												END
 											END
 										END
 										ELSE
@@ -513,42 +553,77 @@ SET NOCOUNT ON
 
 											IF (@OldConditionId <> @NewConditionId)
 											BEGIN
-												INSERT INTO [dbo].[WorkOrderMaterials]
-												   ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-												   [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved],
-												   [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty],
-												   [IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued],
-												   [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate])
-												SELECT [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-												   [TaskId], @NewConditionId, [ItemClassificationId], @StlQuantity, [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved],
-												   [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty],
-												   [IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued],
-												   [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate]
-												FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
-												
-												SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()
-												
-												UPDATE dbo.WorkOrderMaterialStockLine
-												SET WorkOrderMaterialsId = @NewWorkOrderMaterialsId
-												WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+												DECLARE @WorkOrderIdFound BIGINT = 0;
+												DECLARE @ItemMasterId BIGINT = 0;
+												DECLARE @WorkFlowWorkOrderIdFound BIGINT = 0;
 
-												SELECT @UnitCost = UnitCost, @NewProvisionId = ProvisionId FROM dbo.WorkOrderMaterialStockLine WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
-
-												UPDATE [dbo].[WorkOrderMaterials]
-												SET Quantity = Quantity - @StlQuantity,
-												ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity - @StlQuantity, 0),
-												UpdatedDate = GETDATE()
+												SELECT @WorkOrderIdFound = WorkOrderId, @ItemMasterId = ItemMasterId, @WorkFlowWorkOrderIdFound = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials 
 												WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
 
-												UPDATE [dbo].[WorkOrderMaterials]
-												SET Quantity = @StlQuantity,
-												QuantityReserved = QuantityReserved + @StlQuantity,
-												TotalReserved = TotalReserved + @StlQuantity,
-												UnitCost = @UnitCost,
-												ExtendedCost = ISNULL(@UnitCost, 0) * ISNULL(@StlQuantity, 0),
-												ProvisionId = @NewProvisionId,
-												UpdatedDate = GETDATE()
-												WHERE WorkOrderMaterialsId = @NewWorkOrderMaterialsId
+												-- Check if Marerial with Same Condition is exists
+												IF((SELECT COUNT(1) FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderIdFound AND ItemMasterId = @ItemMasterId
+													AND WorkFlowWorkOrderId = @WorkFlowWorkOrderIdFound
+													AND ConditionCodeId = @NewConditionId) > 0)
+												BEGIN
+													DECLARE @WorkOrderMaterialsIdFound BIGINT = 0;
+
+													SELECT @WorkOrderMaterialsIdFound = WorkOrderMaterialsId FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) 
+															WHERE WorkOrderId = @WorkOrderIdFound AND ItemMasterId = @ItemMasterId AND ConditionCodeId = @NewConditionId
+															AND WorkFlowWorkOrderId = @WorkFlowWorkOrderIdFound
+
+													UPDATE dbo.WorkOrderMaterialStockLine
+													SET WorkOrderMaterialsId = @WorkOrderMaterialsIdFound
+													WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+
+													SELECT @UnitCost = UnitCost FROM dbo.WorkOrderMaterialStockLine WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+
+													UPDATE [dbo].[WorkOrderMaterials]
+													SET Quantity = Quantity + @StlQuantity,
+													TotalReserved = TotalReserved + @StlQuantity,
+													UnitCost = UnitCost + @UnitCost,
+													ExtendedCost = ISNULL(UnitCost + @UnitCost, 0) * ISNULL(Quantity + @StlQuantity, 0),
+													UpdatedDate = GETDATE()
+													WHERE WorkOrderMaterialsId = @WorkOrderMaterialsIdFound
+												END
+												ELSE
+												BEGIN
+													INSERT INTO [dbo].[WorkOrderMaterials]
+													   ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+													   [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved],
+													   [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty],
+													   [IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued],
+													   [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate])
+													SELECT [WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
+													   [TaskId], @NewConditionId, [ItemClassificationId], @StlQuantity, [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDeferred], [QuantityReserved],
+													   [QuantityIssued], [IssuedDate], [ReservedDate], [IsAltPart], [AltPartMasterPartId], [IsFromWorkFlow], [PartStatusId], [UnReservedQty], [UnIssuedQty],
+													   [IssuedById], [ReservedById], [IsEquPart], [ParentWorkOrderMaterialsId], [ItemMappingId], [TotalReserved], [TotalIssued], [TotalUnReserved], [TotalUnIssued],
+													   [ProvisionId], [MaterialMandatoriesId], [WOPartNoId], [TotalStocklineQtyReq], [QtyOnOrder], [QtyOnBkOrder], [POId], [PONum], [PONextDlvrDate]
+													FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+												
+													SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()
+												
+													UPDATE dbo.WorkOrderMaterialStockLine
+													SET WorkOrderMaterialsId = @NewWorkOrderMaterialsId
+													WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+
+													SELECT @UnitCost = UnitCost, @NewProvisionId = ProvisionId FROM dbo.WorkOrderMaterialStockLine WHERE WOMStockLineId = @WorkOrderMaterialStockLineId
+
+													UPDATE [dbo].[WorkOrderMaterials]
+													SET Quantity = Quantity - @StlQuantity,
+													ExtendedCost = ISNULL(UnitCost, 0) * ISNULL(Quantity - @StlQuantity, 0),
+													UpdatedDate = GETDATE()
+													WHERE WorkOrderMaterialsId = @ExWorkOrderMaterialsId
+
+													UPDATE [dbo].[WorkOrderMaterials]
+													SET Quantity = @StlQuantity,
+													QuantityReserved = QuantityReserved + @StlQuantity,
+													TotalReserved = TotalReserved + @StlQuantity,
+													UnitCost = @UnitCost,
+													ExtendedCost = ISNULL(@UnitCost, 0) * ISNULL(@StlQuantity, 0),
+													ProvisionId = @NewProvisionId,
+													UpdatedDate = GETDATE()
+													WHERE WorkOrderMaterialsId = @NewWorkOrderMaterialsId
+												END
 											END
 										END
 

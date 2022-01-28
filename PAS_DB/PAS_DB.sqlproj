@@ -1613,5 +1613,6 @@
     <Build Include="dbo\Tables\TermsCondition.sql" />
     <Build Include="dbo\Views\vw_TermsCondition.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsTeardownRemovalReasons.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetToolDashboardList.sql" />
   </ItemGroup>
 </Project>

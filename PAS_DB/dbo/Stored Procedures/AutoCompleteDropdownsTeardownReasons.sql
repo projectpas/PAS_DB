@@ -42,16 +42,11 @@ BEGIN
 					SET @Count = '20';
 				END	
 
-				DECLARE @removalTearDownTypeId AS BIGINT = 0;
-
-				SELECT @removalTearDownTypeId = ctt.CommonTeardownTypeId FROM dbo.CommonTeardownType ctt WITH(NOLOCK) 						
-				WHERE ctt.TearDownCode = 'RemovalReason' AND ctt.MasterCompanyId = @MasterCompanyId  
-
 				SELECT 
 					tr.TeardownReasonId AS Value, 
 					tr.Reason AS Label
 				FROM dbo.TeardownReason tr WITH(NOLOCK) 						
-				WHERE (tr.IsActive = 1 AND ISNULL(tr.IsDeleted, 0) = 0 AND tr.CommonTeardownTypeId = @removalTearDownTypeId
+				WHERE (tr.IsActive = 1 AND ISNULL(tr.IsDeleted, 0) = 0 AND tr.CommonTeardownTypeId = @TeardownTypeId
 					      AND tr.MasterCompanyId = @MasterCompanyId)    
 				UNION     
 				SELECT 

@@ -12,6 +12,9 @@
     [UpdatedBy]           VARCHAR (256)  NOT NULL,
     [IsActive]            BIT            NOT NULL,
     [IsDeleted]           BIT            NOT NULL,
+    [CustomerID]          BIGINT         NULL,
     CONSTRAINT [PK_NhaTlaAltEquAudit] PRIMARY KEY CLUSTERED ([NhaTlaAltEquAuditId] ASC)
 );
+
+
 

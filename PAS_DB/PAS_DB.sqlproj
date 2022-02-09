@@ -1614,5 +1614,12 @@
     <Build Include="dbo\Views\vw_TermsCondition.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsTeardownRemovalReasons.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetToolDashboardList.sql" />
+    <Build Include="dbo\Tables\InvoiceDeliveryPrefStatusAudit.sql" />
+    <Build Include="dbo\Tables\InvoiceDeliveryPrefStatus.sql" />
+    <Build Include="dbo\Tables\EmployeeExpertiseMappingAudit.sql" />
+    <Build Include="dbo\Tables\EmployeeExpertiseMapping.sql" />
+    <Build Include="dbo\Tables\ECCNDeterminationSourceAudit.sql" />
+    <Build Include="dbo\Tables\ECCNDeterminationSource.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateAssetCalibrationStatus.sql" />
   </ItemGroup>
 </Project>

@@ -44,7 +44,12 @@
     [IsDeleted]               BIT             NOT NULL,
     [BillingAddressId]        BIGINT          NULL,
     [ShippingAddressId]       BIGINT          NULL,
+    [IsTradeRestricted]       BIT             NULL,
+    [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
+    [IsTrackScoreCard]        BIT             NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 

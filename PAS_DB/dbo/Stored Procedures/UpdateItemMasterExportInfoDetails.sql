@@ -35,7 +35,8 @@ SET NOCOUNT ON;
 	     ExportWeightUnitName = PUM.ShortName,
 	     ExportUomName = SUMG.ShortName,
 	     ExportSizeUnitOfMeasureName = ESUOM.ShortName,
-	     ExportClassificationIdName = exc.[Description]
+	     ExportClassificationIdName = exc.[Description],
+		 ECCNDeterminationSourceName = EDS.[Name]
 	   
 	    FROM dbo.ItemMasterExportInfo IMEI WITH (NOLOCK)      
 	   	  LEFT JOIN dbo.Countries CO WITH (NOLOCK) ON IMEI.ExportCountryId = CO.countries_id
@@ -44,6 +45,7 @@ SET NOCOUNT ON;
 	   	  LEFT JOIN dbo.UnitOfMeasure SUMG WITH (NOLOCK) ON IMEI.ExportUomId = SUMG.UnitOfMeasureId 
 	   	  LEFT JOIN dbo.UnitOfMeasure ESUOM WITH (NOLOCK) ON IMEI.ExportSizeUnitOfMeasureId = ESUOM.UnitOfMeasureId 
 	   	  LEFT JOIN dbo.ExportClassification EXC WITH (NOLOCK) ON IMEI.ExportClassificationId = EXC.ExportClassificationId 
+		  LEFT JOIN dbo.ECCNDeterminationSource EDS WITH (NOLOCK) ON EDS.EccnDeterminationSourceID = IMEI.EccnDeterminationSourceID 
 	   	  
 	   WHERE IMEI.ItemMasterId = @ItemMasterId;
 	   

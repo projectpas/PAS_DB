@@ -44,7 +44,15 @@
     [Level2]                          VARCHAR (200)   NULL,
     [Level3]                          VARCHAR (200)   NULL,
     [Level4]                          VARCHAR (200)   NULL,
+    [SiteId]                          BIGINT          NULL,
+    [WarehouseId]                     BIGINT          NULL,
+    [ShelfId]                         BIGINT          NULL,
+    [BinId]                           BIGINT          NULL,
+    [ManufacturerPN]                  NVARCHAR (80)   NULL,
+    [CntrlNumber]                     INT             NULL,
     CONSTRAINT [PK__AssetAud__88889B1E86626B25] PRIMARY KEY CLUSTERED ([AssetAuditId] ASC),
     CONSTRAINT [FK_AssetAudit_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId])
 );
+
+
 

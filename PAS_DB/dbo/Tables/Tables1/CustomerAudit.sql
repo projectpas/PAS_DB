@@ -32,7 +32,12 @@
     [IsCRMCustomer]         BIT            NULL,
     [BillingAddressId]      BIGINT         NULL,
     [ShippingAddressId]     BIGINT         NULL,
+    [IsTradeRestricted]     BIT            NULL,
+    [TradeRestrictedMemo]   NVARCHAR (MAX) NULL,
+    [IsTrackScoreCard]      BIT            NULL,
     CONSTRAINT [PK_CustomerAudit] PRIMARY KEY CLUSTERED ([AuditCustomerId] ASC),
     CONSTRAINT [FK_CustomerAudit_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 

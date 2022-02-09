@@ -2,9 +2,9 @@
     [CustomerContactATAMappingId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [CustomerId]                  BIGINT        NOT NULL,
     [CustomerContactId]           BIGINT        NOT NULL,
-    [ATAChapterId]                BIGINT        NOT NULL,
+    [ATAChapterId]                BIGINT        NULL,
     [ATAChapterCode]              VARCHAR (256) NULL,
-    [ATAChapterName]              VARCHAR (250) NOT NULL,
+    [ATAChapterName]              VARCHAR (250) NULL,
     [ATASubChapterId]             BIGINT        NULL,
     [ATASubChapterDescription]    VARCHAR (256) NULL,
     [MasterCompanyId]             INT           NOT NULL,
@@ -15,14 +15,16 @@
     [IsActive]                    BIT           CONSTRAINT [D_CCAM_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                   BIT           CONSTRAINT [CustomerContactATAMapping_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ATASubChapterCode]           VARCHAR (250) NULL,
+    [Level1]                      VARCHAR (50)  NULL,
+    [Level2]                      VARCHAR (50)  NULL,
+    [Level3]                      VARCHAR (50)  NULL,
     CONSTRAINT [PK_CCATAMapping] PRIMARY KEY CLUSTERED ([CustomerContactATAMappingId] ASC),
-    CONSTRAINT [FK_CustomerContactATAMapping_ATAChapter] FOREIGN KEY ([ATAChapterId]) REFERENCES [dbo].[ATAChapter] ([ATAChapterId]),
-    CONSTRAINT [FK_CustomerContactATAMapping_ATASubChapter] FOREIGN KEY ([ATASubChapterId]) REFERENCES [dbo].[ATASubChapter] ([ATASubChapterId]),
     CONSTRAINT [FK_CustomerContactATAMapping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerContactATAMapping_CustomerContact] FOREIGN KEY ([CustomerContactId]) REFERENCES [dbo].[CustomerContact] ([CustomerContactId]),
-    CONSTRAINT [FK_CustomerContactATAMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [CustomerContactATAMappingConstraint] UNIQUE NONCLUSTERED ([CustomerContactId] ASC, [ATAChapterId] ASC, [ATASubChapterId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [FK_CustomerContactATAMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

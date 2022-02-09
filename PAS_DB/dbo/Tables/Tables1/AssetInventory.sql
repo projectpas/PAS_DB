@@ -36,7 +36,7 @@
     [AssetMaintenanceIsContract]        BIT             CONSTRAINT [AssetInventory_AssetMaintenanceIsContract] DEFAULT ((0)) NOT NULL,
     [AssetMaintenanceContractFile]      NVARCHAR (512)  NULL,
     [MaintenanceFrequencyMonths]        INT             CONSTRAINT [AssetInventory_MaintenanceFrequencyMonths] DEFAULT ((0)) NOT NULL,
-    [MaintenanceFrequencyDays]          INT             CONSTRAINT [AssetInventory_MaintenanceFrequencyDays] DEFAULT ((0)) NOT NULL,
+    [MaintenanceFrequencyDays]          BIGINT          CONSTRAINT [AssetInventory_MaintenanceFrequencyDays] DEFAULT ((0)) NULL,
     [MaintenanceDefaultVendorId]        BIGINT          NULL,
     [MaintenanceGLAccountId]            BIGINT          NULL,
     [MaintenanceMemo]                   NVARCHAR (MAX)  NULL,
@@ -56,7 +56,7 @@
     [InspectionDefaultVendorId]         BIGINT          NULL,
     [VerificationDefaultVendorId]       BIGINT          NULL,
     [CertificationFrequencyMonths]      INT             CONSTRAINT [AssetInventory_CertificationFrequencyMonths] DEFAULT ((0)) NOT NULL,
-    [CertificationFrequencyDays]        INT             CONSTRAINT [AssetInventory_CertificationFrequencyDays] DEFAULT ((0)) NOT NULL,
+    [CertificationFrequencyDays]        BIGINT          CONSTRAINT [AssetInventory_CertificationFrequencyDays] DEFAULT ((0)) NULL,
     [CertificationDefaultCost]          DECIMAL (18, 2) CONSTRAINT [AssetInventory_CertificationDefaultCost] DEFAULT ((0)) NULL,
     [CertificationGlAccountId]          BIGINT          NULL,
     [CertificationMemo]                 NVARCHAR (MAX)  NULL,
@@ -64,13 +64,13 @@
     [InspectionGlaAccountId]            BIGINT          NULL,
     [InspectionDefaultCost]             DECIMAL (18, 2) CONSTRAINT [AssetInventory_InspectionDefaultCost] DEFAULT ((0)) NULL,
     [InspectionFrequencyMonths]         INT             CONSTRAINT [AssetInventory_InspectionFrequencyMonths] DEFAULT ((0)) NOT NULL,
-    [InspectionFrequencyDays]           INT             CONSTRAINT [AssetInventory_InspectionFrequencyDays] DEFAULT ((0)) NOT NULL,
-    [VerificationFrequencyDays]         INT             CONSTRAINT [AssetInventory_VerificationFrequencyDays] DEFAULT ((0)) NOT NULL,
+    [InspectionFrequencyDays]           BIGINT          CONSTRAINT [AssetInventory_InspectionFrequencyDays] DEFAULT ((0)) NULL,
+    [VerificationFrequencyDays]         BIGINT          CONSTRAINT [AssetInventory_VerificationFrequencyDays] DEFAULT ((0)) NULL,
     [VerificationFrequencyMonths]       INT             CONSTRAINT [AssetInventory_VerificationFrequencyMonths] DEFAULT ((0)) NOT NULL,
     [VerificationDefaultCost]           DECIMAL (18, 2) CONSTRAINT [AssetInventory_VerificationDefaultCost] DEFAULT ((0)) NULL,
     [CalibrationDefaultCost]            DECIMAL (18, 2) CONSTRAINT [AssetInventory_CalibrationDefaultCost] DEFAULT ((0)) NULL,
     [CalibrationFrequencyMonths]        INT             CONSTRAINT [AssetInventory_CalibrationFrequencyMonths] DEFAULT ((0)) NOT NULL,
-    [CalibrationFrequencyDays]          INT             CONSTRAINT [AssetInventory_CalibrationFrequencyDays] DEFAULT ((0)) NOT NULL,
+    [CalibrationFrequencyDays]          BIGINT          CONSTRAINT [AssetInventory_CalibrationFrequencyDays] DEFAULT ((0)) NULL,
     [CalibrationGlAccountId]            BIGINT          NULL,
     [CalibrationMemo]                   NVARCHAR (MAX)  NULL,
     [VerificationMemo]                  NVARCHAR (MAX)  NULL,
@@ -116,6 +116,11 @@
     [Level4]                            VARCHAR (200)   NULL,
     [ManufactureName]                   VARCHAR (100)   NULL,
     [LocationName]                      VARCHAR (100)   NULL,
+    [Qty]                               DECIMAL (13, 2) NULL,
+    [StklineNumber]                     VARCHAR (100)   NULL,
+    [AvailStatus]                       VARCHAR (100)   NULL,
+    [PartNumber]                        VARCHAR (100)   NULL,
+    [ControlNumber]                     VARCHAR (100)   NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_AssetInventory_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
@@ -127,6 +132,8 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

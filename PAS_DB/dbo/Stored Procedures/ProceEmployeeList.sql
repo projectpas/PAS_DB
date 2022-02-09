@@ -1,7 +1,4 @@
-﻿
-
-
-CREATE PROCEDURE [dbo].[ProceEmployeeList]
+﻿CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -68,7 +65,7 @@ BEGIN
 					t.FirstName,
                     t.LastName,
 					(ISNULL(jot.[Description],'')) 'Jobtitle',
-					(ISNULL(ee.[Description],'')) 'EmployeeExpertise',
+					--(ISNULL(ee.[Description],'')) 'EmployeeExpertise',
 					CASE WHEN t.EmployeeCertifyingStaff = 1 THEN 'Yes' ELSE 'No' END AS ShopEmployee,
 				    (ISNULL(t.StartDate,'')) 'StartDate',					
 					t.IsActive,
@@ -79,20 +76,38 @@ BEGIN
                     t.UpdatedBy,					
 				    le.[Name] AS Company,
 					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype					
-			   FROM dbo.Employee t WITH (NOLOCK)  LEFT JOIN dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId
+			   FROM dbo.Employee t WITH (NOLOCK)
+							   LEFT JOIN dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId
+							   
 			                   LEFT JOIN dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
 							   LEFT JOIN dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId
 			                   INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = t.ManagementStructureId		              			  
-		 	  WHERE ((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
+		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
 			        AND EMS.EmployeeId = @EmployeeId AND t.MasterCompanyId=@MasterCompanyId	
-					AND t.FirstName <> 'TBD'
-			), ResultCount AS(SELECT COUNT(EmployeeId) AS totalItems FROM Result)
-			SELECT * INTO #TempResult FROM  Result
+					AND t.FirstName <> 'TBD')
+			),EMPEXPERCTE AS(
+								Select SO.EmployeeId as EmpId,A.EmployeeExpertise 
+								from Employee SO WITH (NOLOCK)
+								Left Join EmployeeExpertiseMapping SP WITH (NOLOCK) On SO.EmployeeId = SP.EmployeeId
+								Outer Apply(
+									SELECT 
+									   STUFF((SELECT ',' + I.Description
+											  FROM EmployeeExpertiseMapping S WITH (NOLOCK)
+											  Left Join EmployeeExpertise I WITH (NOLOCK) On S.EmployeeExpertiseIds=I.EmployeeExpertiseId
+											  Where S.EmployeeId = SP.EmployeeId
+											  AND S.IsActive = 1 AND S.IsDeleted = 0
+											  FOR XML PATH('')), 1, 1, '') EmployeeExpertise
+								) A
+								Where SP.IsActive = 1 AND SP.IsDeleted = 0
+								Group By SO.EmployeeId, A.EmployeeExpertise
+								), ResultCount AS(SELECT COUNT(EmployeeId) AS totalItems FROM Result)
+			SELECT * INTO #TempResult FROM  Result r
+			LEFT JOIN EMPEXPERCTE p on p.EmpId = r.EmployeeId
 			 WHERE ((@GlobalFilter <>'' AND ((EmployeeCode LIKE '%' +@GlobalFilter+'%') OR
 			        (FirstName LIKE '%' +@GlobalFilter+'%') OR	
 					(LastName LIKE '%' +@GlobalFilter+'%') OR					
 					(Jobtitle LIKE '%' +@GlobalFilter+'%') OR						
-					(EmployeeExpertise LIKE '%' +@GlobalFilter+'%') OR						
+					(p.EmployeeExpertise LIKE '%' +@GlobalFilter+'%') OR						
 					(ShopEmployee LIKE '%' +@GlobalFilter+'%') OR										
 					(Company LIKE '%' +@GlobalFilter+'%') OR
 					(Paytype LIKE '%' +@GlobalFilter+'%') OR
@@ -103,7 +118,7 @@ BEGIN
 					(ISNULL(@FirstName,'') ='' OR FirstName LIKE '%' + @FirstName + '%') AND
 					(ISNULL(@LastName,'') ='' OR LastName LIKE '%' + @LastName + '%') AND
 					(ISNULL(@Jobtitle,'') ='' OR Jobtitle LIKE '%' + @Jobtitle + '%') AND
-					(ISNULL(@EmployeeExpertise,'') ='' OR EmployeeExpertise LIKE '%' + @EmployeeExpertise + '%') AND
+					(ISNULL(@EmployeeExpertise,'') ='' OR p.EmployeeExpertise LIKE '%' + @EmployeeExpertise + '%') AND
 					(ISNULL(@ShopEmployee,'') ='' OR ShopEmployee LIKE '%' + @ShopEmployee + '%') AND				
 					(ISNULL(@Company,'') ='' OR Company LIKE '%' + @Company + '%') AND
 					(ISNULL(@Paytype,'') ='' OR Paytype LIKE '%' + @Paytype + '%') AND

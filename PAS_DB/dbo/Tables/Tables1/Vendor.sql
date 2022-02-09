@@ -43,6 +43,9 @@
     [IsDeleted]               BIT             CONSTRAINT [Vendor_DC_Delete] DEFAULT ((0)) NOT NULL,
     [BillingAddressId]        BIGINT          NULL,
     [ShippingAddressId]       BIGINT          NULL,
+    [IsTradeRestricted]       BIT             NULL,
+    [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
+    [IsTrackScoreCard]        BIT             NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
     CONSTRAINT [FK_Vendor_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Vendor_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -56,6 +59,8 @@
     CONSTRAINT [UC_Vendor_Email] UNIQUE NONCLUSTERED ([VendorEmail] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

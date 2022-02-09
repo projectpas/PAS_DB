@@ -43,6 +43,12 @@
     [Level2]                          VARCHAR (200)   NULL,
     [Level3]                          VARCHAR (200)   NULL,
     [Level4]                          VARCHAR (200)   NULL,
+    [SiteId]                          BIGINT          NULL,
+    [WarehouseId]                     BIGINT          NULL,
+    [ShelfId]                         BIGINT          NULL,
+    [BinId]                           BIGINT          NULL,
+    [ManufacturerPN]                  NVARCHAR (80)   NULL,
+    [CntrlNumber]                     INT             NULL,
     CONSTRAINT [PK_Asset] PRIMARY KEY CLUSTERED ([AssetRecordId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_Asset_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
@@ -51,9 +57,10 @@
     CONSTRAINT [FK_Asset_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Asset_TangibleClassId] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
-    CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
-    CONSTRAINT [Asset_Assetid] UNIQUE NONCLUSTERED ([AssetId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

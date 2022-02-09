@@ -42,8 +42,8 @@ BEGIN
 				FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)  
 					INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId 
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
-				--WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId
-				WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId
+				WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId
+				--WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId
 			END
 		COMMIT  TRANSACTION
 

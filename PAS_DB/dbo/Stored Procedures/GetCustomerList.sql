@@ -106,7 +106,8 @@ BEGIN
 					C.CreatedBy,
 					C.UpdatedDate,
 					C.UpdatedBy,
-					CA.[Description] AS CustomerType
+					CA.[Description] AS CustomerType,
+					C.IsTrackScoreCard
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId

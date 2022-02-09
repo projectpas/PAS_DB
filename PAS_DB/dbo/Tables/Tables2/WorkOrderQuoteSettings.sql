@@ -15,10 +15,13 @@
     [CurrentNumber]           BIGINT        DEFAULT ((0)) NOT NULL,
     [IsApprovalRule]          BIT           NULL,
     [effectivedate]           DATETIME      NULL,
+    [TearDownTypes]           VARCHAR (50)  NULL,
     CONSTRAINT [PK_WorkOrderQuoteSettings] PRIMARY KEY CLUSTERED ([WorkOrderQuoteSettingId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteSettings_WorkOrderTypeId] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id])
 );
+
+
 
 
 GO

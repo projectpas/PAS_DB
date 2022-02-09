@@ -49,7 +49,9 @@ BEGIN
                      LaborMarkupId,
                      ChargesMarkupId,
                      FreightMarkupId,
-                     ExclusionsMarkupId
+                     ExclusionsMarkupId,
+					 CommonFlatRate,
+					 QuoteMethod
 				FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK)
 					LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId
 				WHERE WorkflowWorkOrderId = @workflowWorkorderId AND IsVersionIncrease = 0

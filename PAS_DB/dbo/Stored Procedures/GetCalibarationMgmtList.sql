@@ -2,68 +2,68 @@
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
     @PageNumber int,
-	@SortColumn varchar(50)=null,
+	@SortColumn VARCHAR(50)=null,
 	@SortOrder int,
-	@GlobalFilter varchar(50) = '',
-	@AssetId varchar(50) = null,
-	@AssetName varchar(50)=null,
-	@AltAssetId varchar(50)=null,
-	@AltAssetName varchar(50)=null,
-	@SerialNum varchar(50)=null,
-    @Location varchar(50)=null,
-    @ControlName varchar(50)=null,
+	@GlobalFilter VARCHAR(50) = '',
+	@AssetId VARCHAR(50) = null,
+	@AssetName VARCHAR(50)=null,
+	@AltAssetId VARCHAR(50)=null,
+	@AltAssetName VARCHAR(50)=null,
+	@SerialNum VARCHAR(50)=null,
+    @Location VARCHAR(50)=null,
+    @ControlName VARCHAR(50)=null,
     @LastCalibrationDate datetime=null,
     @NextCalibrationDate datetime=null,    
-	@LastCalibrationBy varchar(50)=null,
-	@AssetType varchar(50)=null,
-	@CurrencyName varchar(50)=null,
-	@Certifytype varchar(50)=null,
-	@UOM varchar(50)=null,
+	@LastCalibrationBy VARCHAR(50)=null,
+	@AssetType VARCHAR(50)=null,
+	@CurrencyName VARCHAR(50)=null,
+	@Certifytype VARCHAR(50)=null,
+	@UOM VARCHAR(50)=null,
 	@Qty int=null,
 	@UpdatedCost decimal(18,2)=null,
 	@Inservicedate datetime=null,
-	@AssetStatus varchar(50)=null,
-	@Itemtype varchar(50)=null,
-	@CompanyName varchar(50)=null,
-	@BuName varchar(50)=null,
-	@DivName varchar(50)=null,
-	@DeptName varchar(50)=null,
-	@lastcalibrationmemo varchar(50)=null,
-	@lastcheckedinby varchar(50)=null,
+	@AssetStatus VARCHAR(50)=null,
+	@Itemtype VARCHAR(50)=null,
+	@CompanyName VARCHAR(50)=null,
+	@BuName VARCHAR(50)=null,
+	@DivName VARCHAR(50)=null,
+	@DeptName VARCHAR(50)=null,
+	@lastcalibrationmemo VARCHAR(50)=null,
+	@lastcheckedinby VARCHAR(50)=null,
 	@lastcheckedindate datetime=null,
-	@lastcheckedinmemo varchar(50)=null,
-	@lastcheckedoutby varchar(50)=null,
+	@lastcheckedinmemo VARCHAR(50)=null,
+	@lastcheckedoutby VARCHAR(50)=null,
 	@lastcheckedoutdate datetime=null,
-	@lastcheckedoutmemo varchar(50)=null,
+	@lastcheckedoutmemo VARCHAR(50)=null,
     @CreatedDate datetime=null,
     @UpdatedDate  datetime=null,
-	@CreatedBy  varchar(50)=null,
-	@UpdatedBy  varchar(50)=null,
+	@CreatedBy  VARCHAR(50)=null,
+	@UpdatedBy  VARCHAR(50)=null,
     @IsDeleted bit= null,
-	@Status varchar(50)= null,
-	@MasterCompanyId varchar(200)=null
+	@Status VARCHAR(50)= null,
+	@MasterCompanyId VARCHAR(200)=null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
-		DECLARE @RecordFrom int;
-		Declare @IsActive bit=1
-		Declare @Count Int;
-		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		DECLARE @RecordFROM int;
+		DECLARE @IsActive bit=1
+		DECLARE @Count Int;
+		SET @RecordFROM = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted is null
-		Begin
+		BEGIN
 			Set @IsDeleted=0
-		End
+		END
 		
 		IF @SortColumn is null
-		Begin
+		BEGIN
 			Set @SortColumn=Upper('CreatedDate')
-		End 
+		END 
 		Else
-		Begin 
+		BEGIN 
 			Set @SortColumn=Upper(@SortColumn)
-		End
+		END
 
 		set @IsActive = 1
 
@@ -71,39 +71,42 @@ BEGIN
 
 			BEGIN TRANSACTION
 				BEGIN
-				declare @isStatusActive bit = 1;
-				set @isStatusActive = (CASE WHEN @Status ='InActive' then 0 else 1 end)
+				DECLARE @isStatusActive bit = 1;
+				set @isStatusActive = (CASE WHEN @Status ='InActive' then 0 else 1 END)
 					IF((@Certifytype is null or lower(@Certifytype) ='') and @Status is not null)
 					BEGIN	
 						print 'Status 1'
-							declare @isActiveFilter bit = (CASE when @Status = 'InActive' then 0 else 1 end)
+							DECLARE @isActiveFilter bit = (CASE when @Status = 'InActive' then 0 else 1 END)
 									;With Result AS(
-								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+								SELECT	
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
-											(select top 1 AssetId from Asset where AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
+											(SELECT top 1 AssetId FROM Asset WHERE AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
+											AsI.AssetInventoryId,
 											'Asset' AS Itemtype,
-											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
+											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' END  as AssetType,
 											AssetClass= asty.AssetAttributeTypeName, 
 											ISNULL(asm.AssetAcquisitionTypeId,0) AS AcquisitionTypeId,
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
-											NextCalibrationDate =  DATEADD(DAY, isnull(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, isnull(Assc.CalibrationFrequencyMonths,0),getdate())),				
-											LastCalibrationBy = (select top  1 CreatedBy from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),					
-											CalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											LastCalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											NextCalibrationDate =  DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate())),				
+											LastCalibrationBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											curr.Code AS CurrencyName,
+											curr.CurrencyId,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--ISNULL(asm.UnitCost,0) as UnitCost,
+											ISNULL(Assc.CalibrationDefaultCost,0) as UnitCost,
+											Memo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -114,24 +117,13 @@ BEGIN
 												  WHEN Assc.CalibrationRequired = 1 THEN 'Calibration'
 												  WHEN Assc.CertificationRequired =1  THEN  'Certification'
 												  WHEN Assc.InspectionRequired =1  THEN  'Inspection'
-												  WHEN Assc.VerificationRequired =1  THEN  'Verification' ELSE 'Calibration' end)as CertifyType,
+												  WHEN Assc.VerificationRequired =1  THEN  'Verification' ELSE 'Calibration' END)as CertifyType,
 											--'Calibration' as CertifyType,
-
-											CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
-                         
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-											 THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
-
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level4.Code + level4.Name ELSE '' END AS DivName, 
-						 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-											 level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+											asm.level1 AS CompanyName,
+											asm.level2 AS BuName,
+											asm.level3 AS DivName,
+											asm.level4 AS DeptName,											
+											AsI.StklineNumber AS StocklineNumber,
 											asm.MasterCompanyId AS MasterCompanyId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
@@ -139,24 +131,24 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL((SELECT top 1 IsVENDororEmployee FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),'vENDor') as IsVENDororEmployee
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
-										left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
-										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
-										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
-										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
-										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-										inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = @IsDeleted)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  and  asm.MasterCompanyId=@MasterCompanyId )
-								), ResultCount AS(Select COUNT(CalibrationId) AS totalItems FROM Result)
-								Select * INTO #TempResult5 from  Result
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										LEFT JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+										LEFT JOIN dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CertificationDefaultVendorId
+										LEFT JOIN dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
+										LEFT JOIN dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										LEFT JOIN dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
+										LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+										LEFT JOIN dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+										INNER JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId										
+										WHERE ((asm.IsDeleted = @IsDeleted)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  and  asm.MasterCompanyId=@MasterCompanyId )
+								), ResultCount AS(SELECT COUNT(AssetId) AS totalItems FROM Result)
+								SELECT * INTO #TempResult5 FROM  Result
 								WHERE (
 									(@GlobalFilter <>'' AND (
 											(AssetId like '%' +@GlobalFilter+'%') OR
@@ -194,36 +186,36 @@ BEGIN
 											(UpdatedBy like '%' +@GlobalFilter+'%') 
 											))
 										OR   
-										(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-											(IsNull(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
-											(IsNull(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
-											(IsNull(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
-											(IsNull(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
-											(IsNull(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
-											(IsNull(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
-											(IsNull(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
-											(IsNull(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
-											(IsNull(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
-											(IsNull(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
-											(IsNull(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
-											(IsNull(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
-											(IsNull(@Qty,'') = '' OR  cast(Qty as varchar(10))  like '%' + cast(@Qty as varchar(10))+'%') AND
-											(IsNull(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
-											(IsNull(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
-											(IsNull(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
-											(IsNull(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
-											(IsNull(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
-											(IsNull(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
-											(IsNull(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-											(IsNull(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-											(IsNull(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-											(IsNull(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-											(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-											(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+										(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
+											(ISNULL(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
+											(ISNULL(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
+											(ISNULL(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
+											(ISNULL(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
+											(ISNULL(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
+											(ISNULL(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
+											(ISNULL(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
+											(ISNULL(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
+											(ISNULL(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
+											(ISNULL(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
+											(ISNULL(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
+											(ISNULL(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
+											(ISNULL(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
+											(ISNULL(@Qty,'') = '' OR  cast(Qty as VARCHAR(10))  like '%' + cast(@Qty as VARCHAR(10))+'%') AND
+											(ISNULL(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
+											(ISNULL(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
+											(ISNULL(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
+											(ISNULL(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
+											(ISNULL(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
+											(ISNULL(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
+											(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
+											(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
+											(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
+											(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+											(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+											(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
 											))
 						
-								Select @Count = COUNT(CalibrationId) from #TempResult5			
+								SELECT @Count = COUNT(AssetId) FROM #TempResult5			
 
 								SELECT *, @Count As NumberOfItems FROM #TempResult5
 								ORDER BY  			
@@ -272,41 +264,42 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTBY')  THEN lastcheckedoutby END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTMEMO')  THEN lastcheckedoutmemo END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CERTIFYTYPE')  THEN CertifyType END Desc
-								OFFSET @RecordFrom ROWS 
+								OFFSET @RecordFROM ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 					END
 					ELSE
 					BEGIN
 						if(lower(@Certifytype) =lower('calibration'))			
-							begin
-										print 'Calibration'
+							BEGIN
+								print 'Calibration'
 								;With Result AS(
-								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+								SELECT	
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
-											(select top 1 AssetId from Asset where AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
+											(SELECT top 1 AssetId FROM Asset WHERE AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
 											'Asset' AS Itemtype,
-											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
+											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' END  as AssetType,
 											AssetClass= asty.AssetAttributeTypeName, 
 											ISNULL(asm.AssetAcquisitionTypeId,0) AS AcquisitionTypeId,
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
-											NextCalibrationDate =  DATEADD(DAY, isnull(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, isnull(Assc.CalibrationFrequencyMonths,0),getdate())),				
-											LastCalibrationBy = (select top  1 CreatedBy from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),					
-											CalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											LastCalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											NextCalibrationDate =  DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate())),				
+											LastCalibrationBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											curr.Code AS CurrencyName,
+											curr.CurrencyId,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											ISNULL(Assc.CalibrationDefaultCost,0) as UnitCost,
+											Memo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -314,22 +307,11 @@ BEGIN
 											'' AS lastcheckedoutdate,	
 											'' AS lastcheckedoutmemo,	
 											'Calibration' as CertifyType,
-
-											CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
-                         
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-											 THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
-
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level4.Code + level4.Name ELSE '' END AS DivName, 
-						 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-											 level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+											asm.level1 AS CompanyName,
+											asm.level2 AS BuName,
+											asm.level3 AS DivName,
+											asm.level4 AS DeptName,
+											AsI.StklineNumber AS StocklineNumber,
 											asm.MasterCompanyId AS MasterCompanyId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
@@ -337,24 +319,23 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL((SELECT top 1 IsVENDororEmployee FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),'vENDor') as IsVENDororEmployee
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
-										left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
-										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
-										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
-										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
-										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-										inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive ) AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CalibrationRequired =1))
-								), ResultCount AS(Select COUNT(CalibrationId) AS totalItems FROM Result)
-								Select * INTO #TempResult from  Result
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										LEFT JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+										LEFT JOIN dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CalibrationDefaultVendorId
+										LEFT JOIN dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
+										LEFT JOIN dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										LEFT JOIN dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
+										LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+										LEFT JOIN dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+										WHERE ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive ) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CalibrationRequired =1))
+								), ResultCount AS(SELECT COUNT(AssetId) AS totalItems FROM Result)
+								SELECT * INTO #TempResult FROM  Result
 								WHERE (
 									(@GlobalFilter <>'' AND (
 											(AssetId like '%' +@GlobalFilter+'%') OR
@@ -392,36 +373,36 @@ BEGIN
 											(UpdatedBy like '%' +@GlobalFilter+'%') 
 											))
 										OR   
-										(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-											(IsNull(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
-											(IsNull(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
-											(IsNull(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
-											(IsNull(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
-											(IsNull(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
-											(IsNull(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
-											(IsNull(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
-											(IsNull(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
-											(IsNull(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
-											(IsNull(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
-											(IsNull(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
-											(IsNull(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
-											(IsNull(@Qty,'') = '' OR  cast(Qty as varchar(10))  like '%' + cast(@Qty as varchar(10))+'%') AND
-											(IsNull(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
-											(IsNull(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
-											(IsNull(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
-											(IsNull(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
-											(IsNull(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
-											(IsNull(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
-											(IsNull(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-											(IsNull(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-											(IsNull(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-											(IsNull(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-											(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-											(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+										(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
+											(ISNULL(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
+											(ISNULL(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
+											(ISNULL(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
+											(ISNULL(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
+											(ISNULL(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
+											(ISNULL(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
+											(ISNULL(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
+											(ISNULL(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
+											(ISNULL(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
+											(ISNULL(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
+											(ISNULL(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
+											(ISNULL(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
+											(ISNULL(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
+											(ISNULL(@Qty,'') = '' OR  cast(Qty as VARCHAR(10))  like '%' + cast(@Qty as VARCHAR(10))+'%') AND
+											(ISNULL(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
+											(ISNULL(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
+											(ISNULL(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
+											(ISNULL(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
+											(ISNULL(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
+											(ISNULL(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
+											(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
+											(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
+											(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
+											(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+											(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+											(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
 											))
 						
-								Select @Count = COUNT(CalibrationId) from #TempResult			
+								SELECT @Count = COUNT(AssetId) FROM #TempResult			
 
 								SELECT *, @Count As NumberOfItems FROM #TempResult
 								ORDER BY  			
@@ -470,41 +451,43 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTBY')  THEN lastcheckedoutby END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTMEMO')  THEN lastcheckedoutmemo END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CERTIFYTYPE')  THEN CertifyType END Desc
-								OFFSET @RecordFrom ROWS 
+								OFFSET @RecordFROM ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 
-							end
+							END
 
 							else if(lower(@Certifytype) =lower('certification'))
-							begin
+							BEGIN
 
 								;With Result AS(
-								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+								SELECT	
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId,0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
-											(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
+											(SELECT top 1 AssetId FROM Asset WHERE AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
 											'Asset' AS Itemtype,
-											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
+											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' END  as AssetType,
 											AssetClass= asty.AssetAttributeTypeName,
 												ISNULL(asm.AssetAcquisitionTypeId,0) AS AcquisitionTypeId,
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalibrationDate = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
-											NextCalibrationDate =  DATEADD(DAY, isnull(Assc.CertificationFrequencyDays, 0), DATEADD(MONTH,isnull(Assc.CertificationFrequencyMonths,0),getdate())),
-											LastCalibrationBy = (select top 1 CreatedBy from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),					
-											CalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											LastCalibrationDate = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											NextCalibrationDate =  DATEADD(DAY, ISNULL(Assc.CertificationFrequencyDays, 0), DATEADD(MONTH,ISNULL(Assc.CertificationFrequencyMonths,0),getdate())),
+											LastCalibrationBy = (SELECT top 1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											curr.Code AS CurrencyName,
+											curr.CurrencyId,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--ISNULL(asm.UnitCost,0) as UnitCost,
+											ISNULL(Assc.CertificationDefaultCost,0) as UnitCost,
+											Memo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -512,18 +495,11 @@ BEGIN
 											'' AS lastcheckedoutdate,	
 											'' AS lastcheckedoutmemo,
 											'Certification' as CertifyType,
-											CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-											 THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level4.Code + level4.Name ELSE '' END AS DivName, 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-											 level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+											asm.level1 AS CompanyName,
+											asm.level2 AS BuName,
+											asm.level3 AS DivName,
+											asm.level4 AS DeptName,
+											AsI.StklineNumber AS StocklineNumber,
 											asm.MasterCompanyId AS MasterCompanyId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
@@ -531,24 +507,27 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-					    						isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											Assc.CertificationProvider AS IsVENDororEmployee
+											--Assc.
+											--CASE WHEN (ISNULL(Assc.CertificationRequired, 0) > 0 AND ISNULL(Assc.CertificationDefaultVendorId, 0) > 0) THEN Assc.CertificationProvider ELSE '' END AS IsVENDororEmployee
+					    					--ISNULL((SELECT top 1 IsVENDororEmployee FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),'vENDor') as IsVENDororEmployee
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
-										left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
-										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
-										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
-										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
-										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-										inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND  (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CertificationRequired =1))
-								), ResultCount AS(Select COUNT(CalibrationId) AS totalItems FROM Result)
-							Select * INTO #TempResult1 from  Result
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										LEFT JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+										LEFT JOIN dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CertificationDefaultVendorId
+										LEFT JOIN dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
+										LEFT JOIN dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										LEFT JOIN dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
+										LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+										LEFT JOIN dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+										INNER JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId										
+										WHERE ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND  (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CertificationRequired =1))
+								), ResultCount AS(SELECT COUNT(AssetId) AS totalItems FROM Result)
+							SELECT * INTO #TempResult1 FROM  Result
 								WHERE (
 									(@GlobalFilter <>'' AND (
 											(AssetId like '%' +@GlobalFilter+'%') OR
@@ -586,36 +565,36 @@ BEGIN
 											(UpdatedBy like '%' +@GlobalFilter+'%') 
 											))
 										OR   
-										(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-											(IsNull(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
-											(IsNull(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
-											(IsNull(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
-											(IsNull(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
-											(IsNull(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
-											(IsNull(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
-											(IsNull(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
-											(IsNull(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
-											(IsNull(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
-											(IsNull(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
-											(IsNull(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
-											(IsNull(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
-											(IsNull(@Qty,'') = '' OR  cast(Qty as varchar(10))  like '%' + cast(@Qty as varchar(10))+'%') AND
-											(IsNull(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
-											(IsNull(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
-											(IsNull(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
-											(IsNull(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
-											(IsNull(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
-											(IsNull(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
-											(IsNull(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-											(IsNull(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-											(IsNull(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-											(IsNull(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-											(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-											(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+										(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
+											(ISNULL(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
+											(ISNULL(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
+											(ISNULL(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
+											(ISNULL(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
+											(ISNULL(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
+											(ISNULL(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
+											(ISNULL(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
+											(ISNULL(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
+											(ISNULL(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
+											(ISNULL(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
+											(ISNULL(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
+											(ISNULL(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
+											(ISNULL(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
+											(ISNULL(@Qty,'') = '' OR  cast(Qty as VARCHAR(10))  like '%' + cast(@Qty as VARCHAR(10))+'%') AND
+											(ISNULL(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
+											(ISNULL(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
+											(ISNULL(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
+											(ISNULL(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
+											(ISNULL(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
+											(ISNULL(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
+											(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
+											(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
+											(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
+											(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+											(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+											(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
 											))
 						
-								Select @Count = COUNT(CalibrationId) from #TempResult1			
+								SELECT @Count = COUNT(AssetId) FROM #TempResult1			
 
 								SELECT *, @Count As NumberOfItems FROM #TempResult1
 								ORDER BY  			
@@ -663,39 +642,41 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTBY')  THEN lastcheckedoutby END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTMEMO')  THEN lastcheckedoutmemo END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CERTIFYTYPE')  THEN CertifyType END Desc
-								OFFSET @RecordFrom ROWS 
+								OFFSET @RecordFROM ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
-							end
+							END
 
 							else if(lower(@Certifytype) = lower('inspection'))
-							begin
+							BEGIN
 								;With Result AS(
-								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+								SELECT	
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId,0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
-																	(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
+																	(SELECT top 1 AssetId FROM Asset WHERE AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
 											'Asset' AS Itemtype,
-											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
+											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' END  as AssetType,
 											AssetClass= asty.AssetAttributeTypeName, 
 												ISNULL(asm.AssetAcquisitionTypeId,0) AS AcquisitionTypeId,
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
-											NextCalibrationDate =  DATEADD(DAY, isnull(Assc.InspectionFrequencyDays,0), DATEADD(MONTH,isnull(Assc.InspectionFrequencyMonths,0),getdate())),
-											LastCalibrationBy = (select top 1 CreatedBy from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),					
-											CalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											LastCalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											NextCalibrationDate =  DATEADD(DAY, ISNULL(Assc.InspectionFrequencyDays,0), DATEADD(MONTH,ISNULL(Assc.InspectionFrequencyMonths,0),getdate())),
+											LastCalibrationBy = (SELECT top 1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											curr.Code AS CurrencyName,
+											curr.CurrencyId,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--ISNULL(asm.UnitCost,0) as UnitCost,
+											ISNULL(Assc.InspectionDefaultCost,0) as UnitCost,
+											Memo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -703,47 +684,36 @@ BEGIN
 											'' AS lastcheckedoutdate,	
 											'' AS lastcheckedoutmemo,		
 											'Inspection' as CertifyType,
-
-											CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
-                         
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-											 THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
-
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level4.Code + level4.Name ELSE '' END AS DivName, 
-						 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-											 level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+											asm.level1 AS CompanyName,
+											asm.level2 AS BuName,
+											asm.level3 AS DivName,
+											asm.level4 AS DeptName,
+											AsI.StklineNumber AS StocklineNumber,
 											asm.MasterCompanyId AS MasterCompanyId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
 											asm.UpdatedBy AS UpdatedBy ,
-										ISNULL(clm.IsActive,1) AS IsActive,
+											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL((SELECT top 1 IsVENDororEmployee FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),'vENDor') as IsVENDororEmployee
 		   							FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
-										left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
-										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
-										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
-										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
-										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-										inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1))
-								), ResultCount AS(Select COUNT(CalibrationId) AS totalItems FROM Result)
-								Select * INTO #TempResult2 from  Result
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										LEFT JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+										LEFT JOIN dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.InspectionDefaultVendorId
+										LEFT JOIN dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
+										LEFT JOIN dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										LEFT JOIN dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
+										LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+										LEFT JOIN dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+										INNER JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId										
+										WHERE ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1))
+								), ResultCount AS(SELECT COUNT(AssetId) AS totalItems FROM Result)
+								SELECT * INTO #TempResult2 FROM  Result
 								WHERE (
 									(@GlobalFilter <>'' AND (
 											(AssetId like '%' +@GlobalFilter+'%') OR
@@ -781,36 +751,36 @@ BEGIN
 											(UpdatedBy like '%' +@GlobalFilter+'%') 
 											))
 										OR   
-										(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-											(IsNull(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
-											(IsNull(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
-											(IsNull(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
-											(IsNull(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
-											(IsNull(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
-											(IsNull(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
-											(IsNull(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
-											(IsNull(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
-											(IsNull(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
-											(IsNull(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
-											(IsNull(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
-											(IsNull(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
-											(IsNull(@Qty,'') = '' OR  cast(Qty as varchar(10))  like '%' + cast(@Qty as varchar(10))+'%') AND
-											(IsNull(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
-											(IsNull(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
-											(IsNull(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
-											(IsNull(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
-											(IsNull(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
-											(IsNull(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
-											(IsNull(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-											(IsNull(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-											(IsNull(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-											(IsNull(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-											(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-											(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+										(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
+											(ISNULL(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
+											(ISNULL(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
+											(ISNULL(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
+											(ISNULL(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
+											(ISNULL(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
+											(ISNULL(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
+											(ISNULL(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
+											(ISNULL(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
+											(ISNULL(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
+											(ISNULL(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
+											(ISNULL(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
+											(ISNULL(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
+											(ISNULL(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
+											(ISNULL(@Qty,'') = '' OR  cast(Qty as VARCHAR(10))  like '%' + cast(@Qty as VARCHAR(10))+'%') AND
+											(ISNULL(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
+											(ISNULL(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
+											(ISNULL(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
+											(ISNULL(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
+											(ISNULL(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
+											(ISNULL(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
+											(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
+											(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
+											(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
+											(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+											(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+											(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
 											))
 						
-								Select @Count = COUNT(CalibrationId) from #TempResult2			
+								SELECT @Count = COUNT(AssetId) FROM #TempResult2			
 
 								SELECT *, @Count As NumberOfItems FROM #TempResult2
 								ORDER BY  			
@@ -858,41 +828,43 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTBY')  THEN lastcheckedoutby END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTMEMO')  THEN lastcheckedoutmemo END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CERTIFYTYPE')  THEN CertifyType END Desc
-								OFFSET @RecordFrom ROWS 
+								OFFSET @RecordFROM ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 
-							end
+							END
 
 							else if(lower(@Certifytype) =lower('verification'))
-							begin
+							BEGIN
 
 								;With Result AS(
-								Select	
-											  CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+								SELECT	
+											  CalibrationId  = (SELECT top 1 ISNULL(CalibrationId,0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
-											(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
+											(SELECT top 1 AssetId FROM Asset WHERE AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
 											'Asset' AS Itemtype,
-											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
-											AssetClass= asty.AssetAttributeTypeName, --case  when (select top 1 AssetIntangibleName from AssetIntangibleType asp where asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
+											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' END  as AssetType,
+											AssetClass= asty.AssetAttributeTypeName, --case  when (SELECT top 1 AssetIntangibleName FROM AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 												ISNULL(asm.AssetAcquisitionTypeId,0) AS AcquisitionTypeId,
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
-											NextCalibrationDate =  DATEADD(DAY, isnull(Assc.VerificationFrequencyDays,0), DATEADD(MONTH,isnull(Assc.VerificationFrequencyMonths,0),getdate())),
-											LastCalibrationBy = (select top 1 CreatedBy from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),					
-											CalibrationDate  = (select top 1 CalibrationDate from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											LastCalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											NextCalibrationDate =  DATEADD(DAY, ISNULL(Assc.VerificationFrequencyDays,0), DATEADD(MONTH,ISNULL(Assc.VerificationFrequencyMonths,0),getdate())),
+											LastCalibrationBy = (SELECT top 1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											curr.Code AS CurrencyName,
+											curr.CurrencyId,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--ISNULL(asm.UnitCost,0) as UnitCost,
+											ISNULL(Assc.VerificationDefaultCost,0) as UnitCost,
+											Memo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (SELECT top 1 memo FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -900,22 +872,11 @@ BEGIN
 											'' AS lastcheckedoutdate,	
 											'' AS lastcheckedoutmemo,	
 											'Verification' as CertifyType,
-
-											CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-											 level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
-                         
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-											 THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
-
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-											 THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-											 THEN level4.Code + level4.Name ELSE '' END AS DivName, 
-						 
-											 CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-											 level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+											asm.level1 AS CompanyName,
+											asm.level2 AS BuName,
+											asm.level3 AS DivName,
+											asm.level4 AS DeptName,
+											AsI.StklineNumber AS StocklineNumber,
 											asm.MasterCompanyId AS MasterCompanyId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
@@ -923,25 +884,25 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL((SELECT top 1 IsVENDororEmployee FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),'vENDor') as IsVENDororEmployee
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
-										left join dbo.CalibrationManagment   As CM  WITH(NOLOCK) on asm.AssetRecordId=cm.AssetRecordId
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
-										left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
-										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
-										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
-										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
-										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-										inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-										LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.VerificationRequired =1))
-								), ResultCount AS(Select COUNT(CalibrationId) AS totalItems FROM Result)
-								Select * INTO #TempResult3 from  Result
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment   As CM  WITH(NOLOCK) on asm.AssetRecordId=cm.AssetRecordId
+										LEFT JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+										LEFT JOIN dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.VerificationDefaultVendorId
+										LEFT JOIN dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
+										LEFT JOIN dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										LEFT JOIN dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
+										LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+										LEFT JOIN dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+										INNER JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId										
+										WHERE ((asm.IsDeleted = @IsDeleted) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.VerificationRequired =1))
+								), ResultCount AS(SELECT COUNT(AssetId) AS totalItems FROM Result)
+								SELECT * INTO #TempResult3 FROM  Result
 								WHERE (
 									(@GlobalFilter <>'' AND (
 											(AssetId like '%' +@GlobalFilter+'%') OR
@@ -979,36 +940,36 @@ BEGIN
 											(UpdatedBy like '%' +@GlobalFilter+'%') 
 											))
 										OR   
-										(@GlobalFilter='' AND (IsNull(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-											(IsNull(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
-											(IsNull(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
-											(IsNull(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
-											(IsNull(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
-											(IsNull(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
-											(IsNull(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
-											(IsNull(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
-											(IsNull(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
-											(IsNull(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
-											(IsNull(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
-											(IsNull(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
-											(IsNull(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
-											(IsNull(@Qty,'') = '' OR  cast(Qty as varchar(10))  like '%' + cast(@Qty as varchar(10))+'%') AND
-											(IsNull(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
-											(IsNull(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
-											(IsNull(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
-											(IsNull(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
-											(IsNull(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
-											(IsNull(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
-											(IsNull(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-											(IsNull(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-											(IsNull(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-											(IsNull(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-											(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-											(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+										(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
+											(ISNULL(@AssetName,'') ='' OR AssetName like '%' + @AssetName+'%') AND
+											(ISNULL(@AltAssetId,'') ='' OR AltAssetId like '%' + @AltAssetId+'%') AND
+											(ISNULL(@SerialNum,'') ='' OR SerialNum like '%' + @SerialNum+'%') AND
+											(ISNULL(@Itemtype,'') ='' OR Itemtype like '%' + @Itemtype+'%') AND
+											(ISNULL(@AssetType,'') ='' OR AssetClass like '%' + @AssetType+'%') AND
+											(ISNULL(@LastCalibrationDate,'') ='' OR Cast(LastCalibrationDate as Date)=Cast(@LastCalibrationDate as date)) AND
+											(ISNULL(@NextCalibrationDate,'') ='' OR Cast(NextCalibrationDate as Date)=Cast(@NextCalibrationDate as date)) AND
+											(ISNULL(@Inservicedate,'') ='' OR Cast(Inservicesdate as Date)=Cast(@Inservicedate as date)) AND
+											(ISNULL(@lastcheckedindate,'') ='' OR Cast(lastcheckedindate as Date)=Cast(@lastcheckedindate as date)) AND
+											(ISNULL(@lastcheckedoutdate,'') ='' OR Cast(lastcheckedoutdate as Date)=Cast(@lastcheckedoutdate as date)) AND
+											(ISNULL(@Location,'') ='' OR Locations like '%' + @Location+'%') AND
+											(ISNULL(@ControlName,'') ='' OR ControlName like '%' + @ControlName+'%') AND
+											(ISNULL(@UOM,'') ='' OR UOM like '%' + @UOM+'%') AND
+											(ISNULL(@Qty,'') = '' OR  cast(Qty as VARCHAR(10))  like '%' + cast(@Qty as VARCHAR(10))+'%') AND
+											(ISNULL(@lastcalibrationmemo,'') ='' OR lastcalibrationmemo like '%' + @lastcalibrationmemo+'%') AND
+											(ISNULL(@lastcheckedinby,'') ='' OR lastcheckedinby like '%' + @lastcheckedinby+'%') AND
+											(ISNULL(@lastcheckedinmemo,'') ='' OR lastcheckedinmemo like '%' + @lastcheckedinmemo+'%') AND
+											(ISNULL(@lastcheckedoutby,'') ='' OR lastcheckedoutby like '%' + @lastcheckedoutby+'%') AND
+											(ISNULL(@lastcheckedoutmemo,'') ='' OR lastcheckedoutmemo like '%' + @lastcheckedoutmemo+'%') AND
+											(ISNULL(@CertifyType,'') ='' OR CertifyType like '%' + @CertifyType+'%') AND
+											(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
+											(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
+											(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
+											(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+											(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+											(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
 											))
 						
-								Select @Count = COUNT(CalibrationId) from #TempResult3			
+								SELECT @Count = COUNT(AssetId) FROM #TempResult3			
 
 								SELECT *, @Count As NumberOfItems FROM #TempResult3
 								ORDER BY  			
@@ -1056,7 +1017,7 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTBY')  THEN lastcheckedoutby END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='LASTCHECKEDOUTMEMO')  THEN lastcheckedoutmemo END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CERTIFYTYPE')  THEN CertifyType END Desc
-								OFFSET @RecordFrom ROWS 
+								OFFSET @RecordFROM ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 							END
 					END

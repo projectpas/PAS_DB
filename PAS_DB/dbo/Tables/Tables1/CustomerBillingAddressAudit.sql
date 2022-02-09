@@ -15,7 +15,11 @@
     [TagName]                       VARCHAR (250) NULL,
     [ContactTagId]                  BIGINT        NULL,
     [Attention]                     VARCHAR (250) NULL,
+    [InvDelPrefStatusId]            BIGINT        NULL,
+    [Email]                         VARCHAR (50)  NULL,
     CONSTRAINT [PK_CustomerBillingAddressAudit] PRIMARY KEY CLUSTERED ([AuditCustomerBillingAddressId] ASC),
     CONSTRAINT [FK_CustomerBillingAddressAudit_CustomerBillingAddress] FOREIGN KEY ([CustomerBillingAddressId]) REFERENCES [dbo].[CustomerBillingAddress] ([CustomerBillingAddressId])
 );
+
+
 

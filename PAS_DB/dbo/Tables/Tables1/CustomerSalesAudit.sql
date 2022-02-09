@@ -15,7 +15,10 @@
     [UpdatedDate]            DATETIME2 (7)   NOT NULL,
     [IsActive]               BIT             NOT NULL,
     [IsDeleted]              BIT             NOT NULL,
+    [CommissionPercentageId] BIGINT          NULL,
     CONSTRAINT [PK_CustomerSalesAudit] PRIMARY KEY CLUSTERED ([CustomerSalesAuditId] ASC),
     CONSTRAINT [FK_CustomerSalesAudit_CustomerSales] FOREIGN KEY ([CustomerSalesId]) REFERENCES [dbo].[CustomerSales] ([CustomerSalesId])
 );
+
+
 

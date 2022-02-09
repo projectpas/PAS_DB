@@ -18,9 +18,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
+	2    01/19/2022   Hemant Saliya Update Calculated Values
      
  EXECUTE USP_GetWorkOrderLaborAnalysisDetails 270, 254
- EXECUTE USP_GetWorkOrderLaborAnalysisDetails 35, 35,0
+ EXECUTE USP_GetWorkOrderLaborAnalysisDetails 60, 67,false
 
 **************************************************************/ 
     
@@ -45,9 +46,9 @@ SET NOCOUNT ON
 						im.partnumber AS PartNumber,
 						im.PartDescription,
 						im.RevisedPart AS RevisedPN,
-						SUM(wl.Hours) AS [Hours],
-						SUM(wl.Adjustments) AS [Adjustments],
-						--SUM(wl.AdjustedHours) AS [AdjustedHours],
+						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],
+						--SUM(wl.Adjustments) AS [Adjustments],
 						SUM(ISNULL(wfx.EstimatedHours,0)) AS [AdjustedHours],
 						SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
@@ -64,8 +65,8 @@ SET NOCOUNT ON
 						JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 						JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderId = wop.WorkOrderId
 						JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId
-						LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wop.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
-						LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wop.WorkflowId and wl.ExpertiseId= wfx.ExpertiseTypeId and wl.TaskId =wfx.TaskId 
+						LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wowf.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
+						LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wowf.WorkflowId and wl.ExpertiseId= wfx.ExpertiseTypeId and wl.TaskId =wfx.TaskId 
 						JOIN dbo.WorkOrderStage ws WITH (NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId
 						JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 						JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
@@ -83,9 +84,9 @@ SET NOCOUNT ON
 						im.partnumber AS PartNumber,
 						im.PartDescription,
 						im.RevisedPart AS RevisedPN,
-						SUM(wl.Hours) AS [Hours],
-						--SUM(wl.AdjustedHours) AS [AdjustedHours],
-						SUM(wl.Adjustments) AS [Adjustments],
+						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+						ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(wfx.EstimatedHours,0)) AS [Adjustments],
+						--SUM(wl.Adjustments) AS [Adjustments],
 						SUM(ISNULL(wfx.EstimatedHours,0)) AS [AdjustedHours],
 						SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
@@ -102,8 +103,8 @@ SET NOCOUNT ON
 						JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wlh.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 						JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 						JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wlh.WorkOrderId = wo.WorkOrderId
-						LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wop.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
-						LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wop.WorkflowId and wl.ExpertiseId= wfx.ExpertiseTypeId and wl.TaskId =wfx.TaskId 
+						LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wowf.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
+						LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wowf.WorkflowId and wl.ExpertiseId= wfx.ExpertiseTypeId and wl.TaskId =wfx.TaskId 
 						JOIN dbo.WorkOrderStage ws WITH (NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId
 						JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 						JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId

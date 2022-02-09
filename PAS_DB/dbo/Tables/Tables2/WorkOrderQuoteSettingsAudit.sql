@@ -16,6 +16,9 @@
     [CurrentNumber]                BIGINT        DEFAULT ((0)) NOT NULL,
     [IsApprovalRule]               BIT           NULL,
     [effectivedate]                DATETIME      NULL,
+    [TearDownTypes]                VARCHAR (50)  NULL,
     CONSTRAINT [PK_WorkOrderQuoteSettingsAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteSettingAuditId] ASC)
 );
+
+
 

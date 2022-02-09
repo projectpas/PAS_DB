@@ -14,9 +14,12 @@
     [IsActive]               BIT            CONSTRAINT [CommonDocumentDetails_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT            CONSTRAINT [CommonDocumentDetails_DC_IsDeleted] DEFAULT ((0)) NOT NULL,
     [DocumentTypeId]         BIGINT         NULL,
+    [ExpirationDate]         DATETIME2 (7)  NULL,
     CONSTRAINT [PK_CommonDocumentDetails] PRIMARY KEY CLUSTERED ([CommonDocumentDetailId] ASC),
     CONSTRAINT [FK_CommonDocumentDetails_Attachment] FOREIGN KEY ([AttachmentId]) REFERENCES [dbo].[Attachment] ([AttachmentId])
 );
+
+
 
 
 GO

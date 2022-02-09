@@ -1,4 +1,5 @@
-﻿
+﻿----------------------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsList]           
  ** Author:   Hemant Saliya
@@ -21,7 +22,7 @@
 	2    07/22/2021   Hemant Saliya Update WO & Sub WO Field Mapping to Get it from Stockline
 	3    01/03/2021   Hemant Saliya Update for Performance Improvement
      
- EXECUTE USP_GetWorkOrderMaterialsList 99,115
+ EXECUTE USP_GetWorkOrderMaterialsList 99,109
 
 **************************************************************/ 
     
@@ -159,10 +160,10 @@ SET NOCOUNT ON
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 										AND womsl.isActive = 1 AND womsl.isDeleted = 0
 										),
-						PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)
-										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+						PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+										JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 										Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
-										AND womsl.isActive = 1 AND womsl.isDeleted = 0
+										AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 										),
 						PartQuantityOnOrder = (SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)
 										JOIN #tmpStockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId

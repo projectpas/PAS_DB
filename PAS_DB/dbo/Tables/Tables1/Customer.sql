@@ -31,6 +31,9 @@
     [IsCRMCustomer]         BIT            CONSTRAINT [Customer_DC_IsCRM] DEFAULT ((0)) NOT NULL,
     [BillingAddressId]      BIGINT         NULL,
     [ShippingAddressId]     BIGINT         NULL,
+    [IsTradeRestricted]     BIT            NULL,
+    [TradeRestrictedMemo]   NVARCHAR (MAX) NULL,
+    [IsTrackScoreCard]      BIT            NULL,
     CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED ([CustomerId] ASC),
     CONSTRAINT [FK_Customer_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Customer_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -41,6 +44,8 @@
     CONSTRAINT [UC_Customer_Email] UNIQUE NONCLUSTERED ([Email] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

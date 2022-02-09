@@ -17,7 +17,8 @@
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetWorkOrderQuotePrintPdfData]
-	@WorkOrderQuoteId bigint
+	@WorkOrderQuoteId bigint,
+	@workOrderPartNoId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -51,7 +52,9 @@ BEGIN
 					SUM(wqd.LaborFlatBillingAmount) AS 'LaborFlatBillingAmount',
 					SUM(wqd.ChargesFlatBillingAmount) AS 'ChargesFlatBillingAmount',
 					SUM(wqd.FreightFlatBillingAmount) AS 'FreightFlatBillingAmount',
-					wop.Quantity
+					wop.Quantity,
+					ISNULL(wqd.QuoteMethod,0) AS QuoteMethod,
+					wqd.CommonFlatRate
 					FROM WorkOrder wo 
 					INNER JOIN WorkOrderQuote woq ON wo.WorkOrderId = woq.WorkOrderId
 					INNER JOIN WorkOrderQuoteDetails wqd ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId
@@ -60,11 +63,11 @@ BEGIN
 					LEFT JOIN ItemMaster im1 on im.RevisedPartId = im1.ItemMasterId
 					INNER JOIN WorkScope s on wop.WorkOrderScopeId = s.WorkScopeId
 					INNER JOIN StockLine sl on wop.StockLineId = sl.StockLineId
-					Where woq.WorkOrderQuoteId = @WorkOrderQuoteId
+					Where woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId
 					AND woq.IsActive = 1 AND woq.IsDeleted = 0
 					GROUP BY im.PartNumber,
 					im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,
-					sl.StockLineNumber, sl.SerialNumber, wop.Quantity
+					sl.StockLineNumber, sl.SerialNumber, wop.Quantity,wqd.QuoteMethod,wqd.CommonFlatRate
 			END
 		COMMIT  TRANSACTION
 

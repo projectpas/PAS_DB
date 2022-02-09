@@ -21,7 +21,8 @@
 --EXEC [GetCommonWorkOrderTearDownPrintView] 67
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTearDownPrintView]
-	@workOrderId bigint = 0
+	@workOrderId bigint = 0,
+	@workFlowWorkOrderId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -52,7 +53,7 @@ BEGIN
 					tdt.DocumentModuleName
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
-				AND td.WorkOrderId = @workOrderId
+				AND td.WorkOrderId = @workOrderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

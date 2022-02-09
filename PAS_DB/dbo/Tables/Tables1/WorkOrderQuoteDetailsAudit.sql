@@ -64,6 +64,10 @@
     [OverHeadCostRevenuePercentage] DECIMAL (20, 2) NULL,
     [QuoteParentId]                 BIGINT          NULL,
     [IsVersionIncrease]             BIT             NOT NULL,
+    [QuoteMethod]                   BIT             DEFAULT ((0)) NULL,
+    [CommonFlatRate]                DECIMAL (9, 2)  NULL,
     CONSTRAINT [PK_WorkOrderQuoteDetailsAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteDetailsAuditId] ASC)
 );
+
+
 

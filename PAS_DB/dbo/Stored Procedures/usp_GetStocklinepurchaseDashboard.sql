@@ -1,4 +1,7 @@
-﻿/*************************************************************           
+﻿
+------------------------------------------------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [usp_GetStocklinepurchaseDashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for StocklinepurchaseDashboard 
@@ -28,6 +31,7 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
+	  DECLARE @StockType int = 1;
       SELECT DISTINCT
         POP.ItemType AS ItemType,
         PO.purchaseordernumber AS #ofPO,
@@ -42,7 +46,7 @@ BEGIN
       LEFT JOIN Stockline STL WITH (NOLOCK)
         ON PO.PurchaseOrderId = STL.purchaseorderid
         LEFT JOIN PurchaseOrderPart POP WITH (NOLOCK)
-          ON PO.PurchaseOrderId = POP.PurchaseOrderId
+          ON PO.PurchaseOrderId = POP.PurchaseOrderId AND POP.ItemTypeId = @StockType
         LEFT JOIN Vendor V WITH (NOLOCK)
           ON PO.VendorId = V.VendorId
         LEFT JOIN Condition CNDN WITH (NOLOCK)

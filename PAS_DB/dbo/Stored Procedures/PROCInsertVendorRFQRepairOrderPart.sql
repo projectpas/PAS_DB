@@ -1,5 +1,4 @@
-﻿
-
+﻿--------------------------------------------------------------------------------------------------------------
 
 CREATE PROCEDURE [dbo].[PROCInsertVendorRFQRepairOrderPart](@TableVendorRFQRepairOrderPart VendorRFQRepairOrderPartType READONLY)  
 AS  

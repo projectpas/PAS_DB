@@ -58,7 +58,7 @@ BEGIN
 							declare @isActiveFilter bit = 1;
 									;With Result AS(
 								Select 
-											CalibrationId  = (select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS ToolId,
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
@@ -66,10 +66,11 @@ BEGIN
 											Asi.StklineNumber AS StklineNum,
 											maf.Name AS Manufacturer,
 											--Asi.CalibrationRequired = 1 and
-											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
+											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
 											(select top 1 AssetId from Asset where AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
+											AsI.AssetInventoryId,
 											'Asset' AS Itemtype,
 											case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetType,
 											AssetClass= asty.AssetAttributeTypeName,
@@ -77,11 +78,11 @@ BEGIN
 											astaq.Name AS AcquisitionType,
 											Asl.Name AS Locations,
 											UM.Description as UOM,
-											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId ORDER BY  CalibrationId desc),							
 											NextCalDate =  DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate())),				
-											LastCalBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
-											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
-											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
+											LastCalBy = (SELECT top  1 LastCalibrationBy FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId ORDER BY  CalibrationId desc),
+											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
 											asm.ControlNumber As ControlName,
 											--clm.LastCalibrationDate as LastCalDate,							
 											--clm.NextCalibrationDate as NextCalDate,
@@ -89,12 +90,14 @@ BEGIN
 											--DATEDIFF(day, isnull(clm.LastCalibrationDate,getDate()), clm.NextCalibrationDate) AS DayTillNextCal,
 											--clm.CalibrationDate,
 											curr.Code AS CurrencyName,
+											CurrencyId=isnull(curr.CurrencyId,0),
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--isnull(asm.UnitCost,0) as UnitCost,
+											ISNULL(Assc.CalibrationDefaultCost,0) as UnitCost,
+											Memo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId order by  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId order by  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -128,11 +131,15 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL(Assc.CalibrationProvider,'') AS IsVENDororEmployee
+										
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										LEFT join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId	
+										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId										
 										LEFT join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CalibrationDefaultVendorId
 										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
@@ -227,7 +234,7 @@ BEGIN
 										print 'Calibration'
 								;With Result AS(
 								Select 	
-											CalibrationId  = (select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS ToolId,
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
@@ -235,7 +242,7 @@ BEGIN
 											Asi.StklineNumber AS StklineNum,
 											maf.Name AS Manufacturer,
 											--Asi.CalibrationRequired = 1 and
-											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
+											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
 											(select top 1 AssetId from Asset where AssetRecordId = asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
@@ -246,11 +253,11 @@ BEGIN
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' ORDER BY  CalibrationId desc),							
 											NextCalDate =  DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate())),				
-											LastCalBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
-											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
-											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
+											LastCalBy = (SELECT top  1 LastCalibrationBy FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' ORDER BY  CalibrationId desc),
+											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
 											--clm.LastCalibrationDate as LastCalDate,							
 											--clm.NextCalibrationDate as NextCalDate,
 											--LastCalibrationBy as LastCalBy,	
@@ -258,11 +265,11 @@ BEGIN
 											--DATEDIFF(day, isnull(clm.LastCalibrationDate,getDate()), clm.NextCalibrationDate) AS DayTillNextCal,
 											curr.Code AS CurrencyName,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--isnull(asm.UnitCost,0) as UnitCost,
+											Memo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' order by  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Calibration' order by  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -291,11 +298,17 @@ BEGIN
 											asm.CreatedBy AS CreatedBy,
 											asm.UpdatedBy AS UpdatedBy ,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL(Assc.CalibrationDefaultCost,0) as UnitCost,
+											CurrencyId=isnull(curr.CurrencyId,0),
+											ISNULL(Assc.CalibrationProvider,'') AS IsVENDororEmployee
+										,AsI.AssetInventoryId
 										FROM dbo.Asset asm WITH(NOLOCK)
-										left join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										Left join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId	
-										Left join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId and CertifyType='Calibration'										
+										LEFT join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CalibrationDefaultVendorId
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
@@ -388,7 +401,7 @@ BEGIN
 
 								;With Result AS(
 								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS ToolId,
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
@@ -397,7 +410,7 @@ BEGIN
 											maf.Name AS Manufacturer,
 											--CASE WHEN Asi.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END AS Calibrated,
 											--Asi.CertificationRequired = 1 and
-											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
+											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
 											(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
@@ -409,11 +422,11 @@ BEGIN
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' ORDER BY  CalibrationId desc),							
 											NextCalDate =  DATEADD(DAY, ISNULL(Assc.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CertificationFrequencyMonths,0),getdate())),				
-											LastCalBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
-											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
-											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
+											LastCalBy = (SELECT top  1 LastCalibrationBy FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' ORDER BY  CalibrationId desc),
+											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
 											--clm.LastCalibrationDate as LastCalDate,							
 											--clm.NextCalibrationDate as NextCalDate,
 											--LastCalibrationBy as LastCalBy,
@@ -421,11 +434,11 @@ BEGIN
 											--DATEDIFF(day, isnull(clm.LastCalibrationDate,getDate()), clm.NextCalibrationDate) AS DayTillNextCal,
 											curr.Code AS CurrencyName,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--isnull(asm.UnitCost,0) as UnitCost,
+											Memo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' order by  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Certification' order by  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -452,11 +465,17 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-					    						isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL(Assc.CertificationDefaultCost,0) as UnitCost,
+											CurrencyId=isnull(curr.CurrencyId,0),
+					    						ISNULL(Assc.CertificationProvider,'') AS IsVENDororEmployee
+										,AsI.AssetInventoryId
 										FROM dbo.Asset asm WITH(NOLOCK)
-										LEFT join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										LEFT join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId	 and CertifyType='Certification'									
 										LEFT join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.CertificationDefaultVendorId
 										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
@@ -548,7 +567,7 @@ BEGIN
 							begin
 								;With Result AS(
 								Select	
-											CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS ToolId,
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
@@ -557,7 +576,7 @@ BEGIN
 											maf.Name AS Manufacturer,
 											--CASE WHEN Asi.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END AS Calibrated,
 											--Asi.InspectionRequired = 1 and
-											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
+											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
 											(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
@@ -569,11 +588,11 @@ BEGIN
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' ORDER BY  CalibrationId desc),							
 											NextCalDate =  DATEADD(DAY, ISNULL(Assc.InspectionFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.InspectionFrequencyMonths,0),getdate())),				
-											LastCalBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
-											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
-											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
+											LastCalBy = (SELECT top  1 LastCalibrationBy FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' ORDER BY  CalibrationId desc),
+											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
 											--clm.LastCalibrationDate as LastCalDate,							
 											--clm.NextCalibrationDate as NextCalDate,
 											--LastCalibrationBy as LastCalBy,	
@@ -581,11 +600,11 @@ BEGIN
 											--DATEDIFF(day, isnull(clm.LastCalibrationDate,getDate()), clm.NextCalibrationDate) AS DayTillNextCal,
 											curr.Code AS CurrencyName,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--isnull(asm.UnitCost,0) as UnitCost,
+											Memo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' order by  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Inspection' order by  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -615,11 +634,17 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 										ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
-		   							FROM dbo.Asset asm WITH(NOLOCK)									
-										LEFT join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										LEFT join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL(Assc.InspectionDefaultCost,0) as UnitCost,
+											CurrencyId=isnull(curr.CurrencyId,0),
+											ISNULL(Assc.InspectionProvider,'') AS IsVENDororEmployee
+		   							,AsI.AssetInventoryId
+									FROM dbo.Asset asm WITH(NOLOCK)									
+										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId and CertifyType='Inspection'										
 										LEFT join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.InspectionDefaultVendorId
 										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
@@ -712,7 +737,7 @@ BEGIN
 
 								;With Result AS(
 								Select	
-											  CalibrationId  = (select top 1 isnull(CalibrationId,0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),							
+											  CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
 											asm.Assetid AS ToolId,
 											asm.Assetid AS AssetId,
 											asm.Name AS AssetName,
@@ -721,7 +746,7 @@ BEGIN
 											maf.Name AS Manufacturer,
 											--CASE WHEN Asi.CalibrationRequired = 1 THEN 'Yes'ELSE 'No' END AS Calibrated,
 											--Asi.VerificationRequired = 1 and
-											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
+											CASE WHEN ( ((select top 1 isnull(CalibrationId, 0) from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' order by  CalibrationId desc)>0) ) THEN 'Yes'ELSE 'No' END AS Calibrated,
 											(select top 1 AssetId from Asset where AssetRecordId=asm.AlternateAssetRecordId) AS AltAssetId,
 											asm.AssetRecordId AS AssetRecordId,
 											AsI.SerialNo AS SerialNum,
@@ -733,11 +758,11 @@ BEGIN
 											Asl.Name AS Locations,
 											asm.ControlNumber As ControlName,
 											UM.Description as UOM,
-											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),							
+											LastCalDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' ORDER BY  CalibrationId desc),							
 											NextCalDate =  DATEADD(DAY, ISNULL(Assc.VerificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.VerificationFrequencyMonths,0),getdate())),				
-											LastCalBy = (SELECT top  1 CreatedBy FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),					
-											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),
-											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetRecordId = asm.AssetRecordId ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
+											LastCalBy = (SELECT top  1 LastCalibrationBy FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' ORDER BY  CalibrationId desc),					
+											CalibrationDate  = (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' ORDER BY  CalibrationId desc),
+											DATEDIFF(day, isnull((SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' ORDER BY  CalibrationId desc),getDate()), DATEADD(DAY, ISNULL(Assc.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(Assc.CalibrationFrequencyMonths,0),getdate()))) AS DayTillNextCal,
 											--clm.LastCalibrationDate as LastCalDate,							
 											--clm.NextCalibrationDate as NextCalDate,
 											--LastCalibrationBy as LastCalBy,	
@@ -745,11 +770,11 @@ BEGIN
 											--DATEDIFF(day, isnull(clm.LastCalibrationDate,getDate()), clm.NextCalibrationDate) AS DayTillNextCal,
 											curr.Code AS CurrencyName,
 											ast.Name as AssetStatus,
-											isnull(asm.UnitCost,0) as UnitCost,
-											Memo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											--isnull(asm.UnitCost,0) as UnitCost,
+											Memo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' order by  CalibrationId desc),
 											'1' as Qty,
 											'' as Inservicesdate,
-											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),
+											lastcalibrationmemo = (select top 1 memo from CalibrationManagment where AssetInventoryId = AsI.AssetInventoryId and CertifyType='Verification' order by  CalibrationId desc),
 											'' AS lastcheckedinby,
 											'' AS lastcheckedindate,
 											'' AS lastcheckedinmemo,
@@ -779,11 +804,17 @@ BEGIN
 											asm.UpdatedBy AS UpdatedBy ,
 											ISNULL(clm.IsActive,1) AS IsActive,
 											asm.IsDeleted AS IsDeleted,
-											isnull((select top 1 IsVendororEmployee from CalibrationManagment where AssetRecordId = asm.AssetRecordId order by  CalibrationId desc),'vendor') as IsVendororEmployee
+											V.vendorName AS VendorName,
+											V.vendorId AS VendorId,
+											ISNULL(Assc.VerificationDefaultCost,0) as UnitCost,
+											CurrencyId=isnull(curr.CurrencyId,0),
+											ISNULL(Assc.VerificationProvider,'') AS IsVENDororEmployee
+										,AsI.AssetInventoryId
 										FROM dbo.Asset asm WITH(NOLOCK)
-										LEFT join dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-										LEFT join dbo.CalibrationManagment  As clm WITH(NOLOCK) on asm.AssetRecordId=clm.AssetRecordId										
+										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
+										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId and CertifyType='Verification'										
 										LEFT join dbo.AssetCalibration  As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
+										LEFT JOIN dbo.Vendor  V WITH(NOLOCK) ON V.vendorId = Assc.VerificationDefaultVendorId
 										left join dbo.AssetLocation  As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId

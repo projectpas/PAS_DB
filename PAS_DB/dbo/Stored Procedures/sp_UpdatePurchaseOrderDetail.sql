@@ -1,4 +1,9 @@
 ﻿
+---------------------------------------------------------------------------------------------------
+
+
+
+
 --- exec sp_UpdatePurchaseOrderDetail  214
 CREATE  Procedure [dbo].[sp_UpdatePurchaseOrderDetail]
 @PurchaseOrderId  bigint
@@ -10,6 +15,10 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRAN
 
+		DECLARE @StockType int = 1;
+		DECLARE @NonStockType int = 2;
+		DECLARE @AssetType int = 11;
+
 		UPDATE dbo.WorkOrderMaterials
 		SET 
 		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.NeedByDate
@@ -17,6 +26,14 @@ BEGIN
 		INNER JOIN dbo.WorkOrderMaterials WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0
+
+		UPDATE dbo.SubWorkOrderMaterials
+		SET 
+		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.NeedByDate
+		from dbo.PurchaseOrderPart POP
+		INNER JOIN dbo.SubWorkOrderMaterials WOM ON WOM.SubWorkOrderId = POP.SubWorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
+		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
+		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.SubWorkOrderId > 0 
 
 		UPDATE dbo.SalesOrderPart
 		SET 
@@ -207,21 +224,19 @@ BEGIN
 		FROM 
 		dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.PurchaseOrderPart POP1 ON POP.ParentId = POP1.PurchaseOrderPartRecordId AND POP.PurchaseOrderId =  @PurchaseOrderId 
-
-
-
+				
 		UPDATE dbo.PurchaseOrderPart
 		SET
-		   PartNumber = IM.partnumber,
-		   PartDescription = IM.PartDescription,
-		   AltEquiPartNumber = AIM.PartNumber,
-		   AltEquiPartDescription = AIM.PartDescription,
-		   StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
+		   PartNumber =  CASE WHEN POP.ItemTypeId = @StockType THEN IM.partnumber WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartNumber WHEN POP.ItemTypeId = @AssetType THEN AST.AssetId END,
+		   PartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN IM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN IMN.PartDescription WHEN POP.ItemTypeId = @AssetType THEN AST.[Description] END,
+		   AltEquiPartNumber = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartNumber WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN AAST.AssetId END,
+		   AltEquiPartDescription = CASE WHEN POP.ItemTypeId = @StockType THEN AIM.PartDescription WHEN POP.ItemTypeId = @NonStockType THEN '' WHEN POP.ItemTypeId = @AssetType THEN  AAST.[Description] END, 
+		   StockType = CASE WHEN POP.ItemTypeId = @StockType THEN (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
 							'PMA&DER' 
 							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
 							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
 							ELSE 'OEM'
-							END),
+							END) ELSE '' END,
 		   Manufacturer = MF.[NAME],
 		   [Priority] = PR.[Description],
 		   Condition = CO.[Description],
@@ -231,7 +246,7 @@ BEGIN
 		   SubWorkOrderNo =SWO.SubWorkOrderNo,
 		   ReapairOrderNo = RO.RepairOrderNumber,
 		   SalesOrderNo = SO.SalesOrderNumber,
-		   ItemTypeId = IM.ItemTypeId,
+		   --ItemTypeId = IM.ItemTypeId,
 		   ItemType = IT.[Description],   
 		   GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
 		   UnitOfMeasure = UOM.ShortName,
@@ -251,29 +266,32 @@ BEGIN
 									WHEN POPartSplitUserTypeId = 9 THEN
 									(select TOP 1 ISNULL(SiteName,'') from LegalEntityShippingAddress where LegalEntityShippingAddressId = POP.POPartSplitSiteId)
 									END),  
-			DiscountPercentValue = PV.[PercentValue],
+			DiscountPercentValue = PV.[DiscontValue],
 			ExchangeSalesOrderNo = ExchSO.ExchangeSalesOrderNumber
 		FROM  dbo.PurchaseOrderPart POP WITH (NOLOCK)
-			  INNER JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = POP.ManagementStructureId
-			  INNER JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId		 
-			  INNER JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = POP.ConditionId
+			  INNER JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = POP.ManagementStructureId			  
 			  INNER JOIN dbo.Priority PR WITH (NOLOCK) ON PR.PriorityId = POP.PriorityId
 			  INNER JOIN dbo.Currency CR WITH (NOLOCK) ON CR.CurrencyId = POP.FunctionalCurrencyId
 			  INNER JOIN dbo.Currency RC WITH (NOLOCK) ON RC.CurrencyId = POP.ReportCurrencyId
-			  INNER JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId
-			  INNER JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = POP.GlAccountId
-			  INNER JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId
+			  LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = POP.ManufacturerId
+			  LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId
+			  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON POP.ItemMasterId = AST.AssetRecordId	
+			  LEFT JOIN dbo.ItemMasterNonStock IMN WITH (NOLOCK) ON POP.ItemMasterId = IMN.MasterPartId	
+			  LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = POP.GlAccountId
+			  LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = POP.ConditionId
+			  LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = POP.UOMId			  
 			  LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = POP.WorkOrderId
 			  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = POP.SubWorkOrderId
 			  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
 			  LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = POP.SalesOrderId
 			  LEFT JOIN dbo.ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = POP.AltEquiPartNumberId
+			  LEFT JOIN dbo.Asset AAST WITH (NOLOCK) ON AAST.AssetRecordId = POP.AltEquiPartNumberId 
 			  LEFT JOIN dbo.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = POP.POPartSplitUserId
 			  LEFT JOIN dbo.Vendor VEN WITH (NOLOCK) ON VEN.VendorId = POP.POPartSplitUserId
 			  LEFT JOIN dbo.LegalEntity COM WITH (NOLOCK) ON COM.LegalEntityId =POP.POPartSplitUserId
-			  LEFT JOIN  dbo.ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
+			  LEFT JOIN  dbo.ItemType IT WITH (NOLOCK) ON IT.ItemTypeId = POP.ItemTypeId	
 			  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = POP.POPartSplitUserTypeId	
-			  LEFT JOIN  dbo.[Percent] PV WITH (NOLOCK) ON POP.DiscountPercent = PV.PercentId	
+			  LEFT JOIN  dbo.[Discount] PV WITH (NOLOCK) ON POP.DiscountPercent = PV.DiscountId	
 			  LEFT JOIN dbo.ExchangeSalesOrder ExchSO WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = POP.ExchangeSalesOrderId
 		WHERE POP.PurchaseOrderId  = @PurchaseOrderId 
 

@@ -1,4 +1,7 @@
-﻿-- =============================================
+﻿
+---------------------------------------------------------------------------------------------------
+
+-- =============================================
 -- Description:	Get Search Data for SOQ, SO  search for from part list tab
 -- EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 -- =============================================
@@ -18,7 +21,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				 
+			DECLARE @StockType int = 1;		 
 			SELECT DISTINCT
 			im.PartNumber
 			,sl.StockLineId
@@ -99,6 +102,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
+				AND pop.ItemTypeId = @StockType                  --------------------------------  Added For Stock Type
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -202,6 +206,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
+				AND pop.ItemTypeId = @StockType                  --------------------------------  Added For Stock Type
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

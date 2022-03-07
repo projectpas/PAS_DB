@@ -87,6 +87,9 @@
     [VendorQuoteDate]            DATETIME2 (7)   NULL,
     [ACTailNum]                  VARCHAR (250)   NULL,
     [QuantityReserved]           INT             DEFAULT ((0)) NULL,
+    [IsAsset]                    BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 

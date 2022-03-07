@@ -2,7 +2,7 @@
     [GLAccountId]                 BIGINT        IDENTITY (1, 1) NOT NULL,
     [OldAccountCode]              VARCHAR (30)  NULL,
     [AccountCode]                 VARCHAR (50)  NOT NULL,
-    [AccountName]                 VARCHAR (50)  NOT NULL,
+    [AccountName]                 VARCHAR (100) NULL,
     [AccountDescription]          VARCHAR (500) NULL,
     [AllowManualJE]               BIT           CONSTRAINT [GLAccount_DC_AllowManualJE] DEFAULT ((0)) NOT NULL,
     [GLAccountTypeId]             BIGINT        NOT NULL,
@@ -29,6 +29,8 @@
     CONSTRAINT [FK_GLAccount_poroCategory] FOREIGN KEY ([POROCategoryId]) REFERENCES [dbo].[POROCategory] ([POROCategoryId]),
     CONSTRAINT [Unique_GLAccount] UNIQUE NONCLUSTERED ([AccountCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

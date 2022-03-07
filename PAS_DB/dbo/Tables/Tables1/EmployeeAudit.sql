@@ -35,6 +35,9 @@
     [CurrencyId]              INT             NULL,
     [StationId]               BIGINT          NULL,
     [AttachmentId]            BIGINT          NULL,
+    [EmployeeExpIds]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 

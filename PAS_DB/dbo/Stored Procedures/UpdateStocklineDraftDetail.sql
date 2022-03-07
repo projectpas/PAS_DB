@@ -1,7 +1,5 @@
 ﻿
-
-
-
+------------------------------------------------------------------------------------------------------------------------------
 
 --exec UpdateStocklineDraftDetail 251
 CREATE  Procedure [dbo].[UpdateStocklineDraftDetail]
@@ -12,6 +10,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 		BEGIN TRANSACTION
+		DECLARE @StockType int = 1;
 
 	    DECLARE @MSID as bigint
 	    DECLARE @Level1 as varchar(200)
@@ -124,7 +123,7 @@ BEGIN
 		TagType = TT.[Name]
 	    
 	    FROM dbo.StocklineDraft SD WITH (NOLOCK)
-	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId
+	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 	    LEFT JOIN #StocklineDraftMSDATA PMS WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
 	    LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 	    LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
@@ -166,11 +165,11 @@ BEGIN
 
 	    UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) from dbo.Stockline WITH (NOLOCK)
 	    where PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND isParent = 1)) FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
-	    where POP.PurchaseOrderID = @PurchaseOrderId; 
+	    where POP.PurchaseOrderID = @PurchaseOrderId AND pop.ItemTypeId = @StockType; 
 	    
 	    UPDATE dbo.PurchaseOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.PurchaseOrderPart WITH (NOLOCK)
 	    where ParentId = POP.PurchaseOrderPartRecordId )) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
-	    where POP.PurchaseOrderID = @PurchaseOrderId AND POP.isParent = 1
+	    where POP.PurchaseOrderID = @PurchaseOrderId AND POP.isParent = 1 AND POP.ItemTypeId = @StockType
 	    AND ISNULL((SELECT COUNT(PurchaseOrderPartRecordId)
 	    			from dbo.PurchaseOrderPart WITH (NOLOCK)
 	    			where ParentId = POP.PurchaseOrderPartRecordId),0) > 0;

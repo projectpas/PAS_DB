@@ -245,30 +245,30 @@ BEGIN
 		INNER JOIN dbo.RepairOrderPart POP1 WITH (NOLOCK) ON POP.ParentId = POP1.RepairOrderPartRecordId AND POP.RepairOrderId =  @RepairOrderId;
 
 		UPDATE dbo.RepairOrderPart SET
-		   PartNumber = IM.partnumber,
-		   PartDescription = IM.PartDescription,
-		   AltEquiPartNumber = AIM.PartNumber,
-		   AltEquiPartDescription = AIM.PartDescription,
-		   StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
+		   PartNumber =CASE WHEN ROP.IsAsset=1 THEN asi.AssetId ELSE IM.partnumber END,
+		   PartDescription =CASE WHEN ROP.IsAsset=1 THEN asi.Name ELSE IM.PartDescription END,
+		   AltEquiPartNumber =CASE WHEN ROP.IsAsset=1 THEN (select AssetId from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE  AIM.PartNumber END,
+		   AltEquiPartDescription =CASE WHEN ROP.IsAsset=1 THEN (select Name from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE AIM.PartDescription END,
+		   StockType =CASE WHEN ROP.IsAsset=1 THEN '' ELSE (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
 							'PMA&DER' 
 							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
 							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
 							ELSE 'OEM'
-							END),
+							END) END,
 		   Manufacturer = MF.[NAME],
 		   [Priority] = PR.[Description],
 		   Condition = CO.[Description],
 		   FunctionalCurrency = CR.Code,
 		   ReportCurrency= RC.Code,
-		   StockLineNumber = SL.StockLineNumber,
-		   ControlId = SL.IdNumber,
-		   ControlNumber = SL.ControlNumber,
+		   StockLineNumber =CASE WHEN ROP.IsAsset=1 THEN asi.StklineNumber ELSE  SL.StockLineNumber END,
+		   ControlId =CASE WHEN ROP.IsAsset=1 THEN '' else SL.IdNumber END,
+		   ControlNumber =CASE WHEN ROP.IsAsset=1 THEN asi.ControlNumber ELSE SL.ControlNumber END,
 		   PurchaseOrderNumber= Po.PurchaseOrderNumber, 
 		   WorkOrderNo =  WO.WorkOrderNum ,
 		   SubWorkOrderNo =SWO.SubWorkOrderNo, 
 		   SalesOrderNo = SO.SalesOrderNumber,
-		   ItemTypeId = IM.ItemTypeId,
-		   ItemType = IT.[Description],   
+		   ItemTypeId =CASE WHEN ROP.IsAsset=1 THEN (select ItemTypeId from ItemType where Name='Asset') ELSE IM.ItemTypeId END,
+		   ItemType =CASE WHEN ROP.IsAsset=1 THEN (select Description from ItemType where Name='Asset') ELSE IT.[Description] END,   
 		   GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
 		   UnitOfMeasure = UOM.ShortName,
 		   Level1 = RMS.Level1,
@@ -287,21 +287,22 @@ BEGIN
  									WHEN ROPartSplitUserTypeId = 9 THEN
  									(select TOP 1 ISNULL(SiteName,'') from LegalEntityShippingAddress WITH (NOLOCK) where LegalEntityShippingAddressId = ROP.ROPartSplitSiteId)
  									END),
-		   RevisedPartNumber = RIM.partnumber,
+		   RevisedPartNumber =CASE WHEN ROP.IsAsset=1 THEN (select AssetId from Asset where AssetRecordId=ROP.RevisedPartId ) ELSE RIM.partnumber END,
 		   WorkPerformed = WP.WorkPerformedCode
 
 
 		FROM  dbo.RepairOrderPart ROP WITH (NOLOCK)
 			  INNER JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = ROP.ManagementStructureId
 			  INNER JOIN RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId	
-			  INNER JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
-			  INNER JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
+			  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
+			  LEFT JOIN AssetInventory ASI WITH (NOLOCK) ON ROP.ItemMasterId=ASI.AssetRecordId and ROP.StockLineId=ASI.AssetInventoryId	
+			  LEFT JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
 			  INNER JOIN Priority PR WITH (NOLOCK) ON PR.PriorityId = ROP.PriorityId
 			  INNER JOIN Currency CR WITH (NOLOCK) ON CR.CurrencyId = ROP.FunctionalCurrencyId
 			  INNER JOIN Currency RC WITH (NOLOCK) ON RC.CurrencyId = ROP.ReportCurrencyId
-			  INNER JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
+			  LEFT JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
 			  INNER JOIN GLAccount    GLA WITH (NOLOCK) ON GLA.GLAccountId = ROP.GlAccountId
-			  INNER JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
+			  LEFT JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
 			  LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = ROP.WorkOrderId
 			  LEFT JOIN ItemType ITP WITH (NOLOCK) ON ITP.ItemTypeId= ROP.ItemTypeId
 			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  

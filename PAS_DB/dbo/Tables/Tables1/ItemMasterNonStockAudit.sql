@@ -24,6 +24,31 @@
     [CreatedDate]                  DATETIME2 (7)   NOT NULL,
     [UpdatedBy]                    VARCHAR (256)   NOT NULL,
     [UpdatedDate]                  DATETIME2 (7)   NOT NULL,
+    [SiteId]                       BIGINT          NULL,
+    [WarehouseId]                  BIGINT          NULL,
+    [LocationId]                   BIGINT          NULL,
+    [ShelfId]                      BIGINT          NULL,
+    [BinId]                        BIGINT          NULL,
+    [IsSerialized]                 BIT             NULL,
+    [IsMfgExpirationDate]          BIT             NULL,
+    [LeadTimeDays]                 INT             NULL,
+    [StockLevel]                   INT             NULL,
+    [ReorderPoint]                 INT             NULL,
+    [ReorderQuantiy]               INT             NULL,
+    [InWarranty]                   BIT             NULL,
+    [CurrentStlNo]                 BIGINT          NULL,
+    [Site]                         VARCHAR (50)    NULL,
+    [Warehouse]                    VARCHAR (50)    NULL,
+    [Location]                     VARCHAR (50)    NULL,
+    [Shelf]                        VARCHAR (50)    NULL,
+    [Bin]                          VARCHAR (50)    NULL,
+    [ItemNonStockClassification]   VARCHAR (50)    NULL,
+    [GLAccount]                    VARCHAR (50)    NULL,
+    [Currency]                     VARCHAR (50)    NULL,
+    [Manufacturer]                 VARCHAR (50)    NULL,
+    [MfgExpirationDate]            DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ItemMasterNonStockAudit] PRIMARY KEY CLUSTERED ([ItemMasterNonStockAuditId] ASC)
 );
+
+
 

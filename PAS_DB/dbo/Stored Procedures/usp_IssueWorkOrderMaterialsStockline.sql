@@ -52,6 +52,9 @@ BEGIN
 					DECLARE @SubReferenceId BIGINT;
 					DECLARE @PartStatus INT;
 					DECLARE @WorkOrderMaterialsId BIGINT;
+					DECLARE @IsSerialised BIT;
+					DECLARE @stockLineQty INT;
+					DECLARE @stockLineQtyAvailable INT;
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
@@ -190,7 +193,7 @@ BEGIN
 						SET @count = @count + 1;
 					END;
 
-					--FOR STOCK LINE HISTORY
+					--FOR STOCK LINE HISTORY	
 					WHILE @slcount<= @TotalCounts
 					BEGIN
 						SELECT	@StocklineId = tmpWOM.StockLineId,
@@ -200,8 +203,17 @@ BEGIN
 						FROM #tmpIssueWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @slcount
 
-						EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						
+						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
+
+						IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
+						BEGIN
+							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						END
+						ELSE
+						BEGIN
+							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						END
+
 						SET @slcount = @slcount + 1;
 					END;
 

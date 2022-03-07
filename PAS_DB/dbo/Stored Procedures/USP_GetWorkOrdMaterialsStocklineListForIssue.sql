@@ -18,13 +18,14 @@
     1    01/03/2022   Hemant Saliya Created
 
      
- EXECUTE USP_GetWorkOrdMaterialsStocklineListForIssue 10073
+ EXECUTE USP_GetWorkOrdMaterialsStocklineListForIssue 99,15
 
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_GetWorkOrdMaterialsStocklineListForIssue]    
 (    
-@WorkFlowWorkOrderId BIGINT = NULL
+@WorkFlowWorkOrderId BIGINT = NULL,
+@ItemMasterId BIGINT = NULL
 )    
 AS    
 BEGIN    
@@ -73,6 +74,11 @@ SET NOCOUNT ON
 				SELECT @MasterCompanyId = MasterCompanyId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND IsActive = 1 AND IsDeleted = 0;
 
 				SELECT @IsEnforcePickTicket = ISNULL(EnforcePickTicket,0) FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderTypeId = @WorkOrderTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
+				IF(@ItemMasterId = 0)
+				BEGIN
+					SET @ItemMasterId = NULL;
+				END
 
 				if(@IsEnforcePickTicket = 1)
 				BEGIN
@@ -148,6 +154,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0) 
+					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 					
 				END
 				ELSE
@@ -208,7 +215,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
-					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0)
+					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0) AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 				END
 			END
 		COMMIT  TRANSACTION

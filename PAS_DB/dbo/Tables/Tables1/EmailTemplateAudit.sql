@@ -13,8 +13,10 @@
     [EmailBody]            NVARCHAR (MAX) NULL,
     [EmailTemplateTypeId]  BIGINT         NULL,
     [SubjectName]          VARCHAR (50)   NULL,
-    [RevNo]                INT            NULL,
-    [RevDate]              DATETIME       NULL,
+    [RevNo]                NVARCHAR (50)  NULL,
+    [RevDate]              NVARCHAR (50)  NULL,
     CONSTRAINT [PK_EmailTemplateAudit] PRIMARY KEY CLUSTERED ([AuditEmailTemplateId] ASC)
 );
+
+
 

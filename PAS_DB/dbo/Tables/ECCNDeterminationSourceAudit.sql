@@ -5,11 +5,13 @@
     [Description]                    VARCHAR (100) NULL,
     [MasterCompanyId]                INT           NOT NULL,
     [CreatedBy]                      VARCHAR (50)  NOT NULL,
-    [CreatedOn]                      DATETIME      NOT NULL,
-    [UpdatedBy]                      VARCHAR (50)  NULL,
-    [UpdatedOn]                      DATETIME      NULL,
+    [CreatedDate]                    DATETIME      NOT NULL,
+    [UpdatedBy]                      VARCHAR (50)  NOT NULL,
+    [UpdatedDate]                    DATETIME      NOT NULL,
     [IsActive]                       BIT           NOT NULL,
     [IsDeleted]                      BIT           NOT NULL,
     CONSTRAINT [PK_ECCNDeterminationSourceAudit] PRIMARY KEY CLUSTERED ([EccnDeterminationSourceAuditID] ASC)
 );
+
+
 

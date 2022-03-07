@@ -1,4 +1,6 @@
-﻿-- =============================================
+﻿---------------------------------------------------------------------------------------------------
+
+-- =============================================
 -- Description:	Get Search Data for Exchange Quote  search for from part list tab
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 -- =============================================
@@ -18,7 +20,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				 
+				DECLARE @StockType int = 1;	
 				SELECT DISTINCT
 					im.PartNumber
 					,sl.StockLineId
@@ -110,6 +112,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 					AND pop.ItemMasterId = im.ItemMasterId 
 					AND pop.IsDeleted = 0 AND pop.isActive = 1
+					AND pop.ItemTypeId = @StockType
 				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				--LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [PROCConvertVendorRFQROToRepairOrder]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to convert vendor RFQ RO to Repair Order  
@@ -71,6 +70,28 @@ BEGIN
 				    --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 					--UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber 
 					--							    WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
+
+					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
+			        BEGIN
+	                INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+
+					END		
 					SELECT	@Result = IDENT_CURRENT('RepairOrder');								
 				END
 				ELSE
@@ -114,6 +135,29 @@ BEGIN
 				    --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 					--UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber 
 					--							    WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
+
+					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
+			        BEGIN
+	                INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+
+					END		
+
 					SELECT	@Result = IDENT_CURRENT('RepairOrder');								
 				END
 				ELSE
@@ -122,8 +166,41 @@ BEGIN
 				END
 			END
 		    ELSE
-		    BEGIN				
-				  SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);					 
+		    BEGIN	
+
+				SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);		
+					
+				IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
+			    BEGIN
+					IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @Result AND ModuleId = 14)
+					BEGIN
+						  INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT @Result,14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] where [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+					END
+			    END
+
+				IF EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
+			    BEGIN
+					IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @Result AND ModuleId = 14)
+					BEGIN
+						INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT @Result,14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;
+					END
+				END		
+
+				-- SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);					 
 		    END
 		END
 	END

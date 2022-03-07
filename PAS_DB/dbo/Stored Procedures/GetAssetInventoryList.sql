@@ -1,4 +1,7 @@
 ﻿
+
+
+
 CREATE PROCEDURE [dbo].[GetAssetInventoryList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
@@ -24,6 +27,7 @@ CREATE PROCEDURE [dbo].[GetAssetInventoryList]
 	@DivName varchar(50) = null,
 	@DeptName varchar(50) = null,
 	@deprAmort varchar(50) = null,
+	@AssetInventoryIds varchar(1000) = NULL,
     @CreatedDate datetime = null,
     @UpdatedDate  datetime = null,
 	@CreatedBy  varchar(50) = null,
@@ -104,7 +108,8 @@ BEGIN
 								LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 								LEFT JOIN dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
-							WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
+							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
+							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (

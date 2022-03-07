@@ -3,7 +3,7 @@
     [GLAccountId]                 BIGINT        NOT NULL,
     [OldAccountCode]              VARCHAR (30)  NULL,
     [AccountCode]                 VARCHAR (30)  NULL,
-    [AccountName]                 VARCHAR (30)  NULL,
+    [AccountName]                 VARCHAR (100) NULL,
     [AccountDescription]          VARCHAR (500) NULL,
     [AllowManualJE]               BIT           NULL,
     [GLAccountTypeId]             BIGINT        NULL,
@@ -22,4 +22,6 @@
     [InterCompany]                BIT           NULL,
     [Category1099Id]              BIGINT        NULL
 );
+
+
 

@@ -121,6 +121,22 @@
     [AvailStatus]                       VARCHAR (100)   NULL,
     [PartNumber]                        VARCHAR (100)   NULL,
     [ControlNumber]                     VARCHAR (100)   NULL,
+    [RepairOrderId]                     BIGINT          NULL,
+    [RepairOrderPartRecordId]           BIGINT          NULL,
+    [PurchaseOrderId]                   BIGINT          NULL,
+    [PurchaseOrderPartRecordId]         BIGINT          NULL,
+    [ReceiverNumber]                    VARCHAR (100)   NULL,
+    [ReceivedDate]                      DATETIME2 (7)   NULL,
+    [SiteId]                            BIGINT          NULL,
+    [SiteName]                          VARCHAR (250)   NULL,
+    [WarehouseId]                       BIGINT          NULL,
+    [Warehouse]                         VARCHAR (250)   NULL,
+    [LocationId]                        BIGINT          NULL,
+    [Location]                          VARCHAR (250)   NULL,
+    [ShelfId]                           BIGINT          NULL,
+    [ShelfName]                         VARCHAR (250)   NULL,
+    [BinId]                             BIGINT          NULL,
+    [BinName]                           VARCHAR (250)   NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_AssetInventory_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
@@ -132,6 +148,8 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

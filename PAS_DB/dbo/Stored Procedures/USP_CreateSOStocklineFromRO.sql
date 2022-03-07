@@ -1,4 +1,6 @@
-﻿
+﻿-----------------------------------------------------------------------------------------------------------------------
+
+
 /*************************************************************           
  ** File:   [USP_CreateSOStocklineFromRO]          
  ** Author:   Vishal Suthar
@@ -101,7 +103,7 @@ BEGIN
           SalesOrderPartId bigint NULL
         )
 
-        INSERT INTO #RepairOrderPartData (RepairOrderPartID) SELECT RepairOrderPartRecordId FROM dbo.RepairOrderPart RP WITH (NOLOCK) WHERE RP.RepairOrderId = @RepairOrderId
+        INSERT INTO #RepairOrderPartData (RepairOrderPartID) SELECT RepairOrderPartRecordId FROM dbo.RepairOrderPart RP WITH (NOLOCK) WHERE RP.RepairOrderId = @RepairOrderId and RP.ItemTypeId=1
         
 		SELECT @MasterLoopID = MAX(ID) FROM #RepairOrderPartData
         
@@ -139,11 +141,11 @@ BEGIN
 			JOIN dbo.SalesOrderPart SOP WITH (NOLOCK)
 			  ON RP.StockLineId = SOP.StocklineId
 			WHERE RP.RepairOrderId = @RepairOrderId
-			AND RP.RepairOrderPartRecordId = @RepairOrderPartId
+			AND RP.RepairOrderPartRecordId = @RepairOrderPartId  AND RP.ItemTypeId=1
 
 			SET @QtyFulfilled = @Quantity;
 
-		  IF((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH(NOLOCK) WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND ISNULL(RP.SalesOrderId, 0) > 0) > 0)
+		  IF((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH(NOLOCK) WHERE RP.RepairOrderPartRecordId = @RepairOrderPartId AND RP.ItemTypeId=1 AND ISNULL(RP.SalesOrderId, 0) > 0) > 0)
 		  BEGIN
 			  SELECT @LoopID = MAX(ID) FROM #StockLineData
 			  WHILE (@LoopID > 0)
@@ -152,7 +154,7 @@ BEGIN
             IF (@QtyFulfilled > 0)
             BEGIN
               IF ((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH (NOLOCK) JOIN #StockLine SL
-                  ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId WHERE ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId) > 0)
+                  ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId WHERE RP.ItemTypeId=1 AND ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId) > 0 )
               BEGIN
 				DELETE FROM #ROStockLineRevisedPart
                 --CASE 1 REVISED PART
@@ -169,7 +171,7 @@ BEGIN
                   JOIN dbo.ItemMaster IM ON RP.RevisedPartId = IM.ItemMasterId
                   JOIN dbo.RepairOrder RO ON RO.RepairOrderId = RP.RepairOrderId
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
-                  WHERE SL.StockLineId = @StocklineId
+                  WHERE SL.StockLineId = @StocklineId and RP.ItemTypeId=1
 
 				SET @SalesOrderPartId = 0;
 				SELECT @SalesOrderPartId = ISNULL(SalesOrderPartId, 0) FROM dbo.SalesOrderPart SOP WITH(NOLOCK) 
@@ -356,7 +358,7 @@ BEGIN
                 SELECT @ExSalesOrderPartId = SOP.SalesOrderPartId FROM dbo.SalesOrderPart SOP WITH (NOLOCK)
                 JOIN dbo.RepairOrderPart RP WITH (NOLOCK) ON RP.StockLineId = SOP.StocklineId
                 WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId
-				AND SOP.SalesOrderId = @SalesOrderId
+				AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
 
                 IF (@QtyFulfilled <= 0)
                 BEGIN
@@ -398,14 +400,14 @@ BEGIN
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
                   JOIN dbo.ItemMaster IM ON RP.ItemMasterId = IM.ItemMasterId AND RP.ConditionId = SL.ConditionId
                   JOIN dbo.RepairOrder RO ON RO.RepairOrderId = RP.RepairOrderId
-                  WHERE SL.StockLineId = @StocklineId
+                  WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 				
                 IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
                   SELECT @ExSalesOrderPartId = SOP.SalesOrderPartId FROM dbo.SalesOrderPart SOP WITH (NOLOCK)
                   JOIN dbo.RepairOrderPart RP WITH (NOLOCK) ON RP.StockLineId = SOP.StocklineId
                   WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId 
-				  AND SOP.SalesOrderId = @SalesOrderId
+				  AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
 
                   INSERT INTO dbo.SalesOrderPart (SalesOrderId, ItemMasterId, StockLineId, FxRate, Qty, UnitSalePrice, MarkUpPercentage, SalesBeforeDiscount, Discount,
                   DiscountAmount, NetSales, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsDeleted, UnitCost,

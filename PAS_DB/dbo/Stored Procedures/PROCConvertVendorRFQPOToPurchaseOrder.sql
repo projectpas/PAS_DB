@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [PROCConvertVendorRFQPOToPurchaseOrder]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to convert vendor RFQ PO to Purchase Order  
@@ -35,6 +36,8 @@ BEGIN
 	DECLARE @CodeSufix VARCHAR(50);	
 	DECLARE @PurchaseOrderNumber VARCHAR(250);
 	DECLARE @IsEnforceApproval bit;
+	DECLARE @AttRFQPOModuleID int;
+	DECLARE @AttPOModuleID int;
 	DECLARE @PONumber VARCHAR(250);
 	BEGIN TRY
 	BEGIN TRANSACTION
@@ -47,7 +50,10 @@ BEGIN
 						WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
 				SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM dbo.PurchaseOrderSettingMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
-					
+
+				SELECT TOP 1 @AttRFQPOModuleID = [AttachmentModuleId] FROM dbo.AttachmentModule WITH(NOLOCK) WHERE [Name] ='VendorRFQPurchaseOrder';
+				SELECT TOP 1 @AttPOModuleID = [AttachmentModuleId] FROM dbo.AttachmentModule WITH(NOLOCK) WHERE [Name] ='PurchaseOrder';
+									
 				IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)
 				BEGIN
 					SET @PurchaseOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));
@@ -114,7 +120,28 @@ BEGIN
 
 					UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber 
 												    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
-													
+
+					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
+			        BEGIN
+	                INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT IDENT_CURRENT('PurchaseOrder'),13,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT IDENT_CURRENT('PurchaseOrder'),13,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+					END	
+					
 					SELECT	@Result = IDENT_CURRENT('PurchaseOrder');									
 				END
 				ELSE
@@ -210,6 +237,27 @@ BEGIN
 						  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
 					END
 
+					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
+			        BEGIN
+	                INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT IDENT_CURRENT('PurchaseOrder'),13,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] where [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT IDENT_CURRENT('PurchaseOrder'),13,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+					END
+
 					SELECT	@Result = IDENT_CURRENT('PurchaseOrder');								
 				END
 				ELSE
@@ -276,7 +324,38 @@ BEGIN
 				ELSE
 				BEGIN
 					  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
-				END               
+				END    
+				
+				IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
+			    BEGIN
+					IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @PurchaseOrderId AND ModuleId = 13)
+					BEGIN
+						  INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])
+							   SELECT @PurchaseOrderId,13,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],
+									  [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],
+									  [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],
+									  [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]
+								 FROM [dbo].[AllAddress] where [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+					END
+			    END
+
+				IF EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
+			    BEGIN
+					IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @PurchaseOrderId AND ModuleId = 13)
+					BEGIN
+						INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,
+									  [IsActive] ,[IsDeleted])
+							  SELECT @PurchaseOrderId,13,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],
+									 [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),
+									 1,0 
+								FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31;
+
+					END
+				END				
 				SELECT	@Result = @PurchaseOrderId;
 			END
 		END

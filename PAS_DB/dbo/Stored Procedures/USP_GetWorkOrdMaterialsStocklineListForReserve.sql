@@ -38,8 +38,10 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN  
 				DECLARE @ProvisionId BIGINT;
+				DECLARE @Provision VARCHAR(50);
+				DECLARE @ProvisionCode VARCHAR(50);
 
-				SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+				SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 
 				IF(@ItemMasterId = 0)
 				BEGIN
@@ -89,8 +91,8 @@ SET NOCOUNT ON
 						WOMS.QtyIssued AS MSQuantityIssued,
 						CASE WHEN WOMS.WOMStockLineId > 0 THEN WOMS.UnitCost ELSE SL.UnitCost END AS SLUnitCost,
 						MSQunatityRemaining = ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)),
-						SP.Description AS MatStlProvision,
-						SP.StatusCode AS MatStlProvisionCode,
+						CASE WHEN ISNULL(SP.Description, '') != '' THEN SP.Description ELSE @Provision END AS MatStlProvision,
+						CASE WHEN ISNULL(SP.StatusCode, '') != '' THEN SP.StatusCode ELSE @ProvisionCode END AS MatStlProvisionCode,
 						CASE WHEN WOMS.WOMStockLineId > 0 THEN 1 ELSE 0 END AS IsStocklineAdded
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId

@@ -1,4 +1,5 @@
-﻿
+﻿-------------------------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [USP_CreateSubWOStocklineFromRO]          
  ** Author:   Hemant Saliya
@@ -66,7 +67,7 @@ SET NOCOUNT ON
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId
 					JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId
 					JOIN dbo.WorkOrderMaterials WM WITH(NOLOCK) ON WM.WorkOrderMaterialsId = SWO.WorkOrderMaterialsId
-				WHERE RP.RepairOrderId = @RepairOrderId AND WOMS.ProvisionId = @REPAIRProvisionId
+				WHERE RP.RepairOrderId = @RepairOrderId AND WOMS.ProvisionId = @REPAIRProvisionId AND RP.ItemTypeId=1
 
 				SET @QtyFulfilled = @Quantity;
 
@@ -138,7 +139,7 @@ SET NOCOUNT ON
 					PRINT @StocklineId; 
 					IF(@QtyFulfilled > 0)
 					BEGIN
-						IF((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH(NOLOCK) JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId  WHERE ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId ) > 0)
+						IF((SELECT COUNT(1) FROM dbo.RepairOrderPart RP WITH(NOLOCK) JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId  WHERE RP.ItemTypeId=1 AND ISNULL(RP.RevisedPartId, 0) > 0 AND SL.StockLineId = @StocklineId ) > 0)
 						BEGIN
 								--CASE 1 REVISED PART
 								INSERT INTO #ROStockLineRevisedPart (ItemMasterId, ConditionId , WorkOrderId, SubWorkOrderId, RepairOrderId, Requisitioner,RepairOrderNumber, StockLineId)
@@ -148,7 +149,7 @@ SET NOCOUNT ON
 									JOIN dbo.ItemMaster IM ON RP.RevisedPartId = IM.ItemMasterId
 									JOIN dbo.RepairOrder RO ON RO.RepairOrderId = RP.RepairOrderId
 									JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
-								WHERE SL.StockLineId = @StocklineId 
+								WHERE SL.StockLineId = @StocklineId  AND RP.ItemTypeId=1
 						
 								IF((SELECT COUNT(1) FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = ISNULL(@WorkOrderMaterialsId, 0)) = 0)
 								BEGIN
@@ -185,7 +186,7 @@ SET NOCOUNT ON
 								FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH(NOLOCK)
 									JOIN dbo.RepairOrderPart RP WITH(NOLOCK) ON RP.StockLineId = WOMS.StocklineId
 									JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId
-								WHERE RP.RepairOrderId = @RepairOrderId AND WOM.SubWorkOrderId = @SubWorkOrderId AND WOM.WorkOrderId = @WorkOrderId
+								WHERE RP.RepairOrderId = @RepairOrderId AND WOM.SubWorkOrderId = @SubWorkOrderId AND WOM.WorkOrderId = @WorkOrderId AND RP.ItemTypeId=1
 
 								IF(@QtyFulfilled <= 0)
 								BEGIN
@@ -217,7 +218,7 @@ SET NOCOUNT ON
 								JOIN dbo.ItemMaster IM ON RP.ItemMasterId = IM.ItemMasterId
 								JOIN dbo.RepairOrder RO ON RO.RepairOrderId = RP.RepairOrderId
 								JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
-							WHERE SL.StockLineId = @StocklineId 
+							WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 
 							IF((SELECT COUNT(1) FROM #ROStockLineSamePart WITH(NOLOCK) WHERE ISNULL(WorkOrderId, 0) > 0 ) > 0)
 							BEGIN
@@ -225,7 +226,7 @@ SET NOCOUNT ON
 								FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH(NOLOCK)
 									JOIN dbo.RepairOrderPart RP WITH(NOLOCK) ON RP.StockLineId = WOMS.StocklineId
 									JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.SubWorkOrderMaterialsId = WOMS.SubWorkOrderMaterialsId
-								WHERE RP.RepairOrderId = @RepairOrderId AND WOM.SubWorkOrderId = @SubWorkOrderId AND WOM.WorkOrderId = @WorkOrderId
+								WHERE RP.RepairOrderId = @RepairOrderId AND WOM.SubWorkOrderId = @SubWorkOrderId AND WOM.WorkOrderId = @WorkOrderId AND RP.ItemTypeId=1
 
 								INSERT INTO dbo.SubWorkOrderMaterialStockLine (SubWorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
 										UnitCost, UnitPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted) 

@@ -64,8 +64,11 @@
     [RevisedConditionId]      BIGINT         NULL,
     [CustomerReference]       VARCHAR (256)  NULL,
     [AssignDate]              DATETIME2 (7)  NULL,
+    [ReceivingCustomerWorkId] BIGINT         NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

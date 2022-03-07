@@ -1,4 +1,7 @@
-﻿  
+﻿
+
+
+  
 CREATE Procedure [dbo].[usp_getAllRecevingEditID]  
 	@poID  bigint  
 AS  
@@ -35,8 +38,12 @@ BEGIN
   
 		INSERT INTO #POEditList ([Value],Label)  
 		SELECT ISNULL(POP.ManufacturerId,0), 'MANUFACTURER' FROM dbo.PurchaseOrderPart POP  WITH(NOLOCK)  
-		INNER JOIN dbo.StocklineDraft SLD WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SLD.PurchaseOrderPartRecordId   Where POP.PurchaseOrderId = @poID  
-  
+		INNER JOIN dbo.StocklineDraft SLD WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SLD.PurchaseOrderPartRecordId   Where POP.PurchaseOrderId = @poID 
+		
+		INSERT INTO #POEditList ([Value],Label)  
+		SELECT ISNULL(SLD.AssetAcquisitionTypeId,0), 'ACQUISITIONTYPE' FROM dbo.PurchaseOrderPart POP  WITH(NOLOCK)  
+		INNER JOIN dbo.AssetInventoryDraft SLD WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = SLD.PurchaseOrderPartRecordId Where POP.PurchaseOrderId = @poID
+				  
 		INSERT INTO #POEditList ([Value],Label)  
 		SELECT ISNULL(SLD.ManufacturerId,0), 'MANUFACTURER' FROM dbo.StocklineDraft SLD WITH(NOLOCK) Where SLD.PurchaseOrderId = @poID   
   
@@ -70,6 +77,10 @@ BEGIN
 		INSERT INTO #POEditList ([Value],Label)  
 		SELECT ISNULL(SLD.TraceableToType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.OwnerType = 9  
   
+         
+
+  
+
 		SELECT * FROM #POEditList  
 
     COMMIT  TRANSACTION

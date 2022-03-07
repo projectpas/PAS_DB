@@ -93,7 +93,7 @@ BEGIN
 						   stl.QuantityOnHand  as QuantityOnHandnew,
 						   CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 						   stl.QuantityAvailable  as QuantityAvailablenew,
-						   (ISNULL(stl.SerialNumber,'')) 'SerialNumber',
+						   CASE WHEN stl.isSerialized = 1 THEN (CASE WHEN ISNULL(stl.SerialNumber,'') = '' THEN 'Non Provided' ELSE ISNULL(stl.SerialNumber,'') END) ELSE ISNULL(stl.SerialNumber,'') END AS 'SerialNumber',
 						   (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber', 
 						   stl.ControlNumber,
 						   stl.IdNumber,

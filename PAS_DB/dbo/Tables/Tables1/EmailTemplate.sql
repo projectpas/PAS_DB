@@ -12,10 +12,12 @@
     [EmailBody]           NVARCHAR (MAX) NULL,
     [EmailTemplateTypeId] BIGINT         NULL,
     [SubjectName]         VARCHAR (50)   NULL,
-    [RevNo]               INT            NULL,
-    [RevDate]             DATE           NULL,
+    [RevNo]               NVARCHAR (50)  NULL,
+    [RevDate]             NVARCHAR (50)  NULL,
     CONSTRAINT [PK_EmailTemplate] PRIMARY KEY CLUSTERED ([EmailTemplateId] ASC)
 );
+
+
 
 
 GO

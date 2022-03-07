@@ -1,4 +1,5 @@
 ﻿
+
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsAsset]           
  ** Author:  Subhash Saliya 
@@ -43,16 +44,16 @@ BEGIN
 						 ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
+                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
 					 JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE (ro.IsActive = 1 AND ISNULL(ro.IsDeleted,0) = 0 AND (im.ItemMasterId = @itemmasterid)
-						AND (ro.RepairOrderNumber LIKE @StartWith + '%'))
+						AND (ro.RepairOrderNumber LIKE @StartWith + '%') )
 		UNION     
 		SELECT DISTINCT  
 			             ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
+                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE ro.RepairOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY RepairOrderNumber

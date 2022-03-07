@@ -23,11 +23,15 @@
     [CreatedDate]         DATETIME2 (7)   CONSTRAINT [CalibrationManagment_CreatedDate] DEFAULT (getdate()) NOT NULL,
     [UpdatedDate]         DATETIME2 (7)   CONSTRAINT [CalibrationManagment_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsVendororEmployee]  VARCHAR (20)    NULL,
+    [AssetInventoryId]    BIGINT          NULL,
+    [CalibrationTypeId]   BIGINT          NULL,
     CONSTRAINT [PK_CalibrationManagment] PRIMARY KEY CLUSTERED ([CalibrationId] ASC),
     CONSTRAINT [FK_CalibrationManagment_AssetRecordId] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_CalibrationManagment_CurrencyId] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_CalibrationManagment_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId])
 );
+
+
 
 
 GO

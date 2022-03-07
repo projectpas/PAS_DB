@@ -51,6 +51,11 @@
     [Shelf]                         VARCHAR (50)    NULL,
     [Bin]                           VARCHAR (50)    NULL,
     [TotalStocklineQtyReq]          INT             DEFAULT ((0)) NOT NULL,
+    [POId]                          BIGINT          NULL,
+    [PONum]                         VARCHAR (50)    NULL,
+    [PONextDlvrDate]                DATETIME2 (7)   NULL,
+    [QtyOnOrder]                    INT             NULL,
+    [QtyOnBkOrder]                  INT             NULL,
     CONSTRAINT [PK_SubWorkOrderMaterials] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_SubWorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_ItemClassification] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
@@ -64,6 +69,8 @@
     CONSTRAINT [FK_SubWorkOrderMaterials_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

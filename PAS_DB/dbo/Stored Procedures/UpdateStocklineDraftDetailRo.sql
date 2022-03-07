@@ -1,6 +1,4 @@
-﻿
-
---- exec UpdateStocklineDraftDetailRo  1
+﻿--- exec UpdateStocklineDraftDetailRo  132
 CREATE  Procedure [dbo].[UpdateStocklineDraftDetailRo]
 @RepairOrderId  bigint
 AS
@@ -128,7 +126,7 @@ RevisedPartNumber = RIM.partnumber,
 TagType = TT.[Name]
 
 FROM dbo.StocklineDraft SD WITH (NOLOCK)
-INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId
+INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId and ROP.ItemTypeId=1
 LEFT JOIN #StocklineDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
 LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 LEFT JOIN dbo.Condition CO  WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
@@ -168,8 +166,8 @@ LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId
 WHERE SD.RepairOrderId = @RepairOrderId
 
 UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) FROM dbo.Stockline  WITH (NOLOCK)
-WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
-WHERE ROP.RepairOrderId = @RepairOrderId 
+WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1 and ROP.ItemTypeId=1)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
+WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId=1
 
 --UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) FROM dbo.RepairOrderPart 
 --WHERE ParentId = ROP.RepairOrderPartRecordId )) FROM dbo.RepairOrderPart ROP 
@@ -177,11 +175,11 @@ WHERE ROP.RepairOrderId = @RepairOrderId
 
 
 UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
-where ParentId = POP.RepairOrderPartRecordId )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
-where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1
+where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId=1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
+where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId=1
 AND ISNULL((SELECT COUNT(RepairOrderPartRecordId)
 			from dbo.RepairOrderPart  WITH (NOLOCK)
-			where ParentId = POP.RepairOrderPartRecordId),0) > 0
+			where POP.ItemTypeId=1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
 
 
 --UPDATE StocklineDraft SET NHAItemMasterId = (

@@ -1,4 +1,6 @@
-﻿CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
+﻿----------------------------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=null,
 	@PageSize int=null,

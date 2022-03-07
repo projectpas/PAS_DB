@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿------------------------------------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [USP_CreateChildStockline]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Crate child stocklines for Non-serialized stockline

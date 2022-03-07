@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdownsAsset]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Asset List for Auto Complete Dropdown 
@@ -31,7 +30,7 @@ BEGIN
 	  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
       SET NOCOUNT ON
 	  BEGIN TRY
-
+	    DECLARE @StockType int = 1;
 		DECLARE @Sql NVARCHAR(MAX);	
 		IF(@Count = '0') 
 		   BEGIN
@@ -41,7 +40,7 @@ BEGIN
 						 po.PurchaseOrderId as value,
                          po.PurchaseOrderNumber as label
 					FROM  dbo.PurchaseOrder po WITH(NOLOCK) 
-                    JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+                    JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ItemTypeId = @StockType
 					WHERE po.MasterCompanyId = @MasterCompanyId AND (po.IsActive=1 AND ISNULL(po.IsDeleted,0) = 0 AND (pop.ItemMasterId = @itemmasterid)
 						AND (po.PurchaseOrderNumber LIKE @StartWith + '%'))
 			   UNION     
@@ -49,7 +48,7 @@ BEGIN
 						 po.PurchaseOrderId as value,
                          po.PurchaseOrderNumber as label
 					FROM  dbo.PurchaseOrder po WITH(NOLOCK) 
-                    JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+                    JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ItemTypeId = @StockType
 					WHERE po.PurchaseOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY PurchaseOrderNumber
 

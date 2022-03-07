@@ -1,8 +1,4 @@
-﻿
-
-
-    --EXEC UpdateVendorRFQRepairOrderDetail 1
-CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
+﻿CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
 @VendorRFQRepairOrderId  bigint
 AS
 BEGIN
@@ -125,7 +121,7 @@ BEGIN
 		   Level3 = RMS.Level3,
 		   Level4 = RMS.Level4,	
 		   RevisedPartNumber = RIM.partnumber,
-		   WorkPerformed = WP.WorkPerformedCode
+		   WorkPerformed = WP.CapabilityTypeDesc
 
 		FROM  dbo.VendorRFQRepairOrderPart ROP WITH (NOLOCK)
 			  INNER JOIN #VendorRFQRepairOrderPartMSDAT RMS ON RMS.MSID = ROP.ManagementStructureId
@@ -146,7 +142,8 @@ BEGIN
 			  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
 			  LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
 			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
-			  LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
+			  --LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
+			  LEFT JOIN CapabilityType WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.CapabilityTypeId
 
 		WHERE ROP.VendorRFQRepairOrderId = @VendorRFQRepairOrderId; 
 		

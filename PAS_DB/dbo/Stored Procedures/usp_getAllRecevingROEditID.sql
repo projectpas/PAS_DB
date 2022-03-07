@@ -1,5 +1,4 @@
-﻿
-CREATE Procedure [dbo].[usp_getAllRecevingROEditID]
+﻿CREATE Procedure [dbo].[usp_getAllRecevingROEditID]
 @roID  bigint
 AS
 BEGIN
@@ -28,7 +27,7 @@ BEGIN
 
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(ROP.ManufacturerId,0), 'MANUFACTURER' FROM dbo.RepairOrderPart ROP  WITH(NOLOCK)
-		INNER JOIN dbo.StocklineDraft SLD WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SLD.RepairOrderPartRecordId   Where ROP.RepairOrderId = @roID  
+		INNER JOIN dbo.StocklineDraft SLD WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SLD.RepairOrderPartRecordId   Where ROP.RepairOrderId = @roID   
 
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(SLD.ManufacturerId,0), 'MANUFACTURER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID 
@@ -66,7 +65,19 @@ BEGIN
 
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(SLD.TraceableToType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.OwnerType = 9
+	
+	-------------------------------From Inventory Draft
+	INSERT INTO #ROEditList ([Value],Label)
+		SELECT ISNULL(ShippingViaId,0), 'SHIPPINGVIA' FROM dbo.AssetInventoryDraft WITH(NOLOCK) Where RepairOrderId = @roID  
 
+		
+
+		INSERT INTO #ROEditList ([Value],Label)
+		SELECT ISNULL(ROP.ManufacturerId,0), 'MANUFACTURER' FROM dbo.RepairOrderPart ROP  WITH(NOLOCK)
+		INNER JOIN dbo.AssetInventoryDraft SLD WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = SLD.RepairOrderPartRecordId   Where ROP.RepairOrderId = @roID   
+
+		INSERT INTO #ROEditList ([Value],Label)
+		SELECT ISNULL(SLD.ManufacturerId,0), 'MANUFACTURER' FROM  dbo.AssetInventoryDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID 
 
 		SELECT * FROM #ROEditList
 	

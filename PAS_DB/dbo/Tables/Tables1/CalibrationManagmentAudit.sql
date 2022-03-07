@@ -24,6 +24,10 @@
     [CreatedDate]         DATETIME2 (7)   NOT NULL,
     [UpdatedDate]         DATETIME2 (7)   NOT NULL,
     [IsVendororEmployee]  VARCHAR (20)    NULL,
+    [AssetInventoryId]    BIGINT          NULL,
+    [CalibrationTypeId]   BIGINT          NULL,
     CONSTRAINT [PK_CalibrationManagmentAudit] PRIMARY KEY CLUSTERED ([CalibrationAuditId] ASC)
 );
+
+
 

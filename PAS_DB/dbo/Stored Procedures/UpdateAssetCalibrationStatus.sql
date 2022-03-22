@@ -55,7 +55,7 @@ BEGIN
 
 			INSERT INTO #tmpCalibrationRequired ([AssetRecordId], [CalibrationId], [AssetInventoryId], [CalibtrationStatus], 
 				CalibrationDate, CalibrationFrequencyDays, NextCalibrationDate, LastCalibrationDate)
-			SELECT AC.AssetRecordId, CalibrationId, AssetInventoryId, AIN.InventoryStatusId, CalibrationDate,AC.CalibrationFrequencyDays, 
+			SELECT AC.AssetRecordId, CalibrationId, AIN.AssetInventoryId, AIN.InventoryStatusId, CalibrationDate,AC.CalibrationFrequencyDays, 
 				NextCalibrationDate, LastCalibrationDate
 			FROM dbo.AssetCalibration AC WITH(NOLOCK) 
 				JOIN dbo.CalibrationManagment CM WITH(NOLOCK) ON AC.AssetRecordId = CM.AssetRecordId

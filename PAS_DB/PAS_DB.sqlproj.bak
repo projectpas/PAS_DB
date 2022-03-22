@@ -1740,6 +1740,8 @@
     <Build Include="dbo\Stored Procedures\PROCAddAssetMSData.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByRoleWise.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByMSRoleWise.sql" />
-    <Build Include="Security\poweraerosuites_admin.sql" />    
+    <Build Include="Security\poweraerosuites_admin.sql" />
+    <Build Include="Security\Donald.sql" />
+    <Build Include="Security\pasadmin.sql" />
   </ItemGroup>
 </Project>

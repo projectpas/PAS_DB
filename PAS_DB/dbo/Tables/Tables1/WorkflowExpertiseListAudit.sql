@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[WorkflowExpertiseListAudit] (
+    [WorkflowExpertiseListAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [WorkflowExpertiseListId]      BIGINT          NOT NULL,
+    [WorkflowId]                   BIGINT          NOT NULL,
+    [ExpertiseTypeId]              SMALLINT        NULL,
+    [EstimatedHours]               DECIMAL (18, 2) NULL,
+    [LaborDirectRate]              DECIMAL (18, 2) NULL,
+    [DirectLaborRate]              DECIMAL (18, 2) NULL,
+    [OverheadBurden]               DECIMAL (18, 2) NULL,
+    [OverheadCost]                 DECIMAL (18, 2) NULL,
+    [StandardRate]                 DECIMAL (18, 2) NULL,
+    [LaborOverheadCost]            DECIMAL (18, 2) NULL,
+    [TaskId]                       BIGINT          NOT NULL,
+    [MasterCompanyId]              INT             NOT NULL,
+    [CreatedBy]                    VARCHAR (256)   NULL,
+    [UpdatedBy]                    VARCHAR (256)   NULL,
+    [CreatedDate]                  DATETIME2 (7)   NOT NULL,
+    [UpdatedDate]                  DATETIME2 (7)   NOT NULL,
+    [IsActive]                     BIT             NULL,
+    [IsDeleted]                    BIT             NOT NULL,
+    [Order]                        INT             NULL,
+    [Memo]                         NVARCHAR (MAX)  NULL,
+    [WFParentId]                   BIGINT          NULL,
+    [IsVersionIncrease]            BIT             NULL,
+    [OverheadburdenPercentId]      BIGINT          NULL,
+    CONSTRAINT [PK_ProcessExpertiseListAudit] PRIMARY KEY CLUSTERED ([WorkflowExpertiseListAuditId] ASC)
+);
+

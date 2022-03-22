@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[WorkOrderAddress] (
+    [WorkOrderAddressId]  BIGINT         IDENTITY (1, 1) NOT NULL,
+    [WorkOrderId]         BIGINT         NOT NULL,
+    [WorkFlowWorkOrderId] BIGINT         NOT NULL,
+    [CustomerId]          BIGINT         NOT NULL,
+    [SiteId]              BIGINT         NOT NULL,
+    [SiteName]            VARCHAR (256)  NOT NULL,
+    [Address]             VARCHAR (256)  NOT NULL,
+    [City]                VARCHAR (256)  NOT NULL,
+    [StateProvince]       VARCHAR (256)  NULL,
+    [CountryId]           BIGINT         NOT NULL,
+    [ContactName]         VARCHAR (256)  NULL,
+    [Memo]                NVARCHAR (MAX) NULL,
+    [AddressType]         INT            NOT NULL,
+    [MasterCompanyId]     INT            NOT NULL,
+    [CreatedBy]           VARCHAR (256)  NOT NULL,
+    [UpdatedBy]           VARCHAR (256)  NOT NULL,
+    [CreatedDate]         DATETIME2 (7)  CONSTRAINT [DF_WorkOrderAddress_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]         DATETIME2 (7)  CONSTRAINT [DF_WorkOrderAddress_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]            BIT            CONSTRAINT [DF_WorkOrderAddress_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]           BIT            CONSTRAINT [DF_WorkOrderAddress_IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_WorkOrderAddress] PRIMARY KEY CLUSTERED ([WorkOrderAddressId] ASC),
+    CONSTRAINT [FK_WorkOrderAddress_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
+    CONSTRAINT [FK_WorkOrderAddress_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
+);
+

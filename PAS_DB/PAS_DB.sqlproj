@@ -1192,8 +1192,6 @@
     <Build Include="dbo\Views\View_GLAccount.sql" />
     <Build Include="dbo\Views\StocklinePurchaseHistory.sql" />
     <Build Include="Security\poweraerosuites_admin.sql" />
-    <Build Include="Security\pasadmin.sql" />
-    <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Functions\udfCalcPercentage.sql" />
     <Build Include="dbo\Functions\GenerateNumber.sql" />
     <Build Include="dbo\Functions\GenearteVersionNumber.sql" />

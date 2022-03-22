@@ -39,6 +39,32 @@ SET NOCOUNT ON
 				DECLARE @ModuleId BIGINT;
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO')
 
+				--SELECT DISTINCT TOP 1
+				--	le.CompanyName,
+				--	le.CompanyCode,
+				--	atd.Link,
+				--	at.ModuleId,
+				--	Address1 = ad.Line1,
+				--	Address2 = ad.Line2,
+				--	City = ad.City,
+				--	StateOrProvince = ad.StateOrProvince,
+				--	PostalCode = ad.PostalCode,
+				--	Country = co.countries_name,
+				--	PhoneNumber = le.PhoneNumber,
+				--	PhoneExt = le.PhoneExt,
+				--	LogoName = atd.FileName,
+				--	AttachmentDetailId = atd.AttachmentDetailId,
+				--	Email = c.Email,
+				--	FAALicense = le.FAALicense
+				--FROM ManagementStructure ms join LegalEntity le ON ms.LegalEntityId = le.LegalEntityId
+				--	JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
+				--	JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
+				--	LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
+				--	LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
+				--	LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON ms.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
+				--	LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
+				--WHERE ms.ManagementStructureId = @ManagementStructId 
+
 				SELECT DISTINCT TOP 1
 					le.CompanyName,
 					le.CompanyCode,
@@ -56,14 +82,16 @@ SET NOCOUNT ON
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Email = c.Email,
 					FAALicense = le.FAALicense
-				FROM ManagementStructure ms join LegalEntity le ON ms.LegalEntityId = le.LegalEntityId
+				FROM ManagementStructureDetails ms 
+					join ManagementStructureLevel msl WITH(NOLOCK) ON ms.Level1Id = msl.ID
+					join LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
 					JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 					JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 					LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
 					LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
-					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON ms.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
+					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
 					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
-				WHERE ms.ManagementStructureId = @ManagementStructId 
+				WHERE ms.MSDetailsId = @ManagementStructId
 			END
 		COMMIT  TRANSACTION
 

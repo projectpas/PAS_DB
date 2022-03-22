@@ -49,11 +49,11 @@
     [Level4]                  VARCHAR (200)  NULL,
     [AssignDate]              DATETIME2 (7)  NULL,
     [ReceivingCustomerWorkId] BIGINT         NULL,
+    [ExpertiseId]             SMALLINT       NULL,
     CONSTRAINT [PK_WorkOrderPartNumber] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_WorkOrderPartNumber_CMMId] FOREIGN KEY ([CMMId]) REFERENCES [dbo].[Publication] ([PublicationRecordId]),
     CONSTRAINT [FK_WorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
-    CONSTRAINT [FK_WorkOrderPartNumber_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_WorkOrderPartNumber_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderPartNumber_RevisedConditionId] FOREIGN KEY ([RevisedConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderPartNumber_RevisedPart] FOREIGN KEY ([RevisedPartId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -67,6 +67,8 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 GO

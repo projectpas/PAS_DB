@@ -66,7 +66,7 @@ SET NOCOUNT ON;
 		BEGIN
 			SET @StatusID = NULL			
 		END		
-		
+		DECLARE @MSModuleID INT = 20; -- Vendor RFQ PO Management Structure Module ID
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN	
@@ -78,9 +78,12 @@ SET NOCOUNT ON;
 					--B.UnitCost,
 					--A.QuantityOrdered
 			  FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
-			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId			  
+			  --INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId			  
+			  INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId
+			  INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+			  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
-			     AND EMS.EmployeeId = 	@EmployeeId 
+			     --AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId	
 				  --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
 			),	
@@ -200,28 +203,43 @@ SET NOCOUNT ON;
 						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Memo,'')) >0
 						) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)
 						as 'MemoType',
+						--(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						--FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
+						--WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
+						--) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
+						--as 'Level1Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						--FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
+						--WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level2,'')) >0) > 1  
+						-- ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)
+						--as 'Level2Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						--FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
+						--WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level3,'')) >0) > 1  
+						--) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)
+						--as 'Level3Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						--FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
+						--WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level4,'')) >0) > 1  
+						-- ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)
+						--as 'Level4Type',
+						'' AS Level1Type,
+						'' AS Level2Type,
+						'' AS Level3Type,
+						'' AS Level4Type,
+						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
+						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
+						--INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = VRPP.VendorRFQPurchaseOrderId
+						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
+						) Then 'Multiple' ELse  isnull(MSD.LastMSLevel,'')   End)
+						as 'LastMSLevel',
 						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
 						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
 						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
-						) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
-						as 'Level1Type',
-						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
-						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level2,'')) >0) > 1  
-						 ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)
-						as 'Level2Type',
-						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
-						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level3,'')) >0) > 1  
-						) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)
-						as 'Level3Type',
-						(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId) 
-						FROM  dbo.VendorRFQPurchaseOrderPart VRPP 
-						WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level4,'')) >0) > 1  
-						 ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)
-						as 'Level4Type',
+						) Then 'Multiple' ELse  isnull(MSD.AllMSlevels,'')   End)
+						as 'AllMSlevels',
 						D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType
-
+						--,MSD.LastMSLevel,MSD.AllMSlevels
 					--,MFC.Manufacturer,MFC.ManufacturerType,PRC.Priority,PRC.PriorityType,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType
 					--,conC.Condition,conC.ConditionType,woc.WorkOrderNo,woc.WorkOrderNoType,SubWorkOrderNo,SubWorkOrderNoType,SalesOrderNo,SalesOrderNoType,
 					--PurchaseOrderNumber,PurchaseOrderNumberType
@@ -231,7 +249,8 @@ SET NOCOUNT ON;
 					LEFT JOIN PartDescCTE PDC ON PDC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId
 					LEFT JOIN VendorRFQPurchaseOrderPart SP ON SP.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId
 					
-					LEFT JOIN DatesCTE D ON D.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId					
+					LEFT JOIN DatesCTE D ON D.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId	
+					LEFT JOIN dbo.PurchaseOrderManagementStructureDetails MSD ON MSD.ModuleID = 21 AND MSD.ReferenceID = SP.VendorRFQPurchaseOrderId
 			
 			 WHERE ((@GlobalFilter <>'' AND ((VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(M.CreatedBy LIKE '%' +@GlobalFilter+'%') OR
@@ -288,7 +307,7 @@ SET NOCOUNT ON;
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
 					SP.StockType
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
-					,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.PurchaseOrderNumber--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId
+					,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId
 			), 
 			CTE_Count AS (Select COUNT(VendorRFQPurchaseOrderId) AS NumberOfItems FROM result)
 			--SELECT @Count = COUNT(VendorRFQPurchaseOrderId) FROM #TempResult			
@@ -298,7 +317,7 @@ SET NOCOUNT ON;
 					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType
 					
-					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType
+					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels
 					FROM result,CTE_Count
 			group by
 			VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
@@ -306,7 +325,7 @@ SET NOCOUNT ON;
 					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType
 					
-					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType
+					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels
 			ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,

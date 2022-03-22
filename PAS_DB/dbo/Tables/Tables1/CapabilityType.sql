@@ -20,6 +20,8 @@
 );
 
 
+
+
 GO
 
 
@@ -67,7 +69,7 @@ BEGIN
 
 	INSERT INTO [dbo].[WorkScope](WorkScopeCode,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, IsActive, IsDeleted, WorkScopeCodeNew,ConditionId )
 
-	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, GETDATE(), GETDATE(), IsActive, IsDeleted,CapabilityTypeDesc,ConditionId FROM INSERTED
+	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted,CapabilityTypeDesc,ConditionId FROM INSERTED
 
 
 
@@ -76,7 +78,9 @@ BEGIN
 
 
 	UPDATE [dbo].[CapabilityType] SET WorkScopeId = @WorkScopeId 
+
 	FROM [dbo].[CapabilityType] WS JOIN INSERTED ins ON ws.CapabilityTypeId = ins.CapabilityTypeId
+
 
 
 	SET NOCOUNT ON;

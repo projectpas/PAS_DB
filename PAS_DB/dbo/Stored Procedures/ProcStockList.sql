@@ -43,14 +43,18 @@ CREATE PROCEDURE [dbo].[ProcStockList]
 @ItemMasterId BIGINT = NULL,
 @StockLineIds varchar(1000) = NULL,
 @obtainFrom varchar(50) = NULL,
-@ownerName varchar(50) = NULL
+@ownerName varchar(50) = NULL,
+@LastMSLevel varchar(50)=null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
-		DECLARE @RecordFrom int;		
+		DECLARE @RecordFrom INT;
+		DECLARE @MSModuelId int;
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
-		SET @RecordFrom = (@PageNumber-1)*@PageSize;		
+		SET @RecordFrom = (@PageNumber-1)*@PageSize;	
+		SET @MSModuelId = 2;   -- For Stockline
+
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn=Upper('CreatedDate')
@@ -59,11 +63,6 @@ BEGIN
 		BEGIN 
 			Set @SortColumn=Upper(@SortColumn)
 		END	
-
-		--IF(@stockTypeId<>1 AND @stockTypeId<>2 )
-		--BEGIN
-		--	 SET @stockTypeId=NULL;
-		--END
 
 		IF(@stockTypeId = 0)
 		BEGIN
@@ -93,7 +92,7 @@ BEGIN
 						   stl.QuantityOnHand  as QuantityOnHandnew,
 						   CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 						   stl.QuantityAvailable  as QuantityAvailablenew,
-						   (ISNULL(stl.SerialNumber,'')) 'SerialNumber',
+						   CASE WHEN stl.isSerialized = 1 THEN (CASE WHEN ISNULL(stl.SerialNumber,'') = '' THEN 'Non Provided' ELSE ISNULL(stl.SerialNumber,'') END) ELSE ISNULL(stl.SerialNumber,'') END AS 'SerialNumber',
 						   (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber', 
 						   stl.ControlNumber,
 						   stl.IdNumber,
@@ -106,7 +105,6 @@ BEGIN
 						   (ISNULL(stl.TagType,'')) 'TagType',	
 						   (ISNULL(stl.TraceableToName,'')) 'TraceableToName',					   
 						   (ISNULL(stl.itemType,'')) 'ItemCategory', 
-						   --(ISNULL(stl.GlAccountName,'')) 'GlAccountName', 
 						   im.ItemTypeId,
 						   stl.IsActive,                     
 						   stl.CreatedDate,
@@ -122,13 +120,15 @@ BEGIN
 						   stl.level4 AS DeptName,	
 						   CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,
 						   stl.ObtainFromName AS obtainFrom,
-						   stl.OwnerName AS ownerName
+						   stl.OwnerName AS ownerName,
+						   MSD.LastMSLevel,
+						   MSD.AllMSlevels					       
 					 FROM  StockLine stl WITH (NOLOCK)
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
-							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
-							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
+							INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
+							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId						    
 		 		  WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
-						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
+						AND stl.MasterCompanyId=@MasterCompanyId  AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)	--AND EUR.EmployeeId = @EmployeeId				
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResults FROM  Result
@@ -159,6 +159,7 @@ BEGIN
 						(DeptName LIKE '%' +@GlobalFilter+'%') OR					
 						(obtainFrom LIKE '%' +@GlobalFilter+'%') OR
 						(ownerName LIKE '%' +@GlobalFilter+'%') OR
+						(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
 						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -177,6 +178,7 @@ BEGIN
 						(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND					
 						(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and
 						(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND
 						(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND					
 						(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND
@@ -261,7 +263,9 @@ BEGIN
 						CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,	
 						CASE WHEN (@SortOrder=1  AND @SortColumn='obtainFrom')  THEN obtainFrom END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='obtainFrom')  THEN obtainFrom END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='obtainFrom')  THEN obtainFrom END DESC,						
+						CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='ownerName')  THEN ownerName END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC
 				
@@ -312,13 +316,15 @@ BEGIN
 						   stl.level4 AS DeptName,	
 						   CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,
 						   stl.ObtainFromName AS obtainFrom,
-						   stl.OwnerName AS ownerName
+						   stl.OwnerName AS ownerName,
+						   MSD.LastMSLevel,
+						   MSD.AllMSlevels					      
 					 FROM  StockLine stl WITH (NOLOCK)
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
-							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
+							INNER JOIN  dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
 		 		  WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
-						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
+						AND stl.MasterCompanyId=@MasterCompanyId AND  (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)	 --EUR.EmployeeId = @EmployeeId AND				
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
@@ -334,6 +340,7 @@ BEGIN
 						(StocklineNumber LIKE '%' +@GlobalFilter+'%') OR					
 						(ControlNumber LIKE '%' +@GlobalFilter+'%') OR
 						(TaggedByName LIKE '%' +@GlobalFilter+'%') OR
+						(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR						
 						(TagType LIKE '%' +@GlobalFilter+'%') OR
 						(TraceableToName LIKE '%' +@GlobalFilter+'%') OR					
 						(IdNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -383,6 +390,7 @@ BEGIN
 						(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND						
 						(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND
 						(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and
 						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 					   )
 					   SELECT @Count = COUNT(StockLineId) FROM #TempResult			
@@ -453,7 +461,9 @@ BEGIN
 				CASE WHEN (@SortOrder=1  AND @SortColumn='obtainFrom')  THEN obtainFrom END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='obtainFrom')  THEN obtainFrom END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='ownerName')  THEN ownerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
 				
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

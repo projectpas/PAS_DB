@@ -1,6 +1,4 @@
-﻿
-
-CREATE Procedure [dbo].[usp_GetAllAddEditID]
+﻿CREATE Procedure [dbo].[usp_GetAllAddEditID]
 @poID  bigint,
 @ModuleID int
 AS
@@ -37,17 +35,27 @@ BEGIN
 		IF @ModuleID = 31
 		BEGIN
 			INSERT INTO #POEditList ([Value],Label)
-			SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQPurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
-			ON PO.ManagementStructureId = MS.ManagementStructureId
-			WHERE PO.VendorRFQPurchaseOrderId = @poID;
+			--SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQPurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
+			--ON PO.ManagementStructureId = MS.ManagementStructureId
+			--WHERE PO.VendorRFQPurchaseOrderId = @poID;
+
+			SELECT ISNULL(EMS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQPurchaseOrder PO WITH(NOLOCK) 			
+			 INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD  WITH (NOLOCK) ON MSD.EntityMSID = PO.ManagementStructureId	AND MSD.ModuleID=20
+			 INNER JOIN dbo.ManagementStructureLevel EMS WITH (NOLOCK) ON MSD.Level1Id = EMS.ID
+			 WHERE PO.VendorRFQPurchaseOrderId = @poID
 		END
 
 		IF @ModuleID = 32
 		BEGIN
 			INSERT INTO #POEditList ([Value],Label)
-			SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQRepairOrder RO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
-			ON RO.ManagementStructureId = MS.ManagementStructureId
-			WHERE RO.VendorRFQRepairOrderId = @poID; 
+			--SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQRepairOrder RO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
+			--ON RO.ManagementStructureId = MS.ManagementStructureId
+			--WHERE RO.VendorRFQRepairOrderId = @poID; 
+
+			SELECT ISNULL(EMS.LegalEntityId,0), 'MSCOMPANYID' from dbo.VendorRFQRepairOrder RO WITH(NOLOCK) 			
+			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD  WITH (NOLOCK) ON MSD.EntityMSID = RO.ManagementStructureId AND MSD.ModuleID=22
+			 INNER JOIN dbo.ManagementStructureLevel EMS WITH (NOLOCK) ON MSD.Level1Id = EMS.ID
+			 WHERE RO.VendorRFQRepairOrderId = @poID
 		END
 
 
@@ -57,17 +65,27 @@ BEGIN
 			--SELECT ISNULL(RO.VendorId,0), 'VENDORID' from dbo.RepairOrder RO  WITH(NOLOCK)	
 			--WHERE RepairOrderId = @poID 
 			  INSERT INTO #POEditList ([Value],Label)
-			  SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.RepairOrder RO  WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)			
-			  ON RO.ManagementStructureId = MS.ManagementStructureId			
-			  WHERE RO.RepairOrderId = @poID 
+			  --SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.RepairOrder RO  WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)			
+			  --ON RO.ManagementStructureId = MS.ManagementStructureId			
+			  --WHERE RO.RepairOrderId = @poID 
+
+			 SELECT ISNULL(EMS.LegalEntityId,0), 'MSCOMPANYID' from dbo.RepairOrder RO WITH(NOLOCK) 			
+			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD  WITH (NOLOCK) ON MSD.EntityMSID = RO.ManagementStructureId AND MSD.ModuleID=24
+			 INNER JOIN dbo.ManagementStructureLevel EMS WITH (NOLOCK) ON MSD.Level1Id = EMS.ID
+			 WHERE RO.RepairOrderId = @poID
 		END
 
 		IF @ModuleID = 13 
 		BEGIN
 			INSERT INTO #POEditList ([Value],Label)
-			SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
-			ON PO.ManagementStructureId = MS.ManagementStructureId
-			WHERE PO.PurchaseOrderId = @poID 
+			--SELECT ISNULL(MS.LegalEntityId,0), 'MSCOMPANYID' from dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.ManagementStructure MS WITH(NOLOCK)
+			--ON PO.ManagementStructureId = MS.ManagementStructureId
+			--WHERE PO.PurchaseOrderId = @poID 
+
+			SELECT ISNULL(EMS.LegalEntityId,0), 'MSCOMPANYID' from dbo.PurchaseOrder PO WITH(NOLOCK) 			
+			 INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD  WITH (NOLOCK) ON MSD.EntityMSID = PO.ManagementStructureId	AND MSD.ModuleID=4
+			 INNER JOIN dbo.ManagementStructureLevel EMS WITH (NOLOCK) ON MSD.Level1Id = EMS.ID
+			 WHERE PO.PurchaseOrderId = @poID
 		END
 
 		IF @ModuleID = 7

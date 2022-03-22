@@ -12,6 +12,9 @@
     [UpdatedDate]     DATETIME2 (7) NOT NULL,
     [IsActive]        BIT           NOT NULL,
     [IsDeleted]       BIT           NOT NULL,
+    [RoleId]          BIGINT        NULL,
     CONSTRAINT [PK_ApproverAudit] PRIMARY KEY CLUSTERED ([ApproverAuditId] ASC)
 );
+
+
 

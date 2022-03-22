@@ -3,10 +3,8 @@
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to convert vendor RFQ RO to Repair Order  
  ** Purpose:         
- ** Date:   04/01/2022        
-          
+ ** Date:   04/01/2022
  ** PARAMETERS: @VendorRFQRepairOrderId bigint,@VendorRFQROPartRecordId bigint,@RepairOrderId bigint,@MasterCompanyId int,@CodeTypeId int,@Opr int
-         
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
@@ -14,10 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/01/2022  Moin Bloch     Created
-     
 -- EXEC [PROCConvertVendorRFQROToRepairOrder] 13,0,0,2,25,1,1
 ************************************************************************/
-
 CREATE PROCEDURE [dbo].[PROCConvertVendorRFQROToRepairOrder]
 @VendorRFQRepairOrderId bigint,
 @VendorRFQROPartRecordId bigint,
@@ -38,7 +34,12 @@ BEGIN
 	DECLARE @RONumber VARCHAR(250);
 	BEGIN TRY
 	BEGIN TRANSACTION
-	BEGIN  
+	BEGIN
+		DECLARE @MCID INT=0;
+		DECLARE @MSID BIGINT=0;
+		DECLARE @CreateBy VARCHAR(100)='';
+		DECLARE @UpdateBy VARCHAR(100)='';
+		DECLARE @RID BIGINT=0;
 		IF(@Opr = 1)
 		BEGIN
 			IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)
@@ -70,6 +71,11 @@ BEGIN
 				    --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 					--UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber 
 					--							    WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
+					SET @RID=IDENT_CURRENT('RepairOrder');
+					SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],
+								 @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]
+							 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
+					EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0
 
 					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
 			        BEGIN
@@ -135,7 +141,11 @@ BEGIN
 				    --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 					--UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber 
 					--							    WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
-
+					SET @RID=IDENT_CURRENT('RepairOrder');
+					SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],
+								 @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]
+							 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;
+					EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0
 					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)
 			        BEGIN
 	                INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],

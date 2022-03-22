@@ -29,7 +29,8 @@
 	@CreatedBy  varchar(50) = null,
 	@UpdatedBy  varchar(50) = null,
     @IsDeleted bit = null,
-	@MasterCompanyId int = 0
+	@MasterCompanyId int = 0,
+	@EmployeeId bigint=1
 AS
 BEGIN
 
@@ -37,6 +38,7 @@ BEGIN
 	SET NOCOUNT ON;
 
 		DECLARE @RecordFrom int;
+		DECLARE @ModuleID varchar(500) ='42,43'
 		Declare @IsActive bit = 1
 		Declare @Count Int;
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
@@ -101,13 +103,18 @@ BEGIN
 								asm.IsActive AS IsActive,
 								asm.IsDeleted AS IsDeleted,
 								ISNULL(cal.CalibrationDefaultVendorId,0) as VendorId,
-								V.VendorName as VendorName
+								V.VendorName as VendorName,
+								MSD.LastMSLevel,
+								MSD.AllMSlevels
 							FROM dbo.AssetInventory asm WITH(NOLOCK)
 								LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 								LEFT JOIN dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 								LEFT JOIN dbo.AssetCalibration as cal WITH(NOLOCK) on asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1
 								LEFT JOIN dbo.Vendor as V WITH(NOLOCK) on cal.CalibrationDefaultVendorId=V.VendorId
+								LEFT JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId
+								LEFT JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
+								LEFT JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)

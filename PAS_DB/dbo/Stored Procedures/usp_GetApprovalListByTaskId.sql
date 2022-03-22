@@ -1,10 +1,9 @@
 ﻿------------------------------------------------------------------------------------------------------------
-
-
---exec [usp_GetApprovalListByTaskId] 5, 62
+--exec [dbo].[usp_GetApprovalListByTaskIdRoleWise] 3, 143
 CREATE Procedure [dbo].[usp_GetApprovalListByTaskId]
-@TaskId  bigint,
-@ID bigint
+
+@TaskId  BIGINT,
+@ID BIGINT
 AS
 BEGIN
 
@@ -90,10 +89,6 @@ END
 ELSE IF @TaskType = 'SO Approval'
 BEGIN
 SET @TotalCostText = 'Total SO Cost'
---SELECT @TotalCost = sum(sos.NetSales + ISNULL(so.TotalCharges, 0))
---      FROM dbo.SOMarginSummary sos WITH(NOLOCK)
---	  INNER JOIN dbo.SalesOrder so WITH(NOLOCK) on sos.SalesOrderId = so.SalesOrderId
---	  WHERE sos.SalesOrderId = @ID
 
 DECLARE @TotalCharges_SO AS DECIMAL(18, 2) = 0;
 DECLARE @FlatCharges_SO AS DECIMAL(18, 2) = 0;
@@ -176,48 +171,6 @@ END
 
 SET @TotalCost  = ISNULL(@TotalCost,0)
 
-IF OBJECT_ID(N'tempdb..#ARMSID') IS NOT NULL
-BEGIN
-DROP TABLE #ARMSID 
-END
-
-CREATE TABLE #ARMSID 
-(
- ID BIGINT NOT NULL IDENTITY, 
- ManagementStructureId BIGINT NULL,
- IsCheck bit default 0
-)
-
-INSERT INTO  #ARMSID (ManagementStructureId)
-SELECT DISTINCT Ar.ManagementStructureId
-	   from dbo.ApprovalRule AR  WITH(NOLOCK)
-	     INNER JOIN dbo.Employee E  WITH(NOLOCK) on Ar.ApproverId = E.EmployeeId
-		 INNER JOIN dbo.EmployeeManagementStructure EMS   WITH(NOLOCK)
-		            on EMS.EmployeeId = E.EmployeeId AND EMS.ManagementStructureId = Ar.ManagementStructureId
-		 Where ApprovalTaskId = @TaskId
-			   AND AR.IsActive = 1 AND AR.IsDeleted = 0
-			   AND AR.managementStructureId > 0
-			  AND AR.ApproverId != @EID
-			  AND AR.MasterCompanyId = @MasterCompanyID
-
-INSERT INTO  #ARMSID (ManagementStructureId) SELECT  @MSID
-
-
-Declare  @CNT as int = 0; 
-Declare  @SMSID as int = 0; 
-Select TOP 1 @CNT = ID,@SMSID = ManagementStructureId  FROM #ARMSID WHERE IsCheck = 0 ORDER BY ID 
-
-WHILE (@SMSID > 0)
-BEGIN
-INSERT INTO 
-#ARMSID 
-(ManagementStructureId)
-SELECT * from dbo.udfGetMSByMSId(@SMSID)
-SET @SMSID = 0;
-UPDATE #ARMSID SET IsCheck = 1 WHERE ID  = @CNT
-Select TOP 1 @CNT = ID,@SMSID = ManagementStructureId  FROM #ARMSID WHERE IsCheck = 0 ORDER BY ID 
-END
-
 SELECT DISTINCT Ar.ApproverId,
        E.FirstName + ' ' + E.LastName as ApproverName,
 	   E.EmployeeCode as ApproverCode,
@@ -267,8 +220,8 @@ SELECT DISTINCT Ar.ApproverId,
 	    STUFF((SELECT  Distinct ',' + ISNULL(E.Email,'')
             FROM dbo.ApprovalRule AR  WITH(NOLOCK)
 				INNER JOIN dbo.Employee E  WITH(NOLOCK) on Ar.ApproverId = E.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS   WITH(NOLOCK)
-		        on EMS.EmployeeId = E.EmployeeId AND EMS.ManagementStructureId = Ar.ManagementStructureId
+				INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+				INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = AR.RoleId AND rs.EntityStructureId = @MSID 
 				Where ApprovalTaskId = @TaskId
 				AND AR.IsActive = 1 AND AR.IsDeleted = 0
 				AND AR.ApproverId != @EID
@@ -277,15 +230,13 @@ SELECT DISTINCT Ar.ApproverId,
         FOR XML PATH('')), 1, 1, '') AS ApproverEmails
 	   from dbo.ApprovalRule AR  WITH(NOLOCK)
 	     INNER JOIN dbo.Employee E  WITH(NOLOCK) on Ar.ApproverId = E.EmployeeId
-		 INNER JOIN dbo.EmployeeManagementStructure EMS   WITH(NOLOCK)
-		            on EMS.EmployeeId = E.EmployeeId AND EMS.ManagementStructureId = Ar.ManagementStructureId
+		 INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+		 INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = AR.RoleId AND rs.EntityStructureId = @MSID 
 		 Where ApprovalTaskId = @TaskId
-			   AND AR.IsActive = 1 AND AR.IsDeleted = 0
-			   AND AR.managementStructureId > 0
-			  AND AR.ApproverId != @EID
-			  AND  AR.MasterCompanyId = @MasterCompanyID
-			 AND @MSID IN (SELECT ManagementStructureId FROM #ARMSID )
-
+				AND AR.IsActive = 1 AND AR.IsDeleted = 0
+				AND AR.managementStructureId > 0
+				AND AR.ApproverId != @EID
+				AND AR.MasterCompanyId = @MasterCompanyID
 END TRY	
 BEGIN CATCH
 

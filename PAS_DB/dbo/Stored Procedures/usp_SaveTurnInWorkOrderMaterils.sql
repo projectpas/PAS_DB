@@ -74,6 +74,7 @@ BEGIN
 	DECLARE @StockLineId BIGINT;
 	DECLARE @WorkOrderWorkflowId BIGINT;
 	DECLARE @IsWorkOrderMaterialsExist BIT = 0;
+	DECLARE @MSModuleID INT = 2; -- Stockline Module ID
 		
 		BEGIN TRY
 			-- #STEP 1 CREATE STOCKLINE
@@ -252,6 +253,9 @@ BEGIN
 
 						--UPDATE MATERIALS COST
 						EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
+
+						--Add SL Managment Structure Details 
+						EXEC USP_SaveSLMSDetails @MSModuleID, @StockLineId, @ManagementStructureId, @MasterCompanyId, @UpdatedBy
 					END
 
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL

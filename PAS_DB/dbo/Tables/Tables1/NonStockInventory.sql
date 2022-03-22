@@ -77,7 +77,6 @@
     CONSTRAINT [FK_NonStockInventory_ItemMaster] FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_NonStockInventory_ItemNonStockClassificationId] FOREIGN KEY ([ItemNonStockClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
     CONSTRAINT [FK_NonStockInventory_Location] FOREIGN KEY ([LocationId]) REFERENCES [dbo].[Location] ([LocationId]),
-    CONSTRAINT [FK_NonStockInventory_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_NonStockInventory_Manfacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_NonStockInventory_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_NonStockInventory_Shelf] FOREIGN KEY ([ShelfId]) REFERENCES [dbo].[Shelf] ([ShelfId]),
@@ -87,6 +86,8 @@
     CONSTRAINT [FK_NonStockInventory_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_NonStockInventorye_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
 
 
 GO

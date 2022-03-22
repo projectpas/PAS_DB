@@ -10,10 +10,11 @@
     [IsActive]              BIT           CONSTRAINT [ManagementWarehouse_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [ManagementWarehouse_DC_Delete] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ManagementWarehouse] PRIMARY KEY CLUSTERED ([ManagementWarehouseId] ASC),
-    CONSTRAINT [FK_ManagementWarehouse_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_ManagementWarehouse_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ManagementWarehouse_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 GO
@@ -36,5 +37,50 @@ BEGIN
 	SELECT * FROM INSERTED
 
 	SET NOCOUNT ON;
+
+END
+GO
+
+
+
+
+
+Create TRIGGER [dbo].[Trg_ManagementWarehouseSaveMSDetails]
+
+   ON  [dbo].[ManagementWarehouse]
+
+   AFTER INSERT,UPDATE
+
+AS
+
+BEGIN
+
+
+	SET NOCOUNT ON;
+	DECLARE @ReferenceID bigint,@ModuleID int,@EntityMSID bigint,@MasterCompanyId bigint,@UpdatedBy VARCHAR(256),@MSDetailsId bigint
+
+	set @ModuleID=56
+
+	SELECT @ReferenceID=warehouseid,@EntityMSID=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+
+	 @UpdatedBy=UpdatedBy
+
+	FROM INSERTED
+
+	EXEC dbo.[USP_SaveMSDetails] @ModuleID, @ReferenceID, @EntityMSID, @MasterCompanyId, @UpdatedBy, @MSDetailsId OUTPUT
+
+	--IF UPDATE (ManagementSiteId) 
+ --   BEGIN
+ --       EXEC USP_UpdateMSDetails @ReferenceID, @EntityMSID, @UpdatedBy
+ --   END 
+	--else
+	--begin
+
+	--EXEC dbo.[USP_SaveMSDetails] @ModuleID, @ReferenceID, @EntityMSID, @MasterCompanyId, @UpdatedBy, @MSDetailsId OUTPUT
+
+	--end
+
+	
+
 
 END

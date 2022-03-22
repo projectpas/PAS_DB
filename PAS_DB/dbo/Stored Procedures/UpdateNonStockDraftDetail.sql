@@ -29,61 +29,61 @@ BEGIN
 		BEGIN TRANSACTION
 		DECLARE @StockType int = 2;
 
-	    DECLARE @MSID as bigint
-	    DECLARE @Level1 as varchar(200)
-	    DECLARE @Level2 as varchar(200)
-	    DECLARE @Level3 as varchar(200)
-	    DECLARE @Level4 as varchar(200)
+	    --DECLARE @MSID as bigint
+	    --DECLARE @Level1 as varchar(200)
+	    --DECLARE @Level2 as varchar(200)
+	    --DECLARE @Level3 as varchar(200)
+	    --DECLARE @Level4 as varchar(200)
 	    
-	    IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
-	    BEGIN
-	    DROP TABLE #NonStockDraftMSDATA 
-	    END
-	    CREATE TABLE #NonStockDraftMSDATA
-	    (
-	     MSID bigint,
-	     Level1 varchar(200) NULL,
-	     Level2 varchar(200) NULL,
-	     Level3 varchar(200) NULL,
-	     Level4 varchar(200) NULL 
-	    )
+	    --IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
+	    --BEGIN
+	    --DROP TABLE #NonStockDraftMSDATA 
+	    --END
+	    --CREATE TABLE #NonStockDraftMSDATA
+	    --(
+	    -- MSID bigint,
+	    -- Level1 varchar(200) NULL,
+	    -- Level2 varchar(200) NULL,
+	    -- Level3 varchar(200) NULL,
+	    -- Level4 varchar(200) NULL 
+	    --)
 	    
-	    IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	    BEGIN
-	    DROP TABLE #MSDATA 
-	    END
-	    CREATE TABLE #MSDATA
-	    (
-	    	ID int IDENTITY, 
-	    	MSID bigint 
-	    )
-	    INSERT INTO #MSDATA (MSID) SELECT PO.ManagementStructureId FROM dbo.NonStockInventoryDraft PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId	    
+	    --IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	    --BEGIN
+	    --DROP TABLE #MSDATA 
+	    --END
+	    --CREATE TABLE #MSDATA
+	    --(
+	    --	ID int IDENTITY, 
+	    --	MSID bigint 
+	    --)
+	    --INSERT INTO #MSDATA (MSID) SELECT PO.ManagementStructureId FROM dbo.NonStockInventoryDraft PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId	    
 	    
-	    DECLARE @LoopID AS int 
-	    SELECT  @LoopID = MAX(ID) FROM #MSDATA
-	    WHILE(@LoopID > 0)
-	    BEGIN
-	    SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
+	    --DECLARE @LoopID AS int 
+	    --SELECT  @LoopID = MAX(ID) FROM #MSDATA
+	    --WHILE(@LoopID > 0)
+	    --BEGIN
+	    --SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
 	    
-	    EXEC dbo.GetMSNameandCode @MSID,
-	     @Level1 = @Level1 OUTPUT,
-	     @Level2 = @Level2 OUTPUT,
-	     @Level3 = @Level3 OUTPUT,
-	     @Level4 = @Level4 OUTPUT
+	    --EXEC dbo.GetMSNameandCode @MSID,
+	    -- @Level1 = @Level1 OUTPUT,
+	    -- @Level2 = @Level2 OUTPUT,
+	    -- @Level3 = @Level3 OUTPUT,
+	    -- @Level4 = @Level4 OUTPUT
 	    
-	    INSERT INTO #NonStockDraftMSDATA (MSID, Level1,Level2,Level3,Level4) SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-	    SET @LoopID = @LoopID - 1;
-	    END 
+	    --INSERT INTO #NonStockDraftMSDATA (MSID, Level1,Level2,Level3,Level4) SELECT @MSID,@Level1,@Level2,@Level3,@Level4
+	    --SET @LoopID = @LoopID - 1;
+	    --END 
 	    
 	    UPDATE dbo.NonStockInventoryDraft  SET ParentId = (SELECT TOP 1 S.NonStockInventoryDraftId FROM dbo.NonStockInventoryDraft S WITH (NOLOCK) WHERE 
 	    	                                S.NonStockDraftNumber = SDF.NonStockDraftNumber AND (ISNULL(IsParent,0) = 1))
 	    	  FROM dbo.NonStockInventoryDraft SDF WITH (NOLOCK)  WHERE SDF.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
 	     
 	    UPDATE SD SET
-	    SD.Level1 = PMS.Level1,
-	    SD.Level2 = PMS.Level2,
-	    SD.Level3 = PMS.Level3,
-	    SD.Level4 = PMS.Level4,
+	    --SD.Level1 = PMS.Level1,
+	    --SD.Level2 = PMS.Level2,
+	    --SD.Level3 = PMS.Level3,
+	    --SD.Level4 = PMS.Level4,
 		PurchaseOrderNumber = PO.PurchaseOrderNumber,
 		PartNumber = POP.PartNumber,
 		PartDescription = POP.PartDescription,
@@ -113,7 +113,7 @@ BEGIN
 
 	    FROM dbo.NonStockInventoryDraft SD WITH (NOLOCK)
 	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
-	    LEFT JOIN #NonStockDraftMSDATA PMS WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId	    
+	    --LEFT JOIN #NonStockDraftMSDATA PMS WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId	    
 		LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId =  SD.PurchaseOrderID
 		LEFT JOIN dbo.ItemMasterNonStock IMNS WITH (NOLOCK) ON IMNS.MasterPartId =  SD.MasterPartId
 		LEFT JOIN dbo.ItemClassification ICLF WITH (NOLOCK) ON ICLF.ItemClassificationId =  SD.ItemNonStockClassificationId
@@ -148,14 +148,14 @@ BEGIN
     BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	   IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
-	   BEGIN
-	    DROP TABLE #NonStockDraftMSDATA
-	   END
-	   IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	   BEGIN
-			DROP TABLE #MSDATA 
-	   END
+	  -- IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
+	  -- BEGIN
+	  --  DROP TABLE #NonStockDraftMSDATA
+	  -- END
+	  -- IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	  -- BEGIN
+			--DROP TABLE #MSDATA 
+	  -- END
 	   -- temp table drop
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
@@ -179,12 +179,12 @@ BEGIN
 
 		RETURN (1);           
 	END CATCH
-	IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
-	BEGIN
-	   DROP TABLE #NonStockDraftMSDATA
-	END
-	IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	BEGIN
-		DROP TABLE #MSDATA 
-	END
+	--IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
+	--BEGIN
+	--   DROP TABLE #NonStockDraftMSDATA
+	--END
+	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	--BEGIN
+	--	DROP TABLE #MSDATA 
+	--END
 END

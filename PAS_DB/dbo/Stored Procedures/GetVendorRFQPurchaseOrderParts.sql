@@ -70,8 +70,12 @@ BEGIN
 			  ,PP.[UnitOfMeasure]
 			  ,PO.[CreatedDate] AS POCreatedDate
 			  ,PO.[Status] AS POStatus
-		  FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK) LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK)
-					ON PP.PurchaseOrderId = PO.PurchaseOrderId
+			  ,POMSD.[EntityMSID] AS EntityStructureId
+			  ,POMSD.[LastMSLevel] AS LastMSLevel
+			  ,POMSD.[AllMSlevels] AS AllMSlevels
+		  FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK) 
+		  LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON PP.PurchaseOrderId = PO.PurchaseOrderId
+		  JOIN [dbo].[PurchaseOrderManagementStructureDetails] POMSD ON PP.VendorRFQPOPartRecordId = POMSD.ReferenceID AND POMSD.ModuleID = 21
 		  WHERE PP.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND PP.IsDeleted = 0;
 	END
 	END TRY    

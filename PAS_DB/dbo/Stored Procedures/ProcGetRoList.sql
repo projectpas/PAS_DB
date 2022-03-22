@@ -3,7 +3,6 @@
 -- Create date: 17-Dec-2020
 -- Description:	Get Search Data for Ro List
 -- =============================================
-
 CREATE PROCEDURE [dbo].[ProcGetRoList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=null,
@@ -58,8 +57,8 @@ BEGIN
 		IF (@StatusID=6 OR @StatusID=0)
 		BEGIN
 			SET @StatusID = null			
-		END	
-		
+		END
+		DECLARE @MSModuleID INT = 24; -- Repair Order Management Structure Module ID
 	;With Result AS(
 			SELECT DISTINCT 
 			       RO.RepairOrderId,
@@ -81,9 +80,13 @@ BEGIN
 				   RO.Requisitioner AS RequestedBy,
 				   RO.ApprovedBy			   
 			FROM  dbo.RepairOrder RO WITH (NOLOCK)
-			 INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId		              			  
+			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId		              			  
+			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
+			 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
+			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId		
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-			        EMS.EmployeeId = @EmployeeId AND RO.MasterCompanyId=@MasterCompanyId 
+			        --EMS.EmployeeId = @EmployeeId AND 
+					RO.MasterCompanyId=@MasterCompanyId 
 					 AND 
 					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)

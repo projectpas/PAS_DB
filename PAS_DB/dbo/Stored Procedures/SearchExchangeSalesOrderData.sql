@@ -29,7 +29,8 @@
     @IsDeleted bit = null,
 	@CreatedBy varchar(50)=null,
 	@UpdatedBy varchar(50)=null,
-	@MasterCompanyId int = 1
+	@MasterCompanyId int = 1,
+	@EmployeeId bigint
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -65,6 +66,7 @@ BEGIN
 			Begin
 				Set @Status=null
 			End
+			DECLARE @MSModuleID INT = 19; -- Exchange SalesOrder Management Structure Module ID
 		-- Insert statements for procedure here
 		;With Result AS(
 			Select EQ.ExchangeSalesOrderId,EQ.ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate as 'OpenDate', EXQ.QuoteExpireDate as 'QuoteExpireDate', C.CustomerId, C.Name as 'CustomerName', MST.Name as 'Status',
@@ -87,6 +89,9 @@ BEGIN
 			Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
 			Left Join Priority P WITH (NOLOCK) on EXQ.PriorityId=P.PriorityId
 			--Left Join SalesOrderQuote SOQ on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+			INNER JOIN dbo.ExchangeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId
+			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			Where (EQ.IsDeleted = @IsDeleted) and (@StatusID is null or EQ.StatusId = @StatusID)
 			AND EQ.MasterCompanyId = @MasterCompanyId
 			Group By EQ.ExchangeSalesOrderId,ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate,EXQ.QuoteExpireDate, C.CustomerId, C.Name, 

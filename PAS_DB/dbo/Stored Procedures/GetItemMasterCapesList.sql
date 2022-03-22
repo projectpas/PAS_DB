@@ -23,13 +23,15 @@ CREATE PROCEDURE [dbo].[GetItemMasterCapesList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @isDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@EmployeeId BIGINT=NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-		DECLARE @RecordFrom int;		
+		DECLARE @RecordFrom int;
+		DECLARE @ModuleId int =8;
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
@@ -75,12 +77,17 @@ BEGIN
 				(ISNULL(imc.[Level1],'')) 'level1',   
 				(ISNULL(imc.[Level2],'')) 'level2', 
 				(ISNULL(imc.[Level3],'')) 'level3', 
-				(ISNULL(imc.[Level4],'')) 'level4'  
+				(ISNULL(imc.[Level4],'')) 'level4'  ,
+				MSD.LastMSLevel,
+				MSD.AllMSlevels
 			FROM dbo.ItemMasterCapes imc WITH (NOLOCK)
+					INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleId AND MSD.ReferenceID = imc.ItemMasterCapesId
+	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON imc.ManagementStructureId = RMS.EntityStructureId
+	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 
 			WHERE ((imc.IsDeleted=@isDeleted) AND (@ItemMasterId IS NULL OR imc.ItemMasterId = @ItemMasterId))
 				--AND (@VerifiedBy IS NULL OR imc.VerifiedBy IN (@VerifiedBy)))
-				  AND imc.MasterCompanyId=@MasterCompanyId	
+				  AND imc.MasterCompanyId=@MasterCompanyId	AND EUR.EmployeeId = @EmployeeId
 				
 				), ResultCount AS(SELECT COUNT(ItemMasterCapesId) AS totalItems FROM Result)
 

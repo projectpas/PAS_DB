@@ -1,4 +1,5 @@
-﻿--- exec UpdateAssetInventoryDraftRoDetails  139
+﻿
+--- exec UpdateAssetInventoryDraftRoDetails  139
 CREATE  PROCEDURE [dbo].[UpdateAssetInventoryDraftRoDetails]
 @RepairOrderId  bigint
 AS
@@ -9,54 +10,54 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRY
 BEGIN TRANSACTION
 
-DECLARE @MSID as bigint
-DECLARE @Level1 as varchar(200)
-DECLARE @Level2 as varchar(200)
-DECLARE @Level3 as varchar(200)
-DECLARE @Level4 as varchar(200)
+--DECLARE @MSID as bigint
+--DECLARE @Level1 as varchar(200)
+--DECLARE @Level2 as varchar(200)
+--DECLARE @Level3 as varchar(200)
+--DECLARE @Level4 as varchar(200)
 
-IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
-BEGIN
-DROP TABLE #AssetInventoryDraftMSDATA 
-END
-CREATE TABLE #AssetInventoryDraftMSDATA
-(
- MSID bigint,
- Level1 varchar(200) NULL,
- Level2 varchar(200) NULL,
- Level3 varchar(200) NULL,
- Level4 varchar(200) NULL 
-)
+--IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
+--BEGIN
+--DROP TABLE #AssetInventoryDraftMSDATA 
+--END
+--CREATE TABLE #AssetInventoryDraftMSDATA
+--(
+-- MSID bigint,
+-- Level1 varchar(200) NULL,
+-- Level2 varchar(200) NULL,
+-- Level3 varchar(200) NULL,
+-- Level4 varchar(200) NULL 
+--)
 
-IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-BEGIN
-DROP TABLE #MSDATA 
-END
-CREATE TABLE #MSDATA
-(
-	ID int IDENTITY, 
-	MSID bigint 
-)
-INSERT INTO #MSDATA (MSID)
-  SELECT RO.ManagementStructureId FROM dbo.AssetInventoryDraft RO Where RO.RepairOrderId = @RepairOrderId
+--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+--BEGIN
+--DROP TABLE #MSDATA 
+--END
+--CREATE TABLE #MSDATA
+--(
+--	ID int IDENTITY, 
+--	MSID bigint 
+--)
+--INSERT INTO #MSDATA (MSID)
+--  SELECT RO.ManagementStructureId FROM dbo.AssetInventoryDraft RO Where RO.RepairOrderId = @RepairOrderId
 
 
-DECLARE @LoopID as int 
-SELECT  @LoopID = MAX(ID) FROM #MSDATA
-WHILE(@LoopID > 0)
-BEGIN
-SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
+--DECLARE @LoopID as int 
+--SELECT  @LoopID = MAX(ID) FROM #MSDATA
+--WHILE(@LoopID > 0)
+--BEGIN
+--SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
 
-EXEC dbo.GetMSNameandCode @MSID,
- @Level1 = @Level1 OUTPUT,
- @Level2 = @Level2 OUTPUT,
- @Level3 = @Level3 OUTPUT,
- @Level4 = @Level4 OUTPUT
+--EXEC dbo.GetMSNameandCode @MSID,
+-- @Level1 = @Level1 OUTPUT,
+-- @Level2 = @Level2 OUTPUT,
+-- @Level3 = @Level3 OUTPUT,
+-- @Level4 = @Level4 OUTPUT
 
-INSERT INTO #AssetInventoryDraftMSDATA (MSID, Level1,Level2,Level3,Level4)
-                              SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-SET @LoopID = @LoopID - 1;
-END
+--INSERT INTO #AssetInventoryDraftMSDATA (MSID, Level1,Level2,Level3,Level4)
+--                              SELECT @MSID,@Level1,@Level2,@Level3,@Level4
+--SET @LoopID = @LoopID - 1;
+--END
 
 UPDATE dbo.AssetInventoryDraft SET ParentId =  (SELECT TOP 1 S.AssetInventoryDraftId FROM dbo.AssetInventoryDraft S WHERE 
 	                                      S.InventoryNumber = SDF.InventoryNumber 
@@ -148,10 +149,10 @@ UPDATE SD SET
       ,SD.[IsQtyReserved] = AI.IsQtyReserved
       ,SD.[InventoryStatusId] = AI.InventoryStatusId
       ,SD.[AssetStatusId] = AI.AssetStatusId
-      ,SD.[Level1] = PMS.Level1
-      ,SD.[Level2] = PMS.Level2
-      ,SD.[Level3] = PMS.Level3
-      ,SD.[Level4] = PMS.Level4
+      --,SD.[Level1] = PMS.Level1
+      --,SD.[Level2] = PMS.Level2
+      --,SD.[Level3] = PMS.Level3
+      --,SD.[Level4] = PMS.Level4
       ,SD.[ManufactureName] = MF.[NAME]
       ,SD.[LocationName] = LC.[Name]
       ,SD.[PartNumber] = AI.PartNumber
@@ -166,7 +167,7 @@ UPDATE SD SET
 
 FROM dbo.AssetInventoryDraft SD WITH (NOLOCK)
 INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId and ROP.ItemTypeId<>1
-LEFT JOIN #AssetInventoryDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
+--LEFT JOIN #AssetInventoryDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
 LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) on AI.AssetInventoryId=SD.AssetInventoryId
 LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
@@ -199,14 +200,14 @@ END TRY
   BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	   IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
-	   BEGIN
-	    DROP TABLE #AssetInventoryDraftMSDATA 
-	   END
-	   IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	   BEGIN
-			DROP TABLE #MSDATA 
-	   END
+	  -- IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
+	  -- BEGIN
+	  --  DROP TABLE #AssetInventoryDraftMSDATA 
+	  -- END
+	  -- IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	  -- BEGIN
+			--DROP TABLE #MSDATA 
+	  -- END
 	   -- temp table drop
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
@@ -230,13 +231,13 @@ END TRY
 
 		RETURN (1);           
   END CATCH
-	IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
-	BEGIN
-	   DROP TABLE #AssetInventoryDraftMSDATA 
-	END
-	IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	BEGIN
-		DROP TABLE #MSDATA 
-	END
+	--IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
+	--BEGIN
+	--   DROP TABLE #AssetInventoryDraftMSDATA 
+	--END
+	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	--BEGIN
+	--	DROP TABLE #MSDATA 
+	--END
 
 END

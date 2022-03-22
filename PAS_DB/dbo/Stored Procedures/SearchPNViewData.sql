@@ -30,7 +30,8 @@ CREATE PROCEDURE [dbo].[SearchPNViewData]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
-	@MasterCompanyId int = null
+	@MasterCompanyId int = null,
+	@EmployeeId bigint
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -76,6 +77,7 @@ BEGIN
 				Begin
 					Set @Status=null
 				End
+				DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID
 			-- Insert statements for procedure here
 			;With Result AS(
 				Select SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',ISNULL(SP.NetSales,0) as 'QuoteAmount',
@@ -92,6 +94,9 @@ BEGIN
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 					,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,

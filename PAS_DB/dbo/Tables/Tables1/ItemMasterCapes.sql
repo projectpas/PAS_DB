@@ -26,10 +26,11 @@
     CONSTRAINT [PK_ItemMasterCapes] PRIMARY KEY CLUSTERED ([ItemMasterCapesId] ASC),
     CONSTRAINT [FK_ItemMasterCapes_CapabilityTypeId] FOREIGN KEY ([CapabilityTypeId]) REFERENCES [dbo].[CapabilityType] ([CapabilityTypeId]),
     CONSTRAINT [FK_ItemMasterCapes_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
-    CONSTRAINT [FK_ItemMasterCapes_ManagementStructureId] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_ItemMasterCapes_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [UC_ItemMasterCapes] UNIQUE NONCLUSTERED ([ItemMasterId] ASC, [CapabilityTypeId] ASC, [ManagementStructureId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [UC_ItemMasterCapes] UNIQUE NONCLUSTERED ([ItemMasterId] ASC, [CapabilityTypeId] ASC, [MasterCompanyId] ASC, [ManagementStructureId] ASC)
 );
+
+
 
 
 GO

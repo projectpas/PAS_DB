@@ -34,7 +34,8 @@ CREATE PROCEDURE [dbo].[SearchSOViewData]
 	@OpenDate datetime=null,
 	@ShippedDate varchar(50)=null,
 	@RequestedDateType varchar(50)=null,
-	@EstimatedShipDateType varchar(50)=null
+	@EstimatedShipDateType varchar(50)=null,
+	@EmployeeId bigint
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -80,6 +81,7 @@ BEGIN
 				Begin
 					Set @Status=null
 				End
+				DECLARE @MSModuleID INT = 17; -- Sales Order Management Structure Module ID
 
 				;With Main AS(
 						Select SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber as 'SalesQuoteNumber', 
@@ -94,6 +96,9 @@ BEGIN
 						Inner Join CustomerType CT WITH (NOLOCK) on SO.AccountTypeId = CT.CustomerTypeId
 						Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId 
 						Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId and SOQ.SalesOrderQuoteId is not Null
+						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						Outer Apply(
 							Select SUM(NetSales) as SoAmount from SalesOrderPart WITH (NOLOCK) 
 							Where SalesOrderId = SO.SalesOrderId

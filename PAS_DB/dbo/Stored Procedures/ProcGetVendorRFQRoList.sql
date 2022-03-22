@@ -1,5 +1,4 @@
 ﻿----------------------------------------------------------------------------------------------------------------------
-
 CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=null,
@@ -73,7 +72,8 @@ BEGIN
 		IF (@StatusID=6 OR @StatusID=0)
 		BEGIN
 			SET @StatusID = null			
-		END	
+		END
+		DECLARE @MSModuleID INT = 22; -- Vendor RFQ PO Management Structure Module ID
 	if @ViewType='pnview'
 	BEGIN
 	;With Result AS(
@@ -117,12 +117,18 @@ BEGIN
 				   RP.Memo as 'MemoType',
 				   RP.RepairOrderNumber as 'RepairOrderNumberType',
 				   RP.RepairOrderId,
-				   RP.VendorRFQROPartRecordId
+				   RP.VendorRFQROPartRecordId,
+				   MSD.LastMSLevel,
+				   MSD.AllMSlevels
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
-			 INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
+			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
+			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.VendorRFQRepairOrderId
+			  INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
+			  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.VendorRFQRepairOrderPart RP WITH (NOLOCK) ON RP.VendorRFQRepairOrderId=RO.VendorRFQRepairOrderId
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-			        EMS.EmployeeId = @EmployeeId AND RO.MasterCompanyId=@MasterCompanyId 
+			        --EMS.EmployeeId = @EmployeeId AND
+					RO.MasterCompanyId=@MasterCompanyId 
 					 AND 
 					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					), ResultCount AS(Select COUNT(VendorRFQRepairOrderId) AS totalItems FROM Result)
@@ -260,10 +266,14 @@ BEGIN
 				   RO.[Status],
 				   RO.Requisitioner AS RequestedBy				   
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
-			 INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
+			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.VendorRFQRepairOrderId
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
+			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
 			-- LEFT JOIN dbo.VendorRFQRepairOrderPart RP WITH (NOLOCK) ON RP.VendorRFQRepairOrderId=RO.VendorRFQRepairOrderId
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-			        EMS.EmployeeId = @EmployeeId AND RO.MasterCompanyId=@MasterCompanyId 
+			        --EMS.EmployeeId = @EmployeeId AND
+					RO.MasterCompanyId=@MasterCompanyId 
 					 AND 
 					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					),
@@ -376,25 +386,40 @@ BEGIN
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
 						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 ) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)
 						as 'MemoType',
+						--(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
+						--FROM  dbo.VendorRFQRepairOrderPart VRPP 
+						--WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1  ) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
+						--as 'Level1Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
+						--FROM  dbo.VendorRFQRepairOrderPart VRPP 
+						--WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1  
+						-- ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)
+						--as 'Level2Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
+						--FROM  dbo.VendorRFQRepairOrderPart VRPP 
+						--WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 
+						--) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)
+						--as 'Level3Type',
+						--(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
+						--FROM  dbo.VendorRFQRepairOrderPart VRPP 
+						--WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 
+						-- ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)
+						--as 'Level4Type',
+						'' AS Level1Type,
+						'' AS Level2Type,
+						'' AS Level3Type,
+						'' AS Level4Type,
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1  ) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)
-						as 'Level1Type',
+						--INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = VRPP.VendorRFQPurchaseOrderId
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
+						) Then 'Multiple' ELse  isnull(MSD.LastMSLevel,'')   End)
+						as 'LastMSLevel',
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1  
-						 ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)
-						as 'Level2Type',
-						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
-						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 
-						) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)
-						as 'Level3Type',
-						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
-						FROM  dbo.VendorRFQRepairOrderPart VRPP 
-						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 
-						 ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)
-						as 'Level4Type',
+						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0
+						) Then 'Multiple' ELse  isnull(MSD.AllMSlevels,'')   End)
+						as 'AllMSlevels',
 						(Case When ((SELECT Count(VRPP.VendorRFQRepairOrderId) 
 						FROM  dbo.VendorRFQRepairOrderPart VRPP 
 						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1  
@@ -419,7 +444,8 @@ BEGIN
 					LEFT JOIN VendorRFQRepairOrderPart SP ON SP.VendorRFQRepairOrderId=M.VendorRFQRepairOrderId
 					
 					LEFT JOIN DatesCTE D ON D.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId			
-			
+					LEFT JOIN dbo.RepairOrderManagementStructureDetails MSD ON MSD.ModuleID = 23 AND MSD.ReferenceID = SP.VendorRFQRepairOrderId
+
 			WHERE ((@GlobalFilter <>'' AND ((VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 			        (M.CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(M.UpdatedBy LIKE '%' +@GlobalFilter+'%') OR	
@@ -467,7 +493,7 @@ BEGIN
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
 					SP.StockType,SP.RepairOrderNumber
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
-					,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.AltEquiPartNumber,SP.RevisedPartNumber,SP.WorkPerformed--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId
+					,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.AltEquiPartNumber,SP.RevisedPartNumber,SP.WorkPerformed,MSD.LastMSLevel,MSD.AllMSlevels--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId
 			), 
 			CTE_Count AS (Select COUNT(VendorRFQRepairOrderId) AS NumberOfItems FROM result)
 			SELECT VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
@@ -475,7 +501,7 @@ BEGIN
 					,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,RepairOrderNumberType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType--,PurchaseOrderNumberType
 					
-					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,AltEquiPartNumberType,RevisedPartNumberType,WorkPerformedType
+					,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,AltEquiPartNumberType,RevisedPartNumberType,WorkPerformedType,LastMSLevel,AllMSlevels
 					FROM result,CTE_Count
 			ORDER BY  
             CASE WHEN (@SortOrder=1 AND @SortColumn='VendorRFQRepairOrderNumber')  THEN VendorRFQRepairOrderNumber END ASC,

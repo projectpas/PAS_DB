@@ -1,26 +1,4 @@
-﻿
-
-
-/*************************************************************           
- ** File:   [UpdateAssetInventoryDraftPoDetails]           
- ** Author:  Moin Bloch
- ** Description: This stored procedure is used to Update Asset Inventory Draf Detail ID Value Wise
- ** Purpose:         
- ** Date:   02/02/2022        
-          
- ** PARAMETERS: @@PurchaseOrderId bigint
-         
- ** RETURN VALUE:           
- **************************************************************           
- ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/02/2022  Moin Bloch     Created
-     
--- EXEC [UpdateAssetInventoryDraftPoDetails] 1
-************************************************************************/
-CREATE PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
+﻿CREATE PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
 @PurchaseOrderId  bigint
 AS
 BEGIN
@@ -30,52 +8,52 @@ BEGIN
 		BEGIN TRANSACTION
 		DECLARE @StockType int = 11;
 
-	    DECLARE @MSID as bigint
-	    DECLARE @Level1 as varchar(200)
-	    DECLARE @Level2 as varchar(200)
-	    DECLARE @Level3 as varchar(200)
-	    DECLARE @Level4 as varchar(200)
+	    --DECLARE @MSID as bigint
+	    --DECLARE @Level1 as varchar(200)
+	    --DECLARE @Level2 as varchar(200)
+	    --DECLARE @Level3 as varchar(200)
+	    --DECLARE @Level4 as varchar(200)
 	    
-	    IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
-	    BEGIN
-	    DROP TABLE #AssetinventorypoDraftMSDATA 
-	    END
-	    CREATE TABLE #AssetinventorypoDraftMSDATA
-	    (
-	     MSID bigint,
-	     Level1 varchar(200) NULL,
-	     Level2 varchar(200) NULL,
-	     Level3 varchar(200) NULL,
-	     Level4 varchar(200) NULL 
-	    )
+	    --IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
+	    --BEGIN
+	    --DROP TABLE #AssetinventorypoDraftMSDATA 
+	    --END
+	    --CREATE TABLE #AssetinventorypoDraftMSDATA
+	    --(
+	    -- MSID bigint,
+	    -- Level1 varchar(200) NULL,
+	    -- Level2 varchar(200) NULL,
+	    -- Level3 varchar(200) NULL,
+	    -- Level4 varchar(200) NULL 
+	    --)
 	    
-	    IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	    BEGIN
-	    DROP TABLE #MSDATA 
-	    END
-	    CREATE TABLE #MSDATA
-	    (
-	    	ID int IDENTITY, 
-	    	MSID bigint 
-	    )
-	    INSERT INTO #MSDATA (MSID) SELECT PO.ManagementStructureId FROM dbo.AssetInventoryDraft PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId
+	    --IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	    --BEGIN
+	    --DROP TABLE #MSDATA 
+	    --END
+	    --CREATE TABLE #MSDATA
+	    --(
+	    --	ID int IDENTITY, 
+	    --	MSID bigint 
+	    --)
+	    --INSERT INTO #MSDATA (MSID) SELECT PO.ManagementStructureId FROM dbo.AssetInventoryDraft PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId
 	    
 	    
-	    DECLARE @LoopID AS int 
-	    SELECT  @LoopID = MAX(ID) FROM #MSDATA
-	    WHILE(@LoopID > 0)
-	    BEGIN
-	    SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
+	    --DECLARE @LoopID AS int 
+	    --SELECT  @LoopID = MAX(ID) FROM #MSDATA
+	    --WHILE(@LoopID > 0)
+	    --BEGIN
+	    --SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
 	    
-	    EXEC dbo.GetMSNameandCode @MSID,
-	     @Level1 = @Level1 OUTPUT,
-	     @Level2 = @Level2 OUTPUT,
-	     @Level3 = @Level3 OUTPUT,
-	     @Level4 = @Level4 OUTPUT
+	    --EXEC dbo.GetMSNameandCode @MSID,
+	    -- @Level1 = @Level1 OUTPUT,
+	    -- @Level2 = @Level2 OUTPUT,
+	    -- @Level3 = @Level3 OUTPUT,
+	    -- @Level4 = @Level4 OUTPUT
 	    
-	    INSERT INTO #AssetinventorypoDraftMSDATA (MSID, Level1,Level2,Level3,Level4) SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-	    SET @LoopID = @LoopID - 1;
-	    END 
+	    --INSERT INTO #AssetinventorypoDraftMSDATA (MSID, Level1,Level2,Level3,Level4) SELECT @MSID,@Level1,@Level2,@Level3,@Level4
+	    --SET @LoopID = @LoopID - 1;
+	    --END 
 	    
 	    UPDATE dbo.AssetInventoryDraft  SET ParentId = (SELECT TOP 1 S.AssetInventoryDraftId FROM dbo.AssetInventoryDraft S WITH (NOLOCK) WHERE 
 	    	                                S.InventoryNumber = SDF.InventoryNumber AND (ISNULL(IsParent,0) = 1))
@@ -86,10 +64,10 @@ BEGIN
 	          ,SD.[AlternateAssetRecordId] = POP.AltEquiPartNumberId
 			  ,SD.[Name] = AST.[Name]
 			  ,SD.[Description] = AST.[Description]
-			  ,SD.[CalibrationRequired] = 0
-              ,SD.[CertificationRequired] = 0
-			  ,SD.[InspectionRequired] = 0
-			  ,SD.[VerificationRequired] = 0
+			  ,SD.[CalibrationRequired] = ASTC.CalibrationRequired
+              ,SD.[CertificationRequired] = ASTC.CertificationRequired
+			  ,SD.[InspectionRequired] = ASTC.InspectionRequired
+			  ,SD.[VerificationRequired] = ASTC.VerificationRequired
 			  ,SD.[IsTangible] =ISNULL( AST.IsTangible,0)
               ,SD.[IsIntangible] =ISNULL( AST.IsIntangible  ,0)  
 			  --,SD.[AssetAcquisitionTypeId] = AST.AssetAcquisitionTypeId
@@ -119,17 +97,32 @@ BEGIN
               --,SD.[WarrantyStatusId] = AI.WarrantyStatusId
               --,SD.[UnexpiredTime] = AI.UnexpiredTime      
 			  ,SD.[Warranty] = 0
-			  ,SD.[CalibrationDefaultVendorId] = null
-              ,SD.[CertificationDefaultVendorId] = null
-              ,SD.[InspectionDefaultVendorId] = null
-              ,SD.[VerificationDefaultVendorId] = null
-			  ,SD.[CertificationFrequencyMonths] = 0
-			  ,SD.[CertificationFrequencyDays] = 0
-			  ,SD.[InspectionFrequencyMonths] = 0
-			  ,SD.[VerificationFrequencyMonths] = 0
-			  ,SD.[CalibrationFrequencyMonths] = 0
-			  ,SD.[IsDepreciable] = 0
-			  ,SD.[IsNonDepreciable] = 0
+			  ,SD.[CalibrationDefaultVendorId] = ASTC.CalibrationDefaultVendorId
+              ,SD.[CertificationDefaultVendorId] = ASTC.CertificationDefaultVendorId
+              ,SD.[InspectionDefaultVendorId] = ASTC.InspectionDefaultVendorId
+              ,SD.[VerificationDefaultVendorId] = ASTC.VerificationDefaultVendorId
+			  ,SD.[CertificationFrequencyMonths] = ASTC.CertificationFrequencyMonths
+			  ,SD.[CertificationFrequencyDays] = ASTC.CertificationFrequencyDays
+			  ,SD.[InspectionFrequencyMonths] = ASTC.InspectionFrequencyMonths
+			  ,SD.[InspectionFrequencyDays] = ASTC.InspectionFrequencyDays
+			  ,SD.[VerificationFrequencyMonths] = ASTC.VerificationFrequencyMonths
+			  ,SD.[VerificationFrequencyDays] = ASTC.VerificationFrequencyDays
+			  ,SD.[CalibrationFrequencyMonths] = ASTC.CalibrationFrequencyMonths
+			  ,SD.[CalibrationFrequencyDays] = ASTC.CalibrationFrequencyDays
+			  ,SD.[CalibrationDefaultCost] = ASTC.CalibrationDefaultCost
+              ,SD.[CertificationDefaultCost] = ASTC.CertificationDefaultCost
+              ,SD.[InspectionDefaultCost] = ASTC.InspectionDefaultCost
+              ,SD.[VerificationDefaultCost] = ASTC.VerificationDefaultCost
+			  ,SD.[CalibrationCurrencyId] = ASTC.CalibrationCurrencyId
+              ,SD.[CertificationCurrencyId] = ASTC.CertificationCurrencyId
+              ,SD.[InspectionCurrencyId] = ASTC.InspectionCurrencyId
+              ,SD.[VerificationCurrencyId] = ASTC.VerificationCurrencyId
+			  ,SD.[CalibrationGlAccountId] = ASTC.CalibrationGlAccountId
+              ,SD.[CertificationGlAccountId] = ASTC.CertificationGlAccountId
+              ,SD.[InspectionGlaAccountId] = ASTC.InspectionGlaAccountId
+              ,SD.[VerificationGlAccountId] = ASTC.VerificationGlAccountId
+			  ,SD.[IsDepreciable] =ISNULL(AST.IsDepreciable,0)
+			  ,SD.[IsNonDepreciable] =ISNULL(AST.IsNonDepreciable,0)
 			  ,SD.[IsAmortizable] = 0
 			  ,SD.[IsNonAmortizable] = 0			  
               ,SD.[IsInsurance] = 0
@@ -137,10 +130,10 @@ BEGIN
 			  ,SD.[IsQtyReserved] = 0
 			  --,SD.[InventoryStatusId] = AI.InventoryStatusId
               --,SD.[AssetStatusId] = AI.AssetStatusId
-			  ,SD.[Level1] = PMS.Level1
-              ,SD.[Level2] = PMS.Level2
-              ,SD.[Level3] = PMS.Level3
-              ,SD.[Level4] = PMS.Level4
+			  --,SD.[Level1] = PMS.Level1
+     --         ,SD.[Level2] = PMS.Level2
+     --         ,SD.[Level3] = PMS.Level3
+     --         ,SD.[Level4] = PMS.Level4
 			  ,SD.[ManufactureName] = MF.[NAME]
 			  ,SD.[LocationName] = LC.[Name]      
 			  ,SD.[PartNumber] = AST.ManufacturerPN
@@ -154,8 +147,9 @@ BEGIN
 			  ,SD.SiteName = S.[Name]	          
           FROM dbo.AssetInventoryDraft SD WITH (NOLOCK)
           INNER JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId and POP.ItemTypeId = @StockType
-          LEFT JOIN #AssetinventorypoDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
+          --LEFT JOIN #AssetinventorypoDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
 		  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON AST.AssetRecordId = SD.AssetRecordId
+		  LEFT JOIN dbo.AssetCalibration ASTC  WITH (NOLOCK) ON AST.AssetRecordId = ASTC.AssetRecordId
           LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
           --LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) on AI.AssetInventoryId=SD.AssetInventoryId
           LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
@@ -185,14 +179,14 @@ BEGIN
     BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	   IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
-	   BEGIN
-	    DROP TABLE #AssetinventorypoDraftMSDATA 
-	   END
-	   IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	   BEGIN
-			DROP TABLE #MSDATA 
-	   END
+	  -- IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
+	  -- BEGIN
+	  --  DROP TABLE #AssetinventorypoDraftMSDATA 
+	  -- END
+	  -- IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	  -- BEGIN
+			--DROP TABLE #MSDATA 
+	  -- END
 	   -- temp table drop
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
@@ -216,12 +210,12 @@ BEGIN
 
 		RETURN (1);           
 	END CATCH
-	IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
-	BEGIN
-	   DROP TABLE #AssetinventorypoDraftMSDATA 
-	END
-	IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	BEGIN
-		DROP TABLE #MSDATA 
-	END
+	--IF OBJECT_ID(N'tempdb..#AssetinventorypoDraftMSDATA') IS NOT NULL
+	--BEGIN
+	--   DROP TABLE #AssetinventorypoDraftMSDATA 
+	--END
+	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	--BEGIN
+	--	DROP TABLE #MSDATA 
+	--END
 END

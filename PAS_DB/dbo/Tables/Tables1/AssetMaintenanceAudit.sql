@@ -3,8 +3,8 @@
     [AssetRecordId]              BIGINT         NOT NULL,
     [AssetMaintenanceId]         BIGINT         NOT NULL,
     [AssetIsMaintenanceReqd]     BIT            NULL,
-    [MaintenanceFrequencyMonths] TINYINT        NULL,
-    [MaintenanceFrequencyDays]   TINYINT        NULL,
+    [MaintenanceFrequencyMonths] INT            NULL,
+    [MaintenanceFrequencyDays]   INT            NULL,
     [MaintenanceDefaultVendorId] BIGINT         NULL,
     [MaintenanceGLAccountId]     BIGINT         NULL,
     [MaintenanceMemo]            NVARCHAR (MAX) NULL,
@@ -23,4 +23,6 @@
     CONSTRAINT [FK_AssetMaintenanceAudit_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_AssetMaintenanceAudit_AssetMaintenacne] FOREIGN KEY ([AssetMaintenanceId]) REFERENCES [dbo].[AssetMaintenance] ([AssetMaintenanceId])
 );
+
+
 

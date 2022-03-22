@@ -104,7 +104,6 @@
     CONSTRAINT [FK_ReceivingCustomerWork_InspectedById] FOREIGN KEY ([InspectedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ReceivingCustomerWork_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ReceivingCustomerWork_Location] FOREIGN KEY ([LocationId]) REFERENCES [dbo].[Location] ([LocationId]),
-    CONSTRAINT [FK_ReceivingCustomerWork_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_ReceivingCustomerWork_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ReceivingCustomerWork_OwnerType] FOREIGN KEY ([OwnerTypeId]) REFERENCES [dbo].[Module] ([ModuleId]),
     CONSTRAINT [FK_ReceivingCustomerWork_Shelf] FOREIGN KEY ([Shelfid]) REFERENCES [dbo].[Shelf] ([ShelfId]),
@@ -115,6 +114,8 @@
     CONSTRAINT [FK_ReceivingCustomerWork_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_ReceivingCustomerWork_WorkScopeId] FOREIGN KEY ([WorkScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 GO

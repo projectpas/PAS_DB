@@ -43,10 +43,15 @@ BEGIN
 				DECLARE @ControlNumber VARCHAR(50);
 				DECLARE @IDCurrentNumber BIGINT;	
 				DECLARE @IDNumber VARCHAR(50);
+				DECLARE @ModuleID INT;
+				DECLARE @EntityMSID BIGINT;
+
+				SET @ModuleID = 2; -- Stockline Module ID
 
 				SELECT	@StocklineId = StockLineId, 
 						@RevisedConditionId = CASE WHEN ISNULL(RevisedConditionId, 0) > 0 THEN RevisedConditionId ELSE ConditionId END,
-						@MasterCompanyId  = MasterCompanyId
+						@MasterCompanyId  = MasterCompanyId,
+						@EntityMSID = ManagementStructureId
 				FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNumberId
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -223,6 +228,8 @@ BEGIN
 				UPDATE [dbo].[WorkOrderPartNumber] SET StockLineId = @NewStocklineId WHERE ID = @WorkOrderPartNumberId;
 
 				UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0 WHERE StockLineId = @StocklineId
+
+				EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'WO Close Job'
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN

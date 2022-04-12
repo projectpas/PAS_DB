@@ -117,7 +117,6 @@ BEGIN
 												  WHEN Assc.VerificationRequired =1  THEN  'Verification' ELSE 'Calibration' end)as CertifyType,
 						
 											asm.MasterCompanyId AS MasterCompanyId,
-											asm.ManagementStructureId AS ManagementStructureId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
@@ -145,7 +144,10 @@ BEGIN
 									    --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 										--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 										--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-										where ((asm.IsDeleted = 0)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  and  asm.MasterCompanyId=@MasterCompanyId )
+										where ((asm.IsDeleted = 0)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
+										and  asm.MasterCompanyId=@MasterCompanyId 
+										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
+										and AsI.InventoryStatusId in (1,3)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult5 from  Result
 								WHERE (
@@ -285,7 +287,6 @@ BEGIN
 											'' AS lastcheckedoutmemo,
 											'Calibration' as CertifyType,
 											asm.MasterCompanyId AS MasterCompanyId,
-											asm.ManagementStructureId AS ManagementStructureId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
@@ -317,7 +318,10 @@ BEGIN
 						    --            INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 										--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 										--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-										where ((asm.IsDeleted = 0)  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CalibrationRequired =1))
+										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive)
+										AND  asm.MasterCompanyId=@MasterCompanyId and (Assc.CalibrationRequired =1)
+										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
+										and AsI.InventoryStatusId in (1,3)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult from  Result
 								WHERE (
@@ -456,7 +460,6 @@ BEGIN
 											'' AS lastcheckedoutmemo,
 											'Certification' as CertifyType,	
 											asm.MasterCompanyId AS MasterCompanyId,
-											asm.ManagementStructureId AS ManagementStructureId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
@@ -489,7 +492,11 @@ BEGIN
 										--INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 										--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 										--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND  (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CertificationRequired =1))
+										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND  
+										(@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
+										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.CertificationRequired =1)
+										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
+										and AsI.InventoryStatusId in (1,3)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 							Select * INTO #TempResult1 from  Result
 								WHERE (
@@ -627,7 +634,6 @@ BEGIN
 											'' AS lastcheckedoutmemo,
 											'Inspection' as CertifyType,
 											asm.MasterCompanyId AS MasterCompanyId,
-											asm.ManagementStructureId AS ManagementStructureId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
@@ -660,7 +666,11 @@ BEGIN
 										--INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 										--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 										--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1))
+										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
+										AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
+										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.InspectionRequired =1)
+										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
+										and AsI.InventoryStatusId in (1,3)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult2 from  Result
 								WHERE (
@@ -814,7 +824,6 @@ BEGIN
 											-- CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
 											-- level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
 											asm.MasterCompanyId AS MasterCompanyId,
-											asm.ManagementStructureId AS ManagementStructureId,
 											asm.CreatedDate AS CreatedDate,
 											asm.UpdatedDate AS UpdatedDate,
 											asm.CreatedBy AS CreatedBy,
@@ -848,7 +857,11 @@ BEGIN
 										--LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
 										--LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
 										--LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
-										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) and  asm.MasterCompanyId=@MasterCompanyId and (Assc.VerificationRequired =1))
+										where ((asm.IsDeleted = 0) AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
+										AND (@IsActive is null or isnull(asm.IsActive,1) = @IsActive) 
+										and  asm.MasterCompanyId=@MasterCompanyId and (Assc.VerificationRequired =1)
+										AND (@IsActive is null or isnull(AsI.IsActive,1) = @IsActive))										
+										and AsI.InventoryStatusId in (1,3)
 								), ResultCount AS(Select COUNT(AssetId) AS totalItems FROM Result)
 								Select * INTO #TempResult3 from  Result
 								WHERE (

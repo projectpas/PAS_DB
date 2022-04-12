@@ -18,6 +18,7 @@
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 07/27/2021	  Hemant Saliya  Added Master Company Id Filter
 	4	 08/08/2021	  Hemant Saliya  Update Setting Table 
+	5	 25/03/2022	  Vishal Suthar  Added New Column for "MPN Status"
      
  EXECUTE [GetWorkOrderQuoteList] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'
 **************************************************************/ 
@@ -45,7 +46,8 @@ CREATE PROCEDURE [dbo].[GetWorkOrderQuoteList]
 	@VersionNo varchar(20) = null,
 	@PartNumber varchar(20) = null,
 	@PartDescription varchar(20) = null,
-	@SerialNumber varchar(20) = null
+	@SerialNumber varchar(20) = null,
+	@WorkOrderStatus varchar(50) = null
 AS 
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -102,7 +104,32 @@ BEGIN
                              woq.UpdatedBy,
                              woq.UpdatedDate,
 							 woq.IsVersionIncrease,
-							 woq.VersionNo
+							 woq.VersionNo,
+							 (CASE WHEN wopp.ApprovalActionId IS NULL THEN 'Pending'
+								   ELSE 
+										CASE WHEN wopp.ApprovalActionId = 2 THEN appsI.Description
+											ELSE 
+												CASE WHEN wopp.ApprovalActionId = 4 THEN appsC.Description
+													ELSE
+														CASE WHEN wopp.ApprovalActionId = 5 THEN appsC.Description
+															ELSE
+																CASE WHEN wopp.ApprovalActionId = 1 THEN
+																		CASE WHEN appsI.Description IS NULL THEN appsA.Description 
+																		ELSE appsI.Description
+																		END
+																ELSE
+																	CASE WHEN wopp.ApprovalActionId = 3 THEN 
+																		CASE WHEN appsC.Description IS NULL THEN appsA.Description
+																		ELSE appsC.Description
+																		END
+																	ELSE
+																		'Pending'
+																	END
+																END
+															END
+													END
+											END
+							  END) AS WorkOrderStatus
 					FROM dbo.WorkOrderQuote woq WITH (NOLOCK)
                            JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId
                            JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
@@ -110,6 +137,10 @@ BEGIN
                            LEFT JOIN dbo.Stockline stl WITH (NOLOCK) on wopn.StockLineId = stl.StockLineId
                            JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId
                            JOIN dbo.Customer cust WITH (NOLOCK) on woq.CustomerId = cust.CustomerId
+						   LEFT JOIN dbo.WorkOrderApproval wopp WITH (NOLOCK) on wopp.WorkOrderPartNoId = wopn.ID
+						   LEFT JOIN dbo.ApprovalStatus appsI WITH (NOLOCK) on wopp.InternalStatusId = appsI.ApprovalStatusId
+						   LEFT JOIN dbo.ApprovalStatus appsA WITH (NOLOCK) on 4 = appsA.ApprovalStatusId
+						   LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId
                     WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)
 					), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)
 						SELECT * INTO #TempResult FROM  Result
@@ -131,7 +162,8 @@ BEGIN
 						(UpdatedBy like '%' +@GlobalFilter+'%') OR
 						(PartNumber like '%' +@GlobalFilter+'%') OR
 						(PartDescription like '%' +@GlobalFilter+'%') OR
-						(SerialNumber like '%' +@GlobalFilter+'%')
+						(SerialNumber like '%' +@GlobalFilter+'%') OR
+						(WorkOrderStatus like '%' +@GlobalFilter+'%')
 						))
 						OR   
 						(@GlobalFilter='' AND (IsNull(@workOrderNum,'') ='' OR WorkOrderNum like '%' + @workOrderNum+'%') AND
@@ -151,7 +183,8 @@ BEGIN
 						(IsNull(@EstShipDate,'') ='' OR Cast(estShipDate as Date)=Cast(@EstShipDate as date)) AND
 						(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND
 						(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND
-						(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%')
+						(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
+						(IsNull(@WorkOrderStatus,'') ='' OR WorkOrderStatus like '%' + @WorkOrderStatus+'%')
 						))
 
 						SELECT @Count = COUNT(WorkOrderQuoteId) from #TempResult			
@@ -176,6 +209,7 @@ BEGIN
 						CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,
 
 						CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTENUMBER')  THEN quoteNumber END DESC,
@@ -194,7 +228,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
+						CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC
 
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY

@@ -1,25 +1,4 @@
-﻿
-/*************************************************************           
- ** File:   [GetCalibarationMgmtAuditList]           
- ** Author:   Subhash Saliya
- ** Description: Get Search Data for GetCalibarationMgmtAuditList List    
- ** Purpose:         
- ** Date:   04/09/2020      
-          
- ** PARAMETERS: @POId varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04/09/2020   Subhash Saliya Created
- 
- EXECUTE [GetCalibarationMgmtAuditList] 1
-**************************************************************/ 
-CREATE PROCEDURE [dbo].[GetCalibarationMgmtAuditList]
+﻿CREATE PROCEDURE [dbo].[GetCalibarationMgmtAuditList]
 	@CalibrationId bigint = 0
 AS
 BEGIN
@@ -33,7 +12,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				isnull(CM.CalibrationId, 0) AS CalibrationId, 
 				asm.Assetid AS AssetId,
 				asm.Name AS AssetName,
-				asm.AlternateAssetRecordId AS AltAssetId,
+				AltAssetId=(SELECT AssetId FROM dbo.Asset WITH(NOLOCK) WHERE AssetRecordId=asm.AlternateAssetRecordId) ,
+				--asm.AlternateAssetRecordId AS AltAssetId,
 				asm.AssetRecordId AS AssetRecordId,
 				AsI.SerialNo AS SerialNum,
 				'Asset' AS Itemtype,
@@ -41,8 +21,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				AssetClass = asty.AssetAttributeTypeName,
 				asm.AssetAcquisitionTypeId AS AcquisitionTypeId,
 				astaq.Name AS AcquisitionType,
-				Asl.Name AS Locations,
-				'' As ControlName,
+				--Asl.Name AS Locations,
+				Locations=st.Name,
+				asm.ControlNumber As ControlName,
 				UM.Description as UOM,
 				CM.CalibrationDate As LastCalibrationDate,		
 				CM.NextCalibrationDate AS NextCalibrationDate,
@@ -61,23 +42,24 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CM.CreatedBy AS lastcheckedoutby,
 				Null  AS lastcheckedoutdate,	
 				CM.Memo AS lastcheckedoutmemo,	
-				'Calibration' as CertifyType,
+				--'Calibration' as CertifyType,
+				cm.CertifyType,
 
-				CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
-                    level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-                    level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
-                    level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
+				--CASE WHEN level4.Code + level4.Name IS NOT NULL AND 
+    --                level3.Code + level3.Name IS NOT NULL AND level2.Code IS NOT NULL AND level1.Code + level1.Name IS NOT NULL THEN level1.Code + level1.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
+    --                level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND 
+    --                level3.Code + level3.Name IS NOT NULL THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS CompanyName, 
                          
-					CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
-                    THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-                    THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
+				--	CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.name IS NOT NULL AND level1.Code IS NOT NULL 
+    --                THEN level2.Code + level2.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
+    --                THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS BuName, 
 
-                    CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
-                    THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
-                    THEN level4.Code + level4.Name ELSE '' END AS DivName, 
+    --                CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND level1.Code + level1.Name IS NOT NULL 
+    --                THEN level3.Code + level3.Name WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL 
+    --                THEN level4.Code + level4.Name ELSE '' END AS DivName, 
 						 
-					CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
-                    level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
+				--	CASE WHEN level4.Code + level4.Name IS NOT NULL AND level3.Code + level3.Name IS NOT NULL AND level2.Code + level2.Name IS NOT NULL AND 
+    --                level1.Code + level1.Name IS NOT NULL THEN level4.Code + level4.Name ELSE '' END AS DeptName,
 				asm.MasterCompanyId AS MasterCompanyId,
 				asm.CreatedDate AS CreatedDate,
 				asm.UpdatedDate AS UpdatedDate,
@@ -88,17 +70,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			FROM dbo.CalibrationManagmentAudit CM WITH(NOLOCK)
 			left join dbo.Asset As asm WITH(NOLOCK) on asm.AssetRecordId=cm.AssetRecordId
 			left join dbo.AssetInventory As AsI  WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
-			left join dbo.AssetLocation As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
+			LEFT JOIN dbo.Site as st WITH(NOLOCK) on st.SiteId=asm.SiteId
+			--left join dbo.AssetLocation As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 			left join dbo.AssetCalibration As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId
 			left join dbo.UnitOfMeasure As UM WITH(NOLOCK) on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
 			left join dbo.Currency As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
 			left join dbo.AssetStatus As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 			left join dbo.AssetAttributeType As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 			left join dbo.AssetAcquisitionType As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
-			INNER JOIN dbo.ManagementStructure level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
-			LEFT JOIN dbo.ManagementStructure level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
-			LEFT JOIN dbo.ManagementStructure level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
-			LEFT JOIN dbo.ManagementStructure level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
+			--INNER JOIN dbo.ManagementStructure level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
+			--LEFT JOIN dbo.ManagementStructure level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
+			--LEFT JOIN dbo.ManagementStructure level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
+			--LEFT JOIN dbo.ManagementStructure level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId
 			where  cm.AssetRecordId = @CalibrationId
 	END
 	COMMIT  TRANSACTION

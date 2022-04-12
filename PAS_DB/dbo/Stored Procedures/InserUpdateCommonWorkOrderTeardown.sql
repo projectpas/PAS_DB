@@ -23,7 +23,7 @@ CREATE PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
 	@WorkFlowWorkOrderId bigint = 0,
 	@WOPartNoId bigint = null,
 	@IsSubWorkOrder bit = 0,
-	@Memo varchar(max) = null,
+	@Memo nvarchar(max) = null,
 	@ReasonId bigint = null,
 	@technicianId bigint = null,
 	@technicianDate datetime = null,

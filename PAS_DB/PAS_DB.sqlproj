@@ -1741,6 +1741,7 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByRoleWise.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByMSRoleWise.sql" />
     <Build Include="Security\poweraerosuites_admin.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UPSRTCALIBRATION.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220322_13-38-41.dacpac" />

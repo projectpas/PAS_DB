@@ -33,7 +33,8 @@ CREATE PROCEDURE [dbo].[GetWorkOrderList]
 	@WorkOrderType varchar(50)=null,
 	@TechName  varchar(50)=null,
 	@TechStation  varchar(50)=null,
-	@SerialNumber  varchar(50)=null
+	@SerialNumber  varchar(50)=null,
+	@CustRef varchar(50)=null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -158,7 +159,9 @@ BEGIN
 								WT.Description AS WorkOrderType,
 								EMP.FirstName + ' ' + EMP.LastName AS TechName,
 								EMPS.StationName AS TechStation,
-								STL.SerialNumber
+								STL.SerialNumber,
+								WPN.CustomerReference,
+								WPN.CustomerReference AS CustomerReferenceType
 							FROM WorkOrder WO WITH(NOLOCK)
 								JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
 								JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
@@ -191,7 +194,8 @@ BEGIN
 								(WorkOrderStatusType like '%'+@GlobalFilter+'%') OR
 								(CreatedBy like '%' +@GlobalFilter+'%') OR
 								(UpdatedBy like '%' +@GlobalFilter+'%') OR
-								(SerialNumber like '%' +@GlobalFilter+'%')
+								(SerialNumber like '%' +@GlobalFilter+'%') OR
+								(CustomerReference like '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND
@@ -215,7 +219,8 @@ BEGIN
 								(IsNull(@ShipDate,'') ='' OR Cast(EstimatedCompletionDate as Date)=Cast(@ShipDate as date)) AND					
 								(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
 								(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND
-								(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%')
+								(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
+								(IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%')
 								))
 
 								SELECT @Count = COUNT(CustomerId) from #TempResult			
@@ -256,6 +261,7 @@ BEGIN
 								CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER') THEN SerialNumber END ASC,
+								CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERREFERENCE') THEN CustomerReference END ASC,
 
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,
@@ -290,7 +296,8 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
-								CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC
+								CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,
+								CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERREFERENCE')  THEN CustomerReference END DESC
 
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
@@ -471,12 +478,25 @@ BEGIN
 										WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)
 										GROUP BY WO.WorkOrderId, A.TechStation),
 
+										CustRefCTE AS(
+										Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.CustomerReference End)  as 'CustomerReferenceType', A.CustomerReference from WorkOrder WO WITH(NOLOCK)
+										LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0
+										OUTER APPLY(
+											SELECT 
+												STUFF((SELECT ',' + WOPN.CustomerReference
+												  FROM dbo.WorkOrderPartNumber WOPN	WITH(NOLOCK)						  
+												  WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0
+												  FOR XML PATH('')), 1, 1, '') CustomerReference
+										) A
+										WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = @IsDeleted)
+										GROUP BY WO.WorkOrderId, A.CustomerReference),
+
 										Result AS( SELECT M.WorkOrderId, WorkOrderNum, WorkOrderType, PT.PartNumber AS PartNos, PT.PartNumberType AS PartNoType, PT.PartNumberType, PD.PartDescription AS PNDescription, PD.PartDescriptionType AS PNDescriptionType, 
 													 CustomerId, CustomerName, CustomerType,  WS.WorkScopeDescription AS WorkScope, WS.WorkScopeType, 
 													 PC.PriorityDescription AS Priority, PC.PriorityType, SC.WOStageDescription AS Stage, SC.StageType,  WOSC.WorkOrderStatus, 									 
 													 WOSC.WorkOrderStatusType, OpenDate, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, CRC.CustomerRequestDate, 
 													 CRC.CustomerRequestDateType, PMC.PromisedDate, PMC.PromisedDateType, ESC.EstimatedShipDate, ESC.EstimatedShipDateType, 
-													 EC.EstimatedCompletionDate, EC.EstimatedCompletionDateType, TN.TechName, TN.TechNameType, TS.TechStation, TS.TechStationType
+													 EC.EstimatedCompletionDate, EC.EstimatedCompletionDateType, TN.TechName, TN.TechNameType, TS.TechStation, TS.TechStationType, CR.CustomerReference, CR.CustomerReferenceType
 										FROM Main M 
 										LEFT JOIN PartCTE PT On M.WorkOrderId = PT.WorkOrderId
 										LEFT JOIN PartDescCTE PD On M.WorkOrderId = PD.WorkOrderId
@@ -490,6 +510,7 @@ BEGIN
 										LEFT JOIN ESCompDateCTE EC On M.WorkOrderId = EC.WorkOrderId
 										LEFT JOIN TechNameCTE TN On M.WorkOrderId = TN.WorkOrderId
 										LEFT JOIN TechStationCTE TS On M.WorkOrderId = TS.WorkOrderId
+										LEFT JOIN CustRefCTE CR On M.WorkOrderId = CR.WorkOrderId
 										),
 									ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)
 										SELECT * INTO #TempResult1 from  Result
@@ -508,7 +529,8 @@ BEGIN
 											(WorkOrderStatus like '%'+@GlobalFilter+'%') OR
 											(CreatedBy like '%' +@GlobalFilter+'%') OR
 											(WorkOrderStatusType like '%'+@GlobalFilter+'%') OR
-											(UpdatedBy like '%' +@GlobalFilter+'%') 
+											(UpdatedBy like '%' +@GlobalFilter+'%') OR
+											(CustomerReference like '%' + @GlobalFilter +'%')
 											))
 											OR   
 											(@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND
@@ -531,7 +553,8 @@ BEGIN
 											(IsNull(@ShipDate,'') ='' OR Cast(EstimatedCompletionDate as Date)=Cast(@ShipDate as date)) AND					
 											(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
 											(IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND
-											(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date))
+											(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND
+											(IsNull(@CustRef,'') ='' OR CustomerReference like '%' + @CustRef+'%')
 											))
 
 									Select @Count = COUNT(CustomerId) from #TempResult1			
@@ -570,6 +593,7 @@ BEGIN
 									CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 									CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+									CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERREFERENCE')  THEN CustomerReference END ASC,
 
 									CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,
@@ -602,7 +626,8 @@ BEGIN
 									CASE WHEN (@SortOrder=-1 and @SortColumn='SHIPDDATE')  THEN EstimatedCompletionDate END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 									CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-									CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+									CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+									CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerReference')  THEN CustomerReference END DESC
 
 									OFFSET @RecordFrom ROWS 
 									FETCH NEXT @PageSize ROWS ONLY

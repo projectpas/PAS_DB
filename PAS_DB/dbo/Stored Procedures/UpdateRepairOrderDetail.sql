@@ -246,7 +246,7 @@ BEGIN
 
 		UPDATE dbo.RepairOrderPart SET
 		   PartNumber =CASE WHEN ROP.IsAsset=1 THEN asi.AssetId ELSE IM.partnumber END,
-		   PartDescription =CASE WHEN ROP.IsAsset=1 THEN asi.Name ELSE IM.PartDescription END,
+		   PartDescription =CASE WHEN ROP.IsAsset=1 THEN asi.Description ELSE IM.PartDescription END,
 		   AltEquiPartNumber =CASE WHEN ROP.IsAsset=1 THEN (select AssetId from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE  AIM.PartNumber END,
 		   AltEquiPartDescription =CASE WHEN ROP.IsAsset=1 THEN (select Name from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE AIM.PartDescription END,
 		   StockType =CASE WHEN ROP.IsAsset=1 THEN '' ELSE (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 

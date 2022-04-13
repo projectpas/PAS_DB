@@ -10,7 +10,7 @@
     [ParentId]              BIGINT         NULL,
     [CustomerPhone]         VARCHAR (20)   NULL,
     [CustomerPhoneExt]      VARCHAR (20)   NULL,
-    [Email]                 VARCHAR (100)  NULL,
+    [Email]                 VARCHAR (200)  NULL,
     [AddressId]             BIGINT         NOT NULL,
     [IsAddressForBilling]   BIT            NOT NULL,
     [IsAddressForShipping]  BIT            NOT NULL,
@@ -38,4 +38,6 @@
     CONSTRAINT [PK_CustomerAudit] PRIMARY KEY CLUSTERED ([AuditCustomerId] ASC),
     CONSTRAINT [FK_CustomerAudit_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 

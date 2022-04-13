@@ -21,10 +21,15 @@
     [LegalEntityId]        BIGINT         NULL,
     [isUpdate]             BIT            NOT NULL,
     [IsAdjustPeriod]       BIT            NOT NULL,
+    [NoOfPeriods]          VARCHAR (50)   NULL,
+    [PeriodType]           VARCHAR (50)   NULL,
+    [LegalEntityIds]       VARCHAR (250)  NULL,
     CONSTRAINT [PK_AccountingCalendar] PRIMARY KEY CLUSTERED ([AccountingCalendarId] ASC),
     CONSTRAINT [FK_AccountingCalendar_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_AccountingCalendar_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

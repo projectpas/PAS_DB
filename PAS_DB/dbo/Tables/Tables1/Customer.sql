@@ -9,7 +9,7 @@
     [ParentId]              BIGINT         NULL,
     [CustomerPhone]         VARCHAR (20)   NULL,
     [CustomerPhoneExt]      VARCHAR (20)   NULL,
-    [Email]                 VARCHAR (100)  NULL,
+    [Email]                 VARCHAR (200)  NULL,
     [AddressId]             BIGINT         NOT NULL,
     [IsAddressForBilling]   BIT            CONSTRAINT [DF__Customer__IsAddr__18D6A699] DEFAULT ((0)) NOT NULL,
     [IsAddressForShipping]  BIT            CONSTRAINT [DF__Customer__IsAddr__19CACAD2] DEFAULT ((0)) NOT NULL,
@@ -44,6 +44,8 @@
     CONSTRAINT [UC_Customer_Email] UNIQUE NONCLUSTERED ([Email] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

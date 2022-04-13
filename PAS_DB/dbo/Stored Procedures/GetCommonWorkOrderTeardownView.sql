@@ -21,7 +21,8 @@
 --EXEC [GetCommonWorkOrderTeardownView] 5
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTeardownView]
-	@wowfId  bigint = 0
+	@wowfId  bigint = 0,
+	@IsSubWorkOrder bit = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -49,6 +50,7 @@ BEGIN
 				FROM [dbo].[CommonWorkOrderTearDown] td WITH(NOLOCK)
 				INNER JOIN [dbo].[CommonTeardownType] tdt ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
 				WHERE td.WorkFlowWorkOrderId = @wowfId
+				AND td.IsSubWorkOrder = @IsSubWorkOrder
 				ORDER BY tdt.[Sequence]
 			END
 		COMMIT  TRANSACTION

@@ -1742,6 +1742,32 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByMSRoleWise.sql" />
     <Build Include="Security\poweraerosuites_admin.sql" />
     <Build Include="dbo\Stored Procedures\USP_UPSRTCALIBRATION.sql" />
+    <Build Include="dbo\Tables\UsersmtpsettingAudit.sql" />
+    <Build Include="dbo\Tables\Usersmtpsetting.sql" />
+    <Build Include="dbo\Tables\CustomerPaymentDetailsAudit.sql" />
+    <Build Include="dbo\Tables\CustomerPaymentDetails.sql" />
+    <Build Include="dbo\Tables\CustomerManagementStructureDetailsAudit.sql" />
+    <Build Include="dbo\Tables\CustomerManagementStructureDetails.sql" />
+    <Build Include="dbo\Views\vw_MasterDiscountType.sql" />
+    <Build Include="dbo\Views\vw_MasterBankFeesType.sql" />
+    <Build Include="dbo\Views\vw_MasterAdjustReason.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Usersmtpsettingupdateverifyemailstatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UsersmtpsettingSelectbyempid.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UsersmtpsettingaddEdit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchCustomerInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetCustomerPaymentPDFData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AccountingCalendarList.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetWorkOrderBillingInvoiceListByWOPartId.sql" />
+    <Build Include="dbo\Stored Procedures\PROCAddCustomerMSData.sql" />
+    <Build Include="dbo\Stored Procedures\GetInvoicePaymentsHistory.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerWiseLegalEntityData.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerLegalEntityWiseInvoiceDataDateWise.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerLegalEntityWiseInvoiceData.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerDatabyCustId.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAccountListDataByCustomerId.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAccountList.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAccountDatabyCustId.sql" />
+    <Build Include="dbo\Stored Procedures\GetCommonSubWorkOrderTearDownPrintView.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220322_13-38-41.dacpac" />

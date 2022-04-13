@@ -23,11 +23,14 @@
     [UpdatedDate]          DATETIME2 (7)   CONSTRAINT [DF_InvoiceCreditDebitCardPayment_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]             BIT             CONSTRAINT [DF__InvoiceCr__IsAct__4805FD41] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT             CONSTRAINT [DF__InvoiceCr__IsDel__48FA217A] DEFAULT ((0)) NOT NULL,
+    [PageIndex]            INT             NULL,
     CONSTRAINT [PK_InvoiceCreditDebitCardPayment] PRIMARY KEY CLUSTERED ([CreditDebitPaymentId] ASC),
     CONSTRAINT [FK_InvoiceCreditDebitCardPayment_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_InvoiceCreditDebitCardPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceCreditDebitCardPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

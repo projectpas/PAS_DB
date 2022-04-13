@@ -48,7 +48,8 @@ BEGIN
 					  ,wro.[SubWOPartNoId]
 					  ,wro.[Country]
 					  ,wro.[OrganizationName]
-					  ,wro.[InvoiceNo]
+					  ,wro.[InvoiceNo] as SWOInvoiceNo
+					  ,wo.WorkOrderNum [InvoiceNo]
 					  ,wro.[ItemName]
 					  ,wro.[Description]
 					  ,wro.[PartNumber]
@@ -87,6 +88,7 @@ BEGIN
 					@ManagementStructureId as ManagementStructureId
 				FROM [dbo].SubWorkOrder_ReleaseFrom_8130 wro WITH(NOLOCK)
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId
+				      LEFT JOIN dbo.WorkOrder wo WITH(NOLOCK) on wo.WorkorderId = wop.WorkOrderId
 				WHERE wro.SubReleaseFromId=@ReleaseFromId
 			END
 		COMMIT  TRANSACTION

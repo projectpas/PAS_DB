@@ -138,7 +138,10 @@
     [ShelfName]                         VARCHAR (250)   NULL,
     [BinId]                             BIGINT          NULL,
     [BinName]                           VARCHAR (250)   NULL,
+    [StatusNote]                        VARCHAR (500)   NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );
+
+
 

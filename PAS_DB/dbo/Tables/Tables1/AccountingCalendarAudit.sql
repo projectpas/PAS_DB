@@ -22,7 +22,12 @@
     [LegalEntityId]             BIGINT         NULL,
     [isUpdate]                  BIT            NOT NULL,
     [IsAdjustPeriod]            BIT            NOT NULL,
+    [NoOfPeriods]               VARCHAR (50)   NULL,
+    [PeriodType]                VARCHAR (50)   NULL,
+    [LegalEntityIds]            VARCHAR (250)  NULL,
     CONSTRAINT [PK__Accounti__4985CDB8D98355DE] PRIMARY KEY CLUSTERED ([AccountingCalendarAuditId] ASC),
     CONSTRAINT [FK_AccountingCalendarAudit_AccountingCalendar] FOREIGN KEY ([AccountingCalendarId]) REFERENCES [dbo].[AccountingCalendar] ([AccountingCalendarId])
 );
+
+
 

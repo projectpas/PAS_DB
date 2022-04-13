@@ -68,6 +68,9 @@
     [FreightValue]                       DECIMAL (18, 2) DEFAULT ((0.00)) NULL,
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
+    [RemainingAmount]                    DECIMAL (20, 2) NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC)
 );
+
+
 

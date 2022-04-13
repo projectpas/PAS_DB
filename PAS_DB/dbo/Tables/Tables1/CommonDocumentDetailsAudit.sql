@@ -16,6 +16,10 @@
     [IsDeleted]                   BIT            NOT NULL,
     [DocumentTypeId]              BIGINT         NULL,
     [ExpirationDate]              DATETIME2 (7)  NULL,
+    [ReferenceIndex]              INT            NULL,
+    [ModuleType]                  CHAR (2)       DEFAULT (NULL) NULL,
     CONSTRAINT [PK_CommonDocumentDetailsAudit] PRIMARY KEY CLUSTERED ([CommonDocumentDetailAuditId] ASC)
 );
+
+
 

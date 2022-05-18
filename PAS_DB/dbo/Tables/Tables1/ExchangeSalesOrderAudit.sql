@@ -9,7 +9,7 @@
     [AccountTypeId]             INT             NOT NULL,
     [CustomerId]                BIGINT          NOT NULL,
     [CustomerContactId]         BIGINT          NOT NULL,
-    [CustomerReference]         VARCHAR (100)   NOT NULL,
+    [CustomerReference]         VARCHAR (100)   NULL,
     [CurrencyId]                INT             NULL,
     [TotalSalesAmount]          NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_TotalSalesAmount] DEFAULT ((0)) NOT NULL,
     [CustomerHold]              NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_CustomerHold] DEFAULT ((0)) NOT NULL,
@@ -60,4 +60,6 @@
     [IsApproved]                BIT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 

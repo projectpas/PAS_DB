@@ -1,6 +1,7 @@
 ﻿
 
 
+
 /*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
@@ -18,7 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    25/04/2022  Moin Bloch     Created
      
--- EXEC GetCreditMemoDetailsById 1
+-- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCreditMemoDetailsById]
 @CreditMemoHeaderId bigint
@@ -61,9 +62,9 @@ BEGIN
           ,CM.[IsActive]
           ,CM.[IsDeleted]
 		  ,CASE WHEN CA.ActionId = 5 THEN 1 ELSE 0 END  'IsApproved'
-  FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 
-	  LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CM.CreditMemoHeaderId = CA.CreditMemoHeaderId
-	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 
+  FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
+	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
+	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    
 	BEGIN CATCH

@@ -11,7 +11,6 @@
     [UpdatedDate]              DATETIME2 (7) CONSTRAINT [DF_MasterCompany_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                 BIT           CONSTRAINT [DF_MasterCompany_IsActive] DEFAULT ((1)) NULL,
     [ManagementStructureLevel] INT           NULL,
-    [TimeZoneCode]             VARCHAR (50)  NULL,
     [companylogo]              VARCHAR (256) NULL,
     [Line1]                    VARCHAR (50)  NULL,
     [Line2]                    VARCHAR (50)  NULL,
@@ -20,8 +19,11 @@
     [PostalCode]               VARCHAR (20)  NULL,
     [CountryId]                SMALLINT      NULL,
     [PhoneNumber]              VARCHAR (30)  NULL,
+    [TimeZoneCode]             VARCHAR (50)  NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
+
+
 
 
 

@@ -45,13 +45,15 @@
     [CreditTermName]                      VARCHAR (100)   NULL,
     [LastMSLevel]                         VARCHAR (200)   NULL,
     [AllMSlevels]                         NVARCHAR (MAX)  NULL,
+    [PageIndex]                           INT             NULL,
     [RemainingAmount]                     DECIMAL (18, 2) NULL,
     [InvoiceDate]                         DATETIME2 (7)   NULL,
-    [PageIndex]                           INT             NULL,
     [Id]                                  BIGINT          NULL,
     [GLARAccount]                         VARCHAR (200)   NULL,
     CONSTRAINT [PK_InvoicePaymentsAudit] PRIMARY KEY CLUSTERED ([PaymentAuditId] ASC)
 );
+
+
 
 
 

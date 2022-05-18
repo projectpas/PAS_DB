@@ -30,12 +30,15 @@
     [InvoiceId]              BIGINT          NOT NULL,
     [BillingInvoicingItemId] BIGINT          NOT NULL,
     [IsCreateStockline]      BIT             NULL,
+    [CustomerReference]      VARCHAR (100)   NULL,
     CONSTRAINT [PK_CustomerRMADeatils] PRIMARY KEY CLUSTERED ([RMADeatilsId] ASC),
     CONSTRAINT [FK_CustomerRMADeatils_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_CustomerRMADeatils_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_CustomerRMADeatils_RMAReasonId] FOREIGN KEY ([RMAReasonId]) REFERENCES [dbo].[RMAReason] ([RMAReasonId]),
     CONSTRAINT [FK_CustomerRMADeatils_StocklineId] FOREIGN KEY ([StocklineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

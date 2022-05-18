@@ -28,5 +28,8 @@
     [IsActive]               BIT             NOT NULL,
     [IsDeleted]              BIT             NOT NULL,
     [InvoiceId]              BIGINT          NULL,
-    [BillingInvoicingItemId] BIGINT          NULL);
+    [BillingInvoicingItemId] BIGINT          NULL,
+    [CustomerReference]      VARCHAR (100)   NULL);
+
+
 

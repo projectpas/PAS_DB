@@ -48,8 +48,7 @@ BEGIN
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
 					  ,wro.[Batchnumber]
-					  --,wro.[status]
-					  ,CASE WHEN  ISNULL(wosc.conditionName,'') = '' THEN wro.[status] ELSE   wosc.conditionName END as [status]
+					  ,wro.[status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
 					  ,wro.[approved]
@@ -81,7 +80,6 @@ BEGIN
 					  ,ManagementStructureId = (select top 1 ManagementStructureId from WorkOrderPartNumber WITH(NOLOCK) where WorkOrderId=wop.WorkOrderId) 
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId
-					  LEFT JOIN dbo.SubWorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
 				WHERE wro.SubWorkOrderId=@SubWorkOrderId AND wro.SubWOPartNoId =@SubWOPartNoId  
 			END
 		COMMIT  TRANSACTION

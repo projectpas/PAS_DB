@@ -8,7 +8,7 @@
     [AccountTypeId]            INT             NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
-    [CustomerReference]        VARCHAR (100)   NOT NULL,
+    [CustomerReference]        VARCHAR (100)   NULL,
     [CurrencyId]               INT             NULL,
     [TotalSalesAmount]         NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_TotalSalesAmount] DEFAULT ((0)) NOT NULL,
     [CustomerHold]             NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_CustomerHold] DEFAULT ((0)) NOT NULL,
@@ -71,6 +71,8 @@
     CONSTRAINT [FK_ExchangeSalesOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

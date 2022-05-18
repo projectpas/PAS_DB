@@ -180,6 +180,8 @@ BEGIN
 		   ,CRM.InvoiceId
 		   ,@InvoiceStatus as InvoiceStatus
 		   ,CRM.BillingInvoicingItemId
+		   ,CRH.InvoiceNo
+		   ,CRM.CustomerReference
 		   ,AltPartNumber=(  
 				 Select top 1  
 				A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 
@@ -197,6 +199,7 @@ BEGIN
 				Group By SOBIIA.ItemMasterId, A.PartNumber  
 				) 
            FROM [dbo].[CustomerRMADeatils] CRM  WITH (NOLOCK)
+		   LEFT JOIN CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId  
 	       LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ST.IsParent = 1 where  CRM.RMAHeaderId =@RMAheaderId AND isnull(CRM.IsDeleted,0) =0 AND  isnull(CRM.IsActive,1)=1
 
 			END

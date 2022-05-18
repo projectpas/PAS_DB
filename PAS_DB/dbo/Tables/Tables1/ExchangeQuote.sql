@@ -60,6 +60,8 @@
     [ContractReference]        VARCHAR (100)   NULL,
     [EnforceEffectiveDate]     DATETIME2 (7)   NULL,
     [IsEnforceApproval]        BIT             NULL,
+    [IsNewVersionCreated]      BIT             DEFAULT ((0)) NOT NULL,
+    [QuoteParentId]            BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuote] PRIMARY KEY CLUSTERED ([ExchangeQuoteId] ASC),
     CONSTRAINT [FK_ExchangeQuote_CreditTerms] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_ExchangeQuote_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -67,6 +69,8 @@
     CONSTRAINT [FK_ExchangeQuote_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeQuote_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 GO

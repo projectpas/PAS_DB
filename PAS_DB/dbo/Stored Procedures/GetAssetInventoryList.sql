@@ -77,7 +77,7 @@ BEGIN
 			BEGIN TRANSACTION
 				BEGIN
 						;With Result AS(
-							SELECT	DISTINCT
+							SELECT	
 								asm.AssetRecordId as AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.Name AS Name,
@@ -113,7 +113,7 @@ BEGIN
 								ISNULL(cal.CalibrationDefaultVendorId,0) as VendorId,	
 								V.VendorName as VendorName,	
 								MSD.LastMSLevel,	
-								MSD.AllMSlevels
+								MSD.AllMSlevels,asm.statusNote
 							FROM dbo.AssetInventory asm WITH(NOLOCK)
 								INNER JOIN Asset AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
@@ -126,7 +126,7 @@ BEGIN
 								LEFT JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
-																AND EUR.EmployeeId = @EmployeeId
+																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (

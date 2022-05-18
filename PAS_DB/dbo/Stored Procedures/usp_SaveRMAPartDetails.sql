@@ -83,7 +83,8 @@ BEGIN
 										,[IsDeleted]
 										,[InvoiceId]
 										,[BillingInvoicingItemId]
-										,IsCreateStockline)
+										,IsCreateStockline
+										,CustomerReference)
 							VALUES (
 										 SOURCE.[RMAHeaderId]
 										,SOURCE.[ItemMasterId]
@@ -114,11 +115,8 @@ BEGIN
 										,SOURCE.[IsDeleted]
 										,SOURCE.[InvoiceId]
 										,SOURCE.[BillingInvoicingItemId]
-										,0);
-
-						--WHEN NOT MATCHED BY SOURCE
-						--THEN UPDATE SET 
-								--TARGET.UpdatedDate = GETDATE();
+										,0
+										,SOURCE.CustomerReference);
 
 
 					 END
@@ -204,6 +202,8 @@ BEGIN
 							,CRM.InvoiceId
 							,@InvoiceStatus as InvoiceStatus
 							,CRM.BillingInvoicingItemId
+							,CRM.CustomerReference
+							,CRH.InvoiceNo
 							,AltPartNumber=(  
 								 Select top 1  
 								A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 
@@ -221,6 +221,7 @@ BEGIN
 								Group By SOBIIA.ItemMasterId, A.PartNumber  
 								) 
 		                    FROM dbo.CustomerRMADeatils CRM  WITH (NOLOCK)
+							LEFT JOIN CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
 			                LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
 				            WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 
 				

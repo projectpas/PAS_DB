@@ -1,6 +1,5 @@
 ﻿
 
-
 /*************************************************************           
  ** File:   [GetCreditMemoById]           
  ** Author:  Moin Bloch
@@ -18,7 +17,8 @@
  ** --   --------     -------		--------------------------------          
     1    18/04/2022  Moin Bloch     Created
      
--- EXEC GetCreditMemoById 7
+-- EXEC GetCreditMemoById 8
+
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCreditMemoById]
 @CreditMemoHeaderId bigint
@@ -73,8 +73,38 @@ BEGIN
 	  ,CM.[IsWorkOrder]
 	  ,CM.[ReferenceId]
 	  ,CM.[ReturnDate]
+	  ,CM.[PDFPath]
+	  ,CRMA.[ValidDate]
+	  ,CRMA.[CreatedDate] 'RMAIssueDate'
+	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 
+	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
+									ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
+	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId])
+								    END AS 'PostedDate'	
+
+      ,CASE WHEN CM.[IsWorkOrder]=1 THEN  STUFF((SELECT ', ' + WP.CustomerReference
+							FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
+							INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
+							WHERE WI.BillingInvoicingId = CM.[InvoiceId]
+							FOR XML PATH('')), 1, 1, '') 
+							ELSE 
+								STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
+							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
+							WHERE SI.SOBillingInvoicingId = CM.[InvoiceId]
+							FOR XML PATH('')), 1, 1, '') 
+							END AS 'PORONum'
+		, CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.WayBillRef,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 
+	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
+						    ELSE 
+								(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
+									LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId
+									LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192
+	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] )
+						    END AS 'Awb'	
+
   FROM [dbo].[CreditMemo] CM WITH (NOLOCK) 
 	   INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MS WITH (NOLOCK) ON CM.CreditMemoHeaderId = MS.ReferenceID AND MS.ModuleID = @ModuleID
+	   LEFT JOIN [dbo].[CustomerRMAHeader] CRMA ON CRMA.RMAHeaderId = CM.RMAHeaderId
 	   OUTER APPLY (SELECT TOP 1 CreditMemoDetailId FROM  CreditMemoDetails CD WITH (NOLOCK) WHERE CD.CreditMemoHeaderId = CM.CreditMemoHeaderId) CR 
   WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId;
 

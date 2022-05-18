@@ -31,8 +31,15 @@
     [CSR]                     VARCHAR (256)   NULL,
     [Employee]                VARCHAR (256)   NULL,
     [TearDownTypes]           VARCHAR (300)   NULL,
+    [RMAHeaderId]             BIGINT          NULL,
+    [IsWarranty]              BIT             NULL,
+    [IsAccepted]              BIT             NULL,
+    [ReasonId]                BIGINT          NULL,
+    [Reason]                  VARCHAR (500)   NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 
 
 

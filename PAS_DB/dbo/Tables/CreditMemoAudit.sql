@@ -42,6 +42,9 @@
     [DateApproved]            DATETIME2 (7)  NULL,
     [ReferenceId]             BIGINT         NULL,
     [ReturnDate]              DATETIME2 (7)  NULL,
+    [PDFPath]                 NVARCHAR (100) NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
+
+
 

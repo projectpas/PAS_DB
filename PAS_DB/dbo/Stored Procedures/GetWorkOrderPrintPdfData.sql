@@ -21,7 +21,7 @@
 	3    10/12/2021   Deep Patel     add ReceivingCustomerWork join for get customer reference.  
 	4	 12/04/2022   Dipak Karena	 Need to display “ACTailNum” column value  as per ticket  “PR-4693”
        
---EXEC [GetWorkOrderPrintPdfData] 274,258  
+--EXEC [GetWorkOrderPrintPdfData] 176,182  
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]  

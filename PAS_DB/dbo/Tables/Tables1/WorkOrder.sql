@@ -25,6 +25,11 @@
     [CreditLimit]             DECIMAL (18, 2) CONSTRAINT [DF_WorkOrder_CreditLimit] DEFAULT ((0)) NULL,
     [CreditTerms]             VARCHAR (200)   NULL,
     [TearDownTypes]           VARCHAR (300)   NULL,
+    [RMAHeaderId]             BIGINT          NULL,
+    [IsWarranty]              BIT             NULL,
+    [IsAccepted]              BIT             NULL,
+    [ReasonId]                BIGINT          NULL,
+    [Reason]                  VARCHAR (500)   NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -37,6 +42,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -76,8 +83,7 @@ BEGIN
 
 END
 GO
-----------------------------------------------
-CREATE TRIGGER [dbo].[Trg_WorkOrderAudit]
+create TRIGGER [dbo].[Trg_WorkOrderAudit]
    ON  [dbo].[WorkOrder]
    AFTER INSERT,UPDATE
 AS 
@@ -112,7 +118,7 @@ BEGIN
     SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
 	MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
 	Memo, Notes, CustomerContactId, @Status, CustomerName,
-	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes
+	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason
 	FROM INSERTED 
 
 	SET NOCOUNT ON;

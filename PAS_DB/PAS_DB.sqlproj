@@ -1772,7 +1772,6 @@
     <Build Include="dbo\Stored Procedures\USP_SaveMSDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveItemMaserMSDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveCommonMSDetails.sql" />
-    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsList_28042022.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetUnitCostfromAsset.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRoleWiseEntityManagementStructureList.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetMSSetupAuditHistoryData.sql" />
@@ -1848,6 +1847,18 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByMSRoleWise.sql" />
     <Build Include="dbo\User Defined Types\CustomerRMADeatilsType.sql" />
     <Build Include="dbo\User Defined Types\CreditMemoDetailsType.sql" />
+    <Build Include="dbo\Tables\CreditMemoFreightAudit.sql" />
+    <Build Include="dbo\Tables\CreditMemoFreight.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderQuotesReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderOnTimeReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSOBacklogReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetPubTrackingReport.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCreditMemoPdfPath.sql" />
+    <Build Include="dbo\Stored Procedures\InsertCreditMemoApprovedParts.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderPartWarranty.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerBillingAddressForCreditMemo.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerAddress.sql" />
+    <Build Include="dbo\Stored Procedures\GetCreditMemoPartsForPrint.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

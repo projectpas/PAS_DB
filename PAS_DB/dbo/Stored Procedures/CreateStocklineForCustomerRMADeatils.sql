@@ -41,10 +41,12 @@ BEGIN
 				DECLARE @StockLineNumber VARCHAR(50);
 				DECLARE @CNCurrentNumber BIGINT;	
 				DECLARE @ControlNumber VARCHAR(50);
+				DECLARE @IDCurrentNumber BIGINT;	
 				DECLARE @IDNumber VARCHAR(50);
 				DECLARE @EntityMSID BIGINT;
 				DECLARE @Qty int;
 				DECLARE @IsCustomerStock bit =1;
+
 
 				SELECT TOP 1	@StocklineId = StockLineId,@Qty=Qty,
 						@MasterCompanyId  = CRMH.MasterCompanyId,
@@ -53,11 +55,14 @@ BEGIN
 				INNER JOIN dbo.CustomerRMAHeader CRMH WITH(NOLOCK) ON CRMH.RMAHeaderId=CRM.RMAHeaderId
 				WHERE RMADeatilsId = @RMADeatilsId
 
+
 		DECLARE @LoopID as int
 		SELECT  @LoopID = MAX(@Qty) 
 
 		WHILE(@LoopID > 0)
 		BEGIN
+
+
 				Declare @DefultQty int =1
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -131,6 +136,7 @@ BEGIN
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 				BEGIN 
+
 					SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
 
 					UPDATE DBO.ItemMaster
@@ -144,13 +150,19 @@ BEGIN
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))
 				BEGIN 
+					SELECT 
+						@IDCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+							ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+					FROM #tmpCodePrefixes WHERE CodeTypeId = 17
 
-					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(1,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))
+					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@IDCurrentNumber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))
 				END
 				ELSE 
 				BEGIN
 					ROLLBACK TRAN;
 				END
+
+
 
 				INSERT INTO [dbo].[Stockline]
 				   ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]

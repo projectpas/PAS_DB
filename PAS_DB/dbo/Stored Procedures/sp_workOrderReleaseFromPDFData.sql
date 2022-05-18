@@ -48,7 +48,7 @@ BEGIN
 					  ,wro.[Quantity]
 					  ,wro.[Batchnumber]
 					  --,wro.[status]
-					  ,CASE WHEN  ISNULL(wosc.conditionName,'') = '' THEN wro.[status] ELSE   wosc.conditionName END as [status]
+					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
 					  ,wro.[approved]
@@ -80,7 +80,7 @@ BEGIN
 					  ,wop.ManagementStructureId as ManagementStructureId   
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId
 				WHERE wro.ReleaseFromId=@ReleaseFromId
 			END
 		COMMIT  TRANSACTION

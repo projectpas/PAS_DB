@@ -77,7 +77,7 @@ BEGIN
 				IsNull(IM.partnumber,'') as 'PartNumber', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',
 				EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromiseDate',
 				--ISNULL(EQ.ShippedDate, '0001-01-01') as 'ShippedDate', 
-				EQ.IsDeleted
+				EQ.IsDeleted,EQ.IsNewVersionCreated
 				, dbo.GenearteVersionNumber(EQ.Version) as 'VersionNumber'
 				from ExchangeQuote EQ WITH (NOLOCK)
 				Inner Join ExchangeStatus MST WITH (NOLOCK) on EQ.StatusId = MST.ExchangeStatusId
@@ -98,7 +98,7 @@ BEGIN
 				P.Description, E.FirstName, E.LastName,
 				IM.partnumber, IM.PartDescription,
 				EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SP.CustomerRequestDate, EQ.IsDeleted
-				,EQ.Version
+				,EQ.Version,EQ.IsNewVersionCreated
 				),
 				--ResultCount AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)
 				FinalResult AS (
@@ -111,7 +111,7 @@ BEGIN
 						--RequestedDateType,
 						EstimateShipDate,CustomerRequestDateType, EstimateShipDateType, PromiseDate, 
 						SalesPerson, Status, StatusId,
-						PartNumber, PartNumberType, PartDescription, PartDescriptionType,
+						PartNumber, PartNumberType, PartDescription, PartDescriptionType,IsNewVersionCreated,
 						CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result
 				where (
 					(@GlobalFilter <>'' AND ((ExchangeQuoteNumber like '%' +@GlobalFilter+'%' ) OR 
@@ -168,7 +168,7 @@ BEGIN
 						CustomerRequestDate, CustomerRequestDateType, QuoteExpireDate, EstimateShipDate, EstimateShipDateType, PromiseDate, 
 						--ShippedDate,
 						SalesPerson, Status, StatusId,
-						PartNumber, PartNumberType, PartDescription, PartDescriptionType,
+						PartNumber, PartNumberType, PartDescription, PartDescriptionType,IsNewVersionCreated,
 						CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, NumberOfItems FROM FinalResult, ResultCount
 
 						ORDER BY  

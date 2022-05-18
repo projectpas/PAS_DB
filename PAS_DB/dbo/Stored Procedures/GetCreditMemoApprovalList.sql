@@ -1,6 +1,7 @@
 ﻿
 
 
+
 /*************************************************************           
  ** File:   [GetCreditMemoApprovalList]           
  ** Author:  Moin Bloch
@@ -18,7 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    22/04/2022  Moin Bloch     Created
      
--- EXEC GetCreditMemoApprovalList 27,1
+-- EXEC GetCreditMemoApprovalList 38,1
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCreditMemoApprovalList]
 @CreditMemoHeaderId bigint,
@@ -70,9 +71,8 @@ BEGIN
 		 ,ISNULL(CA.[InternalSentById],0) 'InternalSentById'			 		  
 	  FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 
 	  LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CM.CreditMemoDetailId = CA.CreditMemoDetailId
-      WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId 
-	      AND CM.IsDeleted = 0 AND CM.Amount > 0 AND CM.Qty > 0;
-
+      WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 	      
+		
 END TRY    
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

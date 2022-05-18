@@ -30,7 +30,7 @@ BEGIN
 						'1' as ItemNo,
 						wop.WorkOrderId, 
 						wop.Id as WorkOrderPartId, 
-						CASE WHEN  ISNULL(Rcond.[Description],'') != '' THEN Rcond.Description ELSE cond.[Description] END as 'Condition',
+						CASE WHEN  ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END as 'Condition',
 						curr.Code as 'CurrencyCode',
 						wocd.TotalCost as TotalSales,
 						wobi.InvoiceStatus ,
@@ -46,18 +46,19 @@ BEGIN
 						LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 
 						INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
+						LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 						LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH(NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 						LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wop.ConditionId
-						LEFT JOIN DBO.Condition Rcond  WITH(NOLOCK) on Rcond.ConditionId = wop.RevisedConditionId
 						LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId
 					WHERE wos.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 
+
 					GROUP BY wosi.WorkOrderShippingId, wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 						wos.WOShippingNum, wos.AirwayBill, wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 						sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
-						CASE WHEN  ISNULL(Rcond.[Description],'') != '' THEN Rcond.Description ELSE cond.[Description] END,
+						CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END,
 						curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost 
 						, wobii.BillingInvoicingId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId
 					) a

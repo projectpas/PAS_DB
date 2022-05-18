@@ -1,4 +1,5 @@
-﻿CREATE   PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
+﻿
+CREATE   PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
 @ModuleId bigint,
 @MasterCompanyId int
 AS
@@ -39,19 +40,22 @@ SET NOCOUNT ON;
 	DECLARE @SequenceNo INT
 	DECLARE @intlevel INT=0
 
-	DECLARE feildcursor CURSOR FOR 
-	SELECT [Description] HeaderName,SequenceNo FROM ManagementStructureType WHERE MasterCompanyId=@MasterCompanyId ORDER BY SequenceNo
-	OPEN feildcursor  
-		FETCH NEXT FROM feildcursor INTO @HeaderName,@SequenceNo
-			WHILE @@FETCH_STATUS = 0  
-			BEGIN  
-				SET @intlevel=@intlevel+1
-				INSERT INTO #TEMPFieldMaster select 'level'+convert(varchar,@intlevel),@HeaderName,'200px',convert(decimal(10,2),(@PDFpre/@inttotallevel)),50,@mSSEQ,0,0
-		FETCH NEXT FROM feildcursor INTO @HeaderName,@SequenceNo
-			END 
+	IF @mSSEQ IS NOT NULL
+	BEGIN
+		DECLARE feildcursor CURSOR FOR 
+		SELECT [Description] HeaderName,SequenceNo FROM ManagementStructureType WHERE MasterCompanyId=@MasterCompanyId ORDER BY SequenceNo
+		OPEN feildcursor  
+			FETCH NEXT FROM feildcursor INTO @HeaderName,@SequenceNo
+				WHILE @@FETCH_STATUS = 0  
+				BEGIN  
+					SET @intlevel=@intlevel+1
+					INSERT INTO #TEMPFieldMaster select 'level'+convert(varchar,@intlevel),@HeaderName,'200px',convert(decimal(10,2),(@PDFpre/@inttotallevel)),50,@mSSEQ,0,0
+			FETCH NEXT FROM feildcursor INTO @HeaderName,@SequenceNo
+				END 
 
-			CLOSE feildcursor  
-			DEALLOCATE feildcursor 
+				CLOSE feildcursor  
+				DEALLOCATE feildcursor 
+	END
 
 	SELECT * FROM #TEMPFieldMaster ORDER BY FieldSortOrder,ID
 
@@ -100,7 +104,7 @@ SET NOCOUNT ON;
 			FROM dbo.GlobalFilter GF
 			WHERE ModuleId=@ModuleId  and IsActive=1
 		
-		SELECT ReportTitle,SPname,BredCum FROM  ReportMaster WHERE ModuleId=@ModuleId
+		SELECT ReportTitle,SPname,BredCum,case when @mSSEQ IS NULL THEN 1 ELSE 0 END 'disableMs' FROM  ReportMaster WHERE ModuleId=@ModuleId
 	
 
 	END TRY    

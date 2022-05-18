@@ -1,50 +1,43 @@
 ﻿/*************************************************************           
- ** File:   [GetCustomerBillingAddressForRMA]           
- ** Author:   Subhash Saliya
- ** Description: Save Customer Get Rma Address
+ ** File:   [GetCustomerBillingAddressForCreditMemo]           
+ ** Author:  Moin Bloch
+ ** Description:Get Address
  ** Purpose:         
- ** Date:   20-april-2022        
-          
+ ** Date:   20-april-2022 
   
  **************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    04/20/2022   Subhash Saliya Created
-	
+    1    04/20/2022   Moin Bloch Created	
 
--- EXEC [dbo].[GetCustomerBillingAddressForRMA] 68,1
+-- EXEC [dbo].[GetCustomerBillingAddressForCreditMemo] 68,1
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetCustomerBillingAddressForRMA]
-@RMAHeaderId bigint = null,
+CREATE PROCEDURE [dbo].[GetCustomerBillingAddressForCreditMemo]
 @InvoiceID bigint = null,
 @IsWorkOrder bit = null,
-@Type int=null,
-@ModuleID int
+@Type int=null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
 	     IF(@Type = 1)
-		 begin
+		 BEGIN
 		 IF(@IsWorkOrder = 1)
 		  BEGIN
-
-		    SELECT SiteName = billToSite.SiteName,
-            AddressLine1 = billToAddress.Line1,
-            AddressLine2 = billToAddress.Line2,
-            City = billToAddress.City,
-            State = billToAddress.StateOrProvince,
-            PostalCode = billToAddress.PostalCode,
+		    SELECT SiteName = shipping.SoldToName,
+            AddressLine1 = shipping.SoldToAddress1,
+            AddressLine2 = shipping.SoldToAddress2,
+            City = shipping.SoldToCity,
+            State = shipping.SoldToState,
+            PostalCode = shipping.SoldToZip,
             Country = ca.countries_name 
 			FROM WorkOrderBillingInvoicing bi WITH(NOLOCK)
-		     INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId=billToCustomer.CustomerId
-			 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.SoldToSiteId
-			 INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
-			 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
+		    INNER JOIN [WorkOrderShipping] shipping WITH(NOLOCK) ON shipping.WorkOrderShippingId=bi.WorkOrderShippingId
+			INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=shipping.SoldToCountryId
 			WHERE bi.BillingInvoicingId = @InvoiceID;
 		END
 		 IF(@IsWorkOrder = 0)
@@ -63,41 +56,7 @@ BEGIN
 			 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
 			WHERE bi.SOBillingInvoicingId = @InvoiceID;
 		END
-		 end
-		 else
-		 begin
-		   SELECT  
-		        
-				ISNULL(RMAA.SiteName, '') AS SiteName,
-				ISNULL(RMAA.Memo, '') AS ShipToMemo,
-				ISNULL(RMAA.Line1, '') AS AddressLine1,
-				ISNULL(RMAA.Line2, '') AS AddressLine2,
-				ISNULL(RMAA.City, '') AS City,
-				ISNULL(RMAA.Country, '') AS Country,
-				ISNULL(RMAA.StateOrProvince, '') AS State,
-				ISNULL(RMAA.PostalCode, '') AS PostalCode,
-
-			
-				ISNULL(RMAAS.SiteName, '') AS BillToSiteName,
-				ISNULL(RMAAS.ContactId, 0) AS BillToContactId,
-				ISNULL(RMAAS.ContactName, '') AS BillToContactName,			
-				ISNULL(RMAAS.Memo, '') AS BillToMemo,
-				ISNULL(RMAAS.AddressId, 0) AS BillToAddressId,
-				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode,
-				ISNULL(RMAAS.Line1, '') AS BillToAddress1,
-				ISNULL(RMAAS.Line2, '') AS BillToAddress2,
-				ISNULL(RMAAS.City, '') AS BillToCity,
-				ISNULL(RMAAS.CountryId, 0) AS BillToCountryId,
-				ISNULL(RMAAS.Country, '') AS BillToCountryName,
-				ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
-				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
-			
-		FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
-			LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleID
-		WHERE CRMA.RMAHeaderId = @RMAHeaderId
-		 end
-	
+	END	 
 	END TRY    
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

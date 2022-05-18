@@ -96,6 +96,7 @@ BEGIN
 			,CRH.[ApprovedDate]
 			,CRH.[ReturnDate]
 			,CRH.[WorkorderNum]
+			,CRH.[WorkOrderId]
 			,CRH.[ManagementStructureId]
 			,CRH.[Memo] as Memo
 			,CRH.[MasterCompanyId]
@@ -232,6 +233,9 @@ BEGIN
 			,MSD.LastMSLevel
 			,MSD.AllMSlevels
 			,CM.CreditMemoHeaderId
+			,CRH.[Iswarranty]
+			,CRH.[WorkorderNum]
+			,CRH.[WorkOrderId]
 		
         FROM CustomerRMAHeader CRH WITH(NOLOCK)  
         LEFT JOIN dbo.CustomerRMADeatils CRD WITH(NOLOCK) ON CRD.RMAHeaderId = CRH.RMAHeaderId 
@@ -342,7 +346,9 @@ BEGIN
 				PT.PartNumberType,PD.PartDescriptionType,RC.RMAReason,RC.RMAReasonType,
 				QR.Qty,QR.QtyType,UC.UnitPrice,UC.UnitPriceType,
 				AC.Amount,AC.AmountType,
-				M.LastMSLevel,M.AllMSlevels,M.ReferenceId,M.CreditMemoHeaderId
+				M.LastMSLevel,M.AllMSlevels,M.ReferenceId,M.CreditMemoHeaderId,M.Iswarranty
+				,M.[WorkorderNum]
+			    ,M.[WorkOrderId]
 				from Result M   
 					Left Join PartCTE PT On M.RMAHeaderId = PT.RMAHeaderId  
 					Left Join PartDescCTE PD on PD.RMAHeaderId = M.RMAHeaderId
@@ -357,7 +363,8 @@ BEGIN
 				PT.PartNumberType,PD.PartDescriptionType,RC.RMAReason,RC.RMAReasonType,
 				QR.Qty,QR.QtyType,UC.UnitPrice,UC.UnitPriceType,
 				AC.Amount,AC.AmountType,
-				M.LastMSLevel,M.AllMSlevels,M.ReferenceId,M.CreditMemoHeaderId
+				M.LastMSLevel,M.AllMSlevels,M.ReferenceId,M.CreditMemoHeaderId,M.Iswarranty,M.[WorkorderNum]
+			    ,M.[WorkOrderId]
 				),
 				ResultCount AS(SELECT COUNT(RMAHeaderId) AS totalItems FROM Results)  
            SELECT * INTO #TempResult from  Results

@@ -44,15 +44,17 @@
     [CreditTermName]                      VARCHAR (100)   NULL,
     [LastMSLevel]                         VARCHAR (200)   NULL,
     [AllMSlevels]                         NVARCHAR (MAX)  NULL,
+    [PageIndex]                           INT             NULL,
     [RemainingAmount]                     DECIMAL (18, 2) NULL,
     [InvoiceDate]                         DATETIME2 (7)   NULL,
-    [PageIndex]                           INT             NULL,
     [Id]                                  BIGINT          NULL,
     [GLARAccount]                         VARCHAR (200)   NULL,
     CONSTRAINT [PK_InvoicePayments] PRIMARY KEY CLUSTERED ([PaymentId] ASC),
     CONSTRAINT [FK_InvoicePayments_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoicePayments_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

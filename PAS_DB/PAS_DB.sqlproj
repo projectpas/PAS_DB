@@ -66,6 +66,7 @@
     <Folder Include="dbo\Stored Procedures\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
+    <Folder Include="Snapshots" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -1847,5 +1848,8 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsEmployeeByMSRoleWise.sql" />
     <Build Include="dbo\User Defined Types\CustomerRMADeatilsType.sql" />
     <Build Include="dbo\User Defined Types\CreditMemoDetailsType.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />
   </ItemGroup>
 </Project>

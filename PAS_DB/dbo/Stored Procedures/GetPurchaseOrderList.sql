@@ -1,4 +1,6 @@
 ﻿
+
+
 CREATE PROCEDURE [dbo].[GetPurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
@@ -28,6 +30,7 @@ BEGIN
 		DECLARE @RecordFrom int;
 		DECLARE @IsActive bit=1
 		DECLARE @Count Int;
+		DECLARE @MSModuleID INT = 4; -- Employee Management Structure Module ID
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		IF @IsDeleted IS NULL
@@ -75,9 +78,12 @@ BEGIN
 					PO.Requisitioner AS RequestedBy,
 					PO.ApprovedBy				
 			  FROM PurchaseOrder PO WITH (NOLOCK)
-			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId		              			  
+			  INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
+			  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+			  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId			  
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
-			      AND EMS.EmployeeId = 	@EmployeeId AND PO.MasterCompanyId = @MasterCompanyId	
+			      --AND EMS.EmployeeId = 	@EmployeeId 
+				  AND PO.MasterCompanyId = @MasterCompanyId	
 				  AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

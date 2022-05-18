@@ -12,7 +12,7 @@
     [MobilePhone]             VARCHAR (20)    NULL,
     [WorkPhone]               VARCHAR (20)    NULL,
     [Fax]                     VARCHAR (20)    NULL,
-    [Email]                   VARCHAR (50)    NULL,
+    [Email]                   VARCHAR (200)   NULL,
     [SSN]                     VARCHAR (20)    NULL,
     [InMultipleShifts]        BIT             CONSTRAINT [DF_Employee_InMultipleShifts] DEFAULT ((0)) NOT NULL,
     [AllowOvertime]           BIT             CONSTRAINT [DF_Employee_AllowOvertime] DEFAULT ((0)) NOT NULL,
@@ -41,6 +41,8 @@
     CONSTRAINT [FK_Employee_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Employee_Station] FOREIGN KEY ([StationId]) REFERENCES [dbo].[EmployeeStation] ([EmployeeStationId])
 );
+
+
 
 
 

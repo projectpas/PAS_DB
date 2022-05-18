@@ -19,6 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/09/2021   Hemant Saliya		Created
 	2    28/09/2021   Hemant Saliya		Update for Existing STL & PN
+	3    05/05/2022   Hemant Saliya		Update Existing STL Inactive
      
 -- EXEC [CreateStocklineForFinishGoodMPN] 55
 **************************************************************/
@@ -41,12 +42,17 @@ BEGIN
 				DECLARE @StockLineNumber VARCHAR(50);
 				DECLARE @CNCurrentNumber BIGINT;	
 				DECLARE @ControlNumber VARCHAR(50);
-				DECLARE @IDCurrentNumber BIGINT;	
+				--DECLARE @IDCurrentNumber BIGINT;	
 				DECLARE @IDNumber VARCHAR(50);
+				DECLARE @ModuleID INT;
+				DECLARE @EntityMSID BIGINT;
+
+				SET @ModuleID = 2; -- Stockline Module ID
 
 				SELECT	@StocklineId = StockLineId, 
 						@RevisedConditionId = CASE WHEN ISNULL(RevisedConditionId, 0) > 0 THEN RevisedConditionId ELSE ConditionId END,
-						@MasterCompanyId  = MasterCompanyId
+						@MasterCompanyId  = MasterCompanyId,
+						@EntityMSID = ManagementStructureId
 				FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNumberId
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -107,8 +113,6 @@ BEGIN
 
 				SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 
-				--IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
-				--BEGIN
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 
 				IF (@currentNo <> 0)
@@ -119,15 +123,9 @@ BEGIN
 				BEGIN
 					SET @stockLineCurrentNo = 1
 				END
-				--END
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 				BEGIN 
-					--SELECT 
-					--	@SLCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-					--		ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-					--FROM #tmpCodePrefixes WHERE CodeTypeId = 30
-
 					SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
 
 					UPDATE DBO.ItemMaster
@@ -155,12 +153,8 @@ BEGIN
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))
 				BEGIN 
-					SELECT 
-						@IDCurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-							ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = 17
 
-					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@IDCurrentNumber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))
+					SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(1,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))
 				END
 				ELSE 
 				BEGIN
@@ -220,9 +214,26 @@ BEGIN
 
 				EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId
 
+				INSERT INTO [dbo].[TimeLife]
+					([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]
+					,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]
+					,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
+					,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],[DetailsNotProvided]
+					,[RepairOrderId],[RepairOrderPartRecordId])
+				SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]
+					,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]
+					,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(), GETDATE()
+					,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,[DetailsNotProvided]
+					,[RepairOrderId],[RepairOrderPartRecordId] 
+				FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId
+
 				UPDATE [dbo].[WorkOrderPartNumber] SET StockLineId = @NewStocklineId WHERE ID = @WorkOrderPartNumberId;
 
-				UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0 WHERE StockLineId = @StocklineId
+				UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0, 
+					Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + @ControlNumber
+				WHERE StockLineId = @StocklineId
+
+				EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'WO Close Job'
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN
@@ -239,7 +250,6 @@ BEGIN
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				--PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 

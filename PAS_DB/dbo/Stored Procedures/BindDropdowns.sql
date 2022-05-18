@@ -45,25 +45,56 @@ AS
 							ORDER BY FirstName
 						END
 					ELSE IF @Parameter3 IS NOT NULL  AND @Parameter3 != '' AND  @Parameter4 IS NOT NULL  AND @Parameter4 != ''
-						BEGIN
-							SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+						BEGIN 
+							IF(@TableName = 'StocklineAdjustmentDataType')
+							BEGIN
+								SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+								   ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !='''' AND CAST ( '+ @Parameter3 +' AS VARCHAR) = ' + @Parameter4+'  ORDER BY SortOrder';
+							END
+							ELSE
+							BEGIN
+								SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
 								   ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !='''' AND CAST ( '+ @Parameter3 +' AS VARCHAR) = ' + @Parameter4+'  ORDER BY '+@Parameter2;
+							END
 						END
 					ELSE IF @Count IS NULL OR @Count = '0' AND @Parameter3 IS NOT NULL AND @Parameter3 != ''
-					   BEGIN  
-						SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CONCAT(CAST ( '+ @Parameter3 +'  AS VARCHAR), ''-'', CAST('+@Parameter2+' as VARCHAR)) AS Label FROM dbo.' + @TableName+   
-							' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = '+ @masterCompanyId +' AND CAST ( '+ @Parameter2+' AS VARCHAR) !='''' AND CAST(' + @Parameter3 + '  AS VARCHAR)!=''''   ORDER BY ' + @Parameter2;  
-					   END  
-  
+					   BEGIN 
+							IF(@TableName = 'StocklineAdjustmentDataType')
+							BEGIN
+								SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CONCAT(CAST ( '+ @Parameter3 +'  AS VARCHAR), ''-'', CAST('+@Parameter2+' as VARCHAR)) AS Label FROM dbo.' + @TableName+   
+									' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = '+ @masterCompanyId +' AND CAST ( '+ @Parameter2+' AS VARCHAR) !='''' AND CAST(' + @Parameter3 + '  AS VARCHAR)!=''''   ORDER BY SortOrder';
+							END
+							ELSE
+							BEGIN
+								SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CONCAT(CAST ( '+ @Parameter3 +'  AS VARCHAR), ''-'', CAST('+@Parameter2+' as VARCHAR)) AS Label FROM dbo.' + @TableName+   
+									' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = '+ @masterCompanyId +' AND CAST ( '+ @Parameter2+' AS VARCHAR) !='''' AND CAST(' + @Parameter3 + '  AS VARCHAR)!=''''   ORDER BY ' + @Parameter2;  
+							END
+					   END
 					ELSE IF @Count IS NULL OR @Count = '0'
 						BEGIN
-							SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
-								   ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY ' + @Parameter2;
+							IF(@TableName = 'StocklineAdjustmentDataType')
+							BEGIN
+								SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+									   ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY SortOrder';
+							END
+							ELSE
+							BEGIN
+								SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+									   ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY ' + @Parameter2;
+							END
 						END
 					ELSE
 						BEGIN
-							SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+							IF(@TableName = 'StocklineAdjustmentDataType')
+							BEGIN
+								SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
+								   ' WHERE IsActive = 1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( '+ @Parameter2 + ' AS VARCHAR) != ''''  ORDER BY SortOrder';
+							END
+							ELSE
+							BEGIN
+								SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label FROM dbo.' + @TableName + 
 								   ' WHERE IsActive = 1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( '+ @Parameter2 + ' AS VARCHAR) != ''''  ORDER BY ' + @Parameter2;
+							END
 						END
 					EXEC sp_executesql @Sql;
 				END

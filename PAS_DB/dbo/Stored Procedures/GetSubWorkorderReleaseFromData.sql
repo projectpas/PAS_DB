@@ -24,11 +24,14 @@ BEGIN
 						'' as trackingNo,
 						le.CompanyName as OrganizationName,
 						ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince as OrganizationAddress ,
-						swo.SubWorkOrderNo as InvoiceNo,
+						swo.SubWorkOrderNo as SWOInvoiceNo,
+						wo.WorkOrderNum as InvoiceNo,
 						'1' as ItemName,
 						im.PartDescription as Description,
 						im.partnumber as PartNumber,
-						rc.Reference as Reference,wop.Quantity as Quantity,
+						--rc.Reference as Reference,
+						wopn.CustomerReference as Reference,
+						wop.Quantity as Quantity,
 						case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end as Batchnumber,
 						--wop.WorkScope as [status],
 						c.Description as [status],
@@ -65,7 +68,7 @@ BEGIN
 						LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN DBO.ItemMaster im  WITH(NOLOCK) on im.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
-						LEFT JOIN dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.StockLineId = wop.StockLineId
+						LEFT JOIN dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.WorkOrderId = wo.WorkOrderId --rc.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.ManagementStructure ms  WITH(NOLOCK) on ms.ManagementStructureId  = @ManagementStructureId
 						LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = ms.LegalEntityId 
 						LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
@@ -74,6 +77,7 @@ BEGIN
 						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 						LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 						LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId
+						LEFT JOIN DBO.WorkOrderPartNumber wopn  WITH(NOLOCK) on wopn.ID = swo.WorkOrderPartNumberId
 					WHERE wop.SubWorkOrderId = @SubWorkOrderId and wop.SubWOPartNoId=@SubWOPartNoId
 			END
 		COMMIT  TRANSACTION

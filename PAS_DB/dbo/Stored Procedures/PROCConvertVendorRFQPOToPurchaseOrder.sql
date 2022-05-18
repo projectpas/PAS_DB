@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/01/2022  Moin Bloch     Created
      
--- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 39,62,0,2,22,2,2
+-- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0
 ************************************************************************/
 
 CREATE PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]
@@ -41,7 +41,18 @@ BEGIN
 	DECLARE @PONumber VARCHAR(250);
 	BEGIN TRY
 	BEGIN TRANSACTION
-	BEGIN  
+	BEGIN
+		DECLARE @MCID INT=0;
+		DECLARE @MSID BIGINT=0;
+		DECLARE @CreateBy VARCHAR(100)='';
+		DECLARE @UpdateBy VARCHAR(100)='';
+		DECLARE @PID BIGINT=0;
+		DECLARE @MSCID INT=0;
+		DECLARE @MSSID BIGINT=0;
+		DECLARE @CreatBy VARCHAR(100)='';
+		DECLARE @UpdatBy VARCHAR(100)='';
+		DECLARE @POPID BIGINT=0;
+		DECLARE @id int;
 		IF(@Opr = 1)
 		BEGIN
 			IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId )
@@ -68,7 +79,19 @@ BEGIN
 								 [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],NULL,NULL,
 								 NULL,[Memo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],
 								 [CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,@IsEnforceApproval,NULL,@VendorRFQPurchaseOrderId
-							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId; 
+							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
+
+					--DECLARE @MCID INT=0;
+					--DECLARE @MSID BIGINT=0;
+					--DECLARE @CreateBy VARCHAR(100)='';
+					--DECLARE @UpdateBy VARCHAR(100)='';
+					--DECLARE @PID BIGINT=0;
+					SET @PID=IDENT_CURRENT('PurchaseOrder');
+					SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],
+								 @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]
+							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
+							 
+					EXEC [DBO].[PROCAddPOMSData] @PID,@MSID,@MCID,@CreateBy,@UpdateBy,4,1,0
 
 					INSERT INTO [dbo].[PurchaseOrderPart]([PurchaseOrderId],[ItemMasterId],[PartNumber],[PartDescription],[AltEquiPartNumberId],[AltEquiPartNumber],
 								 [AltEquiPartDescription],[StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[ConditionId],
@@ -93,18 +116,42 @@ BEGIN
 								 --(SELECT TOP 1 COALESCE(IMP.PP_VendorListPrice,0) FROM dbo.ItemMasterPurchaseSale IMP WITH(NOLOCK) WHERE IMP.ItemMasterId = VRFQP.[ItemMasterId] AND IMP.ConditionId = VRFQP.[ConditionId]),
 								 0,0,
 								 0,VRFQP.[UnitCost],VRFQP.[ExtendedCost],
-								 (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
-								(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								-- (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
+								--(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,
+								 (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
 								 VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],
 								 1,'Stock',
 								 (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,
@@ -120,6 +167,44 @@ BEGIN
 
 					UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber 
 												    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
+					
+					IF OBJECT_ID(N'tempdb..#tblPurchaseOrderPart') IS NOT NULL
+					BEGIN
+					DROP TABLE #tblPurchaseOrderPart 
+					END
+					CREATE TABLE #tblPurchaseOrderPart
+					(
+					 ID BIGINT NOT NULL IDENTITY, 
+					 VendorRFQPOPartRecordId BIGINT NULL,
+					 VendorRFQPurchaseOrderId BIGINT NULL,
+					 ManagementStructureId BIGINT NULL,
+					 MasterCompanyId INT NULL,
+					 CreatedBy VARCHAR(256) NULL,
+					 UpdatedBy VARCHAR(256) NULL,
+					)
+
+					INSERT INTO #tblPurchaseOrderPart(VendorRFQPOPartRecordId, VendorRFQPurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy)
+					SELECT PurchaseOrderPartRecordId,PurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy FROM PurchaseOrderPart 
+					WITH(NOLOCK) WHERE PurchaseOrderId = @PID;
+
+					--DECLARE @id int;
+					SELECT @ID =1;
+					WHILE @ID <= (SELECT MAX(ID) FROM #tblPurchaseOrderPart)					
+					BEGIN
+						--DECLARE @MSCID INT=0;
+						--DECLARE @MSSID BIGINT=0;
+						--DECLARE @CreatBy VARCHAR(100)='';
+						--DECLARE @UpdatBy VARCHAR(100)='';
+						--DECLARE @POPID BIGINT=0;
+						--SET @PID = IDENT_CURRENT('PurchaseOrder');
+						SELECT @POPID=[VendorRFQPOPartRecordId],@MSSID=[ManagementStructureId],@MSCID=[MasterCompanyId],
+								 @CreatBy=[CreatedBy],@UpdatBy=[UpdatedBy]
+							 FROM #tblPurchaseOrderPart WITH(NOLOCK) WHERE ID=@ID;
+							 
+						EXEC [DBO].[PROCAddPOMSData] @POPID,@MSSID,@MSCID,@CreatBy,@UpdatBy,5,3,0
+					--increment the step variable so that the condition will eventually be false
+					SET @ID = @ID + 1
+					END
 
 					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
 			        BEGIN
@@ -177,7 +262,15 @@ BEGIN
 								 [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],NULL,NULL,
 								 NULL,[Memo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],
 								 [CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,@IsEnforceApproval,NULL,@VendorRFQPurchaseOrderId
-							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId; 
+							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
+
+						
+					SET @PID=IDENT_CURRENT('PurchaseOrder');
+					SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],
+								 @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]
+							 FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
+							 
+					EXEC [DBO].[PROCAddPOMSData] @PID,@MSID,@MCID,@CreateBy,@UpdateBy,4,1,0
 
 					INSERT INTO [dbo].[PurchaseOrderPart]([PurchaseOrderId],[ItemMasterId],[PartNumber],[PartDescription],[AltEquiPartNumberId],[AltEquiPartNumber],
 								 [AltEquiPartDescription],[StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[ConditionId],
@@ -202,18 +295,42 @@ BEGIN
 								--(SELECT TOP 1 COALESCE(IMP.PP_VendorListPrice,0) FROM dbo.ItemMasterPurchaseSale IMP WITH(NOLOCK) WHERE IMP.ItemMasterId = VRFQP.[ItemMasterId] AND IMP.ConditionId = VRFQP.[ConditionId]),
 								 0,0,
 								 0,VRFQP.[UnitCost],VRFQP.[ExtendedCost],
-								 (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
-								(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								-- (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
+								--(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,
+								 (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
 								 VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],
 								 1,'Stock',
 								 (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,
@@ -235,6 +352,38 @@ BEGIN
 					ELSE
 					BEGIN
 						  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
+					END
+
+					IF OBJECT_ID(N'tempdb..#tblPurchaseOrderPartSingle') IS NOT NULL
+					BEGIN
+					DROP TABLE #tblPurchaseOrderPartSingle 
+					END
+					CREATE TABLE #tblPurchaseOrderPartSingle
+					(
+					 ID BIGINT NOT NULL IDENTITY, 
+					 VendorRFQPOPartRecordId BIGINT NULL,
+					 VendorRFQPurchaseOrderId BIGINT NULL,
+					 ManagementStructureId BIGINT NULL,
+					 MasterCompanyId INT NULL,
+					 CreatedBy VARCHAR(256) NULL,
+					 UpdatedBy VARCHAR(256) NULL,
+					)
+
+					INSERT INTO #tblPurchaseOrderPartSingle(VendorRFQPOPartRecordId, VendorRFQPurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy)
+					SELECT PurchaseOrderPartRecordId,PurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy FROM PurchaseOrderPart 
+					WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = IDENT_CURRENT('PurchaseOrderPart');
+
+					
+					SELECT @ID =1;
+					WHILE @ID <= (SELECT MAX(ID) FROM #tblPurchaseOrderPartSingle)					
+					BEGIN
+						SELECT @POPID=[VendorRFQPOPartRecordId],@MSSID=[ManagementStructureId],@MSCID=[MasterCompanyId],
+								 @CreatBy=[CreatedBy],@UpdatBy=[UpdatedBy]
+							 FROM #tblPurchaseOrderPartSingle WITH(NOLOCK) WHERE ID=@ID;
+							 
+						EXEC [DBO].[PROCAddPOMSData] @POPID,@MSSID,@MSCID,@CreatBy,@UpdatBy,5,3,0
+					--increment the step variable so that the condition will eventually be false
+					SET @ID = @ID + 1
 					END
 
 					IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
@@ -293,18 +442,42 @@ BEGIN
 								 --(SELECT TOP 1 COALESCE(IMP.PP_VendorListPrice,0) FROM dbo.ItemMasterPurchaseSale IMP WITH(NOLOCK) WHERE IMP.ItemMasterId = VRFQP.[ItemMasterId] AND IMP.ConditionId = VRFQP.[ConditionId]),
 								 0,0,
 								 0,VRFQP.[UnitCost],VRFQP.[ExtendedCost],
-								 (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
-								(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
-								(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
-											INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
-											INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
-									WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								-- (SELECT TOP 1 L.FunctionalCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 FC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency FC WITH(NOLOCK) ON L.FunctionalCurrencyId = FC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),1,
+								--(SELECT TOP 1 L.ReportingCurrencyId FROM dbo.ManagementStructure M WITH(NOLOCK) INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								--(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK) 
+								--			INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId
+								--			INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId
+								--	WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),
+								(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,
+								 (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
+								 (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)
+								 INNER JOIN dbo.ManagementStructureLevel MSL ON EST.Level1Id = MSL.ID
+								 INNER JOIN dbo.LegalEntity LE ON LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN dbo.Currency FC ON FC.CurrencyId = LE.FunctionalCurrencyId
+								 INNER JOIN dbo.Currency RC ON RC.CurrencyId = LE.ReportingCurrencyId
+								 WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),
 								 VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],
 								 1,'Stock',
 								 (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,
@@ -324,7 +497,39 @@ BEGIN
 				ELSE
 				BEGIN
 					  UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
-				END    
+				END
+				
+				IF OBJECT_ID(N'tempdb..#tblPurchaseOrderPartSingleRecord') IS NOT NULL
+					BEGIN
+					DROP TABLE #tblPurchaseOrderPartSingleRecord 
+					END
+					CREATE TABLE #tblPurchaseOrderPartSingleRecord
+					(
+					 ID BIGINT NOT NULL IDENTITY, 
+					 VendorRFQPOPartRecordId BIGINT NULL,
+					 VendorRFQPurchaseOrderId BIGINT NULL,
+					 ManagementStructureId BIGINT NULL,
+					 MasterCompanyId INT NULL,
+					 CreatedBy VARCHAR(256) NULL,
+					 UpdatedBy VARCHAR(256) NULL,
+					)
+
+					INSERT INTO #tblPurchaseOrderPartSingleRecord(VendorRFQPOPartRecordId, VendorRFQPurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy)
+					SELECT PurchaseOrderPartRecordId,PurchaseOrderId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy FROM PurchaseOrderPart 
+					WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = IDENT_CURRENT('PurchaseOrderPart');
+
+					
+					SELECT @ID =1;
+					WHILE @ID <= (SELECT MAX(ID) FROM #tblPurchaseOrderPartSingleRecord)					
+					BEGIN
+						SELECT @POPID=[VendorRFQPOPartRecordId],@MSSID=[ManagementStructureId],@MSCID=[MasterCompanyId],
+								 @CreatBy=[CreatedBy],@UpdatBy=[UpdatedBy]
+							 FROM #tblPurchaseOrderPartSingleRecord WITH(NOLOCK) WHERE ID=@ID;
+							 
+						EXEC [DBO].[PROCAddPOMSData] @POPID,@MSSID,@MSCID,@CreatBy,@UpdatBy,5,3,0
+					--increment the step variable so that the condition will eventually be false
+					SET @ID = @ID + 1
+					END
 				
 				IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND ModuleId = 31)
 			    BEGIN

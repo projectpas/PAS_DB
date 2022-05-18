@@ -19,19 +19,20 @@ CREATE PROCEDURE [dbo].[SearchCustomerPayments]
 	@AmtRemaining numeric(18,4)=null,
 	@Currency varchar(50)=null,
 	@CntrlNum varchar(50)=null,
-	@Level1 varchar(50)=null,
-	@Level2 varchar(50)=null,
-	@Level3 varchar(50)=null,
-	@Level4 varchar(50)=null,
-	@MasterCompanyId int = null
+	@LastMSLevel varchar(50)=null,	
+	@MasterCompanyId int = null,
+	@EmployeeId bigint,
+	@BackAcctNumber varchar(50) = null
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
 
-		DECLARE @RecordFrom int;
+		DECLARE @RecordFrom INT;
+		DECLARE @MSModuleID INT = 59; -- CustomerPayment Management Structure Module ID
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		
 
 		If @StatusID=0
 		Begin 
@@ -46,18 +47,42 @@ BEGIN
 		Begin 
 			SET @Status = 'Posted'
 		End
+		IF @SortColumn is null
+		Begin
+			Set @SortColumn=Upper('ReceiptID')
+		End 
+		Else
+		Begin 
+			Set @SortColumn=Upper(@SortColumn)
+		End
+		SET @SortOrder=-1;
 
 		;With Result AS(
 		SELECT 
-		CP.ReceiptID, CP.ReceiptNo AS 'ReceiptNo', S.Name AS 'Status', CP.BankAcctNum AS 'BankAcct', CP.OpenDate, CP.DepositDate, 
-		AP.PeriodName AS 'AcctingPeriod', 
-		CP.Reference, CP.Amount, CP.AmtApplied, CP.AmtRemaining,
-		'USD' AS 'Currency', CP.CntrlNum, CP.Level1, CP.Level2, CP.Level3, CP.Level4
+			CP.ReceiptID, 
+			CP.ReceiptNo AS 'ReceiptNo', 
+			S.Name AS 'Status', 
+			LEB.BankAccountNumber AS 'BankAccountNumber', 
+			LEB.BankName AS 'BankAcct', 
+			CP.OpenDate, 
+			CP.DepositDate, 
+			AP.PeriodName AS 'AcctingPeriod', 
+			CP.Reference, 
+			CP.Amount, 
+			CP.AmtApplied, 
+			CP.AmtRemaining,
+			'USD' AS 'Currency', 
+			CP.CntrlNum,
+			MSD.LastMSLevel,
+			MSD.AllMSlevels,
+			CP.CreatedDate
 		FROM DBO.CustomerPayments CP WITH (NOLOCK)
-		LEFT JOIN DBO.MasterCustomerPaymentStatus S WITH (NOLOCK) ON S.Id = CP.StatusId
-		LEFT JOIN DBO.AccountingCalendar AP WITH (NOLOCK) ON AP.AccountingCalendarId = CP.AcctingPeriod
-		GROUP BY CP.ReceiptId, CP.ReceiptNo, CP.BankAcctNum, CP.OpenDate, CP.DepositDate, CP.AcctingPeriod, CP.Amount, CP.AmtApplied, CP.AmtRemaining,
-		CP.Reference, CP.CntrlNum, CP.OpenDate, S.Name, AP.PeriodName, Level1, Level2, Level3, Level4),
+			INNER JOIN dbo.CustomerManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
+			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
+			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			LEFT JOIN dbo.LegalEntityBankingLockBox LEB WITH (NOLOCK) ON LEB.LegalEntityBankingLockBoxId = CP.BankName
+			LEFT JOIN DBO.MasterCustomerPaymentStatus S WITH (NOLOCK) ON S.Id = CP.StatusId
+			LEFT JOIN DBO.AccountingCalendar AP WITH (NOLOCK) ON AP.AccountingCalendarId = CP.AcctingPeriod),
 		FinalResult AS (
 		SELECT * FROM Result Where (
 			(@GlobalFilter <>'' AND ((ReceiptNo like '%' + @GlobalFilter +'%') OR
@@ -67,10 +92,8 @@ BEGIN
 			(Reference like '%' +@GlobalFilter+'%') OR
 			(Currency like '%' +@GlobalFilter+'%') OR
 			(CntrlNum like '%' +@GlobalFilter+'%') OR
-			(Level1 like '%'+@GlobalFilter+'%') OR
-			(Level2 like '%' +@GlobalFilter+'%') OR 
-			(Level3 like '%' +@GlobalFilter+'%') OR
-			(Level4 like '%' +@GlobalFilter+'%') 
+			(LastMSLevel like '%' +@GlobalFilter+'%') OR
+			(BankAccountNumber like '%' +@GlobalFilter+'%') 
 			))
 			OR   
 			(@GlobalFilter='' AND (IsNull(@ReceiptNo,'') ='' OR ReceiptNo like  '%'+ @ReceiptNo+'%') and 
@@ -85,13 +108,12 @@ BEGIN
 			(@AmtRemaining is null or AmtRemaining=@AmtRemaining) and
 			(IsNull(@Currency,'') ='' OR Currency like '%'+ @Currency+'%') and
 			(IsNull(@CntrlNum,'') ='' OR CntrlNum like '%'+@CntrlNum+'%') and
-			(IsNull(@Level1,'') ='' OR Level1 like '%'+@Level1+'%') and
-			(IsNull(@Level2,'') ='' OR Level2 like '%'+@Level2+'%') and
-			(IsNull(@Level3,'') ='' OR Level3 like '%'+@Level3+'%') and
-			(IsNull(@Level4,'') ='' OR Level4 like '%'+@Level4+'%')))),
-		ResultCount AS (Select COUNT(ReceiptID) AS NumberOfItems FROM Result)
+			(IsNull(@LastMSLevel,'') ='' OR LastMSLevel like '%'+@LastMSLevel+'%') and 
+			(IsNull(@BackAcctNumber,'') = '' OR BankAccountNumber like '%'+@BackAcctNumber+'%')))),
+		ResultCount AS (Select COUNT(ReceiptID) AS NumberOfItems FROM FinalResult)
 		SELECT * FROM FinalResult, ResultCount
-		ORDER BY  
+		ORDER BY
+		CASE WHEN (@SortOrder=1 and @SortColumn='RECEIPTID') THEN ReceiptId END ASC,
 		CASE WHEN (@SortOrder=1 and @SortColumn='RECEIPTNO') THEN ReceiptNo END ASC,
 		CASE WHEN (@SortOrder=1 and @SortColumn='STATUS') THEN Status END ASC,
 		CASE WHEN (@SortOrder=1 and @SortColumn='BANKACCT') THEN BankAcct END ASC,
@@ -104,11 +126,9 @@ BEGIN
 		CASE WHEN (@SortOrder=1 and @SortColumn='AMTREMAINING') THEN AmtRemaining END ASC,
 		CASE WHEN (@SortOrder=1 and @SortColumn='CURRENCY') THEN Currency END ASC,
 		CASE WHEN (@SortOrder=1 and @SortColumn='CNTRLNUM') THEN CntrlNum END ASC,
-		CASE WHEN (@SortOrder=1 and @SortColumn='LEVEL1')  THEN Level1 END ASC,
-		CASE WHEN (@SortOrder=1 and @SortColumn='LEVEL2')  THEN LEVEL2 END ASC,
-		CASE WHEN (@SortOrder=1 and @SortColumn='LEVEL3')  THEN LEVEL3 END ASC,
-		CASE WHEN (@SortOrder=1 and @SortColumn='LEVEL4')  THEN LEVEL4 END ASC,
-
+		CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='BANKACCOUNTNUMBER')  THEN BankAccountNumber END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIPTID') THEN ReceiptId END Desc,
 		CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIPTNO')  THEN ReceiptNo END Desc,
 		CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,
 		CASE WHEN (@SortOrder=-1 and @SortColumn='BANKACCT')  THEN BankAcct END Desc,
@@ -121,10 +141,8 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 and @SortColumn='AMTREMAINING')  THEN AmtRemaining END Desc,
 		CASE WHEN (@SortOrder=-1 and @SortColumn='CURRENCY')  THEN Currency END Desc,
 		CASE WHEN (@SortOrder=-1 and @SortColumn='CNTRLNUM')  THEN CntrlNum END Desc,
-		CASE WHEN (@SortOrder=-1 and @SortColumn='LEVEL1')  THEN LEVEL1 END Desc,
-		CASE WHEN (@SortOrder=-1 and @SortColumn='LEVEL2')  THEN LEVEL2 END Desc,
-		CASE WHEN (@SortOrder=-1 and @SortColumn='LEVEL3')  THEN LEVEL3 END Desc,
-		CASE WHEN (@SortOrder=-1 and @SortColumn='LEVEL4')  THEN LEVEL4 END Desc
+		CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END Desc,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='BANKACCOUNTNUMBER')  THEN BankAccountNumber END Desc
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY
 		Print @SortOrder

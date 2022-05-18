@@ -77,6 +77,9 @@
     [EstDeliveryDate]           DATETIME2 (7)   NULL,
     [ExchangeSalesOrderId]      BIGINT          NULL,
     [ExchangeSalesOrderNo]      VARCHAR (250)   NULL,
+    [ManufacturerPN]            VARCHAR (150)   NULL,
+    [AssetModel]                VARCHAR (30)    NULL,
+    [AssetClass]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_PurchaseOrderPart] PRIMARY KEY CLUSTERED ([PurchaseOrderPartRecordId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrder_PurchaseOrderPart] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_Currency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -84,8 +87,6 @@
     CONSTRAINT [FK_PurchaseOrderPart_FunctionalCurrencyId] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_PurchaseOrderPart_GlAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_PurchaseOrderPart_GlAccountId] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
-    CONSTRAINT [FK_PurchaseOrderPart_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
-    CONSTRAINT [FK_PurchaseOrderPart_ManagementStructureId] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_PurchaseOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_PurchaseOrderPart_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
     CONSTRAINT [FK_PurchaseOrderPart_PurchaseOrder] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId]),
@@ -94,6 +95,8 @@
     CONSTRAINT [FK_PurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

@@ -1,4 +1,6 @@
-﻿CREATE PROCEDURE [dbo].[ProceEmployeeList]
+﻿
+
+CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -26,7 +28,7 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-
+	    DECLARE @MSModuleID INT = 47; -- Employee Management Structure Module ID
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
@@ -77,13 +79,15 @@ BEGIN
 				    le.[Name] AS Company,
 					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype					
 			   FROM dbo.Employee t WITH (NOLOCK)
-							   LEFT JOIN dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId
-							   
-			                   LEFT JOIN dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
-							   LEFT JOIN dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId
-			                   INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = t.ManagementStructureId		              			  
+			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					LEFT JOIN  dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
+			        LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
+					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId			        
+
 		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
-			        AND EMS.EmployeeId = @EmployeeId AND t.MasterCompanyId=@MasterCompanyId	
+			        AND t.MasterCompanyId=@MasterCompanyId	
 					AND t.FirstName <> 'TBD')
 			),EMPEXPERCTE AS(
 								Select SO.EmployeeId as EmpId,A.EmployeeExpertise 

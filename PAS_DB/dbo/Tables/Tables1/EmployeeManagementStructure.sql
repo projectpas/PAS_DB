@@ -11,9 +11,10 @@
     [IsDeleted]             BIT           CONSTRAINT [DF__EmployeeM__IsDel__2724C5F0] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK__Employee__2C12D4026186959E] PRIMARY KEY CLUSTERED ([EmployeeManagementId] ASC),
     CONSTRAINT [FK_EmployeeManagementStructure_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_EmployeeManagementStructure_ManagementStructureId] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_EmployeeManagementStructure_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

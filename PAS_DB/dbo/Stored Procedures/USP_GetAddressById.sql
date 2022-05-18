@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetAddressById]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Address Deatais By Purchase Order Id    
@@ -533,6 +532,68 @@ BEGIN
 			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQRepairOrderId and POSV.ModuleId = @ModuleID
 		WHERE PO.VendorRFQRepairOrderId = @Id;
 	    END
+		ELSE IF(@AddressType = 'RMA')
+		BEGIN
+		SELECT  CRMA.RMAHeaderId,
+				CRMA.MasterCompanyId,
+				CRMA.IsActive,
+				CRMA.IsDeleted,
+				CRMA.CreatedDate,
+				CRMA.UpdatedDate,
+				CRMA.CreatedBy,
+				CRMA.UpdatedBy,
+				ISNULL(RMAA.AllAddressId, 0) AS ShipToPOAddressId,
+				ISNULL(RMAA.UserType, 0) AS ShipToUserType,
+				ISNULL(RMAA.UserId, 0) AS ShipToUserId,
+				ISNULL(RMAA.SiteId, 0) AS ShipToSiteId,
+				ISNULL(RMAA.SiteName, '') AS ShipToSiteName,
+				RMAA.IsModuleOnly AS ShipAddIsPoOnly,
+				ISNULL(RMAA.ContactId, 0) AS ShipToContactId,
+				ISNULL(RMAA.ContactName, '') AS ShipToContact,
+				ISNULL(RMAA.Memo, '') AS ShipToMemo,
+				ISNULL(RMAA.AddressId, 0) AS ShipToAddressId,
+				ISNULL(RMAA.Line1, '') AS ShipToAddress1,
+				ISNULL(RMAA.Line2, '') AS ShipToAddress2,
+				ISNULL(RMAA.City, '') AS ShipToCity,
+				ISNULL(RMAA.CountryId, 0) AS ShipToCountryId,
+				ISNULL(RMAA.Country, '') AS ShipToCountryName,
+				ISNULL(RMAA.StateOrProvince, '') AS ShipToState,
+				ISNULL(RMAA.PostalCode, '') AS ShipToPostalCode,
+
+				ISNULL(RMASV.AllShipViaId, 0) AS POShipViaId,
+				ISNULL(RMASV.ShippingViaId, 0) AS ShippingViaId,
+				ISNULL(RMASV.ShipVia, '') AS ShipVia,
+				ISNULL(RMASV.ShipViaId, 0) AS ShipViaId,
+				ISNULL(RMASV.ShippingCost, 0) AS ShippingCost,
+				ISNULL(RMASV.HandlingCost, 0) AS HandlingCost,
+				ISNULL(RMASV.ShippingAccountNo, '') AS ShippingAccountNo,
+
+				ISNULL(RMAAS.AllAddressId, 0) AS BillToPOAddressId,
+				ISNULL(RMAAS.UserType, 0) AS BillToUserType,
+				ISNULL(RMAAS.UserId, 0) AS BillToUserId,
+				ISNULL(RMAAS.SiteId, 0) AS BillToSiteId,
+				ISNULL(RMAAS.SiteName, '') AS BillToSiteName,
+				RMAAS.IsModuleOnly AS BillAddIsPoOnly,
+				ISNULL(RMAAS.ContactId, 0) AS BillToContactId,
+				ISNULL(RMAAS.ContactName, '') AS BillToContactName,			
+				ISNULL(RMAAS.Memo, '') AS BillToMemo,
+				ISNULL(RMAAS.AddressId, 0) AS BillToAddressId,
+				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(RMAAS.Line1, '') AS BillToAddress1,
+				ISNULL(RMAAS.Line2, '') AS BillToAddress2,
+				ISNULL(RMAAS.City, '') AS BillToCity,
+				ISNULL(RMAAS.CountryId, 0) AS BillToCountryId,
+				ISNULL(RMAAS.Country, '') AS BillToCountryName,
+				ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
+				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
+			
+		FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
+			LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID
+			LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleID
+			LEFT JOIN AllShipVia RMASV WITH (NOLOCK) ON RMASV.ReferenceId = CRMA.RMAHeaderId and RMASV.ModuleId = @ModuleID
+		WHERE CRMA.RMAHeaderId = @Id
+		END
+
 
 	COMMIT  TRANSACTION
 		END TRY    

@@ -41,6 +41,7 @@ SET NOCOUNT ON
 				DECLARE @WorkOrderTypeId INT;
 				DECLARE @MasterCompanyId INT;
 				DECLARE @IsEnforcePickTicket BIT;
+				DECLARE @CustomerID BIGINT;
 
 				IF OBJECT_ID(N'tempdb..#tmpWorkorderPickTicket') IS NOT NULL
 				BEGIN
@@ -72,7 +73,8 @@ SET NOCOUNT ON
 				SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 				SELECT @WorkOrderTypeId = Id FROM dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER([Description]) = 'CUSTOMER' AND IsActive = 1 AND IsDeleted = 0;
 				SELECT @MasterCompanyId = MasterCompanyId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND IsActive = 1 AND IsDeleted = 0;
-
+				SELECT @CustomerID = CustomerId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
+				
 				SELECT @IsEnforcePickTicket = ISNULL(EnforcePickTicket,0) FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderTypeId = @WorkOrderTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
 				IF(@ItemMasterId = 0)
@@ -153,8 +155,9 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
-					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0) 
-					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
+					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 						
+						AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 					
 				END
 				ELSE
@@ -215,7 +218,9 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
-					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0) AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
+					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 						
+						AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 				END
 			END
 		COMMIT  TRANSACTION

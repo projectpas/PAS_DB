@@ -1,4 +1,5 @@
 ﻿
+
 ---------------------------------------------------------------------------------------------------
 
 
@@ -105,61 +106,60 @@ BEGIN
 			 LEFT JOIN dbo.Employee RE on PA.RejectedBy = RE.EmployeeId
 			 LEFT JOIN dbo.ApprovalStatus ASS on PA.StatusId = ASS.ApprovalStatusId
 
-		DECLARE @MSID as bigint
-		DECLARE @Level1 as varchar(200)
-		DECLARE @Level2 as varchar(200)
-		DECLARE @Level3 as varchar(200)
-		DECLARE @Level4 as varchar(200)
+		--DECLARE @MSID as bigint
+		--DECLARE @Level1 as varchar(200)
+		--DECLARE @Level2 as varchar(200)
+		--DECLARE @Level3 as varchar(200)
+		--DECLARE @Level4 as varchar(200)
 
-		IF OBJECT_ID(N'tempdb..#PurchaseOrderPartMSDATA') IS NOT NULL
-		BEGIN
-		DROP TABLE #PurchaseOrderPartMSDATA 
-		END
-		CREATE TABLE #PurchaseOrderPartMSDATA
-		(
-		 MSID bigint,
-		 Level1 varchar(200) NULL,
-		 Level2 varchar(200) NULL,
-		 Level3 varchar(200) NULL,
-		 Level4 varchar(200) NULL 
-		)
+		--IF OBJECT_ID(N'tempdb..#PurchaseOrderPartMSDATA') IS NOT NULL
+		--BEGIN
+		--DROP TABLE #PurchaseOrderPartMSDATA 
+		--END
+		--CREATE TABLE #PurchaseOrderPartMSDATA
+		--(
+		-- MSID bigint,
+		-- Level1 varchar(200) NULL,
+		-- Level2 varchar(200) NULL,
+		-- Level3 varchar(200) NULL,
+		-- Level4 varchar(200) NULL 
+		--)
 
+		--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+		--BEGIN
+		--DROP TABLE #MSDATA 
+		--END
+		--CREATE TABLE #MSDATA
+		--(
+		--	ID int IDENTITY, 
+		--	MSID bigint 
+		--)
+		--INSERT INTO #MSDATA (MSID)
+		--  SELECT PO.ManagementStructureId FROM dbo.PurchaseOrder PO Where PO.PurchaseOrderId = @PurchaseOrderId
 
-		IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-		BEGIN
-		DROP TABLE #MSDATA 
-		END
-		CREATE TABLE #MSDATA
-		(
-			ID int IDENTITY, 
-			MSID bigint 
-		)
-		INSERT INTO #MSDATA (MSID)
-		  SELECT PO.ManagementStructureId FROM dbo.PurchaseOrder PO Where PO.PurchaseOrderId = @PurchaseOrderId
+		--INSERT INTO #MSDATA (MSID)
+		--  SELECT DISTINCT POP.ManagementStructureId
+		--	 FROM dbo.PurchaseOrderPart POP Where POP.PurchaseOrderId = @PurchaseOrderId
+		--		  AND POP.ManagementStructureId 
+		--		  NOT IN (SELECT MSID FROM #MSDATA)
 
-		INSERT INTO #MSDATA (MSID)
-		  SELECT DISTINCT POP.ManagementStructureId
-			 FROM dbo.PurchaseOrderPart POP Where POP.PurchaseOrderId = @PurchaseOrderId
-				  AND POP.ManagementStructureId 
-				  NOT IN (SELECT MSID FROM #MSDATA)
+		--DECLARE @LoopID as int 
+		--SELECT  @LoopID = MAX(ID) FROM #MSDATA
+		--WHILE(@LoopID > 0)
+		--BEGIN
+		--SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
 
-		DECLARE @LoopID as int 
-		SELECT  @LoopID = MAX(ID) FROM #MSDATA
-		WHILE(@LoopID > 0)
-		BEGIN
-		SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
+		--EXEC dbo.GetMSNameandCode @MSID,
+		-- @Level1 = @Level1 OUTPUT,
+		-- @Level2 = @Level2 OUTPUT,
+		-- @Level3 = @Level3 OUTPUT,
+		-- @Level4 = @Level4 OUTPUT
 
-		EXEC dbo.GetMSNameandCode @MSID,
-		 @Level1 = @Level1 OUTPUT,
-		 @Level2 = @Level2 OUTPUT,
-		 @Level3 = @Level3 OUTPUT,
-		 @Level4 = @Level4 OUTPUT
-
-		INSERT INTO #PurchaseOrderPartMSDATA
-					(MSID, Level1,Level2,Level3,Level4)
-			  SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-		SET @LoopID = @LoopID - 1;
-		END 
+		--INSERT INTO #PurchaseOrderPartMSDATA
+		--			(MSID, Level1,Level2,Level3,Level4)
+		--	  SELECT @MSID,@Level1,@Level2,@Level3,@Level4
+		--SET @LoopID = @LoopID - 1;
+		--END 
 
  
 		UPDATE PO SET
@@ -172,13 +172,13 @@ BEGIN
 		PO.CreditLimit = ISNULL(V.CreditLimit,0.00),
 		PO.Status = PS.Description,
 		PO.Requisitioner = ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,''),
-		PO.Level1 = PMS.Level1,
-		PO.Level2 = PMS.Level2,
-		PO.Level3 = PMS.Level3,
-		PO.Level4 = PMS.Level4,
+		--PO.Level1 = PMS.Level1,
+		--PO.Level2 = PMS.Level2,
+		--PO.Level3 = PMS.Level3,
+		--PO.Level4 = PMS.Level4,
 		PO.ApprovedBy = ISNULL(AP.FirstName,'') + ' ' + ISNULL(AP.LastName,'')
 		FROM dbo.PurchaseOrder PO WITH (NOLOCK)
-		LEFT JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = PO.ManagementStructureId
+		--LEFT JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = PO.ManagementStructureId
 		LEFT JOIN dbo.POStatus PS WITH (NOLOCK) on PS.POStatusId = PO.StatusId
 		LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = PO.VendorId
 		LEFT JOIN dbo.VendorContact VC WITH (NOLOCK) ON VC.VendorContactId = PO.VendorContactId
@@ -250,10 +250,10 @@ BEGIN
 		   ItemType = IT.[Description],   
 		   GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
 		   UnitOfMeasure = UOM.ShortName,
-		   Level1 = PMS.Level1,
-		   Level2 = PMS.Level2,
-		   Level3 = PMS.Level3,
-		   Level4 = PMS.Level4,
+		   --Level1 = PMS.Level1,
+		   --Level2 = PMS.Level2,
+		   --Level3 = PMS.Level3,
+		   --Level4 = PMS.Level4,
 		   POPartSplitUserType = M.ModuleName,
 		   POPartSplitUser = CASE WHEN POP.POPartSplitUserTypeId = 1 THEN CUST.[Name] 
 								  WHEN POP.POPartSplitUserTypeId = 2 THEN VEN.VendorName
@@ -269,7 +269,7 @@ BEGIN
 			DiscountPercentValue = PV.[DiscontValue],
 			ExchangeSalesOrderNo = ExchSO.ExchangeSalesOrderNumber
 		FROM  dbo.PurchaseOrderPart POP WITH (NOLOCK)
-			  INNER JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = POP.ManagementStructureId			  
+			  --INNER JOIN #PurchaseOrderPartMSDATA PMS ON PMS.MSID = POP.ManagementStructureId			  
 			  INNER JOIN dbo.Priority PR WITH (NOLOCK) ON PR.PriorityId = POP.PriorityId
 			  INNER JOIN dbo.Currency CR WITH (NOLOCK) ON CR.CurrencyId = POP.FunctionalCurrencyId
 			  INNER JOIN dbo.Currency RC WITH (NOLOCK) ON RC.CurrencyId = POP.ReportCurrencyId

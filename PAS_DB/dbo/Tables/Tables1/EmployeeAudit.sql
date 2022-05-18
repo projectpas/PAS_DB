@@ -13,7 +13,7 @@
     [MobilePhone]             VARCHAR (20)    NULL,
     [WorkPhone]               VARCHAR (20)    NULL,
     [Fax]                     VARCHAR (20)    NULL,
-    [Email]                   VARCHAR (50)    NULL,
+    [Email]                   VARCHAR (200)   NULL,
     [SSN]                     VARCHAR (20)    NULL,
     [InMultipleShifts]        BIT             NULL,
     [AllowOvertime]           BIT             NULL,
@@ -38,6 +38,8 @@
     [EmployeeExpIds]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 
 
 

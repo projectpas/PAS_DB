@@ -3,6 +3,7 @@
     [Id]                        INT           NOT NULL,
     [Name]                      VARCHAR (50)  NULL,
     [Description]               VARCHAR (250) NULL,
+    [GLAccountId]               BIGINT        NULL,
     [MasterCompanyId]           INT           NOT NULL,
     [CreatedBy]                 VARCHAR (50)  NOT NULL,
     [CreatedDate]               DATETIME      NOT NULL,
@@ -12,4 +13,6 @@
     [IsDeleted]                 BIT           NOT NULL,
     CONSTRAINT [PK_MasterBankFeesTypeAudit] PRIMARY KEY CLUSTERED ([MasterBankFeesTypeAuditId] ASC)
 );
+
+
 

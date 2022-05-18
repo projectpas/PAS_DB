@@ -31,6 +31,11 @@
     [RejectedById]                 BIGINT         NULL,
     [RejectedByName]               VARCHAR (100)  NULL,
     [RejectedDate]                 DATETIME2 (7)  NULL,
+    [InternalSentToId]             BIGINT         NULL,
+    [InternalSentToName]           VARCHAR (100)  NULL,
+    [InternalSentById]             BIGINT         NULL,
     CONSTRAINT [PK_ExchangeQuoteApprovalAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteApprovalId] ASC)
 );
+
+
 

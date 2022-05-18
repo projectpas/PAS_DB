@@ -8,7 +8,7 @@
     [VendorParentId]          BIGINT          NULL,
     [VendorPhone]             VARCHAR (256)   NULL,
     [VendorPhoneExt]          VARCHAR (10)    NULL,
-    [VendorEmail]             VARCHAR (30)    NULL,
+    [VendorEmail]             VARCHAR (200)   NULL,
     [AddressId]               BIGINT          NOT NULL,
     [IsAddressForBilling]     BIT             CONSTRAINT [Vendor_DC_IsAddressForBilling] DEFAULT ((0)) NOT NULL,
     [IsAddressForShipping]    BIT             CONSTRAINT [Vendor_DC_IsAddressForShipping] DEFAULT ((0)) NOT NULL,
@@ -59,6 +59,8 @@
     CONSTRAINT [UC_Vendor_Email] UNIQUE NONCLUSTERED ([VendorEmail] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

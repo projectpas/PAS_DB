@@ -30,7 +30,8 @@ CREATE PROCEDURE [dbo].[SearchSOQViewData]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
-	@MasterCompanyId int = null
+	@MasterCompanyId int = null,
+	@EmployeeId bigint
 
 AS
 BEGIN
@@ -77,7 +78,7 @@ BEGIN
 				Begin
 					Set @Status=null
 				End
-
+				DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID
 				;With Main AS(
 						Select SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate,C.CustomerId,C.Name,C.CustomerCode,MST.Name as 'Status',
 						B.Cost,B.NetSales as 'SalesPrice',(E.FirstName+' '+E.LastName)as SalesPerson,CT.CustomerTypeName,SO.SalesOrderNumber,
@@ -88,6 +89,9 @@ BEGIN
 						Inner Join CustomerType CT WITH (NOLOCK) on SOQ.AccountTypeId=CT.CustomerTypeId
 						Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 						Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
+						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						Outer Apply(
 							Select SUM(NetSales) as SoAmount from SalesOrderPart 
 							Where SalesOrderQuoteId=SOQ.SalesOrderQuoteId

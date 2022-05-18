@@ -67,6 +67,8 @@
     [FreightValue]                       DECIMAL (18, 2) DEFAULT ((0.00)) NULL,
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
+    [RemainingAmount]                    DECIMAL (20, 2) NULL,
+    [PostedDate]                         DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -85,6 +87,8 @@
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

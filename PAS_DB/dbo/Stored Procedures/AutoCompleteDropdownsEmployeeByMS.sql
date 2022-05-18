@@ -1,9 +1,6 @@
-﻿--select * from dbo.Employee
---EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11'
---select * from dbo.Customer
---EXEC [AutoCompleteDropdownsEmployeeByMS] '',1,20,'108,109,11',86
---EXEC AutoCompleteDropdowns 'Customer','CustomerId','Name','',0,5,'102,43'
---EXEC AutoCompleteDropdowns 'Customer','CustomerId','Name','',1,'50'
+﻿
+--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
+--EXEC AutoCompleteDropdownsEmployeeByMS '',1,200,'0',7899,2
 
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMS]
 @Parameter3 VARCHAR(50) = Null,
@@ -26,31 +23,43 @@ BEGIN
 		   set @Count = '20';	
 		END	
 
+		DECLARE @EmployeeId BIGINT;
+			
+		SELECT  DISTINCT ER.RoleId INTO #tmpUserRole
+		FROM dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) 
+			JOIN dbo.Employee E WITH(NOLOCK) ON MSD.ReferenceID = e.EmployeeId 
+			LEFT JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+		WHERE MSD.MSDetailsId = @ManagementStructureId
+
 		IF(@ManagementStructureId > 0)
 		BEGIN
 		IF(@Parameter4 = 1)
 		BEGIN		
+
 			SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-            FROM dbo.Employee E WITH(NOLOCK) INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK)  
-			  ON E.EmployeeId = EMS.EmployeeId AND EMS.ManagementStructureId = @ManagementStructureId
-			WHERE E.MasterCompanyId = @masterCompanyId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
+            FROM dbo.Employee E WITH(NOLOCK) 
+			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+			INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId
+			WHERE E.MasterCompanyId = @masterCompanyId AND ER.RoleId IN (SELECT RoleId FROM #tmpUserRole) AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
 			UNION 
 			SELECT DISTINCT EmployeeId AS Value,FirstName + ' ' + LastName AS Label
             FROM dbo.Employee WITH(NOLOCK)  
 				WHERE EmployeeId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				ORDER BY Label				
+				ORDER BY Label
 		END
 		ELSE
 		BEGIN
+
 			SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-            FROM dbo.Employee E WITH(NOLOCK)  INNER JOIN dbo.EmployeeManagementStructure EMS  WITH(NOLOCK) 
-			  ON E.EmployeeId = EMS.EmployeeId AND EMS.ManagementStructureId = @ManagementStructureId
-			WHERE E.MasterCompanyId = @masterCompanyId AND E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND FirstName LIKE '%' + @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'
+            FROM dbo.Employee E WITH(NOLOCK) 
+			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+			INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId
+			WHERE E.MasterCompanyId = @masterCompanyId AND ER.RoleId IN (SELECT RoleId FROM #tmpUserRole) AND E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND FirstName LIKE '%' + @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'
 			UNION 
 			SELECT DISTINCT  EmployeeId AS Value, FirstName + ' ' + LastName AS Label
             FROM dbo.Employee WITH(NOLOCK) 
 				WHERE EmployeeId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				ORDER BY Label	
+				ORDER BY Label
 		END
 		END
 		ELSE

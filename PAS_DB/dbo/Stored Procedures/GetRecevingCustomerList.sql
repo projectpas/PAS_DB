@@ -28,7 +28,6 @@ CREATE PROCEDURE [dbo].[GetRecevingCustomerList]
 	@PageNumber int,
 	@SortColumn varchar(50)=null,
 	@SortOrder int,
-	@StatusID int,
 	@GlobalFilter varchar(50) = null,
 	@CustomerName varchar(50)=null,
 	@PartNumber varchar(50)=null,
@@ -38,10 +37,7 @@ CREATE PROCEDURE [dbo].[GetRecevingCustomerList]
     @ReceivingNumber varchar(50)=null,
     @ReceivedDate datetime=null,
     @ReceivedBy varchar(200)=null,
-    @Level1 varchar(50)=null,
-	@Level2 varchar(50)=null,
-	@Level3 varchar(50)=null,
-	@Level4 varchar(50)=null,
+    @LastMSLevel varchar(50)=null,
     @StageCode varchar(50)=null,
 	@Status varchar(50)=null,
 	@WOFilter varchar(50)=null,
@@ -61,37 +57,25 @@ BEGIN
 		SET NOCOUNT ON;
 		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
-		DECLARE @RecordFrom int;
-		Declare @IsActive bit=1
-		Declare @Count Int;
-		SET @RecordFrom = (@PageNumber-1)*@PageSize;
-		IF @IsDeleted is null
-		Begin
-			Set @IsDeleted=0
-		End
-		print @IsDeleted	
-		
-		IF @SortColumn is null
-		Begin
-			Set @SortColumn=Upper('CreatedDate')
-		End 
-		Else
-		Begin 
-			Set @SortColumn=Upper(@SortColumn)
-		End
+		DECLARE @RecordFrom INT;
+		DECLARE @IsActive BIT=1
+		DECLARE @Count INT;
+		DECLARE @MSModuleID INT = 1; -- Receving Customer Management Structure Module ID
 
-		If @StatusID=0
-		Begin 
-			Set @IsActive=0
-		End 
-		else IF @StatusID=1
-		Begin 
-			Set @IsActive=1
-		End 
-		else IF @StatusID=2
-		Begin 
-			Set @IsActive=null
-		End 
+		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		IF @IsDeleted IS NULL
+		BEGIN
+			SET @IsDeleted=0
+		END
+		
+		IF @SortColumn IS NULL
+		BEGIN
+			SET @SortColumn=UPPER('CreatedDate')
+		END 
+		ELSE
+		BEGIN 
+			SET @SortColumn=UPPER(@SortColumn)
+		END
 		
 		BEGIN TRY
 
@@ -124,27 +108,26 @@ BEGIN
 					END AS WOOpenDate,
 					WO.WorkOrderNum AS WONumber,
 					RC.EmployeeName AS ReceivedBy,
-					RC.Level1  AS levelCode1,
-					RC.Level2  AS levelCode2,
-					RC.Level3  AS levelCode3,
-					RC.Level4  AS levelCode4,
-					RC.Level4 AS Names,
 					RC.ManagementStructureId AS Ids,
 					RC.IsActive,
 					RC.IsDeleted,
 					RC.CreatedDate,
 					RC.CreatedBy,
 					RC.UpdatedDate,
-					RC.UpdatedBy
-					FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK)
+					RC.UpdatedBy, 
+					MSD.LastMSLevel,
+					MSD.AllMSlevels
+				FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK)
 					INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
+					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
+					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
 					LEFT JOIN dbo.ItemMaster RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
 					LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-					LEFT JOIN dbo.WorkOrderStatus WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id
-					INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON RC.ManagementStructureId = EMS.ManagementStructureId AND EMS.EmployeeId = @EmployeeId
+					LEFT JOIN dbo.WorkOrderStatus WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
 				WHERE (RC.MasterCompanyId = @MasterCompanyId AND ((@WOFilter = 1 AND (WO. WorkOrderNum IS NUll OR WO. WorkOrderNum = '')) OR 
 					        (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) OR
 					        (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll ))))
@@ -161,40 +144,33 @@ BEGIN
 					(WorkOrderNum like '%' +@GlobalFilter+'%') OR
 					(ReceivingNumber like '%' +@GlobalFilter+'%') OR
 					(ReceivedBy like '%' +@GlobalFilter+'%') OR
-					(levelCode1 like '%' +@GlobalFilter+'%') OR
-					(levelCode2 like '%' +@GlobalFilter+'%') OR
-					(levelCode3 like '%' +@GlobalFilter+'%') OR
-					(levelCode4 like '%' +@GlobalFilter+'%') OR
+					(LastMSLevel like '%' +@GlobalFilter+'%') OR
 					(Status like '%'+@GlobalFilter+'%') OR
-
 					(StageCode like '%'+@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
 					(UpdatedBy like '%' +@GlobalFilter+'%') 
 					))
 					OR   
-					(@GlobalFilter='' AND (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') and 
-					(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') and
-					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
-					(IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') and
-					(IsNull(@StocklineNumber,'') ='' OR StocklineNumber like '%' + @StocklineNumber+'%') and
-					(IsNull(@ControlNumber,'') ='' OR ControlNumber like '%' + @ControlNumber+'%') and
-					(IsNull(@IdNumber,'') ='' OR IdNumber like '%' + @IdNumber+'%') and
-					(IsNull(@WONumber,'') ='' OR WorkOrderNum like '%' + @WONumber+'%') and
-					(IsNull(@ReceivingNumber,'') ='' OR ReceivingNumber like '%' + @ReceivingNumber+'%') and
-					(IsNull(@ReceivedBy,'') ='' OR ReceivedBy like '%' + @ReceivedBy+'%') and
+					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') and 
+					(ISNULL(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') and
+					(ISNULL(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
+					(ISNULL(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') and
+					(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber like '%' + @StocklineNumber+'%') and
+					(ISNULL(@ControlNumber,'') ='' OR ControlNumber like '%' + @ControlNumber+'%') and
+					(ISNULL(@IdNumber,'') ='' OR IdNumber like '%' + @IdNumber+'%') and
+					(ISNULL(@WONumber,'') ='' OR WorkOrderNum like '%' + @WONumber+'%') and
+					(ISNULL(@ReceivingNumber,'') ='' OR ReceivingNumber like '%' + @ReceivingNumber+'%') and
+					(ISNULL(@ReceivedBy,'') ='' OR ReceivedBy like '%' + @ReceivedBy+'%') and
 
-					(IsNull(@Level1,'') ='' OR levelCode1 like '%' + @Level1+'%') and
-					(IsNull(@Level2,'') ='' OR levelCode2 like '%' + @Level2+'%') and
-					(IsNull(@Level3,'') ='' OR levelCode3 like '%' + @Level3+'%') and
-					(IsNull(@Level4,'') ='' OR levelCode4 like '%' + @Level4+'%') and
-					(IsNull(@StageCode,'') ='' OR StageCode like '%' + @StageCode+'%') and
-					(IsNull(@Status,'') ='' OR Status like '%' + @Status+'%') and
+					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and
+					(ISNULL(@StageCode,'') ='' OR StageCode like '%' + @StageCode+'%') and
+					(ISNULL(@Status,'') ='' OR Status like '%' + @Status+'%') and
 
-					(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
-					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
-					(IsNull(@ReceivedDate,'') ='' OR Cast(ReceivedDate as Date)=Cast(@ReceivedDate as date)) and
-					(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
-					(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
+					(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
+					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
+					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate as Date)=CAST(@ReceivedDate AS DATE)) and
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate AS DATE)) and
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate AS DATE)))
 					)
 
 			Select @Count = COUNT(ReceivingCustomerWorkId) from #TempResult			
@@ -213,10 +189,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='STAGECODE')  THEN StageCode END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='LEVELCODE1')  THEN levelCode1 END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='LEVELCODE2')  THEN levelCode2 END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='LEVELCODE3')  THEN levelCode3 END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='LEVELCODE4')  THEN levelCode4 END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVEDBY')  THEN ReceivedBy END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
@@ -235,10 +208,7 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='STAGECODE')  THEN StageCode END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='LEVELCODE1')  THEN levelCode1 END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='LEVELCODE2')  THEN levelCode2 END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='LEVELCODE3')  THEN levelCode3 END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='LEVELCODE4')  THEN levelCode4 END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVEDBY')  THEN ReceivedBy END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
@@ -264,7 +234,6 @@ BEGIN
 							@Parameter2 = ' + ISNULL(@PageSize,'') + ', 
 							@Parameter3 = ' + ISNULL(@SortColumn,'') + ', 
 							@Parameter4 = ' + ISNULL(@SortOrder,'') + ', 
-							@Parameter5 = ' + ISNULL(@StatusID,'') + ', 
 							@Parameter6 = ' + ISNULL(@GlobalFilter,'') + ', 
 							@Parameter7 = ' + ISNULL(@CustomerName,'') + ', 
 							@Parameter8 = ' + ISNULL(@PartNumber,'') + ', 
@@ -279,10 +248,7 @@ BEGIN
 							@Parameter17 = ' + ISNULL(@CreatedBy,'') + ', 
 							@Parameter18 = ' + ISNULL(@UpdatedBy,'') + ', 
 							@Parameter19 = ' + ISNULL(@IsDeleted,'') + ',
-							@Parameter20 = ' + ISNULL(@Level1,'') + ', 
-							@Parameter21 = ' + ISNULL(@Level2,'') + ', 
-							@Parameter22 = ' + ISNULL(@Level3,'') + ', 
-							@Parameter23 = ' + ISNULL(@Level4,'') + ', 
+							@Parameter20 = ' + ISNULL(@LastMSLevel,'') + ', 
 							@Parameter24 = ' + ISNULL(@StageCode,'') + ', 
 							@Parameter25 = ' + ISNULL(@Status,'') + ', 
 							@Parameter26 = ' + ISNULL(@WOFilter,'') + ', 

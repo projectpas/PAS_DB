@@ -51,7 +51,6 @@
     CONSTRAINT [PK_VendorRFQRepairOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
-    CONSTRAINT [FK_VendorRFQRepairOrderPart_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_PriorityId] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
@@ -60,6 +59,8 @@
     CONSTRAINT [FK_VendorRFQRepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

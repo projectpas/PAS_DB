@@ -19,7 +19,7 @@
     1    05/07/2021   Subhash Saliya Created
 	2    07/11/2021   Hemant Saliya  Update Warehouse Id Update Condition
      
---EXEC [UpdateStocklineColumnsWithId] 624
+--EXEC [UpdateStocklineColumnsWithId] 15, 1
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[UpdateStocklineAdjustmentColumnsWithId]
@@ -34,32 +34,18 @@ BEGIN
 	DECLARE @ManagmnetStructureId as BIGINT
 	DECLARE @ManagmnetStructureId1 as BIGINT
 
-	DECLARE @Level1 AS VARCHAR(200)
-	DECLARE @Level2 AS VARCHAR(200)
-	DECLARE @Level3 AS VARCHAR(200)
-	DECLARE @Level4 AS VARCHAR(200)
-
 		BEGIN TRY
 			BEGIN TRANSACTION
 				BEGIN  
 				IF(@AdjustmentDataTypeId =1)
 				BEGIN			
-				  SELECT @ManagmnetStructureId = ISNULL(ChangedTo,0),@ManagmnetStructureId1 = ISNULL(ChangedFrom,0) FROM [dbo].[StocklineAdjustment] WITH(NOLOCK) WHERE StocklineAdjustmentId=@StocklineAdjustmentId AND StocklineAdjustmentDataTypeId=@AdjustmentDataTypeId
-					EXEC dbo.GetMSNameandCode @ManagmnetStructureId,
-					 @Level1 = @Level1 OUTPUT,
-					 @Level2 = @Level2 OUTPUT,
-					 @Level3 = @Level3 OUTPUT,
-					 @Level4 = @Level4 OUTPUT
+					SELECT @ManagmnetStructureId = ISNULL(ChangedTo,0), @ManagmnetStructureId1 = ISNULL(ChangedFrom,0) FROM [dbo].[StocklineAdjustment] WITH(NOLOCK) WHERE StocklineAdjustmentId=@StocklineAdjustmentId AND StocklineAdjustmentDataTypeId=@AdjustmentDataTypeId
 
-					 UPDATE dbo.[StocklineAdjustment] set ChangedTo=@Level1 FROM [dbo].[StocklineAdjustment] WITH(NOLOCK) WHERE StocklineAdjustmentId=@StocklineAdjustmentId AND StocklineAdjustmentDataTypeId=@AdjustmentDataTypeId
-
-					 EXEC dbo.GetMSNameandCode @ManagmnetStructureId1,
-					 @Level1 = @Level1 OUTPUT,
-					 @Level2 = @Level2 OUTPUT,
-					 @Level3 = @Level3 OUTPUT,
-					 @Level4 = @Level4 OUTPUT
-
-					 UPDATE dbo.[StocklineAdjustment] set ChangedFrom=@Level1 FROM [dbo].[StocklineAdjustment] WITH(NOLOCK) WHERE StocklineAdjustmentId=@StocklineAdjustmentId AND StocklineAdjustmentDataTypeId=@AdjustmentDataTypeId
+					UPDATE dbo.[StocklineAdjustment] 
+					 SET ChangedTo=(SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagmnetStructureId)),
+							ChangedFrom=(SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagmnetStructureId1))
+					 FROM [dbo].[StocklineAdjustment] WITH(NOLOCK) 
+					 WHERE StocklineAdjustmentId=@StocklineAdjustmentId AND StocklineAdjustmentDataTypeId=@AdjustmentDataTypeId
 				END
 
 				IF(@AdjustmentDataTypeId =2)

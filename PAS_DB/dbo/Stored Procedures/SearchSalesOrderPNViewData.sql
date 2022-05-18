@@ -27,7 +27,8 @@
     @IsDeleted bit = null,
 	@CreatedBy varchar(50)=null,
 	@UpdatedBy varchar(50)=null,
-	@MasterCompanyId int = null
+	@MasterCompanyId int = null,
+	@EmployeeId bigint
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -62,6 +63,7 @@ BEGIN
 				Begin
 					Set @Status=null
 				End
+				DECLARE @MSModuleID INT = 17; -- Sales Order Management Structure Module ID
 			-- Insert statements for procedure here
 			;With Result AS(
 				Select SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber, SO.OpenDate as 'OpenDate', 
@@ -82,6 +84,9 @@ BEGIN
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where (SO.IsDeleted = @IsDeleted) and (@StatusID is null or SO.StatusId = @StatusID)
 				AND SO.MasterCompanyId = @MasterCompanyId
 				Group By SO.SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, SO.OpenDate, SOQ.OpenDate, C.CustomerId, C.Name, 

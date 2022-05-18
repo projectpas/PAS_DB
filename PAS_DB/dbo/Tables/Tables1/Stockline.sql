@@ -160,6 +160,8 @@
     [TagTypeId]                           BIGINT          NULL,
     [IsFinishGood]                        BIT             DEFAULT ((0)) NULL,
     [IsTurnIn]                            BIT             CONSTRAINT [Stockline_DC_IsTurnIn] DEFAULT ((0)) NULL,
+    [IsCustomerRMA]                       BIT             NULL,
+    [RMADeatilsId]                        BIGINT          NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -168,7 +170,6 @@
     CONSTRAINT [FK_StockLine_InspectionEmployee] FOREIGN KEY ([InspectionBy]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_StockLine_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_StockLine_Location] FOREIGN KEY ([LocationId]) REFERENCES [dbo].[Location] ([LocationId]),
-    CONSTRAINT [FK_StockLine_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_StockLine_Manfacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_StockLine_Module] FOREIGN KEY ([ObtainFromType]) REFERENCES [dbo].[Module] ([ModuleId]),
     CONSTRAINT [FK_StockLine_Shelf] FOREIGN KEY ([ShelfId]) REFERENCES [dbo].[Shelf] ([ShelfId]),
@@ -178,6 +179,8 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_Stockline_WorkOrderMaterialsId] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 

@@ -21,9 +21,12 @@
     [UpdatedDate]           DATETIME2 (7)   NOT NULL,
     [IsActive]              BIT             CONSTRAINT [ApprovalRules_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [ApprovalRules_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [RoleId]                BIGINT          NULL,
     CONSTRAINT [PK_ApprovalRules] PRIMARY KEY CLUSTERED ([ApprovalRuleId] ASC),
     CONSTRAINT [FK_ApprovalRules_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

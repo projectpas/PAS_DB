@@ -54,7 +54,8 @@ BEGIN
 					SUM(wqd.FreightFlatBillingAmount) AS 'FreightFlatBillingAmount',
 					wop.Quantity,
 					ISNULL(wqd.QuoteMethod,0) AS QuoteMethod,
-					wqd.CommonFlatRate
+					wqd.CommonFlatRate,
+					wop.TATDaysStandard
 					FROM WorkOrder wo 
 					INNER JOIN WorkOrderQuote woq ON wo.WorkOrderId = woq.WorkOrderId
 					INNER JOIN WorkOrderQuoteDetails wqd ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId
@@ -67,7 +68,7 @@ BEGIN
 					AND woq.IsActive = 1 AND woq.IsDeleted = 0
 					GROUP BY im.PartNumber,
 					im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,
-					sl.StockLineNumber, sl.SerialNumber, wop.Quantity,wqd.QuoteMethod,wqd.CommonFlatRate
+					sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard
 			END
 		COMMIT  TRANSACTION
 

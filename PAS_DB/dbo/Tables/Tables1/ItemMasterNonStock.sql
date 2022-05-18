@@ -9,7 +9,7 @@
     [IsAcquiredMethodBuy]          BIT             CONSTRAINT [DF_ItemMasterNonStock_IsAcquiredMethodBuy] DEFAULT ((0)) NOT NULL,
     [ManufacturerId]               BIGINT          NOT NULL,
     [MasterCompanyId]              INT             NOT NULL,
-    [DiscountPurchasePercent]      TINYINT         CONSTRAINT [DF_ItemMasterNonStock_DiscountPurchasePercent] DEFAULT ((0)) NOT NULL,
+    [DiscountPurchasePercent]      SMALLINT        CONSTRAINT [DF_ItemMasterNonStock_DiscountPurchasePercent] DEFAULT ((0)) NULL,
     [GLAccountId]                  BIGINT          NOT NULL,
     [PurchaseUnitOfMeasureId]      BIGINT          NOT NULL,
     [IsHazardousMaterial]          BIT             CONSTRAINT [DF_ItemMasterNonStock_IsHazardousMaterial] DEFAULT ((0)) NOT NULL,
@@ -62,6 +62,8 @@
     CONSTRAINT [FK_ItemMasterNonStock_UnitOfMeasure] FOREIGN KEY ([PurchaseUnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_ItemMasterNonStock_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 

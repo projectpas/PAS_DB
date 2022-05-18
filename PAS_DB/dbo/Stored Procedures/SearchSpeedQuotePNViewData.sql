@@ -32,7 +32,8 @@
 	@QuoteExpireDate datetime=null,
 	@AccountTypeName varchar(50)='',
 	@LeadSourceReference varchar(50)='',
-	@ConditionCodeType varchar(50)=''
+	@ConditionCodeType varchar(50)='',
+	@EmployeeId bigint
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -78,9 +79,10 @@ BEGIN
 					Begin
 						Set @Status=null
 					End
+					DECLARE @MSModuleID INT = 27; -- Speed Quote Management Structure Module ID
 				-- Insert statements for procedure here
 				;With Result AS(
-				Select SOQ.SpeedQuoteId,SOQ.SpeedQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',C.CustomerCode, MST.Name as 'Status',
+				Select DISTINCT SOQ.SpeedQuoteId,SOQ.SpeedQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',C.CustomerCode, MST.Name as 'Status',
 				--ISNULL(SP.NetSales,0) as 'QuoteAmount',
 				ISNULL(SP.UnitSalePrice,0) as 'QuoteAmount',
 				SOQ.CreatedDate,SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,
@@ -104,6 +106,9 @@ BEGIN
 				Left join [Percent] p WITH (NOLOCK) on P.PercentId = SOQ.ProbabilityId
 				Left join [Condition] cn WITH (NOLOCK) on cn.ConditionId = SP.ConditionId
 				--Left join SpeedQuoteExclusionPart spe on spe.SpeedQuoteId = SOQ.SpeedQuoteId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SpeedQuoteId
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,CustomerCode,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 			,CustomerReference,

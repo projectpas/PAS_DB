@@ -41,7 +41,11 @@
     [OtherTax]                  DECIMAL (20, 2) NULL,
     [MiscCharges]               DECIMAL (20, 2) NULL,
     [Freight]                   DECIMAL (20, 2) NULL,
+    [RemainingAmount]           DECIMAL (20, 2) NULL,
+    [PostedDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingAudit_SalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[SalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 

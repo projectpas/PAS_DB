@@ -14,15 +14,16 @@
     [IsActive]         BIT            CONSTRAINT [DF_WorkOrderStage_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]        BIT            CONSTRAINT [DF_WorkOrderStage_IsDeleted] DEFAULT ((0)) NOT NULL,
     [StageCode]        NVARCHAR (50)  NULL,
+    [CodeDescription]  VARCHAR (200)  NULL,
     CONSTRAINT [PK_WorkOrderStage] PRIMARY KEY CLUSTERED ([WorkOrderStageId] ASC),
     CONSTRAINT [FK_WorkOrderStage_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderStatge_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
 
+
+
 GO
-
-
 
 
 CREATE TRIGGER [dbo].[Trg_WorkOrderStageAudit]
@@ -36,8 +37,10 @@ AS
 BEGIN
 
 	INSERT INTO WorkOrderStageAudit
-
 	SELECT * FROM INSERTED
+
+	UPDATE [dbo].[WorkOrderStage] SET CodeDescription = WS.Code + ' - ' + WS.Stage
+	FROM [dbo].[WorkOrderStage] WS JOIN INSERTED ins ON ws.WorkOrderStageId = ins.WorkOrderStageId
 
 	SET NOCOUNT ON;
 

@@ -1,8 +1,4 @@
-﻿
-
-
-
-CREATE PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]
+﻿CREATE PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -71,7 +67,7 @@ BEGIN
 		BEGIN
 			SET @StatusID = NULL			
 		END		
-		
+		DECLARE @MSModuleID INT = 21; -- Vendor RFQ PO PART Management Structure Module ID
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN	
@@ -113,12 +109,20 @@ BEGIN
 					ISNULL(VPOP.Level4,'') as 'Level4Type',
 					ISNULL(VPOP.Memo,'') as 'MemoType',
 					VPOP.PurchaseOrderId,
-					VPOP.PurchaseOrderNumber as 'PurchaseOrderNumberType'
+					VPOP.PurchaseOrderNumber as 'PurchaseOrderNumberType',
+					MSD.LastMSLevel,
+					MSD.AllMSlevels,
+					lastMSLevelType=MSD.AllMSlevels
 			  FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
-			  INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId
-			  left outer JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId			  		              			  
-		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
-			      AND EMS.EmployeeId = 	@EmployeeId AND PO.MasterCompanyId = @MasterCompanyId	
+			  --INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId
+			  --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId
+			  INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+			  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			  LEFT OUTER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId			  		              			  
+		 	  LEFT OUTER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = VPOP.VendorRFQPOPartRecordId
+			  WHERE ((PO.IsDeleted = @IsDeleted) AND (VPOP.IsDeleted = 0) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) 
+			      --AND EMS.EmployeeId = 	@EmployeeId 
+				  AND PO.MasterCompanyId = @MasterCompanyId	
 				  --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)
 			), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

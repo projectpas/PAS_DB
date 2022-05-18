@@ -148,7 +148,6 @@
     CONSTRAINT [FK_StocklineDraft_GLAccountId] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_StocklineDraft_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_StocklineDraft_LocationId] FOREIGN KEY ([LocationId]) REFERENCES [dbo].[Location] ([LocationId]),
-    CONSTRAINT [FK_StocklineDraft_ManagementStructureEntityId] FOREIGN KEY ([ManagementStructureEntityId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_StocklineDraft_ManufacturerId] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_StocklineDraft_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_StocklineDraft_PurchaseOrderId] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId]),
@@ -160,6 +159,8 @@
     CONSTRAINT [FK_StocklineDraft_SiteId] FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Site] ([SiteId]),
     CONSTRAINT [FK_StocklineDraft_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 GO

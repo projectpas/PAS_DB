@@ -53,7 +53,7 @@ BEGIN
 					tdt.DocumentModuleName
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
-				AND td.WorkOrderId = @workOrderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId
+				AND td.WorkOrderId = @workOrderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId AND td.IsSubWorkOrder = 0
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

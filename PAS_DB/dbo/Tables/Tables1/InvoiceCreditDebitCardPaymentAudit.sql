@@ -24,6 +24,9 @@
     [UpdatedDate]               DATETIME2 (7)   NOT NULL,
     [IsActive]                  BIT             NOT NULL,
     [IsDeleted]                 BIT             NOT NULL,
+    [PageIndex]                 INT             NULL,
     CONSTRAINT [PK_InvoiceCreditDebitCardPaymentAudit] PRIMARY KEY CLUSTERED ([CreditDebitPaymentAuditId] ASC)
 );
+
+
 

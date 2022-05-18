@@ -15,6 +15,9 @@ BEGIN
 			DECLARE @MasterLoopID AS INT;
 			DECLARE @Month AS INT;
 			DECLARE @Day AS INT;
+			DECLARE @RecevingModuleID AS INT =1
+			DECLARE @wopartModuleID AS INT =12
+			DECLARE @SalesOrderModuleID AS INT =17
 
 			SET @Month = MONTH(GETDATE());
 			SET @Day = DAY(GETDATE());
@@ -70,9 +73,10 @@ BEGIN
 					DECLARE @Cnts INT = 0;
 
 					SELECT @Cnts = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
-					INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RC.ManagementStructureId
+					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
+	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
+	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 					WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) 
-					AND EMS.EmployeeId = @EmployeeId
 					AND RC.MasterCompanyId = @MasterCompanyId
 					GROUP BY ReceivedDate
 
@@ -84,10 +88,14 @@ BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 
 					SELECT @Amt = SUM(GrandTotal)
-					FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-					INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
-					WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) 
-					AND EMS.EmployeeId = @EmployeeId
+					FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
+					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
+					INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
+					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+					--INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
+					WHERE WOBI.IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) 
 					AND WOBI.MasterCompanyId = @MasterCompanyId
 					GROUP BY CAST(InvoiceDate AS DATE)
 
@@ -100,9 +108,10 @@ BEGIN
 					
 					SELECT @SOAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 					INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-					INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SO.ManagementStructureId
+					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
-					AND EMS.EmployeeId = @EmployeeId
 					AND SOBI.MasterCompanyId = @MasterCompanyId
 					GROUP BY CAST(InvoiceDate AS DATE)
 

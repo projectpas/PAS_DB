@@ -45,7 +45,7 @@ BEGIN
 					AND soapr.CustomerStatusId = 2
 		INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
-		where sop.SalesOrderId=@SalesOrderId AND (sor.QtyToReserve > 0)-- OR sopt.SalesOrderPartId IS NOT NULL)
+		where sop.SalesOrderId=@SalesOrderId AND ((sopt.SOPickTicketId IS NULL AND sor.QtyToReserve > 0) OR sopt.SOPickTicketId IS NOT NULL)
 		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId

@@ -87,10 +87,13 @@
     [ACTailNum]                  VARCHAR (250)   NULL,
     [QuantityReserved]           INT             DEFAULT ((0)) NULL,
     [IsAsset]                    BIT             DEFAULT ((0)) NULL,
+    [SerialNumber]               VARCHAR (30)    NULL,
+    [ManufacturerPN]             VARCHAR (150)   NULL,
+    [AssetModel]                 VARCHAR (30)    NULL,
+    [AssetClass]                 VARCHAR (50)    NULL,
     CONSTRAINT [PK_RepairOrderpart] PRIMARY KEY CLUSTERED ([RepairOrderPartRecordId] ASC),
     CONSTRAINT [FK_RepairOrderPart_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_RepairOrderPart_GlAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
-    CONSTRAINT [FK_RepairOrderPart_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_RepairOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_RepairOrderPart_PriorityId] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
     CONSTRAINT [FK_RepairOrderPart_RepairOrderPart] FOREIGN KEY ([RepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
@@ -99,6 +102,8 @@
     CONSTRAINT [FK_RepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_RepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

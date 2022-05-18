@@ -15,6 +15,9 @@
     [IsActive]              BIT            NOT NULL,
     [IsDeleted]             BIT            NOT NULL,
     [StageCode]             NVARCHAR (50)  NULL,
+    [CodeDescription]       VARCHAR (200)  NULL,
     CONSTRAINT [PK_WorkOrderStageAudit] PRIMARY KEY CLUSTERED ([WorkOrderStageAuditId] ASC)
 );
+
+
 

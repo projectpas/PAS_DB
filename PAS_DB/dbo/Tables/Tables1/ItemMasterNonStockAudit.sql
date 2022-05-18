@@ -10,7 +10,7 @@
     [IsAcquiredMethodBuy]          BIT             CONSTRAINT [DF_ItemMasterNonStockAudit_IsAcquiredMethodBuy] DEFAULT ((0)) NOT NULL,
     [ManufacturerId]               BIGINT          NOT NULL,
     [MasterCompanyId]              INT             NOT NULL,
-    [DiscountPurchasePercent]      TINYINT         CONSTRAINT [DF_ItemMasterNonStockAudit_DiscountPurchasePercent] DEFAULT ((0)) NOT NULL,
+    [DiscountPurchasePercent]      SMALLINT        CONSTRAINT [DF_ItemMasterNonStockAudit_DiscountPurchasePercent] DEFAULT ((0)) NULL,
     [GLAccountId]                  BIGINT          NOT NULL,
     [PurchaseUnitOfMeasureId]      BIGINT          NOT NULL,
     [IsHazardousMaterial]          BIT             CONSTRAINT [DF_ItemMasterNonStockAudit_IsHazardousMaterial] DEFAULT ((0)) NOT NULL,
@@ -49,6 +49,8 @@
     [MfgExpirationDate]            DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ItemMasterNonStockAudit] PRIMARY KEY CLUSTERED ([ItemMasterNonStockAuditId] ASC)
 );
+
+
 
 
 

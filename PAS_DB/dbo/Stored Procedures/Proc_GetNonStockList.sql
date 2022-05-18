@@ -41,10 +41,7 @@ CREATE PROCEDURE [dbo].[Proc_GetNonStockList]
 @Quantity varchar(50) = NULL,
 @QuantityOnHand varchar(50) = NULL,
 @QuantityRejected varchar(50) = NULL,
-@CompanyName varchar(50) = NULL,
-@BuName varchar(50) = NULL,
-@DeptName varchar(50) = NULL,
-@DivName varchar(50) = NULL,
+@LastMSLevel varchar(50) = NULL,
 @Currency varchar(50) = NULL,
 @IdNumber varchar(50) = NULL,
 @ReceivedDate datetime = NULL,
@@ -74,7 +71,10 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
-		SET @RecordFrom = (@PageNumber-1)*@PageSize;		
+		DECLARE @MSModuelId INT = 11; -- For Non Stockline
+
+		SET @RecordFrom = (@PageNumber-1)*@PageSize;	
+		
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn=Upper('CreatedDate')
@@ -83,8 +83,6 @@ BEGIN
 		BEGIN 
 			Set @SortColumn=Upper(@SortColumn)
 		END	
-
-
 
 		IF(@stockTypeId = 0)
 		BEGIN
@@ -111,17 +109,9 @@ BEGIN
 						   (ISNULL(stl.PurchaseOrderNumber,'')) 'PurchaseOrderNumber', 
 						   (ISNULL(stl.PurchaseOrderId,0)) 'PurchaseOrderId',
 						   (ISNULL(stl.PurchaseOrderPartRecordId,0)) 'PurchaseOrderPartRecordId',
-						   (ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',
-						   CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
-						   stl.QuantityOnHand  as QuantityOnHandnew,
-						   CAST(stl.QuantityRejected AS varchar) 'QuantityRejected',
-						   stl.QuantityRejected  as QuantityRejectednew,
-						   CAST(stl.Quantity AS varchar) 'Quantity',
-						   stl.Quantity  as Quantitynew,
+						   (ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',						   			   
 						   (ISNULL(stl.SerialNumber,'')) 'SerialNumber',
-						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 
-						   stl.ControlNumber,
-						   stl.IdNumber,
+						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 						   
 						   (ISNULL(stl.Condition,'')) AS  'Condition', 					   
 						   (ISNULL(stl.ReceivedDate,'')) AS  'ReceivedDate',
 						   (ISNULL(stl.OrderDate,''))AS  'OrderDate',					  
@@ -130,11 +120,17 @@ BEGIN
 						   (ISNULL(stl.GLAccount,'')) 'GLAccount',
 						   (ISNULL(stl.UnitCost,0))as  'UnitCost',	
 						   (ISNULL(stl.ExtendedCost,0)) as 'ExtendedCost',					   
-						   (ISNULL(stl.Acquired,0)) 'Acquired', 
+						   (ISNULL(stl.Acquired,0)) 'Acquired', 						   
+						   (ISNULL(stl.NonStockClassification,'')) as 'NonStockClassification',	
+						   CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',						   
+						   CAST(stl.QuantityRejected AS varchar) 'QuantityRejected',						   
+						   CAST(stl.Quantity AS varchar) 'Quantity',			
 						   stl.IsHazardousMaterial as 'IsHazardousMaterial',	
-						   (ISNULL(stl.NonStockClassification,'')) as 'NonStockClassification',					   
-						   --(ISNULL(stl.ShippingVia,'')) 'ShippingVia', 
-						   --im.ItemTypeId,
+						   stl.ControlNumber,
+						   stl.IdNumber,
+						   stl.Quantity  as Quantitynew,
+						   stl.QuantityRejected  as QuantityRejectednew,
+						   stl.QuantityOnHand  as QuantityOnHandnew,
 						   stl.IsActive,                     
 						   stl.CreatedDate,
 						   stl.CreatedBy,
@@ -143,15 +139,13 @@ BEGIN
 						   stl.ReceiverNumber,
 						   stl.UpdatedDate,					   
 						   stl.UpdatedBy,
-						   stl.level1 AS CompanyName,
-						   stl.level2 AS BuName,
-						   stl.level3 AS DivName,
-						   stl.level4 AS DeptName	
+						   MSD.LastMSLevel,
+						   MSD.AllMSlevels	
 					 FROM  NonStockInventory stl WITH (NOLOCK)
 							INNER JOIN ItemMasterNonStock im WITH (NOLOCK) ON stl.MasterPartId = im.MasterPartId 
-							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
+							INNER JOIN  dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.NonStockInventoryId AND MSD.ModuleID = @MSModuelId
 		 		  WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.NonStockInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
-						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@MasterPartId IS NULL OR stl.MasterPartId = @MasterPartId)					
+						AND stl.MasterCompanyId=@MasterCompanyId AND (@MasterPartId IS NULL OR stl.MasterPartId = @MasterPartId)					
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(NonStockInventoryId) AS totalItems FROM Result)
 				SELECT * INTO #TempResults FROM  Result
@@ -169,10 +163,8 @@ BEGIN
 						(IdNumber LIKE '%' +@GlobalFilter+'%') OR
 						(Condition LIKE '%' +@GlobalFilter+'%') OR
 						(VendorName LIKE '%' +@GlobalFilter+'%') OR
-						(CompanyName LIKE '%' +@GlobalFilter+'%') OR
-						(BuName LIKE '%' +@GlobalFilter+'%') OR
-						(DivName LIKE '%' +@GlobalFilter+'%') OR
-						(DeptName LIKE '%' +@GlobalFilter+'%') OR					
+						(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
+						(AllMSlevels LIKE '%' +@GlobalFilter+'%') OR
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
 						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -197,10 +189,8 @@ BEGIN
 						(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS Date)=CAST(@EntryDate AS date)) AND
 						(ISNULL(@MfgExpirationDate,'') ='' OR CAST(MfgExpirationDate AS Date)=CAST(@MfgExpirationDate AS date)) AND
 						(ISNULL(@NonStockClassification,'') ='' OR NonStockClassification LIKE '%' + @NonStockClassification + '%') AND
-						(ISNULL(@CompanyName,'') ='' OR CompanyName LIKE '%' + @CompanyName + '%') AND
-						(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName + '%') AND
-						(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName + '%') AND
-						(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR AllMSlevels LIKE '%' + @LastMSLevel + '%') AND						
 						(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 					   )
@@ -247,14 +237,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='MfgExpirationDate')  THEN MfgExpirationDate END DESC,	
 						CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='CompanyName')  THEN CompanyName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='CompanyName')  THEN CompanyName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='BuName')  THEN BuName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='BuName')  THEN BuName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='DivName')  THEN DivName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='DivName')  THEN DivName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='DeptName')  THEN DeptName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='DeptName')  THEN DeptName END DESC,
+						CASE WHEN (@SortOrder=1  AND @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
@@ -269,7 +253,7 @@ BEGIN
 				BEGIN
 					;WITH Result AS(
 					SELECT DISTINCT 
-					      stl.NonStockInventoryId as NonStockInventoryId,				
+							stl.NonStockInventoryId as NonStockInventoryId,				
 						   (ISNULL(im.MasterPartId,0)) 'ItemMasterId',
 						   (ISNULL(im.MasterPartId,0)) 'MasterPartId',
 						   (ISNULL(im.PartNumber,'')) 'PartNumber',
@@ -278,17 +262,9 @@ BEGIN
 						   (ISNULL(stl.PurchaseOrderNumber,'')) 'PurchaseOrderNumber', 
 						   (ISNULL(stl.PurchaseOrderId,0)) 'PurchaseOrderId',
 						   (ISNULL(stl.PurchaseOrderPartRecordId,0)) 'PurchaseOrderPartRecordId',
-						   (ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',
-						   CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
-						   stl.QuantityOnHand  as QuantityOnHandnew,
-						   CAST(stl.QuantityRejected AS varchar) 'QuantityRejected',
-						   stl.QuantityRejected  as QuantityRejectednew,
-						   CAST(stl.Quantity AS varchar) 'Quantity',
-						   stl.Quantity  as Quantitynew,
+						   (ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',						   					   
 						   (ISNULL(stl.SerialNumber,'')) 'SerialNumber',
-						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 
-						   stl.ControlNumber,
-						   stl.IdNumber,
+						   (ISNULL(stl.NonStockInventoryNumber,'')) 'NonStockInventoryNumber', 						   
 						   (ISNULL(stl.Condition,'')) AS  'Condition', 					   
 						   (ISNULL(stl.ReceivedDate,'')) AS  'ReceivedDate',
 						   (ISNULL(stl.OrderDate,''))AS  'OrderDate',					  
@@ -297,11 +273,17 @@ BEGIN
 						   (ISNULL(stl.GLAccount,'')) 'GLAccount',
 						   (ISNULL(stl.UnitCost,0))as  'UnitCost',	
 						   (ISNULL(stl.ExtendedCost,0)) as 'ExtendedCost',					   
-						   (ISNULL(stl.Acquired,0)) 'Acquired', 
-						   stl.IsHazardousMaterial as 'IsHazardousMaterial',	
-						   (ISNULL(stl.NonStockClassification,'')) as 'NonStockClassification',					   
-						   --(ISNULL(stl.ShippingVia,'')) 'ShippingVia', 
-						   --im.ItemTypeId,
+						   (ISNULL(stl.Acquired,0)) 'Acquired', 						   	
+						   (ISNULL(stl.NonStockClassification,'')) as 'NonStockClassification',	
+						   CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',						   
+						   CAST(stl.QuantityRejected AS varchar) 'QuantityRejected',						   
+						   CAST(stl.Quantity AS varchar) 'Quantity',
+						   stl.QuantityRejected  as QuantityRejectednew,
+						   stl.QuantityOnHand  as QuantityOnHandnew,
+						   stl.Quantity  as Quantitynew,
+						   stl.ControlNumber,
+						   stl.IdNumber,
+						   stl.IsHazardousMaterial as 'IsHazardousMaterial',
 						   stl.IsActive,                     
 						   stl.CreatedDate,
 						   stl.CreatedBy,
@@ -310,15 +292,13 @@ BEGIN
 						   stl.ReceiverNumber,
 						   stl.UpdatedDate,					   
 						   stl.UpdatedBy,
-						   stl.level1 AS CompanyName,
-						   stl.level2 AS BuName,
-						   stl.level3 AS DivName,
-						   stl.level4 AS DeptName	
+						   MSD.LastMSLevel,
+						   MSD.AllMSlevels	
 					 FROM  NonStockInventory stl WITH (NOLOCK)
 							INNER JOIN ItemMasterNonStock im WITH (NOLOCK) ON stl.MasterPartId = im.MasterPartId 
-							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
+							INNER JOIN  dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.NonStockInventoryId AND MSD.ModuleID = @MSModuelId
 		 		  WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.NonStockInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
-						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@MasterPartId IS NULL OR stl.MasterPartId = @MasterPartId)					
+						AND stl.MasterCompanyId=@MasterCompanyId AND (@MasterPartId IS NULL OR stl.MasterPartId = @MasterPartId)					
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(NonStockInventoryId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
@@ -336,10 +316,8 @@ BEGIN
 						(IdNumber LIKE '%' +@GlobalFilter+'%') OR
 						(Condition LIKE '%' +@GlobalFilter+'%') OR
 						(VendorName LIKE '%' +@GlobalFilter+'%') OR
-						(CompanyName LIKE '%' +@GlobalFilter+'%') OR
-						(BuName LIKE '%' +@GlobalFilter+'%') OR
-						(DivName LIKE '%' +@GlobalFilter+'%') OR
-						(DeptName LIKE '%' +@GlobalFilter+'%') OR					
+						(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
+						(AllMSlevels LIKE '%' +@GlobalFilter+'%') OR					
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
 						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -364,10 +342,8 @@ BEGIN
 						(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS Date)=CAST(@EntryDate AS date)) AND
 						(ISNULL(@MfgExpirationDate,'') ='' OR CAST(MfgExpirationDate AS Date)=CAST(@MfgExpirationDate AS date)) AND
 						(ISNULL(@NonStockClassification,'') ='' OR NonStockClassification LIKE '%' + @NonStockClassification + '%') AND
-						(ISNULL(@CompanyName,'') ='' OR CompanyName LIKE '%' + @CompanyName + '%') AND
-						(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName + '%') AND
-						(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName + '%') AND
-						(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
+						(ISNULL(@LastMSLevel,'') ='' OR AllMSlevels LIKE '%' + @LastMSLevel + '%') AND
 						(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 					   )
@@ -414,14 +390,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='MfgExpirationDate')  THEN MfgExpirationDate END DESC,	
 						CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='CompanyName')  THEN CompanyName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='CompanyName')  THEN CompanyName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='BuName')  THEN BuName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='BuName')  THEN BuName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='DivName')  THEN DivName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='DivName')  THEN DivName END DESC,
-						CASE WHEN (@SortOrder=1  AND @SortColumn='DeptName')  THEN DeptName END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='DeptName')  THEN DeptName END DESC,
+						CASE WHEN (@SortOrder=1  AND @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
@@ -463,10 +433,7 @@ BEGIN
 													   @Parameter16 = ' + ISNULL(@Quantity,'') + ', 
 													   @Parameter17 = ' + ISNULL(@QuantityOnHand,'') + ', 
 													   @Parameter16 = ' + ISNULL(@QuantityRejected,'') + ', 
-													   @Parameter18 = ' + ISNULL(@CompanyName,'') + ', 
-													   @Parameter19 = ' + ISNULL(@BuName,'') + ',
-													   @Parameter20 = ' + ISNULL(@DeptName,'') + ', 
-													   @Parameter21 = ' + ISNULL(@DivName,'') + ', 
+													   @Parameter21 = ' + ISNULL(@LastMSLevel,'') + ', 
 													   @Parameter22 = ' + ISNULL(@Currency,'') + ', 
 													   @Parameter23 = ' + ISNULL(@IdNumber,'') + ', 
 													   @Parameter24 = ' + ISNULL(CAST(@ReceivedDate AS varchar(20)) ,'') +''',  

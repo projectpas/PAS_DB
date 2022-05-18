@@ -18,8 +18,9 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2020   Subhash Saliya Created
 	2    07/06/2021   Hemant Saliya  Updated Where Conditions
+	2    03/16/2022   Vishal Suthar  Added Site, Warehouse, Location, Shelf and Bin
      
---EXEC [UpdateAssetInventoryColumns] 624
+--EXEC [UpdateAssetInventoryColumns] 85
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[UpdateAssetInventoryColumns]
@@ -32,30 +33,22 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				DECLARE @ManagmnetStructureId as BIGINT
-				DECLARE @Level1 as varchar(200)
-				DECLARE @Level2 as varchar(200)
-				DECLARE @Level3 as varchar(200)
-				DECLARE @Level4 as varchar(200)
-
-	            SELECT @ManagmnetStructureId = ManagementStructureId FROM [dbo].[AssetInventory] WITH (NOLOCK) WHERE AssetInventoryId = @AssetInventoryId
-
-				EXEC dbo.GetMSNameandCode @ManagmnetStructureId,
-				 @Level1 = @Level1 OUTPUT,
-				 @Level2 = @Level2 OUTPUT,
-				 @Level3 = @Level3 OUTPUT,
-				 @Level4 = @Level4 OUTPUT
-
-			    Update AI SET 
-					AI.Level1 = @Level1,
-					AI.Level2 = @Level2,
-					AI.Level3 = @Level3,
-					AI.Level4 = @Level4,
+			    Update AI SET 					
 					AI.LocationName = Lo.Name,
-					AI.ManufactureName = MF.Name
+					AI.ManufactureName = MF.Name,
+					AI.SiteName = st.Name,
+					AI.Warehouse = wh.Name,
+					AI.Location = Loc.Name,
+					AI.ShelfName = shelf.Name,
+					AI.BinName = bin.Name
 			    FROM [dbo].[AssetInventory] AI WITH (NOLOCK)
 					LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON AI.ManufacturerId = MF.ManufacturerId
+					LEFT JOIN dbo.Site st WITH (NOLOCK) ON AI.SiteId = st.SiteId
+					LEFT JOIN dbo.Warehouse wh WITH (NOLOCK) ON AI.WarehouseId = wh.WarehouseId
 					LEFT JOIN dbo.[Location] Lo WITH (NOLOCK) ON AI.AssetLocationId = Lo.LocationId
+					LEFT JOIN dbo.[Location] Loc WITH (NOLOCK) ON AI.LocationId = Loc.LocationId
+					LEFT JOIN dbo.Shelf shelf WITH (NOLOCK) ON AI.ShelfId = shelf.ShelfId
+					LEFT JOIN dbo.Bin bin WITH (NOLOCK) ON AI.BinId = bin.BinId
 				WHERE AI.AssetInventoryId = @AssetInventoryId
 		END
 		COMMIT  TRANSACTION

@@ -27,14 +27,16 @@
 @MasterCompanyId int,  
 @PartNumber varchar(50)=null,  
 @PartDescription varchar(50)=null ,
-@ManufacturerPN		varchar(50)=null
+@ManufacturerPN		varchar(50)=null,
+@EmployeeId bigint=1
 AS  
 BEGIN  
   
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
   
-  DECLARE @RecordFrom int;  
+  DECLARE @RecordFrom int; 
+  DECLARE @ModuleID varchar(500) ='40,41'
   Declare @IsActive bit = 1  
   Declare @Count Int;  
   SET @RecordFrom = (@PageNumber - 1) * @PageSize;  
@@ -94,12 +96,17 @@ BEGIN
       IsNull(IM.partnumber,'') as 'PartNumber',  
       IsNull(IM.PartDescription,'') as 'PartDescription' ,
 	  asm.ManufacturerPN
+	  ,(SELECT CAST(ai.AssetInventoryId as NVARCHAR(20)) + ',' 
+	  FROM dbo.AssetInventory ai  WITH(NOLOCK) WHERE ai.AssetRecordId=asm.AssetRecordId FOR XML PATH('')) AS AssetInventoryIds
      FROM dbo.Asset asm WITH(NOLOCK)  
       LEFT JOIN dbo.AssetCalibration ascal WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId  
       LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
       LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId  
       Left Join AssetCapes AC WITH (NOLOCK) on asm.AssetRecordId = AC.AssetRecordId and AC.IsDeleted = 0  
-      Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = AC.ItemMasterId  
+      Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = AC.ItemMasterId
+	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
+	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
+	  --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
      WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))  
    ), ResultCount AS(SELECT COUNT(AssetRecordId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult from  Result  

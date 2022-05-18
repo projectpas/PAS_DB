@@ -9,6 +9,9 @@
     [UpdatedDate]                        DATETIME2 (7) NOT NULL,
     [IsActive]                           BIT           NULL,
     [IsDeleted]                          BIT           NOT NULL,
+    [SortOrder]                          INT           NULL,
     CONSTRAINT [PK_StocklineAdjustmentDataTypeAudit] PRIMARY KEY CLUSTERED ([AuditStocklineAdjustmentDataTypeId] ASC)
 );
+
+
 

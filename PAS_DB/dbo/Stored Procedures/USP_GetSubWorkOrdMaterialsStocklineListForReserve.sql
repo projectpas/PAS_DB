@@ -19,7 +19,7 @@
     1    12/24/2021   Hemant Saliya Created
 
      
- EXECUTE USP_GetWorkOrdMaterialsStocklineListForReserve 73
+ EXECUTE [USP_GetSubWorkOrdMaterialsStocklineListForReserve] 31
 
 **************************************************************/ 
     
@@ -40,8 +40,11 @@ SET NOCOUNT ON
 				DECLARE @ProvisionId BIGINT;
 				DECLARE @Provision VARCHAR(50);
 				DECLARE @ProvisionCode VARCHAR(50);
+				DECLARE @CustomerID BIGINT;
 
+				
 				SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+				SELECT @CustomerID = WO.CustomerId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK) on WO.WorkOrderId = SWOP.WorkOrderId WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
 
 				IF(@ItemMasterId = 0)
 				BEGIN
@@ -102,6 +105,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
+					AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 			END

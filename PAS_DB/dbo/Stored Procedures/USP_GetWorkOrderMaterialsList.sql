@@ -22,7 +22,7 @@
 	2    07/22/2021   Hemant Saliya Update WO & Sub WO Field Mapping to Get it from Stockline
 	3    01/03/2021   Hemant Saliya Update for Performance Improvement
      
- EXECUTE USP_GetWorkOrderMaterialsList 99,109
+ EXECUTE USP_GetWorkOrderMaterialsList_28042022 164,170
 
 **************************************************************/ 
     
@@ -40,6 +40,8 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
+				DECLARE @MasterCompanyId INT;
+				SELECT @MasterCompanyId = MasterCompanyId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
@@ -77,7 +79,7 @@ SET NOCOUNT ON
 					[IsDeleted] BIT NULL,
 				)
 
-				INSERT INTO #tmpStockline SELECT 						
+				INSERT INTO #tmpStockline SELECT DISTINCT						
 						SL.StockLineId, 						
 						SL.ItemMasterId,
 						SL.ConditionId,
@@ -89,8 +91,9 @@ SET NOCOUNT ON
 						SL.IsParent
 				FROM dbo.Stockline SL WITH(NOLOCK) 
 				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = sl.ItemMasterId AND WOM.ConditionCodeId = SL.ConditionId AND SL.IsParent = 1
+				WHERE SL.MasterCompanyId = @MasterCompanyId AND  SL.IsActive = 1 AND SL.IsDeleted = 0
 
-				INSERT INTO #tmpWOMStockline SELECT 						
+				INSERT INTO #tmpWOMStockline SELECT DISTINCT						
 						WOMS.StockLineId, 						
 						WOMS.WorkOrderMaterialsId,
 						WOMS.ConditionId,

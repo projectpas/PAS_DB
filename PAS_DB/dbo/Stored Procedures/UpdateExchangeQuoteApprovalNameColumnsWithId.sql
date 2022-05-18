@@ -21,7 +21,8 @@ BEGIN
 								WHEN SOQA.ApprovalActionId = 4 THEN 'SubmitCustomerApproval'
 								WHEN SOQA.ApprovalActionId = 5 THEN 'Approved' END),
 		CustomerStatus = APSC.Name,
-		InternalStatus = APSI.Name
+		InternalStatus = APSI.Name,
+		InternalSentToName = (INST.FirstName + ' ' + INST.LastName)
 		FROM [dbo].[ExchangeQuoteApproval] SOQA WITH (NOLOCK)
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = SOQA.CustomerId
 		LEFT JOIN DBO.Employee SP WITH (NOLOCK) ON SP.EmployeeId = SOQA.InternalApprovedById
@@ -29,6 +30,7 @@ BEGIN
 		LEFT JOIN DBO.Contact Reg WITH (NOLOCK) ON Reg.ContactId = SOQA.RejectedById
 		LEFT JOIN DBO.ApprovalStatus APSI WITH (NOLOCK) ON APSI.ApprovalStatusId = SOQA.InternalStatusId
 		LEFT JOIN DBO.ApprovalStatus APSC WITH (NOLOCK) ON APSC.ApprovalStatusId = SOQA.CustomerStatusId
+		LEFT JOIN DBO.Employee INST WITH (NOLOCK) ON INST.EmployeeId = SOQA.InternalSentToId
 		Where SOQA.ExchangeQuoteApprovalId = @ExchangeQuoteApprovalId
 	END
 	COMMIT  TRANSACTION

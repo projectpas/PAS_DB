@@ -137,17 +137,19 @@
     [ShelfName]                         VARCHAR (250)   NULL,
     [BinId]                             BIGINT          NULL,
     [BinName]                           VARCHAR (250)   NULL,
+    [StatusNote]                        VARCHAR (500)   NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_AssetInventory_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_AssetInventory_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
-    CONSTRAINT [FK_AssetInventory_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_AssetInventory_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_AssetInventory_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AssetInventory_TangibleClassId] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

@@ -23,13 +23,15 @@ CREATE PROCEDURE [dbo].[GetItemMasterCapesList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @isDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@EmployeeId BIGINT=NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-		DECLARE @RecordFrom int;		
+		DECLARE @RecordFrom int;
+		DECLARE @ModuleId int =8;
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
@@ -52,21 +54,21 @@ BEGIN
 
 		;WITH Result AS(		
 			SELECT DISTINCT imc.ItemMasterCapesId,
-				(ISNULL(imc.[PartNumber],'')) 'partNo',
-				(ISNULL(imc.[PartDescription],'')) 'pnDiscription',
-				(ISNULL(imc.[CapabilityType],'')) 'capabilityType',
+				(ISNULL(UPPER(imc.[PartNumber]),'')) 'partNo',
+				(ISNULL(UPPER(imc.[PartDescription]),'')) 'pnDiscription',
+				(ISNULL(UPPER(imc.[CapabilityType]),'')) 'capabilityType',
 				imc.CapabilityTypeId AS capabilityTypeId,
 				--imc.IsVerified AS isVerified,
 				CASE WHEN imc.IsVerified = 1 THEN 'Yes' ELSE 'No' END AS isVerified,
-				(ISNULL(imc.[VerifiedBy],'')) 'verifiedBy',
+				(ISNULL(UPPER(imc.[VerifiedBy]),'')) 'verifiedBy',
 				imc.VerifiedById AS 'verifiedById',
 				imc.VerifiedDate AS 'verifiedDate',
 				imc.[Memo] AS 'memo',
 				imc.AddedDate AS 'addedDate',
 				imc.CreatedDate AS 'createdDate',
 				imc.UpdatedDate AS 'updatedDate',
-				imc.CreatedBy AS 'createdBy',
-				imc.UpdatedBy AS 'updatedBy',                               
+				UPPER(imc.CreatedBy) AS 'createdBy',
+				UPPER(imc.UpdatedBy) AS 'updatedBy',                               
 				imc.IsActive AS  'isActive',
 				imc.IsDeleted AS 'isDeleted',
 				imc.ManagementStructureId AS 'ManagementStrId',
@@ -75,12 +77,17 @@ BEGIN
 				(ISNULL(imc.[Level1],'')) 'level1',   
 				(ISNULL(imc.[Level2],'')) 'level2', 
 				(ISNULL(imc.[Level3],'')) 'level3', 
-				(ISNULL(imc.[Level4],'')) 'level4'  
+				(ISNULL(imc.[Level4],'')) 'level4'  ,
+				UPPER(MSD.LastMSLevel) LastMSLevel,
+				UPPER(MSD.AllMSlevels) AllMSlevels
 			FROM dbo.ItemMasterCapes imc WITH (NOLOCK)
+					INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleId AND MSD.ReferenceID = imc.ItemMasterCapesId
+	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON imc.ManagementStructureId = RMS.EntityStructureId
+	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 
 			WHERE ((imc.IsDeleted=@isDeleted) AND (@ItemMasterId IS NULL OR imc.ItemMasterId = @ItemMasterId))
 				--AND (@VerifiedBy IS NULL OR imc.VerifiedBy IN (@VerifiedBy)))
-				  AND imc.MasterCompanyId=@MasterCompanyId	
+				  AND imc.MasterCompanyId=@MasterCompanyId	AND EUR.EmployeeId = @EmployeeId
 				
 				), ResultCount AS(SELECT COUNT(ItemMasterCapesId) AS totalItems FROM Result)
 
@@ -149,7 +156,9 @@ BEGIN
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 				   CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-				   CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC
+				   CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='lastMSLevel')  THEN lastMSLevel END ASC,
+				   CASE WHEN (@SortOrder=-1 AND @SortColumn='lastMSLevel')  THEN lastMSLevel END DESC
 
 				   OFFSET @RecordFrom ROWS 
 				   FETCH NEXT @PageSize ROWS ONLY

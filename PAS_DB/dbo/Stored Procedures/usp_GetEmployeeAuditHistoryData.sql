@@ -1,4 +1,5 @@
-﻿/*********************   
+﻿
+/*********************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -19,7 +20,7 @@ CREATE PROCEDURE [dbo].[usp_GetEmployeeAuditHistoryData]
 @EmployeeId BIGINT
 AS
 BEGIN
-	
+	DECLARE @MSModuleID INT = 47; -- Employee Management Structure Module ID
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		
@@ -61,16 +62,18 @@ BEGIN
                         EMP.CurrencyId,
 						EMPE.IsWorksInShop AS IsHeWorksInShop,
 						CASE WHEN EMP.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS PayType,
-                        Company = MS.Name,
+                        Company = le.Name,
 						(SELECT Stuff((
 						SELECT ', ' + [Description] FROM dbo.EmployeeExpertise EMPEXP WITH(NOLOCK) WHERE EMPEXP.EmployeeExpertiseId IN (SELECT Item FROM DBO.SPLITSTRING(EMP.EmployeeExpIds, ','))
 						FOR XML PATH('')
 						), 1, 2, '')) AS EmployeeExpertise
 						--EmployeeExpertise1 = (SELECT [Description] FROM dbo.EmployeeExpertise EMPEXP WITH(NOLOCK) WHERE EMPEXP.EmployeeExpertiseId IN (SELECT Item FROM DBO.SPLITSTRING(EMP.EmployeeExpIds, ',')))
 					FROM dbo.EmployeeAudit EMP WITH(NOLOCK)
-					LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON EMP.ManagementStructureId = MS.ManagementStructureId
+					--LEFT JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON EMP.ManagementStructureId = MS.ManagementStructureId
+					--INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EMP.EmployeeId
 					LEFT JOIN dbo.EmployeeExpertise EMPE WITH(NOLOCK) ON EMPE.EmployeeExpertiseId = EMP.EmployeeExpertiseId
 					LEFT JOIN dbo.JobTitle  JT WITH(NOLOCK) ON JT.JobTitleId = EMP.JobTitleId
+					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON EMP.LegalEntityId  = le.LegalEntityId
 					WHERE EMP.EmployeeId = @EmployeeId ORDER BY EMP.AuditEmployeeId DESC;
 				END
 			COMMIT  TRANSACTION

@@ -1,8 +1,4 @@
-﻿
-
-
-
-CREATE PROCEDURE [dbo].[GetAssetInventoryList]
+﻿CREATE PROCEDURE [dbo].[GetAssetInventoryList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
     @PageNumber int,
@@ -33,7 +29,12 @@ CREATE PROCEDURE [dbo].[GetAssetInventoryList]
 	@CreatedBy  varchar(50) = null,
 	@UpdatedBy  varchar(50) = null,
     @IsDeleted bit = null,
-	@MasterCompanyId int = 0
+	@MasterCompanyId int = 0,
+	@ManufacturerPN varchar(50) = null,
+	@Model varchar(50) = null,
+	@StklineNumber varchar(50) = null,
+	@ControlNumber varchar(50) = null,
+	@EmployeeId bigint=1
 AS
 BEGIN
 
@@ -41,6 +42,7 @@ BEGIN
 	SET NOCOUNT ON;
 
 		DECLARE @RecordFrom int;
+		DECLARE @ModuleID varchar(500) ='42,43'
 		Declare @IsActive bit = 1
 		Declare @Count Int;
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
@@ -75,7 +77,7 @@ BEGIN
 			BEGIN TRANSACTION
 				BEGIN
 						;With Result AS(
-							SELECT	
+							SELECT	DISTINCT
 								asm.AssetRecordId as AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.Name AS Name,
@@ -103,13 +105,28 @@ BEGIN
 								asm.CreatedBy AS CreatedBy,
 								asm.UpdatedBy AS UpdatedBy ,
 								asm.IsActive AS IsActive,
-								asm.IsDeleted AS IsDeleted
+								asm.IsDeleted AS IsDeleted,
+								ast.ManufacturerPN,
+								ast.Model,
+								asm.StklineNumber,
+								asm.ControlNumber,
+								ISNULL(cal.CalibrationDefaultVendorId,0) as VendorId,	
+								V.VendorName as VendorName,	
+								MSD.LastMSLevel,	
+								MSD.AllMSlevels
 							FROM dbo.AssetInventory asm WITH(NOLOCK)
+								INNER JOIN Asset AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 								LEFT JOIN dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
+								LEFT JOIN dbo.AssetCalibration as cal WITH(NOLOCK) on asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	
+								LEFT JOIN dbo.Vendor as V WITH(NOLOCK) on cal.CalibrationDefaultVendorId=V.VendorId	
+								LEFT JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								LEFT JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
+								LEFT JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
+																AND EUR.EmployeeId = @EmployeeId
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (
@@ -148,6 +165,10 @@ BEGIN
 								(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
 								(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
 								(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN like '%' + @ManufacturerPN+'%') AND
+								(ISNULL(@Model,'') ='' OR Model like '%' + @Model+'%') AND
+								(ISNULL(@StklineNumber,'') ='' OR StklineNumber like '%' + @StklineNumber+'%') AND
+								(ISNULL(@ControlNumber,'') ='' OR ControlNumber like '%' + @ControlNumber+'%') AND
 								(ISNULL(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND
 								(ISNULL(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
 								(ISNULL(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
@@ -166,6 +187,14 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='CALIBRATIONREQUIREDNEW')  THEN CalibrationRequiredNew END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='ASSETCLASS')  THEN AssetClass END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='ASSETTYPE')  THEN AssetType END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerPN')  THEN ManufacturerPN END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='Model')  THEN Model END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='StklineNumber')  THEN StklineNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='AssetStatus')  THEN AssetStatus END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETNAME')  THEN Name END Desc,
@@ -174,7 +203,15 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CALIBRATIONREQUIREDNEW')  THEN CalibrationRequiredNew END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETCLASS')  THEN AssetClass END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETTYPE')  THEN AssetType END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END Desc
+					CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END Desc,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerPN')  THEN ManufacturerPN END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='Model')  THEN Model END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='StklineNumber')  THEN StklineNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='AssetStatus')  THEN AssetStatus END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 				END
@@ -211,7 +248,12 @@ BEGIN
 													   @Parameter22 = ' + ISNULL(@CreatedBy,'') + ', 
 													   @Parameter23 = ' + ISNULL(@UpdatedBy,'') + ', 
 													   @Parameter24 = ' + ISNULL(@IsDeleted,'') + ', 
-													   @Parameter25 = ' + ISNULL(@MasterCompanyId ,'') +''
+													   @Parameter25 = ' + ISNULL(@MasterCompanyId ,'') +',
+													   @Parameter26 = ' + ISNULL(@ManufacturerPN ,'') +',
+													   @Parameter27 = ' + ISNULL(@Model ,'') +',
+													   @Parameter28 = ' + ISNULL(@StklineNumber  ,'') +',
+													   @Parameter29 = ' + ISNULL(@ControlNumber  ,'') +',
+													   '
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

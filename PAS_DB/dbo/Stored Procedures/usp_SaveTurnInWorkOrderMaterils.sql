@@ -74,6 +74,7 @@ BEGIN
 	DECLARE @StockLineId BIGINT;
 	DECLARE @WorkOrderWorkflowId BIGINT;
 	DECLARE @IsWorkOrderMaterialsExist BIT = 0;
+	DECLARE @MSModuleID INT = 2; -- Stockline Module ID
 		
 		BEGIN TRY
 			-- #STEP 1 CREATE STOCKLINE
@@ -208,12 +209,16 @@ BEGIN
 					
 					SELECT @StockLineId = SCOPE_IDENTITY()
 
+
+
 					UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNummber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId --(30,17,9)
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNummber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId
 					--UPDATE CodePrefixes SET CurrentNummber = @IDNumber WHERE CodeTypeId = 17 AND MasterCompanyId = @MasterCompanyId
 
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId
 
+					--Add SL Managment Structure Details 
+					EXEC USP_SaveSLMSDetails @MSModuleID, @StockLineId, @ManagementStructureId, @MasterCompanyId, @UpdatedBy
 					-- #STEP 2 ADD STOCKLINE TO WO MATERIAL LIST
 					IF(@IsMaterialStocklineCreate = 1)
 					BEGIN
@@ -252,6 +257,7 @@ BEGIN
 
 						--UPDATE MATERIALS COST
 						EXEC USP_UpdateWOMaterialsCost @WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
+						
 					END
 
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL

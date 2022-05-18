@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetAllWOAssignmentOpenItem]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Assignment Details    
@@ -102,7 +101,7 @@ SET NOCOUNT ON
 									wo.WorkOrderNum,
 									ws.Stage,
 									wst.[Status] As [mpnStatus],
-									@ExpertiseType AS Expertise,
+									empexp.Description AS Expertise,
 									empTech.FirstName + ' ' + empTech.LastName AS Assignedto,
 									emps.StationName,
 									wop.NTE as nte,
@@ -111,7 +110,9 @@ SET NOCOUNT ON
 									WOP.ID AS workOrderPartNoId,
 									wo.CustomerId,
 									im.ItemMasterId,
-									WOP.AssignDate As AssignedDate
+									WOP.AssignDate As AssignedDate,
+									wop.ExpertiseId as EmployeeExpertiseId,
+									wop.TechnicianId as EmployeeId
 								FROM dbo.WorkOrder wo 
 									INNER JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId AND ISNULL(WOP.IsClosed, 0) = 0 
 									INNER JOIN dbo.WorkOrderStage ws WITH (NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId
@@ -119,6 +120,7 @@ SET NOCOUNT ON
 									INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 									LEFT JOIN CTE as CTE WITH (NOLOCK) ON CTE.WorkOrderPartNoId = WOP.ID
 									LEFT JOIN dbo.Employee empTech WITH (NOLOCK) ON empTech.EmployeeId = wop.TechnicianId
+								    LEFT JOIN dbo.EmployeeExpertise empexp WITH (NOLOCK) ON empexp.EmployeeExpertiseId = wop.ExpertiseId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 								WHERE wo.MasterCompanyId= @MasterCompanyId AND wst.Id != @CloseWOStatusId  
 					), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)

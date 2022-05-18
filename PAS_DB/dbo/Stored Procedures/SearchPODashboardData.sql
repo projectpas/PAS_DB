@@ -25,7 +25,8 @@ CREATE PROCEDURE [dbo].[SearchPODashboardData]
 	@EstRecdDate datetime = null,
 	@Status varchar(50) = null,
     @IsDeleted bit = null,
-	@MasterCompanyId int = null
+	@MasterCompanyId int = null,
+	@EmployeeId bigint = 1
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -36,6 +37,8 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @RecordFrom int;
+				DECLARE @POModuleId int =5;
+				DECLARE @ROModuleId int =25;
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				
 				IF @SortColumn IS NULL
@@ -62,6 +65,9 @@ BEGIN
 				(DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', POP.VendorListPrice AS 'Amount', POP.FunctionalCurrency AS 'Currency', 
 				PO.VendorName AS 'Vendor', POP.WorkOrderNo, POP.SalesOrderNo, PO.NeedByDate AS 'PromisedDate', POP.EstDeliveryDate AS 'EstRecdDate', PO.Status FROM 
 				DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId
+				INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where POP.QuantityBackOrdered > 0
 				AND (PO.IsDeleted = @IsDeleted) and (@StatusID is null or PO.StatusId = @StatusID)
 				AND PO.MasterCompanyId = @MasterCompanyId
@@ -70,6 +76,9 @@ BEGIN
 				(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ROP.VendorListPrice AS 'Amount', ROP.FunctionalCurrency AS 'Currency', 
 				RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo, RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status FROM 
 				DBO.RepairOrderPart ROP INNER JOIN DBO.RepairOrder RO ON RO.RepairOrderId = ROP.RepairOrderId
+				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = ROP.RepairOrderPartRecordId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where ROP.QuantityBackOrdered > 0
 				AND (RO.IsDeleted = @IsDeleted) and (@StatusID is null or RO.StatusId = @StatusID)
 				AND RO.MasterCompanyId = @MasterCompanyId),

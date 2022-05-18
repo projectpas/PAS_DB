@@ -37,7 +37,8 @@ BEGIN
       OR @AddressType = 'EQ'
       OR @AddressType = 'ExchSO'
 	  OR @AddressType = 'VRFQPO'
-	  OR @AddressType = 'VRFQRO'	  
+	  OR @AddressType = 'VRFQRO'
+	  OR @AddressType = 'RMA'
 	  )
     BEGIN
       SELECT

@@ -9,7 +9,7 @@
     [CurrencyId]          INT             NOT NULL,
     [CheckNumber]         VARCHAR (50)    NOT NULL,
     [PayorsBank]          VARCHAR (50)    NULL,
-    [BankAccount]         VARCHAR (256)   NOT NULL,
+    [BankAccount]         INT             NULL,
     [GLAccountNumber]     BIGINT          NOT NULL,
     [Memo]                NVARCHAR (MAX)  NULL,
     [MasterCompanyId]     INT             NOT NULL,
@@ -19,6 +19,9 @@
     [UpdatedDate]         DATETIME2 (7)   NOT NULL,
     [IsActive]            BIT             NOT NULL,
     [IsDeleted]           BIT             NOT NULL,
+    [PageIndex]           INT             NULL,
     CONSTRAINT [PK_InvoiceCheckPaymentAudit] PRIMARY KEY CLUSTERED ([CheckPaymentAuditId] ASC)
 );
+
+
 

@@ -1,4 +1,4 @@
-﻿--exec GeSOWOtInvoiceDate '66,61,60'
+﻿--exec GeSOWOtInvoiceDate '74'
 CREATE PROCEDURE [dbo].[GeSOWOtInvoiceDate]
 @CustomerIDS nvarchar(100) = null
 AS
@@ -33,14 +33,16 @@ BEGIN
 				END
 			END
 		END
+		IF(ISNULL(@StartDate, '') != '')
+		BEGIN
 		select CAST(@StartDate AS date) as InvoiceDate
-			--COMMIT  TRANSACTION
+		END
+		ELSE
+		BEGIN
+			select NULL as InvoiceDate
+		END
 	END TRY    
 	BEGIN CATCH      
-		--IF @@trancount > 0
-			--PRINT 'ROLLBACK'
-            --ROLLBACK TRANSACTION;
-            -- temp table drop
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

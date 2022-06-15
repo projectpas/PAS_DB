@@ -41,13 +41,15 @@ BEGIN
 		@Level7 VARCHAR(MAX) = NULL,
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
-		@Level10 VARCHAR(MAX) = NULL  
+		@Level10 VARCHAR(MAX) = NULL,
+		@IsDownload BIT = NULL
 
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
        
       DECLARE @ModuleID INT = 12; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From WOQ Open Date' 
@@ -97,7 +99,6 @@ BEGIN
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId
 			LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId
 			LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId
-			--LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId
 		  WHERE WOQ.CustomerId=ISNULL(@customerid,WOQ.CustomerId)  
 				AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WOQ.MasterCompanyId = @mastercompanyid
 				AND  
@@ -125,13 +126,12 @@ BEGIN
 			UPPER(WOQ.QuoteNumber) 'qtenum',
 			UPPER(WOQ.Versionno) 'vernum',
 			UPPER(WOQS.Description) 'quotestatus',
-			FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'qtedate', 
 
 			CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN FORMAT( WOQD.CommonFlatRate , 'N', 'en-us') ELSE
 			FORMAT(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,'N', 'en-us') END 'revenue',
 
 			CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN FORMAT(0, 'N', 'en-us') ELSE
-			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN CAST(0 AS decimal(18,2)) ELSE
 			FORMAT(ISNULL(WOQD.MaterialCost + WOQD.laborcost + WOQD.ChargesCost,0),'N', 'en-us') END 'directcost',
 
 			CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN FORMAT(0, 'N', 'en-us') ELSE
@@ -173,7 +173,6 @@ BEGIN
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId
-        --LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId
       WHERE WOQ.CustomerId=ISNULL(@customerid,WOQ.CustomerId)  
 		    AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WOQ.MasterCompanyId = @mastercompanyid
 			AND  

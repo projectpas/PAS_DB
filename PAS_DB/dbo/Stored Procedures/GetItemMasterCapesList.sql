@@ -78,8 +78,8 @@ BEGIN
 				(ISNULL(imc.[Level2],'')) 'level2', 
 				(ISNULL(imc.[Level3],'')) 'level3', 
 				(ISNULL(imc.[Level4],'')) 'level4'  ,
-				UPPER(MSD.LastMSLevel) LastMSLevel,
-				UPPER(MSD.AllMSlevels) AllMSlevels
+				MSD.LastMSLevel LastMSLevel,
+				MSD.AllMSlevels AllMSlevels
 			FROM dbo.ItemMasterCapes imc WITH (NOLOCK)
 					INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleId AND MSD.ReferenceID = imc.ItemMasterCapesId
 	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON imc.ManagementStructureId = RMS.EntityStructureId

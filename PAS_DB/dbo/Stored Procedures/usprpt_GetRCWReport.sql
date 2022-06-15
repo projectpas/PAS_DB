@@ -47,9 +47,11 @@ BEGIN
 		@Level7 VARCHAR(MAX) = NULL,
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
-		@Level10 VARCHAR(MAX) = NULL
+		@Level10 VARCHAR(MAX) = NULL,
+		@IsDownload BIT = NULL
 		
 		DECLARE @ModuleID INT = 1; -- MS Module ID
+		SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 		SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
 			THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Fromdate END,
@@ -129,7 +131,6 @@ BEGIN
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-
 		  SELECT COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(RCW.customerName) 'customername',
 			UPPER(RCW.CustomerCode) 'customercode',
@@ -138,9 +139,9 @@ BEGIN
 			UPPER(IM.PartDescription) 'pndescription',
 			UPPER(RCW.SerialNumber) 'serialnum',
 			UPPER(RCW.WorkScope) 'workscope',
-			CONVERT(VARCHAR, RCW.ReceivedDate, 101) 'receiveddate',
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(RCW.ReceivedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), RCW.ReceivedDate, 107) END 'receiveddate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WO.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), WO.OpenDate, 107) END 'opendate', 
 			UPPER(WO.WorkOrderNum) 'wonum',
-			CONVERT(VARCHAR, WO.OpenDate, 101) 'opendate',
 			UPPER(WOS.code + '-' + stage) 'stagecode',
 			UPPER(WOSS.Description) 'status',
 			WOPN.NTE 'nte',			

@@ -52,6 +52,7 @@ CREATE PROCEDURE [dbo].[CreateUpdateCustomerRMAHeader]
 @OpenDate  datetime2(7) = NULL,
 @isWorkOrder bit = NULL,
 @ReferenceId bigint = NULL,
+@ModuleId INT =0,
 @Result bigint =1 OUTPUT
 
 AS
@@ -63,10 +64,8 @@ BEGIN
 		BEGIN
 
 		    DECLARE @RC int
-			DECLARE @ModuleId int 
 			DECLARE @Opr int
 			DECLARE @MSDetailsId bigint
-			--set @ModuleId = (select top 1 ManagementStructureModuleId from ManagementStructureModule  where ModuleName='CustomerRMAHeader' )
 			IF (@RMAHeaderId IS NULL OR @RMAHeaderId=0)
 			BEGIN
 				INSERT INTO [dbo].[CustomerRMAHeader]([RMANumber],[InvoiceId],[InvoiceNo],[InvoiceDate],RMAStatusId,RMAStatus,
@@ -83,9 +82,6 @@ BEGIN
 				SELECT	@Result = IDENT_CURRENT('CustomerRMAHeader');
 			    SELECT @Result as RMAHeaderId
 				EXEC [DBO].[UpdateCUstomerRMADetails] @Result;
-
-
-				--EXEC [dbo].[PROCAddUpdateCustomerRMAMSData] @RMAHeaderId,@ManagementStructureId,@MasterCompanyId ,@CreatedBy,@UpdatedBy ,@ModuleId,1;
 
 				
 			END
@@ -127,7 +123,48 @@ BEGIN
 				 set @Result= @RMAHeaderId
 				 EXEC [DBO].[UpdateCUstomerRMADetails] @RMAHeaderId;
 
-				 --EXEC [dbo].[PROCAddUpdateCustomerRMAMSData] @RMAHeaderId,@ManagementStructureId,@MasterCompanyId ,@CreatedBy,@UpdatedBy ,@ModuleId,2;
+				 -----------------------------------------------------------------
+						--for add new Stockline
+				 -----------------------------------------------------------------
+
+
+				 Declare @StatusID int=0
+
+				 select @StatusID=RMAStatusId from RMAStatus  where UPPER(Description) =UPPER('Fulfilled')
+				 if(@RMAStatusId=@StatusID)
+				 begin
+
+
+				      IF OBJECT_ID(N'tempdb..#RMADeatils') IS NOT NULL
+							BEGIN
+							DROP TABLE #RMADeatils
+							END
+							CREATE TABLE #RMADeatils
+							(
+							ID int IDENTITY,
+							RMADeatilsId bigint
+							)
+							INSERT INTO #RMADeatils (RMADeatilsId)
+							  SELECT RMADeatilsId 
+						        FROM CustomerRMADeatils  where RMAHeaderId=@RMAHeaderId 
+
+						    DECLARE @RMADeatilsId bigint;
+							DECLARE @LoopID as int
+							SELECT  @LoopID = MAX(ID) FROM #RMADeatils
+							WHILE(@LoopID > 0)
+							BEGIN
+							  SELECT @RMADeatilsId = RMADeatilsId FROM #RMADeatils WHERE ID  = @LoopID
+									IF NOT EXISTS (SELECT RMADeatilsId FROM Stockline WHERE RMADeatilsId = @RMADeatilsId)
+								  BEGIN 
+
+										EXEC [CreateStocklineForCustomerRMADeatils] @RMADeatilsId,@ModuleId
+								 END
+
+							SET @LoopID = @LoopID - 1;
+							END 
+
+
+				 end
 
 			END
 		END

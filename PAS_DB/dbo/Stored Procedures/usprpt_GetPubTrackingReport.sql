@@ -30,7 +30,8 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
   
 		DECLARE @fromdate datetime,  
-		        @todate datetime;
+		        @todate datetime,
+				@IsDownload BIT = NULL;
   
   BEGIN TRY  
     
@@ -42,6 +43,8 @@ BEGIN
 	  FROM
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
+
 	  IF ISNULL(@PageSize,0)=0
 	  BEGIN 
 		  SELECT @PageSize=COUNT(*) 
@@ -52,7 +55,6 @@ BEGIN
 			LEFT JOIN DBO.WorkflowPublications WFPUB WITH (NOLOCK) ON PUB.PublicationRecordId = WFPUB.PublicationId
 			LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
 			LEFT JOIN DBO.Employee E WITH (NOLOCK) ON PUB.VerifiedBy = E.EmployeeId
-			--LEFT JOIN DBO.WorkOrderPublications WOP WITH (NOLOCK) ON PUB.PublicationRecordId = WOP.PublicationId
 			LEFT JOIN DBO.Manufacturer MNFR WITH (NOLOCK) ON IM.ManufacturerId = MNFR.ManufacturerId
 			LEFT JOIN DBO.PublicationType PUBType WITH (NOLOCK) ON PUB.PublicationTypeId = PUBType.PublicationTypeId
 			LEFT JOIN DBO.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON IM.ItemMasterId = IMAM.ItemMasterId
@@ -80,20 +82,19 @@ BEGIN
         WFPUB.Source 'source',
         IMAM.aircraftmodel 'model',
         IMAM.AircraftType 'aircraft',
-		T.atachapter 'atachapter',
-		FORMAT(PUB.EntryDate, 'MM/dd/yyyy') 'entrydate',
-        PUB.revisionnum 'revnum',
-        FORMAT(PUB.revisiondate, 'MM/dd/yyyy') 'revdate',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN T.atachapter ELSE T.atachapter + '&nbsp;' END 'atachapter',
+		PUB.revisionnum 'revnum',        
         E.firstname + ' ' + E.lastname 'verifiedby',
-        FORMAT(PUB.expirationdate, 'MM/dd/yyyy') 'expdate',
-        FORMAT(PUB.nextreviewdate, 'MM/dd/yyyy') 'nxtrevieweddate'		
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.EntryDate, 107) END 'entrydate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.revisiondate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.revisiondate, 107) END 'revdate',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.expirationdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.expirationdate, 107) END 'expdate',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.nextreviewdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.nextreviewdate, 107) END 'nxtrevieweddate'
       FROM DBO.Publication PUB WITH (NOLOCK)
 	    LEFT JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId
         INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON PIMM.ItemMasterId = IM.ItemMasterId
         LEFT JOIN DBO.WorkflowPublications WFPUB WITH (NOLOCK) ON PUB.PublicationRecordId = WFPUB.PublicationId
 		LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
         LEFT JOIN DBO.Employee E WITH (NOLOCK) ON PUB.VerifiedBy = E.EmployeeId
-        --LEFT JOIN DBO.WorkOrderPublications WOP WITH (NOLOCK) ON PUB.PublicationRecordId = WOP.PublicationId
         LEFT JOIN DBO.Manufacturer MNFR WITH (NOLOCK) ON IM.ManufacturerId = MNFR.ManufacturerId
         LEFT JOIN DBO.PublicationType PUBType WITH (NOLOCK) ON PUB.PublicationTypeId = PUBType.PublicationTypeId
         LEFT JOIN DBO.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON IM.ItemMasterId = IMAM.ItemMasterId
@@ -102,8 +103,12 @@ BEGIN
 		  where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,''))as 'atachapter') T
 	  WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate) AND PUB.MasterCompanyId = @mastercompanyid
       GROUP BY IM.partnumber, IM.PartDescription, MNFR.name,PUB.publicationid,PUB.Description,PUBType.name, LC.Name, WFPUB.Source, 
-			   IMAM.aircraftmodel, IMAM.AircraftType,T.atachapter,PUB.revisionnum,FORMAT(PUB.revisiondate, 'MM/dd/yyyy'),FORMAT(PUB.EntryDate, 'MM/dd/yyyy'),
-	           E.firstname + ' ' + E.lastname,FORMAT(PUB.expirationdate, 'MM/dd/yyyy'), FORMAT(PUB.nextreviewdate, 'MM/dd/yyyy'),cast(PUB.EntryDate as date)
+			   IMAM.aircraftmodel, IMAM.AircraftType,T.atachapter,PUB.revisionnum,
+			   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.EntryDate, 107) END, 
+				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.revisiondate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.revisiondate, 107) END ,
+				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.expirationdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.expirationdate, 107) END ,
+				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.nextreviewdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.nextreviewdate, 107) END ,
+	           E.firstname + ' ' + E.lastname,cast(PUB.EntryDate as date)
 	  ORDER BY cast(PUB.EntryDate as date) desc
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
    

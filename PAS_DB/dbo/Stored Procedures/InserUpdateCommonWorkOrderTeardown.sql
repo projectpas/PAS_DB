@@ -36,7 +36,8 @@ CREATE PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
 	@CreatedDate datetime,
 	@UpdatedDate datetime,
 	@IsActive bit,
-	@IsDeleted bit
+	@IsDeleted bit,
+	@SubWOPartNoId bigint = 0
 AS
 BEGIN
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -70,7 +71,8 @@ BEGIN
 								   ,[IsDeleted]
 								   ,[MasterCompanyId]
 								   ,[IsSubWorkOrder]
-								   ,[SubWorkOrderId])
+								   ,[SubWorkOrderId]
+								   ,[SubWOPartNoId])
 									values(
 									@CommonTeardownTypeId,
 									@WorkOrderId,
@@ -92,7 +94,8 @@ BEGIN
 									@IsDeleted,
 									@MasterCompanyId,
 									@IsSubWorkOrder,
-									@SubWorkOrderId)
+									@SubWorkOrderId,
+									@SubWOPartNoId)
 
 						SELECT @CommonWorkOrderTeardownId = SCOPE_IDENTITY()
 

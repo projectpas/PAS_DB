@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************           
  ** File:   [GetCreditMemoById]           
  ** Author:  Moin Bloch
@@ -16,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/04/2022  Moin Bloch     Created
+	2    20/05/2022  Subhash Saliya     Updated
      
 -- EXEC GetCreditMemoById 8
 
@@ -74,6 +74,10 @@ BEGIN
 	  ,CM.[ReferenceId]
 	  ,CM.[ReturnDate]
 	  ,CM.[PDFPath]
+	  ,CM.[FreightBilingMethodId]
+      ,CM.[TotalFreight]
+	  ,CM.[ChargesBilingMethodId]
+      ,CM.[TotalCharges]
 	  ,CRMA.[ValidDate]
 	  ,CRMA.[CreatedDate] 'RMAIssueDate'
 	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 

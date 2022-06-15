@@ -53,6 +53,7 @@ BEGIN
                  ,SOBI.[IsActive]
                  ,SOBI.[IsDeleted]
 				 ,ST.isSerialized
+				 ,SOBII.NoofPieces as InvoiceQty
 				 ,AltPartNumber=(  
 				 Select top 1  
 				A.PartNumber [AltPartNumberType] from SalesOrderBillingInvoicingItem SOBIIA WITH (NOLOCK) 
@@ -103,6 +104,7 @@ BEGIN
                  ,WOBI.[IsActive]
                  ,WOBI.[IsDeleted]
 				 ,ST.isSerialized
+				 ,WOBII.NoofPieces as InvoiceQty
 				 ,AltPartNumber=(  
 				 Select top 1  
 				A.PartNumber [AltPartNumberType] from WorkOrderBillingInvoicingItem WOBIIA WITH (NOLOCK) 
@@ -182,6 +184,7 @@ BEGIN
 		   ,CRM.BillingInvoicingItemId
 		   ,CRH.InvoiceNo
 		   ,CRM.CustomerReference
+		   ,CRM.InvoiceQty
 		   ,AltPartNumber=(  
 				 Select top 1  
 				A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 

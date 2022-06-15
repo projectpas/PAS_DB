@@ -47,7 +47,6 @@ BEGIN
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
 					  ,wro.[Batchnumber]
-					  --,wro.[status]
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
@@ -76,6 +75,8 @@ BEGIN
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
 					  ,wop.[islocked]
+					  ,wro.[PDFPath]
+					  ,wop.[IsFinishGood] AS IsFinishGood
 					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
 					  ,wop.ManagementStructureId as ManagementStructureId   
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)

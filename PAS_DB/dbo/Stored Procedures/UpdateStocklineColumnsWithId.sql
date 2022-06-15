@@ -114,7 +114,32 @@ BEGIN
 					SET TLAItemMasterId = (SELECT TOP 1 NHA.MappingItemMasterId FROM dbo.Nha_Tla_Alt_Equ_ItemMapping NHA WITH(NOLOCK)
 											WHERE NHA.ItemMasterId = SD.ItemMasterId AND NHA.MappingType = 4 AND NHA.IsDeleted = 0)
 				FROM [dbo].[Stockline]  SD
-				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.TLAItemMasterId,0) = 0 AND IsParent = 1					
+				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.TLAItemMasterId,0) = 0 AND IsParent = 1
+				
+				UPDATE [dbo].[Stockline] 
+					SET DaysReceived = IM.DaysReceived
+				FROM dbo.Stockline STL WITH(NOLOCK) 
+					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
+				WHERE STL.StocklineId = @StocklineId AND IM.DaysReceived > 0 AND STL.DaysReceived IS NULL AND IsParent = 1
+
+				UPDATE [dbo].[Stockline] 
+					SET ManufacturingDays = IM.ManufacturingDays
+				FROM dbo.Stockline STL WITH(NOLOCK) 
+					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
+				WHERE STL.StocklineId = @StocklineId AND IM.ManufacturingDays > 0 AND STL.ManufacturingDays IS NULL AND IsParent = 1
+
+				UPDATE [dbo].[Stockline] 
+					SET TagDays = IM.TagDays
+				FROM dbo.Stockline STL WITH(NOLOCK) 
+					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
+				WHERE STL.StocklineId = @StocklineId AND IM.TagDays > 0 AND STL.TagDays IS NULL AND IsParent = 1
+
+				UPDATE [dbo].[Stockline] 
+					SET OpenDays = IM.OpenDays
+				FROM dbo.Stockline STL WITH(NOLOCK) 
+					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
+				WHERE STL.StocklineId = @StocklineId AND IM.OpenDays > 0 AND STL.OpenDays IS NULL AND IsParent = 1
+
 			END		   
 		COMMIT  TRANSACTION
 	END TRY    

@@ -41,13 +41,15 @@ BEGIN
 		@Level7 VARCHAR(MAX) = NULL,
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
-		@Level10 VARCHAR(MAX) = NULL  
+		@Level10 VARCHAR(MAX) = NULL,
+		@IsDownload BIT = NULL
 
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
        
       DECLARE @ModuleID INT = 17; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From SO Open Date' 
@@ -118,7 +120,6 @@ BEGIN
 
       SELECT COUNT(1) OVER () AS TotalRecordsCount,  
 			UPPER(SO.SalesOrderNumber) 'sonum',
-			FORMAT(SO.openDate, 'MM/dd/yyyy') 'opendate',
 			UPPER(SOQ.SalesOrderQuoteNumber) 'quotenum',
 			UPPER(ST.name) AS 'status',        
 			UPPER(IM.partnumber) AS 'pn',
@@ -126,10 +127,15 @@ BEGIN
 			UPPER(SO.CustomerName) AS 'customer',
 			UPPER(SO.customerreference) 'custref',
 			SUM(SOP.qty) 'qty',
-			FORMAT(SOP.unitcost,'#,0.00') 'unitcost',
-			FORMAT((SUM(SOP.qty * SOP.unitcost)),'#,0.00') 'extcost',
-			FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') 'custreqdate',
-			FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') 'shipdate',
+			--FORMAT(SOP.unitcost,'#,0.00') 'unitcost',
+			--FORMAT((SUM(SOP.qty * SOP.unitcost)),'#,0.00') 'extcost',
+			FORMAT(SUM(SOP.qty * SOP.unitcost) , 'N', 'en-us') 'extcost',
+			FORMAT(SOP.unitcost , 'N', 'en-us') 'unitcost',
+
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END 'shipdate',
+
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -162,10 +168,15 @@ BEGIN
 				AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		GROUP BY 
-			SO.SalesOrderNumber, FORMAT(SO.openDate, 'MM/dd/yyyy'), SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
-			FORMAT(SOP.unitcost,'#,0.00'),FORMAT(SOP.qty * SOP.unitcost,'#,0.00') ,FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy'),FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy'),
+			SO.SalesOrderNumber, 
+			SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
+			FORMAT(SOP.unitcost , 'N', 'en-us'),
+			FORMAT(SOP.qty * SOP.unitcost, 'N', 'en-us') ,
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END ,
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END ,
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END,
 			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name
-		ORDER BY FORMAT(SO.openDate, 'MM/dd/yyyy')
+		ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
    
   END TRY  

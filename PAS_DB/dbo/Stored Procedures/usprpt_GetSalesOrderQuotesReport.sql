@@ -44,13 +44,12 @@ BEGIN
 		@Level7 VARCHAR(MAX) = NULL,
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
-		@Level10 VARCHAR(MAX) = NULL  
-
+		@Level10 VARCHAR(MAX) = NULL,
+		@IsDownload BIT = NULL
   
   BEGIN TRY  
-    --BEGIN TRANSACTION  
-       
       DECLARE @ModuleID INT = 18; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From SOQ Open Date' 
@@ -123,13 +122,13 @@ BEGIN
 			UPPER(SOQ.SalesOrderQuoteNumber) 'qtenum',  
 			UPPER(SOQ.Versionnumber) 'vernum',  
 			UPPER(SOQ.statusname) 'quoteStatus',  
-			FORMAT (SOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',  
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'qtedate', 
 			FORMAT((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0)),'#,0.00') 'qterev',
 			FORMAT(ISNULL(SOQP.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
 			FORMAT(((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
 		    FORMAT((((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0)))*100) /  
 			CASE WHEN (ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))>0 THEN ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0) ELSE 1 END,'#,0.00')+'%' 'marginperc',  
-			FORMAT (SOQ.QuoteSentDate, 'MM/dd/yyyy')  'datesent',  
 			UPPER(SOQ.CustomerContactName) 'contactname',  
 			UPPER(SOQ.CustomerContactemail) 'email',  
 			UPPER(MSD.Level1Name) AS level1,  
@@ -167,12 +166,9 @@ BEGIN
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			ORDER BY SOQ.OpenDate
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
-    --COMMIT TRANSACTION  
   END TRY  
   
   BEGIN CATCH  
-    --ROLLBACK TRANSACTION  
-  
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

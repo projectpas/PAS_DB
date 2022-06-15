@@ -32,8 +32,11 @@
     [BillingInvoicingItemId] BIGINT          NULL,
     [IsCreateStockline]      BIT             NULL,
     [CustomerReference]      VARCHAR (100)   NULL,
+    [InvoiceQty]             INT             NULL,
     CONSTRAINT [PK_CustomerRMADeatilsAudit] PRIMARY KEY CLUSTERED ([RMADeatilsAuditId] ASC)
 );
+
+
 
 
 

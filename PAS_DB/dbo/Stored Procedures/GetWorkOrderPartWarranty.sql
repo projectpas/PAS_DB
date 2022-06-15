@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************           
  ** File:   [GetWorkOrderPartWarranty]           
  ** Author: Vishal Suthar
@@ -18,7 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/13/2022   Subhash Saliya Created
      
---EXEC [GetWorkOrderPartWarranty] 39, 4194,'STL-000006'
+--EXEC [GetWorkOrderPartWarranty] 16, 10048,'STL-000030'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetWorkOrderPartWarranty]
 	@ItemMasterId bigint = 0,
@@ -46,12 +45,12 @@ BEGIN
 				,IM.partnumber
 				
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-				LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
-			    Where WOPN.ItemMasterId=@ItemMasterId and ST.SerialNumber=@SerialNumber  AND WOBI.InvoiceStatus='Invoiced' and  WOBI.InvoiceDate > (DATEADD(year, -1, getdate())) AND WOBI.IsVersionIncrease=0
+				INNER JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+				INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+				INNER JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+				INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
+				INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+			    Where WOPN.ItemMasterId=@ItemMasterId and ST.isSerialized=1 and ST.SerialNumber=@SerialNumber and isnull(ST.SerialNumber,'')  != ''  AND WOBI.InvoiceStatus='Invoiced' and  WOBI.InvoiceDate > (DATEADD(year, -1, getdate())) AND WOBI.IsVersionIncrease=0
 
 			    
 			END

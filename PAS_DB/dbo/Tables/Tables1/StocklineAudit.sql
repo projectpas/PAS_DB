@@ -163,8 +163,14 @@
     [IsTurnIn]                            BIT             NULL,
     [IsCustomerRMA]                       BIT             NULL,
     [RMADeatilsId]                        BIGINT          NULL,
+    [DaysReceived]                        INT             NULL,
+    [ManufacturingDays]                   INT             NULL,
+    [TagDays]                             INT             NULL,
+    [OpenDays]                            INT             NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

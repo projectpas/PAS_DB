@@ -64,6 +64,7 @@
     [Level2]                  VARCHAR (200)   NULL,
     [Level3]                  VARCHAR (200)   NULL,
     [Level4]                  VARCHAR (200)   NULL,
+    [ATAPDFPath]              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_SalesOrder] PRIMARY KEY CLUSTERED ([SalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrder_AccountTypeId] FOREIGN KEY ([AccountTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
     CONSTRAINT [FK_SalesOrder_AgentId] FOREIGN KEY ([AgentId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -79,6 +80,8 @@
     CONSTRAINT [FK_SalesOrder_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id])
 );
+
+
 
 
 

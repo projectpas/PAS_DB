@@ -24,8 +24,11 @@
     [MasterCompanyId]                INT            NOT NULL,
     [IsSubWorkOrder]                 BIT            NULL,
     [SubWorkOrderId]                 BIGINT         NULL,
+    [SubWOPartNoId]                  BIGINT         NULL,
     CONSTRAINT [PK_CommonWorkOrderTearDownAudit] PRIMARY KEY CLUSTERED ([CommonWorkOrderTearDownAuditId] ASC)
 );
+
+
 
 
 

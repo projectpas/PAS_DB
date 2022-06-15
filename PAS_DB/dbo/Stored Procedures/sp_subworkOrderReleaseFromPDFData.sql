@@ -43,7 +43,7 @@ BEGIN
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId where wro.SubReleaseFromId =  @ReleaseFromId )
 				 SELECT 
 					   wro.[SubReleaseFromId]
-					  ,wro.[WorkorderId]
+					  ,wo.[WorkorderId]
 					  ,wro.[SubWorkOrderId]
 					  ,wro.[SubWOPartNoId]
 					  ,wro.[Country]
@@ -83,6 +83,8 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.[islocked]
+					  ,wop.[IsFinishGood]
+					  ,wro.[PDFPath]
 					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
 					  ,wop.CustomerRequestDate as ReceivedDate,
 					@ManagementStructureId as ManagementStructureId

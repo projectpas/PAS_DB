@@ -27,11 +27,11 @@ BEGIN
 		GROUP BY IPS.PaymentAmount
 
 		Update DBO.CustomerPayments
-		SET AmtApplied = (@paymentAmt - @remPaymentAmt)
+		SET AmtApplied = (@paymentAmt - @remPaymentAmt),UpdatedDate=GETDATE()
 		Where ReceiptId = @ReceiptId
 
 		Update DBO.CustomerPayments
-		SET AmtRemaining = Amount - AmtApplied
+		SET AmtRemaining = Amount - AmtApplied,UpdatedDate=GETDATE()
 		Where ReceiptId = @ReceiptId
 
 		SELECT ReceiptNo as 'value' FROM DBO.CustomerPayments WITH(NOLOCK) Where ReceiptId = @ReceiptId

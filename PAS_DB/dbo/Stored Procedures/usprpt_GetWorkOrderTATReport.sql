@@ -134,7 +134,7 @@ BEGIN
 		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-		SELECT DISTINCT
+		SELECT COUNT(1) OVER () AS TotalRecordsCount,  
 			UPPER(C.Name) 'customername',
 			UPPER(C.CustomerCode) 'customercode',
 			UPPER(IM.partnumber) 'pn',
@@ -143,22 +143,19 @@ BEGIN
 			UPPER(WOPN.WorkScope) 'workscope',
 			UPPER(CN.Description) 'condition',
 			UPPER(WO.WorkOrderNum) 'wonum',
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE FORMAT(WOPN.ReceivedDate, 'dd MMM yyyy') END 'receiveddate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WO.OpenDate, 'MM/dd/yyyy') ELSE FORMAT(WO.OpenDate, 'dd MMM yyyy') END 'opendate', 
-
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.SentDate, 'MM/dd/yyyy') ELSE FORMAT(WOQ.SentDate, 'dd MMM yyyy') END 'quotedate', 
-			--FORMAT(WOQ.SentDate, 'MM/dd/yyyy') 'quotedate', 
-			(DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate)) 'quotedays',
-			--FORMAT(WOQ.approveddate, 'MM/dd/yyyy') 'approveddate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.approveddate, 'MM/dd/yyyy') ELSE FORMAT(WOQ.approveddate, 'dd MMM yyyy') END 'approveddate', 
+			WOBI.InvoiceNo 'invoicenum',
+			DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'quotedays',
 			DATEDIFF(DAY, WOQ.sentDate, WOQ.approveddate) 'approveddays',
-			--FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') 'estshipdate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') ELSE FORMAT(WOPN.EstimatedShipDate, 'dd MMM yyyy') END 'estshipdate', 
 			DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) 'estshipdays',
 			DATEDIFF(DAY, WOQ.approveddate, WOPN.EstimatedShipDate) + DATEDIFF(DAY, WOPN.ReceivedDate, WOQ.sentDate) 'tat',
-			WOBI.InvoiceNo 'invoicenum',
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOBI.InvoiceDate, 'MM/dd/yyyy') ELSE FORMAT(WOBI.InvoiceDate, 'dd MMM yyyy') END 'invoicedate', 
-			--FORMAT(WOBI.InvoiceDate, 'MM/dd/yyyy') 'invoicedate', 
+
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WO.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WO.OpenDate, 107) END 'opendate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.SentDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.SentDate, 107) END 'quotedate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.approveddate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.approveddate, 107) END 'approveddate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.EstimatedShipDate, 107) END 'estshipdate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOBI.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOBI.InvoiceDate, 107) END 'invoicedate', 
+			
 			UPPER(E.FirstName + ' ' + E.LastName) 'techname',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -198,6 +195,8 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		ORDER BY CAST(WO.OpenDate AS DATE)
+			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
 
     COMMIT TRANSACTION
   END TRY

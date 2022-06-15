@@ -1742,7 +1742,6 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetStockReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderQuotesReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderGMReport.sql" />
-    <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderBillingReportnew.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderBillingReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetReceivingLogReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetRCWReport.sql" />
@@ -1859,6 +1858,24 @@
     <Build Include="dbo\Stored Procedures\GetCustomerBillingAddressForCreditMemo.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerAddress.sql" />
     <Build Include="dbo\Stored Procedures\GetCreditMemoPartsForPrint.sql" />
+    <Build Include="dbo\Tables\CreditMemoChargesAudit.sql" />
+    <Build Include="dbo\Tables\CreditMemoCharges.sql" />
+    <Build Include="dbo\Functions\FN_GetExpireDaysStockline.sql" />
+    <Build Include="dbo\Stored Procedures\WOAddPNPartSearchAutoCompleteDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCustomeRMAPdfPath.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCreditMemoFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCreditMemoChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateCreditMemoChargeNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\SearchStockLineForAddPN.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertCreditMemoFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertCreditMemoChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetExpireDaysStockline.sql" />
+    <Build Include="dbo\Stored Procedures\GetCreditMemoPartsDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetCreditMemoFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetCreditMemoChargesList.sql" />
+    <Build Include="dbo\Stored Procedures\Get_ExpireStockList.sql" />
+    <Build Include="dbo\User Defined Types\CreditMemoFreightType.sql" />
+    <Build Include="dbo\User Defined Types\CreditMemoChargesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

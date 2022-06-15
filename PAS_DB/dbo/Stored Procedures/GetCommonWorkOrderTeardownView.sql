@@ -22,7 +22,8 @@
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonWorkOrderTeardownView]
 	@wowfId  bigint = 0,
-	@IsSubWorkOrder bit = 0
+	@IsSubWorkOrder bit = 0,
+	@SubWOPartNoId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -31,6 +32,34 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+
+			  if(@IsSubWorkOrder =1)
+			  BEGIN
+			   SELECT tdt.CommonTearDownTypeId,
+					ISNULL(td.ReasonName,'') ReasonName,
+                    ISNULL(td.TechnicalName,'') as Technician,
+                    ISNULL(td.InspectorName,'') as Inspector,
+                    ISNULL(td.Memo,'') as Memo,
+                    td.TechnicianDate as TechnicianDate,
+                    td.InspectorDate as InspectorDate,
+                    td.IsDocument as IsDocumentAdded,
+					tdt.[Name] as TearDownType,
+					tdt.IsTechnician,
+					tdt.[IsDate],
+					tdt.IsInspector,
+					tdt.IsInspectorDate,
+					tdt.IsDocument,
+					tdt.[Sequence],
+					tdt.DocumentModuleName
+				FROM [dbo].[CommonWorkOrderTearDown] td WITH(NOLOCK)
+				INNER JOIN [dbo].[CommonTeardownType] tdt ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
+				WHERE td.SubWOPartNoId = @SubWOPartNoId
+				AND td.IsSubWorkOrder = @IsSubWorkOrder
+				ORDER BY tdt.[Sequence]
+			  END
+			  ELSE
+			  BEGIN
+
 			   SELECT tdt.CommonTearDownTypeId,
 					ISNULL(td.ReasonName,'') ReasonName,
                     ISNULL(td.TechnicalName,'') as Technician,
@@ -52,6 +81,8 @@ BEGIN
 				WHERE td.WorkFlowWorkOrderId = @wowfId
 				AND td.IsSubWorkOrder = @IsSubWorkOrder
 				ORDER BY tdt.[Sequence]
+			  END
+			  
 			END
 		COMMIT  TRANSACTION
 

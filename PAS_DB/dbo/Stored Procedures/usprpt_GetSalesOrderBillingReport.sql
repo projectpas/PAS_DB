@@ -40,10 +40,11 @@ declare @tagtype varchar(50) = NULL,
 @Level7 VARCHAR(MAX) = NULL,
 @Level8 VARCHAR(MAX) = NULL,
 @Level9 VARCHAR(MAX) = NULL,
-@Level10 VARCHAR(MAX) = NULL 
+@Level10 VARCHAR(MAX) = NULL, 
+@IsDownload BIT = NULL
 
 select 
-@name=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Cutsomer(Optional)' 
+@name=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)' 
 	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @name end,
 	@Fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From SO Invoice Date' 
 	then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @Fromdate end,
@@ -86,6 +87,7 @@ select
     --BEGIN TRANSACTION  
 
 		DECLARE @ModuleID INT = 17; -- MS Module ID
+		SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
   IF ISNULL(@PageSize,0)=0
 	  BEGIN 
@@ -129,15 +131,15 @@ select
         UPPER(CDTN.description) 'condition',  
         UPPER(SO.salesordernumber) 'sonum',  
 		UPPER(WO.workordernum) 'wonum',  
-        FORMAT (STL.receiveddate, 'MM/dd/yyyy')  AS 'receiveddate',  
-		FORMAT (SO.opendate, 'MM/dd/yyyy')  AS  'opendate',  
-        UPPER(SOBI.invoiceno) 'invoicenum',  
-		FORMAT (SOBI.invoicedate, 'MM/dd/yyyy')  AS  'invoicedate',  
+		UPPER(SOBI.invoiceno) 'invoicenum',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'receiveddate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.opendate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SO.opendate, 107) END 'opendate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.invoicedate, 107) END 'invoicedate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END 'quoteapprovaldate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate', 
 		FORMAT((isnull(SOP.SalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges sc WITH (NOLOCK)
 			WHERE sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) ) , 'N', 'en-us') as 'revenue',  
-        FORMAT (SOQ.OpenDate, 'MM/dd/yyyy') 'quotedate',  
-		FORMAT (soq.ApprovedDate, 'MM/dd/yyyy')  AS 'quoteapprovaldate',  
-		FORMAT (SOBI.shipdate, 'MM/dd/yyyy')  AS     'shipdate',  
 		UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 

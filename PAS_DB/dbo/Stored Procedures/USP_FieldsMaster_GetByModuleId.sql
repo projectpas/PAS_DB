@@ -68,7 +68,7 @@ SET NOCOUNT ON;
 	DECLARE @ApplyFilter NVARCHAR(200)
 	DECLARE @FieldType NVARCHAR(100)
 	DECLARE tablefeildcursor CURSOR FOR 
-			SELECT AutoId,TableName, IDName, ValueName,ISNULL(ApplyFilter,''),FieldType FROM dbo.GlobalFilter WHERE ModuleId=@ModuleId and isnull(TableName,'')!='' and IsActive=1
+			SELECT AutoId,TableName, IDName, ValueName,ISNULL(ApplyFilter,''),FieldType FROM dbo.GlobalFilter WHERE ModuleId=@ModuleId and isnull(TableName,'')!='' and IsActive=1 ORDER BY Sequnse ASC
 				OPEN tablefeildcursor  
 				FETCH NEXT FROM tablefeildcursor INTO @AutoId,@TableName,@IDName,@ValueName,@ApplyFilter,@FieldType
 						WHILE @@FETCH_STATUS = 0  
@@ -102,7 +102,7 @@ SET NOCOUNT ON;
 			(SELECT TT.Value,TT.Label FROM #TempTable TT WHERE TT.AutoId=GF.AutoId FOR JSON PATH )  ELSE '' END 
 			AS FilterListValue
 			FROM dbo.GlobalFilter GF
-			WHERE ModuleId=@ModuleId  and IsActive=1
+			WHERE ModuleId=@ModuleId  and IsActive=1 ORDER BY GF.Sequnse ASC
 		
 		SELECT ReportTitle,SPname,BredCum,case when @mSSEQ IS NULL THEN 1 ELSE 0 END 'disableMs' FROM  ReportMaster WHERE ModuleId=@ModuleId
 	

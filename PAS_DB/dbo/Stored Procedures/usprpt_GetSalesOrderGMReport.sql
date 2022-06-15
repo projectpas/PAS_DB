@@ -41,7 +41,8 @@ BEGIN
 	@Level7 VARCHAR(MAX) = NULL,
 	@Level8 VARCHAR(MAX) = NULL,
 	@Level9 VARCHAR(MAX) = NULL,
-	@Level10 VARCHAR(MAX) = NULL 
+	@Level10 VARCHAR(MAX) = NULL,
+	@IsDownload BIT = NULL
 
   BEGIN TRY  
     
@@ -78,6 +79,7 @@ BEGIN
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
         
        DECLARE @ModuleID INT = 17; -- MS Module ID
+	   SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -130,10 +132,21 @@ BEGIN
         UPPER(IM.partdescription) 'pndescription',  
         UPPER(CDTN.description) 'cond',  
         UPPER(SO.salesordernumber) 'sonum', 
-        FORMAT (STL.receiveddate, 'MM/dd/yyyy') 'rcvddate',  
-        FORMAT (SO.opendate, 'MM/dd/yyyy') 'soopendate',  
-        UPPER(SOBI.invoiceno) 'invnum',  
-        FORMAT (SOBI.invoicedate, 'MM/dd/yyyy') 'invdate',  
+		UPPER(SOBI.invoiceno) 'invnum',  
+
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'rcvddate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.opendate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SO.opendate, 107) END 'soopendate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.invoicedate, 107) END 'invdate', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'qtedate', 
+		CASE  WHEN soq.statusid IN(2,4) THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END END AS 'qteapprovaldate',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END 'shipdate', 
+
+  --      FORMAT (STL.receiveddate, 'MM/dd/yyyy') 'rcvddate',  
+  --      FORMAT (SO.opendate, 'MM/dd/yyyy') 'soopendate',  
+  --      FORMAT (SOBI.invoicedate, 'MM/dd/yyyy') 'invdate',
+		--FORMAT (SOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',  
+  --      FORMAT (SOBI.shipdate, 'MM/dd/yyyy') 'shipdate',  
+
         SOP.netsales 'Netsales',  
         UPPER(SOMS.misc) 'Misc',  
         FORMAT(((SOP.NetSales) +  ISNULL(Charges.BillingAmount, 0)),'#,0.00')  'rev',  
@@ -142,9 +155,6 @@ BEGIN
         FORMAT(((SOP.NetSales) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost),'#,0.00') 'marginamt',  
         FORMAT(((((SOP.NetSales) +  ISNULL(Charges.BillingAmount, 0) -  SOMS.productcost) * 100) / NULLIF((SOP.NetSales) +  ISNULL(Charges.BillingAmount, 0), 0)),'#,0.00')+'%' 'marginrevperc',  
 		SOQ.salesorderquotenumber 'qtenum',  
-        FORMAT (SOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',  
-        CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END AS 'qteapprovaldate',  
-        FORMAT (SOBI.shipdate, 'MM/dd/yyyy') 'shipdate',  
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -167,7 +177,6 @@ BEGIN
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 		LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid  
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1  
-        --LEFT JOIN dbo.workorder WO WITH (NOLOCK) ON STL.workorderid = WO.workorderid  
         LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid  
 		LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		          GROUP BY SalesOrderPartId) Charges ON Charges.SalesOrderPartId = SOP.SalesOrderPartId 
@@ -187,10 +196,23 @@ BEGIN
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 	 GROUP BY 
-			  C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
-			  FORMAT (SO.opendate, 'MM/dd/yyyy'),SOBI.invoiceno,SOP.qty,SOP.unitsaleprice,SOBI.freight,SOBI.misccharges,SOBI.salestax,SOMS.productcost,
-			  SOQ.salesorderquotenumber,FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
-			  FORMAT (SOBI.shipdate, 'MM/dd/yyyy'),SO.SalesPersonName,SO.CustomerServiceRepName,FORMAT (SOBI.invoicedate, 'MM/dd/yyyy'), SOP.netsales,SOMS.misc,  
+			  C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,
+			  --FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
+			  --FORMAT (SO.opendate, 'MM/dd/yyyy'),
+			  --FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),
+			  --FORMAT (SOBI.shipdate, 'MM/dd/yyyy'),
+			  --CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
+			  --FORMAT (SOBI.invoicedate, 'MM/dd/yyyy'),
+			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END, 
+			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.opendate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SO.opendate, 107) END , 
+			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.invoicedate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.invoicedate, 107) END , 
+			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END , 
+			  CASE  WHEN soq.statusid IN(2,4) THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(soq.ApprovedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), soq.ApprovedDate, 107) END END ,  
+			  CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOBI.shipdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOBI.shipdate, 107) END , 
+			  SOBI.invoiceno,SOP.qty,SOP.unitsaleprice,SOBI.freight,SOBI.misccharges,SOBI.salestax,SOMS.productcost,
+			  SOQ.salesorderquotenumber,
+			  SO.SalesPersonName,SO.CustomerServiceRepName,
+			  SOP.netsales,SOMS.misc,  
 			  MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,Charges.BillingAmount
 	  ORDER BY C.customercode
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 

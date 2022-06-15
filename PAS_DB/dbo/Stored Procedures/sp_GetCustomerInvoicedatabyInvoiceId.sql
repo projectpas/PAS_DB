@@ -49,6 +49,8 @@ BEGIN
 			   ,C.CustomerId
 			   ,c.CustomerCode
 			   ,SO.ManagementStructureId as ManagementStructureId
+			   ,'0' as AddressCount
+			   ,'0' as PartCount
 			FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
 				LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
@@ -81,6 +83,8 @@ BEGIN
 			   ,WOBI.MasterCompanyId
 			   ,C.CustomerId
 			   ,c.CustomerCode
+			   ,'0' as AddressCount
+			   ,'0' as PartCount
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
 				LEFT JOIN Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
 				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId

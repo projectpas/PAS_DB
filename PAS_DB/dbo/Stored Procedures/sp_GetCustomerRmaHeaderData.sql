@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetCustomerInvoicedatabyInvoiceId]           
  ** Author:   Subhash Saliya
  ** Description: Get Customer Invoicedataby InvoiceId   
@@ -18,7 +17,8 @@
 **************************************************************/ 
 
 CREATE Procedure [dbo].[sp_GetCustomerRmaHeaderData]
-@RMAHeaderId bigint
+@RMAHeaderId bigint,
+@Moduleid int =0
 AS
 BEGIN
 
@@ -32,8 +32,16 @@ BEGIN
 			DECLARE @InvoiceStatus varchar(30)
 			DECLARE @isWorkOrder bit
 			DECLARE @InvoiceId bigint
+			DECLARE @AddressCount int=0
+			DECLARE @PartCount int=0
 			SELECT @isWorkOrder =isWorkOrder,@InvoiceId= InvoiceId FROM [dbo].[CustomerRMAHeader]  WITH (NOLOCK) WHERE  RMAHeaderId =@RMAHeaderId
 
+			SELECT top 1 @AddressCount = count(*) FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
+			INNER JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID
+		    WHERE CRMA.RMAHeaderId = @RMAHeaderId
+
+
+			Select top 1 @PartCount = count(*) from CustomerRMADeatils WITH (NOLOCK) where isnull(IsDeleted,0) = 0 and RMAHeaderId = @RMAHeaderId
 
 			if(@isWorkOrder =1)
 			BEGIN
@@ -82,6 +90,9 @@ BEGIN
 			  ,CRM.ReferenceId
 			  ,@InvoiceStatus As InvoiceStatus
 			  ,RMAC.ValidDays
+			  ,@AddressCount As AddressCount
+			  ,@PartCount As PartCount
+			  ,CRM.PDFPath
 		  FROM [dbo].[CustomerRMAHeader] CRM  WITH (NOLOCK) 
 		  LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON CRM.MasterCompanyId = RMAC.MasterCompanyId
 		  WHERE  RMAHeaderId =@RMAHeaderId AND ISNULL(CRM.IsDeleted,0)=0

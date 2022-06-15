@@ -65,7 +65,10 @@
     [Level2]                  VARCHAR (200)   NULL,
     [Level3]                  VARCHAR (200)   NULL,
     [Level4]                  VARCHAR (200)   NULL,
+    [ATAPDFPath]              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrderAudit_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 

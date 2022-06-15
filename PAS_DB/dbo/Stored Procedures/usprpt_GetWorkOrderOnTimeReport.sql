@@ -41,13 +41,15 @@ BEGIN
 		@Level7 VARCHAR(MAX) = NULL,
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
-		@Level10 VARCHAR(MAX) = NULL  
+		@Level10 VARCHAR(MAX) = NULL,
+		@IsDownload BIT = NULL
 
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
        
       DECLARE @ModuleID INT = 12; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Start Ship Date' 
@@ -90,7 +92,6 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-		  --LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  
 			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
@@ -125,14 +126,14 @@ BEGIN
 			UPPER(IM.PartDescription) 'pndescription',  
 			UPPER(WS.WorkScopeCode) 'workscope',  
 			UPPER(CDTN.Description) 'cond',  
-			UPPER(WO.WorkOrderNum) 'wonum',  
-			FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') 'rcvddate',  
-			FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') 'qtedate',  
-			FORMAT(WOQ.approveddate, 'MM/dd/yyyy') 'approvaldate',  
-			FORMAT(WOS.ShipDate, 'MM/dd/yyyy') 'shipdate',  
-			FORMAT(WOPN.CustomerRequestDate, 'MM/dd/yyyy') 'reqdate',  
-			FORMAT(WOPN.promiseddate, 'MM/dd/yyyy') 'promisedate',  
-			FORMAT(ISNULL(WBI.PostedDate,WBI.InvoiceDate), 'MM/dd/yyyy')'invdate',  
+			UPPER(WO.WorkOrderNum) 'wonum', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) END 'rcvddate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.promiseddate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.promiseddate, 107) END 'promisedate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOPN.CustomerRequestDate, 107) END 'reqdate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'qtedate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.ApprovedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.ApprovedDate, 107) END 'approvaldate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(ISNULL(WBI.PostedDate,WBI.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), ISNULL(WBI.PostedDate,WBI.InvoiceDate), 107) END 'invdate', 
 			(CASE WHEN WOS.ShipDate <= WOPN.PromisedDate THEN 'YES' ELSE 'NO' END) AS 'ontime',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -152,7 +153,6 @@ BEGIN
 		LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 		LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-      --LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  
         LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  

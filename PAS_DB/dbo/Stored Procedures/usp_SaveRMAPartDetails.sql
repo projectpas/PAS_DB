@@ -84,7 +84,8 @@ BEGIN
 										,[InvoiceId]
 										,[BillingInvoicingItemId]
 										,IsCreateStockline
-										,CustomerReference)
+										,CustomerReference
+										,InvoiceQty)
 							VALUES (
 										 SOURCE.[RMAHeaderId]
 										,SOURCE.[ItemMasterId]
@@ -116,46 +117,15 @@ BEGIN
 										,SOURCE.[InvoiceId]
 										,SOURCE.[BillingInvoicingItemId]
 										,0
-										,SOURCE.CustomerReference);
+										,SOURCE.CustomerReference
+										,SOURCE.InvoiceQty);
 
 
 					 END
 					 Declare @RMAHeaderId bigint 
 					 Declare @isWorkOrder bit 
 					 set @RMAHeaderId = (Select top 1 RMAHeaderId from @tbl_CustomerRMADeatilsType)
-					    -----------------------------------------------------------------
-						--for add new Stockline, mastercopmany wise in EmailTemplate Table
-						-----------------------------------------------------------------
-
-						   IF OBJECT_ID(N'tempdb..#RMADeatils') IS NOT NULL
-							BEGIN
-							DROP TABLE #RMADeatils
-							END
-							CREATE TABLE #RMADeatils
-							(
-							ID int IDENTITY,
-							RMADeatilsId bigint
-							)
-							INSERT INTO #RMADeatils (RMADeatilsId)
-							  SELECT RMADeatilsId 
-						        FROM CustomerRMADeatils  where IsCreateStockline=0 and RMAHeaderId=@RMAHeaderId 
-
-						    DECLARE @RMADeatilsId bigint;
-							DECLARE @LoopID as int
-							SELECT  @LoopID = MAX(ID) FROM #RMADeatils
-							WHILE(@LoopID > 0)
-							BEGIN
-							  SELECT @RMADeatilsId = RMADeatilsId FROM #RMADeatils WHERE ID  = @LoopID
-									IF NOT EXISTS (SELECT RMADeatilsId FROM Stockline WHERE RMADeatilsId = @RMADeatilsId)
-								  BEGIN 
-
-										EXEC [CreateStocklineForCustomerRMADeatils] @RMADeatilsId,@ModuleId
-								 END
-
-							SET @LoopID = @LoopID - 1;
-							END 
-
-
+					
 					 
 						DECLARE @InvoiceStatus varchar(30)
 						DECLARE @InvoiceId bigint
@@ -204,6 +174,7 @@ BEGIN
 							,CRM.BillingInvoicingItemId
 							,CRM.CustomerReference
 							,CRH.InvoiceNo
+							,CRM.InvoiceQty
 							,AltPartNumber=(  
 								 Select top 1  
 								A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 

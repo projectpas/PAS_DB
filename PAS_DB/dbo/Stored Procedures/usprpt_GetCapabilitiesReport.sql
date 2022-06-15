@@ -42,7 +42,8 @@ BEGIN
 	@Level7 VARCHAR(MAX) = NULL,
 	@Level8 VARCHAR(MAX) = NULL,
 	@Level9 VARCHAR(MAX) = NULL,
-	@Level10 VARCHAR(MAX) = NULL 
+	@Level10 VARCHAR(MAX) = NULL,
+	@IsDownload BIT = NULL
 
   BEGIN TRY 
       
@@ -77,6 +78,7 @@ BEGIN
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 	 
       DECLARE @ModuleID INT = 8; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -85,8 +87,7 @@ BEGIN
 		  INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON IMC.itemmasterid = IM.itemmasterid  
 		  INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = imc.ItemMasterCapesId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		  --LEFT  JOIN DBO.mastercompany MC WITH (NOLOCK) ON IMC.MasterCompanyId = MC.MasterCompanyId 
-		  WHERE (IM.partnumber IN (ISNULL(@partnumber,IM.partnumber)))  
+		  WHERE IM.ItemMasterId=ISNULL(@partnumber,IM.ItemMasterId)    
 		  AND IMC.mastercompanyid = @mastercompanyid 
 		  AND (IMC.isverified =  CASE WHEN @isverified = 1 THEN 1 ELSE CASE WHEN @isverified = 2 THEN 0 END  END  OR (@isverified = 3  
 		  AND IMC.isverified IS NOT NULL AND IMC.mastercompanyid = @mastercompanyid))
@@ -111,15 +112,16 @@ BEGIN
         (IM.partnumber) 'pn',  
         (IM.partdescription) 'pndescription',  
         (STUFF((SELECT DISTINCT ', '+ IMAIR.AircraftType FROM ItemMasterAircraftMapping IMAIR Where  IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,'')) as 'aircraft',
-       	(STUFF((SELECT DISTINCT ', '+ IMAIR.aircraftmodel FROM ItemMasterAircraftMapping IMAIR Where  IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,''))as 'model', 
-        (STUFF((SELECT DISTINCT ', '+ IMAIR.Dashnumber FROM ItemMasterAircraftMapping IMAIR Where  IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,''))as 'dash', 
-		(STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
-	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3 ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,''))as 'atachapter', 
+       	(STUFF((SELECT DISTINCT ', '+ IMAIR.aircraftmodel FROM ItemMasterAircraftMapping IMAIR Where IMAIR.aircraftmodel not like '%Unknown%' AND IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,''))as 'model', 
+        (STUFF((SELECT DISTINCT ', '+ IMAIR.Dashnumber FROM ItemMasterAircraftMapping IMAIR Where IMAIR.Dashnumber not like '%Unknown%' AND IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,'')) as 'dash', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN (STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
+	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3  ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,'')) ELSE (STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
+	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3  ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,'')) + '&nbsp;' END as 'atachapter',
         IMC.CapabilityType 'capabilitytype',  
         case when Isnull(IMC.isverified,0) = 0 then 'No' else 'Yes'  end   'verified',  
         IMC.VerifiedBy 'Verified BY',  
-        FORMAT(IMC.VerifiedDate, 'MM/dd/yyyy hh:mm:tt') 'dateverified',  
-        FORMAT(IMC.AddedDate, 'MM/dd/yyyy hh:mm:tt') 'dateadded',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(IMC.VerifiedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), IMC.VerifiedDate, 107) END 'dateverified', 
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(IMC.AddedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), IMC.AddedDate, 107) END 'dateadded', 
 		UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -127,16 +129,14 @@ BEGIN
 		UPPER(MSD.Level5Name) AS level5, 
 		UPPER(MSD.Level6Name) AS level6, 
 		UPPER(MSD.Level7Name) AS level7, 
-		
-UPPER(MSD.Level8Name) AS level8, 
+		UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
-		UPPER(MSD.Level10Name) AS level10
+		UPPER(MSD.Level10Name) AS level10   
       FROM DBO.ItemMasterCapes IMC WITH (NOLOCK)  
       INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON IMC.itemmasterid = IM.itemmasterid  
       INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = imc.ItemMasterCapesId
 	  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-      --LEFT  JOIN DBO.mastercompany MC WITH (NOLOCK) ON IMC.MasterCompanyId = MC.MasterCompanyId 
-      WHERE (IM.partnumber IN (ISNULL(@partnumber,IM.partnumber)))   
+      WHERE IM.ItemMasterId=ISNULL(@partnumber,IM.ItemMasterId)  
       AND IMC.mastercompanyid = @mastercompanyid 
       AND (IMC.isverified =  CASE WHEN @isverified = 1 THEN 1 ELSE CASE WHEN @isverified = 2 THEN 0 END  END  OR (@isverified = 3  
       AND IMC.isverified IS NOT NULL AND IMC.mastercompanyid = @mastercompanyid))

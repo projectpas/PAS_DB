@@ -1,4 +1,4 @@
-﻿--exec GetCustomerAccountList 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',10,'',NULL,'',NULL,'arbalanceonly',2
+﻿--exec GetCustomerAccountList 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
 CREATE PROCEDURE [dbo].[GetCustomerAccountList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
@@ -12,6 +12,7 @@ CREATE PROCEDURE [dbo].[GetCustomerAccountList]
 @currencyCode varchar(50) = NULL,
 @BalanceAmount decimal(18,2) = NULL,
 @CurrentlAmount decimal(18,2) = NULL,
+@Amountpaidbylessthen0days decimal(18,2) = NULL,
 @Amountpaidby30days decimal(18,2) = NULL,
 @Amountpaidby60days decimal(18,2) = NULL,
 @Amountpaidby90days decimal(18,2) = NULL,
@@ -72,11 +73,12 @@ BEGIN
 			DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE()) AS dayDiff,
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
+			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
 			from SalesOrderBillingInvoicing sobi
 			INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
 			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
-			INNER JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
+			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
 			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
 			where sobi.InvoiceStatus = 'Invoiced'
 			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate
@@ -89,11 +91,12 @@ BEGIN
 			DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE()) AS dayDiff,
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
+			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
 			from WorkOrderBillingInvoicing wobi
 			INNER JOIN WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
 			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
-			INNER JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
 			--where ct.CustomerId=58 AND wobi.InvoiceStatus='Reviewed'
 			where wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
 			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate
@@ -101,8 +104,12 @@ BEGIN
 			), CTECalculation AS(
 			select
 				CustomerId,
+				SUM (CASE
+			    WHEN CreditRemainingDays < 0 THEN RemainingAmount
+			    ELSE 0
+			  END) AS paidbylessthen0days,
 			   SUM (CASE
-			    WHEN CreditRemainingDays <= 30 THEN RemainingAmount
+			    WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount
 			    ELSE 0
 			  END) AS paidby30days,
 			  SUM (CASE
@@ -131,6 +138,7 @@ BEGIN
 					   SUM(wobi.GrandTotal) as 'BalanceAmount',
 					   ISNULL(SUM(wobi.GrandTotal - wobi.RemainingAmount),0)as 'CurrentlAmount',   
 					   SUM(wobi.RemainingAmount)as 'PaymentAmount',
+					   SUM(0) as 'Amountpaidbylessthen0days',      
                        SUM(0) as 'Amountpaidby30days',      
                        SUM(0) as 'Amountpaidby60days',
 					   SUM(0) as 'Amountpaidby90days',
@@ -143,7 +151,13 @@ BEGIN
                        MAX(C.UpdatedDate) AS UpdatedDate,
 					   MAX(C.CreatedBy) as CreatedBy,
                        MAX(C.UpdatedBy) as UpdatedBy,
-					   max(wop.ManagementStructureId) as ManagementStructureId
+					   max(wop.ManagementStructureId) as ManagementStructureId,
+					   STUFF((SELECT ', ' + WP.CustomerReference
+							FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
+							INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
+							WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId
+							FOR XML PATH('')), 1, 1, '') 
+							AS 'Reference'
 			   FROM dbo.Customer C WITH (NOLOCK) 
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
@@ -155,7 +169,7 @@ BEGIN
 			   --LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = wobi.BillingInvoicingId AND ipy.InvoiceType=2
 			   INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOBI.WorkOrderId
 			  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     
-					AND C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId
+					AND C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
 UNION ALL
 SELECT DISTINCT C.CustomerId,
                        Max((ISNULL(C.[Name],''))) 'CustName' ,
@@ -165,6 +179,7 @@ SELECT DISTINCT C.CustomerId,
 					   SUM(sobi.GrandTotal) as 'BalanceAmount',
 					   ISNULL(SUM(sobi.GrandTotal - sobi.RemainingAmount),0)as 'CurrentlAmount',   
 					   SUM(sobi.RemainingAmount)as 'PaymentAmount',
+					   SUM(0) as 'Amountpaidbylessthen0days',      
                        SUM(0) as 'Amountpaidby30days',      
                        SUM(0) as 'Amountpaidby60days',
 					   SUM(0) as 'Amountpaidby90days',
@@ -177,7 +192,12 @@ SELECT DISTINCT C.CustomerId,
                        MAX(C.UpdatedDate) AS UpdatedDate,
 					   MAX(C.CreatedBy) as CreatedBy,
                        MAX(C.UpdatedBy) as UpdatedBy,
-					   max(SO.ManagementStructureId) as ManagementStructureId
+					   max(SO.ManagementStructureId) as ManagementStructureId,
+					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
+							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
+							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+							FOR XML PATH('')), 1, 1, '')
+							AS 'Reference'
 			   FROM dbo.Customer C WITH (NOLOCK) 
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
@@ -188,14 +208,15 @@ SELECT DISTINCT C.CustomerId,
 			  -- LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ipy.InvoiceType=1
 			   		INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
 		 	  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     
-					AND C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId
+					AND C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
 						), Result AS(
 				SELECT DISTINCT C.CustomerId,
                        Max((ISNULL(C.[Name],''))) 'CustName' ,
 					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
                        Max(CT.CustomerTypeName) 'CustomertType' ,
 					   Max(CTE.currencyCode) as  'currencyCode',
-					   SUM(CTE.BalanceAmount) as 'BalanceAmount',
+					   --SUM(CTE.BalanceAmount) as 'BalanceAmount',
+					   ISNULL(SUM(CTE.PaymentAmount),0) as 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0)as 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) as 'PaymentAmount',
         --               SUM(0) as 'Amountpaidby30days',      
@@ -203,6 +224,7 @@ SELECT DISTINCT C.CustomerId,
 					   --SUM(0) as 'Amountpaidby90days',
 					   --SUM(0) as 'Amountpaidby120days',
 					   --SUM(0) as 'Amountpaidbymorethan120days',
+					   MAX(CTECalculation.paidbylessthen0days) as 'Amountpaidbylessthen0days',      
 					   MAX(CTECalculation.paidby30days) as 'Amountpaidby30days',      
                        MAX(CTECalculation.paidby60days) as 'Amountpaidby60days',
 					   MAX(CTECalculation.paidby90days) as 'Amountpaidby90days',
@@ -234,6 +256,7 @@ SELECT DISTINCT C.CustomerId,
 				    (CAST(BalanceAmount AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR						
 					(CAST(CurrentlAmount AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(PaymentAmount AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(Amountpaidbylessthen0days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(Amountpaidby30days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(Amountpaidby60days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(Amountpaidby90days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
@@ -248,7 +271,8 @@ SELECT DISTINCT C.CustomerId,
 					(ISNULL(@CustomertType,'') ='' OR CustomertType LIKE '%' + @CustomertType + '%') AND
 					(ISNULL(@currencyCode,'') ='' OR currencyCode LIKE '%' + @currencyCode + '%') AND
 				    (ISNULL(@BalanceAmount,0) =0 OR BalanceAmount= @BalanceAmount) AND
-				    (ISNULL(@CurrentlAmount,0) =0 OR CurrentlAmount =@CurrentlAmount) AND				
+				    (ISNULL(@CurrentlAmount,0) =0 OR CurrentlAmount =@CurrentlAmount) AND			
+					(ISNULL(@Amountpaidbylessthen0days,0) =0 OR Amountpaidbylessthen0days = @Amountpaidbylessthen0days) AND
 					(ISNULL(@Amountpaidby30days,0) =0 OR Amountpaidby30days = @Amountpaidby30days) AND
 					(ISNULL(@Amountpaidby60days,0) =0 OR Amountpaidby60days= @Amountpaidby60days) AND
 					(ISNULL(@Amountpaidby90days,0) =0 OR Amountpaidby90days= @Amountpaidby90days) AND
@@ -276,6 +300,8 @@ SELECT DISTINCT C.CustomerId,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='BalanceAmount')  THEN BalanceAmount END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CurrentlAmount')  THEN CurrentlAmount END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CurrentlAmount')  THEN CurrentlAmount END DESC, 			
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbylessthen0days')  THEN Amountpaidbylessthen0days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbylessthen0days')  THEN Amountpaidbylessthen0days END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby30days')  THEN Amountpaidby30days END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby30days')  THEN Amountpaidby30days END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby60days')  THEN Amountpaidby60days END ASC,

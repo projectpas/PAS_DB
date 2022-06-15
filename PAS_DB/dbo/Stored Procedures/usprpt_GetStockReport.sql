@@ -42,7 +42,8 @@ BEGIN
 	@Level7 VARCHAR(MAX) = NULL,
 	@Level8 VARCHAR(MAX) = NULL,
 	@Level9 VARCHAR(MAX) = NULL,
-	@Level10 VARCHAR(MAX) = NULL 
+	@Level10 VARCHAR(MAX) = NULL,
+	@IsDownload BIT = NULL
 
   BEGIN TRY
       
@@ -79,6 +80,7 @@ BEGIN
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
       DECLARE @ModuleID INT = 2; -- MS Module ID
+	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	  	  
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -93,7 +95,6 @@ BEGIN
 			LEFT JOIN DBO.vendor VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId
 			LEFT JOIN DBO.StocklineAdjustment stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId
 			LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
-			--LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK) ON stl.MasterCompanyId = MC.MasterCompanyId
           WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 AND stl.IsDeleted=0 and  CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)
 	        AND  
 			  (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
@@ -132,16 +133,17 @@ BEGIN
         stl.QuantityReserved 'qtyreserved',
         UPPER(stl.QuantityAvailable) 'qtyavail',
         'NA' 'qtyscrapped',
-        CASE WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN STl.QuantityOnHand - stladj.ChangedTo END AS 'qtyadjusted',
-        stl.purchaseorderUnitCost 'pounitcost',
-        stl.PurchaseOrderExtendedCost 'extcost',
+        CASE WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN STl.QuantityOnHand - stladj.ChangedTo ELSE 0 END AS 'qtyadjusted',
+		FORMAT(stl.purchaseorderUnitCost , 'N', 'en-us') 'pounitcost',
+		FORMAT(stl.PurchaseOrderExtendedCost , 'N', 'en-us') 'extcost',
 		UPPER(stl.Obtainfromname) 'obtainedfrom',
         UPPER(stl.OwnerName) 'owner',
         UPPER(stl.TraceableToname) 'traceableto',
-        
         UPPER(stl.manufacturer) 'mfg',
-        stl.UnitCost 'unitprice',
-        stl.UnitCost*stl.QuantityOnHand 'extprice',
+		FORMAT(stl.UnitCost , 'N', 'en-us') 'unitprice',
+		FORMAT(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 'N', 'en-us') 'extprice',
+        --stl.UnitCost 'unitprice',
+        --stl.UnitCost*stl.QuantityOnHand 'extprice',
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -160,8 +162,8 @@ BEGIN
         UPPER(stl.glAccountname) 'glaccount',
         UPPER(pox.PurchaseOrderNumber) 'ponum',
         UPPER(rox.RepairOrderNumber) 'ronum',
-        stl.RepairOrderUnitCost 'rocost',
-       FORMAT (stl.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'rcvddate',
+		FORMAT(stl.RepairOrderUnitCost , 'N', 'en-us') 'rocost',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'rcvddate', 
         UPPER(stl.ReceiverNumber) 'receivernum',
         UPPER(stl.ReconciliationNumber) 'receiverrecon'
       FROM DBO.stockline stl WITH (NOLOCK)

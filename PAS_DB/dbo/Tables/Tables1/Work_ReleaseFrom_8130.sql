@@ -23,7 +23,7 @@
     [AuthorisedSign2]     VARCHAR (256) NULL,
     [ApprovalCertificate] VARCHAR (256) NULL,
     [PrintedName2]        VARCHAR (256) NULL,
-    [Date2]               VARCHAR (256) NULL,
+    [Date2]               DATETIME      NULL,
     [CFR]                 BIT           NULL,
     [Otherregulation]     BIT           NULL,
     [MasterCompanyId]     INT           NOT NULL,
@@ -37,8 +37,11 @@
     [OrganizationAddress] VARCHAR (500) NULL,
     [is8130from]          BIT           NULL,
     [IsClosed]            BIT           DEFAULT ((0)) NOT NULL,
+    [PDFPath]             VARCHAR (MAX) NULL,
     CONSTRAINT [PK_Work_ReleaseFrom_8130] PRIMARY KEY CLUSTERED ([ReleaseFromId] ASC)
 );
+
+
 
 
 GO

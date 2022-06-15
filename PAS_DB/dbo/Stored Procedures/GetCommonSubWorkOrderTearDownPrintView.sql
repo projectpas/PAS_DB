@@ -21,7 +21,8 @@
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonSubWorkOrderTearDownPrintView]
 	@subWorkOrderId bigint = 0,
-	@workOrderId bigint = 0
+	@workOrderId bigint = 0,
+	@SubWOPartNoId bigint = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -52,7 +53,7 @@ BEGIN
 					tdt.DocumentModuleName
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
-				AND td.SubWorkOrderId = @subWorkOrderId AND td.IsSubWorkOrder = 1
+				AND td.SubWorkOrderId = @subWorkOrderId AND td.IsSubWorkOrder = 1 and td.SubWOPartNoId = @SubWOPartNoId
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

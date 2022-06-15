@@ -1,6 +1,6 @@
 ﻿CREATE PROCEDURE [dbo].[GetExchangePackagingLabelPrint]
-	@ExchangeSalesOrderId bigint,
-	@PackagingSlipId bigint
+	@ExchangeSalesOrderId bigint=10022,
+	@PackagingSlipId bigint=3
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -15,9 +15,9 @@ BEGIN
 		so.ExchangeSalesOrderNumber,uom.ShortName as UOM, 
 		(SELECT QtyShipped FROM DBO.ExchangeSalesOrderShippingItem SOSI  WITH(NOLOCK) Where SOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS QtyShipped,
 		(SELECT NoOfContainer FROM DBO.ExchangeSalesOrderShippingItem SOSI  WITH(NOLOCK) LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH(NOLOCK) ON SOS.ExchangeSalesOrderShippingId = SOSI.ExchangeSalesOrderShippingId
-		Where SOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS NoOfContainer,
-		(SELECT InvoiceNo FROM DBO.ExchangeSalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ExchangeSalesOrderId = SOS.ExchangeSalesOrderId) AS InvoiceNo,
-			(SELECT InvoiceDate FROM DBO.ExchangeSalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ExchangeSalesOrderId = SOS.ExchangeSalesOrderId) AS InvoiceDate
+		Where SOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS NoOfContainer
+		--(SELECT InvoiceNo FROM DBO.ExchangeSalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ExchangeSalesOrderId = SOS.ExchangeSalesOrderId) AS InvoiceNo,
+		--(SELECT InvoiceDate FROM DBO.ExchangeSalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ExchangeSalesOrderId = SOS.ExchangeSalesOrderId) AS InvoiceDate
 		from ExchangeSOPickTicket sopt WITH(NOLOCK)
 		LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
 		LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId

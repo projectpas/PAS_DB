@@ -96,6 +96,9 @@
     [CustReqTagType]               VARCHAR (100)  NULL,
     [CustReqCertTypeId]            VARCHAR (MAX)  NULL,
     [CustReqCertType]              VARCHAR (MAX)  NULL,
+    [RepairOrderPartRecordId]      BIGINT         NULL,
     CONSTRAINT [PK_ReceivingCustomerWorkAudit] PRIMARY KEY CLUSTERED ([AuditReceivingCustomerWorkId] ASC)
 );
+
+
 

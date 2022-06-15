@@ -24,6 +24,7 @@
     [ExtendedPrice]        DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLine_ExtendedPrice] DEFAULT ((0)) NULL,
     [ProvisionId]          INT             DEFAULT ((1)) NOT NULL,
     [RepairOrderId]        BIGINT          NULL,
+    [QuantityTurnIn]       INT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLine] PRIMARY KEY CLUSTERED ([WOMStockLineId] ASC),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -33,6 +34,8 @@
     CONSTRAINT [FK_WorkOrderMaterialStockLine_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_WorkOrderMaterials] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 GO

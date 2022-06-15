@@ -46,9 +46,12 @@
     [BillingAmount]                       DECIMAL (20, 2) NULL,
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
     [cogs]                                INT             NULL,
+    [PostedDate]                          DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingAudit_ExchangeSalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 
 
 

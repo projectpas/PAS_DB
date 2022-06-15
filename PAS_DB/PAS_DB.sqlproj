@@ -1876,6 +1876,14 @@
     <Build Include="dbo\Stored Procedures\Get_ExpireStockList.sql" />
     <Build Include="dbo\User Defined Types\CreditMemoFreightType.sql" />
     <Build Include="dbo\User Defined Types\CreditMemoChargesType.sql" />
+    <Build Include="dbo\Tables\StocklineSettings.sql" />
+    <Build Include="dbo\Tables\PublicationManagementStructureMapping.sql" />
+    <Build Include="dbo\Tables\PublicationManagementStructureDetailsAudit.sql" />
+    <Build Include="dbo\Tables\PublicationManagementStructureDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEntityManagementStructureDetailsByMultipleID.sql" />
+    <Build Include="dbo\Stored Procedures\PROCDeleteePublicationMSData.sql" />
+    <Build Include="dbo\Stored Procedures\PROCAddUpdatePublicationMSData.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsOpenExchangeSalesOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

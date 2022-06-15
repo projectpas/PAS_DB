@@ -122,7 +122,12 @@ BEGIN
 						   stl.ObtainFromName AS obtainFrom,
 						   stl.OwnerName AS ownerName,
 						   MSD.LastMSLevel,
-						   MSD.AllMSlevels					       
+						   MSD.AllMSlevels,
+						   stl.WorkOrderId,
+						   stl.WorkOrderNumber,
+						   (select top 1 wos.CodeDescription  from WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId  where wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,
+						   (select top 1 wos.Status  from WorkOrder wo WITH (NOLOCK) inner join WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,
+						   (select top 1 isnull(RS.WorkOrderId,0)  from ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=stl.StockLineId) as rsworkOrderId
 					 FROM  StockLine stl WITH (NOLOCK)
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
@@ -318,7 +323,12 @@ BEGIN
 						   stl.ObtainFromName AS obtainFrom,
 						   stl.OwnerName AS ownerName,
 						   MSD.LastMSLevel,
-						   MSD.AllMSlevels					      
+						   MSD.AllMSlevels,
+						   stl.WorkOrderId,
+						   stl.WorkOrderNumber,
+						   (select top 1 wos.CodeDescription  from WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId  where wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,
+						   (select top 1 wos.Status  from WorkOrder wo WITH (NOLOCK) inner join WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,
+						   (select top 1 isnull(RS.WorkOrderId,0)  from ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=stl.StockLineId) as rsworkOrderId
 					 FROM  StockLine stl WITH (NOLOCK)
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							--INNER JOIN  dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId

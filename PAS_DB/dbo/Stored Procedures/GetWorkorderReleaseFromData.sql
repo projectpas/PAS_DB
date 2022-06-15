@@ -9,7 +9,9 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				   DECLARE @WorkOrderSettlementId INT;
+					DECLARE @WorkOrderSettlementId INT;
+					DECLARE @MSModuleId INT;
+					SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
 					SELECT @WorkOrderSettlementId = WS.WorkOrderSettlementId FROM DBO.WorkOrderSettlement WS WITH (NOLOCK) 
 					WHERE  WS.WorkOrderSettlementName like '%Cond%'
@@ -23,13 +25,10 @@ BEGIN
 						'1' as ItemName,
 						im.PartDescription as Description,
 						im.partnumber as PartNumber,
-						--rc.Reference as Reference,
 						wop.CustomerReference as Reference,
 						wop.Quantity as Quantity,
 						case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end as Batchnumber,
-						--wop.WorkScope as [status],
 						c.Description as [status],
-						--wo.Notes as Remarks,
 						'' as Certifies, 
 						0 as approved ,
 						0 as Nonapproved,
@@ -64,11 +63,11 @@ BEGIN
 						LEFT JOIN DBO.ItemMaster im  WITH(NOLOCK) on im.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						left join dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.StockLineId = wop.StockLineId
-						LEFT JOIN DBO.ManagementStructure ms  WITH(NOLOCK) on ms.ManagementStructureId  = wop.ManagementStructureId
-						LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = ms.LegalEntityId 
+						LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+						LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+						LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 						LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
-						--LEFT JOIN DBO.WorkOrderSettlementDetails ws WITH(NOLOCK) ON ws.workOrderPartNoId = wop.ID AND ws.WorkOrderId = wop.WorkOrderId AND ws.WorkOrderSettlementId = @WorkOrderSettlementId
-						LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = wop.RevisedConditionId
+						LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId 
 						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 						LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedByRefId = ven.VendorId
 						LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedByRefId = mf.ManufacturerId

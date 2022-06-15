@@ -47,6 +47,7 @@
     [POId]                       BIGINT          NULL,
     [PONum]                      VARCHAR (100)   NULL,
     [PONextDlvrDate]             DATETIME        NULL,
+    [QtyToTurnIn]                INT             NULL,
     CONSTRAINT [PK_WorkOrderMaterials] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_WorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterials_IssuedById] FOREIGN KEY ([IssuedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -61,6 +62,8 @@
     CONSTRAINT [FK_WorkOrderMaterials_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

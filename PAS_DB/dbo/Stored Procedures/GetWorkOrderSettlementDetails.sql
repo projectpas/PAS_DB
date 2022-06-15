@@ -20,7 +20,7 @@
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 09/13/2021	  Hemant Saliya  Add Calculated Field for Labor All Labor are Completd
      
---EXEC [GetWorkOrderSettlementDetails] 67,66,66
+--EXEC [GetWorkOrderSettlementDetails] 235,255,240
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
@@ -35,8 +35,10 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				DECLARE @qtyissue INT =0
-				DECLARE @qtyreq INT =0
+				DECLARE @qtyissue INT =0;
+				DECLARE @qtyreq INT =0;
+				DECLARE @QtyTendered INT =0;	
+				DECLARE @QtyToTendered INT =0;
 				DECLARE @TaskStatusID INT;
 				DECLARE @MasterCompanyID INT;
 				DECLARE @IsLaborCompleled INT = 0;
@@ -44,9 +46,15 @@ BEGIN
 				DECLARE @InventoryStatusID INT;
 
 				SELECT @qtyreq = SUM(ISNULL(Quantity,0)),
-						@qtyissue=SUM(ISNULL(QuantityIssued,0)) 
+						@QtyToTendered = SUM(ISNULL(QtyToTurnIn,0)),
+						@qtyissue=SUM(ISNULL(QuantityIssued,0))						
 				FROM dbo.WorkOrderMaterials WITH(NOLOCK) 	  
 				WHERE WorkFlowWorkOrderId=@workflowWorkorderId
+
+				SELECT @QtyTendered = SUM(ISNULL(womsl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+				WHERE WOM.WorkFlowWorkOrderId=@workflowWorkorderId AND womsl.ConditionId = WOM.ConditionCodeId
+					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(womsl.QuantityTurnIn, 0) > 0
 				
 				SELECT @MasterCompanyID = MasterCompanyId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkorderId
 
@@ -83,7 +91,7 @@ BEGIN
 						ISNULL(wosd.WorkFlowWorkOrderId,0) as WorkFlowWorkOrderId,
 						ISNULL(wosd.workOrderPartNoId,0) as workOrderPartNoId,
 						ISNULL(wosd.WorkOrderSettlementDetailId,0) as WorkOrderSettlementDetailId,
-						CASE WHEN wos.WorkOrderSettlementId = 1 THEN CASE WHEN @qtyreq = @qtyissue THEN 1 ELSE 0 END 
+						CASE WHEN wos.WorkOrderSettlementId = 1 THEN CASE WHEN ISNULL(@qtyreq, 0) +  ISNULL(@QtyToTendered, 0) = (ISNULL(@qtyissue, 0) + ISNULL(@QtyTendered, 0)) THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 6 THEN CASE WHEN @AllToolsAreCheckOut <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.IsMastervalue END 

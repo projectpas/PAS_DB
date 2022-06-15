@@ -41,7 +41,12 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN  
 				DECLARE @MasterCompanyId INT;
+				DECLARE @SubProvisionId INT;
+				DECLARE @ForStockProvisionId INT;
+
 				SELECT @MasterCompanyId = MasterCompanyId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
+				SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
+				SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
 
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
@@ -182,14 +187,14 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
 						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = WOM.Quantity - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),
-						MSTL.Quantity AS StocklineQuantity,
+						
 						MSTL.QtyReserved AS StocklineQtyReserved,
 						MSTL.QtyIssued AS StocklineQtyIssued,
-						SL.QuantityTurnIn as StocklineQuantityTurnIn,
+						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
 						WOM.QtyOnOrder, 
 						WOM.QtyOnBkOrder,
@@ -197,6 +202,11 @@ SET NOCOUNT ON
 						WOM.PONextDlvrDate,
 						WOM.POId,
 						WOM.Quantity,
+						MSTL.Quantity AS StocklineQuantity,
+						WOM.QtyToTurnIn AS PartQtyToTurnIn,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
+							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
+						--CASE WHEN MSTL.ProvisionId = @ProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity ELSE SL.QuantityTurnIn END AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsId,
@@ -220,7 +230,8 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreaetd,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
+						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.SubWorkOrderStatusId = 2 THEN 1 ELSE 0 END AS IsSubWorkOrderClosed,
 						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,

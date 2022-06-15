@@ -16,6 +16,9 @@
     [StatusId]                                 INT            DEFAULT ((1)) NOT NULL,
     [ExchangeSalesOrderChargesId]              BIGINT         NULL,
     [ExchangeSalesOrderFreightId]              BIGINT         NULL,
+    [IsPartEntry]                              BIT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderScheduleBillingAudit] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderScheduleBillingAuditId] ASC)
 );
+
+
 

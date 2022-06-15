@@ -19,7 +19,7 @@
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
      
---EXEC [GetSubWorkOrderSettlementDetails] 67,41,41
+--EXEC [GetSubWorkOrderSettlementDetails] 212,35,37
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
@@ -41,11 +41,18 @@ BEGIN
 				DECLARE @IsLaborCompleled INT = 0;
 				DECLARE @AllToolsAreCheckOut INT = 0;
 				DECLARE @InventoryStatusID INT;
+				DECLARE @QtyTendered INT =0;				
 
 				SELECT @qtyreq = SUM(ISNULL(Quantity,0)),
-						@qtyissue=SUM(ISNULL(QuantityIssued,0)) 
+						@qtyissue=SUM(ISNULL(QuantityIssued,0)) 						
 				FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) 	  
 				WHERE WorkOrderId=@WorkorderId and SubWorkOrderId=@SubWorkOrderId and SubWOPartNoId =@SubWOPartNoId
+
+				SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.SubWorkOrderMaterialStockLine womsl WITH (NOLOCK)
+					JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId
+					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
+				WHERE WOM.WorkOrderId=@WorkorderId AND WOM.SubWorkOrderId=@SubWorkOrderId AND WOM.SubWOPartNoId =@SubWOPartNoId AND womsl.ConditionId = WOM.ConditionCodeId
+					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 
 				SELECT @MasterCompanyID = MasterCompanyId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkorderId
 
@@ -82,7 +89,7 @@ BEGIN
 						ISNULL(wosd.SubWorkOrderId,0) as SubWorkOrderId,
 						ISNULL(wosd.SubWOPartNoId,0) as SubWOPartNoId,
 						ISNULL(wosd.SubWorkOrderSettlementDetailId,0) as SubWorkOrderSettlementDetailId,
-						CASE WHEN wos.WorkOrderSettlementId = 1  THEN CASE WHEN @qtyreq=@qtyissue THEN 1 ELSE  0 END 
+						CASE WHEN wos.WorkOrderSettlementId = 1  THEN CASE WHEN ISNULL(@qtyreq, 0) = (ISNULL(@qtyissue, 0) + ISNULL(@QtyTendered, 0)) THEN 1 ELSE  0 END 
 							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 6 THEN CASE WHEN @AllToolsAreCheckOut <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.IsMastervalue END as IsMastervalue,

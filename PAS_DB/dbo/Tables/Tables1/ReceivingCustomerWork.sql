@@ -95,6 +95,7 @@
     [CustReqTagType]          VARCHAR (100)  NULL,
     [CustReqCertTypeId]       VARCHAR (MAX)  NULL,
     [CustReqCertType]         VARCHAR (MAX)  NULL,
+    [RepairOrderPartRecordId] BIGINT         NULL,
     CONSTRAINT [PK_ReceivingCustomerWork] PRIMARY KEY CLUSTERED ([ReceivingCustomerWorkId] ASC),
     CONSTRAINT [FK_ReceivingCustomerWork_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_ReceivingCustomerWork_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -114,6 +115,8 @@
     CONSTRAINT [FK_ReceivingCustomerWork_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_ReceivingCustomerWork_WorkScopeId] FOREIGN KEY ([WorkScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 

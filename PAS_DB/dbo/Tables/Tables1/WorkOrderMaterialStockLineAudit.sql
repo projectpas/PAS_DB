@@ -25,6 +25,9 @@
     [ExtendedPrice]        DECIMAL (20, 2) NULL,
     [ProvisionId]          INT             NOT NULL,
     [RepairOrderId]        BIGINT          NULL,
+    [QuantityTurnIn]       INT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineAudit] PRIMARY KEY CLUSTERED ([WOMStockLineAuditId] ASC)
 );
+
+
 

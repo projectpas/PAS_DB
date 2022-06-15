@@ -1,5 +1,5 @@
 ﻿
-CREATE PROCEDURE [dbo].[Get_ExpireStockList]
+Create PROCEDURE [dbo].[Get_ExpireStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -17,7 +17,12 @@ CREATE PROCEDURE [dbo].[Get_ExpireStockList]
 @MasterCompanyId BIGINT = NULL,
 @expDate datetime = NULL,
 @expDays  varchar(50)=null,
-@MSModuelId BIGINT = NULL
+@MSModuelId BIGINT = NULL,
+@Site  varchar(50)=null,
+@Warehouse  varchar(50)=null,
+@Location  varchar(50)=null,
+@Shelf  varchar(50)=null,
+@Bin  varchar(50)=null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -84,13 +89,22 @@ BEGIN
 						  ,stl.ManufacturingDays
 						  ,stl.TagDays
 						  ,stl.OpenDays
-						  ,isnull((select [dbo].[FN_GetExpireDaysStockline](StocklineId)) ,0)as expDays 
+						  ,stl.Site
+						  ,stl.Warehouse
+						  ,stl.Location
+						  ,stl.Shelf
+						  ,stl.Bin
+						  ,sts.RedIndicator
+                          ,sts.YellowIndicator
+                          ,sts.GreenIndicator
+                          ,isnull((select [dbo].[FN_GetExpireDaysStockline](StocklineId)) ,0)as expDays 
 						  ,(DATEADD(DAY, isnull((select [dbo].[FN_GetExpireDaysStockline](StocklineId)),0), GETDATE())) as expDate
 					 FROM  StockLine stl WITH (NOLOCK)
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
+							left JOIN StocklineSettings sts WITH (NOLOCK) ON sts.MasterCompanyId =@MasterCompanyId 
 							INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId						    
-		 		  WHERE (stl.IsDeleted=0 ) and (stl.QuantityOnHand >0 or stl.QuantityAvailable >0 )
+		 		  WHERE stl.MasterCompanyId = @MasterCompanyId and (stl.IsDeleted=0 ) and (stl.QuantityOnHand >0 or stl.QuantityAvailable >0 )
 				    AND ((stl.DaysReceived > 0 or stl.ReceivedDate is not null) or (stl.ManufacturingDays > 0 or stl.ExpirationDate is not null) or (stl.TagDays > 0 or stl.TagDate is not null) or (stl.OpenDays > 0)) 
 						AND stl.IsParent = 1
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
@@ -112,6 +126,12 @@ BEGIN
 						(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND
 						(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 						(ISNULL(@expDays,'') ='' OR expDays LIKE '%' + @expDays + '%') AND
+
+						(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND
+						(ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND
+						(ISNULL(@Location,'') ='' OR [Location] LIKE '%' + @Location + '%') AND
+						(ISNULL(@Shelf,'') ='' OR Shelf LIKE '%' + @Shelf + '%') AND
+						(ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND
 						(ISNULL(@expDate,'') ='' OR CAST(expDate AS Date)=CAST(@expDate AS date)))
 					   )
 					   SELECT @Count = COUNT(StockLineId) FROM #TempResults			
@@ -134,7 +154,17 @@ BEGIN
 						CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='expDate')  THEN expDate END ASC,
-						CASE WHEN (@SortOrder=-1 AND @SortColumn='expDate')  THEN expDate END DESC,						
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='expDate')  THEN expDate END DESC,
+						CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN [Site] END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN [Site] END DESC,	
+						CASE WHEN (@SortOrder=1  AND @SortColumn='Warehouse')  THEN Warehouse END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='Warehouse')  THEN Warehouse END DESC,	
+						CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,	
+						CASE WHEN (@SortOrder=1  AND @SortColumn='Shelf')  THEN Shelf END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='Shelf')  THEN Shelf END DESC,	
+						CASE WHEN (@SortOrder=1  AND @SortColumn='Bin')  THEN Bin END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='Bin')  THEN Bin END DESC,	
 						CASE WHEN (@SortOrder=1 and @SortColumn='expDays')  THEN expDays END ASC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='expDays')  THEN expDays END DESC
 				

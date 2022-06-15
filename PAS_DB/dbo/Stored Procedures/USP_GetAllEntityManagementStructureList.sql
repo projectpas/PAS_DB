@@ -25,7 +25,7 @@ exec USP_GetAllEntityManagementStructureList @MasterCompanyId=2,@EmployeeId=6,@E
 CREATE   PROCEDURE [dbo].[USP_GetAllEntityManagementStructureList]
 	@MasterCompanyId INT = null,
 	@EmployeeId INT = null,
-	@EntityStructureId INT = null
+	@EntityStructureId varchar(100) = null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -200,7 +200,7 @@ BEGIN
 					LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON ESS.Level8Id = MSL8.ID
 					LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON ESS.Level9Id = MSL9.ID
 					LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON ESS.Level10Id = MSL10.ID
-				WHERE ESS.EntityStructureId = @EntityStructureId
+				WHERE ESS.EntityStructureId in (SELECT Item FROM DBO.SPLITSTRING(@EntityStructureId,','))
 				
 				END
 			COMMIT  TRANSACTION

@@ -106,7 +106,7 @@ SET NOCOUNT ON
 			CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 			IsRoleUp = 1,
             WOM.ProvisionId,
-			CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreaetd,
+			CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
 			CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 			isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 	        StockLIneId = (SELECT top 1 sl.StockLIneId

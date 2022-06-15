@@ -57,8 +57,11 @@
     [PONextDlvrDate]                DATETIME2 (7)   NULL,
     [QtyOnOrder]                    INT             NULL,
     [QtyOnBkOrder]                  INT             NULL,
+    [QtyToTurnIn]                   INT             NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialsAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsAuditId] ASC)
 );
+
+
 
 
 

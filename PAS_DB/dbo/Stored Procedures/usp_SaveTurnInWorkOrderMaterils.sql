@@ -80,7 +80,9 @@ BEGIN
 			-- #STEP 1 CREATE STOCKLINE
 			BEGIN TRANSACTION
 				BEGIN
-					
+					DECLARE @QtyTendered INT = 0;
+					DECLARE @QtyToTendered INT = 0;
+
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 					BEGIN
 					DROP TABLE #tmpCodePrefixes
@@ -139,8 +141,6 @@ BEGIN
 					DECLARE @currentNo AS BIGINT;
 					DECLARE @stockLineCurrentNo AS BIGINT;
 
-					--IF (EXISTS (SELECT 1 FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId))
-					--BEGIN
 					SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 
 					IF (@currentNo <> 0)
@@ -151,13 +151,9 @@ BEGIN
 					BEGIN
 						SET @stockLineCurrentNo = 1
 					END
-					--END
 
 					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
 					BEGIN 
-						--SELECT @SLCurrentNummber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) + 1 
-						--		ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-						--FROM #tmpCodePrefixes WHERE CodeTypeId = 30
 						SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
 
 						UPDATE DBO.ItemMaster
@@ -209,11 +205,8 @@ BEGIN
 					
 					SELECT @StockLineId = SCOPE_IDENTITY()
 
-
-
 					UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNummber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId --(30,17,9)
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNummber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId
-					--UPDATE CodePrefixes SET CurrentNummber = @IDNumber WHERE CodeTypeId = 17 AND MasterCompanyId = @MasterCompanyId
 
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId
 
@@ -222,6 +215,7 @@ BEGIN
 					-- #STEP 2 ADD STOCKLINE TO WO MATERIAL LIST
 					IF(@IsMaterialStocklineCreate = 1)
 					BEGIN
+
 						IF((SELECT COUNT(1) FROM dbo.WorkOrderMaterials WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = @ConditionId AND 
 							WorkFlowWorkOrderId = @WorkOrderWorkflowId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0) > 0)
 						BEGIN
@@ -242,12 +236,29 @@ BEGIN
 							SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()
 						END
 
-						INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QtyReserved, QtyIssued,
+						INSERT INTO dbo.WorkOrderMaterialStockLine (WorkOrderMaterialsId, StockLineId, ItemMasterId, ProvisionId, ConditionId, Quantity, QuantityTurnIn, QtyReserved, QtyIssued, 
 									UnitCost,ExtendedCost,UnitPrice,CreatedDate, CreatedBy, UpdatedDate,UpdatedBy, MasterCompanyId, IsActive, IsDeleted) 
-						SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, 0, 0, 0, 0, 0,
+						SELECT @NewWorkOrderMaterialsId, @StockLineId, @ItemMasterId, WOM.ProvisionId, @ConditionId, @Quantity, @Quantity, 0, 0, 0, 0, 0,
 									GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0 
 						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) 
 						WHERE WOM.WorkOrderMaterialsId = @NewWorkOrderMaterialsId;
+
+						--UPDATE QTY TO TURN IN IF MISMATCH
+						SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0)) 
+						FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+							JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId
+							JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+						WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
+							AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
+
+						SELECT @QtyToTendered = SUM(ISNULL(QtyToTurnIn,0))														
+						FROM dbo.WorkOrderMaterials WITH(NOLOCK) 	  
+						WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+
+						IF(@QtyTendered > @QtyToTendered)
+						BEGIN
+							UPDATE dbo.WorkOrderMaterials SET QtyToTurnIn = @QtyTendered FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+						END
 
 						--UPDATE WO PART LEVEL TOTAL COST
 						EXEC USP_UpdateWOTotalCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;

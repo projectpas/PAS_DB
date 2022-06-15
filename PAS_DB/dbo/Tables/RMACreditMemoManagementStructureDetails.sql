@@ -35,3 +35,19 @@
     CONSTRAINT [PK_RMACreditMemoManagementStructureDetails] PRIMARY KEY CLUSTERED ([MSDetailsId] ASC)
 );
 
+
+
+
+GO
+CREATE TRIGGER [dbo].[Trg_RMACreditMemoManagementStructureDetailsAudit]
+   ON  [dbo].[RMACreditMemoManagementStructureDetails]
+   AFTER INSERT,DELETE,UPDATE
+AS
+BEGIN
+INSERT INTO RMACreditMemoManagementStructureDetailsAudit
+
+SELECT * FROM INSERTED
+
+SET NOCOUNT ON;
+
+END

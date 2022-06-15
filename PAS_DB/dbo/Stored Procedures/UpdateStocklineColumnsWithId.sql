@@ -28,30 +28,15 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 
-	DECLARE @ManagmnetStructureId as bigInt	
-	DECLARE @Level1 as varchar(200)
-	DECLARE @Level2 as varchar(200)
-	DECLARE @Level3 as varchar(200)
-	DECLARE @Level4 as varchar(200)
-
-	SELECT @ManagmnetStructureId = ManagementStructureId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId;
-
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				EXEC dbo.GetMSNameandCode @ManagmnetStructureId,
-				 @Level1 = @Level1 OUTPUT,
-				 @Level2 = @Level2 OUTPUT,
-				 @Level3 = @Level3 OUTPUT,
-				 @Level4 = @Level4 OUTPUT
+				DECLARE @MSModuleID INT;
+				SET @MSModuleID = 2; -- FOR STOCKLINE
 
 				UPDATE SL SET 
-					SL.Level1 = @Level1,
-					SL.Level2 = @Level2,
-					SL.Level3 = @Level3,
-					SL.Level4 = @Level4,
 					SL.Condition = CN.Description,
-					SL.GlAccountName = GL.AccountName,
+					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountName ELSE SL.glAccountname END,
 					SL.UnitOfMeasure = um.ShortName,
 					SL.Manufacturer = MF.Name,
 					SL.Site = S.Name,
@@ -97,9 +82,10 @@ BEGIN
 				WHERE SL.StocklineId = @StocklineId
 
 				UPDATE [dbo].[Stockline] 
-					SET LegalEntityId = MS.LegalEntityId
+					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 
-					JOIN dbo.ManagementStructure MS WITH(NOLOCK) ON STL.ManagementStructureId=MS.ManagementStructureId
+					JOIN dbo.StocklineManagementStructureDetails SMD WITH(NOLOCK) ON STL.StockLineId = SMD.ReferenceID AND SMD.ModuleID = @MSModuleID
+					JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON MSL.ID = SMD.Level1Id
 				WHERE STL.StocklineId = @StocklineId AND STL.LegalEntityId IS NULL AND IsParent = 1
 
 				UPDATE [dbo].[Stockline] SET IsParent = 1 WHERE ISNULL(ParentId, 0) = 0 AND IsParent = 0

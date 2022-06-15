@@ -49,6 +49,7 @@ BEGIN
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt],
+				WOBI.RemainingAmount,
 				--WQ.VersionNo [VersionNo],
 				WQ.QuoteNumber,
 				IsWorkOrder=1,
@@ -199,7 +200,7 @@ BEGIN
 				Group By PC.BillingInvoicingId, A.StockType  
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,PT.PN [PN],PD.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder,
@@ -214,7 +215,7 @@ BEGIN
 					LEFT JOIN LastMSLevelCTE LMC  on LMC.BillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,PN,PD.PNDescription,
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,LMC.LastMSLevel,LMC.AllMSlevels	,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId)
@@ -223,6 +224,7 @@ BEGIN
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
+				SOBI.RemainingAmount,
 				--SQ.VersionNumber [VersionNo],
 				SQ.SalesOrderQuoteNumber [QuoteNumber],
 				IsWorkOrder=0,
@@ -349,7 +351,7 @@ BEGIN
 				Group By PC.SOBillingInvoicingId, A.StockType  
 				),
 				SOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,PT.PN [PN],PD.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				--M.VersionNo,
 				SVC.VersionNo,SVC.VersionNoType,
@@ -364,7 +366,7 @@ BEGIN
 					LEFT JOIN SVersionCTE SVC on SVC.SOBillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,PN,PD.PNDescription,
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				SVC.VersionNo,SVC.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				CR.CustomerReference,ISNULL(SRC.SerialNumber,''),M.IsWorkOrder,CR.CustomerReferenceType,SRC.SerialNumberType,M.CustomerId
@@ -372,27 +374,27 @@ BEGIN
 
 					, FinalResult AS(
 					select InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt, RemainingAmount, [PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId
 				from Results
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber ,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId
 					UNION ALL 
 					select InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId
 				from SOResults
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId
@@ -477,7 +479,7 @@ BEGIN
 				SELECT WOBI.BillingInvoicingId [InvoicingId],WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				WOBI.GrandTotal [InvoiceAmt],IM.partnumber [PN], IM.PartDescription [PNDescription],
+				WOBI.GrandTotal [InvoiceAmt], WOBI.RemainingAmount,IM.partnumber [PN], IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],WQ.QuoteNumber,WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
 				
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -505,7 +507,7 @@ BEGIN
 			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				SOBI.GrandTotal [InvoiceAmt],IM.partnumber [PN], IM.PartDescription [PNDescription],
+				SOBI.GrandTotal [InvoiceAmt], SOBI.RemainingAmount, IM.partnumber [PN], IM.PartDescription [PNDescription],
 				SQ.VersionNumber [VersionNo],SQ.SalesOrderQuoteNumber [QuoteNumber],SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 					 WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'
@@ -529,7 +531,7 @@ BEGIN
 			GROUP BY 
 			SOBI.SOBillingInvoicingId,SOBI.InvoiceNo,
 				SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
-				C.Name ,CT.CustomerTypeName ,
+				C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
 				SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
 				SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SOPN.CustomerReference ,ST.SerialNumber ,
 				IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId

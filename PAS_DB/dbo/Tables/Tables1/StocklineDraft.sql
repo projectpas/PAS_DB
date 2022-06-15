@@ -142,6 +142,9 @@
     [CertifiedType]                       VARCHAR (250)   NULL,
     [CertTypeId]                          VARCHAR (MAX)   NULL,
     [CertType]                            VARCHAR (MAX)   NULL,
+    [IsCustomerStock]                     BIT             DEFAULT ((0)) NULL,
+    [isCustomerstockType]                 BIT             NULL,
+    [CustomerId]                          BIGINT          NULL,
     CONSTRAINT [PK_StocklineDraft] PRIMARY KEY CLUSTERED ([StockLineDraftId] ASC),
     CONSTRAINT [FK_StocklineDraft_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_StocklineDraft_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -159,6 +162,8 @@
     CONSTRAINT [FK_StocklineDraft_SiteId] FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Site] ([SiteId]),
     CONSTRAINT [FK_StocklineDraft_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 

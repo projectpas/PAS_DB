@@ -143,6 +143,11 @@
     [CertifiedType]                       VARCHAR (250)   NULL,
     [CertTypeId]                          VARCHAR (MAX)   NULL,
     [CertType]                            VARCHAR (MAX)   NULL,
+    [IsCustomerStock]                     BIT             DEFAULT ((0)) NULL,
+    [isCustomerstockType]                 BIT             NULL,
+    [CustomerId]                          BIGINT          NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
+
+
 

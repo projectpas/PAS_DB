@@ -22,7 +22,7 @@
 --  EXEC [Proc_GetNonStockList] 1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[Proc_GetNonStockList]
+Create PROCEDURE [dbo].[Proc_GetNonStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -120,7 +120,7 @@ BEGIN
 						   (ISNULL(stl.GLAccount,'')) 'GLAccount',
 						   (ISNULL(stl.UnitCost,0))as  'UnitCost',	
 						   (ISNULL(stl.ExtendedCost,0)) as 'ExtendedCost',					   
-						   (ISNULL(stl.Acquired,0)) 'Acquired', 						   
+						   CASE WHEN stl.Acquired = 1 THEN 'Yes' ELSE 'No' END AS Acquired,
 						   (ISNULL(stl.NonStockClassification,'')) as 'NonStockClassification',	
 						   CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',						   
 						   CAST(stl.QuantityRejected AS varchar) 'QuantityRejected',						   

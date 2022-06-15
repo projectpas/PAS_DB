@@ -20,7 +20,7 @@
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetPublicationViewList]
+Create PROCEDURE [dbo].[GetPublicationViewList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=null,
 	@PageSize int=null,
@@ -48,7 +48,8 @@ CREATE PROCEDURE [dbo].[GetPublicationViewList]
 	@CreatedBy varchar(50)=null,
 	@UpdatedBy varchar(50)=null,
 	@EmployeeId bigint=null,
-    @MasterCompanyId bigint=null
+    @MasterCompanyId bigint=null,
+	@ModuleID bigint=null
 AS
 BEGIN
     -- SET NOCOUNT ON added to prevent extra result sets from
@@ -94,19 +95,36 @@ BEGIN
 						pu.[Description],
 						pt.[Name] AS PublicationType,
 						pemp.ModuleName  AS PublishedBy,
-						ISNULL(pu.RevisionDate,'')AS RevisionDate,
+						pu.RevisionDate AS RevisionDate,
 						pu.RevisionNum,
-						ISNULL(pu.NextReviewDate,'') AS NextReviewDate,
-					    ISNULL(pu.ExpirationDate,'') AS ExpirationDate,
+						pu.NextReviewDate AS NextReviewDate,
+					    pu.ExpirationDate AS ExpirationDate,
 						loc.[Name] AS [Location],
 						e.FirstName AS VerifiedBy,
-						ISNULL(pu.VerifiedDate,'') AS VerifiedDate,
+						pu.VerifiedDate AS VerifiedDate,
 						pu.CreatedDate,
 					    pu.UpdatedDate,
 					    pu.CreatedBy,
 					    pu.UpdatedBy,
 						pu.IsActive,
-					    pu.IsDeleted
+					    pu.IsDeleted,
+					     REPLACE(REPLACE(STUFF(
+						(SELECT distinct ',' + t1.AllMSlevels
+						 FROM PublicationManagementStructureDetails t1
+						 inner join Publication t
+						    on t1.PublicationRecordId = t.PublicationRecordId 
+						 where pu.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, ''),'&lt;p&gt;','<p>'),'&lt;/p&gt;','</p>') AllMSlevels,
+						 STUFF(
+						(SELECT distinct ',' + t1.LastMSLevel
+						 FROM PublicationManagementStructureDetails t1
+						 inner join Publication t
+						     on t1.PublicationRecordId = t.PublicationRecordId 
+						 where pu.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
+
+					   --MSD.LastMSLevel,
+			     --      MSD.AllMSlevels
 						--IsNull(A.PartNumber,'') AS PartNos,						
 					    --IsNull(B.PartDescription,'') AS PnDescription						 				   
 					   FROM Publication pu WITH (NOLOCK)
@@ -114,8 +132,7 @@ BEGIN
                         LEFT JOIN Employee e WITH (NOLOCK) ON pu.VerifiedBy = e.EmployeeId    
                         LEFT JOIN [Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
                         LEFT JOIN Module pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId  
-				 
-				  WHERE pu.IsDeleted = 0 AND (@IsActive is null or pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
+				  WHERE pu.IsDeleted = @IsDeleted AND (@IsActive is null or pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
 				  PartCTE AS(
 						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',
 						A.PartNumber from Publication PC WITH (NOLOCK)
@@ -152,11 +169,11 @@ BEGIN
 						Group By PC.PublicationRecordId,A.PartDescription
 						),Results AS(
 						Select M.PublicationRecordId, PublicationId,M.[Description] as 'Description',
-							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',ISNULL(M.RevisionDate,'')AS RevisionDate,
-							   M.RevisionNum as 'RevisionNum',ISNULL(M.NextReviewDate,'') AS NextReviewDate,
-									ISNULL(M.ExpirationDate,'') AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy', ISNULL(M.VerifiedDate,'') AS VerifiedDate,
+							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.RevisionDate AS RevisionDate,
+							   M.RevisionNum as 'RevisionNum',M.NextReviewDate AS NextReviewDate,
+									M.ExpirationDate AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy',M.VerifiedDate AS VerifiedDate,
 									M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.IsActive,M.IsDeleted, PT.PartNumber, PT.PartNumberType as 'PartNos',
-									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription'
+									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription',M.LastMSLevel,M.AllMSlevels
 									from Result M 
 						Left Join PartCTE PT On M.PublicationRecordId = PT.PublicationRecordId
 						Left Join PartDescCTE PD on PD.PublicationRecordId = M.PublicationRecordId),

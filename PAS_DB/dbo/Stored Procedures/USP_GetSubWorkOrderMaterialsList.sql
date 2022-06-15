@@ -36,6 +36,12 @@ SET NOCOUNT ON
   BEGIN TRY  
    BEGIN TRANSACTION  
     BEGIN    
+
+	DECLARE @SubProvisionId INT;
+	DECLARE @ForStockProvisionId INT;
+
+	SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
+	SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
   
      IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL  
      BEGIN  
@@ -183,7 +189,11 @@ SET NOCOUNT ON
       MSTL.Quantity AS StocklineQuantity,  
       MSTL.QtyReserved AS StocklineQtyReserved,  
       MSTL.QtyIssued AS StocklineQtyIssued,  
-      SL.QuantityTurnIn as StocklineQuantityTurnIn,  
+	  WOM.QtyToTurnIn AS PartQtyToTurnIn,
+      --SL.QuantityTurnIn as StocklineQuantityTurnIn,  
+	  ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
+	  CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
+		ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
       ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,  
       WOM.Quantity,  
       WOM.ConditionCodeId,  

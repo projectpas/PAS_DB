@@ -20,7 +20,7 @@
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetPublicationPNList]
+Create PROCEDURE [dbo].[GetPublicationPNList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=NULL,
 	@PageSize int=NULL,
@@ -48,7 +48,8 @@ CREATE PROCEDURE [dbo].[GetPublicationPNList]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
 	@EmployeeId bigint=NULL,
-    @MasterCompanyId bigint=NULL
+    @MasterCompanyId bigint=NULL,
+	@ModuleID bigint=NULL
 AS
 BEGIN
     -- SET NOCOUNT ON added to prevent extra result sets from
@@ -97,18 +98,32 @@ BEGIN
 					   p.[Description],
 					   pt.[Name] AS PublicationType,
 					   pemp.ModuleName AS PublishedBy,					   
-					   ISNULL(p.RevisionDate, '') AS RevisionDate,					   
-					   ISNULL(p.NextReviewDate, '') AS NextReviewDate,
-					   ISNULL(p.ExpirationDate, '') AS ExpirationDate,					   
+					   p.RevisionDate AS RevisionDate,					   
+					   p.NextReviewDate AS NextReviewDate,
+					   p.ExpirationDate AS ExpirationDate,					   
 					   loc.[Name] AS [Location],
 					   e.FirstName AS VerifiedBy,
-					   ISNULL(p.VerifiedDate, '') AS VerifiedDate,					  
+					   p.VerifiedDate AS VerifiedDate,					  
 					   p.CreatedDate,
 					   p.UpdatedDate,
 					   p.CreatedBy,
 					   p.UpdatedBy,
 					   p.IsActive,
-					   p.IsDeleted					   
+					   p.IsDeleted,
+					   REPLACE(REPLACE(STUFF(
+						(SELECT distinct ', ' + t1.AllMSlevels
+						 FROM PublicationManagementStructureDetails t1
+						 inner join Publication t
+						    on t1.PublicationRecordId = t.PublicationRecordId 
+						 where p.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, ''),'&lt;p&gt;','<p>'),'&lt;/p&gt;','</p>') AllMSlevels,
+						 STUFF(
+						(SELECT distinct ', ' + t1.LastMSLevel
+						 FROM PublicationManagementStructureDetails t1
+						 inner join Publication t
+						     on t1.PublicationRecordId = t.PublicationRecordId 
+						 where p.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
 				  FROM Publication p WITH (NOLOCK)
 				  LEFT JOIN PublicationType pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
 				  LEFT JOIN PublicationItemMasterMapping pum WITH (NOLOCK) ON p.PublicationRecordId = pum.PublicationRecordId and isnull(pum.IsDeleted,0)=0
@@ -117,8 +132,7 @@ BEGIN
 				  LEFT JOIN Employee e WITH (NOLOCK) ON p.VerifiedBy = e.EmployeeId
 				  LEFT JOIN [Location] loc WITH (NOLOCK) ON p.LocationId = loc.LocationId
 				  LEFT JOIN Module pemp WITH (NOLOCK) ON p.PublishedById = pemp.ModuleId 
-				  WHERE (isnull(im.IsDeleted,0) = 0 AND isnull(im.IsActive,1) = 1) AND
-				         p.IsDeleted = @IsDeleted AND
+				  WHERE p.IsDeleted = @IsDeleted AND
 				        (@IsActive is null or p.IsActive = @IsActive)  
 						AND p.MasterCompanyId = @MasterCompanyId
 				  ), ResultCount AS(Select COUNT(PublicationRecordId) AS totalItems FROM Result)

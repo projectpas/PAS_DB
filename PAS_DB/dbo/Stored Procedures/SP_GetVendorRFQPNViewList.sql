@@ -1,4 +1,6 @@
-﻿CREATE PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]
+﻿
+
+CREATE PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -100,11 +102,11 @@ SET NOCOUNT ON;
 								SELECT 
 								   STUFF((SELECT ',' + CONVERT(VARCHAR, NeedByDate, 101)--CAST(CustomerRequestDate as varchar)
 										  FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK) Where S.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId
-										  AND PO.IsActive = 1 AND PO.IsDeleted = 0
+										  AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') NeedByDate,
 								   STUFF((SELECT ',' + CONVERT(VARCHAR, PromisedDate, 101)--CAST(PromisedDate as varchar)
 										  FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK) Where S.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId
-										  AND PO.IsActive = 1 AND PO.IsDeleted = 0
+										  AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') PromisedDate								   
 							) A
 							Where ((PO.IsDeleted = @IsDeleted) AND (SP.IsDeleted = 0) and (@StatusID is null or PO.StatusId = @StatusID))
@@ -264,7 +266,7 @@ SET NOCOUNT ON;
 					from Main M
 					LEFT JOIN PartCTE PC ON PC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId
 					LEFT JOIN PartDescCTE PDC ON PDC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId
-					LEFT JOIN VendorRFQPurchaseOrderPart SP ON SP.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId
+					LEFT JOIN VendorRFQPurchaseOrderPart SP ON SP.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId AND SP.IsDeleted=0 AND SP.IsActive=1
 					LEFT JOIN DatesCTE D ON D.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId	
 					LEFT JOIN dbo.PurchaseOrderManagementStructureDetails MSD ON MSD.ModuleID = 21 AND MSD.ReferenceID = SP.VendorRFQPOPartRecordId
 					LEFT JOIN LastMSLevelCTE LMC ON LMC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId

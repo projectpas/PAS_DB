@@ -88,6 +88,9 @@ BEGIN
 					RC.ReceivingCustomerWorkId,
 					RC.ReceivedDate,
 					RC.ReceivingNumber,
+					RC.StockLineId,
+					SL.QuantityAvailable,
+					SL.QuantityOnHand,
 					SL.StocklineNumber,
 					SL.ControlNumber,
 					SL.IdNumber,
@@ -107,6 +110,8 @@ BEGIN
 						 ELSE WO.OpenDate
 					END AS WOOpenDate,
 					WO.WorkOrderNum AS WONumber,
+					RO.RepairOrderNumber AS RONumber,
+					ROP.RepairOrderPartRecordId,
 					RC.EmployeeName AS ReceivedBy,
 					RC.ManagementStructureId AS Ids,
 					RC.IsActive,
@@ -122,15 +127,18 @@ BEGIN
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
 					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
+					INNER JOIN dbo.Stockline SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
+					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					LEFT JOIN dbo.ItemMaster RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
 					LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
 					LEFT JOIN dbo.WorkOrderStatus WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
-				WHERE (RC.MasterCompanyId = @MasterCompanyId AND ((@WOFilter = 1 AND (WO. WorkOrderNum IS NUll OR WO. WorkOrderNum = '')) OR 
-					        (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) OR
-					        (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll ))))
+				WHERE (RC.MasterCompanyId = @MasterCompanyId 
+						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
+						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
+						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))
 			), ResultCount AS(Select COUNT(ReceivingCustomerWorkId) AS totalItems FROM Result)
 			Select * INTO #TempResult from  Result
 			WHERE (

@@ -45,6 +45,7 @@
     [BillingAmount]                       DECIMAL (20, 2) NULL,
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
     [cogs]                                INT             NULL,
+    [PostedDate]                          DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_BillToCustomer] FOREIGN KEY ([BillToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -55,6 +56,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_ShipToCustomer] FOREIGN KEY ([ShipToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_SoldToCustomer] FOREIGN KEY ([SoldToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 

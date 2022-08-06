@@ -1,5 +1,5 @@
 ﻿
-CREATE PROCEDURE [dbo].[ProcStockList]
+CREATE   PROCEDURE [dbo].[ProcStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -44,7 +44,8 @@ CREATE PROCEDURE [dbo].[ProcStockList]
 @StockLineIds varchar(1000) = NULL,
 @obtainFrom varchar(50) = NULL,
 @ownerName varchar(50) = NULL,
-@LastMSLevel varchar(50)=null
+@LastMSLevel varchar(50)=null,
+@QuantityReserved varchar(50)=null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -92,6 +93,8 @@ BEGIN
 						   stl.QuantityOnHand  as QuantityOnHandnew,
 						   CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 						   stl.QuantityAvailable  as QuantityAvailablenew,
+						   CAST(stl.QuantityReserved AS varchar) 'QuantityReserved',
+						   stl.QuantityReserved  as QuantityReservednew,
 						   CASE WHEN stl.isSerialized = 1 THEN (CASE WHEN ISNULL(stl.SerialNumber,'') = '' THEN 'Non Provided' ELSE ISNULL(stl.SerialNumber,'') END) ELSE ISNULL(stl.SerialNumber,'') END AS 'SerialNumber',
 						   (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber', 
 						   stl.ControlNumber,
@@ -145,6 +148,7 @@ BEGIN
 						(UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR										
 						(QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR
 						(QuantityAvailable LIKE '%' +@GlobalFilter+'%') OR
+						(QuantityReserved LIKE '%' +@GlobalFilter+'%') OR
 						(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 						(StocklineNumber LIKE '%' +@GlobalFilter+'%') OR					
 						(ControlNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -175,6 +179,7 @@ BEGIN
 						(ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND				
 						(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND
 						(ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND
+						(ISNULL(@QuantityReserved,'') ='' OR QuantityReserved LIKE '%' + @QuantityReserved + '%') AND
 						(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 						(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber + '%') AND					
 						(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
@@ -221,6 +226,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityOnHand')  THEN QuantityOnHandnew END DESC, 
 						CASE WHEN (@SortOrder=1  AND @SortColumn='QuantityAvailable')  THEN QuantityAvailablenew END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityAvailable')  THEN QuantityAvailablenew END DESC,	
+						CASE WHEN (@SortOrder=1  AND @SortColumn='QuantityReserved')  THEN QuantityReservednew END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityReserved')  THEN QuantityReservednew END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineNumber')  THEN StocklineNumber END ASC,
@@ -292,6 +299,8 @@ BEGIN
 						   stl.QuantityOnHand  as QuantityOnHandnew,
 						   CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
 						   stl.QuantityAvailable  as QuantityAvailablenew,
+						   CAST(stl.QuantityReserved AS varchar) 'QuantityReserved',
+						   stl.QuantityReserved  as QuantityReservednew,
 						   (ISNULL(stl.SerialNumber,'')) 'SerialNumber',
 						   (ISNULL(stl.StockLineNumber,'')) 'StocklineNumber', 
 						   stl.ControlNumber,
@@ -347,6 +356,7 @@ BEGIN
 						(UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR										
 						(QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR
 						(QuantityAvailable LIKE '%' +@GlobalFilter+'%') OR
+						(QuantityReserved LIKE '%' +@GlobalFilter+'%') OR
 						(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 						(StocklineNumber LIKE '%' +@GlobalFilter+'%') OR					
 						(ControlNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -377,6 +387,7 @@ BEGIN
 						(ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND				
 						(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND
 						(ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND
+						(ISNULL(@QuantityReserved,'') ='' OR QuantityReserved LIKE '%' + @QuantityReserved + '%') AND
 						(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 						(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber + '%') AND					
 						(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
@@ -423,6 +434,9 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityOnHand')  THEN QuantityOnHandnew END DESC, 
 				CASE WHEN (@SortOrder=1  AND @SortColumn='QuantityAvailable')  THEN QuantityAvailablenew END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityAvailable')  THEN QuantityAvailablenew END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='QuantityReserved')  THEN QuantityReservednew END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='QuantityReserved')  THEN QuantityReservednew END DESC,	
+				
 				CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineNumber')  THEN StocklineNumber END ASC,

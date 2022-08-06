@@ -12,11 +12,11 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
 ** --   --------    -------         --------------------------------
 ** 1    07/30/2021  Hemant Saliya    Initilial Draft
 
-exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=240,@UnitOfMeasureId=36,
-@ConditionId=1,@Quantity=1,@IsSerialized=1,@SerialNumber='09888909',@CustomerId=7,@ObtainFromTypeId=NULL,@ObtainFrom=NULL,@ObtainFromName=N'',@OwnerTypeId=NULL,
-@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N'<p>Test</p>',@WorkOrderId=N'395',
-@WorkOrderNumber=N'CWO135-2020',@ManufacturerId=4,@InspectedById=NULL,@InspectedDate=NULL,@ReceiverNumber=N'REC1212',@ReceivedDate='2021-08-04 18:30:00',
-@ManagementStructureId=72,@SiteId=2,@WarehouseId=4,@LocationId=4,@ShelfId=4,@BinId=8,@MasterCompanyId=1,@UpdatedBy=N'Don Budhu',@WorkOrderMaterialsId=573
+exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,
+@ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',
+@OwnerTypeId=NULL,@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N' ',@WorkOrderId=N'320',
+@WorkOrderNumber=N'WO-000161',@ManufacturerId=9,@InspectedById=NULL,@InspectedDate=NULL,@ReceiverNumber=N'RCTS#-000087',@ReceivedDate='2022-07-29 13:04:59.237',
+@ManagementStructureId=1,@SiteId=2,@WarehouseId=NULL,@LocationId=NULL,@ShelfId=NULL,@BinId=NULL,@MasterCompanyId=1,@UpdatedBy=N'ADMIN ADMIN',@WorkOrderMaterialsId=395
 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
@@ -75,6 +75,25 @@ BEGIN
 	DECLARE @WorkOrderWorkflowId BIGINT;
 	DECLARE @IsWorkOrderMaterialsExist BIT = 0;
 	DECLARE @MSModuleID INT = 2; -- Stockline Module ID
+	DECLARE @IsPMA BIT = 0;
+	DECLARE @IsDER BIT = 0;
+	DECLARE @IsOemPNId BIGINT;
+	DECLARE @IsOEM BIT = 0;
+	DECLARE @OEMPNNumber VARCHAR(500);
+	DECLARE @count INT;
+	DECLARE @slcount INT;
+	DECLARE @IsAddUpdate BIT; 
+	DECLARE @ExecuteParentChild BIT; 
+	DECLARE @UpdateQuantities BIT;
+	DECLARE @IsOHUpdated BIT; 
+	DECLARE @AddHistoryForNonSerialized BIT;  
+	DECLARE @ReferenceId BIGINT;	
+	DECLARE @SubReferenceId BIGINT;
+	DECLARE @IsSerialised BIT;
+	DECLARE @ModuleId BIGINT;
+	DECLARE @SubModuleId BIGINT;
+	DECLARE @stockLineQty INT;
+	DECLARE @stockLineQtyAvailable INT;
 		
 		BEGIN TRY
 			-- #STEP 1 CREATE STOCKLINE
@@ -82,13 +101,25 @@ BEGIN
 				BEGIN
 					DECLARE @QtyTendered INT = 0;
 					DECLARE @QtyToTendered INT = 0;
+					DECLARE @TotalStlQtyReq INT = 0;
 
-					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+					SET @count = @Quantity;
+					SET @slcount = @Quantity;
+					SET @IsAddUpdate = 1;
+					SET @ExecuteParentChild = 1;
+					SET @UpdateQuantities = 0;
+					SET @IsOHUpdated = 0;
+					SET @AddHistoryForNonSerialized = 0;
+
+					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 22; -- For Stockline Module
+					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
+
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_Parent') IS NOT NULL
 					BEGIN
-					DROP TABLE #tmpCodePrefixes
+					DROP TABLE #tmpCodePrefixes_Parent
 					END
 				
-					CREATE TABLE #tmpCodePrefixes
+					CREATE TABLE #tmpCodePrefixes_Parent
 					(
 						 ID BIGINT NOT NULL IDENTITY, 
 						 CodePrefixId BIGINT NULL,
@@ -129,11 +160,11 @@ BEGIN
 					ON CSTL.StockLineId = STL.StockLineId
 					/* PN Manufacturer Combination Stockline logic */
 
-					SELECT @PartNumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
+					SELECT @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN  FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
 					SELECT @WorkOrderNumber = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 					SELECT @WorkOrderWorkflowId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
 
-					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom) 
+					INSERT INTO #tmpCodePrefixes_Parent (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom) 
 					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
@@ -152,9 +183,9 @@ BEGIN
 						SET @stockLineCurrentNo = 1
 					END
 
-					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 30))
+					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30))
 					BEGIN 
-						SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 30)))
+						SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@stockLineCurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30), (SELECT CodeSufix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 30)))
 
 						UPDATE DBO.ItemMaster
 						SET CurrentStlNo = @stockLineCurrentNo
@@ -165,28 +196,25 @@ BEGIN
 						ROLLBACK TRAN;
 					END
 
-					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 9))
+					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 9))
 					BEGIN 
 						SELECT 
 							@CNCurrentNummber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) + 1 
 								ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-						FROM #tmpCodePrefixes WHERE CodeTypeId = 9
+						FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 9
 
-						SET @ControlNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CNCurrentNummber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 9), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 9)))
+						SET @ControlNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CNCurrentNummber,(SELECT CodePrefix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 9), (SELECT CodeSufix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 9)))
 					END
 					ELSE 
 					BEGIN
 						ROLLBACK TRAN;
 					END
 
-					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 17))
+					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 17))
 					BEGIN 
-						SELECT 
-							@IDCurrentNummber = CASE WHEN CurrentNummber > 0 THEN CAST(CurrentNummber AS BIGINT) + 1 
-								ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-						FROM #tmpCodePrefixes WHERE CodeTypeId = 17
+						SET @IDCurrentNummber = 1;
 
-						SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@IDCurrentNummber,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 17)))
+						SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@IDCurrentNummber,(SELECT CodePrefix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 17), (SELECT CodeSufix FROM #tmpCodePrefixes_Parent WHERE CodeTypeId = 17)))
 					END
 					ELSE 
 					BEGIN
@@ -197,11 +225,13 @@ BEGIN
 							QuantityAvailable, QuantityOnHand,QuantityTurnIn,IsSerialized,SerialNumber, CustomerId, ObtainFromType, ObtainFrom, ObtainFromName, OwnerType, [Owner], OwnerName, TraceableToType, 
 							TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,
 							QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,
-							ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn
+							ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn,
+							[OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber
 					) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@UnitOfMeasureId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,
 							@IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId, 
 							@TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNum, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,0,
-							@ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETDATE(),GETDATE(),1,0, @MasterCompanyId, 1);
+							@ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETDATE(),GETDATE(),1,0, @MasterCompanyId, 1,
+							@IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber);
 					
 					SELECT @StockLineId = SCOPE_IDENTITY()
 
@@ -209,6 +239,30 @@ BEGIN
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNummber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId
 
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId
+					
+					--FOR STOCK LINE HISTORY
+					WHILE @count >= @slcount
+					BEGIN
+						SET @ReferenceId = 0;
+						SET @SubReferenceId = @WorkOrderMaterialsId
+						PRINT 'STEP - 1'
+						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
+						
+						IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
+						BEGIN
+							EXEC [dbo].[USP_CreateChildStockline]  
+							@StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, 
+							@UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						
+						END
+						ELSE
+						BEGIN
+							PRINT 'STEP - 3'
+							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						END
+						PRINT 'STEP - 4'
+						SET @slcount = @slcount + 1;
+					END;
 
 					--Add SL Managment Structure Details 
 					EXEC USP_SaveSLMSDetails @MSModuleID, @StockLineId, @ManagementStructureId, @MasterCompanyId, @UpdatedBy
@@ -216,10 +270,14 @@ BEGIN
 					IF(@IsMaterialStocklineCreate = 1)
 					BEGIN
 
-						IF((SELECT COUNT(1) FROM dbo.WorkOrderMaterials WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = @ConditionId AND 
+						IF((SELECT COUNT(1) FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = @ConditionId AND 
 							WorkFlowWorkOrderId = @WorkOrderWorkflowId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0) > 0)
 						BEGIN
-							UPDATE dbo.WorkOrderMaterials SET Quantity = Quantity + @Quantity FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+							UPDATE dbo.WorkOrderMaterials SET 
+							Quantity =  CASE WHEN ISNULL(Quantity, 0) - (ISNULL(QuantityReserved, 0) + ISNULL(QuantityIssued, 0)) >= @Quantity THEN Quantity ELSE
+							(ISNULL(QuantityReserved, 0) + ISNULL(QuantityIssued, 0) + @Quantity) END
+							--Quantity = Quantity + @Quantity 
+							FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
 							SELECT @NewWorkOrderMaterialsId = @WorkOrderMaterialsId;
 						END
 						ELSE
@@ -257,7 +315,17 @@ BEGIN
 
 						IF(@QtyTendered > @QtyToTendered)
 						BEGIN
-							UPDATE dbo.WorkOrderMaterials SET QtyToTurnIn = @QtyTendered FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+							UPDATE dbo.WorkOrderMaterials SET QtyToTurnIn = @QtyTendered FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+						END
+
+						--UPDATE QTY REQ IN MATERIAL IF REQ QTY MISMATCH
+						SELECT @TotalStlQtyReq = SUM(ISNULL(womsl.Quantity,0)) 
+						FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)							
+						WHERE womsl.WorkOrderMaterialsId = @WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0 
+
+						IF(@TotalStlQtyReq > (SELECT ISNULL(Quantity, 0) FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId))
+						BEGIN
+							UPDATE dbo.WorkOrderMaterials SET Quantity = @TotalStlQtyReq FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
 						END
 
 						--UPDATE WO PART LEVEL TOTAL COST
@@ -271,9 +339,9 @@ BEGIN
 						
 					END
 
-					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_Parent') IS NOT NULL
 					BEGIN
-						DROP TABLE #tmpCodePrefixes 
+						DROP TABLE #tmpCodePrefixes_Parent 
 					END
 
 					IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL

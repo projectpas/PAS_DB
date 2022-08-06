@@ -146,8 +146,14 @@
     [IsCustomerStock]                     BIT             DEFAULT ((0)) NULL,
     [isCustomerstockType]                 BIT             NULL,
     [CustomerId]                          BIGINT          NULL,
+    [CalibrationVendorId]                 BIGINT          NULL,
+    [PerformedById]                       BIGINT          NULL,
+    [LastCalibrationDate]                 DATETIME        NULL,
+    [NextCalibrationDate]                 DATETIME        NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
+
+
 
 
 

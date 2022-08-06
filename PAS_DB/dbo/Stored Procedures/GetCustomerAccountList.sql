@@ -74,14 +74,17 @@ BEGIN
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
 			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
 			from SalesOrderBillingInvoicing sobi
 			INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
 			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
 			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
 			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
 			where sobi.InvoiceStatus = 'Invoiced'
-			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate
+			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
 			
 			UNION ALL
 			
@@ -92,14 +95,19 @@ BEGIN
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
 			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
+			--DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
 			from WorkOrderBillingInvoicing wobi
 			INNER JOIN WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
 			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+			--LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
 			--where ct.CustomerId=58 AND wobi.InvoiceStatus='Reviewed'
 			where wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
-			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate
+			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
 			
 			), CTECalculation AS(
 			select

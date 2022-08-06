@@ -37,6 +37,8 @@ BEGIN
 				BEGIN
 					--CASE 1 UPDATE WORK ORDER MATERILS
 					DECLARE @count INT;
+					DECLARE @MPNcount INT;
+					DECLARE @TotalMPNCounts INT;
 					DECLARE @slcount INT;
 					DECLARE @TotalCounts INT;
 					DECLARE @StocklineId BIGINT; 
@@ -55,6 +57,9 @@ BEGIN
 					DECLARE @IsSerialised BIT;
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @WorkOrderId BIGINT;
+					DECLARE @WorkOrderWorkflowId BIGINT;
+					DECLARE @UpdatedBy VARCHAR(100);
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
@@ -66,6 +71,8 @@ BEGIN
 					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
+					SET @MPNcount = 1;
+					
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
@@ -181,17 +188,29 @@ BEGIN
 						WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 					FROM dbo.Stockline SL JOIN #tmpIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 					
-					--FOR UPDATE TOTAL WORK ORDER COST
-					WHILE @count<= @TotalCounts
+					SELECT @TotalMPNCounts = COUNT(ID) FROM #tmpIssueWOMaterialsStockline;
+
+					----UPDATE MATERIALS COST
+					WHILE @MPNcount<= @TotalMPNCounts
 					BEGIN
 						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
 						FROM #tmpIssueWOMaterialsStockline tmpWOM 
-						WHERE tmpWOM.ID = @count
+						WHERE tmpWOM.ID = @MPNcount
 
 						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
 						
-						SET @count = @count + 1;
+						SET @MPNcount = @MPNcount + 1;
 					END;
+
+					EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
+
+					SELECT @WorkOrderId = WorkOrderId, @WorkOrderWorkflowId = WorkFlowWorkOrderId, @UpdatedBy = UpdatedBy FROM #tmpIssueWOMaterialsStockline;
+
+					--UPDATE WO PART LEVEL TOTAL COST
+					EXEC USP_UpdateWOTotalCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;
+
+					--UPDATE WO PART LEVEL TOTAL COST
+					EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;
 
 					--FOR STOCK LINE HISTORY	
 					WHILE @slcount<= @TotalCounts

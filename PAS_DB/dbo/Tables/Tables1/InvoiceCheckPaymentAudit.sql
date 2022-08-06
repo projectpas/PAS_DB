@@ -20,8 +20,11 @@
     [IsActive]            BIT             NOT NULL,
     [IsDeleted]           BIT             NOT NULL,
     [PageIndex]           INT             NULL,
+    [Ismiscellaneous]     BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_InvoiceCheckPaymentAudit] PRIMARY KEY CLUSTERED ([CheckPaymentAuditId] ASC)
 );
+
+
 
 
 

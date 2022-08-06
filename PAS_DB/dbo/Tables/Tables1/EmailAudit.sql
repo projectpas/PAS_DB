@@ -26,6 +26,9 @@
     [EmailStatus]       BIT            NULL,
     [EmailSentTime]     DATETIME2 (7)  NULL,
     [IsAttach]          BIT            NULL,
+    [EmailStatusId]     INT            DEFAULT ('1') NULL,
     CONSTRAINT [PK_EmailAudit] PRIMARY KEY CLUSTERED ([EmailAuditId] ASC)
 );
+
+
 

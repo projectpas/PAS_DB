@@ -25,13 +25,15 @@
     [EmailStatus]       BIT            NULL,
     [EmailSentTime]     DATETIME2 (7)  NULL,
     [IsAttach]          BIT            NULL,
+    [EmailStatusId]     INT            DEFAULT ('1') NULL,
     CONSTRAINT [PK_Email] PRIMARY KEY CLUSTERED ([EmailId] ASC),
     CONSTRAINT [FK_Email_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
 
-GO
 
+
+GO
 
 CREATE TRIGGER [dbo].[Trg_EmailAudit]
 
@@ -50,6 +52,26 @@ BEGIN
 	SELECT * FROM INSERTED
 
 
+	DECLARE @event_type varchar(42)
+	DECLARE @EmialId bigint
+   IF EXISTS(SELECT * FROM inserted)
+     IF EXISTS(SELECT * FROM deleted)
+    SELECT @event_type = 'update'
+   ELSE
+    SELECT @event_type = 'insert'
+   ELSE
+   IF EXISTS(SELECT * FROM deleted)
+    SELECT @event_type = 'delete'
+   ELSE
+    --no rows affected - cannot determine event
+    SELECT @event_type = 'unknown'
+	SELECT @EmialId = EmailId FROM INSERTED
+
+
+	if(@event_type ='insert')
+	begin
+	  update Email set EmailStatusId=1 where EmailId=@EmialId
+	end
 
 	SET NOCOUNT ON;
 

@@ -19,7 +19,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
      
- EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
+ EXECUTE USP_UpdateWOTotalCostDetails 331,358, 'admin',1
 
 **************************************************************/ 
     

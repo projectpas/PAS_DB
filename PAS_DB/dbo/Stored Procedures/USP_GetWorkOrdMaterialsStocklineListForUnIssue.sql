@@ -18,7 +18,7 @@
     1    01/03/2022   Hemant Saliya Created
 
      
- EXECUTE USP_GetWorkOrdMaterialsStocklineListForUnReserve 99,15
+ EXECUTE USP_GetWorkOrdMaterialsStocklineListForUnReserve 297
 
 **************************************************************/ 
     
@@ -106,7 +106,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
-					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (SL.IsCustomerStock = 0 OR SL.QuantityTurnIn > 0) AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
+					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 				
 			END
 		COMMIT  TRANSACTION

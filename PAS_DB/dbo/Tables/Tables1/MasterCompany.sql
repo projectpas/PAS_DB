@@ -20,8 +20,11 @@
     [CountryId]                SMALLINT      NULL,
     [PhoneNumber]              VARCHAR (30)  NULL,
     [TimeZoneCode]             VARCHAR (50)  NULL,
+    [ReportPDFPath]            VARCHAR (MAX) NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
+
+
 
 
 

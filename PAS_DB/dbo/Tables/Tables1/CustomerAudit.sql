@@ -36,9 +36,12 @@
     [TradeRestrictedMemo]     NVARCHAR (MAX) NULL,
     [IsTrackScoreCard]        BIT            NULL,
     [CommunicationPreference] INT            NULL,
+    [Ismiscellaneous]         BIT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CustomerAudit] PRIMARY KEY CLUSTERED ([AuditCustomerId] ASC),
     CONSTRAINT [FK_CustomerAudit_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 

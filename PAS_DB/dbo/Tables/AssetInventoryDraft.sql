@@ -148,6 +148,10 @@
     [IsSameDetailsForAllParts]          BIT             NULL,
     [ReceiverNumber]                    VARCHAR (100)   NULL,
     [ReceivedDate]                      DATETIME2 (7)   NULL,
+    [CalibrationVendorId]               BIGINT          NULL,
+    [PerformedById]                     BIGINT          NULL,
+    [LastCalibrationDate]               DATETIME        NULL,
+    [NextCalibrationDate]               DATETIME        NULL,
     CONSTRAINT [PK_AssetInventoryDraft] PRIMARY KEY CLUSTERED ([AssetInventoryDraftId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_AssetInventoryDraft_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
@@ -157,6 +161,8 @@
     CONSTRAINT [FK_AssetInventoryDraft_TangibleClassId] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
     CONSTRAINT [FK_AssetInventoryDraft_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

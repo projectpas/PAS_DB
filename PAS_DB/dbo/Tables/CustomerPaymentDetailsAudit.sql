@@ -23,6 +23,11 @@
     [PaymentRef]                          VARCHAR (100)   NULL,
     [Amount]                              DECIMAL (18, 2) NULL,
     [AmountRem]                           DECIMAL (18, 2) NULL,
+    [Ismiscellaneous]                     BIT             DEFAULT ((0)) NOT NULL,
+    [AppliedAmount]                       DECIMAL (20, 2) NULL,
+    [InvoiceAmount]                       DECIMAL (20, 2) NULL,
     CONSTRAINT [PK_CustomerPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditCustomerPaymentDetailsId] ASC)
 );
+
+
 

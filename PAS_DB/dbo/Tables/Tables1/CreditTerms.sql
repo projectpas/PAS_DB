@@ -12,11 +12,13 @@
     [UpdatedDate]     DATETIME2 (7)   CONSTRAINT [DF_CreditTerms_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]        BIT             CONSTRAINT [DF_CreditTerms_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT             CONSTRAINT [DF_CreditTerms_IsDelete] DEFAULT ((0)) NOT NULL,
+    [Code]            VARCHAR (50)    NULL,
     CONSTRAINT [PK_CreditTerm] PRIMARY KEY CLUSTERED ([CreditTermsId] ASC),
     CONSTRAINT [FK_CreditTerms_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [Unique_CreditTerms] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC),
-    CONSTRAINT [Unique_CreditTermsDays] UNIQUE NONCLUSTERED ([Percentage] ASC, [Days] ASC, [NetDays] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [Unique_CreditTerms] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

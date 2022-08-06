@@ -38,7 +38,8 @@ BEGIN
 		MSD.LastMSLevel,
 		MSD.AllMSlevels,
 		1 AS InvoiceType,
-		ISNULL(H.ARBalance,0) as ARBalance
+		ISNULL(H.ARBalance,0) as ARBalance,
+		C.Ismiscellaneous
 		FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 		LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 		LEFT JOIN CustomerFinancial CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId
@@ -55,7 +56,7 @@ BEGIN
 		AND SOBI.CustomerId = @customerId AND SOBI.RemainingAmount > 0
 		Group By SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.SalesOrderNumber,
 		S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName,		
-		MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance
+		MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous
 
 		UNION
 
@@ -88,7 +89,8 @@ BEGIN
 				MSD.LastMSLevel,
 				MSD.AllMSlevels,		 
 				2 AS InvoiceType,
-				ISNULL(H.ARBalance,0) as ARBalance
+				ISNULL(H.ARBalance,0) as ARBalance,
+				C.Ismiscellaneous
 		FROM WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
 		INNER JOIN WorkOrder WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0
 		LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId
@@ -107,7 +109,7 @@ BEGIN
 		Group By  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.WorkOrderNum,
 		wop.CustomerReference,Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, 
 		--S.BalanceDue, --  need to confirm
-		CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance
+		CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous
 
 	END TRY    
 	BEGIN CATCH

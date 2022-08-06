@@ -19,11 +19,11 @@
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 09/13/2021	  Hemant Saliya  Add Calculated Field for Labor All Labor are Completd
-     
+    4	 07/26/2022	  Subhash Saliya  Add Calculated Field for Sipping or Invoiced are Completd
 --EXEC [GetWorkOrderSettlementDetails] 235,255,240
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
+CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @workOrderPartNoId bigint,
 @workflowWorkorderId BIGINT
@@ -43,6 +43,8 @@ BEGIN
 				DECLARE @MasterCompanyID INT;
 				DECLARE @IsLaborCompleled INT = 0;
 				DECLARE @AllToolsAreCheckOut INT = 0;
+				DECLARE @IsShippingCompleled INT = 0;
+				DECLARE @IsBillingCompleled INT = 0;
 				DECLARE @InventoryStatusID INT;
 
 				SELECT @qtyreq = SUM(ISNULL(Quantity,0)),
@@ -61,6 +63,13 @@ BEGIN
 				SELECT @TaskStatusID = TaskStatusId FROM dbo.TaskStatus WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyID AND UPPER(StatusCode) = 'COMPLETED'
 
 				SELECT @InventoryStatusID = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
+
+
+				SELECT @IsShippingCompleled = count(WorkOrderShippingId) FROM dbo.WorkOrderShippingItem WITH (NOLOCK) WHERE WorkOrderPartNumId = @workOrderPartNoId
+				SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.WorkOrderBillingInvoicing wobi 
+						INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
+						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wobi.WorkOrderId AND wop.ID = wobii.WorkOrderPartId
+						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced'
 
 				IF(EXISTS (SELECT 1 FROM dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId))
 				BEGIN 
@@ -109,7 +118,9 @@ BEGIN
 						wosd.CreatedDate,
 						wosd.UpdatedDate,
 						wosd.IsActive,
-						wosd.IsDeleted
+						wosd.IsDeleted,
+						case when @IsShippingCompleled > 0 then 1 else 0 end as 'IsShippingCompleled',
+						case when @IsBillingCompleled > 0 then 1 else 0 end as 'IsBillingCompleled'
 				FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 					LEFT JOIN dbo.WorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 				WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 

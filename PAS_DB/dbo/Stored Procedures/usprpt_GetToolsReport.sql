@@ -16,10 +16,11 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    25-April-2022  Mahesh Sorathiya   Created 
+	2    02-August-2022  Subhash Saliya    Updated 
        
 EXECUTE   [dbo].[usprpt_GetToolsReport] '2022-04-25','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetToolsReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetToolsReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -149,41 +150,18 @@ BEGIN
         UPPER(AI.serialno) 'sernum',  
         UPPER(asty.AssetAttributeTypeName) 'assetclass',  
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(Asset.EntryDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), Asset.EntryDate, 107) END 'entrydate',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(cb.LastCalibrationDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), cb.LastCalibrationDate, 107) END 'lstcaldate',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN 
-			CASE WHEN ISNULL(cb.LastCalibrationBy,'') <>'' THEN
-			FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END ELSE 
-			CASE WHEN ISNULL(cb.LastCalibrationBy,'') <>'' THEN
-			CONVERT(VARCHAR(50), DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 107) END END AS 'nxtcaldate',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(ISNULL(cb.LastCalibrationDate, cb.CalibrationDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), ISNULL(cb.LastCalibrationDate, cb.CalibrationDate), 107) END 'lstcaldate',
+	    CASE WHEN ISNULL(@IsDownload,0) = 0 THEN  CASE WHEN ISNULL(cb.NextCalibrationDate, '') != '' THEN FORMAT(cb.NextCalibrationDate, 'MM/dd/yyyy')  ELSE FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),
+											(CASE WHEN ISNULL(cb.LastCalibrationDate, '') != '' THEN cb.LastCalibrationDate ELSE cb.CalibrationDate END))), 'MM/dd/yyyy') END  ELSE
+										CASE WHEN ISNULL(cb.NextCalibrationDate, '') != '' THEN CONVERT(VARCHAR(50),cb.NextCalibrationDate, 107)  ELSE CONVERT(VARCHAR(50),DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),
+											(CASE WHEN ISNULL(cb.LastCalibrationDate, '') != '' THEN cb.LastCalibrationDate ELSE cb.CalibrationDate END))), 107)	
+											END  END AS 'nxtcaldate',
 
-
-		--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(Asset.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), Asset.EntryDate, 107) END 'entrydate',
-		--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(Asset.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), Asset.EntryDate, 107) END 'entrydate',
-
-
-        --FORMAT(Asset.EntryDate, 'MM/dd/yyyy') 'entrydate',  
-        UPPER(AssetStatus.name) 'status',  
-        case when Isnull(AC.calibrationrequired,0) = 0 then 'NO' else 'YES'  end  'calreq',  
-        --FORMAT(cb.LastCalibrationDate, 'MM/dd/yyyy') 'lstcaldate',  
-        UPPER(cb.LastCalibrationBy) 'lstcalby',  
-
-		--CASE WHEN ISNULL(cb.LastCalibrationBy,'')<>'' THEN
-  --      FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END  'nxtcaldate', 
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		FORMAT(DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END 
-		ELSE CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		CONVERT(VARCHAR(50), DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 107) END END 'nxtcertdate',
-
-        case when Isnull(AC.certificationrequired,0) = 0 then 'NO' else 'YES'  end 'certreq',  
-        UPPER(cf.LastCalibrationBy) 'lstcertby',  
-
-  --      CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		--FORMAT(DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END 'nxtcertdate',  
-        
-		case when Isnull(AC.inspectionrequired,0) = 0 then 'NO' else 'YES'  end  'insreq',  
-        case when Isnull(AC.verificationrequired,0) = 0 then 'NO' else 'YES' end  'verreq',  
-        'N/A' 'noncal',  
-        UPPER(AL.Code + '-' + AL.name) 'location',
+        UPPER(AssetStatus.name) 'status', 
+		UPPER(maf.Name) AS manufacturername,
+		UPPER(asset.ManufacturerPN) manufacturerpn,
+		UPPER(AI.LocationName) AS locationname,
+		UPPER(AI.SiteName) as siteName,
 		UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -205,6 +183,7 @@ BEGIN
         LEFT JOIN DBO.Vendor VNDR1 WITH (NOLOCK) ON AC.CertificationDefaultVendorId = VNDR1.VendorId  
         LEFT JOIN DBO.assetcapes ACS WITH (NOLOCK) ON Asset.assetrecordid = ACS.assetrecordid  
         LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asset.TangibleClassId = asty.TangibleClassId  
+		LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asset.ManufacturerId = maf.ManufacturerId
 		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
 		WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Calibration') cb
 		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
@@ -227,26 +206,14 @@ BEGIN
 	  GROUP BY Asset.assetid,AI.PartNumber,AI.InventoryNumber,AI.serialno,asty.AssetAttributeTypeName,
 
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(Asset.EntryDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), Asset.EntryDate, 107) END ,
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(cb.LastCalibrationDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), cb.LastCalibrationDate, 107) END ,
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN 
-			CASE WHEN ISNULL(cb.LastCalibrationBy,'') <>'' THEN
-			FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END ELSE 
-			CASE WHEN ISNULL(cb.LastCalibrationBy,'') <>'' THEN
-			CONVERT(VARCHAR(50), DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 107) END END,
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		FORMAT(DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END 
-		ELSE CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		CONVERT(VARCHAR(50), DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 107) END END ,
-
-		--FORMAT(Asset.EntryDate, 'MM/dd/yyyy'),
-	    AssetStatus.name,AC.calibrationrequired,
-	    AC.certificationrequired,AC.inspectionrequired,AC.verificationrequired,VNDR.vendorname,VNDR1.vendorname,UPPER(AL.Code + '-' + AL.name),
-		--FORMAT(cb.LastCalibrationDate, 'MM/dd/yyyy'),
-		cb.LastCalibrationBy, cf.LastCalibrationBy,
-		--CASE WHEN ISNULL(cb.LastCalibrationBy,'')<>'' THEN
-  --      FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END,
-		--CASE WHEN ISNULL(cf.LastCalibrationBy,'')<>'' THEN
-		--FORMAT(DATEADD(DAY, ISNULL(AC.CertificationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CertificationFrequencyMonths,0),getdate())), 'MM/dd/yyyy') END,
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(ISNULL(cb.LastCalibrationDate, cb.CalibrationDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), ISNULL(cb.LastCalibrationDate, cb.CalibrationDate), 107) END ,
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN  CASE WHEN ISNULL(cb.NextCalibrationDate, '') != '' THEN FORMAT(cb.NextCalibrationDate, 'MM/dd/yyyy')  ELSE FORMAT(DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),
+											(CASE WHEN ISNULL(cb.LastCalibrationDate, '') != '' THEN cb.LastCalibrationDate ELSE cb.CalibrationDate END))), 'MM/dd/yyyy') END  ELSE
+										CASE WHEN ISNULL(cb.NextCalibrationDate, '') != '' THEN CONVERT(VARCHAR(50),cb.NextCalibrationDate, 107)  ELSE CONVERT(VARCHAR(50),DATEADD(DAY, ISNULL(AC.CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(AC.CalibrationFrequencyMonths,0),
+											(CASE WHEN ISNULL(cb.LastCalibrationDate, '') != '' THEN cb.LastCalibrationDate ELSE cb.CalibrationDate END))), 107)	
+											END  END,
+	    UPPER(AssetStatus.name),AC.certificationrequired,AC.inspectionrequired,AC.verificationrequired,VNDR.vendorname,VNDR1.vendorname,UPPER(AL.Code + '-' + AL.name),
+		cb.LastCalibrationBy, cf.LastCalibrationBy,cb.NextCalibrationDate,UPPER(maf.Name),UPPER(asset.ManufacturerPN),UPPER(AI.LocationName),UPPER(AI.SiteName),
 
 		MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name
 	  ORDER BY Asset.assetid

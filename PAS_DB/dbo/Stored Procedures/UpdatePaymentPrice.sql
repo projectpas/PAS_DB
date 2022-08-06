@@ -17,17 +17,29 @@ BEGIN
 		DECLARE @remPaymentAmt DECIMAL(20, 2)
 
 		SELECT @paymentAmt = (SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0)))
-		, @remPaymentAmt = ((SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0))) - (ISNULL(IPS.PaymentAmount, 0)))
+		--, @remPaymentAmt = ((SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0))) - (ISNULL(IPS.PaymentAmount, 0)) + (ISNULL(ICN.Amount,0)))
+		, @remPaymentAmt = (ISNULL(IPS.PaymentAmount, 0)) + (ISNULL(ICN.Amount,0))
 		FROM DBO.CustomerPayments C  WITH(NOLOCK)
 		LEFT JOIN (SELECT ReceiptId, SUM(PaymentAmount) PaymentAmount FROM DBO.InvoicePayments WITH(NOLOCK) WHERE ReceiptId = @ReceiptId GROUP BY ReceiptId) AS IPS ON IPS.ReceiptId = C.ReceiptId 
 		LEFT JOIN DBO.InvoiceCheckPayment IC WITH(NOLOCK) ON C.ReceiptId = IC.ReceiptId
 		LEFT JOIN DBO.InvoiceWireTransferPayment IW WITH(NOLOCK) ON C.ReceiptId = IW.ReceiptId
 		LEFT JOIN DBO.InvoiceCreditDebitCardPayment ICC WITH(NOLOCK) ON C.ReceiptId = ICC.ReceiptId
+		--LEFT JOIN DBO.InvoiceCheckPayment ICN WITH(NOLOCK) ON C.ReceiptId = ICN.ReceiptId AND ICN.Ismiscellaneous = 1
+		--LEFT JOIN (SELECT ReceiptId, SUM(Amount) Amount,Ismiscellaneous FROM DBO.InvoiceCheckPayment WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND Ismiscellaneous = 1 GROUP BY ReceiptId,Ismiscellaneous) 
+		--AS ICN ON ICN.ReceiptId = C.ReceiptId AND ICN.Ismiscellaneous = 1
+		LEFT JOIN (SELECT ReceiptId, SUM(Amount) Amount FROM DBO.CustomerOverDuePayment WITH(NOLOCK) WHERE ReceiptId = @ReceiptId GROUP BY ReceiptId)
+		AS ICN ON ICN.ReceiptId = C.ReceiptId
+		--LEFT JOIN DBO.Customer CT WITH(NOLOCK) ON CT.CustomerId = IC.CustomerId
 		Where C.ReceiptId = @ReceiptId
-		GROUP BY IPS.PaymentAmount
+		GROUP BY IPS.PaymentAmount,ICN.Amount
+		--,CT.Ismiscellaneous,IC.Amount
+
+		--Update DBO.CustomerPayments
+		--SET AmtApplied = (@paymentAmt - ABS(@remPaymentAmt)),UpdatedDate=GETDATE()
+		--Where ReceiptId = @ReceiptId
 
 		Update DBO.CustomerPayments
-		SET AmtApplied = (@paymentAmt - @remPaymentAmt),UpdatedDate=GETDATE()
+		SET AmtApplied = (ABS(@remPaymentAmt)),UpdatedDate=GETDATE()
 		Where ReceiptId = @ReceiptId
 
 		Update DBO.CustomerPayments

@@ -11,21 +11,21 @@
  @PartNumber varchar(50)=null,  
  @PartDescription varchar(50)=null,  
  @WorkScope varchar(50)=null,  
-    @Priority varchar(50)=null,  
-    @CustomerName varchar(50)=null,  
-    @CustomerAffiliation varchar(50)=null,  
-    @Stage varchar(200)=null,  
-    @WorkOrderStatus varchar(50)=null,      
+ @Priority varchar(50)=null,  
+ @CustomerName varchar(50)=null,  
+ @CustomerAffiliation varchar(50)=null,  
+ @Stage varchar(200)=null,  
+ @WorkOrderStatus varchar(50)=null,      
  @OpenDate datetime=null,  
  @CustReqDate datetime=null,  
  @PromiseDate datetime=null,  
  @EstShipDate datetime=null,  
  @ShipDate datetime=null,  
-    @CreatedDate datetime=null,  
-    @UpdatedDate  datetime=null,  
+ @CreatedDate datetime=null,  
+ @UpdatedDate  datetime=null,  
  @CreatedBy  varchar(50)=null,  
  @UpdatedBy  varchar(50)=null,  
-    @IsDeleted bit= null,  
+ @IsDeleted bit= null,  
  @MasterCompanyId varchar(200)=null,  
  @EmployeeId varchar(200)=null,   
  @WorkOrderStatusType varchar(200)=null,  
@@ -306,7 +306,7 @@ BEGIN
        BEGIN     
        print  'Step 2';  
         ;WITH Main AS(  
-         SELECT   
+         SELECT DISTINCT   
           WO.WorkOrderNum,   
           WO.WorkOrderId,  
           WO.CustomerId,  
@@ -491,7 +491,7 @@ BEGIN
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = @IsDeleted)  
           GROUP BY WO.WorkOrderId, A.CustomerReference),  
   
-          Result AS( SELECT M.WorkOrderId, WorkOrderNum, WorkOrderType, PT.PartNumber AS PartNos, PT.PartNumberType AS PartNoType, PT.PartNumberType, PD.PartDescription AS PNDescription, PD.PartDescriptionType AS PNDescriptionType,   
+          Result AS( SELECT DISTINCT M.WorkOrderId, WorkOrderNum, WorkOrderType, PT.PartNumber AS PartNos, PT.PartNumberType AS PartNoType, PT.PartNumberType, PD.PartDescription AS PNDescription, PD.PartDescriptionType AS PNDescriptionType,   
               CustomerId, CustomerName, CustomerType,  WS.WorkScopeDescription AS WorkScope, WS.WorkScopeType,   
               PC.PriorityDescription AS Priority, PC.PriorityType, SC.WOStageDescription AS Stage, SC.StageType,  WOSC.WorkOrderStatus,             
               WOSC.WorkOrderStatusType, OpenDate, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, CRC.CustomerRequestDate,   

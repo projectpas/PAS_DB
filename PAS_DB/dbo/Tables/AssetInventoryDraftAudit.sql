@@ -149,6 +149,12 @@
     [IsSameDetailsForAllParts]          BIT             NULL,
     [ReceiverNumber]                    VARCHAR (100)   NULL,
     [ReceivedDate]                      DATETIME2 (7)   NULL,
+    [CalibrationVendorId]               BIGINT          NULL,
+    [PerformedById]                     BIGINT          NULL,
+    [LastCalibrationDate]               DATETIME        NULL,
+    [NextCalibrationDate]               DATETIME        NULL,
     CONSTRAINT [PK_AssetInventoryDraftAudit] PRIMARY KEY CLUSTERED ([AssetInventoryDraftAuditId] ASC)
 );
+
+
 

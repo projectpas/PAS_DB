@@ -25,11 +25,15 @@
     [IsVendororEmployee]  VARCHAR (20)    NULL,
     [AssetInventoryId]    BIGINT          NULL,
     [CalibrationTypeId]   BIGINT          NULL,
+    [InternallyById]      BIGINT          NULL,
+    [InternallyBy]        VARCHAR (100)   NULL,
     CONSTRAINT [PK_CalibrationManagment] PRIMARY KEY CLUSTERED ([CalibrationId] ASC),
     CONSTRAINT [FK_CalibrationManagment_AssetRecordId] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_CalibrationManagment_CurrencyId] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_CalibrationManagment_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId])
 );
+
+
 
 
 

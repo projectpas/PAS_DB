@@ -13,7 +13,9 @@
     [UpdatedDate]        DATETIME2 (7)   NOT NULL,
     [IsActive]           BIT             NOT NULL,
     [IsDeleted]          BIT             NOT NULL,
-    CONSTRAINT [PK_CreditTermsAudit] PRIMARY KEY CLUSTERED ([CreditTermsAuditId] ASC),
-    CONSTRAINT [FK_CreditTermsAudit_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId])
+    [Code]               VARCHAR (50)    NULL,
+    CONSTRAINT [PK_CreditTermsAudit] PRIMARY KEY CLUSTERED ([CreditTermsAuditId] ASC)
 );
+
+
 

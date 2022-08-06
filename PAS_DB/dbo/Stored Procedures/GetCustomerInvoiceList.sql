@@ -99,25 +99,43 @@ BEGIN
 					   (wobi.InvoiceNo) as 'InvoiceNo',
 			           (wobi.PostedDate) as 'InvoiceDate',
 					   ISNULL(ctm.NetDays,0) AS NetDays,
-					   (CASE WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+					   (CASE WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE())<= 30 THEN wobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE())<= 30 THEN wobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby30days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE())<= 60 THEN wobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE())<= 60 THEN wobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby60days,
 						(CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 90 THEN wobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 90 THEN wobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby90days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 120 THEN wobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 120 THEN wobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby120days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 120 THEN wobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 120 THEN wobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidbymorethan120days,
                        (C.UpdatedBy) as UpdatedBy,
@@ -188,25 +206,43 @@ BEGIN
 					   (sobi.InvoiceNo) as 'InvoiceNo',
 			           (sobi.PostedDate) as 'InvoiceDate',
 					   ISNULL(ctm.NetDays,0) AS NetDays,
-                      (CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+                      (CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
 					  (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 30 THEN sobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 30 THEN sobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby30days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 60 THEN sobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 60 THEN sobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby60days,
 						(CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 90 THEN sobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 90 THEN sobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby90days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 120 THEN sobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) <= 120 THEN sobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidby120days,
 					   (CASE
-						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) > 120 THEN sobi.RemainingAmount
+						WHEN DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) > 120 THEN sobi.RemainingAmount
 						ELSE 0
 					  END) AS Amountpaidbymorethan120days,
                        (C.UpdatedBy) as UpdatedBy,
@@ -456,7 +492,10 @@ BEGIN
 			sobi.RemainingAmount,
 			DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE()) AS dayDiff,
 			ctm.NetDays,
-			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
 			FROM dbo.Customer C WITH (NOLOCK) 
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
@@ -471,7 +510,10 @@ BEGIN
 			wobi.RemainingAmount,
 			DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE()) AS dayDiff,
 			ctm.NetDays,
-			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
+			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
 			FROM dbo.Customer C WITH (NOLOCK) 
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId

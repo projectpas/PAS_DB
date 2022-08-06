@@ -20,7 +20,7 @@
      
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/
-
+--SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK) 
 CREATE PROCEDURE [dbo].[GetWorkOrderQoutePirntMateriallist]
 @WorkflowWorkOrderId bigint,
 @workOrderPartNoId bigint,
@@ -36,6 +36,7 @@ BEGIN
 				SELECT  mt.Quantity,
 				        mt.UomName,
 						mt.PartNumber as partnumber,
+						mt.ConditionType AS Condition,
 						mt.PartDescription as PartDescription,
 						mt.UnitCost as UnitCost,
 					    (mt.Quantity * isnull(mt.UnitCost,0)) as extCost

@@ -1,5 +1,4 @@
-﻿
--- =============================================
+﻿-- =============================================
 -- Author:		Deep Patel
 -- Create date: 12-may-2021
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -11,10 +10,8 @@ AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-
 	BEGIN TRY
 	BEGIN TRANSACTION
-
 	Update SQ
 	SET 
 	QuoteTypeName = MST.Name,
@@ -31,7 +28,8 @@ BEGIN
 	ManagementStructureName = (MS.Code + ' - ' + MS.Name),
 	CustomerCode = C.CustomerCode,
 	CustomerContactName = customContact.FirstName +' '+ customContact.LastName + '-' +  customContact.WorkPhone,
-	CustomerContactEmail = c.Email,
+	--CustomerContactEmail = c.Email,
+	CustomerContactEmail = customContact.Email,
 	StatusName = msqs.Name,
 	VersionNumber = dbo.GenearteVersionNumber(SQ.Version)
 	

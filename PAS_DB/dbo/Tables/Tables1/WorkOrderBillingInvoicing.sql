@@ -13,7 +13,7 @@
     [ShipDate]                           DATETIME2 (7)   NULL,
     [NoofPieces]                         INT             NULL,
     [EmployeeId]                         BIGINT          NOT NULL,
-    [GateStatus]                         VARCHAR (20)    NULL,
+    [GateStatus]                         VARCHAR (200)   NULL,
     [SoldToCustomerId]                   BIGINT          NOT NULL,
     [SoldToSiteId]                       BIGINT          NOT NULL,
     [ShipToCustomerId]                   BIGINT          NOT NULL,
@@ -69,6 +69,10 @@
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
     [RemainingAmount]                    DECIMAL (20, 2) NULL,
     [PostedDate]                         DATETIME2 (7)   NULL,
+    [TaxRate]                            DECIMAL (18, 2) NULL,
+    [SalesTax]                           DECIMAL (18, 2) NULL,
+    [OtherTax]                           DECIMAL (18, 2) NULL,
+    [SubTotal]                           DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -86,6 +90,10 @@
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
+
+
 
 
 

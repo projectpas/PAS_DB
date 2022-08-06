@@ -36,8 +36,11 @@
     [IsAccepted]              BIT             NULL,
     [ReasonId]                BIGINT          NULL,
     [Reason]                  VARCHAR (500)   NULL,
+    [CreditTermId]            INT             NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 
 
 

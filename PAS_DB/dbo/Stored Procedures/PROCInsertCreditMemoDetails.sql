@@ -51,12 +51,12 @@ BEGIN
 							       [PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],[Qty],[UnitPrice],
 								   [Amount],[ReasonId],[Reason],[StocklineId],[StocklineNumber],[ControlNumber],[ControlId],
 								   [ReferenceId],[ReferenceNo],[SOWONum],[Notes],[IsWorkOrder],[MasterCompanyId],[CreatedBy],
-								   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId])
+								   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId],BillingInvoicingItemId)
 					         VALUES(SOURCE.CreditMemoHeaderId,SOURCE.RMAHeaderId,SOURCE.InvoiceId,SOURCE.ItemMasterId,SOURCE.PartNumber,
 							        SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice,
 									SOURCE.Amount,SOURCE.ReasonId,SOURCE.Reason,SOURCE.StocklineId,SOURCE.StocklineNumber,SOURCE.ControlNumber,SOURCE.ControlId,
 									SOURCE.ReferenceId,SOURCE.ReferenceNo,SOURCE.SOWONum,SOURCE.Notes,SOURCE.IsWorkOrder,SOURCE.MasterCompanyId,SOURCE.CreatedBy,
-									SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.RMADeatilsId);	
+									SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.RMADeatilsId,SOURCE.BillingInvoicingItemId);	
 					END
 					
 				END

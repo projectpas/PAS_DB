@@ -51,7 +51,9 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]
  @SerialNumber varchar(20) = null,  
  @WorkOrderStatus varchar(50) = null,
  @EmployeeId varchar(200)=null,
- @MSModuleID INT=12 
+ @MSModuleID INT=12,
+ @WoStage  varchar(200)=null,
+ @WoStatus varchar(200)=null
 AS   
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -133,11 +135,15 @@ BEGIN
                END  
              END  
            END  
-         END) AS WorkOrderStatus  
+         END) AS WorkOrderStatus,
+		wos.CodeDescription as WoStage,
+		woss.Description as WoStatus
      FROM dbo.WorkOrderQuote woq WITH (NOLOCK)  
                            JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
-                           JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId  
-                           JOIN dbo.ItemMaster im WITH (NOLOCK) on wopn.ItemMasterId = im.ItemMasterId  
+                           JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
+						   JOIN dbo.WorkOrderStage wos WITH (NOLOCK) on wos.WorkOrderStageId = wopn.WorkOrderStageId 
+                           JOIN dbo.WorkOrderStatus woss WITH (NOLOCK) on woss.Id = wo.WorkOrderStatusId 
+						   JOIN dbo.ItemMaster im WITH (NOLOCK) on wopn.ItemMasterId = im.ItemMasterId  
                            LEFT JOIN dbo.Stockline stl WITH (NOLOCK) on wopn.StockLineId = stl.StockLineId  
                            JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
                            JOIN dbo.Customer cust WITH (NOLOCK) on woq.CustomerId = cust.CustomerId 
@@ -167,6 +173,8 @@ BEGIN
       (PartNumber like '%' +@GlobalFilter+'%') OR  
       (PartDescription like '%' +@GlobalFilter+'%') OR  
       (SerialNumber like '%' +@GlobalFilter+'%') OR  
+	  (WoStage like '%' +@GlobalFilter+'%') OR  
+      (WoStatus like '%' +@GlobalFilter+'%') OR 
       (WorkOrderStatus like '%' +@GlobalFilter+'%')  
       ))  
       OR     
@@ -188,6 +196,8 @@ BEGIN
       (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
       (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND  
       (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND  
+	  (IsNull(@WoStage,'') ='' OR WoStage like '%' + @WoStage+'%') AND  
+      (IsNull(@WoStatus,'') ='' OR WoStatus like '%' + @WoStatus+'%') AND 
       (IsNull(@WorkOrderStatus,'') ='' OR WorkOrderStatus like '%' + @WorkOrderStatus+'%')  
       ))  
   
@@ -213,7 +223,9 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,  
-      CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,  
+      CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTAGE')  THEN WoStage END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTATUS')  THEN WoStatus END ASC, 
   
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTENUMBER')  THEN quoteNumber END DESC,  
@@ -232,7 +244,9 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,  
-      CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC, 
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTAGE')  THEN WoStage END DESC, 
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTATUS')  THEN WoStatus END DESC, 
       CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC  
   
       OFFSET @RecordFrom ROWS   

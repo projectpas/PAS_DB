@@ -32,6 +32,9 @@
     [EnforcePickTicket]       BIT           NULL,
     [PickTicketEffectiveDate] DATETIME2 (7) NULL,
     [Isshortteardown]         BIT           DEFAULT ((0)) NULL,
+    [Dualreleaselanguage]     VARCHAR (MAX) NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
+
+
 

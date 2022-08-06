@@ -1884,6 +1884,12 @@
     <Build Include="dbo\Stored Procedures\PROCDeleteePublicationMSData.sql" />
     <Build Include="dbo\Stored Procedures\PROCAddUpdatePublicationMSData.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsOpenExchangeSalesOrder.sql" />
+    <Build Include="dbo\Stored Procedures\SearchItemMasterByCustomerRestrictionForAddPN.sql" />
+    <Build Include="dbo\Tables\CustomerCreditTermsHistoryAudit.sql" />
+    <Build Include="dbo\Tables\CustomerCreditTermsHistory.sql" />
+    <Build Include="dbo\Tables\AssetToolSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCustomerARBalance.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerInvoiceList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

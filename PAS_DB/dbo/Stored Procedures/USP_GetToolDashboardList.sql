@@ -142,6 +142,10 @@ BEGIN
 										wh.Name as [Warehouse],
 										slf.Name as [Self],
 										bn.Name as [Bin],
+										asts.RedIndicator as RedIndicator, 
+										asts.YellowIndicator as YellowIndicator, 
+										asts.GreenIndicator as GreenIndicator, 
+										AsI.InventoryStatusId,
 										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
@@ -159,6 +163,7 @@ BEGIN
 										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
+									    left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 									    OUTER APPLY (SELECT top 1 CalibrationDate FROM CalibrationManagment WHERE AssetInventoryId = AsI.AssetInventoryId ORDER BY  CalibrationId desc) T
 										where ((asm.IsDeleted = 0)  AND (ISNULL(clm.IsActive,1) = @isStatusActive )  
 										and  asm.MasterCompanyId = @MasterCompanyId 
@@ -315,6 +320,10 @@ BEGIN
 										wh.Name as [Warehouse],
 										slf.Name as [Self],
 										bn.Name as [Bin],
+										asts.RedIndicator as RedIndicator, 
+										asts.YellowIndicator as YellowIndicator, 
+										asts.GreenIndicator as GreenIndicator,
+										AsI.InventoryStatusId,
 										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
@@ -329,6 +338,7 @@ BEGIN
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
 										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
@@ -486,6 +496,10 @@ BEGIN
 										wh.Name as [Warehouse],
 										slf.Name as [Self],
 										bn.Name as [Bin],
+										asts.RedIndicator as RedIndicator, 
+										asts.YellowIndicator as YellowIndicator, 
+										asts.GreenIndicator as GreenIndicator, 
+										AsI.InventoryStatusId,
 										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
@@ -500,6 +514,7 @@ BEGIN
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
 										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
@@ -660,6 +675,10 @@ BEGIN
 										wh.Name as [Warehouse],
 										slf.Name as [Self],
 										bn.Name as [Bin],
+										asts.RedIndicator as RedIndicator, 
+										asts.YellowIndicator as YellowIndicator, 
+										asts.GreenIndicator as GreenIndicator, 
+										AsI.InventoryStatusId,
 										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
 									FROM dbo.Asset asm WITH(NOLOCK)									
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
@@ -674,6 +693,7 @@ BEGIN
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
 										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId
@@ -835,6 +855,10 @@ BEGIN
 										wh.Name as [Warehouse],
 										slf.Name as [Self],
 										bn.Name as [Bin],
+										asts.RedIndicator as RedIndicator, 
+										asts.YellowIndicator as YellowIndicator, 
+										asts.GreenIndicator as GreenIndicator,
+										AsI.InventoryStatusId,
 										InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId)
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
@@ -849,6 +873,7 @@ BEGIN
 										LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 										left join dbo.UnitOfMeasure  As UM  WITH(NOLOCK)on UM.UnitOfMeasureId=AsI.UnitOfMeasureId
 										left join dbo.Currency  As curr WITH(NOLOCK) on curr.CurrencyId=AsI.CurrencyId
+										left join dbo.AssetToolSettings  As asts WITH(NOLOCK) on asts.MasterCompanyId=asm.MasterCompanyId
 										left join dbo.AssetStatus  As ast WITH(NOLOCK) on ast.AssetStatusId=AsI.AssetStatusId
 										left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
 										left join dbo.AssetAcquisitionType  As astaq WITH(NOLOCK) on astaq.AssetAcquisitionTypeId=asm.AssetAcquisitionTypeId

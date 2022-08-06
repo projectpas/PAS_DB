@@ -1,5 +1,5 @@
 ﻿/*************************************************************
- ** File:   [USP_Reserve_ReleaseSubWorkOrderStockline]
+ ** File:   [USP_GetManagementStructureDetailsForReportsHeader]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
  ** Purpose:
@@ -103,7 +103,10 @@ SET NOCOUNT ON
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Email = c.Email,
-					FAALicense = le.FAALicense
+					Upper(le.FAALicense) as FAALicense,
+					Upper(le.EASALicense) as EASALicense,
+					Upper(le.CAACLicense) as CAACLicense,
+					Upper(le.TCCALicense) as TCCALicense
 				FROM EntityStructureSetup est
 				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
 				INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId

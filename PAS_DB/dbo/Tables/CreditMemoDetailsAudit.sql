@@ -32,6 +32,9 @@
     [IsActive]                BIT             CONSTRAINT [DF_CreditMemoDetailsAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_CreditMemoDetailsAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [RMADeatilsId]            BIGINT          NULL,
+    [BillingInvoicingItemId]  BIGINT          NULL,
     CONSTRAINT [PK_CreditMemoDetailsAudit] PRIMARY KEY CLUSTERED ([CreditMemoDetailAuditId] ASC)
 );
+
+
 

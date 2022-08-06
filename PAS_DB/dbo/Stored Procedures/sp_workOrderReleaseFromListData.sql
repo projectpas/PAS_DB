@@ -34,6 +34,9 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
+
+			    DECLARE @MSModuleId INT;
+				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 				 SELECT 
 					   wro.[ReleaseFromId]
 					  ,wro.[WorkorderId]
@@ -42,11 +45,11 @@ BEGIN
 					  ,wro.[OrganizationName]
 					  ,wro.[InvoiceNo]
 					  ,wro.[ItemName]
-					  ,wro.[Description]
-					  ,wro.[PartNumber]
+					  ,UPPER(wro.[Description]) as Description
+					  ,UPPER(wro.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,wro.[Batchnumber]
+					  ,UPPER(wro.[Batchnumber]) as Batchnumber 
 					  --,wro.[status]
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
@@ -54,11 +57,11 @@ BEGIN
 					  ,wro.[approved]
 					  ,wro.[Nonapproved]
 					  ,wro.[AuthorisedSign]
-					  ,wro.[AuthorizationNo]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [AuthorizationNo]
 					  ,wro.[PrintedName]
 					  ,wro.[Date]
 					  ,wro.[AuthorisedSign2]
-					  ,wro.[ApprovalCertificate]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [ApprovalCertificate]
 					  ,wro.[PrintedName2]
 					  ,wro.[Date2]
 					  ,wro.[CFR]
@@ -76,11 +79,15 @@ BEGIN
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
 					  ,wop.[islocked]
+					  ,wro.[IsEASALicense]
 					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
 					  ,wop.ManagementStructureId as ManagementStructureId   
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+				      LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+					  LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+					  LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 				WHERE wro.WorkOrderId=@WorkorderId AND wro.workOrderPartNoId =@workOrderPartNoId  
 			END
 		COMMIT  TRANSACTION

@@ -1,4 +1,4 @@
-﻿
+﻿--   EXEC sp_GetSalesOrderBillingInvoiceList 119
 CREATE Procedure [dbo].[sp_GetSalesOrderBillingInvoiceList]
 @SalesOrderId  bigint
 AS
@@ -8,14 +8,9 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				select DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 
-				--SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyToBill,
-				--ISNULL(sop.Qty, 0) as Qty,
-				--(SELECT ISNULL(SUM(NoofPieces), 0) FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) AS QtyBilled,
-				sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,
-				--(ISNULL(SUM(sosi.QtyShipped), 0) - (SELECT ISNULL(SUM(NoofPieces), 0) FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId)) as QtyRemaining,
-				CASE WHEN SUM(ISNULL(sosi.QtyShipped, 0)) = (SELECT ISNULL(SUM(NoofPieces), 0) FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND ItemMasterId = imt.ItemMasterId) THEN 'Fullfilled'
-				ELSE 'Fullfilling' END as [Status],
+				select DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 				
+				sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,				
+				'' as [Status],
 				0 AS ItemNo  
 				from DBO.SalesOrderPart sop WITH (NOLOCK)
 				LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId

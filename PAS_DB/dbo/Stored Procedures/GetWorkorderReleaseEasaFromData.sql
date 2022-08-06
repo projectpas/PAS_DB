@@ -23,21 +23,21 @@ BEGIN
 						ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince as OrganizationAddress ,
 						wo.WorkOrderNum as InvoiceNo,
 					    '1' as ItemName,
-					    im.PartDescription as Description,
-					    im.partnumber as PartNumber,
+					    UPPER(im.PartDescription) as Description,
+					    UPPER(im.partnumber) as PartNumber,
 					    rc.Reference as Reference,
 					    wop.Quantity as Quantity,
-					    sl.SerialNumber as Batchnumber,
-						c.Description as [status],
+					    UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end) as Batchnumber,
+						wosc.conditionName as [status],
 						'' as Certifies, 
 					    0 as approved ,
 					    0 as Nonapproved,
 					    '' as AuthorisedSign, 
-					    le.FAALicense as AuthorizationNo,
+					    UPPER(le.EASALicense) as AuthorizationNo,
 					    '' as PrintedName,
 						Getdate() as [Date],
 					    '' as AuthorisedSign2,
-					    le.FAALicense as ApprovalCertificate,					    
+					    UPPER(le.EASALicense) as ApprovalCertificate,					    
 						Getdate() Date2,
 					    0 as CFR,
 						0 Otherregulation,
@@ -66,7 +66,8 @@ BEGIN
 					   LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 					   LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 					   LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
-					   LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
+					   LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+					   --LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
 					   LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 					   LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					   LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

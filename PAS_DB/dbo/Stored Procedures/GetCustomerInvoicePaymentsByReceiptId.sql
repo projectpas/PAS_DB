@@ -112,7 +112,7 @@ BEGIN
 					UNION
 
 					SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',
-						SOBI.CustomerId,IPT.SOBillingInvoicingId,
+						SOBI.CustomerId,SOBI.SOBillingInvoicingId,
 						CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId'
 						,SOBI.MasterCompanyId,
 						0 AS IsMultiplePaymentMethod,0 AS IsCheckPayment,0 AS IsWireTransfer,0 AS IsEFT,0 AS IsCCDCPayment,

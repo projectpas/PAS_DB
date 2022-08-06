@@ -1,4 +1,5 @@
-﻿CREATE Procedure [dbo].[sp_GetPickTicketApproveList]
+﻿-- EXEC [dbo].[sp_GetPickTicketApproveList] 154
+CREATE Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -14,7 +15,6 @@ BEGIN
 		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN SalesOrderPart sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
 		AND sll.ItemMasterId = sop.ItemMasterId Where sp.SalesOrderId = @SalesOrderId) AS QuantityAvailable,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber 
-		--,SUM(ISNULL(sopt.QtyToShip,0))as QtyToShip,
 		,(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
 		INNER JOIN SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
 		INNER JOIN SalesOrderPart SO_P WITH(NOLOCK) ON SP.SalesOrderPartId = SO_P.SalesOrderPartId
@@ -57,7 +57,7 @@ BEGIN
 		CASE WHEN SUM(ReadyToPick) > (cte.Qty - SUM(cte.QtyToShip)) THEN (cte.Qty - SUM(cte.QtyToShip)) ELSE 
 		CASE WHEN SUM(ReadyToPick) < 0 THEN 0 ELSE SUM(ReadyToPick) END END AS ReadyToPick, cte.[Status],
 		CustomerName, CustomerCode 
-		,cte.TotalReadyToPick FROM CTE
+		,CASE WHEN cte.TotalReadyToPick < 0 THEN 0 ELSE cte.TotalReadyToPick END AS TotalReadyToPick FROM CTE
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = cte.SalesOrderId AND sopt.SalesOrderPartId = cte.SalesOrderPartId
 		GROUP BY cte.SalesOrderPartId, ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
 		SerialNumber, QuantityAvailable, cte.[Status],

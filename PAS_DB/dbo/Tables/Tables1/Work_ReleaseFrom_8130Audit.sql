@@ -39,8 +39,11 @@
     [is8130from]          BIT           NULL,
     [IsClosed]            BIT           DEFAULT ((0)) NOT NULL,
     [PDFPath]             VARCHAR (MAX) NULL,
+    [IsEASALicense]       BIT           NULL,
     CONSTRAINT [PK_Work_ReleaseFrom_8130Audit] PRIMARY KEY CLUSTERED ([ReleaseFromAuditId] ASC)
 );
+
+
 
 
 

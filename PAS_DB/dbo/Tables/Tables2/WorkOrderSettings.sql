@@ -31,10 +31,13 @@
     [EnforcePickTicket]       BIT           NULL,
     [PickTicketEffectiveDate] DATETIME2 (7) NULL,
     [Isshortteardown]         BIT           DEFAULT ((0)) NULL,
+    [Dualreleaselanguage]     VARCHAR (MAX) NULL,
     CONSTRAINT [PK_WorkOrderSettings] PRIMARY KEY CLUSTERED ([WorkOrderSettingId] ASC),
     CONSTRAINT [FK_WorkOrderSettings_ConditionId] FOREIGN KEY ([DefaultConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

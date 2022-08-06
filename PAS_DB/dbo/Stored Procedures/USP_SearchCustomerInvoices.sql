@@ -1,9 +1,4 @@
 ﻿--EXEC USP_SearchCustomerInvoices 100,1,'',-1,0,'','','',null,'','','',null,'','','','','',2,'','','invoice',10,''
---EXEC dbo.USP_SearchCustomerInvoices @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',
---@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,@OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,
---@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,@CustomerReference=NULL,@MasterCompanyId=1,@SerialNumber=NULL,@StockType=NULL,@ViewType=N'invoice',
---@EmployeeId=2,@RemainingAmount=NULL,@LastMSLevel=NULL
-
 CREATE PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @PageSize int,  
 @PageNumber int,  
@@ -28,7 +23,6 @@ CREATE PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @StockType varchar(50),
 @ViewType varchar(10),
 @EmployeeId bigint=1,
-@RemainingAmount decimal=null,
 @LastMSLevel varchar(50)=null
 AS
 BEGIN
@@ -55,9 +49,12 @@ BEGIN
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt],
-				ISNULL(WOBI.RemainingAmount,0) RemainingAmount,
+				WOBI.RemainingAmount,
+				--WQ.VersionNo [VersionNo],
 				WQ.QuoteNumber,
 				IsWorkOrder=1,
+				--MSD.LastMSLevel,
+				--MSD.AllMSlevels,
 				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
 				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
@@ -68,6 +65,7 @@ BEGIN
 				LEFT JOIN WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOPN.ID and WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 				LEFT JOIN CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+				--LEFT JOIN WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 			Where WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.IsVersionIncrease=0
 			),				
 			LastMSLevelCTE AS(  
@@ -226,7 +224,8 @@ BEGIN
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
-				ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
+				SOBI.RemainingAmount,
+				--SQ.VersionNumber [VersionNo],
 				SQ.SalesOrderQuoteNumber [QuoteNumber],
 				IsWorkOrder=0,
 				SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId AS [ReferenceId],C.CustomerId
@@ -387,7 +386,7 @@ BEGIN
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber ,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId
 					UNION ALL 
-				Select InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
+					select InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
 				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
@@ -480,7 +479,7 @@ BEGIN
 				SELECT WOBI.BillingInvoicingId [InvoicingId],WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				WOBI.GrandTotal [InvoiceAmt], ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,IM.partnumber [PN], IM.PartDescription [PNDescription],
+				WOBI.GrandTotal [InvoiceAmt], WOBI.RemainingAmount,IM.partnumber [PN], IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],WQ.QuoteNumber,WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
 				
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -508,7 +507,7 @@ BEGIN
 			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				SOBI.GrandTotal [InvoiceAmt], ISNULL(SOBI.RemainingAmount, 0) RemainingAmount, IM.partnumber [PN], IM.PartDescription [PNDescription],
+				SOBI.GrandTotal [InvoiceAmt], SOBI.RemainingAmount, IM.partnumber [PN], IM.PartDescription [PNDescription],
 				SQ.VersionNumber [VersionNo],SQ.SalesOrderQuoteNumber [QuoteNumber],SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 					 WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'

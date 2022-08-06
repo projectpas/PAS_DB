@@ -1,4 +1,4 @@
-﻿-- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 171, 15, 31
+﻿-- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 157, 287, 7
 CREATE Procedure [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	@SalesOrderId  bigint,
 	@SalesOrderPartId bigint,
@@ -11,20 +11,22 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				SELECT DISTINCT sosi.SalesOrderShippingId, 
-				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where b.SalesOrderShippingId = sosi.SalesOrderShippingId AND b.ItemMasterId = sop.ItemMasterId) AS SOBillingInvoicingId,
-				(SELECT TOP 1 a.InvoiceDate FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceDate,
-				(SELECT TOP 1 a.InvoiceNo FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceNo,
+				(SELECT TOP 1 a.SOBillingInvoicingId FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where b.SalesOrderShippingId = sosi.SalesOrderShippingId AND b.ItemMasterId = sop.ItemMasterId AND sop.StockLineId = b.StockLineId) AS SOBillingInvoicingId,
+				(SELECT TOP 1 a.InvoiceDate FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceDate,
+				(SELECT TOP 1 a.InvoiceNo FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceNo,
 				sos.SOShippingNum, sosi.QtyShipped as QtyToBill, 
 				so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 				sl.SerialNumber, cr.[Name] as CustomerName, 
-				(SELECT TOP 1 b.NoofPieces FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId WHERE a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND b.SalesOrderShippingId = sosi.SalesOrderShippingId) AS QtyBilled,
+				sop.StockLineId,
+				(SELECT TOP 1 b.NoofPieces FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId WHERE a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND sop.StockLineId = b.StockLineId AND b.SalesOrderShippingId = sosi.SalesOrderShippingId) AS QtyBilled,
 				sop.ItemNo,
 				sop.SalesOrderId, sop.SalesOrderPartId, cond.Description as 'Condition', 
 				curr.Code as 'CurrencyCode',
-				((ISNULL(sop.UnitSalePrice, 0) * SUM(sosi.QtyShipped)) + 
-				(((ISNULL(sop.UnitSalePrice, 0) * SUM(sosi.QtyShipped)) * ISNULL(sop.TaxPercentage, 0)) / 100) + 
-				SUM(ISNULL(sof.MarkupFixedPrice, 0)) + SUM(ISNULL(socg.MarkupFixedPrice, 0))) as 'TotalSales',
-				(SELECT TOP 1 a.InvoiceStatus FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId AND b.ItemMasterId = sop.ItemMasterId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceStatus,
+				((ISNULL(sop.UnitSalePrice, 0) * sosi.QtyShipped) + 
+				(((ISNULL(sop.UnitSalePrice, 0) * sosi.QtyShipped) * ISNULL(sop.TaxPercentage, 0)) / 100) + 
+				(SELECT ISNULL(SUM(BillingAmount), 0) FROM SalesOrderFreight sof WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) + 
+				(SELECT ISNULL(SUM(BillingAmount), 0) FROM SalesOrderCharges socg WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)) as 'TotalSales',
+				(SELECT TOP 1 a.InvoiceStatus FROM SalesOrderBillingInvoicing a WITH (NOLOCK) INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId Where a.SalesOrderId = @SalesOrderId  AND b.ItemMasterId = sop.ItemMasterId AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId) AS InvoiceStatus, --AND b.SOBillingInvoicingItemId = sobii.SOBillingInvoicingItemId
 				sos.SmentNum AS 'SmentNo'
 				FROM DBO.SalesOrderShippingItem sosi WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId
@@ -38,12 +40,10 @@ BEGIN
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId
-				LEFT JOIN DBO.SalesOrderFreight sof WITH (NOLOCK) ON so.SalesOrderId = sof.SalesOrderId AND sof.IsActive = 1 AND sof.IsDeleted = 0
-				LEFT JOIN DBO.SalesOrderCharges socg WITH (NOLOCK) ON so.SalesOrderId = socg.SalesOrderId AND socg.IsActive = 1 AND socg.IsDeleted = 0
 				WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId
 				GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
-				sl.SerialNumber, cr.[Name], sop.ItemNo, sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code,
-				sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId,
+				sl.SerialNumber, cr.[Name], sop.ItemNo, sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code, sop.StockLineId,
+				sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus, 
 				sop.UnitSalePrice, sop.TaxAmount, sop.TaxPercentage, sos.SmentNum;
 			END
 			COMMIT  TRANSACTION

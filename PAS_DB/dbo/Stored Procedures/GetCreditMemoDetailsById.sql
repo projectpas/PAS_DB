@@ -1,7 +1,4 @@
 ﻿
-
-
-
 /*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
@@ -61,6 +58,7 @@ BEGIN
           ,CM.[UpdatedDate]
           ,CM.[IsActive]
           ,CM.[IsDeleted]
+		  ,CM.[BillingInvoicingItemId]
 		  ,CASE WHEN CA.ActionId = 5 THEN 1 ELSE 0 END  'IsApproved'
   FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId

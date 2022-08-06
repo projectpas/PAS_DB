@@ -32,6 +32,11 @@
     [TagName]                 VARCHAR (250) NULL,
     [BillingAddressId]        BIGINT        NULL,
     [ShippingAddressId]       BIGINT        NULL,
+    [EASALicense]             VARCHAR (100) NULL,
+    [CAACLicense]             VARCHAR (100) NULL,
+    [TCCALicense]             VARCHAR (100) NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
 

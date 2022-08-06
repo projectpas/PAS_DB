@@ -91,7 +91,7 @@ BEGIN
 		  SELECT @PageSize=COUNT(*) 
 		  FROM (SELECT PUB.publicationid
 		  FROM DBO.Publication PUB WITH (NOLOCK)
-			LEFT JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId
+			INNER JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId AND PIMM.IsActive = 1 AND PIMM.IsDeleted = 0
 			INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON PIMM.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN DBO.WorkflowPublications WFPUB WITH (NOLOCK) ON PUB.PublicationRecordId = WFPUB.PublicationId
 			LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
@@ -103,7 +103,7 @@ BEGIN
 			OUTER APPLY (SELECT (STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
 			CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3 ELSE '' END) from ItemMasterATAMapping IMAM 
 			  where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,''))as 'atachapter') T
-		  WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate) AND PUB.MasterCompanyId = @mastercompanyid
+		  WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate) AND PUB.MasterCompanyId = @mastercompanyid AND PUB.IsActive = 1 AND PUB.IsDeleted = 0
 		        AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 				AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -154,7 +154,7 @@ BEGIN
 		UPPER(MSD.Level9Name) AS level9, 
 		UPPER(MSD.Level10Name) AS level10 
       FROM DBO.Publication PUB WITH (NOLOCK)
-	    LEFT JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId
+	    INNER JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId AND PIMM.IsActive = 1 AND PIMM.IsDeleted = 0
         INNER JOIN DBO.Itemmaster IM WITH (NOLOCK) ON PIMM.ItemMasterId = IM.ItemMasterId
         LEFT JOIN DBO.WorkflowPublications WFPUB WITH (NOLOCK) ON PUB.PublicationRecordId = WFPUB.PublicationId
 		LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
@@ -170,7 +170,7 @@ BEGIN
 		  where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,''))as 'model') M
 		OUTER APPLY (SELECT (STUFF((SELECT DISTINCT ', '+ (IMAM.AircraftType) from ItemMasterAircraftMapping IMAM 
 		  where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,''))as 'aircraft') A
-	  WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate) AND PUB.MasterCompanyId = @mastercompanyid
+	  WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate) AND PUB.MasterCompanyId = @mastercompanyid AND PUB.IsActive = 1 AND PUB.IsDeleted = 0
 	            AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 				AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

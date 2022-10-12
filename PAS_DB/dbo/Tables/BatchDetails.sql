@@ -7,30 +7,13 @@
     [GlAccountName]         VARCHAR (200)   NULL,
     [TransactionDate]       DATETIME        NOT NULL,
     [EntryDate]             DATETIME        NULL,
-    [ReferenceId]           BIGINT          NULL,
-    [ReferenceName]         VARCHAR (200)   NULL,
-    [MPNPartId]             BIGINT          NULL,
-    [MPNName]               VARCHAR (200)   NULL,
-    [PiecePNId]             BIGINT          NULL,
-    [PiecePN]               VARCHAR (200)   NULL,
     [JournalTypeId]         BIGINT          NULL,
     [JournalTypeName]       VARCHAR (200)   NULL,
     [IsDebit]               BIT             NULL,
     [DebitAmount]           DECIMAL (18, 2) NULL,
     [CreditAmount]          DECIMAL (18, 2) NULL,
-    [CustomerId]            BIGINT          NULL,
-    [CustomerName]          VARCHAR (200)   NULL,
-    [InvoiceId]             BIGINT          NULL,
-    [InvoiceName]           VARCHAR (200)   NULL,
-    [ARControlNum]          VARCHAR (200)   NULL,
-    [CustRefNumber]         VARCHAR (200)   NULL,
     [ManagementStructureId] BIGINT          NULL,
     [ModuleName]            VARCHAR (200)   NULL,
-    [Qty]                   INT             NULL,
-    [UnitPrice]             DECIMAL (18, 2) NULL,
-    [LaborHrs]              DECIMAL (18, 2) NULL,
-    [DirectLaborCost]       DECIMAL (18, 2) NULL,
-    [OverheadCost]          DECIMAL (18, 2) NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [CreatedBy]             VARCHAR (256)   NOT NULL,
     [UpdatedBy]             VARCHAR (256)   NOT NULL,
@@ -45,4 +28,6 @@
     [DistributionName]      VARCHAR (200)   NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
+
+
 

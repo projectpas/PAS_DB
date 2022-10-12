@@ -1,7 +1,5 @@
-﻿
---searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
+﻿--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
 --EXEC AutoCompleteDropdownsEmployeeByMS '',1,200,'0',7899,2
-
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByMS]
 @Parameter3 VARCHAR(50) = Null,
 @Parameter4 bit = true,
@@ -41,6 +39,11 @@ BEGIN
 			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
 			INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId
 			WHERE E.MasterCompanyId = @masterCompanyId AND ER.RoleId IN (SELECT RoleId FROM #tmpUserRole) AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
+			AND E.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN')
 			UNION 
 			SELECT DISTINCT EmployeeId AS Value,FirstName + ' ' + LastName AS Label
             FROM dbo.Employee WITH(NOLOCK)  
@@ -55,6 +58,11 @@ BEGIN
 			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
 			INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId
 			WHERE E.MasterCompanyId = @masterCompanyId AND ER.RoleId IN (SELECT RoleId FROM #tmpUserRole) AND E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND FirstName LIKE '%' + @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'
+			AND E.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN')
 			UNION 
 			SELECT DISTINCT  EmployeeId AS Value, FirstName + ' ' + LastName AS Label
             FROM dbo.Employee WITH(NOLOCK) 

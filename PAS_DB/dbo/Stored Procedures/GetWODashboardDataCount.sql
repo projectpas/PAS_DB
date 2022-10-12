@@ -19,7 +19,6 @@
      
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
-
 CREATE PROCEDURE [dbo].[GetWODashboardDataCount]
 	@MasterCompanyId BIGINT,
 	@EmployeeId BIGINT,
@@ -73,12 +72,12 @@ BEGIN
 				)
 
 				--INSERT Static Data Bease No Stage are Present
-				INSERT INTO #tmpWorkOrderStage(WorkOrderStageId, StatusId, Stage, Code, StageCode, CodeDescription)
-				SELECT 111111, 0, 'WO NOT CREATED', '00', null, 'WO NOT CREATED' 
+				--INSERT INTO #tmpWorkOrderStage(WorkOrderStageId, StatusId, Stage, Code, StageCode, CodeDescription)
+				--SELECT 111111, 0, 'WO NOT CREATED', '00', null, 'WO NOT CREATED' 
 
 				--INSERT Static Data Bease No Stage are Present
-				INSERT INTO #tmpWorkOrderStage(WorkOrderStageId, StatusId, Stage, Code, StageCode, CodeDescription)
-				SELECT 222222, 0, 'TO BE ASSIGNED', '00', null, 'TO BE ASSIGNED'
+				--INSERT INTO #tmpWorkOrderStage(WorkOrderStageId, StatusId, Stage, Code, StageCode, CodeDescription)
+				--SELECT 222222, 0, 'TO BE ASSIGNED', '00', null, 'TO BE ASSIGNED'
 
 				INSERT INTO #tmpWorkOrderStage(WorkOrderStageId, StatusId, Stage, Code, StageCode, CodeDescription)				
 				SELECT WorkOrderStageId, StatusId, 

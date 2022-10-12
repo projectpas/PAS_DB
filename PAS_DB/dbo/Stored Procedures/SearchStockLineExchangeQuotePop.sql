@@ -4,11 +4,11 @@
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 -- =============================================
 CREATE PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
-@ItemMasterIdlist VARCHAR(max) = '', 
-@ConditionId BIGINT,
+@ItemMasterIdlist VARCHAR(max) = '146', 
+@ConditionId BIGINT = 1,
 --@ConditionIds VARCHAR(100) = NULL,
-@CustomerId BIGINT,
-@MappingType INT
+@CustomerId BIGINT = 336,
+@MappingType INT = -1
 
 AS
 BEGIN

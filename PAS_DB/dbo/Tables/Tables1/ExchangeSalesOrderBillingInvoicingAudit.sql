@@ -29,7 +29,7 @@
     [IsActive]                            BIT             NOT NULL,
     [IsDeleted]                           BIT             NOT NULL,
     [InvoiceStatus]                       VARCHAR (50)    NULL,
-    [InvoiceFilePath]                     VARCHAR (200)   NULL,
+    [InvoiceFilePath]                     VARCHAR (MAX)   NULL,
     [GrandTotal]                          DECIMAL (20, 2) NULL,
     [Level1]                              VARCHAR (200)   NULL,
     [Level2]                              VARCHAR (200)   NULL,
@@ -47,9 +47,12 @@
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
     [cogs]                                INT             NULL,
     [PostedDate]                          DATETIME2 (7)   NULL,
+    [BillingId]                           BIGINT          DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingAudit_ExchangeSalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 
 
 

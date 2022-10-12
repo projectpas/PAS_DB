@@ -22,6 +22,9 @@
     [IsPrinted]            BIT             NULL,
     [PrintedDate]          DATETIME        NULL,
     [AccountingPeriodId]   BIGINT          NULL,
+    [Module]               VARCHAR (50)    NULL,
     CONSTRAINT [PK_JournalBatchHeader] PRIMARY KEY CLUSTERED ([JournalBatchHeaderId] ASC)
 );
+
+
 

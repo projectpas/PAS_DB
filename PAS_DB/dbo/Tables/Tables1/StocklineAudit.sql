@@ -168,8 +168,11 @@
     [TagDays]                             INT             NULL,
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
+    [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

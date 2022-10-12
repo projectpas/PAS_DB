@@ -17,7 +17,7 @@
 	2    30/08/2022   subhash saliya Changes ledger id
      
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AccountingCalendarList]
+CREATE         PROCEDURE [dbo].[USP_AccountingCalendarList]
 @PageSize INT=10,
 @PageNumber INT,
 @SortColumn VARCHAR(50) = NULL,
@@ -56,21 +56,23 @@ CREATE     PROCEDURE [dbo].[USP_AccountingCalendarList]
 			BEGIN TRANSACTION
 				BEGIN
 					;With Result AS(
-							SELECT Name,FiscalYear, min(AccountingCalendarId) as AccountingCalendarId_Min,
-							max(AccountingCalendarId) as AccountingCalendarId_Max, LegalEntityId, ledgerId,max(Description) as Descriptionmax
+							SELECT Max(Name) as Name,FiscalYear, min(AccountingCalendarId) as AccountingCalendarId_Min,
+							max(AccountingCalendarId) as AccountingCalendarId_Max, LegalEntityId, Max(ledgerId) as ledgerId,max(Description) as Descriptionmax,
+							max(StartDate) as StartDate,max(EndDate) as EndDate
 							from AccountingCalendar WITH(NOLOCK)
 							WHERE IsDeleted =0 AND IsActive=1 AND MasterCompanyId=@MasterCompanyId
-							GROUP BY Name, FiscalYear, LegalEntityId, ledgerId
+							GROUP BY FiscalYear, LegalEntityId
 					), FinalResult AS(
 					Select RS.AccountingCalendarId_Max AccountingCalendarId, RS.Name, RS.Descriptionmax as Description, AC_Max.FiscalName,RS.FiscalYear,
-					AC_Max.Quater, AC_Max.Period, AC_Min.FromDate,AC_Max.ToDate, AC_Max.PeriodName, AC_Max.Notes, AC_Max.MasterCompanyId,AC_Max.CreatedBy,AC_Max.UpdatedBy,
+					AC_Max.Quater, AC_Max.Period as Period, RS.StartDate as FromDate,RS.EndDate as ToDate, AC_Max.PeriodName, AC_Max.Notes, AC_Max.MasterCompanyId,AC_Max.CreatedBy,AC_Max.UpdatedBy,
 					AC_Max.CreatedDate, AC_Max.UpdatedDate, AC_Max.IsActive, AC_Max.IsDeleted, AC_Max.Status, AC_Max.LegalEntityId,AC_Max.isUpdate,AC_Max.IsAdjustPeriod,
-					AC_Max.NoOfPeriods, AC_Max.PeriodType, AC_Max.ledgerId, LE.Name LagalEntity,
-					(select * from AccountingCalendar where  IsDeleted =0 AND IsActive=1 and Name=RS.Name AND FiscalYear = RS.FiscalYear for JSON PATH) as calendarListData
+					APR.Name as NoOfPeriods,AC_Max.NoOfPeriods as NoOfPeriodid ,AC_Max.PeriodType, AC_Max.ledgerId, LE.Name LagalEntity,
+					(select * from AccountingCalendar where  IsDeleted =0 AND IsActive=1 and LegalEntityId=RS.LegalEntityId AND FiscalYear = RS.FiscalYear order by AccountingCalendar.Period asc for JSON PATH) as calendarListData
 					from Result RS WITH(NOLOCK)
 					inner join AccountingCalendar as AC_Min WITH(NOLOCK) on  AC_Min.AccountingCalendarId = RS.AccountingCalendarId_Min
 					inner join AccountingCalendar as AC_Max WITH(NOLOCK) on  AC_Max.AccountingCalendarId = RS.AccountingCalendarId_Max
 					inner join LegalEntity as LE WITH(NOLOCK) on  LE.LegalEntityId = RS.LegalEntityId
+					inner join AccountingPeriodStatus as APR WITH(NOLOCK) on  APR.Id = AC_Max.NoOfPeriods
 					WHERE AC_Max.IsDeleted = 0 AND AC_Max.IsActive = 1 AND AC_Max.MasterCompanyId = @MasterCompanyId
 					),
 					ResultCount AS(SELECT COUNT(AccountingCalendarId) AS totalItems FROM FinalResult)

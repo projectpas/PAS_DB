@@ -28,7 +28,7 @@
     [IsActive]                            BIT             CONSTRAINT [DF_ExchangeSalesOrderBillingInvoicing_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                           BIT             CONSTRAINT [DF_ExchangeSalesOrderBillingInvoicing_IsDeleted] DEFAULT ((0)) NOT NULL,
     [InvoiceStatus]                       VARCHAR (50)    NULL,
-    [InvoiceFilePath]                     VARCHAR (200)   NULL,
+    [InvoiceFilePath]                     VARCHAR (MAX)   NULL,
     [GrandTotal]                          DECIMAL (20, 2) NULL,
     [Level1]                              VARCHAR (200)   NULL,
     [Level2]                              VARCHAR (200)   NULL,
@@ -46,6 +46,7 @@
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
     [cogs]                                INT             NULL,
     [PostedDate]                          DATETIME2 (7)   NULL,
+    [BillingId]                           BIGINT          DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_BillToCustomer] FOREIGN KEY ([BillToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -56,6 +57,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_ShipToCustomer] FOREIGN KEY ([ShipToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_SoldToCustomer] FOREIGN KEY ([SoldToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 

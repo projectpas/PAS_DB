@@ -23,7 +23,10 @@
 @PartNumberType varchar(50)=null,
 @SalesOrderNumberType varchar(50)=null,
 @WorkOrderNumType varchar(50)=null,
-@RepairOrderNumberType varchar(50)=null
+@RepairOrderNumberType varchar(50)=null,
+@QuantityOrdered varchar(50)= null,
+@QuantityBackOrdered varchar(50)= null,
+@QuantityReceived varchar(50)= null
 AS
 BEGIN
 
@@ -79,12 +82,20 @@ BEGIN
 					PO.VendorCode,					
 					PO.[Status],
 					PO.Requisitioner AS RequestedBy,
-					PO.ApprovedBy				
+					PO.ApprovedBy,
+					ISNULL(A.QuantityOrdered,0) AS QuantityOrdered,
+					ISNULL(A.QuantityBackOrdered,0) AS QuantityBackOrdered,
+					ISNULL(A.QuantityReceived,0) AS QuantityReceived
 			  FROM PurchaseOrder PO WITH (NOLOCK)
 			  INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
 			  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 			  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 			  LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1
+			  OUTER APPLY(
+				SELECT SUM(popt.QuantityOrdered) AS QuantityOrdered,
+					SUM(popt.QuantityBackOrdered) AS QuantityBackOrdered,
+					SUM(popt.QuantityOrdered) - SUM(popt.QuantityBackOrdered) AS QuantityReceived FROM PurchaseOrderPart popt WHERE popt.PurchaseOrderId = PO.PurchaseOrderId
+			  ) AS A
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))
 			      --AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId	
@@ -163,6 +174,7 @@ BEGIN
 									M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],M.RequestedBy,M.ApprovedBy,
 									PR.SalesOrderNumberType,PR.SalesOrderNumber,PT.PartNumber,PT.PartNumberType,PD.WorkOrderNum,
 									PD.WorkOrderNumType,RP.RepairOrderNumberType,RP.RepairOrderNumber,NULL as 'EstDeliveryDate',0 as PurchaseOrderPartRecordId
+									,M.QuantityOrdered,M.QuantityBackOrdered,M.QuantityReceived
 									from Result M 
 						Left Join PartCTE PT On M.PurchaseOrderId=PT.PurchaseOrderId
 						Left Join WOCTE PD on PD.PurchaseOrderId=M.PurchaseOrderId
@@ -180,7 +192,10 @@ BEGIN
 					(PT.PartNumberType like '%' +@GlobalFilter+'%') OR
 					(PR.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR
 					(PD.WorkOrderNumType like '%' +@GlobalFilter+'%') OR
-					(RP.RepairOrderNumberType like '%' +@GlobalFilter+'%')))
+					(RP.RepairOrderNumberType like '%' +@GlobalFilter+'%') OR
+					(CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR	
+					(CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND 
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
@@ -195,7 +210,10 @@ BEGIN
 					(IsNull(@PartNumberType,'') ='' OR PT.PartNumberType like '%'+ @PartNumberType+'%') and
 					(IsNull(@SalesOrderNumberType,'') ='' OR PR.SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') and
 					(IsNull(@WorkOrderNumType,'') ='' OR PD.WorkOrderNumType like '%'+@WorkOrderNumType+'%') and
-					(IsNull(@RepairOrderNumberType,'') ='' OR RP.RepairOrderNumberType like '%'+@RepairOrderNumberType+'%'))
+					(IsNull(@RepairOrderNumberType,'') ='' OR RP.RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') and
+					(IsNull(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND 
+					(IsNull(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND 
+					(IsNull(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))
 				   )
 
 			--SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult			
@@ -204,7 +222,7 @@ BEGIN
 			), CTE_Count AS (Select COUNT(PurchaseOrderId) AS NumberOfItems FROM ResultData)
 						SELECT PurchaseOrderId,PurchaseOrderNumber,PurchaseOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted
 						,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,PartNumber,PartNumberType,WorkOrderNum,WorkOrderNumType,SalesOrderNumber,SalesOrderNumberType,RepairOrderNumberType,RepairOrderNumber,
-						CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,EstDeliveryDate,PurchaseOrderPartRecordId FROM ResultData,CTE_Count
+						CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,EstDeliveryDate,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived FROM ResultData,CTE_Count
 			ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,
@@ -265,7 +283,10 @@ BEGIN
 					RO.RepairOrderNumber,
 					RO.RepairOrderNumber as RepairOrderNumberType,
 					POP.EstDeliveryDate,
-					POP.PurchaseOrderPartRecordId
+					POP.PurchaseOrderPartRecordId,
+					ISNULL(POP.QuantityOrdered,0) AS QuantityOrdered,
+					ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
+					ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived
 			  FROM PurchaseOrder PO WITH (NOLOCK)
 			  INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
 			  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
@@ -290,7 +311,10 @@ BEGIN
 					(PartNumberType like '%' +@GlobalFilter+'%') OR
 					(SalesOrderNumberType like '%' +@GlobalFilter+'%') OR
 					(WorkOrderNumType like '%' +@GlobalFilter+'%') OR
-					(RepairOrderNumberType like '%' +@GlobalFilter+'%')))
+					(RepairOrderNumberType like '%' +@GlobalFilter+'%') OR
+					(CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR	
+					(CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND 
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
@@ -305,7 +329,10 @@ BEGIN
 					(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+ @PartNumberType+'%') and
 					(IsNull(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') and
 					(IsNull(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%') and
-					(IsNull(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%'))
+					(IsNull(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') and
+					(IsNull(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND 
+					(IsNull(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND 
+					(IsNull(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))
 				   )
 
 			SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult			

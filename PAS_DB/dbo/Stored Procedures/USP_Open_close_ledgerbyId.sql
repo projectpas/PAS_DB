@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_Open_close_ledgerbyId]           
  ** Author: 
  ** Description: This stored procedure is used to populate Calendar Listing.    
@@ -16,7 +17,7 @@
 	1    30/08/2022   subhash saliya Changes ledger id
     -- exec USP_Open_close_ledgerbyId 1,1,2022 
 **************************************************************/
-Create     PROCEDURE [dbo].[USP_Open_close_ledgerbyId]
+CREATE     PROCEDURE [dbo].[USP_Open_close_ledgerbyId]
 @LegalEntityId INT,
 @ledgerId INT,
 @FiscalYear int = NULL
@@ -45,7 +46,7 @@ AS
 					AC_Max.Quater, AC_Max.Period, AC_Min.FromDate,AC_Max.ToDate, AC_Max.PeriodName, AC_Max.Notes, AC_Max.MasterCompanyId,AC_Max.CreatedBy,AC_Max.UpdatedBy,
 					AC_Max.CreatedDate, AC_Max.UpdatedDate, AC_Max.IsActive, AC_Max.IsDeleted, AC_Max.Status, AC_Max.LegalEntityId,AC_Max.isUpdate,AC_Max.IsAdjustPeriod,
 					AC_Max.NoOfPeriods, AC_Max.PeriodType, AC_Max.ledgerId, LE.Name LagalEntity,
-					(select * from AccountingCalendar where  IsDeleted =0 AND IsActive=1 and Name=RS.Name AND FiscalYear = RS.FiscalYear and ledgerId=@ledgerId and LegalEntityId=@LegalEntityId and FiscalYear=@FiscalYear for JSON PATH) as calendarListData
+					(select * from AccountingCalendar where  IsDeleted =0 AND IsActive=1 and Name=RS.Name AND FiscalYear = RS.FiscalYear and ledgerId=@ledgerId and LegalEntityId=@LegalEntityId and FiscalYear=@FiscalYear order by Period asc for JSON PATH) as calendarListData
 					from Result RS WITH(NOLOCK)
 					inner join AccountingCalendar as AC_Min WITH(NOLOCK) on  AC_Min.AccountingCalendarId = RS.AccountingCalendarId_Min
 					inner join AccountingCalendar as AC_Max WITH(NOLOCK) on  AC_Max.AccountingCalendarId = RS.AccountingCalendarId_Max

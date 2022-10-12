@@ -17,7 +17,7 @@
 **************************************************************/ 
 
 
-CREATE       PROCEDURE [dbo].[USP_GetJournalBatchDataList]
+CREATE PROCEDURE [dbo].[USP_GetJournalBatchDataList]
 @PageSize int,  
 @PageNumber int,  
 @SortColumn varchar(50)= null,  
@@ -84,6 +84,7 @@ BEGIN
                    ,JBH.[UpdatedDate]
                    ,JBH.[IsActive]
                    ,JBH.[IsDeleted]
+				   ,JBH.[Module]
         FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
         WHERE ((JBH.MasterCompanyId = @MasterCompanyId) AND (JBH.IsDeleted = @IsDeleted) AND (@StatusID=0 or JBH.StatusId = @StatusID))  
          AND (  

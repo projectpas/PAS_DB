@@ -1951,6 +1951,21 @@
     <Build Include="dbo\Stored Procedures\CopyExchangeAgreementDocument.sql" />
     <Build Include="dbo\Stored Procedures\AddUpdateJournalBatchDetails.sql" />
     <Build Include="dbo\User Defined Types\JournalBatchDetailsType.sql" />
+    <Build Include="dbo\Tables\WorkOrderBatchDetails.sql" />
+    <Build Include="dbo\Tables\StocklineBatchDetails.sql" />
+    <Build Include="dbo\Tables\ReceivingReconciliationHeaderAudit.sql" />
+    <Build Include="dbo\Tables\ReceivingReconciliationHeader.sql" />
+    <Build Include="dbo\Tables\ReceivingReconciliationDetailsAudit.sql" />
+    <Build Include="dbo\Tables\ReceivingReconciliationDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetReceivingReconciliationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionStockline.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionROStockline.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateStocklineBatchDetailsColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateReceivingReconciliationHeaderNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingReconciliationPopupData.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingReconciliationPoData.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingReconciliationHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingReconciliationDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

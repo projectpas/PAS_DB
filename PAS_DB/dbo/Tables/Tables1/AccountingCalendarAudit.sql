@@ -26,9 +26,13 @@
     [PeriodType]                VARCHAR (50)   NULL,
     [ledgerId]                  INT            NULL,
     [IsCurrentActivePeriod]     BIT            NULL,
+    [StartDate]                 DATETIME       NULL,
+    [EndDate]                   DATETIME       NULL,
     CONSTRAINT [PK__Accounti__4985CDB8D98355DE] PRIMARY KEY CLUSTERED ([AccountingCalendarAuditId] ASC),
     CONSTRAINT [FK_AccountingCalendarAudit_AccountingCalendar] FOREIGN KEY ([AccountingCalendarId]) REFERENCES [dbo].[AccountingCalendar] ([AccountingCalendarId])
 );
+
+
 
 
 

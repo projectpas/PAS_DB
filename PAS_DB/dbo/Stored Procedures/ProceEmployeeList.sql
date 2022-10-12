@@ -1,6 +1,4 @@
-﻿
-
-CREATE PROCEDURE [dbo].[ProceEmployeeList]
+﻿CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -88,6 +86,12 @@ BEGIN
 
 		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
 			        AND t.MasterCompanyId=@MasterCompanyId	
+					AND t.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN'
+																        AND e.EmployeeId != @EmployeeId)
 					AND t.FirstName <> 'TBD')
 			),EMPEXPERCTE AS(
 								Select SO.EmployeeId as EmpId,A.EmployeeExpertise 

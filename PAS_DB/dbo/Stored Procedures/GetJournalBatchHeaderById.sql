@@ -18,7 +18,7 @@
      
 -- EXEC GetJournalBatchHeaderById 3
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetJournalBatchHeaderById]
+CREATE PROCEDURE [dbo].[GetJournalBatchHeaderById]
 @JournalBatchHeaderId bigint
 AS
 BEGIN
@@ -46,6 +46,7 @@ BEGIN
               ,[UpdatedDate]
               ,[IsActive]
               ,[IsDeleted]
+			  ,[Module]
       FROM [dbo].[BatchHeader] where JournalBatchHeaderId =@JournalBatchHeaderId
 
 

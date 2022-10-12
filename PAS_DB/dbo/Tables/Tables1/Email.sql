@@ -35,20 +35,26 @@
 
 
 
-GO
 
+
+GO
 
 CREATE TRIGGER [dbo].[Trg_EmailAudit]
 
    ON  [dbo].[Email]
+
    AFTER INSERT,UPDATE
 
 AS 
 
 BEGIN
 
-	--INSERT INTO [dbo].[EmailAudit]
-	--SELECT * FROM INSERTED
+
+
+	INSERT INTO [dbo].[EmailAudit]
+
+	SELECT * FROM INSERTED
+
 
 	DECLARE @event_type varchar(42)
 	DECLARE @EmialId bigint
@@ -65,10 +71,14 @@ BEGIN
     SELECT @event_type = 'unknown'
 	SELECT @EmialId = EmailId FROM INSERTED
 
+
 	if(@event_type ='insert')
 	begin
 	  update Email set EmailStatusId=1 where EmailId=@EmialId
 	end
 
 	SET NOCOUNT ON;
+
+
+
 END

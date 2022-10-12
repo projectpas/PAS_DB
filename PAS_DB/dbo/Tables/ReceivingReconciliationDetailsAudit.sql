@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[ReceivingReconciliationDetailsAudit] (
+    [AuditReceivingReconciliationDetailId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [ReceivingReconciliationDetailId]      BIGINT          NOT NULL,
+    [ReceivingReconciliationId]            BIGINT          NOT NULL,
+    [StocklineId]                          BIGINT          NULL,
+    [StocklineNumber]                      VARCHAR (50)    NULL,
+    [ItemMasterId]                         BIGINT          NULL,
+    [PartNumber]                           VARCHAR (100)   NULL,
+    [PartDescription]                      VARCHAR (MAX)   NULL,
+    [SerialNumber]                         VARCHAR (50)    NULL,
+    [POReference]                          VARCHAR (50)    NULL,
+    [POQtyOrder]                           INT             NULL,
+    [ReceivedQty]                          INT             NULL,
+    [POUnitCost]                           DECIMAL (18, 2) NULL,
+    [POExtCost]                            DECIMAL (18, 2) NULL,
+    [InvoicedQty]                          INT             NULL,
+    [InvoicedUnitCost]                     DECIMAL (18, 2) NULL,
+    [InvoicedExtCost]                      DECIMAL (18, 2) NULL,
+    [AdjQty]                               INT             NULL,
+    [AdjUnitCost]                          DECIMAL (18, 2) NULL,
+    [AdjExtCost]                           DECIMAL (18, 2) NULL,
+    [APNumber]                             VARCHAR (50)    NULL,
+    [PurchaseOrderId]                      BIGINT          NULL,
+    [PurchaseOrderPartRecordId]            BIGINT          NULL,
+    CONSTRAINT [PK_ReceivingReconciliationDetailsAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationDetailId] ASC)
+);
+

@@ -1,9 +1,9 @@
 ﻿CREATE PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
-@ItemMasterIdlist VARCHAR(max) = '', 
+@ItemMasterIdlist VARCHAR(max) = '284', 
 --@ConditionId BIGINT = NULL,
-@ConditionIds VARCHAR(100) = '',
-@CustomerId BIGINT,
-@MappingType INT
+@ConditionIds VARCHAR(100) = '40',
+@CustomerId BIGINT = 340,
+@MappingType INT = -1
 
 AS
 BEGIN

@@ -1,8 +1,6 @@
-﻿
-------------------------------------------------------------------------------------------------------------
+﻿------------------------------------------------------------------------------------------------------------
 --exec [dbo].[usp_GetApprovalListByTaskIdRoleWise] 3, 143
 CREATE Procedure [dbo].[usp_GetApprovalListByTaskId]
-
 @TaskId  BIGINT,
 @ID BIGINT
 AS
@@ -244,12 +242,16 @@ SELECT DISTINCT Ar.ApproverId,
 	   from dbo.ApprovalRule AR  WITH(NOLOCK)
 	     INNER JOIN dbo.Employee E  WITH(NOLOCK) on Ar.ApproverId = E.EmployeeId
 		 INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
+		 INNER JOIN dbo.UserRole UR WITH(NOLOCK) ON ER.RoleId = UR.Id
 		 INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = AR.RoleId AND rs.EntityStructureId = @MSID 
 		 Where ApprovalTaskId = @TaskId
 				AND AR.IsActive = 1 AND AR.IsDeleted = 0
 				AND AR.managementStructureId > 0
 				AND AR.ApproverId != @EID
 				AND AR.MasterCompanyId = @MasterCompanyID
+				AND UR.[Name] != 'SUPERADMIN'
+
+				--select * from UserRole;
 END TRY	
 BEGIN CATCH
 

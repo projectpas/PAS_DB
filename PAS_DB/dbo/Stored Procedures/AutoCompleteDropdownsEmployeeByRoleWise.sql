@@ -1,5 +1,5 @@
 ﻿--searchText=&startWith=true&count=20&idList=0,52&managementStructureId=7899&masterCompanyId=2
---EXEC AutoCompleteDropdownsEmployeeByMS '',1,200,'0',7899,2
+--EXEC AutoCompleteDropdownsEmployeeByRoleWise '',1,200,'2',1,1
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsEmployeeByRoleWise]
 @Parameter3 VARCHAR(50) = Null,
 @Parameter4 bit = true,
@@ -25,10 +25,20 @@ BEGIN
 			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
 			--INNER JOIN dbo.RoleManagementStructure RS WITH(NOLOCK) ON RS.RoleId = ER.RoleId
 			WHERE E.MasterCompanyId = @masterCompanyId AND ER.RoleId = @RoleId AND (E.IsActive = 1 AND ISNULL(E.IsDeleted, 0) = 0)
+			AND E.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN')
 			UNION 
 			SELECT DISTINCT EmployeeId AS Value,FirstName + ' ' + LastName AS Label
-            FROM dbo.Employee WITH(NOLOCK)  
+            FROM dbo.Employee E WITH(NOLOCK)  
 				WHERE EmployeeId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+				AND E.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+					                                   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+													               ON E.EmployeeId = EUR.EmployeeId 
+													   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+													               ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN')
 				ORDER BY Label
 	END TRY 
 	BEGIN CATCH   

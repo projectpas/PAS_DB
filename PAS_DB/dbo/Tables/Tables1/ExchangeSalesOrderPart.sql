@@ -65,6 +65,7 @@
     [PONumber]                 VARCHAR (100)  NULL,
     [PONextDlvrDate]           DATETIME       NULL,
     [IsExpCoreSN]              BIT            DEFAULT ((0)) NOT NULL,
+    [CoreAccepted]             BIT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderPart] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderPartId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_ExchangeSalesOrderPart_ExchangeQuote] FOREIGN KEY ([ExchangeQuoteId]) REFERENCES [dbo].[ExchangeQuote] ([ExchangeQuoteId]),
@@ -73,6 +74,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ExchangeSalesOrderPart_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

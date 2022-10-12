@@ -57,6 +57,7 @@
     [VersionNumber]            VARCHAR (50)    NULL,
     [ExchangeQuoteNumber]      VARCHAR (50)    NULL,
     [IsApproved]               BIT             NULL,
+    [CoreAccepted]             BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrder_1] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrder_Agent] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_CreditTerm] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
@@ -71,6 +72,8 @@
     CONSTRAINT [FK_ExchangeSalesOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

@@ -58,8 +58,11 @@
     [VersionNumber]             VARCHAR (50)    NULL,
     [ExchangeQuoteNumber]       VARCHAR (50)    NULL,
     [IsApproved]                BIT             NULL,
+    [CoreAccepted]              BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 
 
 

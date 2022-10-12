@@ -42,12 +42,13 @@
     CONSTRAINT [FK_JournalManual_GLAccount] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_JournalManual_JournalCategory] FOREIGN KEY ([JournalCategoryId]) REFERENCES [dbo].[JournalCategory] ([ID]),
     CONSTRAINT [FK_JournalManual_JournalCurrencyType] FOREIGN KEY ([JournalCurrencyTypeId]) REFERENCES [dbo].[JournalCurrencyType] ([ID]),
-    CONSTRAINT [FK_JournalManual_JournalType] FOREIGN KEY ([JournalTypeId]) REFERENCES [dbo].[JournalType] ([ID]),
     CONSTRAINT [FK_JournalManual_LocalCurrency] FOREIGN KEY ([LocalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_JournalManual_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_JournalManual_ReportingCurrency] FOREIGN KEY ([ReportingCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [Unique_JournalManual] UNIQUE NONCLUSTERED ([BatchName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

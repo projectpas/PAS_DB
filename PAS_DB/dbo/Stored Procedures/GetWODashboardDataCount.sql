@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWODashboardDataCount]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used get work order count based on stage  
@@ -89,6 +88,7 @@ BEGIN
 				UPPER(CodeDescription)
 				FROM dbo.WorkOrderStage WITH (NOLOCK) 
 				WHERE MasterCompanyId = @MasterCompanyId AND ISNULL(IncludeInDashboard, 0) = 1 AND IsActive = 1 AND IsDeleted = 0
+				order by [Sequence] ASC
 
 				UPDATE #tmpWorkOrderStage 
 					SET Counts = ISNULL(T2.StageCount, 0)
@@ -157,7 +157,7 @@ BEGIN
 
 				SELECT *, 
 				RowNumber = CASE WHEN((ROW_NUMBER() OVER (ORDER BY (SELECT NULL)))  % 4) = 0 THEN 4 ELSE (ROW_NUMBER() OVER (ORDER BY (SELECT NULL)))  % 4 END
-				FROM #tmpWorkOrderStage Order by ID
+				FROM #tmpWorkOrderStage Order by ID ASC
 
 				IF OBJECT_ID(N'tempdb..#tmpWorkOrderStage') IS NOT NULL
 				BEGIN

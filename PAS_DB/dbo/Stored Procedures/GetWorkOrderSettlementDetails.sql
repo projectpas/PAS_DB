@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderSettlementDetails]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Settlement Details  
@@ -20,10 +19,10 @@
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
 	3	 09/13/2021	  Hemant Saliya  Add Calculated Field for Labor All Labor are Completd
     4	 07/26/2022	  Subhash Saliya  Add Calculated Field for Sipping or Invoiced are Completd
---EXEC [GetWorkOrderSettlementDetails] 235,255,240
+--EXEC [GetWorkOrderSettlementDetails] 326,362,353
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
+CREate     PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @workOrderPartNoId bigint,
 @workflowWorkorderId BIGINT
@@ -71,27 +70,27 @@ BEGIN
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wobi.WorkOrderId AND wop.ID = wobii.WorkOrderPartId
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced'
 
-				IF(EXISTS (SELECT 1 FROM dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId and IsDeleted= 0))
 				BEGIN 
 					SELECT @IsLaborCompleled = COUNT(WL.WorkOrderLaborId)
 					FROM dbo.WorkOrderLabor WL WITH(NOLOCK) 
 						JOIN dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) ON WL.WorkOrderLaborHeaderId = WLH.WorkOrderLaborHeaderId
-					WHERE WLH.WorkFlowWorkOrderId = @workflowWorkorderId AND ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
+					WHERE WLH.WorkFlowWorkOrderId = @workflowWorkorderId and WL.IsDeleted= 0 AND ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @IsLaborCompleled = 1;
+					SELECT @IsLaborCompleled = 0;
 				END
 
-				IF(EXISTS (SELECT 1 FROM dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.workOrderPartNoId = @workOrderPartNoId AND COCI.WorkOrderId = @WorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.workOrderPartNoId = @workOrderPartNoId AND COCI.WorkOrderId = @WorkorderId and IsDeleted= 0))
 				BEGIN 
 					SELECT @AllToolsAreCheckOut = COUNT(COCI.CheckInCheckOutWorkOrderAssetId)
 					FROM dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) 
-					WHERE COCI.workOrderPartNoId = @workOrderPartNoId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
+					WHERE COCI.workOrderPartNoId = @workOrderPartNoId and COCI.IsDeleted= 0 AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @AllToolsAreCheckOut = 1;
+					SELECT @AllToolsAreCheckOut = 0;
 				END
 				
 				SELECT  wosd.WorkOrderId, 

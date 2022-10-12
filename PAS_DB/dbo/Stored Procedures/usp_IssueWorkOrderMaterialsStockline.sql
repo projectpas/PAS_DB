@@ -23,7 +23,7 @@ EXEC dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
+CREATE   PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -37,8 +37,6 @@ BEGIN
 				BEGIN
 					--CASE 1 UPDATE WORK ORDER MATERILS
 					DECLARE @count INT;
-					DECLARE @MPNcount INT;
-					DECLARE @TotalMPNCounts INT;
 					DECLARE @slcount INT;
 					DECLARE @TotalCounts INT;
 					DECLARE @StocklineId BIGINT; 
@@ -57,10 +55,21 @@ BEGIN
 					DECLARE @IsSerialised BIT;
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
-					DECLARE @WorkOrderId BIGINT;
-					DECLARE @WorkOrderWorkflowId BIGINT;
-					DECLARE @UpdatedBy VARCHAR(100);
 
+
+					DECLARE @RC int
+                    DECLARE @DistributionMasterId bigint
+                    DECLARE @ReferencePartId bigint
+                    DECLARE @ReferencePieceId bigint
+                    DECLARE @InvoiceId bigint=0
+					DECLARE @IssueQty bigint=0
+                    DECLARE @laborType varchar(200)=''
+                    DECLARE @issued bit=1
+                    DECLARE @Amount decimal(18,2)
+                    DECLARE @ModuleName varchar(200)='WO'
+                    DECLARE @UpdateBy varchar(200)
+
+					select @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 					SET @PartStatus = 2; -- FOR Issue
@@ -71,8 +80,6 @@ BEGIN
 					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
-					SET @MPNcount = 1;
-					
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
@@ -188,29 +195,17 @@ BEGIN
 						WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 					FROM dbo.Stockline SL JOIN #tmpIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 					
-					SELECT @TotalMPNCounts = COUNT(ID) FROM #tmpIssueWOMaterialsStockline;
-
-					----UPDATE MATERIALS COST
-					WHILE @MPNcount<= @TotalMPNCounts
+					--FOR UPDATE TOTAL WORK ORDER COST
+					WHILE @count<= @TotalCounts
 					BEGIN
 						SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
 						FROM #tmpIssueWOMaterialsStockline tmpWOM 
-						WHERE tmpWOM.ID = @MPNcount
+						WHERE tmpWOM.ID = @count
 
 						EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
 						
-						SET @MPNcount = @MPNcount + 1;
+						SET @count = @count + 1;
 					END;
-
-					EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
-
-					SELECT @WorkOrderId = WorkOrderId, @WorkOrderWorkflowId = WorkFlowWorkOrderId, @UpdatedBy = UpdatedBy FROM #tmpIssueWOMaterialsStockline;
-
-					--UPDATE WO PART LEVEL TOTAL COST
-					EXEC USP_UpdateWOTotalCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;
-
-					--UPDATE WO PART LEVEL TOTAL COST
-					EXEC USP_UpdateWOCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;
 
 					--FOR STOCK LINE HISTORY	
 					WHILE @slcount<= @TotalCounts
@@ -218,7 +213,13 @@ BEGIN
 						SELECT	@StocklineId = tmpWOM.StockLineId,
 								@MasterCompanyId = tmpWOM.MasterCompanyId,
 								@ReferenceId = tmpWOM.WorkOrderId,
-								@SubReferenceId = tmpWOM.WorkOrderMaterialsId
+								@SubReferenceId = tmpWOM.WorkOrderMaterialsId,
+								@ReferencePartId=tmpWOM.WorkFlowWorkOrderId,
+								@UpdateBy=UpdatedBy,
+								@IssueQty=QuantityActIssued,
+								@Amount=UnitCost,
+								@ReferencePieceId=tmpWOM.WorkOrderMaterialsId
+								
 						FROM #tmpIssueWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @slcount
 
@@ -232,6 +233,11 @@ BEGIN
 						BEGIN
 							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
 						END
+
+                       -- batch trigger issue qty
+
+                        EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
+                        @DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 
 						SET @slcount = @slcount + 1;
 					END;

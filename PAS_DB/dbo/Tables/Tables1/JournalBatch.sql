@@ -24,9 +24,10 @@
     CONSTRAINT [PK_JournalBatch] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_JournalBatch_JournalPeriod] FOREIGN KEY ([JournalPeriodId]) REFERENCES [dbo].[JournalPeriod] ([ID]),
     CONSTRAINT [FK_JournalBatch_JournalSource] FOREIGN KEY ([JournalSourceId]) REFERENCES [dbo].[JournalSource] ([ID]),
-    CONSTRAINT [FK_JournalBatch_JournalType] FOREIGN KEY ([JournalPeriodId]) REFERENCES [dbo].[JournalType] ([ID]),
     CONSTRAINT [FK_JournalBatch_LocalCurrency] FOREIGN KEY ([LocalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_JournalBatch_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_JournalBatch_ReportingCurrency] FOREIGN KEY ([ReportingCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId])
 );
+
+
 

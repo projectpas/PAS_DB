@@ -1927,6 +1927,30 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsCreditTerm.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderFreightType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderChargesType.sql" />
+    <Build Include="dbo\Tables\JournalTypeSetting.sql" />
+    <Build Include="dbo\Tables\DistributionSetup.sql" />
+    <Build Include="dbo\Tables\DistributionMaster.sql" />
+    <Build Include="dbo\Tables\BatchStatus.sql" />
+    <Build Include="dbo\Tables\BatchHeader.sql" />
+    <Build Include="dbo\Tables\BatchDetails.sql" />
+    <Build Include="dbo\Tables\AccountingPeriodStatus.sql" />
+    <Build Include="dbo\Tables\AccountingFiscalYear.sql" />
+    <Build Include="Security\poweraerosuites_admin.sql" />
+    <Build Include="Security\pasadmin_1.sql" />
+    <Build Include="Security\Donald.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderQuoteConversion.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveJournalBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RecevingCustomer_GetAllRCWList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Open_close_ledgerbyId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetJournalBatchDataList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistribution.sql" />
+    <Build Include="dbo\Stored Procedures\GetJournalBatchHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\GetJournalBatchDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\GetJounalTypeSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\GetDistributionSetupData.sql" />
+    <Build Include="dbo\Stored Procedures\CopyExchangeAgreementDocument.sql" />
+    <Build Include="dbo\Stored Procedures\AddUpdateJournalBatchDetails.sql" />
+    <Build Include="dbo\User Defined Types\JournalBatchDetailsType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

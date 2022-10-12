@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[Charge] (
     [ChargeId]        BIGINT          IDENTITY (1, 1) NOT NULL,
     [Description]     VARCHAR (200)   NOT NULL,
-    [GLAccountId]     BIGINT          NOT NULL,
+    [GLAccountId]     BIGINT          NULL,
     [MasterCompanyId] INT             NOT NULL,
     [Memo]            NVARCHAR (MAX)  NULL,
     [CreatedBy]       VARCHAR (256)   NOT NULL,
@@ -17,10 +17,11 @@
     [CurrencyId]      INT             NULL,
     [UnitOfMeasureId] BIGINT          NULL,
     CONSTRAINT [PK_Charge] PRIMARY KEY CLUSTERED ([ChargeId] ASC),
-    CONSTRAINT [FK_Charge_GLAccount] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_Charge_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_Charge] UNIQUE NONCLUSTERED ([ChargeType] ASC, [GLAccountId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

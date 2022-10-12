@@ -1,7 +1,6 @@
-﻿
-CREATE   PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
-@ModuleId bigint,
-@MasterCompanyId int
+﻿CREATE PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
+@ModuleId bigint=10,
+@MasterCompanyId int=1
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -17,15 +16,17 @@ SET NOCOUNT ON;
 	FieldExcelWidth decimal(10,2),
 	FieldSortOrder INT,
 	IsNumString BIT,
-	IsRightAlign BIT)
+	IsRightAlign BIT,
+	IsDateField BIT)
     
 	DECLARE  @mSSEQ AS INT 
 	SELECT @mSSEQ = FieldSortOrder FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId=@ModuleId AND FieldName = 'ms'
 
 	INSERT INTO #TEMPFieldMaster  
 	
-	SELECT FieldName,HeaderName,FieldGridWidth,FieldPDFWidth,FieldExcelWidth,FieldSortOrder,ISNULL(IsNumString,0),ISNULL(IsRightAlign,0)
+	SELECT FieldName,HeaderName,FieldGridWidth,FieldPDFWidth,FieldExcelWidth,FieldSortOrder,ISNULL(IsNumString,0),ISNULL(IsRightAlign,0),ISNULL(IsDateField,0)
 	FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId=@ModuleId AND FieldName != 'ms'
+	--AND IsActive=1
 	ORDER BY FieldSortOrder
 	DECLARE @PDFpre decimal(10,2)
 
@@ -49,7 +50,7 @@ SET NOCOUNT ON;
 				WHILE @@FETCH_STATUS = 0  
 				BEGIN  
 					SET @intlevel=@intlevel+1
-					INSERT INTO #TEMPFieldMaster select 'level'+convert(varchar,@intlevel),@HeaderName,'200px',convert(decimal(10,2),(@PDFpre/@inttotallevel)),50,@mSSEQ,0,0
+					INSERT INTO #TEMPFieldMaster select 'level'+convert(varchar,@intlevel),@HeaderName,'200px',convert(decimal(10,2),(@PDFpre/@inttotallevel)),35,@mSSEQ,0,0,0
 			FETCH NEXT FROM feildcursor INTO @HeaderName,@SequenceNo
 				END 
 

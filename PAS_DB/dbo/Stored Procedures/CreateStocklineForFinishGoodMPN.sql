@@ -42,18 +42,24 @@ BEGIN
 				DECLARE @StockLineNumber VARCHAR(50);
 				DECLARE @CNCurrentNumber BIGINT;	
 				DECLARE @ControlNumber VARCHAR(50);
-				--DECLARE @IDCurrentNumber BIGINT;	
 				DECLARE @IDNumber VARCHAR(50);
 				DECLARE @ModuleID INT;
 				DECLARE @EntityMSID BIGINT;
+				DECLARE @IsExchangeWO BIT;
+				DECLARE @ReceivingCustomerWorkId BIGINT;	
 
 				SET @ModuleID = 2; -- Stockline Module ID
 
 				SELECT	@StocklineId = StockLineId, 
 						@RevisedConditionId = CASE WHEN ISNULL(RevisedConditionId, 0) > 0 THEN RevisedConditionId ELSE ConditionId END,
 						@MasterCompanyId  = MasterCompanyId,
-						@EntityMSID = ManagementStructureId
-				FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNumberId
+						@EntityMSID = ManagementStructureId,
+						@ReceivingCustomerWorkId = ReceivingCustomerWorkId
+				FROM dbo.WorkOrderPartNumber WITH(NOLOCK) 
+				WHERE ID = @WorkOrderPartNumberId
+
+				SELECT @IsExchangeWO = CASE WHEN ISNULL(ExchangeSalesOrderId , 0) > 0 THEN 1 ELSE 0 END
+				FROM dbo.ReceivingCustomerWork WITH(NOLOCK) WHERE ReceivingCustomerWorkId = @ReceivingCustomerWorkId
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN
@@ -112,6 +118,8 @@ BEGIN
 				DECLARE @ManufacturerId AS BIGINT;
 
 				SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
+
+				
 
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 
@@ -196,12 +204,12 @@ BEGIN
 				   ,[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId]
 				   ,0,0,0,1,1,0,[QtyReserved]
 				   ,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId]
-				   ,[isActive],[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]
+				   ,[isActive],[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost], CASE WHEN @IsExchangeWO = 1 THEN 0 ELSE [IsCustomerStock] END,[EntryDate],[LotCost],[NHAItemMasterId]
 				   ,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate]
 				   ,[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId]
 				   ,[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition]
 				   ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]
-				   ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]
+				   ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerId] END,CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerName] END,CASE WHEN @IsExchangeWO = 1 THEN 0 ELSE [isCustomerstockType] END 
 				   ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]
 				   ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1
 			FROM dbo.Stockline WITH(NOLOCK)

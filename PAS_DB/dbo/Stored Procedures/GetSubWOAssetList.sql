@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSubWOAssetList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -22,7 +21,7 @@
  EXECUTE [GetSubWOAssetList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetSubWOAssetList]
+CREATE   PROCEDURE [dbo].[GetSubWOAssetList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,
@@ -104,7 +103,8 @@ BEGIN
 							(COB.FirstName + ' ' + COB.LastName) AS CheckOutBy,
 							COCI.CheckInDate,
 							COCI.CheckOutDate,
-							AIS.Status as Status
+							case when isnull(WOA.IsFromWorkFlow,0) =0 then 'No' else 'Yes' end IsFromWorkFlowNew,  
+                            CASE WHEN  ISNULL(COCI.CheckOutDate,'') !='' THEN 'Checked Out of WO' WHEN isnull(COCI.CheckInDate,'') !='' THEN 'Checked In To WO'  ELSE ''  END  AS Status  
 							FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)
 							join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId
 							LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId

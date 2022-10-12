@@ -20,7 +20,7 @@
 EXECUTE   [dbo].[usprpt_GetCapabilitiesReport] '','2',3,'','1','10','0'  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[usprpt_GetCapabilitiesReport] 
+CREATE PROCEDURE [dbo].[usprpt_GetCapabilitiesReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -116,7 +116,7 @@ BEGIN
         (STUFF((SELECT DISTINCT ', '+ IMAIR.Dashnumber FROM ItemMasterAircraftMapping IMAIR Where IMAIR.Dashnumber not like '%Unknown%' AND IM.ItemMasterId = IMAIR.ItemMasterId FOR XML PATH('')),1,1,'')) as 'dash', 
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN (STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
 	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3  ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,'')) ELSE (STUFF((SELECT DISTINCT ', '+ (IMAM.Level1 + CASE WHEN ISNULL(IMAM.Level2,'')<> '' THEN '-' + IMAM.Level2 ELSE '' END + 
-	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3  ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,'')) + '&nbsp;' END as 'atachapter',
+	    CASE WHEN ISNULL(IMAM.Level3,'')<> '' THEN '-' + IMAM.Level3  ELSE '' END) from ItemMasterATAMapping IMAM where IM.ItemMasterId = IMAM.ItemMasterId FOR XML PATH('')),1,1,'')) + '' END as 'atachapter',
         IMC.CapabilityType 'capabilitytype',  
         case when Isnull(IMC.isverified,0) = 0 then 'No' else 'Yes'  end   'verified',  
         IMC.VerifiedBy 'Verified BY',  

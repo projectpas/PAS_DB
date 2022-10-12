@@ -1,15 +1,11 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usprpt_GetToolsReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for Tools Report    
  ** Purpose:           
- ** Date:   25-Apr-2022         
-            
- ** PARAMETERS:             
-           
- ** RETURN VALUE:             
-    
+ ** Date:   25-Apr-2022               
+ ** PARAMETERS:
+ ** RETURN VALUE:
  **************************************************************             
   ** Change History             
  **************************************************************             
@@ -20,7 +16,7 @@
        
 EXECUTE   [dbo].[usprpt_GetToolsReport] '2022-04-25','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetToolsReport] 
+CREATE PROCEDURE [dbo].[usprpt_GetToolsReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -109,10 +105,14 @@ BEGIN
 				LEFT JOIN DBO.Vendor VNDR1 WITH (NOLOCK) ON AC.CertificationDefaultVendorId = VNDR1.VendorId  
 				LEFT JOIN DBO.assetcapes ACS WITH (NOLOCK) ON Asset.assetrecordid = ACS.assetrecordid  
 				LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asset.TangibleClassId = asty.TangibleClassId  
-				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
 				WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Calibration') cb
-				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
-				WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Certification') cf 
+				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+				WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Certification') cf
+				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+				WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Inspection') ins
+				OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+				WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Verification') vr
 			  WHERE asset.mastercompanyid = @mastercompanyid 
 				AND ((ISNULL(@certifytype,'')='') OR (ISNULL(@certifytype,'')<>'' AND (@isCalb IS NOT NULL AND AC.CalibrationRequired= 1) OR (@isCert IS NOT NULL AND AC.CertificationRequired= 1)
 				OR (@isIns IS NOT NULL AND AC.InspectionRequired= 1) OR (@isVerf IS NOT NULL AND AC.VerificationRequired= 1))) 
@@ -128,6 +128,7 @@ BEGIN
 				AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				AND AI.IsDeleted=0 and AI.IsActive=1
 			GROUP BY Asset.assetid,AI.PartNumber,AI.InventoryNumber,AI.serialno,asty.AssetAttributeTypeName,FORMAT(Asset.EntryDate, 'MM/dd/yyyy'),
 				AssetStatus.name,AC.calibrationrequired,
 				AC.certificationrequired,AC.inspectionrequired,AC.verificationrequired,VNDR.vendorname,VNDR1.vendorname,UPPER(AL.Code + '-' + AL.name),
@@ -160,9 +161,12 @@ BEGIN
         UPPER(AssetStatus.name) 'status', 
 		UPPER(maf.Name) AS manufacturername,
 		UPPER(asset.ManufacturerPN) manufacturerpn,
-		UPPER(AI.LocationName) AS locationname,
+		UPPER(AI.Location) AS locationname,
 		UPPER(AI.SiteName) as siteName,
-		UPPER(MSD.Level1Name) AS level1,  
+		UPPER(AI.Warehouse) AS warehousename,
+		UPPER(AI.ShelfName) AS shelfname,
+		UPPER(AI.BinName) AS binname,
+		UPPER(MSD.Level1Name) AS level1,
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
 		UPPER(MSD.Level4Name) AS level4, 
@@ -171,7 +175,8 @@ BEGIN
 		UPPER(MSD.Level7Name) AS level7, 
 		UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
-		UPPER(MSD.Level10Name) AS level10      
+		UPPER(MSD.Level10Name) AS level10,
+		UPPER(ct.CertifyType) AS certifytype		
       FROM dbo.asset WITH (NOLOCK) 
 	    LEFT JOIN DBO.Assetinventory AI WITH (NOLOCK) ON Asset.assetrecordid = AI.AssetRecordId
 	    INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING('40,41',',')) AND MSD.ReferenceID = asset.AssetRecordId
@@ -184,11 +189,18 @@ BEGIN
         LEFT JOIN DBO.assetcapes ACS WITH (NOLOCK) ON Asset.assetrecordid = ACS.assetrecordid  
         LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asset.TangibleClassId = asty.TangibleClassId  
 		LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asset.ManufacturerId = maf.ManufacturerId
-		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
 		WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Calibration') cb
-		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
 		WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Certification') cf 
-	  WHERE asset.mastercompanyid = @mastercompanyid 
+		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+		WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Inspection') ins
+		OUTER APPLY(select TOP 1 LastCalibrationDate,NextCalibrationDate,LastCalibrationBy,CalibrationDate,CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+		WHERE cm.AssetInventoryId = AI.AssetInventoryId AND CertifyType='Verification') vr
+		--OUTER APPLY(select TOP 1 CertifyType FROM dbo.CalibrationManagment cm WITH(NOLOCK) 
+		--WHERE cm.AssetInventoryId = AI.AssetInventoryId) ct
+		LEFT JOIN dbo.CalibrationManagment  As ct WITH(NOLOCK) on AI.AssetInventoryId = ct.AssetInventoryId
+	  WHERE asset.mastercompanyid = @mastercompanyid
 		AND ((ISNULL(@certifytype,'')='') OR (ISNULL(@certifytype,'')<>'' AND (@isCalb IS NOT NULL AND AC.CalibrationRequired= 1) OR (@isCert IS NOT NULL AND AC.CertificationRequired= 1)
 		OR (@isIns IS NOT NULL AND AC.InspectionRequired= 1) OR (@isVerf IS NOT NULL AND AC.VerificationRequired= 1))) 
 	  AND  
@@ -203,6 +215,7 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+			AND AI.IsDeleted=0 and AI.IsActive=1
 	  GROUP BY Asset.assetid,AI.PartNumber,AI.InventoryNumber,AI.serialno,asty.AssetAttributeTypeName,
 
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(Asset.EntryDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), Asset.EntryDate, 107) END ,
@@ -213,9 +226,11 @@ BEGIN
 											(CASE WHEN ISNULL(cb.LastCalibrationDate, '') != '' THEN cb.LastCalibrationDate ELSE cb.CalibrationDate END))), 107)	
 											END  END,
 	    UPPER(AssetStatus.name),AC.certificationrequired,AC.inspectionrequired,AC.verificationrequired,VNDR.vendorname,VNDR1.vendorname,UPPER(AL.Code + '-' + AL.name),
-		cb.LastCalibrationBy, cf.LastCalibrationBy,cb.NextCalibrationDate,UPPER(maf.Name),UPPER(asset.ManufacturerPN),UPPER(AI.LocationName),UPPER(AI.SiteName),
-
+		cb.LastCalibrationBy, cf.LastCalibrationBy,cb.NextCalibrationDate,UPPER(maf.Name),UPPER(asset.ManufacturerPN),UPPER(AI.Location),UPPER(AI.SiteName),
+		UPPER(AI.Warehouse),UPPER(AI.ShelfName),UPPER(AI.BinName),
 		MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name
+		,ct.CertifyType
+		,AC.CalibrationRequired
 	  ORDER BY Asset.assetid
 	  OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
   END TRY  
@@ -241,8 +256,6 @@ BEGIN
                         @ErrorLogID = @ErrorLogID OUTPUT;  
   
     RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)  
-  
     RETURN (1);  
-  END CATCH  
-    
+  END CATCH 
 END

@@ -21,7 +21,6 @@
      
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/ 
-
 CREATE PROCEDURE [dbo].[GetCustomerList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
@@ -83,7 +82,7 @@ BEGIN
 		BEGIN 
 			SET @IsActive=NULL
 		END
-		
+		DECLARE @CustomerModule INT=1;
 		   ;WITH Result AS(
 			SELECT	
 					C.CustomerId, 
@@ -94,7 +93,7 @@ BEGIN
 					STUFF((SELECT ', ' + CC.Description
 							FROM dbo.ClassificationMapping cm WITH (NOLOCK)
 							INNER JOIN dbo.CustomerClassification CC WITH (NOLOCK) ON CC.CustomerClassificationId=CM.ClasificationId
-							WHERE cm.ReferenceId=C.CustomerId
+							WHERE cm.ReferenceId=C.CustomerId AND cm.ModuleId=@CustomerModule
 							FOR XML PATH('')), 1, 1, '') 'CustomerClassification',
 					A.City,
 					a.StateOrProvince,

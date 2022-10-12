@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_GetWorkOrderMarginReport]           
  ** Author:   Hemant  
  ** Description: Get Data for WorkOrderMargin Report
@@ -161,12 +160,19 @@ BEGIN
 				FORMAT(CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), ISNULL(WOC.OverHeadCost,0) / ISNULL(WOBI.GrandTotal,0)) ELSE 0 END , 'N', 'en-us') 'ohcostper',
 				FORMAT(CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), ISNULL(WOC.DirectCost,0) / ISNULL(WOBI.GrandTotal,0)) ELSE 0 END , 'N', 'en-us') 'revenueper',
 				FORMAT(CASE WHEN ISNULL(WOBI.GrandTotal,0) != 0 THEN CONVERT(DECIMAL(10,4), (ISNULL(WOBI.GrandTotal, 0) - ISNULL(WOC.DirectCost, 0)) / ISNULL(WOBI.GrandTotal,0)) ELSE 0 END , 'N', 'en-us') 'grossmarginrevper',
-				FORMAT(CASE
+				--FORMAT(
+				--CASE
+				--  WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
+				--  WHEN ApprovedDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
+				--  WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate)
+				--  WHEN RCW.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RCW.ReceivedDate, GETDATE())
+				--END , 'N', 'en-us') AS 'tat',
+				CASE
 				  WHEN WOS.ShipDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
 				  WHEN ApprovedDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate) - DATEDIFF(DAY, ApprovedDate, SentDate) + DATEDIFF(DAY, WOS.ShipDate, ApprovedDate)
 				  WHEN SentDate IS NOT NULL THEN DATEDIFF(DAY, SentDate, RCW.ReceivedDate)
 				  WHEN RCW.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY, RCW.ReceivedDate, GETDATE())
-				END , 'N', 'en-us') AS 'tat',
+				END AS 'tat',
 				UPPER(E.FirstName + ' ' + E.LastName) 'salesperson',
 				UPPER(E1.FirstName + ' ' + E1.LastName) 'csr',
 				UPPER(MSD.Level1Name) AS level1,  

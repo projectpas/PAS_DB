@@ -22,7 +22,7 @@
 --EXEC [GetSubWorkOrderSettlementDetails] 212,35,37
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
+CREATE   PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @SubWorkOrderId bigint,
 @SubWOPartNoId BIGINT
@@ -60,27 +60,27 @@ BEGIN
 
 				SELECT @InventoryStatusID = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
 				
-				IF(EXISTS (SELECT 1 FROM dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId and IsDeleted= 0))
 				BEGIN 
 					SELECT @IsLaborCompleled = COUNT(WL.SubWorkOrderLaborId)
 					FROM dbo.SubWorkOrderLabor WL WITH(NOLOCK) 
 						JOIN dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) ON WL.SubWorkOrderLaborHeaderId = WLH.SubWorkOrderLaborHeaderId
-					WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId AND  ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
+					WHERE WLH.SubWorkOrderId = @SubWorkOrderId and WL.IsDeleted= 0 AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId AND  ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @IsLaborCompleled = 1;
+					SELECT @IsLaborCompleled = 0;
 				END
 
-				IF(EXISTS (SELECT 1 FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId  and COCI.IsDeleted= 0))
 				BEGIN 
 					SELECT @AllToolsAreCheckOut = COUNT(COCI.SubWOCheckInCheckOutWorkOrderAssetId)
 					FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) 
-					WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
+					WHERE COCI.SubWOPartNoId = @SubWOPartNoId  and COCI.IsDeleted= 0 AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @AllToolsAreCheckOut = 1;
+					SELECT @AllToolsAreCheckOut = 0;
 				END
 
 				SELECT  wosd.WorkOrderId, 

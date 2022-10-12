@@ -14,9 +14,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/03/2022   Vishal Suthar Added Legal Entity
+	2    30/08/2022   subhash saliya Changes ledger id
      
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_AccountingCalendarList]
+CREATE     PROCEDURE [dbo].[USP_AccountingCalendarList]
 @PageSize INT=10,
 @PageNumber INT,
 @SortColumn VARCHAR(50) = NULL,
@@ -56,16 +57,16 @@ CREATE PROCEDURE [dbo].[USP_AccountingCalendarList]
 				BEGIN
 					;With Result AS(
 							SELECT Name,FiscalYear, min(AccountingCalendarId) as AccountingCalendarId_Min,
-							max(AccountingCalendarId) as AccountingCalendarId_Max, LegalEntityId, LegalEntityIds
+							max(AccountingCalendarId) as AccountingCalendarId_Max, LegalEntityId, ledgerId,max(Description) as Descriptionmax
 							from AccountingCalendar WITH(NOLOCK)
 							WHERE IsDeleted =0 AND IsActive=1 AND MasterCompanyId=@MasterCompanyId
-							GROUP BY Name, FiscalYear, LegalEntityId, LegalEntityIds
+							GROUP BY Name, FiscalYear, LegalEntityId, ledgerId
 					), FinalResult AS(
-					Select RS.AccountingCalendarId_Max AccountingCalendarId, RS.Name, AC_Max.Description, AC_Max.FiscalName,RS.FiscalYear,
+					Select RS.AccountingCalendarId_Max AccountingCalendarId, RS.Name, RS.Descriptionmax as Description, AC_Max.FiscalName,RS.FiscalYear,
 					AC_Max.Quater, AC_Max.Period, AC_Min.FromDate,AC_Max.ToDate, AC_Max.PeriodName, AC_Max.Notes, AC_Max.MasterCompanyId,AC_Max.CreatedBy,AC_Max.UpdatedBy,
 					AC_Max.CreatedDate, AC_Max.UpdatedDate, AC_Max.IsActive, AC_Max.IsDeleted, AC_Max.Status, AC_Max.LegalEntityId,AC_Max.isUpdate,AC_Max.IsAdjustPeriod,
-					AC_Max.NoOfPeriods, AC_Max.PeriodType, AC_Max.LegalEntityIds, LE.Name LagalEntity,
-					(select * from AccountingCalendar where Name=RS.Name AND FiscalYear = RS.FiscalYear for JSON PATH) as calendarListData
+					AC_Max.NoOfPeriods, AC_Max.PeriodType, AC_Max.ledgerId, LE.Name LagalEntity,
+					(select * from AccountingCalendar where  IsDeleted =0 AND IsActive=1 and Name=RS.Name AND FiscalYear = RS.FiscalYear for JSON PATH) as calendarListData
 					from Result RS WITH(NOLOCK)
 					inner join AccountingCalendar as AC_Min WITH(NOLOCK) on  AC_Min.AccountingCalendarId = RS.AccountingCalendarId_Min
 					inner join AccountingCalendar as AC_Max WITH(NOLOCK) on  AC_Max.AccountingCalendarId = RS.AccountingCalendarId_Max
@@ -105,6 +106,7 @@ CREATE PROCEDURE [dbo].[USP_AccountingCalendarList]
 					CASE WHEN (@SortOrder=1 and @SortColumn='PeriodName')  THEN PeriodName END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='startDate')  THEN FromDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='endDate')  THEN ToDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='name')  THEN Name END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Description')  THEN Description END Desc,
@@ -112,6 +114,7 @@ CREATE PROCEDURE [dbo].[USP_AccountingCalendarList]
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Period')  THEN Period END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PeriodName')  THEN PeriodName END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='startDate')  THEN FromDate END Desc,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='endDate')  THEN ToDate END Desc
 
 					OFFSET @RecordFrom ROWS 

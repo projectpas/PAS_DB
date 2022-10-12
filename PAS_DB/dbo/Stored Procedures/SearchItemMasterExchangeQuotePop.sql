@@ -1,9 +1,9 @@
 ﻿CREATE PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
-@ItemMasterIdlist VARCHAR(max) = '284', 
+@ItemMasterIdlist VARCHAR(max) = '', 
 --@ConditionId BIGINT = NULL,
-@ConditionIds VARCHAR(100) = '40',
-@CustomerId BIGINT = 340,
-@MappingType INT = -1
+@ConditionIds VARCHAR(100) = '',
+@CustomerId BIGINT,
+@MappingType INT
 
 AS
 BEGIN
@@ -13,7 +13,7 @@ BEGIN
 	 BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				SELECT 
+				SELECT
 				im.PartNumber
 				,im.ItemMasterId As PartId
 				,im.ItemMasterId As ItemMasterId
@@ -57,6 +57,7 @@ BEGIN
 				,imel.LoanOutrightPrice
 				,imel.LoanFees
 				,imel.ExchangeOverhaulCost
+				,imel.EFcogs as cogs
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
@@ -105,7 +106,8 @@ BEGIN
 				,imel.LoanCorePrice
 				,imel.LoanOutrightPrice
 				,imel.LoanFees
-				,imel.ExchangeOverhaulCost
+				,imel.ExchangeOverhaulCost,
+				imel.EFcogs
 			END
 		COMMIT  TRANSACTION
 

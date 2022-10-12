@@ -18,7 +18,7 @@
     1    06-May-2022  Mahesh Sorathiya   Created  
 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
+CREATE PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -132,11 +132,11 @@ BEGIN
         PUBType.name 'pubtype',
         LC.Name 'location',
         WFPUB.Source 'source',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN M.model ELSE M.model + '&nbsp;' END 'model',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN A.aircraft ELSE A.aircraft + '&nbsp;' END 'aircraft',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN M.model ELSE M.model END 'model',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN A.aircraft ELSE A.aircraft END 'aircraft',
         --IMAM.aircraftmodel 'model',
         --IMAM.AircraftType 'aircraft',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN T.atachapter ELSE T.atachapter + '&nbsp;' END 'atachapter',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN T.atachapter ELSE T.atachapter END 'atachapter',
 		PUB.revisionnum 'revnum',        
         E.firstname + ' ' + E.lastname 'verifiedby',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.EntryDate, 107) END 'entrydate', 

@@ -1,15 +1,14 @@
 ﻿---------------------------------------------------------------------------------------------------
-
 -- =============================================
 -- Description:	Get Search Data for Exchange Quote  search for from part list tab
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 -- =============================================
 CREATE PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
-@ItemMasterIdlist VARCHAR(max) = '146', 
-@ConditionId BIGINT = 1,
+@ItemMasterIdlist VARCHAR(max) = '', 
+@ConditionId BIGINT,
 --@ConditionIds VARCHAR(100) = NULL,
-@CustomerId BIGINT = 336,
-@MappingType INT = -1
+@CustomerId BIGINT,
+@MappingType INT
 
 AS
 BEGIN
@@ -99,6 +98,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 ,imel.LoanOutrightPrice
 						 ,imel.LoanFees
 						 ,imel.ExchangeOverhaulCost
+						 ,imel.EFcogs as cogs
 				FROM DBO.ItemMaster im WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK)ON im.ItemMasterId = sl.ItemMasterId 
 					AND sl.isActive = 1 AND sl.IsDeleted = 0 

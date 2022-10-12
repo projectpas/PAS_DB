@@ -88,7 +88,7 @@ select
 
 		DECLARE @ModuleID INT = 17; -- MS Module ID
 		SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
-
+	
   IF ISNULL(@PageSize,0)=0
 	  BEGIN 
 		  SELECT @PageSize=COUNT(*) 
@@ -103,8 +103,8 @@ select
 			LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1  
 			LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid  
 			LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid          
-		  WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND
-		  CAST(SOBI.invoicedate AS DATETIME) BETWEEN CAST(@FromDate AS DATETIME) AND CAST(@ToDate AS DATETIME)  AND
+		  WHERE SOBI.customerid=ISNULL(@name, SOBI.customerid) AND
+			 CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND
 		  SO.mastercompanyid = @mastercompanyid  
 			AND  
 				(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
@@ -164,7 +164,7 @@ select
         LEFT JOIN dbo.workorder WO WITH (NOLOCK)  ON STL.workorderid = WO.workorderid  
         LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid  
       WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND
-	  CAST(SOBI.invoicedate AS DATETIME) BETWEEN CAST(@FromDate AS DATETIME) AND CAST(@ToDate AS DATETIME)  AND
+		CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND
 	  SO.mastercompanyid = @mastercompanyid  
 	    AND  
 			(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))

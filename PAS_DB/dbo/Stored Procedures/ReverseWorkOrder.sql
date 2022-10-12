@@ -12,7 +12,7 @@ Exec [ReverseWorkOrder]
 ** --   --------    -------         --------------------------------
 ** 1    07/04/2022  Hemant Saliya    Delete WO Details And Reverse MPN Stockline
 
-EXEC dbo.ReverseWorkOrder 286,'Admin'
+EXEC dbo.ReverseWorkOrder 294,'Admin'
 
 **************************************************************/ 
 
@@ -233,6 +233,9 @@ AS
 					/*Assets*/
 					DELETE FROM CheckInCheckOutWorkOrderAsset WHERE WorkOrderPartNoId = @WorkOrderPartNumberId
 					DELETE FROM WorkOrderAssets WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
+					/*Work Order Quote Approval*/
+					DELETE FROM dbo.WorkOrderApproval where WorkOrderId = @WorkOrderId
 
 					/*Work Order Quote Materials*/
 					DELETE FROM WorkOrderQuoteMaterial WHERE WorkOrderQuoteDetailsId IN (SELECT WorkOrderQuoteDetailsId FROM WorkOrderQuoteDetails WHERE WOPartNoId = @WorkOrderPartNumberId)

@@ -11,8 +11,11 @@
     [MasterCompanyId] INT             DEFAULT ((0)) NULL,
     [IsNumString]     BIT             DEFAULT ((0)) NULL,
     [IsRightAlign]    BIT             CONSTRAINT [DF_FieldsMaster_IsRightAlign] DEFAULT ((0)) NULL,
+    [IsDateField]     BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_FieldsMaster] PRIMARY KEY CLUSTERED ([FieldAutoId] ASC)
 );
+
+
 
 
 

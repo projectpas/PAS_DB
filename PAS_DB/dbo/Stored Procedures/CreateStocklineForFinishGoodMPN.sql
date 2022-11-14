@@ -52,6 +52,8 @@ BEGIN
 				DECLARE @ReceivingCustomerWorkId BIGINT;
 				DECLARE @WOItemMasterId BIGINT;
 				DECLARE @RevisedItemmasterid BIGINT;
+				DECLARE @WorkOrderId BIGINT;
+				DECLARE @WorkOrderNumber VARCHAR(50);
 
 				SET @ModuleID = 2; -- Stockline Module ID
 
@@ -64,12 +66,15 @@ BEGIN
 						@PreviousPartNumber=IM.partnumber,
 						@RevisedPartNumber=WOP.RevisedPartNumber,
 						@WOItemMasterId= WOP.ItemMasterId,
-						@RevisedItemmasterid= ISNULL(WOP.RevisedItemmasterid,0)
+						@RevisedItemmasterid= ISNULL(WOP.RevisedItemmasterid,0),
+						@WorkOrderId =WOP.WorkOrderId
 				FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9
 					LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
 				WHERE WOP.ID = @WorkOrderPartNumberId
 
+
+				select @WorkOrderNumber = WorkOrderNum from WorkOrder where WorkOrderId=@WorkOrderId
 				--SELECT @RevisedPartNoId = CASE WHEN ISNULL(RevisedPartId, 0) > 0 THEN RevisedPartId ELSE NULL END
 				--FROM [dbo].WorkOrderSettlementDetails WITH(NOLOCK) 
 				--WHERE workOrderPartNoId = @WorkOrderPartNumberId
@@ -260,7 +265,7 @@ BEGIN
 
 				if(@RevisedItemmasterid > 0 and @RevisedItemmasterid != @WOItemMasterId)
 				BEGIN
-				  	UPDATE [dbo].[Stockline] SET Memo = 'This PN has been modified. Previous PN: ' + @PreviousPartNumber + ' has been Revised to PN: ' + @RevisedPartNumber +' Date: '+ FORMAT (getdate(), 'dd/MM/yyyy ')
+				  	UPDATE [dbo].[Stockline] SET Memo = 'This PN has been modified. Previous PN: ' + @PreviousPartNumber + ' has been Revised to PN: ' + @RevisedPartNumber + 'WO Num:' + @WorkOrderNumber + ' Date: '+ FORMAT (getdate(), 'dd/MM/yyyy ')
 				 WHERE StockLineId = @NewStocklineId
 				END
 

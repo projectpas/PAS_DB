@@ -114,7 +114,7 @@ BEGIN
 								INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
 								INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								where ReceivingReconciliationId=RRH.ReceivingReconciliationId
-						)R)
+						)R where (@StatusID is null or RRH.StatusId = @StatusID))
 						,PartCTE AS(
 						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from ReceivingReconciliationHeader SQ WITH (NOLOCK)
 						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
@@ -124,7 +124,7 @@ BEGIN
 							   STUFF((SELECT DISTINCT ',' + S.POReference
 									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
 									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PartNumber
 						) A
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
@@ -139,7 +139,7 @@ BEGIN
 									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
 									  INNER Join PurchaseOrder POP WITH (NOLOCK) On S.PurchaseOrderId=POP.PurchaseOrderId
 									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PORODate
 						) B
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
@@ -154,7 +154,7 @@ BEGIN
 							   STUFF((SELECT DISTINCT ',' + S.POReference
 									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
 									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PartNumber
 						) C
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
@@ -169,7 +169,7 @@ BEGIN
 									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
 									  INNER Join RepairOrder POP WITH (NOLOCK) On S.PurchaseOrderId=POP.RepairOrderId
 									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PORODate
 						) D
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
@@ -228,6 +228,7 @@ BEGIN
 						FROM Result,CTE_Count
 						ORDER BY  
 						CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END ASC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='CURRENCYNAME')  THEN CurrencyName END ASC,
@@ -237,6 +238,7 @@ BEGIN
 						CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 						CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END Desc,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END Desc,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='CURRENCYNAME')  THEN CurrencyName END Desc,

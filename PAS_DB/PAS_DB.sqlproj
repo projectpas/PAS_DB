@@ -1940,7 +1940,6 @@
     <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderQuoteConversion.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveJournalBatchDetails.sql" />
-    <Build Include="dbo\Stored Procedures\USP_RecevingCustomer_GetAllRCWList.sql" />
     <Build Include="dbo\Stored Procedures\USP_Open_close_ledgerbyId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetJournalBatchDataList.sql" />
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistribution.sql" />
@@ -1988,6 +1987,10 @@
     <Build Include="dbo\Stored Procedures\GetRepairOrderChargesList.sql" />
     <Build Include="dbo\User Defined Types\RepairOrderFreightType.sql" />
     <Build Include="dbo\User Defined Types\RepairOrderChargesType.sql" />
+    <Build Include="dbo\Tables\SalesOrderBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonSOInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\GetBankDetailsByLegalEntity.sql" />
+    <Build Include="dbo\Stored Procedures\GetAccountingPeriodsByMS.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

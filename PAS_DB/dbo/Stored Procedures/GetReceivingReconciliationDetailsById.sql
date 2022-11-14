@@ -36,6 +36,8 @@ BEGIN
 				 ,[Description]
 				 ,[GlAccountId]
 				 ,[Type]
+				 ,[StockType]
+				 ,[RemainingRRQty]
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 				 Inner JOIN ReceivingReconciliationHeader JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId  
 				 where JBD.ReceivingReconciliationId =@ReceivingReconciliationId

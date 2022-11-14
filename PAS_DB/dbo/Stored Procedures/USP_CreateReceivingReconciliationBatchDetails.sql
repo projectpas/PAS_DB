@@ -10,6 +10,10 @@ CREATE PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails]
 @DistributionCode varchar(200),
 @JournalBatchHeaderId bigint,
 @JournalTypename varchar(200),
+@StockType varchar(50),
+@PackagingId int,
+@EmployeeId BIGINT,
+@RRId BIGINT,
 --@JtypeCode varchar(50),
 --@ReceivingReconciliationId bigint,
 @BatchId BIGINT OUTPUT
@@ -59,7 +63,8 @@ BEGIN
 			declare @TotalDebit decimal(18,2)=0;
 	        declare @TotalCredit decimal(18,2)=0;
 	        declare @TotalBalance decimal(18,2)=0;
-
+			DECLARE @STKMSModuleID bigint=2;
+			DECLARE @EMPMSModuleID bigint=47;
 			IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline'))
 	              BEGIN
 
@@ -77,8 +82,20 @@ BEGIN
 		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				      SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)')
 
+					  IF(@PackagingId > 0)
+					  BEGIN
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('VAR - Cost/Qty - COGS') AND JournalTypeId=6;
+						select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from EmployeeManagementStructureDetails  where ReferenceID=@EmployeeId AND ModuleID=@EMPMSModuleID;
+						Select @VendorId=VendorId,@VendorName =VendorName from ReceivingReconciliationHeader where ReceivingReconciliationId = @RRId;
+					  END
+					  ELSE
+					  BEGIN
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND JournalTypeId=6;
+						select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+					  END
+
+				      --SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND JournalTypeId=6;
 				     INSERT INTO [dbo].[BatchDetails]
                             (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
 							--[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN] ,
@@ -103,10 +120,10 @@ BEGIN
 
 					INSERT INTO [StocklineBatchDetails]
 						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
-						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf])
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType])
 					VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
-						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf)
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType)
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -121,7 +138,7 @@ BEGIN
 
 					 select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId;
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
-					 select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
+					 --select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
 					 select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
 					  --SET @UnitPrice = @Amount;
 					  SET @Amount = (@Qty * @Amount);
@@ -129,8 +146,19 @@ BEGIN
 		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				      SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)')
-
+				      
+					  IF(@PackagingId > 0)
+					  BEGIN
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('VAR - Cost/Qty - COGS') AND JournalTypeId=7;
+						select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from EmployeeManagementStructureDetails  where ReferenceID=@EmployeeId AND ModuleID=@EMPMSModuleID;
+						Select @VendorId=VendorId,@VendorName =VendorName from ReceivingReconciliationHeader where ReceivingReconciliationId = @RRId;
+					  END
+					  ELSE
+					  BEGIN
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND JournalTypeId=7;
+						select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+					  END
+					  --SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND JournalTypeId=7;
 				     INSERT INTO [dbo].[BatchDetails]
                             (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
 							--[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN] ,
@@ -156,10 +184,10 @@ BEGIN
 
 					INSERT INTO [StocklineBatchDetails]
 						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
-						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf])
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType])
 					VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
-						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf)
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType)
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId

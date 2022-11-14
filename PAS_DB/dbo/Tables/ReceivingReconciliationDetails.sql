@@ -28,8 +28,12 @@
     [GlAccountNumber]                 VARCHAR (200)   NULL,
     [GlAccountName]                   VARCHAR (200)   NULL,
     [Type]                            INT             NULL,
+    [StockType]                       VARCHAR (50)    NULL,
+    [RemainingRRQty]                  INT             NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetails] PRIMARY KEY CLUSTERED ([ReceivingReconciliationDetailId] ASC)
 );
+
+
 
 
 

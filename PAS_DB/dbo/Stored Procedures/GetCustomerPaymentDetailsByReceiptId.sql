@@ -36,6 +36,10 @@ BEGIN
 			  ,[Ismiscellaneous]
 			  ,[AppliedAmount]
 			  ,[InvoiceAmount]
+			  ,[LegalEntityId]
+			  ,[BankAcctNum]
+			  ,[BankingId]
+			  ,[Type]
 	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -66,6 +70,10 @@ BEGIN
 			  ,[Ismiscellaneous]
 			  ,[AppliedAmount]
 			  ,[InvoiceAmount]
+			  ,[LegalEntityId]
+			  ,[BankAcctNum]
+			  ,[BankingId]
+			  ,[Type]
 	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

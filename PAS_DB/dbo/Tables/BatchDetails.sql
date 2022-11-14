@@ -26,8 +26,12 @@
     [IsManualEntry]         BIT             NULL,
     [DistributionSetupId]   INT             NULL,
     [DistributionName]      VARCHAR (200)   NULL,
+    [JournalTypeNumber]     VARCHAR (50)    NULL,
+    [CurrentNumber]         BIGINT          NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
+
+
 
 
 

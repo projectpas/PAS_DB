@@ -71,6 +71,7 @@
     [UpdatedDate]                  DATETIME2 (7)   CONSTRAINT [DF_NonStockInventory_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_NonStockInventory_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_NonStockInventory_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [RRQty]                        INT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_NonStockInventory] PRIMARY KEY CLUSTERED ([NonStockInventoryId] ASC),
     CONSTRAINT [FK_NonStockInventory_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_NonStockInventory_GLAccountId] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -86,6 +87,8 @@
     CONSTRAINT [FK_NonStockInventory_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_NonStockInventorye_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
 
 
 

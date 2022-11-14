@@ -75,6 +75,7 @@ BEGIN
 				 ,jbd.DistributionSetupId
 				 ,jbd.DistributionName
 				 ,le.CompanyName as LegalEntityName
+				 ,JBD.JournalTypeNumber,JBD.CurrentNumber
 				 FROM [dbo].[BatchDetails] JBD WITH(NOLOCK)
 				 Inner JOIN BatchHeader JBH WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId
 				 left JOIN WorkOrderBatchDetails WBD WITH(NOLOCK) ON JBD.JournalBatchDetailId=WBD.JournalBatchDetailId  
@@ -148,9 +149,70 @@ BEGIN
 				 ,stbd.[Location]
 				 ,stbd.[Bin]
 				 ,stbd.[Shelf]
+				 ,JBD.JournalTypeNumber,JBD.CurrentNumber
+				 ,0 as [CustomerId],'' as [CustomerName],0 as [InvoiceId],'' as [InvoiceName],'' as [ARControlNum],'' as [CustRefNumber],0 as [ReferenceId],'' as [ReferenceName]
 				 FROM [dbo].[BatchDetails] JBD WITH(NOLOCK)
 				 Inner JOIN BatchHeader JBH WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 				 left join StocklineBatchDetails stbd WITH(NOLOCK) ON JBD.JournalBatchDetailId = stbd.JournalBatchDetailId
+				 left JOIN GLAccount GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId 
+				 left JOIN EntityStructureSetup ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId
+				 left JOIN ManagementStructureLevel msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID
+				 left JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+				 where JBD.JournalBatchHeaderId =@JournalBatchHeaderId and JBD.IsDeleted=@IsDeleted
+		END
+		ELSE IF(UPPER(@Module) = UPPER('SOI'))
+			BEGIN
+				SELECT   JBD.[JournalBatchDetailId]
+                 ,JBH.[JournalBatchHeaderId]
+				 ,JBH.[BatchName]
+                 ,[LineNumber]
+                 ,JBD.[GlAccountId]
+                 ,[GlAccountNumber]
+                 ,[GlAccountName]
+                 ,[TransactionDate]
+                 ,JBD.[EntryDate]
+                 ,SBD.SalesOrderID as [ReferenceId]
+                 ,SBD.SalesOrderNumber as [ReferenceName]
+                 ,SBD.PartId as [MPNPartId]
+                 ,SBD.PartNumber as [MPNName]
+                 --,SBD.[PiecePNId]
+                 --,SBD.[PiecePN]
+                 ,JBD.[JournalTypeId]
+                 ,JBD.[JournalTypeName]
+                 ,[IsDebit]
+                 ,[DebitAmount]
+                 ,[CreditAmount]
+                 ,SBD.[CustomerId]
+                 ,SBD.[CustomerName]
+                 ,SBD.DocumentId as [InvoiceId]
+                 ,SBD.DocumentNumber as [InvoiceName]
+                 ,SBD.ARControlNumber as [ARControlNum]
+                 ,SBD.CustomerRef as [CustRefNumber]
+                 ,[ManagementStructureId]
+                 ,[ModuleName]
+                 --,WBD.[Qty]
+                 --,WBD.[UnitPrice]
+                 --,WBD.[LaborHrs]
+                 --,WBD.[DirectLaborCost]
+                 --,WBD.[OverheadCost]
+                 ,JBD.[MasterCompanyId]
+                 ,JBD.[CreatedBy]
+                 ,JBD.[UpdatedBy]
+                 ,JBD.[CreatedDate]
+                 ,JBD.[UpdatedDate]
+                 ,JBD.[IsActive]
+                 ,JBD.[IsDeleted]
+				 ,GL.AllowManualJE
+				 ,JBD.LastMSLevel
+				 ,JBD.AllMSlevels
+				 ,JBD.IsManualEntry
+				 ,jbd.DistributionSetupId
+				 ,jbd.DistributionName
+				 ,le.CompanyName as LegalEntityName
+				 ,JBD.JournalTypeNumber,JBD.CurrentNumber
+				 FROM [dbo].[BatchDetails] JBD WITH(NOLOCK)
+				 Inner JOIN BatchHeader JBH WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId
+				 left JOIN SalesOrderBatchDetails SBD WITH(NOLOCK) ON JBD.JournalBatchDetailId=SBD.JournalBatchDetailId  
 				 left JOIN GLAccount GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId 
 				 left JOIN EntityStructureSetup ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId
 				 left JOIN ManagementStructureLevel msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID

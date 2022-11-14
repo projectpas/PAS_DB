@@ -23,8 +23,11 @@
     [PrintedDate]          DATETIME        NULL,
     [AccountingPeriodId]   BIGINT          NULL,
     [Module]               VARCHAR (50)    NULL,
+    [CustomerTypeId]       INT             NULL,
     CONSTRAINT [PK_JournalBatchHeader] PRIMARY KEY CLUSTERED ([JournalBatchHeaderId] ASC)
 );
+
+
 
 
 

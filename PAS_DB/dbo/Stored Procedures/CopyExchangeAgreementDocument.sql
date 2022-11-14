@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[CopyExchangeAgreementDocument]
+﻿Create    PROCEDURE [dbo].[CopyExchangeAgreementDocument]
 @MasterCompanyId int=1,
 @ExchangeQuoteId bigint=21,
 @ExchangeSalesOrderId bigint=21,
@@ -23,7 +23,7 @@ SET NOCOUNT ON;
 	SELECT IDENT_CURRENT('Attachment'),FileName,Description,Link,FileFormat,FileSize,FileType,GETDATE(),GETDATE(),CreatedBy,UpdatedBy,IsActive,IsDeleted,[Name],Memo,TypeId FROM AttachmentDetails WHERE AttachmentId=@AttachmentId;
 	
 	INSERT INTO CommonDocumentDetails
-	SELECT @EXCHANGESALESORDERMODULEID,@ExchangeSalesOrderId,IDENT_CURRENT('Attachment'),DocName,DocMemo,DocDescription,@MasterCompanyId,CreatedBy,UpdatedBy,GETDATE(),GETDATE(),IsActive,IsDeleted,DocumentTypeId,NULL,ReferenceIndex,ModuleType FROM CommonDocumentDetails WHERE AttachmentId=@AttachmentId;
+	SELECT @EXCHANGESALESORDERMODULEID,@ExchangeSalesOrderId,IDENT_CURRENT('Attachment'),DocName,DocMemo,DocDescription,@MasterCompanyId,CreatedBy,UpdatedBy,GETDATE(),GETDATE(),IsActive,IsDeleted,DocumentTypeId,ExpirationDate,ReferenceIndex,ModuleType FROM CommonDocumentDetails WHERE AttachmentId=@AttachmentId;
 
 	SELECT @AttachmentIds = IDENT_CURRENT('Attachment');
 

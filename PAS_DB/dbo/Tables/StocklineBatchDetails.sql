@@ -25,6 +25,9 @@
     [Bin]                    VARCHAR (100)  NULL,
     [ShelfId]                BIGINT         NULL,
     [Shelf]                  VARCHAR (100)  NULL,
+    [StockType]              VARCHAR (50)   NULL,
     CONSTRAINT [PK_StocklineBatchDetails] PRIMARY KEY CLUSTERED ([StocklineBatchDetailId] ASC)
 );
+
+
 

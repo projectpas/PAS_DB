@@ -72,6 +72,9 @@
     [UpdatedDate]                  DATETIME2 (7)   CONSTRAINT [DF_NonStockInventoryAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_NonStockInventoryAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_NonStockInventoryAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [RRQty]                        INT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_NonStockInventoryAudit] PRIMARY KEY CLUSTERED ([NonStockInventoryAuditId] ASC)
 );
+
+
 

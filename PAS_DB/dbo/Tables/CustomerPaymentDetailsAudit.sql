@@ -26,8 +26,14 @@
     [Ismiscellaneous]                     BIT             DEFAULT ((0)) NOT NULL,
     [AppliedAmount]                       DECIMAL (20, 2) NULL,
     [InvoiceAmount]                       DECIMAL (20, 2) NULL,
+    [LegalEntityId]                       BIGINT          NULL,
+    [BankAcctNum]                         VARCHAR (100)   NULL,
+    [BankingId]                           BIGINT          NULL,
+    [Type]                                VARCHAR (100)   NULL,
     CONSTRAINT [PK_CustomerPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditCustomerPaymentDetailsId] ASC)
 );
+
+
 
 
 

@@ -139,9 +139,12 @@
     [BinId]                             BIGINT          NULL,
     [BinName]                           VARCHAR (250)   NULL,
     [StatusNote]                        VARCHAR (500)   NULL,
+    [RRQty]                             INT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );
+
+
 
 
 

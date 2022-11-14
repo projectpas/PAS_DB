@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[ProcStockList]
+﻿CREATE   PROCEDURE [dbo].[ProcStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -44,7 +44,8 @@
 @obtainFrom varchar(50) = NULL,
 @ownerName varchar(50) = NULL,
 @LastMSLevel varchar(50)=null,
-@QuantityReserved varchar(50)=null
+@QuantityReserved varchar(50)=null,
+@WorkOrderStage varchar(50)=null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -169,6 +170,7 @@ BEGIN
 						(obtainFrom LIKE '%' +@GlobalFilter+'%') OR
 						(ownerName LIKE '%' +@GlobalFilter+'%') OR
 						(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
+						(WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
 						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -205,6 +207,7 @@ BEGIN
 						(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND						
 						(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND
 						(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND
+						(ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage LIKE '%' + @WorkOrderStage + '%') AND
 						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 					   )
 					   SELECT @Count = COUNT(StockLineId) FROM #TempResults			
@@ -278,6 +281,8 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='obtainFrom')  THEN obtainFrom END DESC,						
 						CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
 						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,
+						CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderStage')  THEN WorkOrderStage END ASC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderStage')  THEN WorkOrderStage END DESC,
 						CASE WHEN (@SortOrder=1  AND @SortColumn='ownerName')  THEN ownerName END ASC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC
 				
@@ -378,6 +383,7 @@ BEGIN
 						(DeptName LIKE '%' +@GlobalFilter+'%') OR					
 						(obtainFrom LIKE '%' +@GlobalFilter+'%') OR
 						(ownerName LIKE '%' +@GlobalFilter+'%') OR
+						(WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR
 						(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
 						OR   
 						(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -414,6 +420,7 @@ BEGIN
 						(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND
 						(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND
 						(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and
+						(ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage like '%' + @WorkOrderStage+'%') and
 						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 					   )
 					   SELECT @Count = COUNT(StockLineId) FROM #TempResult			
@@ -489,6 +496,8 @@ BEGIN
 				CASE WHEN (@SortOrder=1  AND @SortColumn='ownerName')  THEN ownerName END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderStage')  THEN WorkOrderStage END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderStage')  THEN WorkOrderStage END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC
 				
 			OFFSET @RecordFrom ROWS 

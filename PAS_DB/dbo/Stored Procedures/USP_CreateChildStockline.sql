@@ -423,7 +423,7 @@ BEGIN
 							,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
 							,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]
 							,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]
-							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood])
+							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty])
 
 							SELECT [PartNumber],
 							@StocklineNumber
@@ -453,7 +453,7 @@ BEGIN
 							,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
 							,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]
 							,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]
-							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood] FROM DBO.Stockline SL WITH (NOLOCK)
+							,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1 FROM DBO.Stockline SL WITH (NOLOCK)
 							WHERE SL.StockLineId = @StocklineId
 
 							SELECT @NewStocklineId = SCOPE_IDENTITY()

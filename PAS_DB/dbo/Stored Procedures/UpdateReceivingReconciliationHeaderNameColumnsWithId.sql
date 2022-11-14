@@ -18,6 +18,13 @@ BEGIN
 		LEFT JOIN DBO.Vendor VR WITH (NOLOCK) ON VR.VendorId = SO.VendorId
 		LEFT JOIN DBO.Currency C WITH (NOLOCK) ON C.CurrencyId = SO.CurrencyId
 		Where SO.ReceivingReconciliationId = @ReceivingReconciliationId
+
+		Update RRDE
+		SET GlAccountNumber = G.AccountCode,
+		GlAccountName = G.AccountName
+		FROM [dbo].[ReceivingReconciliationDetails] RRDE WITH (NOLOCK)
+		LEFT JOIN DBO.GLAccount G WITH (NOLOCK) ON G.GlAccountId = RRDE.GlAccountId
+		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId
 	END
 	COMMIT  TRANSACTION
 

@@ -31,6 +31,11 @@ BEGIN
                  ,[APNumber]
 				 ,[PurchaseOrderId]
 				 ,[PurchaseOrderPartRecordId]
+				 ,[IsManual]
+				 ,[PackagingId]
+				 ,[Description]
+				 ,[GlAccountId]
+				 ,[Type]
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 				 Inner JOIN ReceivingReconciliationHeader JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId  
 				 where JBD.ReceivingReconciliationId =@ReceivingReconciliationId

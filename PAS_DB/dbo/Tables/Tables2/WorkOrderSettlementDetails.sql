@@ -19,12 +19,15 @@
     [UserName]                    VARCHAR (500)  NULL,
     [sattlement_DateTime]         DATETIME       NULL,
     [conditionName]               VARCHAR (200)  NULL,
+    [RevisedPartId]               BIGINT         NULL,
     CONSTRAINT [PK_WorkOrderSettlementDetails] PRIMARY KEY CLUSTERED ([WorkOrderSettlementDetailId] ASC),
     CONSTRAINT [FK_WorkOrderSettlementDetails_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderSettlementDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderSettlementDetails_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderSettlementDetails_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

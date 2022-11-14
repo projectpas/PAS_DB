@@ -1,5 +1,5 @@
 ﻿
-Create Procedure [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
+Create   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
 	@WorkOrderId  bigint,
 	@WorkOrderPartId bigint
 AS
@@ -21,8 +21,8 @@ BEGIN
 						wos.AirwayBill As 'AWB',
 						(SUM(wosi.QtyShipped)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId)) as QtyToBill, 
 						wo.WorkOrderNum as WorkOrderNumber, 
-						imt.partnumber, 
-						imt.PartDescription, 
+						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			            CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 						sl.StockLineNumber,
 						sl.SerialNumber, 
 						cr.[Name] as CustomerName, 
@@ -36,7 +36,7 @@ BEGIN
 						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
 						wobi.InvoiceStatus ,
 						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
-						imt.ItemMasterId,
+						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 						(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 						,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
 					FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
@@ -61,7 +61,7 @@ BEGIN
 						sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
 						CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END,
 						curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobi.SubTotal 
-						, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId
+						, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
 					) a
 
 					;WITH CTE_Temp AS

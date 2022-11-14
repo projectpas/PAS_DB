@@ -1,5 +1,5 @@
 ﻿-- =============================================
--- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL
+-- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL
 -- =============================================
 CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
 -- Add the parameters for the stored procedure here
@@ -64,6 +64,7 @@ BEGIN
 					Set @Status=null
 				End
 				DECLARE @MSModuleID INT = 4; -- Purchaseorder Management Structure Module ID
+				DECLARE @ROMSModuleID INT = 24; -- repairorder Management Structure Module ID
 				;With Main AS(
 						SELECT DISTINCT RRH.[ReceivingReconciliationId]
 							,RRH.[ReceivingReconciliationNumber]
@@ -87,10 +88,15 @@ BEGIN
 							,RRH.[UpdatedDate]
 							,RRH.[IsActive]
 							,RRH.[IsDeleted]
-							,P.LastMSLevel
-							,P.AllMSlevels
+							--,P.LastMSLevel
+							--,P.AllMSlevels
+							,CASE WHEN (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.LastMSLevel
+							ELSE R.LastMSLevel END as 'LastMSLevel' 
+							,CASE WHEN (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.AllMSlevels
+							ELSE R.AllMSlevels END as 'AllMSlevels',
+							[Type] = (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)
 						FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK)  
-						INNER JOIN ReceivingReconciliationDetails RRD ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId
+						LEFT JOIN ReceivingReconciliationDetails RRD ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId
 						Outer Apply(
 							Select top 1 MSD.LastMSLevel,	
 								MSD.AllMSlevels from ReceivingReconciliationDetails rrcd
@@ -99,7 +105,16 @@ BEGIN
 								INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
 								INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								where ReceivingReconciliationId=RRH.ReceivingReconciliationId
-						)P)
+						)P
+						Outer Apply(
+							Select top 1 MSD.LastMSLevel,	
+								MSD.AllMSlevels from ReceivingReconciliationDetails rrcd
+								Inner JOIN RepairOrder puo on rrcd.PurchaseOrderId = puo.RepairOrderId
+								INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = puo.RepairOrderId
+								INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
+								INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+								where ReceivingReconciliationId=RRH.ReceivingReconciliationId
+						)R)
 						,PartCTE AS(
 						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from ReceivingReconciliationHeader SQ WITH (NOLOCK)
 						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
@@ -130,20 +145,54 @@ BEGIN
 						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
 						Group By SQ.ReceivingReconciliationId,B.PORODate
 						)
+						,PartROCTE AS(
+						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse C.PartNumber End)  as 'PartNumberType',C.PartNumber from ReceivingReconciliationHeader SQ WITH (NOLOCK)
+						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						inner Join RepairOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
+						Outer Apply(
+							SELECT 
+							   STUFF((SELECT DISTINCT ',' + S.POReference
+									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
+									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  FOR XML PATH('')), 1, 1, '') PartNumber
+						) C
+						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
+						Group By SQ.ReceivingReconciliationId,C.PartNumber
+						),PartRODateCTE AS(
+						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse D.PORODate End)  as 'PORODateType',D.PORODate from ReceivingReconciliationHeader SQ WITH (NOLOCK)
+						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						inner Join RepairOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
+						Outer Apply(
+							SELECT 
+							   STUFF((SELECT DISTINCT ',' + CONVERT(VARCHAR, POP.OpenDate , 110)
+									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
+									  INNER Join RepairOrder POP WITH (NOLOCK) On S.PurchaseOrderId=POP.RepairOrderId
+									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId
+									  FOR XML PATH('')), 1, 1, '') PORODate
+						) D
+						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
+						Group By SQ.ReceivingReconciliationId,D.PORODate
+						)
 						,Result AS(
 						Select M.ReceivingReconciliationId,M.ReceivingReconciliationNumber,M.InvoiceNum as 'InvoiceNum',M.StatusId,M.Status as 'Status',M.VendorId,M.VendorName,IsNull(M.CurrencyId,0) as 'CurrencyId',M.CurrencyName,M.OpenDate,
 									M.OriginalTotal,M.RRTotal,M.InvoiceTotal,M.DIfferenceAmount,M.TotalAdjustAmount,M.CreatedBy,M.UpdatedBy,M.CreatedDate,M.UpdatedDate,M.IsDeleted,M.IsActive,
-									M.LastMSLevel,M.AllMSlevels,PT.PartNumber,PT.PartNumberType,PTE.PORODate,PTE.PORODateType
+									M.LastMSLevel,M.AllMSlevels,CASE WHEN M.[Type] = 1 THEN PT.PartNumber ELSE PTRO.PartNumber END as 'PartNumber',CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END as 'PartNumberType',
+									CASE WHEN M.[Type] = 1 THEN PTE.PORODate ELSE PTERO.PORODate END as 'PORODate',CASE WHEN M.[Type] = 1 THEN PTE.PORODateType ELSE PTERO.PORODateType END as 'PORODateType'
 									from Main M 
 						Left Join PartCTE PT On M.ReceivingReconciliationId=PT.ReceivingReconciliationId
 						Left Join PartDateCTE PTE On M.ReceivingReconciliationId=PTE.ReceivingReconciliationId
+						Left Join PartROCTE PTRO On M.ReceivingReconciliationId=PTRO.ReceivingReconciliationId
+						Left Join PartRODateCTE PTERO On M.ReceivingReconciliationId=PTERO.ReceivingReconciliationId
 						Where (
 						(@GlobalFilter <>'' AND (
 						(M.ReceivingReconciliationNumber like '%' +@GlobalFilter+'%' ) OR
 								(M.InvoiceNum like '%' +@GlobalFilter+'%') OR
 								--(M.[Status] like '%' +@GlobalFilter+'%') OR
 								(M.VendorName like '%' +@GlobalFilter+'%') OR
-								(PartNumberType like '%' +@GlobalFilter+'%') OR  
+								--(PartNumberType like '%' +@GlobalFilter+'%') OR  
+								(CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END like '%' +@GlobalFilter+'%') OR  
 								(M.CurrencyName like '%' +@GlobalFilter+'%')
 								--(M.CreatedBy like '%' +@GlobalFilter+'%') OR
 								--(M.UpdatedBy like '%' +@GlobalFilter+'%') 
@@ -156,7 +205,8 @@ BEGIN
 								(IsNull(@VendorName,'') =''  OR M.VendorName like '%'+@VendorName+'%') and
 								--(IsNull(@Status,'') =''  OR M.[Status] like '%'+@Status+'%') and
 								(IsNull(@CurrencyName,'') =''  OR M.CurrencyName like '%'+@CurrencyName+'%') and
-								(IsNull(@PartNumberType,'') =''  OR PT.PartNumberType like '%'+@PartNumberType+'%') and
+								--(IsNull(@PartNumberType,'') =''  OR PT.PartNumberType like '%'+@PartNumberType+'%') and
+								(IsNull(@PartNumberType,'') =''  OR CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END like '%'+@PartNumberType+'%') and
 								--(IsNull(@CreatedBy,'') =''  OR M.CreatedBy like '%'+@CreatedBy+'%') and
 								--(IsNull(@UpdatedBy,'') =''  OR M.UpdatedBy like '%'+@UpdatedBy+'%') and
 								(@OriginalTotal is  null or M.OriginalTotal=@OriginalTotal) and

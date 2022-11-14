@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
+﻿Create   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
 @WorkOrderId bigint,
 @WorkOrderPartId bigint,
 @WOPickTicketId bigint
@@ -16,9 +16,13 @@ BEGIN
 						group by WorkOrderId, WorkFlowWorkOrderId
 					)
 					select wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wop.Quantity AS Qty, wopt.QtyToShip as QtyShipped,
-					imt.partnumber as PartNumber,imt.PartDescription,wopt.PickTicketNumber,
+					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+				    CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
+					wopt.PickTicketNumber,
 					sl.SerialNumber,sl.ControlNumber,sl.IdNumber,co.[Description] as ConditionDescription,
-					so.WorkOrderNum,uom.ShortName as UOM,s.[Name] as SiteName,w.[Name] as WarehouseName,l.[Name] as LocationName,sh.[Name] as ShelfName, p.Description as PriorityName,
+					so.WorkOrderNum,
+					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN uomR.ShortName ELSE uom.ShortName END as 'UOM',
+					s.[Name] as SiteName,w.[Name] as WarehouseName,l.[Name] as LocationName,sh.[Name] as ShelfName, p.Description as PriorityName,
 					bn.[Name] as BinName,
 					po.PurchaseOrderNumber as PONumber,
 					sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wowf.Memo AS Notes,
@@ -31,8 +35,10 @@ BEGIN
 					INNER JOIN WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
 					LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
 					INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
+					LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
 					LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 					LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
+					LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.ConsumeUnitOfMeasureId
 					LEFT JOIN [Site] s WITH (NOLOCK) on s.SiteId = sl.SiteId
 					LEFT JOIN Warehouse w WITH (NOLOCK) on w.WarehouseId = sl.WarehouseId
 					LEFT JOIN [Location] l WITH (NOLOCK) on l.LocationId = sl.LocationId

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetJounalTypeSettingData]           
  ** Author:   Subhash Saliya
  ** Description: Get Data for GetJounalTypeSettingData
@@ -22,7 +21,7 @@
  EXECUTE [GetJounalTypeSettingData] 1
 **************************************************************/ 
 
-CREATE   PROCEDURE [dbo].GetJounalTypeSettingData
+Create     PROCEDURE [dbo].[GetJounalTypeSettingData]
 	@masterCompanyId bigint = null
 AS
 BEGIN
@@ -44,7 +43,9 @@ BEGIN
                     isnull(jts.UpdatedDate,GETUTCDATE()) as UpdatedDate,
                     isnull(jts.CreatedDate,GETUTCDATE()) as CreatedDate,
                     jts.IsActive,
-                    jts.IsDeleted
+                    jts.IsDeleted,
+					jts.IsAppendtoBatch,
+					jts.IsAutoPost
                     
 				FROM dbo.JournalType jt  WITH(NOLOCK)
 				left join JournalTypeSetting jts   WITH(NOLOCK) on jt.ID=jts.JournalTypeID and jts.MasterCompanyId= @masterCompanyId

@@ -1,4 +1,4 @@
-﻿CREATE Procedure [dbo].[sp_GetWOShippingChildList]
+﻿Create   Procedure [dbo].[sp_GetWOShippingChildList]
 @WorkOrderId bigint,
 @WorkOrderPartId bigint
 AS
@@ -18,8 +18,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						wopt.PickTicketNumber as  WOPickTicketNumber,
 						(ISNULL(wopt.QtyToShip,0) - ISNULL(wosi.QtyShipped,0)) as QtyToShip,
 						wo.WorkOrderNum,
-						imt.partnumber,
-						imt.PartDescription,
+						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			            CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 						sl.StockLineNumber,
 						sl.SerialNumber,cr.[Name] as CustomerName,
 						woc.CustomsValue,woc.CommodityCode,

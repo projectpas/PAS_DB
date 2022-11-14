@@ -1,6 +1,4 @@
-﻿   
-    
---select * from dbo.Employee    
+﻿--select * from dbo.Employee    
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1    
 --select * from dbo.Customer    
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,'50'    
@@ -10,7 +8,7 @@
 --EXEC AutoCompleteDropdowns 'MasterParts','MasterPartId','PartNumber','',1,'20','0',1
   --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','fa',0,0,'0',5
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdowns]    
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns]    
 @TableName VARCHAR(50) = null,    
 @Parameter1 VARCHAR(50)= null,    
 @Parameter2 VARCHAR(100)= null,    
@@ -53,7 +51,26 @@ BEGIN
                SELECT DISTINCT  EmployeeId AS Value,FirstName+' '+LastName AS Label  FROM dbo.Employee WITH(NOLOCK)
                WHERE MasterCompanyId = @MasterCompanyId AND EmployeeId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,',')) 
          END        
-     END    
+     END
+	 ELSE IF(@TableName='Task') 
+	 BEGIN
+	  IF(@Parameter4=1)    
+         BEGIN      
+               SELECT DISTINCT  TaskId AS Value,Description AS Label,Sequence    
+               FROM dbo.Task WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND (IsActive=1 AND ISNULL(IsDeleted,0)=0 AND (Description LIKE '%' + @Parameter3 + '%'))    
+               UNION     
+               SELECT DISTINCT  TaskId AS Value,Description AS Label,Sequence FROM dbo.Task  WITH(NOLOCK)
+               WHERE MasterCompanyId = @MasterCompanyId AND TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,',')) ORDER BY Sequence asc        
+         END    
+		 ELSE    
+         BEGIN    
+               SELECT DISTINCT   TaskId AS Value,Description AS Label,Sequence     
+               FROM dbo.Task WITH(NOLOCK) WHERE  MasterCompanyId = @MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted,0)=0  AND Description LIKE '%' + @Parameter3 + '%'    
+               UNION     
+               SELECT DISTINCT   TaskId AS Value,Description AS Label,Sequence      FROM dbo.Task WITH(NOLOCK)
+               WHERE MasterCompanyId = @MasterCompanyId AND TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  ORDER BY Sequence asc 
+         END    
+	 END
      ELSE    
      BEGIN    
      IF(@Parameter4=1)    
@@ -108,7 +125,26 @@ BEGIN
             FROM dbo.Employee WITH(NOLOCK)     
 			WHERE MasterCompanyId = @MasterCompanyId AND EmployeeId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
   END
-  END    
+  END
+  ELSE IF(@TableName='Task') 
+	 BEGIN
+	  IF(@Parameter4=1)    
+         BEGIN      
+               SELECT DISTINCT  TaskId AS Value,Description AS Label,Sequence    
+               FROM dbo.Task WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND (IsActive=1 AND ISNULL(IsDeleted,0)=0 AND (Description LIKE '%' + @Parameter3 + '%'))    
+               UNION     
+               SELECT DISTINCT  TaskId AS Value,Description AS Label,Sequence FROM dbo.Task  WITH(NOLOCK)
+               WHERE MasterCompanyId = @MasterCompanyId AND TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,',')) ORDER BY Sequence asc        
+         END    
+		 ELSE    
+         BEGIN    
+               SELECT DISTINCT   TaskId AS Value,Description AS Label,Sequence     
+               FROM dbo.Task WITH(NOLOCK) WHERE  MasterCompanyId = @MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted,0)=0  AND Description LIKE '%' + @Parameter3 + '%'    
+               UNION     
+               SELECT DISTINCT   TaskId AS Value,Description AS Label,Sequence  FROM dbo.Task WITH(NOLOCK)
+               WHERE MasterCompanyId = @MasterCompanyId AND TaskId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  ORDER BY Sequence asc   
+         END    
+	 END
   ELSE    
   BEGIN    
   IF(@Parameter4=1)    

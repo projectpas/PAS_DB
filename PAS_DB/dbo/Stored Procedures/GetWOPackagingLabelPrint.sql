@@ -21,7 +21,7 @@
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWOPackagingLabelPrint]
+Create   PROCEDURE [dbo].[GetWOPackagingLabelPrint]
 	@WorkOrderId bigint,
 	@PackagingSlipId bigint
 AS
@@ -38,8 +38,8 @@ BEGIN
 						wopt.PickTicketNumber,
 						wopt.QtyToShip as QtyPicked, 
 						wop.Quantity, 
-						imt.partnumber as PartNumber,
-						imt.PartDescription, 
+						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			            CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',  
 						sl.StockLineNumber, 
 						sl.SerialNumber, 
 						sl.ControlNumber, 

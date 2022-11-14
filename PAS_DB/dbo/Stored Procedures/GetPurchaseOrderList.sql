@@ -94,7 +94,7 @@ BEGIN
 			  OUTER APPLY(
 				SELECT SUM(popt.QuantityOrdered) AS QuantityOrdered,
 					SUM(popt.QuantityBackOrdered) AS QuantityBackOrdered,
-					SUM(popt.QuantityOrdered) - SUM(popt.QuantityBackOrdered) AS QuantityReceived FROM PurchaseOrderPart popt WHERE popt.PurchaseOrderId = PO.PurchaseOrderId
+					SUM(popt.QuantityOrdered) - SUM(popt.QuantityBackOrdered) AS QuantityReceived FROM dbo.PurchaseOrderPart popt WITH (NOLOCK) WHERE popt.PurchaseOrderId = PO.PurchaseOrderId and popt.isParent=1
 			  ) AS A
 		 	  WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))
 			      --AND EMS.EmployeeId = 	@EmployeeId 

@@ -22,6 +22,15 @@
     [APNumber]                             VARCHAR (50)    NULL,
     [PurchaseOrderId]                      BIGINT          NULL,
     [PurchaseOrderPartRecordId]            BIGINT          NULL,
+    [IsManual]                             BIT             DEFAULT ((0)) NULL,
+    [PackagingId]                          INT             NULL,
+    [Description]                          VARCHAR (200)   NULL,
+    [GlAccountId]                          BIGINT          NULL,
+    [GlAccountNumber]                      VARCHAR (200)   NULL,
+    [GlAccountName]                        VARCHAR (200)   NULL,
+    [Type]                                 INT             NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetailsAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationDetailId] ASC)
 );
+
+
 

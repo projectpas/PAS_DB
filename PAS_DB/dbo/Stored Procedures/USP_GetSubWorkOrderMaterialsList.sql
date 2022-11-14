@@ -23,7 +23,7 @@
   
 **************************************************************/   
       
-CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
+Create     PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
 (      
 @subWOPartNoId BIGINT = NULL    
 )      
@@ -190,6 +190,10 @@ SET NOCOUNT ON
       MSTL.QtyReserved AS StocklineQtyReserved,  
       MSTL.QtyIssued AS StocklineQtyIssued,  
 	  WOM.QtyToTurnIn AS PartQtyToTurnIn,
+	  ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)   
+          WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved,0)) FROM #tmpWOMStockline womsl  WITH (NOLOCK)  
+           WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0)  AS QtytobeReserved,
+	  ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
       --SL.QuantityTurnIn as StocklineQuantityTurnIn,  
 	  ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 	  CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 

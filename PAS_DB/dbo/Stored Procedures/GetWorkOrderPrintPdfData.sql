@@ -24,7 +24,7 @@
 --EXEC [GetWorkOrderPrintPdfData] 176,182  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]  
+Create     PROCEDURE [dbo].[GetWorkOrderPrintPdfData]  
 @WorkorderId bigint,  
 @workOrderPartNoId bigint  
 AS  
@@ -50,12 +50,12 @@ BEGIN
       CASE WHEN wop.IsPMA = 1 THEN 'Yes' else 'No' END AS RestrictPMA,  
       CASE WHEN wop.IsDER = 1 THEN 'Yes' else 'No' END AS RestrictDER,  
       '' as wty,  
-      '' as wtyCode,  
+      '' as wtyCode, 
       imt.partnumber as IncomingPN,  
-      rimt.PartDescription as RevisedPN,  
+      wop.RevisedPartNumber as RevisedPN,  
       imt.PartDescription as PNDesc,  
       sl.SerialNumber as SerialNum,  
-      imt.ItemGroup as itemGroup,  
+	  CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN imtr.ItemGroup ELSE  imt.ItemGroup END as 'itemGroup',
       wop.ACTailNum as ACTailNum,  
       '' as TSN,  
       '' as CSN,  
@@ -110,7 +110,8 @@ BEGIN
      LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId  
      LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id  
      LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId  
-     LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wop.RevisedPartId  
+     LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wop.RevisedPartId 
+	 LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid 
      LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId  
      LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId  
      LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = wop.TechnicianId  

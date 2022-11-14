@@ -16,11 +16,14 @@
     [IsActive]             BIT           CONSTRAINT [DF_ACH_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT           CONSTRAINT [DF_ACH_IdDeleted] DEFAULT ((0)) NOT NULL,
     [GLAccountId]          BIGINT        NULL,
+    [IsPrimay]             BIT           NULL,
     CONSTRAINT [PK_ACHId] PRIMARY KEY CLUSTERED ([ACHId] ASC),
     CONSTRAINT [FK_ACH_LegalEntity] FOREIGN KEY ([LegalENtityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_ACHId_Address] FOREIGN KEY ([BankAddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_ACHId_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

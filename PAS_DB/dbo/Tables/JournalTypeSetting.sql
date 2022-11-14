@@ -9,6 +9,10 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [JournalTypeSetting_DC_UDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]        BIT           CONSTRAINT [JournalTypeSetting_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [JournalTypeSetting_DC_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsAppendtoBatch] BIT           NULL,
+    [IsAutoPost]      BIT           NULL,
     CONSTRAINT [PK_JournalTypeSetting] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 

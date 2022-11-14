@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[GetPickTicketForEdit_WO]
+﻿Create   PROCEDURE [dbo].[GetPickTicketForEdit_WO]
 @WOPickTicketId bigint,
 @WorkOrderId bigint,
 @WorkOrderPartId bigint,
@@ -21,24 +21,32 @@ BEGIN
 		select wopt.PickTicketId,
 			wopt.WorkOrderId,
 			wopt.WorkFlowWorkOrderId,
-			imt.PartNumber
-			,sl.StockLineId
-			,imt.ItemMasterId As PartId
+			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'Description', 
+			sl.StockLineId
+			,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As PartId
+			,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId
 			,imt.PartDescription AS Description
 			,sl.StockLineNumber
 			,sl.SerialNumber
 			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand,
-			wopt.QtyToShip
-		   ,mf.Name AS Manufacturer
-		   ,ISNULL(imt.ManufacturerId, -1) AS ManufacturerId
-			,CASE 
+			wopt.QtyToShip,
+			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN mfR.Name ELSE mf.Name END as 'Manufacturer',
+			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN ISNULL(imtR.ManufacturerId, -1) ELSE ISNULL(imt.ManufacturerId, -1) END as 'ManufacturerId',
+			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN CASE 
+				WHEN imtR.IsPma = 1 and imtR.IsDER = 1 THEN 'PMA&DER'
+				WHEN imtR.IsPma = 1 and imtR.IsDER = 0 THEN 'PMA'
+				WHEN imtR.IsPma = 0 and imtR.IsDER = 1 THEN 'DER'
+				ELSE 'OEM'
+				END ELSE CASE 
 				WHEN imt.IsPma = 1 and imt.IsDER = 1 THEN 'PMA&DER'
 				WHEN imt.IsPma = 1 and imt.IsDER = 0 THEN 'PMA'
 				WHEN imt.IsPma = 0 and imt.IsDER = 1 THEN 'DER'
 				ELSE 'OEM'
-				END AS StockType
-			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
+				END END as 'StockType',
+
+			    CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 					WHEN sl.TraceableToType = 9 THEN leTraceble.Name
 					WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
@@ -55,6 +63,8 @@ BEGIN
 		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 		INNER JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 		LEFT JOIN DBO.Manufacturer mf  WITH(NOLOCK) ON imt.ManufacturerId = mf.ManufacturerId
+		LEFT JOIN DBO.ItemMaster imtR WITH(NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
+		LEFT JOIN DBO.Manufacturer mfR  WITH(NOLOCK) ON imtR.ManufacturerId = mfR.ManufacturerId
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId

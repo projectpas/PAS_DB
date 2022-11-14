@@ -1,6 +1,6 @@
 ﻿--exec DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=15,@ConditionId=4,@WorkOrderId=141,@WorkFlowWorkOrderId=162,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 
-CREATE PROCEDURE [dbo].[SearchStockLinePickTicketPop_WO]
+Create   PROCEDURE [dbo].[SearchStockLinePickTicketPop_WO]
 	@ItemMasterIdlist bigint, 
 	@ConditionId BIGINT,
 	@WorkOrderId bigint,
@@ -89,11 +89,13 @@ BEGIN
 						ELSE
 							BEGIN
 							SELECT DISTINCT
-								im.PartNumber
-								,sl.StockLineId
-								,im.ItemMasterId As PartId
-								,im.ItemMasterId As ItemMasterId
-								,im.PartDescription AS Description
+								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE im.PartNumber END as 'PartNumber',
+				                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE im.PartDescription END as 'Description', 
+								--im.PartNumber
+								 sl.StockLineId
+								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As PartId
+								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As ItemMasterId
+								--,im.PartDescription AS Description
 								,ig.Description AS ItemGroup
 								,mf.Name AS Manufacturer
 								,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -224,11 +226,13 @@ BEGIN
 						ELSE
 							BEGIN
 							SELECT DISTINCT
-								im.PartNumber
-								,sl.StockLineId
-								,im.ItemMasterId As PartId
-								,im.ItemMasterId As ItemMasterId
-								,im.PartDescription AS Description
+								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE im.PartNumber END as 'PartNumber',
+				                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE im.PartDescription END as 'Description', 
+								--im.PartNumber
+								 sl.StockLineId
+								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As PartId
+								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As ItemMasterId
+								--,im.PartDescription AS Description
 								,ig.Description AS ItemGroup
 								,mf.Name AS Manufacturer
 								,ISNULL(im.ManufacturerId, -1) AS ManufacturerId

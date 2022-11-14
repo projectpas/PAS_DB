@@ -24,7 +24,7 @@
 -- EXEC [CreateStocklineForFinishGoodMPN] 55
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
+Create   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
 @WorkOrderPartNumberId BIGINT
 AS
 BEGIN
@@ -37,26 +37,47 @@ BEGIN
 				DECLARE @StocklineId BIGINT;
 				DECLARE @NewStocklineId BIGINT;
 				DECLARE @RevisedConditionId BIGINT;
+				DECLARE @RevisedPartNoId BIGINT;
 				DECLARE @MasterCompanyId BIGINT;
 				DECLARE @SLCurrentNumber BIGINT;
 				DECLARE @StockLineNumber VARCHAR(50);
+				DECLARE @PreviousPartNumber VARCHAR(50);
+				DECLARE @RevisedPartNumber VARCHAR(50);
 				DECLARE @CNCurrentNumber BIGINT;	
 				DECLARE @ControlNumber VARCHAR(50);
 				DECLARE @IDNumber VARCHAR(50);
 				DECLARE @ModuleID INT;
 				DECLARE @EntityMSID BIGINT;
 				DECLARE @IsExchangeWO BIT;
-				DECLARE @ReceivingCustomerWorkId BIGINT;	
+				DECLARE @ReceivingCustomerWorkId BIGINT;
+				DECLARE @WOItemMasterId BIGINT;
+				DECLARE @RevisedItemmasterid BIGINT;
 
 				SET @ModuleID = 2; -- Stockline Module ID
 
-				SELECT	@StocklineId = StockLineId, 
-						@RevisedConditionId = CASE WHEN ISNULL(RevisedConditionId, 0) > 0 THEN RevisedConditionId ELSE ConditionId END,
-						@MasterCompanyId  = MasterCompanyId,
-						@EntityMSID = ManagementStructureId,
-						@ReceivingCustomerWorkId = ReceivingCustomerWorkId
-				FROM dbo.WorkOrderPartNumber WITH(NOLOCK) 
-				WHERE ID = @WorkOrderPartNumberId
+				SELECT	@StocklineId = WOP.StockLineId, 
+						@RevisedConditionId = CASE WHEN ISNULL(WOP.RevisedConditionId, 0) > 0 THEN WOP.RevisedConditionId ELSE WOP.ConditionId END,	
+						@RevisedPartNoId = CASE WHEN ISNULL(WOS.RevisedPartId, 0) > 0 THEN WOS.RevisedPartId ELSE WOP.ItemMasterId END,
+						@MasterCompanyId  = WOP.MasterCompanyId,
+						@EntityMSID = WOP.ManagementStructureId,
+						@ReceivingCustomerWorkId = WOP.ReceivingCustomerWorkId,
+						@PreviousPartNumber=IM.partnumber,
+						@RevisedPartNumber=WOP.RevisedPartNumber,
+						@WOItemMasterId= WOP.ItemMasterId,
+						@RevisedItemmasterid= ISNULL(WOP.RevisedItemmasterid,0)
+				FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+					LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9
+					LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
+				WHERE WOP.ID = @WorkOrderPartNumberId
+
+				--SELECT @RevisedPartNoId = CASE WHEN ISNULL(RevisedPartId, 0) > 0 THEN RevisedPartId ELSE NULL END
+				--FROM [dbo].WorkOrderSettlementDetails WITH(NOLOCK) 
+				--WHERE workOrderPartNoId = @WorkOrderPartNumberId
+
+				--SELECT CASE WHEN ISNULL(WOS.RevisedPartId, 0) > 0 THEN WOS.RevisedPartId ELSE WOP.ItemMasterId END
+				--FROM [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) 
+				--JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id
+				--WHERE WOS.workOrderPartNoId = @WorkOrderPartNumberId AND WOS.WorkOrderSettlementId = 9
 
 				SELECT @IsExchangeWO = CASE WHEN ISNULL(ExchangeSalesOrderId , 0) > 0 THEN 1 ELSE 0 END
 				FROM dbo.ReceivingCustomerWork WITH(NOLOCK) WHERE ReceivingCustomerWorkId = @ReceivingCustomerWorkId
@@ -117,9 +138,7 @@ BEGIN
 				DECLARE @ItemMasterId AS BIGINT;
 				DECLARE @ManufacturerId AS BIGINT;
 
-				SELECT @ItemMasterId = ItemMasterId, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
-
-				
+				SELECT @ItemMasterId = CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN @RevisedPartNoId ELSE ItemMasterId END, @ManufacturerId = ManufacturerId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 
 				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId
 
@@ -191,7 +210,8 @@ BEGIN
 				   ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]
 				   ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]
 				   ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood)
-			 SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],1,@RevisedConditionId
+			 SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,
+					@StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId
 				   ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]
 				   ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]
 				   ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]
@@ -199,7 +219,7 @@ BEGIN
 				   ,[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER]
 				   ,[OEM],[Memo],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE()
 				   ,[isSerialized],[ShelfId],[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]
-				   ,[UnitSalePriceAdjustmentReasonTypeId],@IDNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace]
+				   ,[UnitSalePriceAdjustmentReasonTypeId],IDNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace]
 				   ,[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],0,[PurchaseOrderPartRecordId]
 				   ,[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId]
 				   ,0,0,0,1,1,0,[QtyReserved]
@@ -218,7 +238,7 @@ BEGIN
 				SELECT @NewStocklineId = SCOPE_IDENTITY()
 
 				UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId
-				UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId
+				--UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId
 
 				EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId
 
@@ -237,9 +257,18 @@ BEGIN
 
 				UPDATE [dbo].[WorkOrderPartNumber] SET StockLineId = @NewStocklineId WHERE ID = @WorkOrderPartNumberId;
 
-				UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0, 
-					Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + @ControlNumber
-				WHERE StockLineId = @StocklineId
+
+				if(@RevisedItemmasterid > 0 and @RevisedItemmasterid != @WOItemMasterId)
+				BEGIN
+				  	UPDATE [dbo].[Stockline] SET Memo = 'This PN has been modified. Previous PN: ' + @PreviousPartNumber + ' has been Revised to PN: ' + @RevisedPartNumber +' Date: '+ FORMAT (getdate(), 'dd/MM/yyyy ')
+				 WHERE StockLineId = @NewStocklineId
+				END
+
+
+				UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0,QuantityReserved=0,QuantityIssued=0, 
+					Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + ControlNumber
+				   WHERE StockLineId = @StocklineId
+			
 
 				EXEC USP_SaveSLMSDetails @ModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'WO Close Job'
 

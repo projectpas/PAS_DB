@@ -22,7 +22,7 @@
 --EXEC [GetWorkOrderSettlementDetails] 326,362,353
 **************************************************************/
 
-CREate     PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
+Create       PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @workOrderPartNoId bigint,
 @workflowWorkorderId BIGINT
@@ -118,10 +118,13 @@ BEGIN
 						wosd.UpdatedDate,
 						wosd.IsActive,
 						wosd.IsDeleted,
+						wosd.RevisedPartId,
+						IM.partnumber as 'RevisedPartNumber',
 						case when @IsShippingCompleled > 0 then 1 else 0 end as 'IsShippingCompleled',
 						case when @IsBillingCompleled > 0 then 1 else 0 end as 'IsBillingCompleled'
 				FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 					LEFT JOIN dbo.WorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
+					LEFT JOIN ItemMaster IM ON IM.ItemMasterId = wosd.RevisedPartId
 				WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
 			END
 		COMMIT  TRANSACTION

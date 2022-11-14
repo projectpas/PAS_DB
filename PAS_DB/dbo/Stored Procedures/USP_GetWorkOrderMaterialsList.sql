@@ -26,7 +26,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]    
+Create   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]    
 (    
 @WorkOrderId BIGINT = NULL,   
 @WFWOId BIGINT  = NULL
@@ -193,9 +193,13 @@ SET NOCOUNT ON
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),
 						
 						MSTL.QtyReserved AS StocklineQtyReserved,
+						ISNULL(WOM.Quantity, 0) - Isnull((SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) - Isnull((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0)  AS QtytobeReserved,
 						MSTL.QtyIssued AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
 						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
+						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
 						WOM.QtyOnOrder, 
 						WOM.QtyOnBkOrder,
 						WOM.PONum,

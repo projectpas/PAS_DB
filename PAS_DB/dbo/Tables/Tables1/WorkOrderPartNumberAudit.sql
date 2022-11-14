@@ -66,8 +66,13 @@
     [AssignDate]              DATETIME2 (7)  NULL,
     [ReceivingCustomerWorkId] BIGINT         NULL,
     [ExpertiseId]             SMALLINT       NULL,
+    [RevisedItemmasterid]     BIGINT         NULL,
+    [RevisedPartNumber]       VARCHAR (50)   NULL,
+    [RevisedPartDescription]  VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

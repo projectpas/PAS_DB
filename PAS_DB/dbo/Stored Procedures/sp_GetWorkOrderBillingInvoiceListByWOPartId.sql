@@ -1,5 +1,5 @@
 ﻿
-CREATE Procedure [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
+Create   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
 @WorkOrderId  bigint,
 @workOrderPartNumberId  bigint
 AS
@@ -13,12 +13,13 @@ BEGIN
 			
 				SELECT 
 					wo.WorkOrderNum as WorkOrderNumber, 
-					imt.partnumber, 
-					imt.PartDescription, 
+					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			        CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',
 					(SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
 					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId )	 AS QtyToBill,
 					ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId),0) as QtyBilled,
-					wop.WorkOrderId, imt.ItemMasterId AS ItemMasterId,
+					wop.WorkOrderId,
+					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 					wop.ID as WorkOrderPartId ,
 					((SELECT SUM(ISNULL(WSI.QtyShipped, 0)) FROM WorkOrderShippingItem  WSI  WITH(NOLOCK) 
 					                                      INNER JOIN dbo.WorkOrderPartNumber  WP on WP.ID = WSI.WorkOrderPartNumId WHERE  WP.WorkOrderId = wo.WorkOrderId )) - ISNULL((Select SUM(ISNULL(WOBI.NoofPieces,0)) FROM WorkOrderBillingInvoicing WOB inner join  WorkOrderBillingInvoicingItem WOBI on WOB.BillingInvoicingId = WOBI.BillingInvoicingId where ISNULL(WOB.IsVersionIncrease,0) = 0 and WOB.WorkOrderId = wo.WorkOrderId),0) as QtyRemaining,
@@ -44,7 +45,7 @@ BEGIN
 								(SELECT TOP 1  BillingInvoicingId FROM WorkOrderBillingInvoicing WITH (NOLOCK)
 								WHERE WorkOrderId=@WorkOrderId ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
 				GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
-					wop.WorkOrderId, imt.ItemMasterId
+					wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
 			END
 		 COMMIT  TRANSACTION
 		END TRY    

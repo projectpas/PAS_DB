@@ -15,6 +15,7 @@
     1    05/26/2022   Hemant Saliya Created
      
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL
+exec DBO.SearchStockLineForAddPN @ItemMasterIdlist=N'11',@conditionId=7,@CustomerId=14,@MappingType=-1,@StocklineIdlist=NULL
 **************************************************************/ 
 
 CREATE PROCEDURE [dbo].[SearchStockLineForAddPN]
@@ -126,7 +127,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
-				AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+				AND (ISNULL(sl.IsCustomerStock,0) = 0 OR (ISNULL(sl.IsCustomerStock,0) = 1 AND sl.CustomerId = @CustomerId))
 				AND sl.IsParent = 1
 			UNION
 

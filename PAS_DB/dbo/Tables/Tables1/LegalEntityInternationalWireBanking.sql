@@ -9,11 +9,14 @@
     [UpdatedDate]                           DATETIME2 (7) CONSTRAINT [LegalEntityInternationalWireBanking_DC_UDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                              BIT           CONSTRAINT [DF_LegalEntityInternationalWireBanking_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                             BIT           CONSTRAINT [LegalEntityInternationalWireBanking_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [IsPrimay]                              BIT           NULL,
     CONSTRAINT [PK_LegalEntityInternationalWireBanking] PRIMARY KEY CLUSTERED ([LegalEntityInternationalWireBankingId] ASC),
     CONSTRAINT [FK_LegalEntityInternationalWireBanking_InternationalWirePayment] FOREIGN KEY ([InternationalWirePaymentId]) REFERENCES [dbo].[InternationalWirePayment] ([InternationalWirePaymentId]),
     CONSTRAINT [FK_LegalEntityInternationalWireBanking_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_LegalEntityInternationalWireBanking_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

@@ -1966,6 +1966,28 @@
     <Build Include="dbo\Stored Procedures\GetReceivingReconciliationPoData.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingReconciliationHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingReconciliationDetailsById.sql" />
+    <Build Include="dbo\Tables\RepairOrderFreightAudit.sql" />
+    <Build Include="dbo\Tables\RepairOrderFreight.sql" />
+    <Build Include="dbo\Tables\RepairOrderChargesAudit.sql" />
+    <Build Include="dbo\Tables\RepairOrderCharges.sql" />
+    <Build Include="dbo\Tables\CustomerSettingsAudit.sql" />
+    <Build Include="dbo\Tables\CustomerSettings.sql" />
+    <Build Include="dbo\Views\vw_CustomerSettings.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoireLegalEntityBanking.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateReceivingReconciliationBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateReceivingReconciliationBatch.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateWorkOrderPartNumberRevisedColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateRepairOrderFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateRepairOrderChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateRepairOrderChargeNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\SearchExchangeSalesOrderCoreTrackingData.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertRepairOrderFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertRepairOrderChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetRepairOrderPartById.sql" />
+    <Build Include="dbo\Stored Procedures\GetRepairOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetRepairOrderChargesList.sql" />
+    <Build Include="dbo\User Defined Types\RepairOrderFreightType.sql" />
+    <Build Include="dbo\User Defined Types\RepairOrderChargesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

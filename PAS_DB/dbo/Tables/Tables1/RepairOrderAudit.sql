@@ -43,8 +43,14 @@
     [IsEnforce]              BIT             NULL,
     [PDFPath]                NVARCHAR (100)  NULL,
     [VendorRFQRepairOrderId] BIGINT          NULL,
+    [FreightBilingMethodId]  INT             NULL,
+    [TotalFreight]           DECIMAL (18, 2) NULL,
+    [ChargesBilingMethodId]  INT             NULL,
+    [TotalCharges]           DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
+
+
 
 
 

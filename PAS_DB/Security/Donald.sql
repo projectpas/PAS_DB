@@ -1,2 +1,2 @@
-﻿CREATE USER [Donald];
+﻿--CREATE USER [Donald];
 

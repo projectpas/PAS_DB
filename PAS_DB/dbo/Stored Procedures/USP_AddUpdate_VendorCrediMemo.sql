@@ -15,17 +15,18 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    22-June-2022 Devendra Shekh   Created  
-    1    21-July-2022 Devendra Shekh   UpdateVendorCreditmemo issue resolved  
+    1    22-June-2022	Devendra Shekh		Created  
+    2    21-July-2022	Devendra Shekh		UpdateVendorCreditmemo issue resolved  
+    3    07-Nov-2023	Devendra Shekh		added new columns for add/update 
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
-@VendorCreditMemoId bigint,
+@VendorCreditMemoId BIGINT,
 @VendorCreditMemoNumber varchar(50),
-@VendorRMAId bigint = NULL,
+@VendorRMAId BIGINT = NULL,
 @RMANum varchar(50),
 @VendorCreditMemoStatusId INT,
-@CurrencyId bigint = NULL,
+@CurrencyId BIGINT = NULL,
 @OriginalAmt decimal(18,0) = NULL,
 @ApplierdAmt decimal(18,0) = NULL,
 @RefundAmt decimal(18,0) = NULL,
@@ -33,8 +34,11 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
 @CreatedBy varchar(50),
 @UpdatedBy  varchar(50),
 @IsDeleted bit,
-@MasterCompanyId bigint,
-@VendorId bigint = NULL
+@MasterCompanyId BIGINT,
+@VendorId BIGINT = NULL,
+@OpenDate DATETIME2 = NULL,
+@Notes VARCHAR(MAX) = NULL,
+@RequestedBy BIGINT = NULL
 
 AS
 BEGIN
@@ -44,47 +48,56 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
+				
+				IF OBJECT_ID(N'tempdb..#tmpReturnVendorCreditMemoId') IS NOT NULL  
+				BEGIN  
+					DROP TABLE #tmpReturnVendorCreditMemoId 
+				END  
+				CREATE TABLE #tmpReturnVendorCreditMemoId([VendorCreditMemoId] [BIGINT] NULL)  
 
-			If(@VendorCreditMemoId = 0)
-			BEGIN
-			--PRINT '1'
+				IF(@VendorCreditMemoId = 0)
+				BEGIN
 
-			  IF OBJECT_ID(N'tempdb..#tmpReturnVendorCreditMemoId') IS NOT NULL  
-			  BEGIN  
-			   DROP TABLE #tmpReturnVendorCreditMemoId 
-			  END  
-  
-			  CREATE TABLE #tmpReturnVendorCreditMemoId([VendorCreditMemoId] [bigint] NULL)  
+       				INSERT INTO [dbo].[VendorCreditMemo]([VendorCreditMemoNumber] ,[VendorRMAId] ,[RMANum] ,[VendorCreditMemoStatusId] ,[CurrencyId] ,[OriginalAmt] ,[ApplierdAmt] , [RefundAmt], [RefundDate], [MasterCompanyId],
+					   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] , [IsDeleted], [VendorId], [OpenDate], [Notes], [RequestedBy])
+					VALUES(@VendorCreditMemoNumber , @VendorRMAId, @RMANum, @VendorCreditMemoStatusId, @CurrencyId, @OriginalAmt, @ApplierdAmt, @RefundAmt, @RefundDate, @MasterCompanyId,
+					   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId, @OpenDate, @Notes, @RequestedBy)
 
-       			INSERT INTO [dbo].[VendorCreditMemo]([VendorCreditMemoNumber] ,[VendorRMAId] ,[RMANum] ,[VendorCreditMemoStatusId] ,[CurrencyId] ,[OriginalAmt] ,[ApplierdAmt] , [RefundAmt], [RefundDate], [MasterCompanyId],
-				   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [VendorId])
-				VALUES(@VendorCreditMemoNumber , @VendorRMAId, @RMANum, @VendorCreditMemoStatusId, @CurrencyId, @OriginalAmt, @ApplierdAmt, @RefundAmt, @RefundDate, @MasterCompanyId,
-				   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId)
+					SET  @VendorCreditMemoId = @@IDENTITY;  
+					INSERT INTO #tmpReturnVendorCreditMemoId ([VendorCreditMemoId]) VALUES (@VendorCreditMemoId);  
+					SELECT * FROM #tmpReturnVendorCreditMemoId;  
+				END
+				ELSE
+				BEGIN
+					DECLARE @EmployeeId BIGINT = 0;
+					SET @EmployeeId = (SELECT [RequestedBy] FROM [DBO].[VendorCreditMemo] WITH(NOLOCK) WHERE VendorCreditMemoId = @VendorCreditMemoId)
+					IF(ISNULL(@EmployeeId, 0) <> 0)
+					BEGIN
+						SET @EmployeeId = @EmployeeId
+					END
+					ELSE
+					BEGIN
+						SET @EmployeeId = @RequestedBy
+					END
 
-				SET  @VendorCreditMemoId = @@IDENTITY;  
-				INSERT INTO #tmpReturnVendorCreditMemoId ([VendorCreditMemoId]) VALUES (@VendorCreditMemoId);  
-				SELECT * FROM #tmpReturnVendorCreditMemoId;  
+					UPDATE [dbo].[VendorCreditMemo]
+					SET 
+						[VendorCreditMemoStatusId] = @VendorCreditMemoStatusId
+					   ,[OriginalAmt] = @OriginalAmt
+					   ,[ApplierdAmt] = @ApplierdAmt
+					   ,[RefundAmt] = @RefundAmt
+					   ,[RefundDate] = @RefundDate
+					   ,[UpdatedBy] = @CreatedBy
+					   ,[UpdatedDate] = GETUTCDATE()
+					   ,[IsDeleted] = @IsDeleted
+					   ,[OpenDate] = @OpenDate
+					   ,[Notes] = @Notes
+					   ,[RequestedBy] = @EmployeeId
+					WHERE VendorCreditMemoId= @VendorCreditMemoId
 
-			END
-			else
-			Begin
-
-			    UPDATE [dbo].[VendorCreditMemo]
-                SET 
-                    --[VendorRMAId] = @VendorRMAId
-                   --,[RMANum] = @RMANum
-                   [VendorCreditMemoStatusId] = @VendorCreditMemoStatusId
-                   --,[CurrencyId] = @CurrencyId
-                   ,[OriginalAmt] = @OriginalAmt
-                   ,[ApplierdAmt] = @ApplierdAmt
-                   ,[RefundAmt] = @RefundAmt
-                   ,[RefundDate] = @RefundDate
-                   ,[UpdatedBy] = @CreatedBy
-                   ,[UpdatedDate] = GETUTCDATE()
-                   ,[IsDeleted] = @IsDeleted
-				   --,[VendorId] = [VendorId]
-              WHERE VendorCreditMemoId= @VendorCreditMemoId
-			END			
+					INSERT INTO #tmpReturnVendorCreditMemoId ([VendorCreditMemoId]) VALUES (@VendorCreditMemoId);  
+					SELECT * FROM #tmpReturnVendorCreditMemoId;  
+				END			
                 
 			END
 		COMMIT  TRANSACTION

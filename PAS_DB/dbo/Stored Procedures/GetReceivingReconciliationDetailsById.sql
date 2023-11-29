@@ -1,5 +1,19 @@
-﻿/*************************************************************               
---EXEC GetReceivingReconciliationDetailsById 27,0,'RPO'
+﻿/*************************************************************             
+ ** File:   [GetReceivingReconciliationDetailsById]             
+ ** Author:   
+ ** Description: This stored procedure is used to get Receiving Reconciliation Details
+ ** Date:   
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+	1                 unknown       Created 
+	2    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
+	3    08/11/2023   Moin Bloch    Added ControlNumber Field
+            
+--EXEC GetReceivingReconciliationDetailsById 182
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
@@ -12,14 +26,14 @@ BEGIN
 	            DECLARE @ModuleID INT = 2;
 				DECLARE @AssetModuleID varchar(500) ='42,43'
 
-				SELECT   [ReceivingReconciliationDetailId]
-					 ,JBH.[ReceivingReconciliationId]
-					 ,[StocklineId]
-					 ,[StocklineNumber]
-					 ,[ItemMasterId]
-					 ,[PartNumber]
-					 ,[PartDescription]
-					 ,[SerialNumber]
+			SELECT    JBD.[ReceivingReconciliationDetailId]
+				     ,JBD.[ReceivingReconciliationId]
+					 ,JBD.[StocklineId]
+					 ,JBD.[StocklineNumber]
+					 ,JBD.[ItemMasterId]
+					 ,JBD.[PartNumber]
+					 ,JBD.[PartDescription]
+					 ,JBD.[SerialNumber]
 					 ,[POReference]
 					 ,[POQtyOrder]
 					 ,[ReceivedQty]
@@ -32,15 +46,22 @@ BEGIN
 					 ,[AdjUnitCost]
 					 ,[AdjExtCost]
 					 ,[APNumber]
-					 ,[PurchaseOrderId]
-					 ,[PurchaseOrderPartRecordId]
+					 ,JBD.[PurchaseOrderId]
+					 ,JBD.[PurchaseOrderPartRecordId]
 					 ,[IsManual]
 					 ,[PackagingId]
-					 ,[Description]
-					 ,[GlAccountId]
+					 ,JBD.[Description]
+					 ,JBD.[GlAccountId]
 					 ,[Type]
 					 ,[StockType]
 					 ,[RemainingRRQty]
+					 ,[JBD].[FreightAdjustment]
+					 ,[JBD].[TaxAdjustment]
+					 ,[JBD].[FreightAdjustmentPerUnit]
+					 ,[JBD].[TaxAdjustmentPerUnit]
+					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' then UPPER(SLI.ControlNumber) 
+						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' then UPPER(NSI.ControlNumber) 
+						   WHEN UPPER(JBD.StockType)= 'ASSET' then UPPER(ASI.ControlNumber) Else '' END AS ControlNumber
 					 ,CASE WHEN UPPER(JBD.StockType)= 'STOCK' then UPPER(MSD.Level1Name) 
 						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' then UPPER(NMSD.Level1Name) 
 						   WHEN UPPER(JBD.StockType)= 'ASSET' then UPPER(AMSD.Level1Name) Else '' END  AS level1
@@ -72,14 +93,18 @@ BEGIN
 						   WHEN UPPER(JBD.StockType)= 'NONSTOCK' then UPPER(NMSD.Level10Name) 
 						   WHEN UPPER(JBD.StockType)= 'ASSET' then UPPER(AMSD.Level10Name) Else '' END  AS level10
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
-					 Inner JOIN ReceivingReconciliationHeader JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId
-					 LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId and UPPER(JBD.StockType)= 'STOCK'
-					 LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-					 LEFT JOIN dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = JBD.StockLineId and UPPER(JBD.StockType)= 'NONSTOCK'
-					 LEFT JOIN dbo.EntityStructureSetup NES ON NES.EntityStructureId=NMSD.EntityMSID
-					 LEFT JOIN dbo.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = JBD.StockLineId and UPPER(JBD.StockType)= 'ASSET'
-					 LEFT JOIN dbo.EntityStructureSetup AES ON AES.EntityStructureId=AMSD.EntityMSID
-				 WHERE JBD.ReceivingReconciliationId =@ReceivingReconciliationId
+					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 
+					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
+					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
+					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'
+					  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'STOCK'
+					  LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
+					  LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleID AND NMSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'NONSTOCK'
+					  LEFT JOIN [dbo].[EntityStructureSetup] NES WITH (NOLOCK) ON NES.EntityStructureId=NMSD.EntityMSID
+					  LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'ASSET'
+					  LEFT JOIN [dbo].[EntityStructureSetup] AES WITH (NOLOCK) ON AES.EntityStructureId=AMSD.EntityMSID
+								
+				WHERE JBD.[ReceivingReconciliationId] =@ReceivingReconciliationId
     END TRY
 	BEGIN CATCH      
 		IF @@trancount > 0

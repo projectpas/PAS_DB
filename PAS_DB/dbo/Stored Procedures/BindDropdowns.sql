@@ -1,11 +1,11 @@
-﻿CREATE   PROCEDURE [dbo].[BindDropdowns]    
-@TableName VARCHAR(50) = null,    
-@Parameter1 VARCHAR(50)= null,    
-@Parameter2 VARCHAR(50) = null,    
-@masterCompanyId VARCHAR(50) = null,    
-@Count VARCHAR(10) = null,    
-@Parameter3 VARCHAR(50) = null,    
-@Parameter4 VARCHAR(50) = null    
+﻿CREATE     PROCEDURE [dbo].[BindDropdowns]    
+	@TableName VARCHAR(50) = null,    
+	@Parameter1 VARCHAR(50)= null,    
+	@Parameter2 VARCHAR(50) = null,    
+	@masterCompanyId VARCHAR(50) = null,    
+	@Count VARCHAR(10) = null,    
+	@Parameter3 VARCHAR(50) = null,    
+	@Parameter4 VARCHAR(50) = null    
 AS    
  BEGIN    
     
@@ -60,7 +60,12 @@ AS
        BEGIN    
         SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
             ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY SortOrder';    
-       END    
+       END  
+	   ELSE IF(@TableName = 'StockLineAdjustmentType')    
+       BEGIN    
+        SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
+            ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY SortOrder';    
+       END
        ELSE    
        BEGIN    
         SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR(50)) AS Label FROM dbo.' + @TableName +     

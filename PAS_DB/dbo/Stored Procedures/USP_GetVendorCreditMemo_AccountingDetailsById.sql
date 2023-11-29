@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_GetVendorCreditMemo_AccountingDetailsById]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used to GetJournalBatchDetailsById for vendor credit memo
@@ -14,10 +15,10 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    09/11/2023		Devendra Shekh			Created  
-       
+    3    20/10/2023     Bhargav Saliya         Export Data Convert Into Upper Case   
 -- exec USP_GetVendorCreditMemo_AccountingDetailsById 66
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
+ CREATE      PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
 @ReferenceId bigint    
 AS    
 BEGIN    
@@ -37,12 +38,12 @@ BEGIN
           ,JBD.[LineNumber]  
           ,JBD.[GlAccountId]  
           ,JBD.[GlAccountNumber]  
-          ,JBD.[GlAccountName]  
+          ,UPPER(JBD.[GlAccountName]) AS [GlAccountName]
           ,JBD.[TransactionDate]  
           ,JBD.[EntryDate]  
 		  ,VPBD.ReferenceId
           ,JBD.[JournalTypeId]  
-          ,JBD.[JournalTypeName]  
+          ,uPPER(JBD.[JournalTypeName]) AS  [JournalTypeName] 
           ,JBD.[IsDebit]  
           ,JBD.[DebitAmount]  
           ,JBD.[CreditAmount]
@@ -65,8 +66,8 @@ BEGIN
 		  ,VDR.VendorName AS [VendorName]  
           ,BD.JournalTypeNumber
 		  ,BD.CurrentNumber  
-		  ,BS.Name AS 'Status'
-		  ,CR.Code AS Currency  
+		  ,UPPER(BS.Name) AS 'Status'
+		  ,UPPER(CR.Code) AS Currency  
 		  --,'' AS [Currency]  
 		  ,'' AS [DocumentNumber] 
 		  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNumber],'' AS [CustomerRef]

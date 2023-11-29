@@ -1,7 +1,7 @@
 ﻿/*************************************************************               
- ** File:   [CreateStocklineForFinishGoodMPN]               
+ ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
- ** Description: This stored procedure is used Create Stockline For Finished Good.        
+ ** Description: This stored procedure is used to get stockline list      
  ** Purpose:             
  ** Date:   23/05/2023            
               
@@ -23,10 +23,11 @@
 	6    13/06/2023   Devendra Shekh	Added new field 'isTimeLife' for list
 	7    06/07/2023   Vishal Suthar		Added new field 'lotNumber' for list
 	8    23/08/2023   Amit Ghediya		Updated filter list as per ManagementStructureId
+	9    16/10/2023   Devendra Shekh	timelife issue resolved
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[ProcStockList]
+CREATE   PROCEDURE [dbo].[ProcStockList]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -175,7 +176,8 @@ BEGIN
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
 		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,        
-		CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,        
+		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,        
+		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,        
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        
 		MSD.LastMSLevel,        
@@ -406,7 +408,8 @@ BEGIN
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
 		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,  
-		CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		CASE WHEN ISNULL(stl.IsCustomerStock, 0) = 1 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(stl.customerId,0) > 0 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE 0 END) END AS 'IsAllowCreateWO',     
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        
@@ -642,7 +645,8 @@ BEGIN
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
 		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,     
-		CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        
 		MSD.LastMSLevel,        
@@ -879,7 +883,8 @@ BEGIN
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
 		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,        
-		CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		CASE WHEN ISNULL(stl.IsCustomerStock, 0) = 1 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(stl.customerId,0) > 0 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE 0 END) END AS 'IsAllowCreateWO',     
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        

@@ -12,16 +12,21 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
+ ** PR   Date         Author			Change Description            
  ** --   --------     -------		-------------------------------- 
-	1    13/07/2023   Moin Bloch     Added All Vendor Payment Methods
-	2    22/09/2023   AMIT GHEDIYA   Added CreditMemoAmount Fields
+	1    13/07/2023   Moin Bloch		Added All Vendor Payment Methods
+	2    22/09/2023   AMIT GHEDIYA		Added CreditMemoAmount Fields
+	3    20/10/2023   Devendra Shekh	added union for creditmemo details
+	4    27/10/2023   Moin Bloch	    added CheckNumber
+	5    30/10/2023   Moin Bloch	    added Payment Method Name
+	6    31/10/2023   Devendra Shekh	added union for nonpo details
+	7    02/11/2023   Devendra Shekh	added condtion for NonPOInvoiceId
      
 -- EXEC GetVendorReadyToPayDetailsById 43,0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetVendorReadyToPayDetailsById]  
-	@ReadyToPayId bigint,
-	@ReadyToPayDetailsId bigint
+CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsById]  
+@ReadyToPayId bigint,
+@ReadyToPayDetailsId bigint
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -35,8 +40,8 @@ BEGIN
           ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
           ,VRTPD.[VendorId]  
           ,VRTPD.[VendorName]  
-          ,VRTPD.[PaymentMethodId]  
-          ,VRTPD.[PaymentMethodName]  
+          ,VRTPD.[PaymentMethodId]           
+		  ,VPM.[Description] AS [PaymentMethodName]
           ,VRTPD.[ReceivingReconciliationId]  
           ,VRTPD.[InvoiceNum]  
           ,VRTPD.[CurrencyId]  
@@ -56,13 +61,95 @@ BEGIN
           ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 	      ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
 		  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
-		  --CreditMemoAmount = (SELECT COUNT(VCMM.VendorPaymentDetailsId) FROM  [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) WHERE 
-				--		VCMM.VendorPaymentDetailsId = VRTPD.ReceivingReconciliationId)
-		  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount'
+		  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',
+		  0 AS [CreditMemoHeaderId],
+		  VRTPD.[CheckNumber],
+		  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
+		  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId
      FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+	 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
      INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
       LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-     WHERE VRTPD.ReadyToPayId = @ReadyToPayId AND VRTPD.IsDeleted = 0 AND
+     WHERE VRTPD.ReadyToPayId = @ReadyToPayId AND VRTPD.IsDeleted = 0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VRTPD.NonPOInvoiceId, 0) = 0 AND
+	 VRTPD.ReadyToPayDetailsId = CASE WHEN ISNULL(@ReadyToPayDetailsId,0) = 0 THEN VRTPD.ReadyToPayDetailsId ELSE @ReadyToPayDetailsId END
+
+	 UNION
+
+	 SELECT VRTPD.[ReadyToPayDetailsId]  
+          ,VRTPD.[ReadyToPayId]  
+          ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
+          ,VRTPD.[VendorId]  
+          ,VRTPD.[VendorName]  
+          ,VRTPD.[PaymentMethodId]  
+          ,VPM.[Description] AS [PaymentMethodName]
+          ,VRTPD.[ReceivingReconciliationId]  
+          ,VRTPD.[InvoiceNum]  
+          ,VRTPD.[CurrencyId]  
+          ,VRTPD.[CurrencyName]  
+          ,VRTPD.[FXRate]  
+          ,VRTPD.[OriginalAmount]  
+          ,VRTPD.[PaymentMade]  
+          ,VRTPD.[AmountDue]  
+          ,VRTPD.[DaysPastDue]  
+          ,VRTPD.[DiscountDate]  
+          ,VRTPD.[DiscountAvailable]  
+          ,VRTPD.[DiscountToken]
+		  ,VRTPD.[VendorPaymentDetailsId]
+		  ,IsCheckPayment =   1
+	      ,IsDomesticWirePayment = 0
+	      ,IsInternationlWirePayment = 0
+          ,IsACHTransferPayment = 0
+	      ,IsCreditCardPayment = 0
+		  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo'
+		  ,ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount'
+		  ,ISNULL(VRTPD.CreditMemoHeaderId, 0) AS [CreditMemoHeaderId]
+		  ,VRTPD.[CheckNumber]
+		  ,ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId
+		  ,ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId
+     FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+		INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
+		INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
+     WHERE VRTPD.ReadyToPayId = @ReadyToPayId AND VRTPD.IsDeleted = 0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(VRTPD.NonPOInvoiceId, 0) = 0 AND
+	 VRTPD.ReadyToPayDetailsId = CASE WHEN ISNULL(@ReadyToPayDetailsId,0) = 0 THEN VRTPD.ReadyToPayDetailsId ELSE @ReadyToPayDetailsId END
+
+	 UNION
+
+	     SELECT VRTPD.[ReadyToPayDetailsId]  
+          ,VRTPD.[ReadyToPayId]  
+          ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
+          ,VRTPD.[VendorId]  
+          ,VRTPD.[VendorName]  
+          ,VRTPD.[PaymentMethodId]           
+		  ,VPM.[Description] AS [PaymentMethodName]
+          ,VRTPD.[ReceivingReconciliationId]  
+          ,VRTPD.[InvoiceNum]  
+          ,VRTPD.[CurrencyId]  
+          ,VRTPD.[CurrencyName]  
+          ,VRTPD.[FXRate]  
+          ,VRTPD.[OriginalAmount]  
+          ,VRTPD.[PaymentMade]  
+          ,VRTPD.[AmountDue]  
+          ,VRTPD.[DaysPastDue]  
+          ,VRTPD.[DiscountDate]  
+          ,VRTPD.[DiscountAvailable]  
+          ,VRTPD.[DiscountToken]
+		  ,VRTPD.[VendorPaymentDetailsId]
+		  ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId = vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted=0)
+	      ,IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+	      ,IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+          ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+	      ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+		  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
+		  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',
+		  0 AS [CreditMemoHeaderId],
+		  VRTPD.[CheckNumber],
+		  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
+		  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId
+     FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+	 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
+     INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
+      LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
+     WHERE VRTPD.ReadyToPayId = @ReadyToPayId AND VRTPD.IsDeleted = 0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VRTPD.NonPOInvoiceId, 0) <> 0 AND
 	 VRTPD.ReadyToPayDetailsId = CASE WHEN ISNULL(@ReadyToPayDetailsId,0) = 0 THEN VRTPD.ReadyToPayDetailsId ELSE @ReadyToPayDetailsId END
   
     END TRY  

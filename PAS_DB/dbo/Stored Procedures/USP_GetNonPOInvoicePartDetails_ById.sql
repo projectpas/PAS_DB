@@ -15,6 +15,7 @@
  ** S NO	  Date			Author			Change Description              
  ** --		--------		-------		--------------------------------            
 	1		21-09-2023		Devendra			created  
+	2		26-10-2023		Devendra			added new columns  
        
 EXECUTE   [dbo].[USP_GetNonPOInvoicePartDetails_ById] 1,1  
 **************************************************************/  
@@ -51,7 +52,12 @@ BEGIN
 		[UpdatedBy],
 		[UpdatedDate],
 		[IsActive],
-		[IsDeleted]
+		[IsDeleted],
+		ISNULL(Item , '') AS [Item],
+		ISNULL(Description , '') AS [Description],
+		ISNULL(UnitOfMeasureId , 0) AS [UnitOfMeasureId],
+		ISNULL(Qty , 0) AS [Qty],
+		ISNULL(ExtendedPrice , 0) AS [ExtendedPrice]
     FROM [DBO].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)   
     WHERE NPD.[NonPOInvoiceId] = @NonPOInvoiceId and NPD.MasterCompanyId = @MasterCompanyId 
                   

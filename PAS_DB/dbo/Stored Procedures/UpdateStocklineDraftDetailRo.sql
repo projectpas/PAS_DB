@@ -1,7 +1,27 @@
-﻿
+﻿/*************************************************************             
+ ** File:   [UpdateStocklineDraftDetailRo]            
+ ** Author:     
+ ** Description: This stored procedure is used to UPDATE stockline details for RO
+ ** Purpose:           
+ ** Date:   08/21/2023          
+            
+ ** PARAMETERS:  
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1   
+    2    10/13/2023   Devendra Shekh	timelife issue resolved
+  
 
---- exec UpdateStocklineDraftDetailRo  132
-CREATE    Procedure [dbo].[UpdateStocklineDraftDetailRo]
+ exec UpdateStocklineDraftDetailRo  132
+**************************************************************/  
+
+CREATE   Procedure [dbo].[UpdateStocklineDraftDetailRo]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -74,7 +94,8 @@ SalesOrderId = ROP.SalesOrderId,
 --TaggedByName = (ISNULL(Emp.FirstName,'')+' '+ISNULL(Emp.LastName,'')),
 UnitOfMeasure = UM.shortname,
 RevisedPartNumber = RIM.partnumber,
-TagType = TT.[Name]
+TagType = TT.[Name],
+[IsStkTimeLife] = IM.[isTimeLife]
 
 FROM dbo.StocklineDraft SD WITH (NOLOCK)
 INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId and ROP.ItemTypeId=1

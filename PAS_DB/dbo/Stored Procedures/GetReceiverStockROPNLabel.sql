@@ -1,7 +1,27 @@
-﻿
-
+﻿/*************************************************************             
+ ** File:   [GetReceiverStockROPNLabel]            
+ ** Author:   
+ ** Description: This stored procedure is used to get data for PN Label
+ ** Purpose:           
+ ** Date:        
+            
+ ** PARAMETERS:  
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+	1
+    2    11/16/2023   Devendra Shekh	Added case for partdescription - truncated description
+  
 -- EXEC GetReceiverStockROPNLabel 1110,'0','0','0','RecNo-000004'
-CREATE    PROCEDURE [dbo].[GetReceiverStockROPNLabel]
+
+exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
+**************************************************************/
+CREATE   PROCEDURE [dbo].[GetReceiverStockROPNLabel]
 @RepairOrderId bigint,
 @isParentData varchar(10),
 @ItemMasterId bigint,
@@ -32,7 +52,7 @@ BEGIN
 				  sl.ConditionId,
 				  sl.PurchaseUnitOfMeasureId,
 				   i.partnumber,
-				   i.PartDescription,
+				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
 				  sl.UnitOfMeasure,
 			      sl.StockLineId,
@@ -74,7 +94,7 @@ BEGIN
 				  sl.ConditionId,
 				  sl.PurchaseUnitOfMeasureId,
 				   i.partnumber,
-				   i.PartDescription,
+				   CASE WHEN LEN(i.PartDescription) > 50 THEN SUBSTRING(i.PartDescription, 1 , 50) + '...' ELSE i.PartDescription END AS 'PartDescription',
 				  sl.Condition,
 				  sl.UnitOfMeasure,
 			      sl.StockLineId,
@@ -115,7 +135,7 @@ BEGIN
 				    0 AS ConditionId,
 				   sl.UnitOfMeasureId AS PurchaseUnitOfMeasureId,
 				   sl.AssetId AS partnumber,
-				   sl.Description AS PartDescription,
+				   CASE WHEN LEN(sl.Description) > 50 THEN SUBSTRING(sl.Description, 1 , 50) + '...' ELSE sl.Description END AS 'PartDescription',
 				   '' AS Condition,
 				   UM.shortname AS UnitOfMeasure,
 			       sl.AssetInventoryId AS StockLineId,
@@ -149,7 +169,7 @@ BEGIN
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'GetReceiverStockRO' 
+            , @AdhocComments     VARCHAR(150)    = 'GetReceiverStockROPNLabel' 
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@RepairOrderId, '') + ''',
 													 @Parameter2 = ' + ISNULL(@isParentData,'') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'

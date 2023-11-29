@@ -14,9 +14,11 @@
 	2    25/05/2023   Satish Gohil  Modify (Added Next Acc Period Id)
 	3    01/06/2023   Satish Gohil  Convert Into Dynamic query for Status Condition
 	4    22/06/2023   Satish Gohil  Remove duplication insert validation
+	5    1/11/2023    Ayesha Sultana     Unpost batch restrictions on closed batch
+	6    2/11/2023    Ayesha Sultana     Unpost batch restrictions on closed batch - bug fix
 **************************************************************/  
 
-CREATE    PROCEDURE dbo.USP_GetAccountingPeriodDetails  
+CREATE        PROCEDURE [dbo].[USP_GetAccountingPeriodDetails]  
 (  
  @BatchId VARCHAR(MAX) = '',  
  @UserName VARCHAR(100)  
@@ -50,6 +52,12 @@ BEGIN
 	   DECLARE @str nvarchar(max)
 	   DECLARE @Col VARchar(MAX)
 	   DECLARE @JEType varchar(10)
+
+	   DECLARE @POSTED VARCHAR(10) = ''
+	   DECLARE @UNPOSTED VARCHAR(10) = ''
+
+	   select @POSTED = StatusName from  dbo.BatchHeader with(nolock) WHERE StatusName='Posted' AND JournalBatchHeaderId=@BatchId
+	   select @UNPOSTED = StatusName from  dbo.BatchHeader with(nolock) WHERE StatusName='Open' AND JournalBatchHeaderId=@BatchId
     
 	   CREATE TABLE #BatchTable (     
 		  ID BIGINT NOT NULL IDENTITY(1,1),  
@@ -127,13 +135,24 @@ BEGIN
 
 		EXECUTE sp_executesql @str, N'@AccountingCalendarId nvarchar(10), @ClosePeriodName nvarchar(10) OUTPUT,@NextOpenPeriodName nvarchar(10) OUTPUT,@NextOpenPeriodId nvarchar(10) OUTPUT', 
 		@AccountingCalendarId = @AccountingCalendarId ,@ClosePeriodName = @ClosePeriodName OUTPUT,@NextOpenPeriodName = @NextOpenPeriodName OUTPUT, @NextOpenPeriodId = @NextOpenPeriodId OUTPUT
+
   
 		IF(ISNULL(@ClosePeriodName,'') <> '' AND ISNULL(@NextOpenPeriodName,'') <> '')  
 		BEGIN  
-			SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + ' Do You Want to Proceed ??'  
+
+			IF(ISNULL(@UNPOSTED,'')<>'')
+			BEGIN
+				SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + ' Do You Want to Proceed ??'  
+			END
+
+			IF(ISNULL(@POSTED,'')<>'')
+			BEGIN
+				SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + '. Please Re-Open it to proceed.' 
+			END
   
 			INSERT INTO #ErrorMsg (Msg,isValid,NextPeriodid,BatchId) Values(@MSG,1,@NextOpenPeriodId,(SELECT ISNULL(BatchId,0) FROM #BatchTable where ID = @ID));  
-		END  
+		END 
+		
 		IF(ISNULL(@ClosePeriodName,'') <> '' AND ISNULL(@NextOpenPeriodName,'') = '')  
 		BEGIN  
 			 SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed.Does not found Any Open Period.'  

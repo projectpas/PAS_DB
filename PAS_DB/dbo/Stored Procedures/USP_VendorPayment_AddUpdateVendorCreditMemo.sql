@@ -13,9 +13,9 @@
     1    09/22/2023   AMIT GHEDIYA     Created
 
 *******************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_VendorPayment_AddUpdateVendorCreditMemo]
-	@tbl_VendorCreditMemoMapping VendorCreditMemoMappingType READONLY,
-	@IsAllDelete BIT
+CREATE   PROCEDURE [dbo].[USP_VendorPayment_AddUpdateVendorCreditMemo]
+@tbl_VendorCreditMemoMapping VendorCreditMemoMappingType READONLY,
+@IsAllDelete BIT
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -44,7 +44,8 @@ BEGIN
 			[UpdatedBy] VARCHAR(50) NULL,
 			[UpdatedDate] DATETIME NULL,
 			[IsActive] BIT NOT NULL,
-			[IsDeleted] BIT NOT NULL
+			[IsDeleted] BIT NOT NULL,
+			[InvoiceType] INT NULL
 		)
 
 		DECLARE @VendorCreditMemoMappingId BIGINT,@VendorPaymentDetailsId BIGINT;
@@ -53,7 +54,7 @@ BEGIN
 
 		IF(@IsAllDelete = 1)
 		BEGIN
-			DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
+			DELETE [dbo].[VendorCreditMemoMapping]  WHERE [VendorPaymentDetailsId] = @VendorPaymentDetailsId;
 		END
 		ELSE
 		BEGIN
@@ -62,11 +63,31 @@ BEGIN
 				DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
 			END
 		 
-
-			INSERT INTO [dbo].[VendorCreditMemoMapping]([VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId],[Amount],
-														[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
-						SELECT [VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId],[Amount],
-													[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted] 
+			INSERT INTO [dbo].[VendorCreditMemoMapping]
+			           ([VendorCreditMemoId],
+					    [VendorPaymentDetailsId],
+						[VendorId],
+						[Amount],
+						[MasterCompanyId],
+						[CreatedBy],
+						[CreatedDate],
+						[UpdatedBy],
+						[UpdatedDate],
+						[IsActive],
+						[IsDeleted],
+						[InvoiceType])
+				 SELECT [VendorCreditMemoId],
+				        [VendorPaymentDetailsId],
+						[VendorId],
+						[Amount],
+						[MasterCompanyId],
+						[CreatedBy],
+						[CreatedDate],
+						[UpdatedBy],
+						[UpdatedDate],
+						[IsActive],
+						[IsDeleted],
+						[InvoiceType]
 				   FROM @tbl_VendorCreditMemoMapping;
 
 			SET  @VendorCreditMemoMappingId = @@IDENTITY;

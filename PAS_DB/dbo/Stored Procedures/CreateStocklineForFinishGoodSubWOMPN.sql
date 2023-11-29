@@ -22,6 +22,7 @@
  5    08/24/2023   Moin Bloch      Updated Newly Created Stockline Unit Cost For Subwork Order
  6    08/28/2023   Moin Bloch      Added SubWorkOrder Labor + Part Cost Reverse Batch Entry 
  7    08/29/2023   Moin Bloch      Added WO Part Issue Batch Entry 
+ 8    10/16/2023   Devendra Shekh  TIMELIFE issue resolved
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=62,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -257,7 +258,7 @@ BEGIN
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry)  
+         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood, IsTurnIn,SubWorkorderNumber,IsManualEntry,[IsStkTimeLife])  
       SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,@StockLineNumber,[StocklineMatchKey],[ControlNumber],@ItemMasterId,1,@RevisedConditionId  
          ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
          ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
@@ -279,7 +280,7 @@ BEGIN
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
          ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],@ROUnitCost,[TaggedByType]  
-         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1, 1,@SubWorkOrderNum,1  
+         ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1, 1,@SubWorkOrderNum,1,[IsStkTimeLife]
      FROM dbo.Stockline WITH(NOLOCK)  
      WHERE StockLineId = @StocklineId  
   
@@ -288,19 +289,25 @@ BEGIN
      UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @SLCurrentNumber WHERE [CodeTypeId] = 30 AND MasterCompanyId = @MasterCompanyId  
   
      EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
+
+	DECLARE @IsStkTimeLife BIT
+	SELECT @IsStkTimeLife = [IsStkTimeLife] FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @NewStocklineId 
   
-     INSERT INTO [dbo].[TimeLife]  
-      ([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]  
-      ,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]  
-      ,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]  
-      ,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],[DetailsNotProvided]  
-      ,[RepairOrderId],[RepairOrderPartRecordId])  
-     SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]  
-      ,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]  
-      ,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(), GETUTCDATE()  
-      ,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,[DetailsNotProvided]  
-      ,[RepairOrderId],[RepairOrderPartRecordId]   
-     FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId  
+	IF(@IsStkTimeLife = 1)
+	BEGIN
+		INSERT INTO [dbo].[TimeLife]  
+		  ([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]  
+		  ,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]  
+		  ,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]  
+		  ,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],[DetailsNotProvided]  
+		  ,[RepairOrderId],[RepairOrderPartRecordId])  
+		 SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]  
+		  ,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]  
+		  ,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(), GETUTCDATE()  
+		  ,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,[DetailsNotProvided]  
+		  ,[RepairOrderId],[RepairOrderPartRecordId]   
+		 FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId  
+	END
   
      EXEC USP_SaveSLMSDetails @MSModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'SWO Close Job'  
   

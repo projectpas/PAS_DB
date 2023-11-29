@@ -12,8 +12,9 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 1    04/04/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 ** 2    06/07/2023  VISHAL SUTHAR    Allowing to preview Repair Provision and AR condition parts
 ** 3    07/26/2023	HEMANT SALIYA	 Allow User to reserver & Issue other Customer Stock as well
+** 4    07/26/2023	HEMANT SALIYA	 Updated For Condition Group Changes
 
-EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 3188,0,0,2,1
+EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 3128,1,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
 	@WorkFlowWorkOrderId BIGINT,
@@ -53,6 +54,21 @@ BEGIN
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
+					IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
+					BEGIN
+						DROP TABLE #ConditionGroup 
+					END
+
+					CREATE TABLE #ConditionGroup 
+					(
+						ID BIGINT NOT NULL IDENTITY, 
+						[ConditionId] [BIGINT] NULL,
+						[ConditionGroup] VARCHAR(50) NULL,
+					)
+
+					INSERT INTO #ConditionGroup (ConditionId, ConditionGroup)
+					SELECT ConditionId, GroupCode FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 
 					IF OBJECT_ID(N'tempdb..#tmpWorkOrderMaterials') IS NOT NULL
 					BEGIN
@@ -105,6 +121,7 @@ BEGIN
 						[UpdatedDate] [datetime2](7) NOT NULL,
 						[IsActive] [bit] NOT NULL,
 						[IsDeleted] [bit] NOT NULL,
+						[ConditionGroupCode] [varchar](50) NULL,
 					)
 					
 					IF OBJECT_ID(N'tempdb..#tmpWorkOrderMaterialStockline') IS NOT NULL
@@ -196,6 +213,7 @@ BEGIN
 						[UpdatedDate] [datetime2](7) NOT NULL,
 						[IsActive] [bit] NOT NULL,
 						[IsDeleted] [bit] NOT NULL,
+						[ConditionGroupCode] [varchar](50) NULL,
 					)
 					
 					IF OBJECT_ID(N'tempdb..#tmpWorkOrderMaterialStockLineKit') IS NOT NULL
@@ -237,13 +255,13 @@ BEGIN
 					INSERT INTO #tmpWorkOrderMaterials
 						   ([WorkOrderMaterialsId],[WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]) 
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], ConditionGroupCode) 
 					SELECT [WorkOrderMaterialsId], [WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionCodeId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted] 
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], WOM.[MasterCompanyId], WOM.[CreatedBy], WOM.[UpdatedBy], WOM.[CreatedDate], WOM.[UpdatedDate], WOM.[IsActive], WOM.[IsDeleted],C.GroupCode
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK) 
+					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
-						--AND WOM.ConditionCodeId != @ARConditionId
 
 					INSERT INTO #tmpWorkOrderMaterialStockline
 						([WOMStockLineId] ,[WorkOrderMaterialsId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
@@ -255,19 +273,18 @@ BEGIN
 					FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) 
 					JOIN  dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId =  WOMS.WorkOrderMaterialsId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
-					--AND WOMS.ConditionId != @ARConditionId 
 					AND WOMS.ProvisionId = @ProvisionId
 
 					INSERT INTO #tmpWorkOrderMaterialsKit
 						   ([WorkOrderMaterialsKitId],[WorkOrderMaterialsKitMappingId],[WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted]) 
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ConditionGroupCode]) 
 					SELECT [WorkOrderMaterialsKitId], [WorkOrderMaterialsKitMappingId],[WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionCodeId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , NULL, [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted] 
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [WOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , NULL, [ReservedDate], [UnitOfMeasureId], [TaskId], WOM.[MasterCompanyId], WOM.[CreatedBy], WOM.[UpdatedBy], WOM.[CreatedDate], WOM.[UpdatedDate], WOM.[IsActive], WOM.[IsDeleted], C.GroupCode 
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) 
+					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
-						--AND WOM.ConditionCodeId != @ARConditionId
 
 					INSERT INTO #tmpWorkOrderMaterialStockLineKit
 						([WorkOrderMaterialStockLineKitId] ,[WorkOrderMaterialsKitId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
@@ -279,21 +296,18 @@ BEGIN
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) 
 					JOIN  dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId =  WOMS.WorkOrderMaterialsKitId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
-					--AND WOMS.ConditionId != @ARConditionId 
 					AND WOMS.ProvisionId = @ProvisionId
 					
 					SELECT SL.* 					
 					INTO #Stockline
-					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterials WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId = WOM.ConditionId 
+					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterials WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE WOM.ConditionGroupCode = tmpC.ConditionGroup) 
 					WHERE ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-							--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 
 					INSERT INTO #Stockline
 					SELECT SL.*
-					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterialsKit WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId = WOM.ConditionId 
+					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterialsKit WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE WOM.ConditionGroupCode = tmpC.ConditionGroup) 
 					WHERE ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
-							--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 							AND SL.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
 
@@ -340,7 +354,6 @@ BEGIN
 							WOMS.QtyReserved AS MSQuantityReserved,
 							WOMS.QtyIssued AS MSQuantityIssued,
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOMS.UpdatedBy AS ReservedBy,
 							CASE WHEN WOMS.WOMStockLineId > 0 THEN WOMS.UnitCost ELSE SL.UnitCost END AS SLUnitCost,
 							MSQunatityRemaining = ISNULL(WOMS.Quantity, 0) - (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)),
@@ -350,18 +363,18 @@ BEGIN
 						INTO #tmpReserveIssueWOMaterialsStockline
 						FROM #tmpWorkOrderMaterials WOM WITH (NOLOCK)  
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-							JOIN #Stockline SL WITH (NOLOCK) ON WOM.ItemMasterId = SL.ItemMasterId AND WOM.ConditionId = SL.ConditionId AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM #tmpWorkOrderMaterialStockline WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
+							JOIN #Stockline SL WITH (NOLOCK) ON WOM.ItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tmpC.ConditionGroup = C.GroupCode) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM #tmpWorkOrderMaterialStockline WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
 							JOIN #tmpWorkOrderMaterialStockline WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND SL.StockLineId = WOMS.StockLineId AND WOMS.ProvisionId = @ProvisionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 							LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOMS.UpdatedBy 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
-							--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 					
+					--Select * from #tmpWorkOrderMaterials
 					--#STEP : 1.1 RESERVE EXISTING STOCKLINE
 					IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 					BEGIN
@@ -458,7 +471,6 @@ BEGIN
 						FROM #tmpReserveIssueWOMaterialsStockline tblMS  JOIN #Stockline SL ON SL.StockLineId = tblMS.StockLineId 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND SL.QuantityAvailable >= tblMS.MSQunatityRemaining
 
@@ -559,6 +571,7 @@ BEGIN
 							Alt.AltItemMasterId AS ItemMasterId,
 							WOM.ItemMasterId AS AltPartMasterPartId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -580,7 +593,6 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,				
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded,
 							1 AS IsAltPart
@@ -588,8 +600,8 @@ BEGIN
 						FROM #AltPartList Alt
 							JOIN #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.IsDeleted = 0  
@@ -645,10 +657,9 @@ BEGIN
 						SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId],tblMS.[AltPartMasterPartId], tblMS.[ConditionId], @ProvisionId, 
 								[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
 								SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, tblMS.[IsAltPart], 1, 0, SL.CreatedDate
-						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup)  
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						ORDER BY SL.CreatedDate
 
@@ -779,6 +790,8 @@ BEGIN
 						BEGIN
 							DROP TABLE #MaterialsAltPartList 
 						END
+
+						PRINT 'MATERIALS ALTERNATE PARTS'
 			
 						CREATE TABLE #MaterialsAltPartList 
 						(
@@ -786,6 +799,8 @@ BEGIN
 							[ItemMasterId] [bigint] NULL,
 							[AltItemMasterId] [bigint] NULL
 						)
+
+						--Select * from #tmpWorkOrderMaterials
 
 						INSERT INTO #MaterialsAltPartList 
 						(WOM.[ItemMasterId], [AltItemMasterId])
@@ -795,12 +810,15 @@ BEGIN
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
+						--Select * from #MaterialsAltPartList
+
 						SELECT  WOM.WorkOrderId,
 							WOM.WorkFlowWorkOrderId,
 							WOM.WorkOrderMaterialsId,						
 							Alt.AltItemMasterId AS ItemMasterId,
 							WOM.ItemMasterId AS AltPartMasterPartId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -822,7 +840,6 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,	
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded,
 							1 AS IsAltPart
@@ -830,12 +847,14 @@ BEGIN
 						FROM #MaterialsAltPartList Alt
 							JOIN #tmpWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId							
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+
+						--Select * from #tmpAutoReserveIssueWOMaterialsStocklineMaterialsAlt
 
 						IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsAlt') IS NOT NULL
 						BEGIN
@@ -886,12 +905,15 @@ BEGIN
 						SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId],tblMS.[AltPartMasterPartId], tblMS.[ConditionId], @ProvisionId, 
 								[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
 								SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, tblMS.[IsAltPart],1, 0, SL.CreatedDate
-						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsAlt tblMS  
+						JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) 
+						-- AND SL.ConditionId = tblMS.ConditionId 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						ORDER BY SL.CreatedDate
+
+						--Select * from #tmpAutoReserveWOMaterialsStocklineMaterialsAlt
 
 						INSERT INTO #Stockline
 						SELECT SL.*
@@ -1037,6 +1059,7 @@ BEGIN
 							Equ.AltItemMasterId AS ItemMasterId,
 							WOM.ItemMasterId AS EquPartMasterPartId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -1058,7 +1081,6 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,	
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded,
 							1 AS IsEquPart
@@ -1066,8 +1088,8 @@ BEGIN
 						FROM #EquPartList Equ
 							JOIN #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.ItemMasterId = Equ.ItemMasterId
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Equ.AltItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.IsDeleted = 0  
@@ -1078,7 +1100,7 @@ BEGIN
 						BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKITEqu
 						END
-			
+
 						CREATE TABLE #tmpAutoReserveWOMaterialsStocklineKITEqu
 									(
 										 ID BIGINT NOT NULL IDENTITY, 
@@ -1123,10 +1145,9 @@ BEGIN
 						SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId], tblMS.[EquPartMasterPartId], tblMS.[ConditionId], @ProvisionId, 
 								[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
 								SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, tblMS.[IsEquPart], 1, 0, SL.CreatedDate
-						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITEqu tblMS JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITEqu tblMS JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						ORDER BY SL.CreatedDate
 
@@ -1278,6 +1299,7 @@ BEGIN
 							Equ.AltItemMasterId AS ItemMasterId,
 							WOM.ItemMasterId AS EquPartMasterPartId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -1299,7 +1321,6 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,	
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded,
 							1 AS IsEquPart
@@ -1307,8 +1328,8 @@ BEGIN
 						FROM #MaterialsEquPartList Equ
 							JOIN #tmpWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.ItemMasterId = Equ.ItemMasterId
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Equ.AltItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId							
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
@@ -1363,10 +1384,9 @@ BEGIN
 						SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId],tblMS.[EquPartMasterPartId], tblMS.[ConditionId], @ProvisionId, 
 								[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
 								SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, tblMS.[IsEquPart],1, 0, SL.CreatedDate
-						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsEqu tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsEqu tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						ORDER BY SL.CreatedDate
 
@@ -1491,6 +1511,7 @@ BEGIN
 							WOM.WorkOrderMaterialsId,						
 							WOM.ItemMasterId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -1512,14 +1533,13 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,	
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded	
 						INTO #tmpAutoReserveIssueWOMaterialsStockline
 						FROM #tmpWorkOrderMaterials WOM WITH (NOLOCK)  
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId							
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
@@ -1529,6 +1549,9 @@ BEGIN
 					BEGIN
 					DROP TABLE #tmpAutoReserveWOMaterialsStockline
 					END
+
+					--SELECT * FROM #tmpAutoReserveIssueWOMaterialsStockline
+					--SELECT Condition, ConditionId, * FROM #Stockline
 			
 					CREATE TABLE #tmpAutoReserveWOMaterialsStockline
 								(
@@ -1564,20 +1587,22 @@ BEGIN
 									 [IsActive] BIT,
 									 [IsDeleted] BIT,
 									 [CreatedDate] DATETIME2 NULL,
+									 [ConditionGroupCode] VARCHAR(50) NULL,
 								)
 
 					INSERT INTO #tmpAutoReserveWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [ReservedById], [Condition], [PartNumber], [PartDescription], [Quantity],[QuantityAvailable],[QuantityOnHand], [ActQuantity], [QtyToBeReserved], [QuantityActReserved], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UnitCost], [IsSerialized],[IsActive], [IsDeleted], [CreatedDate])
-					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId], tblMS.[ConditionId], @ProvisionId, 
+							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UnitCost], [IsSerialized],[IsActive], [IsDeleted], [CreatedDate],[ConditionGroupCode])
+					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId], SL.ConditionId,  @ProvisionId, --tblMS.[ConditionId],
 							[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
-							SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, 1, 0, SL.CreatedDate
-					FROM #tmpAutoReserveIssueWOMaterialsStockline tblMS  JOIN #Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+							SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, 1, 0, SL.CreatedDate, ConditionGroupCode
+					FROM #tmpAutoReserveIssueWOMaterialsStockline tblMS  JOIN #Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tmpC.ConditionGroup = tblMS.ConditionGroupCode)
 					WHERE SL.QuantityAvailable > 0 
 					AND SL.IsParent = 1 
-					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					ORDER BY SL.CreatedDate
+
+					--SELECT * FROM #tmpAutoReserveWOMaterialsStockline
 									
 					SET @ARcount = 1;
 					SET @ARTotalCounts = 0;
@@ -1617,6 +1642,8 @@ BEGIN
 					DELETE FROM #tmpAutoReserveWOMaterialsStockline WHERE IsStocklineAdded != 1
 
 					SELECT ROW_NUMBER() OVER (ORDER BY ID) AS Row_Num, * INTO #tmpAutoReserveWOM FROM #tmpAutoReserveWOMaterialsStockline
+
+					--SELECT * FROM #tmpAutoReserveWOM
 
 					IF((SELECT COUNT(1) FROM #tmpAutoReserveWOM) > 0)
 					BEGIN
@@ -1684,6 +1711,10 @@ BEGIN
 							WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 						FROM #Stockline SL JOIN #tmpAutoReserveWOM tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 
+						--Select * from #tmpWorkOrderMaterials
+						--Select * from #tmpWorkOrderMaterialStockline
+						--Select * from #Stockline
+
 					END
 					
 					--#STEP : 5 RESERVE NEW STOCKLINE KIT MATERIALS
@@ -1692,6 +1723,7 @@ BEGIN
 							WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,						
 							WOM.ItemMasterId,
 							WOM.ConditionId AS ConditionId,
+							C.GroupCode AS ConditionGroupCode,
 							WOM.MasterCompanyId,
 							WOM.Quantity,
 							WOM.QuantityReserved,
@@ -1713,14 +1745,13 @@ BEGIN
 							ELSE 'OEM'
 							END AS StockType,		
 							@EmployeeId AS ReservedById,
-							--CASE WHEN ISNULL(EMP.EmployeeId, 0) > 0 THEN EMP.EmployeeId ELSE NULL END AS ReservedById,
 							WOM.UpdatedBy AS ReservedBy,
 							0 AS IsStocklineAdded	
 						INTO #tmpAutoReserveIssueWOMaterialsStocklineKIT
 						FROM #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
+							JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId							
-							--LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.FirstName + ' ' + EMP.LastName = WOM.UpdatedBy 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStocklineKIT WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKITId = WOMSL.WorkOrderMaterialsKITId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
@@ -1765,20 +1796,19 @@ BEGIN
 									 [IsActive] BIT,
 									 [IsDeleted] BIT,
 									 [CreatedDate] DATETIME2 NULL,
+									 [ConditionGroupCode] VARCHAR(50) NULL,
 								)
 
 					INSERT INTO #tmpAutoReserveWOMaterialsStocklineKIT ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [ReservedById], [Condition], [PartNumber], [PartDescription], [Quantity],[QuantityAvailable],[QuantityOnHand], [ActQuantity], [QtyToBeReserved], [QuantityActReserved], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UnitCost], [IsSerialized],[IsActive], [IsDeleted], [CreatedDate])
+							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UnitCost], [IsSerialized],[IsActive], [IsDeleted], [CreatedDate], [ConditionGroupCode])
 					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], SL.StockLineId, tblMS.[ItemMasterId], tblMS.[ConditionId], @ProvisionId, 
 							[TaskId], [ReservedById], SL.Condition, tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], SL.QuantityAvailable, SL.QuantityOnHand, 0, [QtyToBeReserved], [QtyToBeReserved], SL.ControlNumber, SL.IdNumber,
-							SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, 1, 0, SL.CreatedDate
-					FROM #tmpAutoReserveIssueWOMaterialsStocklineKIT tblMS  JOIN #Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId = tblMS.ConditionId 
+							SL.StockLineNumber, SL.SerialNumber, [ReservedBy], [IsStocklineAdded], tblMS.MasterCompanyId, [ReservedBy], SL.UnitCost, NULL, 1, 0, SL.CreatedDate, [ConditionGroupCode]
+					FROM #tmpAutoReserveIssueWOMaterialsStocklineKIT tblMS  JOIN #Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tmpC.ConditionGroup = tblMS.ConditionGroupCode)
 					WHERE SL.QuantityAvailable > 0 
 					AND SL.IsParent = 1 
-					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-					--AND SL.QuantityAvailable >= tblMS.QtyToBeReserved
 					ORDER BY SL.CreatedDate
 
 					SET @ARcount = 1;
@@ -1943,7 +1973,8 @@ BEGIN
 								 [WOMStockLineId] [bigint] NULL,
 								 [StockLineId] [bigint] NULL,
 								 [StkItemMasterId] [bigint] NULL,
-								 [StkConditionId] [bigint] NULL,								
+								 [StkConditionId] [bigint] NULL,
+								 [stkCondition] [nvarchar](50) NULL,
 								 [StkQuantity] [int] NULL,
 								 [QtyReserved] [int] NULL,
 								 [QtyIssued] [int] NULL,			
@@ -1963,7 +1994,7 @@ BEGIN
 								 [StkPartNumber] [nvarchar](200) NULL,
 								 [PartDesc] [nvarchar](Max) NULL,
 								 [StkPartDesc] [nvarchar](Max) NULL,
-								 [Condition] [nvarchar](50) NULL,
+								 [Condition] [nvarchar](50) NULL,								 
 								 [SerialNo] [nvarchar](50) NULL,
 								 [StocklineNo] [nvarchar](50) NULL,
 								 [ControlNo] [nvarchar](50) NULL,
@@ -2003,15 +2034,17 @@ BEGIN
 						JOIN dbo.ItemMaster IM ON IM.ItemMasterId = WOM.ItemMasterId
 						LEFT JOIN dbo.Condition CO ON WOM.ConditionId = CO.ConditionId
 
+					--SELECT * FROM #tmpWorkOrderMaterialStockline
+					--SELECT * FROM #Stockline
 					INSERT INTO #WorkOrderMaterials
 						([WOMStockLineId] ,[WorkOrderMaterialsId] ,[StockLineId] ,[StkItemMasterId] ,[StkConditionId] ,[StkQuantity] ,[QtyReserved] ,[QtyIssued] ,		
 						[StkAltPartMasterPartId] ,[StkEquPartMasterPartId] ,[StkIsAltPart] ,[StkIsEquPart] ,[StkUnitCost] ,[StkExtendedCost] ,
-						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem],[PartNumber], [PartDesc], [StkPartNumber], [StkPartDesc],[Condition], [UOM], [Priority],
+						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem],[PartNumber], [PartDesc], [StkPartNumber], [StkPartDesc],[stkCondition], [UOM], [Priority],
 						[WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionId] , [Quantity], [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued],
 						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse], [IsMaterials]) 
 					SELECT [WOMStockLineId], WOMS.[WorkOrderMaterialsId] ,WOMS.[StockLineId] ,WOMS.[ItemMasterId] ,WOMS.[ConditionId] ,WOMS.[Quantity] ,WOMS.[QtyReserved] ,WOMS.[QtyIssued] ,		
 						WOMS.[AltPartMasterPartId] ,WOMS.[EquPartMasterPartId] ,WOMS.[IsAltPart] ,WOMS.[IsEquPart] ,WOMS.[UnitCost] ,WOMS.[ExtendedCost] ,
-						WOMS.[ProvisionId] ,WOMS.[QuantityTurnIn] ,WOMS.[Figure] ,WOMS.[Item], IMM.[PartNumber], IMM.[PartDescription], IMS.[PartNumber], IMS.[PartDescription], CO.[Description], IMS.[PurchaseUnitOfMeasure], IMS.[Priority],
+						WOMS.[ProvisionId] ,WOMS.[QuantityTurnIn] ,WOMS.[Figure] ,WOMS.[Item], IMM.[PartNumber], IMM.[PartDescription], IMS.[PartNumber], IMS.[PartDescription],CO.[Description], IMS.[PurchaseUnitOfMeasure], IMS.[Priority],
 						WOM.[WorkOrderId],[WorkFlowWorkOrderId], WOM.[ItemMasterId], WOM.[ConditionId] , WOM.[Quantity], WOM.[UnitCost] , WOM.[ExtendedCost] , WOM.[QuantityReserved] , WOM.[QuantityIssued],
 						SL.[SerialNumber], SL.[StockLineNumber] , SL.[ControlNumber], SL.[IdNumber], SL.[QuantityAvailable], SL.[QuantityOnHand], [Location], [Warehouse], 0
 					FROM #tmpWorkOrderMaterialStockline WOMS WITH (NOLOCK) 
@@ -2021,10 +2054,12 @@ BEGIN
 						LEFT JOIN #tmpWorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId  = WOMS.WorkOrderMaterialsId
 						LEFT JOIN dbo.ItemMaster IMM ON IMM.ItemMasterId = WOM.ItemMasterId
 
+					--SELECT * FROM #WorkOrderMaterials
+
 					INSERT INTO #WorkOrderMaterials
 						([WOMStockLineId] ,[WorkOrderMaterialsId] ,[WorkOrderMaterialsKITId], [StockLineId] ,[StkItemMasterId] ,[StkConditionId] ,[StkQuantity] ,[QtyReserved] ,[QtyIssued] ,		
 						[StkAltPartMasterPartId] ,[StkEquPartMasterPartId] ,[StkIsAltPart] ,[StkIsEquPart] ,[StkUnitCost] ,[StkExtendedCost] ,
-						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem], [PartNumber], [PartDesc],[StkPartNumber], [StkPartDesc], [Condition], [UOM], [Priority],
+						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem], [PartNumber], [PartDesc],[StkPartNumber], [StkPartDesc], [stkCondition], [UOM], [Priority],
 						[WorkOrderId],[WorkFlowWorkOrderId], [ItemMasterId], [ConditionId] , [Quantity], [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued],
 						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse], [IsMaterials])  --, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT [WorkOrderMaterialStockLineKitId] ,NULL,WOMS.[WorkOrderMaterialsKITId],WOMS.[StockLineId] ,WOMS.[ItemMasterId] ,WOMS.[ConditionId] ,WOMS.[Quantity] ,WOMS.[QtyReserved] ,WOMS.[QtyIssued] ,		
@@ -2039,7 +2074,11 @@ BEGIN
 						LEFT JOIN #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKITId  = WOMS.WorkOrderMaterialsKITId
 						LEFT JOIN dbo.ItemMaster IMM ON IMM.ItemMasterId = WOM.ItemMasterId
 
+					--SELECT * FROM #WorkOrderMaterials
 					UPDATE #WorkOrderMaterials SET QuantityShort = ISNULL(Quantity, 0) -  (ISNULL(QuantityReserved, 0) +  ISNULL(QuantityIssued, 0))
+					
+					UPDATE WOMM SET Condition = (SELECT TOP 1 Condition FROM #WorkOrderMaterials WOM WHERE WOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(WOM.Condition, '') != '') 
+					FROM #WorkOrderMaterials WOMM WHERE ISNULL(WOMM.Condition, '') = ''
 
 					SELECT DENSE_RANK() OVER (ORDER BY ISNULL(StockLineId,0) DESC) AS RowNumber , 
 						[ID], [WorkOrderMaterialsId],[WorkOrderMaterialsKITId],[WorkOrderMaterialsKitMappingId],[WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],
@@ -2054,7 +2093,8 @@ BEGIN
 						ELSE UPPER([StkPartNumber]) END AS [StkPartNumber],
 						CASE WHEN LEN(UPPER([PartDesc])) > 52 THEN LEFT(UPPER([PartDesc]), 52) + '...' ELSE  UPPER([PartDesc]) END AS [PartDesc],
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
-						UPPER([Condition]) AS [Condition],UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
+						UPPER([Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
+						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
 						UPPER([ControlId]) AS [ControlId],UPPER([UOM]) AS [UOM],UPPER([Priority]) AS [Priority],[QtyAvail],[QtyOH],	UPPER([Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse],[IsMaterials]
 					FROM #WorkOrderMaterials 
 					ORDER BY ISNULL(StockLineId,0) DESC

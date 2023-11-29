@@ -184,10 +184,16 @@
     [LotMainStocklineId]                  BIGINT          NULL,
     [IsFromInitialPO]                     BIT             NULL,
     [LotSourceId]                         INT             NULL,
-    [Adjustment]                          DECIMAL (18, 2) NULL,
+    [Adjustment]                          DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_Adjustment] DEFAULT ((0)) NULL,
     [SalesOrderPartId]                    BIGINT          NULL,
+    [FreightAdjustment]                   DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_FreightAdjustment] DEFAULT ((0)) NULL,
+    [TaxAdjustment]                       DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_TaxAdjustment] DEFAULT ((0)) NULL,
+    [IsStkTimeLife]                       BIT             NULL,
+    [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

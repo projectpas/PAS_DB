@@ -67,7 +67,6 @@
     [UnitPrice]                          DECIMAL (20, 2) NULL,
     [UnitPriceCurrencyId]                INT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderShipping] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderShippingId] ASC),
-    CONSTRAINT [FK_ExchangeSalesOrderShipping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_ExchangeSalesOrder] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_OriginCountry] FOREIGN KEY ([OriginCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
@@ -76,6 +75,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderShipping_ShipToCountry] FOREIGN KEY ([ShipToCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_SoldToCountry] FOREIGN KEY ([SoldToCountryId]) REFERENCES [dbo].[Countries] ([countries_id])
 );
+
+
 
 
 

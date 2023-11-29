@@ -5,7 +5,7 @@
     [OpenDate]                 DATETIME2 (7)   NOT NULL,
     [ShippedDate]              DATETIME2 (7)   NULL,
     [NumberOfItems]            INT             CONSTRAINT [DF_ExchangeSalesOrder_NumberOfItems] DEFAULT ((0)) NOT NULL,
-    [AccountTypeId]            INT             NOT NULL,
+    [AccountTypeId]            INT             NULL,
     [CustomerId]               BIGINT          NOT NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
     [CustomerReference]        VARCHAR (100)   NULL,
@@ -58,13 +58,12 @@
     [ExchangeQuoteNumber]      VARCHAR (50)    NULL,
     [IsApproved]               BIT             NULL,
     [CoreAccepted]             BIT             DEFAULT ((0)) NOT NULL,
+    [IsVendor]                 BIT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrder_1] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrder_Agent] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_CreditTerm] FOREIGN KEY ([CreditTermId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
-    CONSTRAINT [FK_ExchangeSalesOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrder_CustomerSeviceRep] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_ExchangeSalesOrder_CustomerType] FOREIGN KEY ([AccountTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_ExchangeQuote] FOREIGN KEY ([ExchangeQuoteId]) REFERENCES [dbo].[ExchangeQuote] ([ExchangeQuoteId]),
     CONSTRAINT [FK_ExchangeSalesOrder_ExchangeType] FOREIGN KEY ([TypeId]) REFERENCES [dbo].[ExchangeType] ([Id]),
@@ -72,6 +71,8 @@
     CONSTRAINT [FK_ExchangeSalesOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

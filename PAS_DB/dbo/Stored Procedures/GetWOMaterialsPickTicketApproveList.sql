@@ -20,8 +20,9 @@
 	2    06/07/2021   Hemant Saliya			Updated SP for Get Proper Data
 	3    06/07/2021   Hemant Saliya			Updated For Update WO Work Flow ID
 	4    08/11/2023	  Devendra Shekh		changes for ReadyToPick
+	5    10/05/2023   Hemant Saliya			Condition Group Changes
      
- EXECUTE GetWOMaterialsPickTicketApproveList 823, 828
+ EXECUTE GetWOMaterialsPickTicketApproveList 3555, 3019
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetWOMaterialsPickTicketApproveList]
@@ -63,8 +64,6 @@ SET NOCOUNT ON
 					(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
 					 + ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)) 
 					- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) 
-					--+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) 
-					--FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
 					FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0),0))  
 					AS ReadyToPick,
 					0 AS IsKitType

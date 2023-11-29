@@ -9,15 +9,16 @@
 **************************************************************             
 ** Change History             
 **************************************************************             
-** PR   Date         Author  Change Description              
-** --   --------     -------  --------------------------------            
-1    05/22/2023  Satish Gohil   Gl Account Link issue fixed
-2    06/05/2023  Satish Gohil   Modify(IsParent Column Added)
-3    06/07/2023  Satish Gohil   Modify(Sequence Number Added)
-4	 21/08/2023  Satish Gohil   Modify(Added Gl Account level ispositive flag)
+** PR   Date         Author			Change Description              
+** --   --------     -------		--------------------------------            
+1    05/22/2023  Satish Gohil		Gl Account Link issue fixed
+2    06/05/2023  Satish Gohil		Modify(IsParent Column Added)
+3    06/07/2023  Satish Gohil		Modify(Sequence Number Added)
+4	 21/08/2023  Satish Gohil		Modify(Added Gl Account level ispositive flag)
+4	 12/10/2023  Devendra Shekh		set isdefault = 1 for new ReportingStructure
 ************************************************************************/ 
 
-CREATE    PROCEDURE DBO.USP_CreateLeafNode_Version      
+CREATE   PROCEDURE [dbo].[USP_CreateLeafNode_Version]      
 (      
 	@tbl_LeafNodeType LeafNodeType Readonly,      
 	@updatedByName varchar(50) = NULL,        
@@ -129,16 +130,16 @@ BEGIN
 
 		---------- Insert New Reporting Strucutre -------------      
 		INSERT INTO dbo.ReportingStructure(ReportName,ReportDescription,IsVersionIncrease,VersionNumber,      
-		MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,GlAccountClassId)      
+		MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,GlAccountClassId,IsDefault)      
 		SELECT ReportName,ReportDescription,0,VersionNumber,      
-		MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted,GlAccountClassId      
+		MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted,GlAccountClassId,1
 		FROM ReportingStructure WHERE ReportingStructureId = @ReportingStructureId      
       
 		SET @NewReportingStructureId = SCOPE_IDENTITY();      
       
 		EXEC UpdateReportingStructureVersionNo @NewReportingStructureId,1      
       
-		UPDATE dbo.ReportingStructure SET IsVersionIncrease = 1 WHERE ReportingStructureId = @ReportingStructureId      
+		UPDATE dbo.ReportingStructure SET IsVersionIncrease = 1, IsDefault = 0 WHERE ReportingStructureId = @ReportingStructureId      
         
       
 		-------- Insert New Reporting Strucutre -------------

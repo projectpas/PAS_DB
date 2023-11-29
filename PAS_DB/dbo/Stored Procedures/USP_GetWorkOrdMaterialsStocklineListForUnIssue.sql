@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    01/03/2022   Hemant Saliya Created
+	2    10/04/2023   Hemant Saliya		Condition Group Changes
 
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForUnIssue 852, 0
 **************************************************************/ 
@@ -67,6 +68,7 @@ SET NOCOUNT ON
 						IM.PartNumber AS MainPartNumber,
 						IM.PartDescription AS MainPartDescription, 
 						IM.ManufacturerName MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -108,6 +110,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
@@ -144,6 +147,7 @@ SET NOCOUNT ON
 							 WHEN WOMS.IsEquPart = 1 THEN IM_EquMain.ManufacturerName
 							 ELSE IM.ManufacturerName
 						END MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -186,11 +190,11 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
-						--LEFT JOIN dbo.[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOM.WOPartNoId = WOMKM.WOPartNoId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 			END
 		COMMIT  TRANSACTION

@@ -32,6 +32,9 @@
     [UpdatedDate]               DATETIME2 (7)   CONSTRAINT [DF_VendorPaymentDetailsAudit_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [DF_VendorPaymentDetailsAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_VendorPaymentDetailsAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [NonPOInvoiceId]            BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditVendorPaymentId] ASC)
 );
+
+
 

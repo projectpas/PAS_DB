@@ -29,10 +29,12 @@
 	10   06/27/2023   Vishal Suthar Fixed the PO Next Delivery Date issue
 	11   06/30/2023   Vishal Suthar Fixed the RO Next Delivery Date issue
 	12   07/19/2023   Hemant Saliya Fixed the RO Next Delivery Date issue
-	--IsExchangeTender
- EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3666,3107, 0
+	13   10/16/2023   Hemant Saliya Update UOM changes
+	14   10/19/2023   Hemant Saliya Update Stockline Condition
+	
+ EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3651,3119, 0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
 (    
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
@@ -343,7 +345,8 @@ SET NOCOUNT ON
 						WOM.IsAltPart,
 						WOM.IsEquPart,
 						ITC.Description AS ItemClassification,
-						UOM.ShortName AS UOM,
+						--UOM.ShortName AS UOM,
+						CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UOM,
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
@@ -377,6 +380,7 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -550,7 +554,8 @@ SET NOCOUNT ON
 						WOM.IsAltPart,
 						WOM.IsEquPart,
 						ITC.Description AS ItemClassification,
-						UOM.ShortName AS UOM,
+						--UOM.ShortName AS UOM,
+						CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UOM,
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
@@ -584,6 +589,7 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -730,9 +736,6 @@ SET NOCOUNT ON
 						WOM.QtyOnOrder, 
 						WOM.QtyOnBkOrder,
 						WOM.PONum,
-						--CASE WHEN ISNULL(MSTL_PO.WOMStockLineId,0)=0 THEN WOM.PONextDlvrDate
-						--	 ELSE (CASE WHEN MSTL_PO.QuantityTurnIn > 0 THEN WOM.PONextDlvrDate ELSE SL.ReceivedDate END)
-						--END AS PONextDlvrDate,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						WOM.POId,
@@ -761,7 +764,7 @@ SET NOCOUNT ON
 						WOM.IsAltPart,
 						WOM.IsEquPart,
 						ITC.Description AS ItemClassification,
-						UOM.ShortName AS UOM,
+						CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UOM,
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
@@ -770,7 +773,6 @@ SET NOCOUNT ON
 						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
-						--Employeename =(SELECT TOP 1 (em.FirstName +' '+ em.LastName) FROM dbo.WorkOrder wo WITH (NOLOCK) JOIN dbo.Employee em WITH (NOLOCK) on  em.EmployeeId = wo.EmployeeId where wo.WorkOrderId=WOM.WorkOrderId ),
 						Employeename = UPPER(WOM.CreatedBy),
 						CASE WHEN SL.RepairOrderPartRecordId IS NOT NULL AND MSTL.RepairOrderId > 0 THEN SL.ReceivedDate ELSE ROP.EstRecordDate END AS 'RONextDlvrDate',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
@@ -795,8 +797,9 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
-						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
+						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId -- DO Not Modify this 
 						--LEFT JOIN dbo.Stockline SL_PO WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
 						LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId
@@ -938,9 +941,6 @@ SET NOCOUNT ON
 						WOM.QtyOnOrder, 
 						WOM.QtyOnBkOrder,
 						WOM.PONum,
-						--CASE WHEN ISNULL(MSTL_PO.WorkOrderMaterialStockLineKitId,0)=0 THEN WOM.PONextDlvrDate
-						--ELSE (CASE WHEN MSTL_PO.QuantityTurnIn > 0 THEN WOM.PONextDlvrDate ELSE SL.ReceivedDate  END)
-						--END AS PONextDlvrDate,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						WOM.POId,
@@ -969,7 +969,7 @@ SET NOCOUNT ON
 						WOM.IsAltPart,
 						WOM.IsEquPart,
 						ITC.Description AS ItemClassification,
-						UOM.ShortName AS UOM,
+						CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UOM,
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
@@ -978,7 +978,6 @@ SET NOCOUNT ON
 						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
-						--Employeename =(SELECT TOP 1 (em.FirstName +' '+ em.LastName) FROM dbo.WorkOrder wo WITH (NOLOCK) JOIN dbo.Employee em WITH (NOLOCK) on  em.EmployeeId = wo.EmployeeId where wo.WorkOrderId=WOM.WorkOrderId ),
 						Employeename = UPPER(WOM.CreatedBy),
 						CASE WHEN SL.RepairOrderPartRecordId IS NOT NULL AND MSTL.RepairOrderId > 0 THEN SL.ReceivedDate ELSE ROP.EstRecordDate END AS 'RONextDlvrDate',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderNumber ELSE RO.RepairOrderNumber END AS 'RepairOrderNumber',
@@ -995,15 +994,16 @@ SET NOCOUNT ON
 						,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,0  AS IsExchangeTender
-						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 						JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
-						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
-						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
+						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId -- DO Not Modify this 
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
 						LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId

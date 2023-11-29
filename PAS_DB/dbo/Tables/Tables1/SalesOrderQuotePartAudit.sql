@@ -62,8 +62,11 @@
     [UnitSalesPricePerUnit]      NUMERIC (9, 2) NULL,
     [IsLotAssigned]              BIT            NULL,
     [LotId]                      BIGINT         NULL,
+    [SalesPriceExpiryDate]       DATETIME2 (7)  NULL,
     CONSTRAINT [PK_SalesOrderQuotePartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
+
+
 
 
 

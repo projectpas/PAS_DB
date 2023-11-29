@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    07/12/2023   Vishal Suthar		Created
     2    07/21/2023   Vishal Suthar		Modified to handle adjustment increase-decrease qty
+	3    6 Nov 2023   Rajesh Gami       SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
   
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -144,7 +145,7 @@ BEGIN
 				,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
 				,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
 				,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
-				[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName])  
+				[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
   
 				SELECT [StockLineId],[PartNumber], @StocklineNumber  
 				,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
@@ -169,7 +170,7 @@ BEGIN
 				,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
 				,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
 				,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
-				@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber
+				@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
 				FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
   
 				SELECT @NewStocklineId = SCOPE_IDENTITY()
@@ -261,7 +262,7 @@ BEGIN
 					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
 					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
 					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
-					[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName])  
+					[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
   
 					SELECT [StockLineId],[PartNumber], @StocklineNumber  
 					,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
@@ -286,7 +287,7 @@ BEGIN
 					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
 					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
 					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
-					@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber
+					@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
 					FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
   
 					SELECT @NewStocklineId = SCOPE_IDENTITY()

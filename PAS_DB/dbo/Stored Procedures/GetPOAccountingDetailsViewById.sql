@@ -11,8 +11,8 @@
  **************************************************************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
-    1    18-9-2023		Ayesha Sultana		Created  
-
+    1    18-9-2023		Ayesha Sultana		   Created  
+	2    20/10/2023     Bhargav Saliya         Export Data Convert Into Upper Case
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetPOAccountingDetailsViewById]    
 @ReferenceId bigint    
@@ -32,11 +32,11 @@ BEGIN
 			,CBD.[LineNumber]  
 			,CBD.[GlAccountId]  
 			,CBD.[GlAccountNumber]  
-			,CBD.[GlAccountName]  
+			,UPPER(CBD.[GlAccountName]) AS [GlAccountName]
 			,CBD.[TransactionDate]  
 			,CBD.[EntryDate] 
 			,CBD.[JournalTypeId]  
-            ,(CBD.[JournalTypeName] +' - '+ UPPER(SLBD.PONum)) as JournalTypeName  
+            ,(upper(CBD.[JournalTypeName]) +' - '+ UPPER(SLBD.PONum)) as JournalTypeName  
             ,CBD.[IsDebit]  
             ,CBD.[DebitAmount]  
             ,CBD.[CreditAmount]
@@ -55,7 +55,7 @@ BEGIN
             ,CBD.DistributionSetupId  
             ,CBD.DistributionName
 			,BH.[JournalBatchHeaderId]  
-            ,BH.[BatchName]             
+            ,UPPER(BH.[BatchName]) AS [BatchName]             
 		    ,SLBD.StocklineBatchDetailId
             ,SLBD.PoId AS [ReferenceId]  
             ,SLBD.PONum AS [ReferenceNumber]  

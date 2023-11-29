@@ -1,5 +1,5 @@
-﻿-- EXEC GetCustomerCreditDebitCardDetailsByReceiptId 90,0,2
-CREATE PROCEDURE [dbo].[GetCustomerCreditDebitCardDetailsByReceiptId]
+﻿
+CREATE   PROCEDURE [dbo].[GetCustomerCreditDebitCardDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,
 @Opr int = NULL
@@ -35,6 +35,7 @@ BEGIN
 			  ,[IsActive]
 			  ,[IsDeleted]
 			  ,[PageIndex]
+			  ,ISNULL([PostalCode], '') AS [PostalCode]
 	      FROM [dbo].[InvoiceCreditDebitCardPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -64,6 +65,7 @@ BEGIN
 			  ,[IsActive]
 			  ,[IsDeleted]
 			  ,[PageIndex]
+			  ,ISNULL([PostalCode], '') AS [PostalCode]
 	      FROM [dbo].[InvoiceCreditDebitCardPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

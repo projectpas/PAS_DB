@@ -3,15 +3,17 @@
 ** Create date: <09/14/2023>    
 ** Description: <get NOnPOInvoice Data by NonPOInvoiceId for edit>    
     
-EXEC [USP_GetPNLabelSettingData]   
+EXEC [USP_GetNonPOInvoiceEditData_ById]   
 **********************   
 ** Change History   
 **********************     
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    09/14/2023		Devendra Shekh		 created
-** 2    09/14262023		Devendra Shekh		 ADDED employeeid and IsEnforceNonPoApproval
-** 3    09/14262023		Devendra Shekh		 ADDED NPONumber
+** 2    09/14/2023		Devendra Shekh		 ADDED employeeid and IsEnforceNonPoApproval
+** 3    09/14/2023		Devendra Shekh		 ADDED NPONumber
+** 4    10/11/2023		Devendra Shekh		 ADDED new columns
+** 5    10/26/2023		Devendra Shekh		 ADDED new columns
 
 exec dbo.USP_GetNonPOInvoiceEditData_ById 1,1
 **********************/   
@@ -48,7 +50,13 @@ BEGIN
 						NPH.PaymentMethodId,
 						NPH.EmployeeId,
 						ISNULL(NPH.IsEnforceNonPoApproval, 0) AS IsEnforceNonPoApproval,
-						NPH.NPONumber
+						NPH.NPONumber,
+						NPH.EntryDate,
+						ISNULL(NPH.InvoiceNumber, '') AS [InvoiceNumber],
+						NPH.InvoiceDate,
+						ISNULL(NPH.PONumber, '') AS [PONumber],
+						ISNULL(NPH.AccountingCalendarId, 0) AS [AccountingCalendarId],
+						ISNULL(NPH.CurrencyId, 0) AS [CurrencyId]
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId

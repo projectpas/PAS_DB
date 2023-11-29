@@ -15,10 +15,10 @@
  ** --   --------     -------  --------------------------------            
     1    06/07/2023  Shrey Chandegara     Created  
 	2    08/09/2023  Ayesha Sultana     Getting JE Status field changes  
-       
+    3    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case   
 -- exec GetAccountingDetailsViewById 531   
 ************************************************************************/   
-CREATE      PROCEDURE [dbo].[GetAccountingDetailsViewById]    
+CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewById]    
 @SalesOrderId bigint    
 AS    
 BEGIN    
@@ -30,7 +30,7 @@ BEGIN
                  ,JBD.[LineNumber]    
                  ,JBD.[GlAccountId]    
                  ,JBD.[GlAccountNumber]    
-                 ,JBD.[GlAccountName]    
+                 ,UPPER(JBD.[GlAccountName]) AS [GlAccountName]    
                  ,JBD.[TransactionDate]    
                  ,JBD.[EntryDate]    
                  ,SBD.[SalesOrderId]    
@@ -38,12 +38,12 @@ BEGIN
                  ,SBD.[PartId]    
                  ,SBD.[PartNumber]    
                  ,JBD.[JournalTypeId]    
-                 ,JBD.[JournalTypeName]    
+                 ,UPPER(JBD.[JournalTypeName])  AS [JournalTypeName]  
                  ,JBD.[IsDebit]    
                  ,JBD.[DebitAmount]    
                  ,JBD.[CreditAmount]    
                  ,SBD.[CustomerId]    
-                 ,SBD.[CustomerName]    
+                 ,UPPER(SBD.[CustomerName]) AS [CustomerName]
                  ,SBD.[ARControlNumber]    
                  ,SBD.[StocklineId]  
 				 ,SBD.[StocklineNumber]  
@@ -74,7 +74,7 @@ BEGIN
                  ,jbd.DistributionName    
                  ,le.CompanyName as LegalEntityName    
                  ,BD.JournalTypeNumber 
-				 ,BS.[Name] AS JEStatus
+				 ,UPPER(BS.[Name]) AS JEStatus
                  ,BD.CurrentNumber    
                  ,CR.Code AS Currency  
           ,UPPER(SSD.Level1Name) AS level1,      

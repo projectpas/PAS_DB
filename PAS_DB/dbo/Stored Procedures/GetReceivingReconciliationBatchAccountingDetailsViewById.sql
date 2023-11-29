@@ -11,15 +11,15 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    05-10-2023		Ayesha Sultana		Created  
-
+	2    31/10/2023     Bhargav Saliya      Export Data Convert In To Upper Case
 ************************************************************************/ 
+--[dbo].[GetReceivingReconciliationBatchAccountingDetailsViewById] 146
 -- =============================================
-CREATE   PROCEDURE [dbo].[GetReceivingReconciliationBatchAccountingDetailsViewById]
+CREATE     PROCEDURE [dbo].[GetReceivingReconciliationBatchAccountingDetailsViewById]
 @ReferenceId bigint 
 AS
-BEGIN
-	
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
+BEGIN	
+ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
    BEGIN       
@@ -33,13 +33,11 @@ BEGIN
 			,CBD.[LineNumber]  
 			,CBD.[GlAccountId]  
 			,CBD.[GlAccountNumber]  
-			,CBD.[GlAccountName]  
+			,UPPER(CBD.[GlAccountName]) AS [GlAccountName] 
 			,CBD.[TransactionDate]  
 			,CBD.[EntryDate] 
 			,CBD.[JournalTypeId]  
-
-            ,(CBD.[JournalTypeName] +' - '+ UPPER(SLBD.PONum)) as JournalTypeName  
-
+            ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(SLBD.PONum)) as JournalTypeName  
             ,CBD.[IsDebit]  
             ,CBD.[DebitAmount]  
             ,CBD.[CreditAmount]
@@ -58,8 +56,7 @@ BEGIN
             ,CBD.DistributionSetupId  
             ,CBD.DistributionName
 			,BH.[JournalBatchHeaderId]  
-            ,BH.[BatchName]    
-			
+            ,BH.[BatchName]    			
 		    ,SLBD.StocklineBatchDetailId
             ,SLBD.PoId AS [ReferenceId]  
             ,SLBD.PONum AS [ReferenceNumber]  
@@ -70,7 +67,6 @@ BEGIN
             ,SLBD.VendorName  
             ,SLBD.VendorId 
             ,SLBD.ItemMasterId   
-
             ,GL.AllowManualJE              
             ,LE.CompanyName AS LegalEntityName  
             ,BD.JournalTypeNumber
@@ -86,13 +82,10 @@ BEGIN
 		    ,CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] AS level8
 		    ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		    ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
-
-
-   FROM DBO.ReceivingReconciliationHeader RRH WITH(NOLOCK) 
-		INNER JOIN DBO.ReceivingReconciliationDetails RRD WITH(NOLOCK) ON RRH.ReceivingReconciliationId =  RRD.ReceivingReconciliationId
-		LEFT JOIN DBO.StocklineBatchDetails SLBD WITH(NOLOCK) ON RRD.StocklineId = SLBD.StocklineId
-		LEFT JOIN DBO.CommonBatchDetails  CBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = SLBD.CommonJournalBatchDetailId
-		INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId  		
+   FROM DBO.ReceivingReconciliationHeader RRH WITH(NOLOCK) 				
+		INNER JOIN DBO.CommonBatchDetails  CBD WITH(NOLOCK) ON  RRH.ReceivingReconciliationId = CBD.ReferenceId 	
+		INNER JOIN DBO.StocklineBatchDetails SLBD WITH(NOLOCK) ON SLBD.CommonJournalBatchDetailId = CBD.CommonJournalBatchDetailId
+		INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId
 		INNER JOIN dbo.BatchHeader BH WITH(NOLOCK) ON BD.JournalBatchHeaderId = BH.JournalBatchHeaderId
 		LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON GL.GLAccountId=CBD.GLAccountId
 		LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND 
@@ -108,7 +101,7 @@ BEGIN
 		LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
 		LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
 		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
-		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId  
+		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId		
      WHERE RRH.ReceivingReconciliationId = @ReferenceId     
   END    
   END TRY    

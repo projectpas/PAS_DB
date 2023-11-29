@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [GetCreditMemoById]             
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to Get Credit Memo Details  
@@ -8,19 +8,19 @@
  ** PARAMETERS: @CreditMemoHeaderId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
     1    18/04/2022  Moin Bloch			Created  
 	2    20/05/2022  Subhash Saliya     Updated  
 	3    12/09/2022  AMIT GHEDIYA		Updated for get IsStandAloneCM value.
-       
+    4    18/10/2023  BHARGAV SALIYA     Get CurrencyId   
 -- EXEC GetCreditMemoById 8  
   
-************************************************************************/  
-CREATE     PROCEDURE [dbo].[GetCreditMemoById]  
+************************/  
+CREATE    PROCEDURE [dbo].[GetCreditMemoById]  
 	@CreditMemoHeaderId bigint  
 AS  
 BEGIN  
@@ -80,6 +80,7 @@ BEGIN
       ,CM.[TotalCharges]  
    ,CRMA.[ValidDate]  
    ,CRMA.[CreatedDate] 'RMAIssueDate'  
+   ,CF.CurrencyId
    ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK)   
                                        WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
          ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)   
@@ -111,6 +112,7 @@ BEGIN
   FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
     INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MS WITH (NOLOCK) ON CM.CreditMemoHeaderId = MS.ReferenceID AND MS.ModuleID = @ModuleID  
     LEFT JOIN [dbo].[CustomerRMAHeader] CRMA ON CRMA.RMAHeaderId = CM.RMAHeaderId  
+	LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON  CM.CustomerId = CF.CustomerId
     OUTER APPLY (SELECT TOP 1 CreditMemoDetailId FROM  CreditMemoDetails CD WITH (NOLOCK) WHERE CD.CreditMemoHeaderId = CM.CreditMemoHeaderId) CR   
   WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId;  
   

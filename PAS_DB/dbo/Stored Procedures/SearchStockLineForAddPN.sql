@@ -17,6 +17,7 @@
  ** 1    05/26/2022   Hemant Saliya   Created  
  ** 2    07/26/2023	  HEMANT SALIYA	  Allow User to reserver & Issue other Customer Stock as well
  ** 3    08/08/2023	  HEMANT SALIYA	  Cistomer Stock Validation Changes
+ ** 4    10/11/2023	  HEMANT SALIYA   Added Condition Group Changes
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
@@ -36,15 +37,37 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN    
-	   DECLARE @StockType int = 1,@AlternatePartNumber VARCHAR(250);  
+		DECLARE @StockType INT = 1;
+		DECLARE @AlternatePartNumber VARCHAR(250);  
+		DECLARE @ConditionGroup VARCHAR(50);
+		DECLARE @MasterCompanyId INT;
+
+	    IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
+		BEGIN
+			DROP TABLE #ConditionGroup 
+		END
+
+		CREATE TABLE #ConditionGroup 
+		(
+			ID BIGINT NOT NULL IDENTITY, 
+			[ConditionId] [BIGINT] NULL,
+			[ConditionGroup] VARCHAR(50) NULL,
+		)
+
+		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
+
+		SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
+					
+		INSERT INTO #ConditionGroup (ConditionId)
+		SELECT ConditionId FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND GroupCode = @ConditionGroup
      
-	   --Select for Alternate partnumber from mapping master table.  
-	   SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
-	   FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
-	   JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-	   WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2);  
+		--Select for Alternate partnumber from mapping master table.  
+		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
+		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
+			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2);  
   
-	   SELECT DISTINCT  
+		SELECT DISTINCT  
 			im.PartNumber  
 			,sl.StockLineId  
 			,im.ItemMasterId As PartId  
@@ -111,7 +134,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 				AND sl.isActive = 1 AND sl.IsDeleted = 0   
-				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL   
+				--AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
+				AND sl.ConditionId = CASE WHEN @ConditionId IS NOT NULL   
 					  THEN @ConditionId ELSE sl.ConditionId   
 					  END  
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId  
@@ -141,7 +165,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		WHERE   
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
-			--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
+			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 			AND sl.IsParent = 1  
 	   
 	   UNION  
@@ -213,6 +237,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 		   JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 			   AND sl.isActive = 1 AND sl.IsDeleted = 0   
+			   --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 			   AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL   
 					 THEN @ConditionId ELSE sl.ConditionId   
 					 END  

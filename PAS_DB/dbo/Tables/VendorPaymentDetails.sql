@@ -33,6 +33,9 @@
     [IsActive]                  BIT             CONSTRAINT [DF_VendorPaymentDetails_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_VendorPaymentDetails_IsDeleted] DEFAULT ((0)) NOT NULL,
     [RemainingAmount]           DECIMAL (18, 2) NULL,
+    [NonPOInvoiceId]            BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetails] PRIMARY KEY CLUSTERED ([VendorPaymentDetailsId] ASC)
 );
+
+
 

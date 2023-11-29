@@ -12,13 +12,12 @@
  ** --   --------     -------		-------------------------------            
 	1    22/08/2023   Satish Gohil  Created
 	2    31/08/2023	  Satish Gohil  Modify(Added Credit/Debit Validation and GL Validation changes)
+	3    13/10/2023   MOIN BLOCH    Modify(Added Name for Customer / Vendor )
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_ValidateManualBatch]
-(
-	@tbl_ManualJEUploadType ManualJEUploadType ReadOnly,
-	@MasterCompanyId BIGINT
-)
+@tbl_ManualJEUploadType ManualJEUploadType ReadOnly,
+@MasterCompanyId BIGINT
 AS
 BEGIN
 	BEGIN TRY
@@ -28,17 +27,17 @@ BEGIN
 		DECLARE @Debit DECIMAL(18,2) = 0;
 		DECLARE @Credit DECIMAL(18,2) = 0;
 
-		DECLARE @Level1Code varchar(50);
-		DECLARE @Level2Code varchar(50);
-		DECLARE @Level3Code varchar(50);
-		DECLARE @Level4Code varchar(50);
-		DECLARE @Level5Code varchar(50);
-		DECLARE @Level6Code varchar(50);
-		DECLARE @Level7Code varchar(50);
-		DECLARE @Level8Code varchar(50);
-		DECLARE @Level9Code varchar(50);
-		DECLARE @Level10Code varchar(50);
-		DECLARE @Message varchar(MAX);
+		DECLARE @Level1Code VARCHAR(50);
+		DECLARE @Level2Code VARCHAR(50);
+		DECLARE @Level3Code VARCHAR(50);
+		DECLARE @Level4Code VARCHAR(50);
+		DECLARE @Level5Code VARCHAR(50);
+		DECLARE @Level6Code VARCHAR(50);
+		DECLARE @Level7Code VARCHAR(50);
+		DECLARE @Level8Code VARCHAR(50);
+		DECLARE @Level9Code VARCHAR(50);
+		DECLARE @Level10Code VARCHAR(50);
+		DECLARE @Message VARCHAR(MAX);
 		DECLARE @Str NVARCHAR(MAX);
 		DECLARE @StrCondition NVARCHAR(MAX) = '';
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL        
@@ -48,43 +47,44 @@ BEGIN
 
 		CREATE TABLE #temptable      
 		(      
-			rownumber BIGINT identity(1,1),   
-			GlAccountId BIGINT NULL,
-			AccountCode varchar(50) NULL,
-			AccountName varchar(100) NULL,
-			Debit DECIMAL(18,2) NULL,
-			Credit DECIMAL(18,2) NULL,
-			[Description] varchar(100) NULL,
-			ManagementStructureId BIGINT NULL,
-			Level1Code varchar(50) NULL,
-			Level2Code varchar(50) NULL,
-			Level3Code varchar(50) NULL,
-			Level4Code varchar(50) NULL,
-			Level5Code varchar(50) NULL,
-			Level6Code varchar(50) NULL,
-			Level7Code varchar(50) NULL,
-			Level8Code varchar(50) NULL,
-			Level9Code varchar(50) NULL,
-			Level10Code varchar(50) NULL,
-			message varchar(MAX) NULL
+			[rownumber] BIGINT IDENTITY(1,1),   
+			[GlAccountId] BIGINT NULL,
+			[AccountCode] VARCHAR(50) NULL,
+			[AccountName] VARCHAR(100) NULL,
+			[Debit] DECIMAL(18,2) NULL,
+			[Credit] DECIMAL(18,2) NULL,
+			[Description] VARCHAR(100) NULL,
+			[ReferenceId] [bigint] NULL,
+	        [ReferenceTypeId] [int] NULL,
+			[Name] VARCHAR(100) NULL,
+			[ManagementStructureId] BIGINT NULL,
+			[Level1Code] VARCHAR(50) NULL,
+			[Level2Code] VARCHAR(50) NULL,
+			[Level3Code] VARCHAR(50) NULL,
+			[Level4Code] VARCHAR(50) NULL,
+			[Level5Code] VARCHAR(50) NULL,
+			[Level6Code] VARCHAR(50) NULL,
+			[Level7Code] VARCHAR(50) NULL,
+			[Level8Code] VARCHAR(50) NULL,
+			[Level9Code] VARCHAR(50) NULL,
+			[Level10Code] VARCHAR(50) NULL,
+			[message] VARCHAR(MAX) NULL
 		)        
 
-		INSERT INTO #temptable(GlAccountId,AccountCode,AccountName,Debit,Credit,[Description],ManagementStructureId,Level1Code,
-		Level2Code,Level3Code,Level4Code,Level5Code,Level6Code,Level7Code,Level8Code,Level9Code,Level10Code)
-		SELECT ISNULL(GlAccountId,0),AccountCode,AccountName,Debit,Credit,[Description],0,Level1Code,
-		Level2Code,Level3Code,Level4Code,Level5Code,Level6Code,Level7Code,Level8Code,Level9Code,Level10Code
+		INSERT INTO #temptable(GlAccountId,AccountCode,AccountName,Debit,Credit,[Description],[ReferenceId],[ReferenceTypeId],[Name],[ManagementStructureId],[Level1Code],
+			Level2Code,Level3Code,Level4Code,Level5Code,Level6Code,Level7Code,Level8Code,Level9Code,Level10Code)
+		SELECT ISNULL(GlAccountId,0),AccountCode,AccountName,Debit,Credit,[Description],[ReferenceId],[ReferenceTypeId],[Name],0,Level1Code,
+			Level2Code,Level3Code,Level4Code,Level5Code,Level6Code,Level7Code,Level8Code,Level9Code,Level10Code
 		FROM @tbl_ManualJEUploadType
 		
-		SELECT @MaxLevel = ManagementStructureLevel FROM dbo.MasterCompany WITH(NOLOCK)
-		WHERE MasterCompanyId = @MasterCompanyId
+		SELECT @MaxLevel = [ManagementStructureLevel] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
-		select * from #temptable
+		SELECT * FROM #temptable
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(rownumber) FROM #temptable     
 
 		WHILE @MinId <= @TotalRecord  
-		BEGIN
-			
+		BEGIN			
 			DECLARE @Level1Id BIGINT = 0;
 			DECLARE @Level2Id BIGINT = 0;
 			DECLARE @Level3Id BIGINT = 0;
@@ -102,76 +102,159 @@ BEGIN
 			DECLARE @GlAccountId BIGINT = 0;
 			DECLARE @DebitAmout DECIMAL(18,2) = 0;
 			DECLARE @CreditAmout DECIMAL(18,2) = 0;
+			DECLARE @ReferenceId BIGINT = 0;
+			DECLARE @ReferenceTypeId INT = 0;
+			DECLARE @Name VARCHAR(100);			
+			DECLARE @IsManualJEReference BIT = 0;			
+			DECLARE @GLReferenceTypeId INT = 0;			
 
 			IF OBJECT_ID(N'tempdb..#tmpmsg') IS NOT NULL        
 			BEGIN        
 				DROP TABLE #tmpmsg    
-			END     
-        
+			END   
 
-			CREATE TABLE #tmpmsg(        
-				msg VARCHAR(100) null    
+			CREATE TABLE #tmpmsg
+			(        
+				msg VARCHAR(100) NULL    
 			) 
 
-			SELECT @GlAccId = ISNULL(GLAccountId,0),@AccountCode = AccountCode,@AccountName = AccountName,
-			@Level1Code = Level1Code,@DebitAmout = ISNULL(Debit,0),@CreditAmout = ISNULL(Credit,0)
-			,@Level2Code = Level2Code,@Level3Code = Level3Code,@Level4Code = Level4Code,@Level5Code = Level5Code
-			,@Level6Code = Level6Code,@Level7Code = Level7Code,@Level8Code = Level8Code,@Level9Code = Level9Code
-			,@Level10Code = Level10Code
-			FROM #temptable WHERE rownumber = @MinId 
+			SELECT @GlAccId = ISNULL([GLAccountId],0),
+			       @AccountCode = [AccountCode],
+				   @AccountName = [AccountName],
+			       @Level1Code = [Level1Code],
+				   @DebitAmout = ISNULL([Debit],0),
+				   @CreditAmout = ISNULL([Credit],0),
+				   @ReferenceId = ISNULL([ReferenceId],0),
+				   @ReferenceTypeId = [ReferenceTypeId],
+				   @Name = [Name],
+			       @Level2Code = [Level2Code],
+				   @Level3Code = [Level3Code],
+				   @Level4Code = [Level4Code],
+				   @Level5Code = [Level5Code],
+			       @Level6Code = [Level6Code],
+				   @Level7Code = [Level7Code],
+				   @Level8Code = [Level8Code],
+				   @Level9Code = [Level9Code],
+			       @Level10Code = [Level10Code]
+			  FROM #temptable WHERE rownumber = @MinId 
+
+            IF(@Name = '')
+			BEGIN
+				SET @Name = NULL;
+			END
 
 			IF(@GlAccId > 0)
 			BEGIN
-
-				SELECT @GlAccountId = ISNULL(GLAccountId,0) FROM dbo.GLAccount WITH(NOLOCK) 
+				SELECT @GlAccountId = ISNULL(GLAccountId,0), 
+				       @IsManualJEReference = [IsManualJEReference],
+					   @GLReferenceTypeId = [ReferenceTypeId]
+				  FROM dbo.GLAccount WITH(NOLOCK) 
 				WHERE GLAccountId = @GlAccId AND MasterCompanyId = @MasterCompanyId
-				AND IsDeleted = 0 AND IsActive = 1
+				AND IsDeleted = 0 AND IsActive = 1;
 
 				IF(ISNULL(@GlAccountId,0) = 0)
 				BEGIN
-					INSERT INTO #tmpmsg(msg)
-					VALUES('GLAccount is Invalid');
-
+					INSERT INTO #tmpmsg(msg)VALUES('GLAccount is Invalid');
 				END
 				ELSE
 				BEGIN 
-					UPDATE #temptable SET GlAccountId = @GlAccountId WHERE rownumber = @MinId 
+					UPDATE #temptable SET [GlAccountId] = @GlAccountId WHERE rownumber = @MinId 
 				END
+
+				IF(@ReferenceId > 0 AND @ReferenceTypeId = 1)
+				BEGIN
+					SELECT @ReferenceId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @ReferenceId AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0 AND [IsActive] = 1;
+					   SET @ReferenceTypeId = @ReferenceTypeId;
+					UPDATE #temptable 
+					   SET [ReferenceId] = @ReferenceId,
+					       [ReferenceTypeId] = @ReferenceTypeId 
+					 WHERE rownumber = @MinId;
+				END
+
+				IF(@ReferenceId > 0 AND @ReferenceTypeId = 2)
+				BEGIN
+					SELECT @ReferenceId = [VendorId] FROM [dbo].[Vendor] WHERE [VendorId] = @ReferenceId AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0 AND [IsActive] = 1;
+					  SET  @ReferenceTypeId = @ReferenceTypeId;
+					  UPDATE #temptable 
+					     SET [ReferenceId] = @ReferenceId,
+					  	     [ReferenceTypeId] = @ReferenceTypeId 
+					   WHERE rownumber = @MinId;
+				END				
 			END
 			ELSE 
-			BEGIN
-				SELECT @GlAccountId = ISNULL(GLAccountId,0) FROM dbo.GLAccount WITH(NOLOCK) 
-				WHERE AccountCode = @AccountCode AND MasterCompanyId = @MasterCompanyId
-				AND IsDeleted = 0 AND IsActive = 1
-
-				print @GlAccountId
-
+			BEGIN				
+				SELECT @GlAccountId = ISNULL(GLAccountId,0),
+				       @IsManualJEReference = [IsManualJEReference],
+					   @GLReferenceTypeId = [ReferenceTypeId]				
+				FROM [dbo].[GLAccount] WITH(NOLOCK) 
+				WHERE [AccountCode] = @AccountCode AND [MasterCompanyId] = @MasterCompanyId
+				AND [IsDeleted] = 0 AND [IsActive] = 1
+							
 				IF(ISNULL(@GlAccountId,0) = 0)
 				BEGIN
-					INSERT INTO #tmpmsg(msg)
-					VALUES('GLAccount is Invalid');
-
+					INSERT INTO #tmpmsg(msg)VALUES('GLAccount is Invalid');
 				END
 				ELSE
 				BEGIN 
-					UPDATE #temptable SET GlAccountId = @GlAccountId WHERE rownumber = @MinId 
+					UPDATE #temptable SET [GlAccountId] = @GlAccountId WHERE rownumber = @MinId 
 				END
-			END
 
-		
+				IF(@GlAccountId > 0 AND @Name IS NOT NULL)
+				BEGIN
+					IF(@IsManualJEReference = 1 AND @GLReferenceTypeId > 0)
+					BEGIN
+						IF(@GLReferenceTypeId = 1)
+						BEGIN							
+							SELECT @ReferenceId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER(@Name) AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0 AND [IsActive] = 1;
+							SET @ReferenceTypeId = @GLReferenceTypeId;
+
+							IF(ISNULL(@ReferenceId,0) = 0)
+							BEGIN
+								INSERT INTO #tmpmsg(msg)VALUES('Customer is Invalid');
+							END
+							ELSE
+							BEGIN 
+								UPDATE #temptable 
+							      SET [ReferenceId] = @ReferenceId,
+							          [ReferenceTypeId] = @ReferenceTypeId 
+						        WHERE rownumber = @MinId 
+							END
+							
+						END
+						IF(@GLReferenceTypeId = 2)
+						BEGIN							
+							SELECT @ReferenceId = [VendorId] FROM [dbo].[Vendor] WHERE UPPER(VendorName) = UPPER(@Name) AND [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0 AND [IsActive] = 1;
+							SET @ReferenceTypeId = @GLReferenceTypeId;
+							IF(ISNULL(@ReferenceId,0) = 0)
+							BEGIN
+								INSERT INTO #tmpmsg(msg)VALUES('Vendor is Invalid');
+							END
+							ELSE
+							BEGIN 
+								UPDATE #temptable 
+								  SET [ReferenceId] = @ReferenceId,
+									  [ReferenceTypeId] = @ReferenceTypeId 
+								WHERE rownumber = @MinId 
+							END
+						END						
+					END
+					ELSE
+					BEGIN
+						INSERT INTO #tmpmsg(msg)VALUES('Allow Manual JE in GLAccount');
+					END					
+				END				
+			END		
+
+
+
 			IF(ISNULL(@DebitAmout,0) < 0 OR ISNULL(@CreditAmout,0) < 0)
 			BEGIN
-				INSERT INTO #tmpmsg(msg)
-					VALUES('Enter Grether then 0 value in Credit or Debit');
+				INSERT INTO #tmpmsg(msg)VALUES('Enter Grether then 0 value in Credit or Debit');
 			END
-
 			IF(ISNULL(@DebitAmout,0) = 0 AND ISNULL(@CreditAmout,0) = 0)
-			BEGIN
-			
-				INSERT INTO #tmpmsg(msg)
-					VALUES('Enter Amount in Either Credit or Debit');
+			BEGIN			
+				INSERT INTO #tmpmsg(msg)VALUES('Enter Amount in Either Credit or Debit');
 			END
-
 			IF(ISNULL(@MaxLevel,0) >= 1)
 			BEGIN
 				IF(ISNULL(@Level1Code,'') = '')
@@ -188,8 +271,7 @@ BEGIN
 
 					SET @StrCondition = ' AND CAST(Level1Id AS varchar) = ' + CAST(ISNULL(@Level1Id,0) AS varchar)
 				END
-			END
-			
+			END			
 			IF(ISNULL(@MaxLevel,0) >= 2)
 			BEGIN
 				IF(ISNULL(@Level2Code,'') = '')
@@ -367,7 +449,6 @@ BEGIN
 
 			SELECT @Message = STUFF((SELECT DISTINCT ', ' + msg    
 			FROM #tmpmsg FOR XML PATH ('')),1,1,'')    
-			print @Message
 
 			UPDATE #temptable SET [message] = @Message WHERE rownumber = @MinId 
 

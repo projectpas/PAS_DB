@@ -19,7 +19,12 @@
     [VendorId]                 BIGINT          NULL,
     [IsVendorPayment]          BIT             NULL,
     [VendorPaymentDetailsId]   BIGINT          NULL,
+    [OpenDate]                 DATETIME2 (7)   NULL,
+    [RequestedBy]              BIGINT          NULL,
+    [Notes]                    VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_VendorCreditMemo] PRIMARY KEY CLUSTERED ([VendorCreditMemoId] ASC),
     CONSTRAINT [FK_VendorCreditMemo_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );
+
+
 

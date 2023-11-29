@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [sp_GetCustomerInvoicedatabyInvoiceId]             
  ** Author:   Subhash Saliya  
  ** Description: Get Customer Invoicedataby InvoiceId     
@@ -13,7 +14,8 @@
     1    04/18/2022   Subhash Saliya	Created  
 	2    04/18/2022   Hemant Saliya		Resolved Ambuguancey in Amount Column  
     3    19/06/2023   Ayesha Sultana    Filter on newly added column ReceiverNum and WO
-   
+	4	 10/10/2023	  Nainshi Joshi		Removed script of "MULTIPLE" hover over 
+
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SearchCustomerRMAData]
@@ -440,8 +442,8 @@ BEGIN
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
           ELSE A.PartNumber
-        END) AS 'PartNumber',
-        A.PartNumber [PartNumberType]
+        END) AS 'PartNumber'
+		--,A.PartNumber [PartNumberType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT
@@ -459,8 +461,8 @@ BEGIN
       PartDescCTE AS (SELECT CRD.RMAHeaderId,
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
-          ELSE A.PartDescription END) AS 'PartDescription',
-        A.PartDescription [PartDescriptionType]
+          ELSE A.PartDescription END) AS 'PartDescription'
+		  --,A.PartDescription [PartDescriptionType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT STUFF((SELECT
@@ -479,8 +481,8 @@ BEGIN
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
           ELSE A.ManufacturerName
-        END) AS 'ManufacturerName',
-        A.ManufacturerName [ManufacturerNameType]
+        END) AS 'ManufacturerName'
+		--,A.ManufacturerName [ManufacturerNameType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT STUFF((SELECT
@@ -500,8 +502,8 @@ BEGIN
         CRD.RMAHeaderId,
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
-          ELSE A.Reason END) AS 'RMAReason',
-        A.Reason [RMAReasonType]
+          ELSE A.Reason END) AS 'RMAReason'
+		--  ,A.Reason [RMAReasonType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT
@@ -520,8 +522,8 @@ BEGIN
 
       RMAQTYCTE AS (SELECT CRD.RMAHeaderId,
         (CASE
-          WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple' ELSE A.Qty END) AS 'Qty',
-        A.Qty [QtyType]
+          WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple' ELSE A.Qty END) AS 'Qty'
+		 -- ,A.Qty [QtyType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT
@@ -541,8 +543,8 @@ BEGIN
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
           ELSE A.UnitPrice
-        END) AS 'UnitPrice',
-        A.UnitPrice [UnitPriceType]
+        END) AS 'UnitPrice'
+		-- ,A.UnitPrice [UnitPriceType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT
@@ -561,8 +563,8 @@ BEGIN
         (CASE
           WHEN COUNT(CRD.RMAHeaderId) > 1 THEN 'Multiple'
           ELSE A.Amount
-        END) AS 'Amount',
-        A.Amount [AmountType]
+        END) AS 'Amount'
+		--,A.Amount [AmountType]
       FROM CustomerRMAHeader CRH WITH (NOLOCK)
       LEFT JOIN CustomerRMADeatils CRD WITH (NOLOCK) ON CRH.RMAHeaderId = CRD.RMAHeaderId
       OUTER APPLY (SELECT
@@ -596,16 +598,16 @@ BEGIN
         m.[isWorkOrder],
         PT.PartNumber [PartNumber],
         PD.PartDescription [PartDescription],
-        PT.PartNumberType,
-        PD.PartDescriptionType,
+      --  PT.PartNumberType,
+      --  PD.PartDescriptionType,
         RC.RMAReason,
-        RC.RMAReasonType,
+     --   RC.RMAReasonType,
         QR.Qty,
-        QR.QtyType,
+       -- QR.QtyType,
         UC.UnitPrice,
-        UC.UnitPriceType,
+     --   UC.UnitPriceType,
         AC.Amount,
-        AC.AmountType,
+      --  AC.AmountType,
         M.LastMSLevel,
         M.AllMSlevels,
         M.ReferenceId,
@@ -615,7 +617,7 @@ BEGIN
         M.[ReceiverNum],
         M.[WorkOrderId],
         MF.ManufacturerName,
-        MF.ManufacturerNameType,
+       -- MF.ManufacturerNameType,
         M.CreditMemoRef,
         M.CreditMemoDate
       FROM Result M
@@ -644,16 +646,16 @@ BEGIN
                m.[isWorkOrder],
                PT.PartNumber,
                PD.PartDescription,
-               PT.PartNumberType,
-               PD.PartDescriptionType,
+            --   PT.PartNumberType,
+            --   PD.PartDescriptionType,
                RC.RMAReason,
-               RC.RMAReasonType,
+             --  RC.RMAReasonType,
                QR.Qty,
-               QR.QtyType,
+            --   QR.QtyType,
                UC.UnitPrice,
-               UC.UnitPriceType,
+            --   UC.UnitPriceType,
                AC.Amount,
-               AC.AmountType,
+             --  AC.AmountType,
                M.LastMSLevel,
                M.AllMSlevels,
                M.ReferenceId,
@@ -663,7 +665,7 @@ BEGIN
                M.[WorkOrderId],
                M.[ReceiverNum],
                MF.ManufacturerName,
-               MF.ManufacturerNameType,
+            --   MF.ManufacturerNameType,
                M.CreditMemoRef,
                M.CreditMemoDate),
       ResultCount

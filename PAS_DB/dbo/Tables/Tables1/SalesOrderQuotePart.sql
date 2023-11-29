@@ -61,6 +61,7 @@
     [UnitSalesPricePerUnit]   NUMERIC (9, 2) NULL,
     [IsLotAssigned]           BIT            NULL,
     [LotId]                   BIGINT         NULL,
+    [SalesPriceExpiryDate]    DATETIME2 (7)  NULL,
     CONSTRAINT [PK_SalesOrderQuotePart] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderQuotePart_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -71,6 +72,8 @@
     CONSTRAINT [FK_SalesOrderQuotePart_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [Unique_SalesOrderQuotePart] UNIQUE NONCLUSTERED ([SalesOrderQuoteId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ConditionId] ASC)
 );
+
+
 
 
 

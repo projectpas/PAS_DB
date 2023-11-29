@@ -10,15 +10,17 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-    1    19/05/2023   Satish Gohil   Show only legal entity releted invoice
-	2    25/07/2023   Moin Bloch     Removed Credit Memo Used Amount from Remaining Amount
-	3    18/09/2023   Hemant Saliya  Corrected Legal Entity Join
-	4    03/10/2023   Moin Bloch     Added Stand Alone CreditMemo and Manual Journal Entry Details
+    1    19/05/2023   Satish Gohil     Show only legal entity releted invoice
+	2    25/07/2023   Moin Bloch       Removed Credit Memo Used Amount from Remaining Amount
+	3    18/09/2023   Hemant Saliya    Corrected Legal Entity Join
+	4    03/10/2023   Moin Bloch       Added Stand Alone CreditMemo and Manual Journal Entry Details
+	5    16/10/2023   Moin Bloch       Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
+	6    10/11/2023   Amit Ghediya     Modify(Added Exchange Invoice)
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
-CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE       PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      
@@ -31,7 +33,11 @@ BEGIN
 	 DECLARE @Level1SequenceNo INT = 1;
 	 DECLARE @PostStatusId INT;
 	 DECLARE @MSModuleId INT = 0;
+	 DECLARE @ExSOMSModuleID INT = 19;
 	 
+	 DECLARE @CMPostedStatusId INT
+	 SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
+
 	 SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 	 SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     
@@ -67,7 +73,9 @@ BEGIN
 			  MSD.AllMSlevels,      
 			  1 AS InvoiceType,      
 			  ISNULL(H.ARBalance,0) AS ARBalance,      
-			  C.Ismiscellaneous      
+			  C.Ismiscellaneous,
+			  0 AS 'ExchangeSalesOrderScheduleBillingId',
+			  0 AS 'BillingId'
 		FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)      
 			  JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId      
@@ -84,7 +92,7 @@ BEGIN
 				 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
-			  AND SOBI.CustomerId = @customerId AND SOBI.RemainingAmount > 0     
+			  AND SOBI.CustomerId = @customerId --AND SOBI.RemainingAmount > 0     
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, CT.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,SOBI.CreditMemoUsed      
@@ -123,7 +131,9 @@ BEGIN
 			 MSD.AllMSlevels,         
 			 2 AS InvoiceType,      
 			 ISNULL(H.ARBalance,0) AS ARBalance,      
-			 C.Ismiscellaneous      
+			 C.Ismiscellaneous,
+			 0 AS 'ExchangeSalesOrderScheduleBillingId',
+			 0 AS 'BillingId'
 			 FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
 			 INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0      
 			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
@@ -180,7 +190,9 @@ BEGIN
 		    MSD.AllMSlevels,    
 		    CASE WHEN COUNT(SACMD.CreditMemoHeaderId) > 0 THEN 4 ELSE 3 END AS InvoiceType,      
 		    0 AS ARBalance,      
-		    C.Ismiscellaneous      
+		    C.Ismiscellaneous,
+			0 AS 'ExchangeSalesOrderScheduleBillingId',
+			0 AS 'BillingId'
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[CustomerRMAHeader] RM WITH (NOLOCK) ON CM.RMAHeaderId = RM.RMAHeaderId    
 			LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
@@ -194,8 +206,9 @@ BEGIN
 		   INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CreditMemoModuleId AND MSD.ReferenceID = CM.CreditMemoHeaderId  --AND MSD.Level1Id = @legalEntityId   
 		   INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 		   INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = CM.MasterCompanyId
-		WHERE CM.[CustomerId] = @customerId AND CM.[Status] = 'Fulfilling' AND
-			  ISNULL(CM.IsClosed,0) = 0
+		WHERE CM.[CustomerId] = @customerId 
+		AND CM.[StatusId] = @CMPostedStatusId
+		AND ISNULL(CM.IsClosed,0) = 0
 		GROUP BY CM.CreditMemoHeaderId,CM.InvoiceId,CM.InvoiceNumber,CM.InvoiceDate,CM.CreditMemoNumber,C.CustomerId,C.[Name],C.CustomerCode,CM.CreditMemoNumber,      
 			MSD.LastMSLevel,MSD.AllMSlevels,C.Ismiscellaneous,CM.IsWorkOrder,WCurr.Code,SCurr.Code,CM.Amount   
 
@@ -233,7 +246,9 @@ BEGIN
 			   (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(MJD.ManagementStructureId)) AS AllMSlevels,   
 			   5 AS InvoiceType,      
 		       0 AS ARBalance,      
-		       CST.Ismiscellaneous  
+		       CST.Ismiscellaneous,
+			   0 AS 'ExchangeSalesOrderScheduleBillingId',
+			   0 AS 'BillingId'
 	    FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.[ManualJournalHeaderId] = MJD.[ManualJournalHeaderId]		  
 		  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.CustomerId = MJD.ReferenceId AND MJD.ReferenceTypeId = 1 
@@ -247,6 +262,65 @@ BEGIN
 		       ISNULL(MJD.IsClosed,0) = 0
 		GROUP BY MJH.[ManualJournalHeaderId],MJH.[JournalNumber],MJH.[PostedDate],MJD.[Debit],MJD.[Credit],MJS.[Name],
 		         MJD.[ManagementStructureId],CST.[CustomerId],CST.[Name],CST.[CustomerCode],CST.[Ismiscellaneous],CR.[Code]  
+
+		UNION ALL
+
+		SELECT ESOBI.ExchangeSalesOrderId AS 'Id',      
+	          ESOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
+		      'Exchange Invoice' AS 'DocumentType',      
+			  ESOBI.InvoiceNo AS 'DocNum',       
+			  ESOBI.InvoiceDate,       
+			  ESOBI.GrandTotal AS 'OriginalAmount',       
+			  ESOBI.RemainingAmount,    
+			  0 AS 'PaymentAmount',      
+			  0 AS 'DiscAmount',       
+			  Curr.Code AS 'CurrencyCode',       
+			  0 AS 'FxRate',       
+			  ES.ExchangeSalesOrderNumber AS 'WOSONum',      
+			  0 AS 'NewRemainingBal',      
+			  'Open' AS 'Status',      
+			  DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',        
+			  (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) AS 'DSO',      
+			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
+			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN ISNULL(ESOBI.RemainingAmount,0) ELSE 0.00 END AS 'AmountPastDue',        
+			  CASE WHEN DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
+			  C.CustomerId,      
+			  C.[Name] AS 'CustName',      
+			  C.CustomerCode,       
+			  ES.CustomerReference,         
+			  GETUTCDATE() AS 'InvDueDate',        
+			  ISNULL(CF.CreditLimit, 0) AS 'CreditLimit',       
+			  ES.CreditTermName,      
+			  (Select COUNT(ESOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems',         
+			  MSD.LastMSLevel,      
+			  MSD.AllMSlevels,      
+			  6 AS InvoiceType,      
+			  ISNULL(H.ARBalance,0) AS ARBalance,      
+			  C.Ismiscellaneous,
+			  ESOBI.ExchangeSalesOrderScheduleBillingId,
+			  ESOBI.BillingId
+		FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)      
+			  JOIN [dbo].[ExchangeSalesOrder] ES WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ES.ExchangeSalesOrderId      
+			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON ESOBI.CustomerId = C.CustomerId      
+			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON ESOBI.CustomerId = CF.CustomerId      
+			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON ES.CreditTermId = CT.CreditTermsId        
+			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON ESOBI.CurrencyId = Curr.CurrencyId      
+			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = p.PercentId 
+	          INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ExSOMSModuleID AND MSD.ReferenceID = ESOBI.ExchangeSalesOrderId
+			  INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
+			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = ES.MasterCompanyId
+	          OUTER APPLY       
+			  (       
+				 SELECT TOP 1 ARBalance FROM [dbo].[CustomerCreditTermsHistory] cch WITH(NOLOCK)      
+				 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
+			  ) H      
+		WHERE ESOBI.InvoiceStatus = 'Invoiced'     
+			  AND ES.IsVendor = 0
+			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
+		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, CT.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
+			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
+			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId   
     
  END TRY          
  BEGIN CATCH      

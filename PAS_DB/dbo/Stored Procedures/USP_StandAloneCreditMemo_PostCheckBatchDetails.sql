@@ -16,12 +16,13 @@
     1    13/09/2023     AMIT GHEDIYA			Created
 	2	 09/15/2023     AMIT GHEDIYA	        Update for management stucture add in common table.
 	3	 09/18/2023     AMIT GHEDIYA	        Update status to Approved after post batch.
-     
+    4    10/16/2023      Moin Bloch		        Modify(Added Posted Status Insted of Closed Credit Memo Status)
+
 -- EXEC USP_StandAloneCreditMemo_PostCheckBatchDetails 1
 ************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_StandAloneCreditMemo_PostCheckBatchDetails]
-	@CreditMemoHeaderId BIGINT=NULL,
-	@Result BIGINT OUTPUT
+CREATE   PROCEDURE [dbo].[USP_StandAloneCreditMemo_PostCheckBatchDetails]
+@CreditMemoHeaderId BIGINT=NULL,
+@Result BIGINT OUTPUT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -34,7 +35,7 @@ BEGIN
 				    @ManagementStructureId BIGINT,@Amount DECIMAL(18,2),@StandAloneCreditMemoDetailId BIGINT,
 				    @MasterCompanyId INT,@UpdatedBy VARCHAR(50),@MasterLoopID INT;
 
-			SELECT @StatusId = Id, @StatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Closed';
+			SELECT @StatusId = Id, @StatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Posted';
 			
 			IF OBJECT_ID(N'tempdb..#tmpStandAloneCreditMemoDetails') IS NOT NULL
 			BEGIN
@@ -77,7 +78,11 @@ BEGIN
 			END
 
 			--Update status to Approved after all postbatch.
-			UPDATE [dbo].[CreditMemo] SET StatusId = @StatusId, Status = @StatusName WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+			UPDATE [dbo].[CreditMemo] 
+			   SET [StatusId] = @StatusId, 
+			       [Status] = @StatusName , 
+				   [InvoiceDate] = GETUTCDATE()  
+			 WHERE [CreditMemoHeaderId] = @CreditMemoHeaderId;
 			
 			SELECT	@Result = @CreditMemoHeaderId;
 		END

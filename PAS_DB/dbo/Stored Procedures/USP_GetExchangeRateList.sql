@@ -1,4 +1,4 @@
-﻿CREATE   PROCEDURE [DBO].[USP_GetExchangeRateList]  
+﻿CREATE   PROCEDURE [dbo].[USP_GetExchangeRateList]  
 (  
   @PageNumber int,      
   @PageSize int,      
@@ -55,7 +55,9 @@ BEGIN
   END   
 
   ;WITH Result AS(  
-   SELECT M.CurrencyConversionId,M.CurrencyTypeId,M.FromCurrencyId,CT.Name 'CurrencyTypeName',
+   SELECT 
+   ROW_NUMBER() OVER(PARTITION BY M.CurrencyTypeId,M.FromCurrencyId,M.ToCurrencyId ORDER BY M.CreatedDate DESC) RowNo,
+   M.CurrencyConversionId,M.CurrencyTypeId,M.FromCurrencyId,CT.Name 'CurrencyTypeName',
    CURR.Code 'FromCurrencyName',M.ToCurrencyId,CURRE.Code 'ToCurrencyName',
    M.CurrencyRateDate,M.ConversionRate,M.MasterCompanyId, M.CreatedBy,M.UpdatedBy,
    M.CreatedDate,M.UpdatedDate,M.IsActive,M.IsDeleted
@@ -65,8 +67,8 @@ BEGIN
    LEFT JOIN dbo.Currency CURRE WITH(NOLOCK) ON M.ToCurrencyId = CURRE.CurrencyId
    WHERE ((M.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR M.IsActive = @IsActive)) AND M.MasterCompanyId = @MasterCompanyId  
   )  
-  
-  SELECT * INTO #TempResult FROM Result  
+   SELECT *,CASE WHEN RowNo = 1 THEN 1 ELSE 0 END AS IsDefault INTO #TempTableData FROM Result 
+  SELECT * INTO #TempResult FROM #TempTableData  
   WHERE(  
    (@GlobalFilter <>'' AND (  
    (CurrencyTypeName LIKE '%' +@GlobalFilter+'%') OR      

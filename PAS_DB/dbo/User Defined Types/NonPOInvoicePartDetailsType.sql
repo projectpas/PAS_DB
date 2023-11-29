@@ -16,5 +16,12 @@
     [MasterCompanyId]           INT             NULL,
     [CreatedBy]                 VARCHAR (50)    NULL,
     [UpdatedBy]                 VARCHAR (50)    NULL,
-    [IsDeleted]                 BIT             NULL);
+    [IsDeleted]                 BIT             NULL,
+    [Item]                      VARCHAR (250)   NULL,
+    [Description]               VARCHAR (500)   NULL,
+    [UnitOfMeasureId]           BIGINT          NULL,
+    [Qty]                       BIGINT          NULL,
+    [ExtendedPrice]             DECIMAL (18, 2) NULL);
+
+
 

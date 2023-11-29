@@ -14,11 +14,12 @@
  ** --   --------     -------		--------------------------------          
     1    03/15/2020   Moin Bloch	Created
 	1    09/06/2023   AMIT GHEDIYA	Updated for Reason display from standalonecm.
+	3    1/11/2023    Ayesha Sultana	Reasons data in standalone credit memo - bug fix
 
  EXECUTE [GetCreditMemoHistorList] 1
 **************************************************************/ 
 
-CREATE     PROCEDURE [dbo].[GetCreditMemoHistorList]	
+CREATE       PROCEDURE [dbo].[GetCreditMemoHistorList]	
 	@CreditMemoHeaderId bigint
 AS
 BEGIN
@@ -77,7 +78,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
               ,CMA.[ReturnDate]
 			  ,CMA.[CreatedDate] AS [IssueDate]  
           FROM [dbo].[StandAloneCreditMemoDetailsaudit] SACMA WITH (NOLOCK) 
-		  LEFT JOIN [dbo].[CreditMemo] CMA WITH (NOLOCK) ON SACMA.CreditMemoHeaderId = CMA.CreditMemoHeaderId
+		  -- LEFT JOIN [dbo].[CreditMemo] CMA WITH (NOLOCK) ON SACMA.CreditMemoHeaderId = CMA.CreditMemoHeaderId
+		  LEFT JOIN [dbo].[CreditMemoAudit] CMA WITH (NOLOCK) ON SACMA.CreditMemoHeaderId = CMA.CreditMemoHeaderId
 		  WHERE SACMA.CreditMemoHeaderId = @CreditMemoHeaderId;
 		END
 		ELSE

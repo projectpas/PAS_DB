@@ -167,5 +167,10 @@
     [LotMainStocklineId]                  BIGINT          NULL,
     [IsFromInitialPO]                     BIT             NULL,
     [LotSourceId]                         INT             NULL,
-    [Adjustment]                          DECIMAL (18, 2) NULL);
+    [Adjustment]                          DECIMAL (18, 2) NULL,
+    [SerialNumberNotProvided]             BIT             NULL,
+    [ShippingReferenceNumberNotProvided]  BIT             NULL,
+    [AssetAcquisitionTypeId]              BIGINT          NULL);
+
+
 

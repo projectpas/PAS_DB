@@ -111,6 +111,10 @@ BEGIN
 		BEGIN
 			SELECT @ReferenceNumber = LT.LotNumber FROM DBO.LOT LT WITH (NOLOCK) WHERE LT.LotId = @ReferenceId;
 		END
+		IF (UPPER(@SubModuleName) = UPPER('ExchangeSalesOrder'))
+		BEGIN
+			SELECT @ReferenceNumber = ESO.ExchangeSalesOrderNumber FROM DBO.ExchangeSalesOrder ESO WITH (NOLOCK) WHERE ESO.ExchangeSalesOrderId = @ReferenceId;
+		END
 	END
 
 	RETURN @ReferenceNumber;

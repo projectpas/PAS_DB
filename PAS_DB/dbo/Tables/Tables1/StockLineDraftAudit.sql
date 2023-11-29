@@ -169,8 +169,14 @@
     [IsFromInitialPO]                     BIT             NULL,
     [LotSourceId]                         INT             NULL,
     [Adjustment]                          DECIMAL (18, 2) NULL,
+    [SerialNumberNotProvided]             BIT             NULL,
+    [ShippingReferenceNumberNotProvided]  BIT             NULL,
+    [IsStkTimeLife]                       BIT             NULL,
+    [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
+
+
 
 
 

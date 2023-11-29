@@ -6,7 +6,7 @@
  ** Date:     
  ** PARAMETERS:         
  ** RETURN VALUE:       
- **************************************************************                   
+ *************************************************************************************************                   
   ** Change History                   
  *************************************************************************************************                   
  ** S NO   Date            Author          Change Description                    
@@ -14,6 +14,9 @@
 	1                      unknown         Created            
 	2    20-SEP-2023       Moin Bloch      Modified (changed  InvoiceDate insted of PostedDate and Formated The SP)
 	3    25-SEP-2023       Moin Bloch      Modified (Added Manual JE Amount)
+	4    16-OCT-2023       Moin Bloch      Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
+	5    17-OCT-2023       Moin Bloch      Modify(Added Stand Alone Credit Memo)
+
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
 @CustomerId BIGINT = NULL,
@@ -33,7 +36,8 @@ BEGIN
 	    DECLARE @CreditMemoMSModuleID INT = 61
 		DECLARE @PostStatusId INT;
 	    SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
-
+		DECLARE @CMPostedStatusId INT
+        SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 		
 		IF(@OpenTransactionsOnly = 1)
 		BEGIN
@@ -186,13 +190,26 @@ BEGIN
 
 		   ,Creditmemo AS(
 				SELECT CGL.CustomerId AS CustomerId, 
-				(ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount' 
+				(ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount'
 				FROM dbo.CustomerGeneralLedger CGL  WITH (NOLOCK) 
 					INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.ReferenceId 
-					AND CM.StatusId=3
-			   WHERE CGL.ModuleId=@CreditMemoMSModuleID AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
-			     AND CGL.CustomerId = @CustomerId  
-			   GROUP BY CGL.CustomerId
+			   WHERE CGL.ModuleId = @CreditMemoMSModuleID 
+			     AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND CGL.CustomerId = @CustomerId
+				 AND CM.StatusId = @CMPostedStatusId
+			   GROUP BY CGL.CustomerId			
+			)
+
+			,StandaloneCreditMemo  AS (
+				SELECT CM.CustomerId AS CustomerId, 
+				(ISNULL(SUM(CM.Amount),0)) AS 'CreditMemoAmount'
+				FROM [dbo].[StandAloneCreditMemoDetails] CGL  WITH (NOLOCK) 
+					INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.CreditMemoHeaderId 
+			   WHERE CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND CM.CustomerId = @CustomerId
+				 AND CM.StatusId = @CMPostedStatusId
+				 AND CM.IsStandAloneCM = 1  				 
+			   GROUP BY CM.CustomerId			
 			)
 			
 			,ManualJE AS (			 
@@ -211,9 +228,10 @@ BEGIN
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
                        MAX(CT.CustomerTypeName) 'CustomertType' ,
 					   MAX(CTE.currencyCode) AS  'currencyCode',
-					   (ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount',
+					   --(ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',
 					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
-					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
 					   MAX(CTECalculation.paidbylessthen0days) AS 'Amountpaidbylessthen0days',      
@@ -233,6 +251,7 @@ BEGIN
 				   INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
 				   INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
 				    LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
+					LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 					
 					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 
 					
 			   WHERE c.CustomerId = @CustomerId 
@@ -384,12 +403,28 @@ BEGIN
 			 
 			Creditmemo AS(
 			 SELECT CGL.CustomerId AS CustomerId, 
-			     (ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount' 
+			     (ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount',
+				 'CM' 'Type'
 			   FROM dbo.CustomerGeneralLedger CGL  WITH (NOLOCK) 
-			   INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.ReferenceId and CM.StatusId=3
-			   WHERE  CGL.ModuleId=@CreditMemoMSModuleID AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND CGL.CustomerId=@CustomerId  
-			   GROUP BY CGL.CustomerId
+			   INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.ReferenceId 
+			   WHERE  CGL.ModuleId=@CreditMemoMSModuleID 
+			     AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
+				 AND CGL.CustomerId=@CustomerId  
+				 AND CM.StatusId = @CMPostedStatusId
+			   GROUP BY CGL.CustomerId			   			
 			) 
+
+			,StandaloneCreditMemo  AS (
+				SELECT CM.CustomerId AS CustomerId, 
+				(ISNULL(SUM(CM.Amount),0)) AS 'CreditMemoAmount'
+				FROM [dbo].[StandAloneCreditMemoDetails] CGL  WITH (NOLOCK) 
+					INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.CreditMemoHeaderId 
+			   WHERE CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND CM.CustomerId = @CustomerId
+				 AND CM.StatusId = @CMPostedStatusId
+				 AND CM.IsStandAloneCM = 1  				 
+			   GROUP BY CM.CustomerId			
+			)
 
 		    ,ManualJE AS (			 
 			  SELECT MJD.ReferenceId AS CustomerId,
@@ -406,11 +441,12 @@ BEGIN
 				SELECT DISTINCT C.CustomerId,
                        MAX((ISNULL(C.[Name],''))) 'CustName' ,
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType',
 					   MAX(CTE.currencyCode) AS  'currencyCode',
-					   (ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',
-					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
-					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   --(ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',				   
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount', (ISNULL(SUM(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   --(ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(SUM(Creditmemo.CreditMemoAmount),0)) + (ISNULL(SUM(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
 					   MAX(CTECalculation.paidbylessthen0days) AS 'Amountpaidbylessthen0days',      
@@ -424,12 +460,13 @@ BEGIN
                        MAX(C.UpdatedDate) AS UpdatedDate,
 					   MAX(C.CreatedBy) AS CreatedBy,
                        MAX(C.UpdatedBy) AS UpdatedBy,
-					   max(CTE.ManagementStructureId) AS ManagementStructureId
+					   MAX(CTE.ManagementStructureId) AS ManagementStructureId
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
 			   INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
-			    LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
+			    LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId
+				LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 	
 				LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 				
 			   WHERE c.CustomerId = @CustomerId  GROUP BY C.CustomerId
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
  ** Author:    
  ** Description: Get Search Data for ExchangeCoreTrackingList   
@@ -15,7 +16,7 @@
 **************************************************************/   
 
 --exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
-CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
+CREATE    PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -36,7 +37,8 @@ CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	@OpenDate datetime=null,
 	@ReceivedDate datetime=null,
 	@CoreDueDate datetime=null,
-	@LetterSentDate datetime=null
+	@LetterSentDate datetime=null,
+	@FilterType nvarchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -47,6 +49,23 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+		DECLARE @isVendorFilter bit = null,@isCustomerFilter bit = null
+		IF(@FilterType = '1')
+		BEGIN
+			SET @isVendorFilter = 1; SET @isCustomerFilter  = 1;
+		END
+		ELSE IF(@FilterType = '2')
+		BEGIN
+			SET @isVendorFilter = 0; SET @isCustomerFilter  = 0;
+		END
+		ELSE IF(@FilterType = '3')
+		BEGIN
+			SET @isVendorFilter = 1; SET @isCustomerFilter  = 0;
+		END
+		ELSE
+		BEGIN
+		    SET @isVendorFilter = 0; SET @isCustomerFilter  = 0;
+		END
 		DECLARE @RecordFrom int;
 			SET @RecordFrom = (@PageNumber-1) * @PageSize;
 			IF @IsDeleted is null
@@ -75,16 +94,22 @@ BEGIN
 			DECLARE @MSModuleID INT = 19; -- Exchange SalesOrder Management Structure Module ID
 		-- Insert statements for procedure here
 		;With Result AS(
-			select exchso.ExchangeSalesOrderId,exchso.ExchangeSalesOrderNumber,exchso.CustomerId,cr.[Name] as 'CustomerName',rcw.ReceivingCustomerWorkId,im.partnumber as 'PartNumber',im.PartDescription,
+			select exchso.ExchangeSalesOrderId,exchso.ExchangeSalesOrderNumber,exchso.CustomerId,
+			CASE WHEN ISNULL(exchso.IsVendor,0) = 1 THEN V.VendorName ELSE Cr.[Name] END AS 'CustomerName', 
+			rcw.ReceivingCustomerWorkId,im.partnumber as 'PartNumber',im.PartDescription,
 				mnf.[Name] as 'Manufacturer',rcw.ExpDate as 'ExpDate',rcw.ItemMasterId as 'ItemMasterId',
 				exchso.ManagementStructureId,im.ManufacturerId,exchso.MasterCompanyId,rcw.PartCertificationNumber,exchso.OpenDate,
 				rcw.Quantity,rcw.ReceivingNumber,rcw.Reference,im.RevisedPartId,
 				exchsop.ExpectedCoreSN as 'SerialNumber',rcw.StockLineId,rcw.TimeLifeCyclesId,rcw.ReceivedDate,
 				rcw.CustReqDate,rcw.EmployeeName,exchsop.CoreStatusId,exchcms.[Name] as 'Status',CASE WHEN exchsop.CoreDueDate = null THEN exchsop.EntryDate ELSE exchsop.CoreDueDate END as 'CoreDueDate',
 				exchsop.ExchangeCorePrice,exchsop.ExchangeSalesOrderPartId,exchsop.LetterSentDate as 'LetterSentDate',exchsop.LetterTypeId,exchclt.[Name] as'LetterType',
-				exchsop.Memo,exchsop.ExpectedCoreSN,exchsop.ExpecedCoreCond,exchso.CoreAccepted,wo.WorkOrderId,wo.WorkOrderNum as 'WONum' from ExchangeSalesOrder exchso WITH (NOLOCK)
+				exchsop.Memo,exchsop.ExpectedCoreSN,exchsop.ExpecedCoreCond,exchso.CoreAccepted,wo.WorkOrderId,wo.WorkOrderNum as 'WONum' 
+				,ISNULL(exchso.IsVendor,0) IsVendor
+				,'Exch PO' AS ExchType 
+				from ExchangeSalesOrder exchso WITH (NOLOCK)
 				inner join ExchangeSalesOrderPart exchsop WITH (NOLOCK) on exchso.ExchangeSalesOrderId = exchsop.ExchangeSalesOrderId
-				inner join Customer cr WITH(NOLOCK) on exchso.CustomerId = cr.CustomerId
+				LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) on exchso.CustomerId = cr.CustomerId AND ISNULL(exchso.IsVendor,0) = 0
+				LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) on V.VendorId = exchso.CustomerId AND ISNULL(exchso.IsVendor,0) = 1
 				left join ReceivingCustomerWork rcw WITH (NOLOCK) on exchso.ExchangeSalesOrderId = rcw.ExchangeSalesOrderId
 				left join ItemMaster im WITH (NOLOCK) on exchsop.ItemMasterId = im.ItemMasterId
 				left join ItemMasterExchangeLoan imexch WITH (NOLOCK) on im.ItemMasterId = imexch.ItemMasterId
@@ -93,7 +118,7 @@ BEGIN
 				left join ExchCoreMonitoringStatus exchcms WITH(NOLOCK) on exchsop.CoreStatusId = exchcms.ExchangeCoreMonitoringStatusId
 				left join ExchangeCoreLetterType exchclt WITH(NOLOCK) on exchsop.LetterTypeId = exchclt.ExchangeCoreLetterTypeId
 				left join WorkOrder wo WITH(NOLOCK) on rcw.WorkOrderId = wo.WorkOrderId
-				where exchso.MasterCompanyId=@MasterCompanyId and (@StatusID is null or exchsop.CoreStatusId = @StatusID)
+				where exchso.MasterCompanyId=@MasterCompanyId and (@StatusID is null or exchsop.CoreStatusId = @StatusID  AND ISNULL(exchso.IsVendor,0) in (ISNULL(@isVendorFilter,0), ISNULL(@isCustomerFilter,0)) )
 			),
 			--ResultCount AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)
 			FinalResult AS (
@@ -105,13 +130,14 @@ BEGIN
 					RevisedPartId,ReceivedDate,LetterSentDate,LetterTypeId,LetterType,
 					CustReqDate,
 					EmployeeName,CoreStatusId,[Status],CoreDueDate, Memo, 
-					ExpectedCoreSN, ExpecedCoreCond, CoreAccepted,WorkOrderId,WONum FROM Result
+					ExpectedCoreSN, ExpecedCoreCond, CoreAccepted,WorkOrderId,WONum,IsVendor,ExchType FROM Result
 			where (
 				(@GlobalFilter <>'' AND ((PartNumber like '%' +@GlobalFilter+'%' ) OR 
 						(PartDescription like '%' +@GlobalFilter+'%') OR
 						(ReceivingNumber like '%' +@GlobalFilter+'%') OR
 						(CustomerName like '%' +@GlobalFilter+'%') OR
 						(ExchangeSalesOrderNumber like '%' +@GlobalFilter+'%')OR
+						(ExchType like '%' +@GlobalFilter+'%')OR
 						(WONum like '%' +@GlobalFilter+'%') 
 						))
 						OR   
@@ -134,7 +160,7 @@ BEGIN
 					ManagementStructureId,LetterSentDate,LetterTypeId,UPPER(LetterType) 'LetterType',
 					ManufacturerId, MasterCompanyId,UPPER(PartCertificationNumber) 'PartCertificationNumber',Quantity,
 					UPPER(ReceivingNumber) 'ReceivingNumber', UPPER(Reference) 'Reference', RevisedPartId,ReceivedDate,CustReqDate, UPPER(EmployeeName) 'EmployeeName', CoreStatusId,UPPER(Status) 'Status',CoreDueDate,
-					Memo, UPPER(ExpectedCoreSN) 'ExpectedCoreSN', ExpecedCoreCond,CoreAccepted,WorkOrderId,UPPER(WONum) 'WONum',NumberOfItems FROM FinalResult, ResultCount
+					Memo, UPPER(ExpectedCoreSN) 'ExpectedCoreSN', ExpecedCoreCond,CoreAccepted,WorkOrderId,UPPER(WONum) 'WONum',IsVendor,ExchType,NumberOfItems FROM FinalResult, ResultCount
 					ORDER BY  
 				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,

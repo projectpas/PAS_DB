@@ -27,8 +27,13 @@
     [Shelf]                      VARCHAR (100)  NULL,
     [StockType]                  VARCHAR (50)   NULL,
     [CommonJournalBatchDetailId] BIGINT         NULL,
+    [ReferenceId]                BIGINT         NULL,
+    [ReferenceTypeId]            INT            NULL,
+    [ReferenceNumber]            VARCHAR (50)   NULL,
     CONSTRAINT [PK_StocklineBatchDetails] PRIMARY KEY CLUSTERED ([StocklineBatchDetailId] ASC)
 );
+
+
 
 
 

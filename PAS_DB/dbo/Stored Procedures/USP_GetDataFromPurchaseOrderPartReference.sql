@@ -14,9 +14,9 @@
  ** --   --------     -------   --------------------------------            
     1    04/05/2023   Vishal Suthar  Created  
        
- EXECUTE USP_GetDataFromPurchaseOrderPartReference 1836,3448
+ EXECUTE USP_GetDataFromPurchaseOrderPartReference 1953,3574
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[USP_GetDataFromPurchaseOrderPartReference]
+Create   PROCEDURE [dbo].[USP_GetDataFromPurchaseOrderPartReference]
 @PurchaseOrderId BIGINT,
 @PurchaseOrderPartRecordId BIGINT
 AS
@@ -33,7 +33,7 @@ BEGIN
 							  CASE WHEN POR.ModuleId = 1 THEN 'Work Order'
 									WHEN POR.ModuleId = 2 THEN 'Repair Order'
 									WHEN POR.ModuleId = 3 THEN 'Sales Order'
-									WHEN POR.ModuleId = 4 THEN 'Exchange Sales Order'
+									WHEN POR.ModuleId = 4 THEN 'Exchange'
 									WHEN POR.ModuleId = 5 THEN 'Sub Work Order'
 									WHEN POR.ModuleId = 6 THEN 'Lot' ELSE NULL END AS ModuleName,
 							   CASE WHEN POR.ModuleId = 1 THEN wo.WorkOrderNum 

@@ -1,8 +1,20 @@
-﻿/*************************************************************           
-EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 'RPO',10023,0
+﻿/*************************************************************             
+ ** File:   [USP_CreateReceivingReconciliationPostReadyToPays]             
+ ** Author:   
+ ** Description: This stored procedure is used to Add  Vendor Payment Details
+ ** Date:   
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		------------------------------- 
+    1    unknown                    Created 
+	2    09/10/2023   Moin Bloch    Formetted SP 
+
+EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_CreateReceivingReconciliationPostReadyToPay]
---@JtypeCode varchar(50),
+CREATE   PROCEDURE [dbo].[USP_CreateReceivingReconciliationPostReadyToPay]
 @ReceivingReconciliationId bigint,
 @BatchId BIGINT OUTPUT
 AS
@@ -12,18 +24,75 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-			--Select @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy from ReceivingReconciliationHeader where ReceivingReconciliationId = @ReceivingReconciliationId;
-
-			INSERT INTO VendorPaymentDetails(ReadyToPayId,DueDate,VendorId,VendorName,PaymentMethodId,PaymentMethodName,ReceivingReconciliationId,InvoiceNum,CurrencyId,CurrencyName,FXRate,
-				OriginalAmount,PaymentMade,AmountDue,DaysPastDue,DiscountDate,DiscountAvailable,DiscountToken,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,StatusId,[Status],MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,RemainingAmount)
-			SELECT 0,OpenDate,VendorId,VendorName,0,NULL,@ReceivingReconciliationId,InvoiceNum,CurrencyId,CurrencyName,0,InvoiceTotal,0,0,0,NULL,0,0,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,
-			StatusId,[Status],MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,InvoiceTotal FROM ReceivingReconciliationHeader WHERE ReceivingReconciliationId = @ReceivingReconciliationId;
+			INSERT INTO [dbo].[VendorPaymentDetails]
+				       ([ReadyToPayId],
+					    [DueDate],
+						[VendorId],
+						[VendorName],
+						[PaymentMethodId],
+						[PaymentMethodName],
+						[ReceivingReconciliationId],
+						[InvoiceNum],
+						[CurrencyId],
+						[CurrencyName],
+						[FXRate],
+				        [OriginalAmount],
+						[PaymentMade],
+						[AmountDue],
+						[DaysPastDue],
+						[DiscountDate],
+						[DiscountAvailable],
+						[DiscountToken],
+						[OriginalTotal],
+						[RRTotal],
+						[InvoiceTotal],
+						[DIfferenceAmount],
+						[TotalAdjustAmount],
+						[StatusId],
+						[Status],
+						[MasterCompanyId],
+						[CreatedBy],
+						[UpdatedBy],
+						[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount])
+			     SELECT 0,
+				        [OpenDate],
+				        [VendorId],
+						[VendorName],
+						0,
+						NULL,
+						@ReceivingReconciliationId,
+						[InvoiceNum],
+						[CurrencyId],
+						[CurrencyName],
+						0,
+						[InvoiceTotal],
+						0,
+						0,
+						0,
+						NULL,
+						0,
+						0,
+						[OriginalTotal],
+						[RRTotal],
+						[InvoiceTotal],
+						[DIfferenceAmount],
+						[TotalAdjustAmount],
+			            [StatusId],
+						[Status],
+						[MasterCompanyId],
+						[CreatedBy],
+						[UpdatedBy],
+						[CreatedDate],
+						[UpdatedDate],
+						[IsActive],
+						[IsDeleted],
+						[InvoiceTotal] 
+				   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
+				  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 			
-			SET @BatchId = @ReceivingReconciliationId;
-			print @BatchId
-
-END
-  COMMIT  TRANSACTION
+			SET @BatchId = @ReceivingReconciliationId;			
+    END
+    COMMIT  TRANSACTION
     END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

@@ -1,5 +1,5 @@
 ﻿
--- EXEC [dbo].[GetReserveStockPartsListByExchangeSOId] 190
+-- EXEC [dbo].[GetReserveStockPartsListByExchangeSOId] 125
 CREATE   PROC [dbo].[GetReserveStockPartsListByExchangeSOId]
 @SalesOrderId  bigint
 AS
@@ -29,14 +29,15 @@ BEGIN
 			FROM ExchangeSalesOrder SO WITH (NOLOCK)
 			INNER JOIN ExchangeSalesOrderPart SOP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SOP.ExchangeSalesOrderId
 			LEFT JOIN ItemMaster im WITH (NOLOCK) on sop.ItemMasterId = im.ItemMasterId
-			INNER JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+			LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId AND ISNULL(SO.IsVendor,0) = 0
+			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON SO.CustomerId = V.VendorId AND ISNULL(SO.IsVendor,0) = 1
 			LEFT JOIN ExchangeSalesOrderReserveParts SOR WITH (NOLOCK) ON sop.ExchangeSalesOrderPartId = SOR.ExchangeSalesOrderPartId
 			LEFT JOIN StockLine SL WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 			WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.ExchangeSalesOrderId = @SalesOrderId
 			AND SL.QuantityAvailable > 0
 			AND SL.ItemMasterId = sop.ItemMasterId
-			AND SL.IsCustomerStock = 0
+			--AND SL.IsCustomerStock = 0
 			AND 
 			((sop.MethodType <> 'I' AND sl.StockLineId = sop.StockLineId)
 			OR (sop.MethodType = 'I' AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))

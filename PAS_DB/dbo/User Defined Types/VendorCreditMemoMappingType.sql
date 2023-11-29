@@ -9,5 +9,8 @@
     [UpdatedBy]              VARCHAR (50)    NULL,
     [UpdatedDate]            DATETIME        NULL,
     [IsActive]               BIT             NOT NULL,
-    [IsDeleted]              BIT             NOT NULL);
+    [IsDeleted]              BIT             NOT NULL,
+    [InvoiceType]            INT             NULL);
+
+
 

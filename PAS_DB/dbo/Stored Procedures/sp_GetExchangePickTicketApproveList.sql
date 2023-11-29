@@ -1,4 +1,5 @@
-﻿CREATE Procedure [dbo].[sp_GetExchangePickTicketApproveList]
+﻿
+CREATE     Procedure [dbo].[sp_GetExchangePickTicketApproveList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN
@@ -20,8 +21,9 @@ BEGIN
 		(SELECT (SUM(sorpp.QtyToReserve) - SUM(ISNULL(sopt.QtyToShip, 0)))  FROM ExchangeSalesOrderPart sopp WITH(NOLOCK) INNER JOIN ExchangeSalesOrderReserveParts sorpp WITH(NOLOCK) ON 
 		sopp.ExchangeSalesOrderId = sorpp.ExchangeSalesOrderId AND
 		sopp.ExchangeSalesOrderPartId = sorpp.ExchangeSalesOrderPartId AND 
-		sopp.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sopp.ConditionId = sop.ConditionId) as ReadyToPick,
-		cr.[Name] as CustomerName,cr.CustomerCode
+		sopp.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sopp.ConditionId = sop.ConditionId) as ReadyToPick
+		, CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN (v.VendorName) ELSE cr.[Name] END as CustomerName
+		,CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN  v.VendorCode ELSE cr.CustomerCode END AS CustomerCode
 		from dbo.ExchangeSalesOrderPart sop WITH (NOLOCK)
 		INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
@@ -31,11 +33,12 @@ BEGIN
 		--INNER JOIN SalesOrderApproval soapr on soapr.SalesOrderId = sop.ExchangeSalesOrderId and soapr.SalesOrderPartId = sop.ExchangeSalesOrderPartId
 		--			AND soapr.CustomerStatusId = 2
 		INNER JOIN ExchangeSalesOrderReserveParts sor WITH(NOLOCK) on sor.ExchangeSalesOrderId = sop.ExchangeSalesOrderId and sor.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
-		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
+		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId  AND ISNULL(SO.IsVendor,0) = 0
+		LEFT JOIN Vendor v WITH(NOLOCK) on so.CustomerId = v.VendorId AND ISNULL(SO.IsVendor,0) = 1
 		where sop.ExchangeSalesOrderId=@ExchangeSalesOrderId AND (sor.QtyToReserve > 0 OR sopt.ExchangeSalesOrderPartId IS NOT NULL)
 		group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber,sop.ItemMasterId,
-		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
+		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId,SO.IsVendor,v.VendorName,v.VendorCode
 		,sl.isSerialized)
 
 		SELECT DISTINCT cte.ExchangeSalesOrderPartId, ItemMasterId, cte.ExchangeSalesOrderId, PartNumber, PartDescription, cte.Qty,

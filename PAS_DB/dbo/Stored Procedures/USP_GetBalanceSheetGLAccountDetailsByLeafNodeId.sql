@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_GetBalanceSheetGLAccountDetailsByLeafNodeId]             
  ** Author: Rajesh  
  ** Description: This stored procedure is used to Get Balance sheet GL account detail by leafnode
@@ -13,6 +12,8 @@
  ** --   --------     -------		-------------------------------            
 	1    05/09/2023   Rajesh Gami		Created
 	2	 20/09/2023   Hemnat Saliya		Updated LE MS Details 
+	3	 01/11/2023   Hemnat Saliya		Updated For JE Balabce
+	4	 22/11/2023   Moin Bloch		Modified commented manual glaccountId in IsDebugMode
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetBalanceSheetGLAccountDetailsByLeafNodeId]                                                                                                                                     
@@ -47,6 +48,9 @@ BEGIN
 		  DECLARE @BatchMSModuleId BIGINT; 
 		  DECLARE @ManualBatchMSModuleId BIGINT; 
 		  DECLARE @MAXCalTempID INT = 0, @INITIALFROMDATE DATETIME,@INITIALENDDATE DATETIME;
+		  DECLARE @IsDebugMode BIT;
+
+		  --SET @IsDebugMode = 1;
 		  
 		  DECLARE   
 			@level1 VARCHAR(MAX) = NULL,  
@@ -201,9 +205,14 @@ BEGIN
 			INSERT INTO ##GLBalance (LeafNodeId, GLAccountId,  GLAccountCode, GLAccountName, AccountingPeriodId, AccountingPeriod, PeriodName, DebitAmount, CreaditAmount,  Amount,RowNum)
 			(SELECT DISTINCT LF.LeafNodeId , CMD.GLAccountId, CMD.GlAccountNumber, CMD.GlAccountName, @AccountcalID, '',(SELECT TOP 1 ACL.PeriodName FROM DBO.AccountingCalendar ACL WITH(NOLOCK) WHERE ACL.AccountingCalendarId = @AccountcalID), 
 					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
-								CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END 'CreditAmount',
-								(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END) - 
-								(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) AS AMONUT,0 
+					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END 'CreditAmount',
+					CASE WHEN GL.GLAccountTypeId = @AssetGLAccountTypeId THEN
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END) - 
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) 
+					ELSE
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) -
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END)
+					END AS AMONUT,0 
 			FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
 				INNER JOIN dbo.BatchDetails BD WITH (NOLOCK) ON CMD.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId 
@@ -224,15 +233,20 @@ BEGIN
 						AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 						AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 						AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY LF.LeafNodeId , CMD.GLAccountId, CMD.GlAccountNumber, CMD.GlAccountName, GLM.IsPositive
+			GROUP BY LF.LeafNodeId , CMD.GLAccountId, CMD.GlAccountNumber, CMD.GlAccountName, GLM.IsPositive, GL.GLAccountTypeId
 
 			UNION ALL
 
 			SELECT DISTINCT LF.LeafNodeId , MJD.GlAccountId, GL.AccountCode, GL.AccountName,  @AccountcalID,'', (SELECT TOP 1 ACL.PeriodName FROM DBO.AccountingCalendar ACL WITH(NOLOCK) WHERE ACL.AccountingCalendarId = @AccountcalID),  
 					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END 'DebitAmount',
-						CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
-				(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) AS AMONUT,0 --MAX(APA.ID)
+					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
+					CASE WHEN GL.GLAccountTypeId = @AssetGLAccountTypeId THEN
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END)  
+					ELSE
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) -
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END)
+					END AS AMONUT, 0
 			  FROM dbo.ManualJournalDetails MJD WITH (NOLOCK) 
 		  		JOIN dbo.GLAccount GL ON MJD.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@AssetGLAccountTypeId, @LiabilitiesGLAccountTypeId,@EquityGLAccountTypeId)
 		  		JOIN dbo.ManualJournalHeader MJH  WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
@@ -254,15 +268,20 @@ BEGIN
 					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			  GROUP BY  LF.LeafNodeId , MJD.GlAccountId, GL.AccountCode, GL.AccountName, GLM.IsPositive --, MJH.AccountingPeriodId,AC.PeriodName, 
+			  GROUP BY  LF.LeafNodeId , MJD.GlAccountId, GL.AccountCode, GL.AccountName, GLM.IsPositive,GL.GLAccountTypeId --, MJH.AccountingPeriodId,AC.PeriodName, 
 			  )
 
 			SET @MAXCalTempID = @MAXCalTempID - 1;
 		END
-		--SELECT * ##GLBalance where GLAccountId = 570
-		--Select * from ##GLBalance where LeafNodeId = 154 and GLAccountId = 568
-		--SET @StartingRowNum = (SELECT TOP 1 RowNum FROM ##GLBalance WHERE AccountingPeriodId = @StartAccountingPeriodId)
-	    --select DISTINCT * from ##GLBalance where LeafNodeId = 153 AND GLAccountId = 13 AND RowNum <= 18
+
+		IF(@IsDebugMode = 1)
+		BEGIN
+			SELECT * FROM ##GLBalance--- where GLAccountId = 13
+			--Select * from ##GLBalance where LeafNodeId = 154 and GLAccountId = 568
+			--SET @StartingRowNum = (SELECT TOP 1 RowNum FROM ##GLBalance WHERE AccountingPeriodId = @StartAccountingPeriodId)
+			--select DISTINCT * from ##GLBalance where LeafNodeId = 153 AND GLAccountId = 13 AND RowNum <= 18
+		END
+		
 		  DECLARE @LID AS int = 0;
 		  DECLARE @IsFristRow AS bit = 1;
 		  DECLARE @LCOUNT AS int = 0;

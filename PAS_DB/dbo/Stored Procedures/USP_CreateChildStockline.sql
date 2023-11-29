@@ -19,10 +19,12 @@
     1    09/14/2021   Vishal Suthar  Created  
     2    12/30/2021  HEMANT SALIYA  Added Sub Module Id and Sub Reference Id for WO Materials   
 	3    06/14/2023  Devendra Shekh       changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
+	4    10/16/2023  Devendra Shekh       TIMELIFE issue resolved
+	5    6 Nov 2023  Rajesh Gami          SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
   
 EXEC [dbo].[USP_CreateChildStockline]  883, 5, 15, 166, 1, 1, 0, 0  
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_CreateChildStockline]   
+CREATE     PROCEDURE [dbo].[USP_CreateChildStockline]   
 (  
  @StocklineId BIGINT = NULL,  
  @MasterCompanyId BIGINT,  
@@ -60,11 +62,11 @@ BEGIN
   DECLARE @RemainingOHQty INT = 0;  
   DECLARE @RemainingReservedQty INT = 0;  
   DECLARE @RemainingIssuedQty INT = 0;  
-  DECLARE @lotId bigint = 0, @isLotAssigned bit = 0
+  DECLARE @lotId bigint = 0, @isLotAssigned bit = 0,  @IsStkTimeLife bit = 0,@UnitSalesPrice DECIMAL(18,2)=NULL,@SalesPriceExpiryDate datetime2 =NULL
   SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Id Number';  
     
   DECLARE @StkLineNumber VARCHAR(100);  
-  SELECT @StkLineNumber = StockLineNumber, @lotId = ISNULL(LotId,0), @isLotAssigned = ISNULL(IsLotAssigned,0) FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId  
+  SELECT @StkLineNumber = StockLineNumber, @lotId = ISNULL(LotId,0), @isLotAssigned = ISNULL(IsLotAssigned,0), @IsStkTimeLife =ISNULL(IsStkTimeLife,0),@UnitSalesPrice = UnitSalesPrice,@SalesPriceExpiryDate = SalesPriceExpiryDate FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId  
   
   IF(@SubReferenceId = 0)  
   BEGIN  
@@ -82,8 +84,8 @@ BEGIN
   
    IF NOT EXISTS (SELECT TOP 1 [StocklineId] FROM [dbo].[StocklineHistory] WHERE StockLineId = @StocklineId)  
    BEGIN  
-    INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
-    SELECT @ModuleId, @ReferenceId, @StockLineId, 1, 1, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId   
+    INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
+    SELECT @ModuleId, @ReferenceId, @StockLineId, 1, 1, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate   
     FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
   
     SET @IsNewStkCreated = 1;  
@@ -103,22 +105,22 @@ BEGIN
   
     IF (@ReservedQty > 0 AND @IsNewStkCreated = 0)  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
-     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Reserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId   
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
+     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Reserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate   
      FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
   
     IF (@AvailableQty > 0 AND @IsNewStkCreated = 0)  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
-     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') UnReserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId   
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
+     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') UnReserved', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate   
      FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
   
     IF (@OnHandQty <= 0 AND @IsNewStkCreated = 0)  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
-     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Removed from OH', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId   
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
+     SELECT @ModuleId, @ReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @IdNum +') Removed from OH', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate   
      FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
    END  
@@ -294,6 +296,8 @@ BEGIN
 	  ,LotSourceId = @LotSourceId
 	  ,LotId = @lotId
 	  ,IsLotAssigned = @isLotAssigned
+	  ,[IsStkTimeLife] = STL.[IsStkTimeLife]
+	  ,SalesPriceExpiryDate  = STL.[SalesPriceExpiryDate]
      FROM DBO.Stockline STL  
      LEFT JOIN DBO.Stockline STLN WITH (NOLOCK) ON STL.StockLineId = STLN.ParentId  
      WHERE STL.StockLineId = @StockLineId  
@@ -432,7 +436,7 @@ BEGIN
        ,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
        ,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
        ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned)  
+       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate)  
   
        SELECT [PartNumber],  
        @StocklineNumber  
@@ -462,62 +466,65 @@ BEGIN
        ,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
        ,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
        ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
-       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,@MainLotStocklineId,@IsFromInitialPO,@LotSourceId,@lotId, @isLotAssigned FROM DBO.Stockline SL WITH (NOLOCK)  
+       ,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,@MainLotStocklineId,@IsFromInitialPO,@LotSourceId,@lotId, @isLotAssigned, [IsStkTimeLife],SalesPriceExpiryDate FROM DBO.Stockline SL WITH (NOLOCK)  
        WHERE SL.StockLineId = @StocklineId  
   
        SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
-       INSERT INTO [dbo].[TimeLife]  
-        ([CyclesRemaining]  
-        ,[CyclesSinceNew]  
-        ,[CyclesSinceOVH]  
-        ,[CyclesSinceInspection]  
-        ,[CyclesSinceRepair]  
-        ,[TimeRemaining]  
-        ,[TimeSinceNew]  
-        ,[TimeSinceOVH]  
-        ,[TimeSinceInspection]  
-        ,[TimeSinceRepair]  
-        ,[LastSinceNew]  
-        ,[LastSinceOVH]  
-        ,[LastSinceInspection]  
-        ,[MasterCompanyId]  
-        ,[CreatedBy]  
-        ,[UpdatedBy]  
-        ,[CreatedDate]  
-        ,[UpdatedDate]  
-        ,[IsActive]  
-        ,[PurchaseOrderId]  
-        ,[PurchaseOrderPartRecordId]  
-        ,[StockLineId]  
-        ,[DetailsNotProvided]  
-        ,[RepairOrderId]  
-        ,[RepairOrderPartRecordId])  
-       SELECT [CyclesRemaining]  
-        ,[CyclesSinceNew]  
-        ,[CyclesSinceOVH]  
-        ,[CyclesSinceInspection]  
-        ,[CyclesSinceRepair]  
-        ,[TimeRemaining]  
-        ,[TimeSinceNew]  
-        ,[TimeSinceOVH]  
-        ,[TimeSinceInspection]  
-        ,[TimeSinceRepair]  
-        ,[LastSinceNew]  
-        ,[LastSinceOVH]  
-        ,[LastSinceInspection]  
-        ,[MasterCompanyId]  
-        ,[CreatedBy]  
-        ,[UpdatedBy]  
-        ,[CreatedDate]  
-        ,[UpdatedDate]  
-        ,[IsActive]  
-        ,[PurchaseOrderId]  
-        ,[PurchaseOrderPartRecordId]  
-        ,@NewStocklineId  
-        ,[DetailsNotProvided]  
-        ,[RepairOrderId]  
-        ,[RepairOrderPartRecordId] FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId  
+	   IF (@IsStkTimeLife = 1)
+	   BEGIN
+			INSERT INTO [dbo].[TimeLife]  
+			([CyclesRemaining]  
+			,[CyclesSinceNew]  
+			,[CyclesSinceOVH]  
+			,[CyclesSinceInspection]  
+			,[CyclesSinceRepair]  
+			,[TimeRemaining]  
+			,[TimeSinceNew]  
+			,[TimeSinceOVH]  
+			,[TimeSinceInspection]  
+			,[TimeSinceRepair]  
+			,[LastSinceNew]  
+			,[LastSinceOVH]  
+			,[LastSinceInspection]  
+			,[MasterCompanyId]  
+			,[CreatedBy]  
+			,[UpdatedBy]  
+			,[CreatedDate]  
+			,[UpdatedDate]  
+			,[IsActive]  
+			,[PurchaseOrderId]  
+			,[PurchaseOrderPartRecordId]  
+			,[StockLineId]  
+			,[DetailsNotProvided]  
+			,[RepairOrderId]  
+			,[RepairOrderPartRecordId])  
+		   SELECT [CyclesRemaining]  
+			,[CyclesSinceNew]  
+			,[CyclesSinceOVH]  
+			,[CyclesSinceInspection]  
+			,[CyclesSinceRepair]  
+			,[TimeRemaining]  
+			,[TimeSinceNew]  
+			,[TimeSinceOVH]  
+			,[TimeSinceInspection]  
+			,[TimeSinceRepair]  
+			,[LastSinceNew]  
+			,[LastSinceOVH]  
+			,[LastSinceInspection]  
+			,[MasterCompanyId]  
+			,[CreatedBy]  
+			,[UpdatedBy]  
+			,[CreatedDate]  
+			,[UpdatedDate]  
+			,[IsActive]  
+			,[PurchaseOrderId]  
+			,[PurchaseOrderPartRecordId]  
+			,@NewStocklineId  
+			,[DetailsNotProvided]  
+			,[RepairOrderId]  
+			,[RepairOrderPartRecordId] FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId  
+	   END
   
        -- Use variable instead of updating in the table  
        UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
@@ -541,20 +548,20 @@ BEGIN
    -- Add Stockline History  
    IF (@IsAddUpdate = 1) --Stockline Create  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
-     VALUES (@ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, @Qty, @Qty, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId)  
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
+     VALUES (@ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, @Qty, @Qty, 0, 0, 'New Stockline ('+ CAST(@StkLineNumber AS VARCHAR) +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT', GETDATE(), @MasterCompanyId,@UnitSalesPrice,@SalesPriceExpiryDate)  
    END  
    ELSE IF @IsAddUpdate = 0  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
      SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ STL.StockLineNumber +') has been updated.', 'AUTO SCRIPT', GETDATE(), 'AU
-TO SCRIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
+TO SCRIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
    ELSE  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
      SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'New Stockline ('+ STL.StockLineNumber +') Created.', 'AUTO SCRIPT', GETDATE(), 'AUTO SC
-RIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
+RIPT', GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
   END  
   ELSE  
@@ -747,9 +754,9 @@ RIPT', GETDATE(), @MasterCompanyId FROM DBO.Stockline STL WITH (NOLOCK) WHERE St
   
     IF (@AllIdNumbers <> '')  
     BEGIN  
-     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId])  
+     INSERT INTO [dbo].[StocklineHistory] ([ModuleId], [RefferenceId], [SubModuleId], [SubReferenceId], [StocklineId], [QuantityAvailable], [QuantityOnHand], [QuantityReserved], [QuantityIssued], [TextMessage], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate],[MasterCompanyId],UnitSalesPrice,SalesPriceExpiryDate)  
      SELECT @ModuleId, @ReferenceId, @SubModuleId, @SubReferenceId, @StockLineId, STL.QuantityAvailable, STL.QuantityOnHand, STL.QuantityReserved, STL.QuantityIssued, 'Stockline ('+ @AllIdNumbers +') ' + @ActionMsg, 'AUTO SCRIPT', GETDATE(), 'AUTO SCRIPT'
-, GETDATE(), @MasterCompanyId   
+, GETDATE(), @MasterCompanyId,UnitSalesPrice,SalesPriceExpiryDate   
      FROM DBO.Stockline STL WITH (NOLOCK) WHERE StockLineId = @StocklineId  
     END  
     /* END: Update Qty into Child rows */  

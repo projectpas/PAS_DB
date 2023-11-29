@@ -1,4 +1,5 @@
-﻿ /*************************************************************           
+﻿
+ /*************************************************************           
  ** File:   [UpdateToPostFullBatch]           
  ** Author: Satish Gohil
  ** Description: This stored procedure is used update Batch Details Record
@@ -12,9 +13,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	2    02/08/2023   Satish Gohil  Account CalenderId and Period Update in BatchDetails
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	2    02/08/2023		Satish Gohil		Account CalenderId and Period Update in BatchDetails
+	3	 18/10/2023		Nainshi Joshi		Update PostedBy and PostedDate in BatchDetails and BatchHeader
      
 --EXEC UpdateToPostFullBatch 535,'Admin User'
 **************************************************************/
@@ -47,10 +49,11 @@ BEGIN
   
   
    UPDATE BatchDetails SET StatusId=3,UpdatedDate=GETUTCDATE(),UpdatedBy = @updateBy,
-   AccountingPeriodId = @AccountingPeriodId,AccountingPeriod = @AccountingPeriod 
+   AccountingPeriodId = @AccountingPeriodId,AccountingPeriod = @AccountingPeriod,PostedDate=GETUTCDATE(),
+   PostedBy=@updateBy
    WHERE JournalBatchDetailId IN (SELECT Item FROM DBO.SPLITSTRING(@ids,','))  
 
-   UPDATE BatchHeader SET StatusId= 3,PostDate = GETUTCDATE(),StatusName = 'Posted',UpdatedDate =GETUTCDATE(),UpdatedBy = @updateBy where JournalBatchHeaderId = @JournalBatchHeaderId;
+   UPDATE BatchHeader SET StatusId= 3,PostDate = GETUTCDATE(),PostedBy = @updateBy,StatusName = 'Posted',UpdatedDate =GETUTCDATE(),UpdatedBy = @updateBy where JournalBatchHeaderId = @JournalBatchHeaderId;
   END  
  -- COMMIT  TRANSACTION  
   

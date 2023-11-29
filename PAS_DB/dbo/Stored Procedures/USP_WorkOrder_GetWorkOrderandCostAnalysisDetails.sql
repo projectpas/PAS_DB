@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get WorkOrder/SubWorkOrder CostAnalysis Details.
@@ -12,17 +13,16 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/27/2023   Amit Ghediya	Created	
-	2    07/31/2023   Amit Ghediya	Added SubWorkorder logic.	
-	3    08/18/2023   Amit Ghediya	Update Calculation logic.
-	3    08/18/2023   Hemnat Saliya	Corrected Balance issues
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    07/27/2023   Amit Ghediya		Created	
+	2    07/31/2023   Amit Ghediya		Added SubWorkorder logic.	
+	3    08/18/2023   Amit Ghediya		Update Calculation logic.
+	4    08/18/2023   Hemnat Saliya		Corrected Balance issues
+	5    10/19/2023   Vishal Suthar		Fixed Backorder qty calculation
 
-	EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 1916, 2376
-     
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3123, 3652     
 **************************************************************/
-
 CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
@@ -31,7 +31,6 @@ CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 AS
 BEGIN 
 	BEGIN TRY
-
 		DECLARE @RowMaterialTotalCost DECIMAL(18,2) = 0.0, @SubRowMaterialTotalCost DECIMAL(18,2) = 0.0, @TotalCounts INT, @count INT, @partsCost DECIMAL(18,2) = 0.0,
 				@SubpartsCost DECIMAL(18,2) = 0.0, @ReservedCost DECIMAL(18,2) = 0.0, @SubReservedCost DECIMAL(18,2) = 0.0, @BkOrderCost DECIMAL(18,2) = 0.0, @SubBkOrderCost DECIMAL(18,2) = 0.0,
 				@QtyIssued INT,@SubQtyIssued INT,@QtyOnBkOrder INT,@SubQtyOnBkOrder INT,@QtyReserved INT,@SubQtyReserved INT ,@POQuantity BIGINT=0,@poid BIGINT,@UnitCost DECIMAL(18,2),
@@ -39,6 +38,7 @@ BEGIN
 				@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18,2) = 0.0, @BurdenRateAmount DECIMAL(18,2) = 0.0,@DirectLaborCost DECIMAL(18,2) = 0.0,
 				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
 				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2);
+		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
 		
 		SET @count = 1;
 
@@ -94,13 +94,17 @@ BEGIN
 				WOMS.ExtendedCost,
 				WOMS.QtyIssued,
 				WOMS.QtyReserved,
-				ISNULL(POP.QuantityBackOrdered, 0),
-				WOM.UnitCost,
+				--ISNULL(POP.QuantityBackOrdered, 0),
+				CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
+					 THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+					 ELSE ISNULL(POPartReferece.Qty, 0) END,
+				CASE WHEN ISNULL(WOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOM.UnitCost END,
 				WOM.POId,
 				WOM.QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
-			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOM.POId AND POP.ItemMasterId = WOM.ItemMasterId AND POP.ConditionId = WOM.ConditionCodeId
+			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOM.POId AND POP.ItemMasterId = WOM.ItemMasterId AND (POP.ConditionId = WOM.ConditionCodeId OR (pop.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOM.ProvisionId = @exchangeProvisionId))
+			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOM.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE WOM.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOM.IsDeleted = 0
 
 		INSERT INTO #tmpWorkOrderMaterialsKit (WorkFlowWorkOrderId, WorkOrderMaterialsId,StocklineId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
@@ -112,13 +116,17 @@ BEGIN
 			WOMSK.QtyIssued,
 			WOMSK.QtyReserved,
 			--WOMK.QtyOnBkOrder,
-			ISNULL(POP.QuantityBackOrdered, 0),
-			WOMK.UnitCost,
+			--ISNULL(POP.QuantityBackOrdered, 0),
+			CASE WHEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
+				THEN (ISNULL(WOMK.Quantity, 0) - (ISNULL(WOMK.QuantityReserved, 0) + ISNULL(WOMK.QuantityIssued, 0))) 
+				ELSE ISNULL(POPartReferece.Qty, 0) END,
+			CASE WHEN ISNULL(WOMK.UnitCost,0) = 0 THEN POP.UnitCost ELSE WOMK.UnitCost END,
 			WOMK.POId,
 			WOMK.QtyToTurnIn
 		FROM [DBO].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderMaterialStockLineKit] WOMSK ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = WOMK.POId AND POP.ItemMasterId = WOMK.ItemMasterId AND POP.ConditionId = WOMK.ConditionCodeId
+			LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = WOMK.WorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 		WHERE WOMK.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOMK.IsDeleted = 0;
 
 		--Get from WOMaterial table
@@ -130,7 +138,8 @@ BEGIN
 					@UnitCost = ISNULL(UnitCost, 0), 
 					@bkUnitCost = ISNULL(MUnitCost, 0),
 					@poid = POId,
-					@QtyOnBkOrder = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) > ISNULL(QtyOnBkOrder, 0) THEN 0 ELSE ISNULL(QtyOnBkOrder, 0) - (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) END, 
+					--@QtyOnBkOrder = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) > ISNULL(QtyOnBkOrder, 0) THEN 0 ELSE ISNULL(QtyOnBkOrder, 0) - (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0)) END, 
+					@QtyOnBkOrder = ISNULL(QtyOnBkOrder, 0), 
 					@QtyReserved = ISNULL(QtyReserved, 0)
 			FROM #tmpWorkOrderMaterials tmpWOM WHERE tmpWOM.ID = @count; 
 			

@@ -16,9 +16,10 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------     
 	1    09/22/2023   Moin Bloch		Created
-
+	2    10/17/2023   Moin Bloch        Modified (Changed BatchHeader Table to CommonBatchDetails)
+	3    10/20/2023   Moin Bloch        Modified (Added IsDeleted Flag)
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_CheckOpenCloseGeneralLedgerAccountPeriod]
+CREATE     PROCEDURE [dbo].[usp_CheckOpenCloseGeneralLedgerAccountPeriod]
 @tbl_AccountPeriodType AccountPeriodType READONLY,
 @MasterCompanyId int
 AS
@@ -40,6 +41,13 @@ BEGIN
 			DECLARE @FixedAssetAccountType varchar(50) = 'ASSET';
 			DECLARE @GeneralLedgerAccountType varchar(50) = 'GEN';
 			
+			DECLARE @PostedBatchStatusId INT
+			DECLARE @ManualJournalStatusId INT
+
+			SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
+			SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
+
+
 			IF OBJECT_ID(N'tempdb..#AccountPeriodType') IS NOT NULL
 			BEGIN
 				DROP TABLE #AccountPeriodType 
@@ -141,16 +149,25 @@ BEGIN
 						SET @TotalDebit = 0;
 						SET @TotalCredit = 0;
 
-						SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
-							   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
-						  FROM [dbo].[BatchHeader] WITH(NOLOCK)
-						 WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
-			                   [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountsReceivablesAccountType)
-			               AND [MasterCompanyId] = @MasterCompanyId;	
-							 				
-						PRINT 	@LegalEntityId		
-						PRINT 	@TotalDebit		
-						PRINT 	@TotalCredit		
+						--SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
+						--	   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
+						--  FROM [dbo].[BatchHeader] WITH(NOLOCK)
+						-- WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
+			   --                [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountsReceivablesAccountType)
+			   --            AND [MasterCompanyId] = @MasterCompanyId;	
+
+						SELECT @TotalDebit = ISNULL(SUM(ISNULL(CBD.DebitAmount,0)),0), 
+							   @TotalCredit = ISNULL(SUM(ISNULL(CBD.CreditAmount,0)),0)
+						   FROM [dbo].[CommonBatchDetails] CBD  WITH(NOLOCK) 
+			         INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON  BD.JournalBatchDetailId = CBD.JournalBatchDetailId	
+					   WHERE BD.[AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
+					     AND BD.[JournalTypeId] IN (SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountsReceivablesAccountType)
+			             AND BD.[MasterCompanyId] = @MasterCompanyId
+						 AND BD.[StatusId] = @PostedBatchStatusId
+						 AND CBD.[IsDeleted] = 0
+			             AND CBD.[IsActive] = 1
+						 AND BD.IsDeleted = 0
+			             AND BD.IsActive = 1
 
 						 IF(@TotalDebit <> @TotalCredit)
 						 BEGIN
@@ -166,18 +183,26 @@ BEGIN
 						SET @TotalDebit = 0;
 						SET @TotalCredit = 0;
 
-						SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
-							   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
-						  FROM [dbo].[BatchHeader] WITH(NOLOCK)
-						 WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
-			                   [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountPayableAccountType)
-			               AND [MasterCompanyId] = @MasterCompanyId;	
-
-						PRINT 	@LegalEntityId		
-						PRINT 	@TotalDebit		
-						PRINT 	@TotalCredit		
-
-						
+						--SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
+						--	   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
+						--  FROM [dbo].[BatchHeader] WITH(NOLOCK)
+						-- WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
+			   --                [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountPayableAccountType)
+			   --            AND [MasterCompanyId] = @MasterCompanyId;
+						   
+						 SELECT @TotalDebit = ISNULL(SUM(ISNULL(CBD.DebitAmount,0)),0), 
+							    @TotalCredit = ISNULL(SUM(ISNULL(CBD.CreditAmount,0)),0)
+						   FROM [dbo].[CommonBatchDetails] CBD  WITH(NOLOCK) 
+			         INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON  BD.JournalBatchDetailId = CBD.JournalBatchDetailId	
+					   WHERE BD.[AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
+					     AND BD.[JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @AccountPayableAccountType)
+			             AND BD.[MasterCompanyId] = @MasterCompanyId
+						 AND BD.[StatusId] = @PostedBatchStatusId
+						 AND CBD.[IsDeleted] = 0
+			             AND CBD.[IsActive] = 1
+						 AND BD.IsDeleted = 0
+			             AND BD.IsActive = 1
+						 
 						IF(@TotalDebit <> @TotalCredit)
 						BEGIN
 							INSERT INTO #ValidateOpenCloseGeneralLedger([Message])
@@ -192,16 +217,25 @@ BEGIN
 						SET @TotalDebit = 0;
 						SET @TotalCredit = 0;
 
-						SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
-							   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
-						  FROM [dbo].[BatchHeader] WITH(NOLOCK)
-						 WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
-			                   [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @InventoryAccountType)
-			               AND [MasterCompanyId] = @MasterCompanyId;
-						   
-						PRINT 	@LegalEntityId		
-						PRINT 	@TotalDebit		
-						PRINT 	@TotalCredit	
+						--SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
+						--	   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
+						--  FROM [dbo].[BatchHeader] WITH(NOLOCK)
+						-- WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
+			   --                [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @InventoryAccountType)
+			   --            AND [MasterCompanyId] = @MasterCompanyId;
+
+						 SELECT @TotalDebit = ISNULL(SUM(ISNULL(CBD.DebitAmount,0)),0), 
+							    @TotalCredit = ISNULL(SUM(ISNULL(CBD.CreditAmount,0)),0)
+						   FROM [dbo].[CommonBatchDetails] CBD  WITH(NOLOCK) 
+			         INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON  BD.JournalBatchDetailId = CBD.JournalBatchDetailId	
+					   WHERE BD.[AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
+					     AND BD.[JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @InventoryAccountType)
+			             AND BD.[MasterCompanyId] = @MasterCompanyId
+						 AND BD.[StatusId] = @PostedBatchStatusId
+						 AND CBD.[IsDeleted] = 0
+			             AND CBD.[IsActive] = 1
+						 AND BD.IsDeleted = 0
+			             AND BD.IsActive = 1
 						   							
 						IF(@TotalDebit <> @TotalCredit)
 						BEGIN
@@ -214,12 +248,25 @@ BEGIN
 				BEGIN									
 					IF(@IsAssetStatusName = 0)
 					BEGIN
-						SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
-							   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
-						  FROM [dbo].[BatchHeader] WITH(NOLOCK)
-						 WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
-			                   [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @FixedAssetAccountType)
-			               AND [MasterCompanyId] = @MasterCompanyId;	
+						--SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
+						--	   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
+						--  FROM [dbo].[BatchHeader] WITH(NOLOCK)
+						-- WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId) AND 
+			   --                [JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @FixedAssetAccountType)
+			   --            AND [MasterCompanyId] = @MasterCompanyId;
+						   
+						  SELECT @TotalDebit = ISNULL(SUM(ISNULL(CBD.DebitAmount,0)),0), 
+							    @TotalCredit = ISNULL(SUM(ISNULL(CBD.CreditAmount,0)),0)
+						   FROM [dbo].[CommonBatchDetails] CBD  WITH(NOLOCK) 
+			         INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON  BD.JournalBatchDetailId = CBD.JournalBatchDetailId	
+					   WHERE BD.[AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
+					     AND BD.[JournalTypeId] IN(SELECT ID FROM dbo.JournalType WITH(NOLOCK) WHERE [BatchType] = @FixedAssetAccountType)
+			             AND BD.[MasterCompanyId] = @MasterCompanyId
+						 AND BD.[StatusId] = @PostedBatchStatusId
+						 AND CBD.[IsDeleted] = 0
+			             AND CBD.[IsActive] = 1
+						 AND BD.IsDeleted = 0
+			             AND BD.IsActive = 1
 
 						IF(@TotalDebit <> @TotalCredit)
 						BEGIN
@@ -235,11 +282,23 @@ BEGIN
 						SET @TotalDebit = 0;
 						SET @TotalCredit = 0;
 
-						SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
-							   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
-						  FROM [dbo].[BatchHeader] WITH(NOLOCK)
-						 WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
-			               AND [MasterCompanyId] = @MasterCompanyId;	
+						--SELECT @TotalDebit = ISNULL(SUM(ISNULL(TOTALDEBIT,0)),0), 
+						--	   @TotalCredit = ISNULL(SUM(ISNULL(TOTALCREDIT,0)),0)
+						--  FROM [dbo].[BatchHeader] WITH(NOLOCK)
+						-- WHERE [AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  
+			   --            AND [MasterCompanyId] = @MasterCompanyId;	
+
+						  SELECT @TotalDebit = ISNULL(SUM(ISNULL(CBD.DebitAmount,0)),0), 
+							     @TotalCredit = ISNULL(SUM(ISNULL(CBD.CreditAmount,0)),0)
+						   FROM [dbo].[CommonBatchDetails] CBD  WITH(NOLOCK) 
+			         INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON  BD.JournalBatchDetailId = CBD.JournalBatchDetailId	
+					   WHERE BD.[AccountingPeriodId] IN (SELECT [AccountingCalendarId] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [PeriodName] = @periodName AND [LegalEntityId] = @LegalEntityId)  					    
+			             AND BD.[MasterCompanyId] = @MasterCompanyId
+						 AND BD.[StatusId] = @PostedBatchStatusId
+						 AND CBD.[IsDeleted] = 0
+			             AND CBD.[IsActive] = 1
+						 AND BD.IsDeleted = 0
+			             AND BD.IsActive = 1
 							 								
 						IF(@TotalDebit <> @TotalCredit)
 						BEGIN

@@ -37,7 +37,7 @@ BEGIN
 	BEGIN TRY  
     BEGIN TRANSACTION  
     BEGIN
-		DECLARE @LoopID AS INT;
+		DECLARE @LoopID AS INT = 0;
 
 		IF OBJECT_ID(N'tempdb..#UpdateStocklineReceivingPOType') IS NOT NULL
 		BEGIN
@@ -215,7 +215,9 @@ BEGIN
 			[LotMainStocklineId] [bigint] NULL,
 			[IsFromInitialPO] [bit] NULL,
 			[LotSourceId] [int] NULL,
-			[Adjustment] [decimal](18, 2) NULL
+			[Adjustment] [decimal](18, 2) NULL,
+			[SerialNumberNotProvided] [bit] NULL,
+			[ShippingReferenceNumberNotProvided] [bit] NULL,
 		)
 
 		INSERT INTO #UpdateStocklineReceivingPOType ([StockLineDraftId],[PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],
@@ -234,7 +236,7 @@ BEGIN
 		[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],
 		[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],[LotId],
 		[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],
-		[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment])
+		[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],SerialNumberNotProvided,[ShippingReferenceNumberNotProvided])
 		SELECT [StockLineDraftId],[PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],
 		[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],
 		[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagTypeIds],[TagType],[CertifiedDueDate],[CalibrationMemo],
@@ -251,7 +253,7 @@ BEGIN
 		[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],
 		[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],[LotId],
 		[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],
-		[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment] FROM @tbl_UpdateStocklineReceivingPOType;
+		[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],SerialNumberNotProvided,ShippingReferenceNumberNotProvided FROM @tbl_UpdateStocklineReceivingPOType;
 
 		DECLARE @QuantityBackOrdered INT = 0;
 
@@ -351,6 +353,8 @@ BEGIN
 			StkDraft.IsSameDetailsForAllParts = TmpStkDraft.IsSameDetailsForAllParts,
 			StkDraft.IsSerialized = TmpStkDraft.IsSerialized,
 			StkDraft.TimeLifeDetailsNotProvided = TmpStkDraft.TimeLifeDetailsNotProvided,
+			StkDraft.SerialNumberNotProvided = TmpStkDraft.SerialNumberNotProvided,
+			StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,
 			StkDraft.IsParent = @PrevIsParent
 			FROM DBO.StockLineDraft StkDraft
 			INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.StockLineDraftId = StkDraft.StockLineDraftId
@@ -364,88 +368,88 @@ BEGIN
 
 			SET @QuantityBackOrdered = @QuantityBackOrdered + @Quantity;
 
-			/* Insert/Update Stockline Timelife Info */
-			DECLARE @LoopIDTimelife INT = 0;
-
-			IF OBJECT_ID(N'tempdb..#UpdateTimeLifeReceivingPOType') IS NOT NULL
-			BEGIN
-				DROP TABLE #UpdateTimeLifeReceivingPOType 
-			END
-			
-			CREATE TABLE #UpdateTimeLifeReceivingPOType
-			(
-				ID BIGINT NOT NULL IDENTITY,
-				[TimeLifeDraftCyclesId] [bigint] NULL,
-				[StockLineDraftId] [bigint] NULL,
-				[CyclesRemaining] [varchar](20) NULL,
-				[CyclesSinceNew] [varchar](20) NULL,
-				[CyclesSinceOVH] [varchar](20) NULL,
-				[CyclesSinceInspection] [varchar](20) NULL,
-				[CyclesSinceRepair] [varchar](20) NULL,
-				[TimeRemaining] [varchar](20) NULL,
-				[TimeSinceNew] [varchar](20) NULL,
-				[TimeSinceOVH] [varchar](20) NULL,
-				[TimeSinceInspection] [varchar](20) NULL,
-				[TimeSinceRepair] [varchar](20) NULL,
-				[LastSinceNew] [varchar](20) NULL,
-				[LastSinceOVH] [varchar](20) NULL,
-				[LastSinceInspection] [varchar](20) NULL,
-				[DetailsNotProvided] [bit] NULL
-			)
-
-			INSERT INTO #UpdateTimeLifeReceivingPOType ([TimeLifeDraftCyclesId],[StockLineDraftId],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-			[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[DetailsNotProvided])
-			SELECT [TimeLifeDraftCyclesId],[StockLineDraftId],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-			[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[DetailsNotProvided]
-			FROM @tbl_UpdateTimeLifeReceivingPOType WHERE [StockLineDraftId] = @SelectedStockLineDraftId;
-
-			SELECT @LoopIDTimelife = MAX(ID) FROM #UpdateTimeLifeReceivingPOType;
-		
-			WHILE (@LoopIDTimelife > 0)
-			BEGIN
-				DECLARE @SelectedTimeLifeDraftCyclesId BIGINT = 0;
-
-				SELECT @SelectedTimeLifeDraftCyclesId = TimeLifeDraftCyclesId FROM #UpdateTimeLifeReceivingPOType WHERE ID = @LoopIDTimelife;
-
-				IF (@SelectedTimeLifeDraftCyclesId = 0)
-				BEGIN
-					INSERT INTO DBO.TimeLifeDraft ([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
-					[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
-					[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineDraftId],[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId],
-					[VendorRMAId],[VendorRMADetailId])
-					SELECT [CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew],
-					[TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair], [LastSinceNew], [LastSinceOVH], [LastSinceInspection], @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),
-					GETUTCDATE(), 1, @PurchaseOrderId, @SelectedPurchaseOrderPartRecordId, [StockLineDraftId], [DetailsNotProvided], NULL, NULL,
-					NULL, NULL
-					FROM #UpdateTimeLifeReceivingPOType WHERE ID = @LoopIDTimelife;
-				END
-				ELSE
-				BEGIN
-					UPDATE TLDraft
-					SET TLDraft.CyclesRemaining = UTLDraft.CyclesRemaining,
-					TLDraft.[CyclesSinceNew] = UTLDraft.[CyclesSinceNew],
-					TLDraft.[CyclesSinceOVH] = UTLDraft.[CyclesSinceOVH],
-					TLDraft.[CyclesSinceInspection] = UTLDraft.[CyclesSinceInspection],
-					TLDraft.[CyclesSinceRepair] = UTLDraft.[CyclesSinceRepair],
-					TLDraft.[TimeRemaining] = UTLDraft.[TimeRemaining],
-					TLDraft.[TimeSinceNew] = UTLDraft.[TimeSinceNew],
-					TLDraft.[TimeSinceOVH] = UTLDraft.[TimeSinceOVH],
-					TLDraft.[TimeSinceInspection] = UTLDraft.[TimeSinceInspection],
-					TLDraft.[TimeSinceRepair] = UTLDraft.[TimeSinceRepair],
-					TLDraft.[LastSinceNew] = UTLDraft.[LastSinceNew],
-					TLDraft.[LastSinceOVH] = UTLDraft.[LastSinceOVH],
-					TLDraft.[LastSinceInspection] = UTLDraft.[LastSinceInspection],
-					TLDraft.[UpdatedBy] = @UpdatedBy,
-					TLDraft.UpdatedDate = GETUTCDATE()
-					FROM DBO.TimeLifeDraft TLDraft
-					INNER JOIN #UpdateTimeLifeReceivingPOType UTLDraft ON TLDraft.StockLineDraftId = UTLDraft.StockLineDraftId
-					WHERE TLDraft.TimeLifeDraftCyclesId = @SelectedTimeLifeDraftCyclesId
-				END
-
-				SET @LoopIDTimelife = @LoopIDTimelife - 1;
-			END
-
 			SET @LoopID = @LoopID - 1;
+		END
+
+		/* Insert/Update Stockline Timelife Info */
+		DECLARE @LoopIDTimelife INT = 0;
+
+		IF OBJECT_ID(N'tempdb..#UpdateTimeLifeReceivingPOType') IS NOT NULL
+		BEGIN
+			DROP TABLE #UpdateTimeLifeReceivingPOType 
+		END
+			
+		CREATE TABLE #UpdateTimeLifeReceivingPOType
+		(
+			ID BIGINT NOT NULL IDENTITY,
+			[TimeLifeDraftCyclesId] [bigint] NULL,
+			[StockLineDraftId] [bigint] NULL,
+			[CyclesRemaining] [varchar](20) NULL,
+			[CyclesSinceNew] [varchar](20) NULL,
+			[CyclesSinceOVH] [varchar](20) NULL,
+			[CyclesSinceInspection] [varchar](20) NULL,
+			[CyclesSinceRepair] [varchar](20) NULL,
+			[TimeRemaining] [varchar](20) NULL,
+			[TimeSinceNew] [varchar](20) NULL,
+			[TimeSinceOVH] [varchar](20) NULL,
+			[TimeSinceInspection] [varchar](20) NULL,
+			[TimeSinceRepair] [varchar](20) NULL,
+			[LastSinceNew] [varchar](20) NULL,
+			[LastSinceOVH] [varchar](20) NULL,
+			[LastSinceInspection] [varchar](20) NULL,
+			[DetailsNotProvided] [bit] NULL
+		)
+
+		INSERT INTO #UpdateTimeLifeReceivingPOType ([TimeLifeDraftCyclesId],[StockLineDraftId],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
+		[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[DetailsNotProvided])
+		SELECT [TimeLifeDraftCyclesId],[StockLineDraftId],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
+		[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[DetailsNotProvided]
+		FROM @tbl_UpdateTimeLifeReceivingPOType --WHERE [StockLineDraftId] = @SelectedStockLineDraftId;
+
+		SELECT @LoopIDTimelife = MAX(ID) FROM #UpdateTimeLifeReceivingPOType;
+		
+		WHILE (@LoopIDTimelife > 0)
+		BEGIN
+			DECLARE @SelectedTimeLifeDraftCyclesId BIGINT = 0;
+
+			SELECT @SelectedTimeLifeDraftCyclesId = TimeLifeDraftCyclesId FROM #UpdateTimeLifeReceivingPOType WHERE ID = @LoopIDTimelife;
+
+			IF (@SelectedTimeLifeDraftCyclesId = 0)
+			BEGIN
+				INSERT INTO DBO.TimeLifeDraft ([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],
+				[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+				[UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineDraftId],[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId],
+				[VendorRMAId],[VendorRMADetailId])
+				SELECT [CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew],
+				[TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair], [LastSinceNew], [LastSinceOVH], [LastSinceInspection], @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),
+				GETUTCDATE(), 1, @PurchaseOrderId, @SelectedPurchaseOrderPartRecordId, [StockLineDraftId], [DetailsNotProvided], NULL, NULL,
+				NULL, NULL
+				FROM #UpdateTimeLifeReceivingPOType WHERE ID = @LoopIDTimelife;
+			END
+			ELSE
+			BEGIN
+				UPDATE TLDraft
+				SET TLDraft.CyclesRemaining = UTLDraft.CyclesRemaining,
+				TLDraft.[CyclesSinceNew] = UTLDraft.[CyclesSinceNew],
+				TLDraft.[CyclesSinceOVH] = UTLDraft.[CyclesSinceOVH],
+				TLDraft.[CyclesSinceInspection] = UTLDraft.[CyclesSinceInspection],
+				TLDraft.[CyclesSinceRepair] = UTLDraft.[CyclesSinceRepair],
+				TLDraft.[TimeRemaining] = UTLDraft.[TimeRemaining],
+				TLDraft.[TimeSinceNew] = UTLDraft.[TimeSinceNew],
+				TLDraft.[TimeSinceOVH] = UTLDraft.[TimeSinceOVH],
+				TLDraft.[TimeSinceInspection] = UTLDraft.[TimeSinceInspection],
+				TLDraft.[TimeSinceRepair] = UTLDraft.[TimeSinceRepair],
+				TLDraft.[LastSinceNew] = UTLDraft.[LastSinceNew],
+				TLDraft.[LastSinceOVH] = UTLDraft.[LastSinceOVH],
+				TLDraft.[LastSinceInspection] = UTLDraft.[LastSinceInspection],
+				TLDraft.[UpdatedBy] = @UpdatedBy,
+				TLDraft.UpdatedDate = GETUTCDATE()
+				FROM DBO.TimeLifeDraft TLDraft
+				INNER JOIN #UpdateTimeLifeReceivingPOType UTLDraft ON TLDraft.StockLineDraftId = UTLDraft.StockLineDraftId
+				WHERE TLDraft.TimeLifeDraftCyclesId = @SelectedTimeLifeDraftCyclesId
+			END
+
+			SET @LoopIDTimelife = @LoopIDTimelife - 1;
 		END
 
 		EXEC DBO.UpdateStocklineDraftDetail @PurchaseOrderId;

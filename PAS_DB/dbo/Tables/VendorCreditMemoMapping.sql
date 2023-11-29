@@ -11,6 +11,9 @@
     [UpdatedDate]               DATETIME        CONSTRAINT [DF_VendorCreditMemoMapping_UpdatedDate] DEFAULT (getdate()) NULL,
     [IsActive]                  BIT             CONSTRAINT [DF_VendorCreditMemoMapping_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_VendorCreditMemoMapping_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [InvoiceType]               INT             NULL,
     CONSTRAINT [PK_VendorCreditMemoMapping] PRIMARY KEY CLUSTERED ([VendorCreditMemoMappingId] ASC)
 );
+
+
 

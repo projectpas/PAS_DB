@@ -20,9 +20,19 @@
     [ApprovedBy]             VARCHAR (100) NULL,
     [DateApproved]           DATETIME2 (7) NULL,
     [NPONumber]              VARCHAR (150) NULL,
+    [EntryDate]              DATETIME2 (7) NULL,
+    [InvoiceNumber]          VARCHAR (150) NULL,
+    [InvoiceDate]            DATETIME2 (7) NULL,
+    [PONumber]               VARCHAR (150) NULL,
+    [AccountingCalendarId]   BIGINT        NULL,
+    [CurrencyId]             BIGINT        NULL,
+    [PostedDate]             DATETIME2 (7) NULL,
+    [IsUsedInVendorPayment]  BIT           NULL,
     CONSTRAINT [PK_NonPOInvoiceHeader] PRIMARY KEY CLUSTERED ([NonPOInvoiceId] ASC),
     CONSTRAINT [FK_NonPOInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 GO

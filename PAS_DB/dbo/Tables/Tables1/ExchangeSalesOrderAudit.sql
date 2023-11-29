@@ -6,7 +6,7 @@
     [OpenDate]                  DATETIME2 (7)   NOT NULL,
     [ShippedDate]               DATETIME2 (7)   NULL,
     [NumberOfItems]             INT             CONSTRAINT [DF_ExchangeSalesOrderAudit_NumberOfItems] DEFAULT ((0)) NOT NULL,
-    [AccountTypeId]             INT             NOT NULL,
+    [AccountTypeId]             INT             NULL,
     [CustomerId]                BIGINT          NOT NULL,
     [CustomerContactId]         BIGINT          NOT NULL,
     [CustomerReference]         VARCHAR (100)   NULL,
@@ -59,8 +59,11 @@
     [ExchangeQuoteNumber]       VARCHAR (50)    NULL,
     [IsApproved]                BIT             NULL,
     [CoreAccepted]              BIT             DEFAULT ((0)) NOT NULL,
+    [IsVendor]                  BIT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 
 
 

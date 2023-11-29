@@ -49,8 +49,11 @@
     [PostedDate]                          DATETIME2 (7)   NULL,
     [BillingId]                           BIGINT          DEFAULT ((0)) NOT NULL,
     [CreditMemoUsed]                      DECIMAL (18, 2) NULL,
+    [RemainingAmount]                     DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC)
 );
+
+
 
 
 

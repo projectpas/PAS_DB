@@ -32,8 +32,11 @@
     [PostedDate]            DATETIME        NULL,
     [AccountingPeriodId]    BIGINT          NULL,
     [AccountingPeriod]      VARCHAR (100)   NULL,
+    [PostedBy]              VARCHAR (256)   NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
+
+
 
 
 

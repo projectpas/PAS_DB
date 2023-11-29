@@ -11,11 +11,12 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    23/06/2023   Hemant Saliya  Created
+	1    23/06/2023   Hemant Saliya  Updated for Supress Zero
 **************************************************************/  
 
 /*************************************************************             
 
---EXEC [USP_GetIncomeStatementTrend_ColumnName] 1,'128','133',8,1  
+EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'138','189', 0  
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementTrend_ColumnName]  
@@ -24,7 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementTrend_ColumnName]
  @masterCompanyId BIGINT,  
  @managementStructureId BIGINT = NULL,
  @StartAccountingPeriodId BIGINT = NULL,   
- @EndAccountingPeriodId BIGINT = NULL 
+ @EndAccountingPeriodId BIGINT = NULL,
+ @IsSupressZero BIT = NULL
 )  
 AS  
 BEGIN   
@@ -52,6 +54,8 @@ BEGIN
 		  DECLARE @FromAccountPeriodId BIGINT;   
 		  DECLARE @ToAccountPeriodId BIGINT;   
 		  DECLARE @LegalEntityId BIGINT;   
+		  DECLARE @FiscalYear INT;
+		  DECLARE @Period INT;
 		  
 		  DECLARE @FROMDATE DATETIME;
 		  DECLARE @TODATE DATETIME;  
@@ -59,7 +63,17 @@ BEGIN
 		  DECLARE @AccountPeriodIds VARCHAR(max);  
 
 		  SELECT @FROMDATE = FromDate, @FromAccountPeriod = PeriodName, @LegalEntityId = LegalEntityId FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId AND IsDeleted = 0  
-		  SELECT @TODATE = ToDate, @ToAccountPeriod = PeriodName FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0  
+		  SELECT @TODATE = ToDate, @ToAccountPeriod = PeriodName, @FiscalYear = FiscalYear, @Period = [Period] FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0  
+
+		  --SELECT @FROMDATE
+		  --SELECT @TODATE
+
+		  IF(@IsSupressZero = 0)
+		  BEGIN
+			  SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
+		  END
+
+		  PRINT @TODATE
 
 		  CREATE TABLE #TempTable (       
 			   ID BIGINT NOT NULL IDENTITY(1,1),    
@@ -85,7 +99,9 @@ BEGIN
 			   isNumString BIT,
 			   isRightAlign BIT,			   
 			   PeriodId INT,  
-			   PeriodName VARCHAR(50)  
+			   PeriodName VARCHAR(50),
+			   FiscalYear INT,
+			   [Period] INT
 		  ) 
 		  
 		  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
@@ -118,6 +134,21 @@ BEGIN
 
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  
 		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1 FROM #TempTable 
+
+		  --SELECT @FROMDATE
+		  --SELECT @TODATE
+		  --SELECT * FROM #AccPeriodTempTable
+
+		  IF(@IsSupressZero = 0)
+		  BEGIN
+			  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign, [FiscalYear], [Period])  
+			  SELECT DISTINCT AccountingCalendarId,  REPLACE(AC.PeriodName,' - ',' ') , '', 1, 1, AC.[FiscalYear], AC.[Period]
+			  FROM dbo.AccountingCalendar AC WITH(NOLOCK)
+			  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
+		  		 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+				 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
+			  ORDER BY AC.[FiscalYear],AC.[Period]
+		  END
 
 		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1 WHERE PeriodName = 'Other'
 

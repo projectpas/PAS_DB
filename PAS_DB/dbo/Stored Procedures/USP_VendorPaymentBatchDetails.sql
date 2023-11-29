@@ -21,7 +21,7 @@
 	
 **************************************************************/
 
-CREATE       PROCEDURE [dbo].[USP_VendorPaymentBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_VendorPaymentBatchDetails]
 @ReadyToPayId BIGINT
 AS
 BEGIN 
@@ -92,12 +92,14 @@ BEGIN
 		DECLARE @MasterLoopIDs AS INT;
 		DECLARE @CreditMemoLoopID AS INT;
 		DECLARE @StatusIdClosed AS BIGINT;
+		DECLARE @AccountMSModuleId INT = 0
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
 		SELECT @InternationalWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
 		SELECT @ACHTransfer = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'ACH Transfer';
 		SELECT @CreditCard = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Credit Card';
+		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 					   
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -545,6 +547,10 @@ BEGIN
 							   ,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
+
+					-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 					INSERT INTO [dbo].[VendorPaymentBatchDetails]
 							   ([JournalBatchHeaderId]
@@ -644,6 +650,10 @@ BEGIN
 							       ,0)
 					      
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
+
+						-----  Accounting MS Entry  -----
+
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 					      
 						INSERT INTO [dbo].[VendorPaymentBatchDetails]
 							   ([JournalBatchHeaderId]
@@ -744,6 +754,10 @@ BEGIN
 							        ,0);
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
+
+						-----  Accounting MS Entry  -----
+
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 						INSERT INTO [dbo].[VendorPaymentBatchDetails]
 							       ([JournalBatchHeaderId]

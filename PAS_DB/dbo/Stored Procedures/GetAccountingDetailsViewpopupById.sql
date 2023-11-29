@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -17,11 +16,12 @@
     1    08/10/2022							Created
     2	 09/12/2023  Devendra Shekh			added case condition for ExpertiseName,EmployeeName
 	3    03/10/2023  Bhargav Saliya         Employee duplicate Records issue Resolved
+	4    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case
 --EXEC [GetAccountingDetailsViewpopupById] 3577,3047
 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
+CREATE     PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
 @WorkOrderPartNumberId bigint    
 AS    
@@ -38,7 +38,7 @@ BEGIN
                  ,JBD.[LineNumber]    
                  ,JBD.[GlAccountId]    
                  ,JBD.[GlAccountNumber]    
-                 ,JBD.[GlAccountName]    
+                 ,UPPER(JBD.[GlAccountName]) AS [GlAccountName]
                  ,JBD.[TransactionDate]    
                  ,JBD.[EntryDate]    
                  ,WBD.[ReferenceId]    
@@ -48,12 +48,12 @@ BEGIN
                  ,WBD.[PiecePNId]    
                  ,WBD.[PiecePN]    
                  ,JBD.[JournalTypeId]    
-                 ,JBD.[JournalTypeName]    
+                 ,UPPER(JBD.[JournalTypeName]) AS [JournalTypeName]   
                  ,JBD.[IsDebit]    
                  ,JBD.[DebitAmount]    
                  ,JBD.[CreditAmount]    
                  ,WBD.[CustomerId]    
-                 ,WBD.[CustomerName]    
+                 ,UPPER(WBD.[CustomerName]) AS [CustomerName] 
                  ,WBD.[InvoiceId]    
                  ,WBD.[InvoiceName]    
                  ,WBD.[ARControlNum]    
@@ -86,11 +86,11 @@ BEGIN
 				 --,EMPEX.Description  as ExpertiseName  
 				 --,EMPE.FirstName +' '+ EMPE.LastName as EmployeeName
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN 
-						  (SELECT TOP 1 MSTL.[UpdatedBy] FROM [dbo].[WorkOrderMaterialStockLine] MSTL WITH(NOLOCK) 
+						  (SELECT TOP 1 UPPER(MSTL.[UpdatedBy]) AS [UpdatedBy] FROM [dbo].[WorkOrderMaterialStockLine] MSTL WITH(NOLOCK) 
 								JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = MSTL.WorkOrderMaterialsId 
 							WHERE MSTL.StockLineId = WBD.StocklineId AND WOM.WorkOrderId = WBD.ReferenceId)
-				 ELSE EMPE.FirstName +' '+ EMPE.LastName END AS EmployeeName
-				 ,CR.Code AS Currency
+				 ELSE (UPPER(EMPE.FirstName) +' '+ UPPER(EMPE.LastName)) END AS EmployeeName
+				 ,CR.Code AS Currency 
 				 ,UPPER(MSD.Level1Name) AS level1,      
 			     UPPER(MSD.Level2Name) AS level2,     
 			     UPPER(MSD.Level3Name) AS level3,     

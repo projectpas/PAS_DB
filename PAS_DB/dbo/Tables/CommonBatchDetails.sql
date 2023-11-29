@@ -31,8 +31,11 @@
     [CurrentNumber]              BIGINT          NULL,
     [IsYearEnd]                  BIT             NULL,
     [IsVersionIncrease]          BIT             NULL,
+    [ReferenceId]                BIGINT          NULL,
     CONSTRAINT [PK_CommonBatchDetails] PRIMARY KEY CLUSTERED ([CommonJournalBatchDetailId] ASC)
 );
+
+
 
 
 

@@ -12,9 +12,14 @@
  ** --   --------     -------		-------------------------------            
 	1    17/07/2023   Hemant Saliya  Created
 	2    08/09/2023   Hemant Saliya  Added MS filter 
+	3    03/11/2023   Hemant Saliya  Added View JE Details
+	4    24/11/2023   Moin Bloch     Renamed ReferenceModule VENDOR RMA To VENDOR CREDIT MEMO AND SO TO CUSTOMER CREDIT MEMO 
 **************************************************************  
 
-EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 135,135,8,1,1,102, 307, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
+EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
+
+EXEC dbo.USP_GetJournalEntriesDetailsByLeafNodeId @StartAccountingPeriodId=138,@EndAccountingPeriodId=138,@ReportingStructureId=8,
+@ManagementStructureId=1,@MasterCompanyId=1,@LeafNodeId=102,@GLAccountId=307,@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId]  
@@ -135,14 +140,22 @@ BEGIN
 			JournalNumber VARCHAR(50), 
 			JournalBatchDetailId BIGINT NULL,
 			EntryDate DATETIME NULL,
+			IsManualJournal BIT NULL,
 		  )
 
-		  INSERT INTO #GLBalance (LeafNodeId, AccountingPeriod, GLAccountId, JournalNumber, JournalBatchDetailId, EntryDate, DebitAmount, CreaditAmount,  Amount)
-			(SELECT DISTINCT LF.LeafNodeId , BD.AccountingPeriod, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120),
-					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END 'CreditAmount',
+		  INSERT INTO #GLBalance (LeafNodeId, AccountingPeriod, GLAccountId, JournalNumber, JournalBatchDetailId, EntryDate, DebitAmount, CreaditAmount,  Amount, IsManualJournal)
+			(SELECT DISTINCT LF.LeafNodeId ,  REPLACE(BD.AccountingPeriod,' - ',''), CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120),
 					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
-					(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END) - 
-					(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) AS AMONUT
+					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END 'CreditAmount',
+
+					CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END) - 
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) 
+					ELSE
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) -
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END)
+					END AS AMONUT,
+					0
 			FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
 				INNER JOIN dbo.BatchDetails BD WITH (NOLOCK) ON CMD.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMD.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
@@ -161,15 +174,21 @@ BEGIN
 					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY LF.LeafNodeId , BD.AccountingPeriod, GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120)
+			GROUP BY LF.LeafNodeId , BD.AccountingPeriod, GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120), GL.GLAccountTypeId
 
 			UNION ALL
 
-			SELECT	DISTINCT LF.LeafNodeId , REPLACE(AC.PeriodName, ' - ', ' '), MJD.GlAccountId, MJH.JournalNumber, 0 AS JournalBatchDetailId, CONVERT(DATETIME, MJH.EntryDate, 120),
+			SELECT	DISTINCT LF.LeafNodeId , REPLACE(AC.PeriodName, ' - ', ''), MJD.GlAccountId, MJH.JournalNumber, MJH.ManualJournalHeaderId, CONVERT(DATETIME, MJH.EntryDate, 120),
 				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END 'DebitAmount',
-					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
-				(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
-					(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) AS AMONUT
+				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
+				CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END)  
+					ELSE
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) -
+						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END)
+					END AS AMONUT,
+					1
 				FROM dbo.ManualJournalDetails MJD WITH (NOLOCK) 
 					JOIN dbo.GLAccount GL ON MJD.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId) 
 					JOIN dbo.ManualJournalHeader MJH  WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
@@ -191,7 +210,7 @@ BEGIN
 					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  GROUP BY  LF.LeafNodeId , AC.PeriodName, GLM.IsPositive, MJD.GlAccountId, MJH.JournalNumber, CONVERT(DATETIME, MJH.EntryDate, 120))
+		  GROUP BY  LF.LeafNodeId , AC.PeriodName, GLM.IsPositive, MJD.GlAccountId, MJH.JournalNumber, MJH.ManualJournalHeaderId, CONVERT(DATETIME, MJH.EntryDate, 120), GL.GLAccountTypeId)
 
 		  IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL
 		  BEGIN
@@ -217,6 +236,8 @@ BEGIN
 		  DECLARE @IsFristRow AS bit = 1;
 		  DECLARE @LCOUNT AS int = 0;
 		  SELECT @LCOUNT = MAX(ID) fROM #AccPeriodTable
+
+		  --SELECT * FROM #GLBalance
 
 		  WHILE(@LCOUNT > 0)
 		  BEGIN
@@ -374,7 +395,8 @@ BEGIN
 			EntryDate DATETIME NULL,
 			LastMSLevel VARCHAR(MAX) null,
 			AllMSlevels VARCHAR(MAX) null,
-			OrderNum INT NULL
+			OrderNum INT NULL,
+			IsManualJournal BIT NULL,
 		  )
 
 		  DECLARE @COUNT AS INT;
@@ -385,8 +407,8 @@ BEGIN
 
 			  SELECT @AccountcalMonth = PeriodName FROM #AccPeriodTable where ID = @COUNT
 
-			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriod, PeriodName, EntryDate) --, ReferenceId, DistributionSetupCode)
-			  SELECT T.LeafNodeId, T.[Name] , AP.OrderNum, GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
+			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriod, PeriodName, EntryDate, IsManualJournal) --, ReferenceId, DistributionSetupCode)
+			  SELECT T.LeafNodeId, T.[Name] , AP.OrderNum, GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, GL.IsManualJournal  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
 			  FROM #TempTable T  
 				  JOIN #GLBalance GL ON T.LeafNodeId = GL.LeafNodeId AND T.AccountcalMonth = REPLACE(GL.AccountingPeriod ,' - ','') 
 				  JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = GL.GLAccountId 
@@ -396,18 +418,39 @@ BEGIN
 			  SET @COUNT = @COUNT + 1
 		  END
 
+		  --SELECT * FROM #AccTrendTable
+
 		  --ReferenceName
 		  UPDATE #AccTrendTable 
-				SET ReferenceModule = CASE WHEN UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN 'WO' 
-											WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN 'SO'    
+				SET ReferenceModule = CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN 'WO' 
+											WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
+																						
+											WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN 'SO'    
+											WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CB.ModuleName)  = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
+
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN 'RPO'  
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN 'RRO' 
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN 'WO' 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN 'CHEQUE' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 'ASSET'
-											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR RMA'
+											--WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR RMA'
+											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR CREDIT MEMO'											
 											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 'STOCKLINE'
+											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN 'CASH RECEIPT'
+											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 'STKADJ'
+											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
+													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN 'EXCH'
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 'CMDISACC'
+											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 'WIRETRAN'
+											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 'ACHTRAN'
+											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 'CCPAY'
+											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
+											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
+											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
+											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
+											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
 											ELSE '' END,
 					ReferenceName = CASE WHEN UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
 												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.CustomerName
@@ -416,57 +459,112 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN SD.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.CustomerName 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN '' 
-											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN '' --SD.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN V.VendorName
-											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN ''											
+											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN ''		
+											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.CustomerName
+											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
+													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN ExchC.[Name]
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.VendorName
+											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
+											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN ''
 											ELSE '' END,
-					Referenceid = CASE WHEN UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.ReferenceId
-											WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN SBD.SalesOrderId   
+					
+					    Referenceid = CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN WBD.ReferenceId
+									       WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) = 'CREDITMEMO') THEN CMBD.ReferenceId		
+											
+											--WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN SBD.SalesOrderId   
+											WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN SBD.SalesOrderId  
+											WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CB.ModuleName)  = 'CREDITMEMO') THEN CMBD.ReferenceId	
+
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN SD.PoId  
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN SD.RoId
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.ReferenceId 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
-											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId
-											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 0											
+											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 0		
+											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
+													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.ExchangeSalesOrderId
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
+											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
+													OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN BSAD.ReferenceId
 											ELSE '' END,
-					CustomerId = CASE WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN SBD.CustomerId ELSE '' END,
+					CustomerId = CASE WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN SBD.CustomerId 
+									  WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
+													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN ExchC.CustomerId
+							     ELSE '' END,
 					LastMSLevel = CB.LastMSLevel,
 					AllMSlevels = CB.AllMSlevels
 		  FROM #AccTrendTable tmp 
-			  JOIN dbo.CommonBatchDetails CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId
-			  JOIN dbo.DistributionSetup DS WITH (NOLOCK) ON DS.ID = cb.DistributionSetupId
-			  JOIN dbo.DistributionMaster DM WITH (NOLOCK) ON DS.DistributionMasterId = DM.ID
-			  LEFT JOIN dbo.WorkOrderBatchDetails WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId
-			  LEFT JOIN dbo.SalesOrderBatchDetails SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId
-			  LEFT JOIN dbo.StocklineBatchDetails SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId
-			  LEFT JOIN dbo.VendorPaymentBatchDetails VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId
-			  LEFT JOIN dbo.VendorRMAPaymentBatchDetails VRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VRBD.JournalBatchDetailId
-			  LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
+			  JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId
+			  JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = cb.DistributionSetupId
+			  JOIN [dbo].[DistributionMaster] DM WITH (NOLOCK) ON DS.DistributionMasterId = DM.ID
+			  LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VRBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON tmp.JournalBatchDetailId = BSAD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CMBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[ExchangeBatchDetails] EXBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = EXBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = NPOBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
+			  LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
+
+			--SELECT * FROM #AccTrendTable
+
+			UPDATE #AccTrendTable 
+					SET ReferenceModule = CASE WHEN tmp.IsManualJournal = 1 THEN 'MANUAL JE' ELSE ReferenceModule END,
+						ReferenceName = CASE WHEN tmp.IsManualJournal = 1 THEN MJH.JournalNumber ELSE ReferenceName END,
+						Referenceid = CASE WHEN tmp.IsManualJournal = 1 THEN MJD.ManualJournalHeaderId ELSE tmp.Referenceid END,
+						LastMSLevel = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN  MJD.LastMSLevel ELSE MJD.LastMSLevel END,
+						AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END
+			 FROM #AccTrendTable tmp 
+			 JOIN dbo.ManualJournalHeader MJH WITH (NOLOCK) ON tmp.JournalBatchDetailId = MJH.ManualJournalHeaderId
+			 JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
+			 WHERE tmp.IsManualJournal = 1
 
 		  ;WITH cte
 			AS
 			(
-			   SELECT LeafNodeId, NodeName, OrderNum,  GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel, AllMSlevels,
+			   SELECT LeafNodeId, NodeName, OrderNum,  GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel, AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount 
+				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount, IsManualJournal 
 			   FROM #AccTrendTable
-			   GROUP BY LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate
+			   GROUP BY LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
+				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal
 
 			), cteRanked AS
 			(
-			   SELECT Amount, LeafNodeId, OrderNum, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
+			   SELECT Amount, LeafNodeId, OrderNum, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
 				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 				ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum
+				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal
 			   FROM cte
 			) 
 			SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount, 0 AS AccountingPeriodId, OrderNum,
-			  c1.LeafNodeId, UPPER(c1.NodeName) AS NodeName, c1.GLAccountId, (UPPER(c1.GLAccountCode) + '-' + UPPER(c1.GLAccountName)) AS GLAccount, UPPER(c1.JournalNumber) AS JournalNumber, c1.LastMSLevel,  c1.AllMSlevels,
+			  c1.LeafNodeId, UPPER(c1.NodeName) AS NodeName, c1.GLAccountId, (UPPER(c1.GLAccountCode) + '-' + UPPER(c1.GLAccountName)) AS GLAccount, UPPER(c1.JournalNumber) AS JournalNumber, c1.JournalBatchDetailId, c1.LastMSLevel,  c1.AllMSlevels,
 				c1.CreditAmount, c1.DebitAmount, UPPER(c1.AccountingPeriod) AS AccountingPeriod, UPPER(c1.PeriodName) AS PeriodName, c1.ReferenceModule, c1.ReferenceName, c1.ReferenceId, c1.CustomerId, c1.DistributionSetupCode, 
-				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate				
+				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal				
 			FROM cteRanked c1 
 			WHERE c1.GLAccountId IS NOT NULL
 			ORDER BY OrderNum, JournalNumber;

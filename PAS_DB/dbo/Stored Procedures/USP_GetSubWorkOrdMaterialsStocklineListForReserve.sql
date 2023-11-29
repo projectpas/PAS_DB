@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForReserve]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to reserve Stockline    
@@ -14,16 +13,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/24/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/24/2021   Hemant Saliya		Created
+	2    08/11/2023   Amit Ghediya		Not allow AR condition record when populate reserve list
 
      
  EXECUTE [USP_GetSubWorkOrdMaterialsStocklineListForReserve] 31
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]    
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]    
 (    
 @SubWOPartNoId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL
@@ -41,10 +41,12 @@ SET NOCOUNT ON
 				DECLARE @Provision VARCHAR(50);
 				DECLARE @ProvisionCode VARCHAR(50);
 				DECLARE @CustomerID BIGINT;
-
+				DECLARE @ARConditionId BIGINT;
+				DECLARE @MasterCompanyId INT;
 				
 				SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
-				SELECT @CustomerID = WO.CustomerId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK) on WO.WorkOrderId = SWOP.WorkOrderId WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
+				SELECT @MasterCompanyId = WO.MasterCompanyId ,@CustomerID = WO.CustomerId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK) on WO.WorkOrderId = SWOP.WorkOrderId WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
+				SELECT @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId;
 
 				IF(@ItemMasterId = 0)
 				BEGIN
@@ -108,6 +110,7 @@ SET NOCOUNT ON
 					AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
+					AND WOM.ConditionCodeId <> @ARConditionId
 			END
 		COMMIT  TRANSACTION
 

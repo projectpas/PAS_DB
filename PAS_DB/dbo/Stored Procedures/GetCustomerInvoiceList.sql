@@ -1,17 +1,20 @@
 ﻿ /**************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** S NO   Date            Author          Change Description                    
- ** --   --------         -------          --------------------------------                  
+ ** S NO   Date            Author			Change Description                    
+ ** --   --------         -------			--------------------------------                  
     1    13-July-2023	  Ayesha			Credit memo changes     
-	2    24-July-2023     Moin Bloch        Added Credit Memo List For SO AND WO AND Format the Stored Procedure
-	3    28-July-2023     Moin Bloch        Changed PostedDate to InvoiceDate  
-	4    23-Aug--2023     Moin Bloch        Changed Balance Amount (Added Discount Amount +  Bank Fees Amount + Other Adjustment Amount in Balance Amount)
-	
+	2    24-July-2023     Moin Bloch		Added Credit Memo List For SO AND WO AND Format the Stored Procedure
+	3    28-July-2023     Moin Bloch		Changed PostedDate to InvoiceDate  
+	4    23-Aug--2023     Moin Bloch		Changed Balance Amount (Added Discount Amount +  Bank Fees Amount + Other Adjustment Amount in Balance Amount)
+	6    16-OCT-2023      Moin Bloch		Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
+	7    18-OCT-2023      Moin Bloch		Modify(Added Stand Alone Credit Memo)
+	8    07-NOV-2023      AMIT GHEDIYA		Modify(Added Add Exchange Invoice)
+
 **************************************************************/  
 --exec GetCustomerInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'CustName',@SortOrder=1,@GlobalFilter=N'',@StatusId=2,@CustName='Fast',@CustomerCode=NULL,@CustomertType=NULL,@currencyCode=NULL,@BalanceAmount=NULL,@CurrentlAmount=NULL,@Amountpaidbylessthen0days=NULL,@Amountpaidby30days=NULL,@Amountpaidby60days=NULL,@Amountpaidby90days=NULL,@Amountpaidby120days=NULL,@Amountpaidbymorethan120days=NULL,@LegelEntity=NULL,@EmployeeId=2,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@viewType=N'Deatils',@MasterCompanyId=1,@InvoiceDate=NULL,@CustomerRef=NULL,@InvoiceNo=NULL,@DocType=NULL,@Salesperson=NULL,@Terms=NULL,@DueDate=NULL,@FixRateAmount=NULL,@InvoiceAmount=NULL,@InvoicePaidAmount=NULL,@InvoicePaidDate=NULL,@PaymentRef=NULL,@CMAmount=NULL,@CMDate=NULL,@AdjustMentAmount=NULL,@AdjustMentDate=NULL,@SOMSModuleID=17,@WOMSModuleID=12
 
-CREATE   PROCEDURE [dbo].[GetCustomerInvoiceList]
+CREATE     PROCEDURE [dbo].[GetCustomerInvoiceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -66,14 +69,20 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 	    DECLARE @adjustString  varchar(500);
+		DECLARE @ESOMSModuleID BIGINT;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		DECLARE @CMMSModuleID bigint = 61;
 		SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='CreditMemoHeader';
+
+		SELECT @ESOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSOHeader';
 		
 		DECLARE @ClosedCreditMemoStatus bigint
 	    SELECT @ClosedCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Closed';
-				
+
+		DECLARE @CMPostedStatusId INT
+        SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
+					
 
 		IF (@viewType='all')
 		BEGIN
@@ -312,35 +321,35 @@ BEGIN
 					   (wobi.GrandTotal - wobi.RemainingAmount) AS 'CurrentlAmount',             
 					   (wobi.RemainingAmount) AS 'PaymentAmount',
 					   (CM.CreditMemoNumber) AS 'InvoiceNo',
-			           (wobi.InvoiceDate) AS 'InvoiceDate',
+			           (CM.CreatedDate) AS 'InvoiceDate',
 					   ISNULL(ctm.NetDays,0) AS NetDays,
 					   (CASE WHEN  DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN CMD.Amount ELSE 0 END) AS Amountpaidbylessthen0days,
 					   (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN CMD.Amount ELSE 0 END) AS Amountpaidby30days,
 					   (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN  CMD.Amount ELSE 0 END) AS Amountpaidby60days,
 					   (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN CMD.Amount ELSE 0 END) AS Amountpaidby90days,
 					   (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN  CMD.Amount ELSE 0 END) AS Amountpaidby120days,
 					   (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
-                       (C.UpdatedBy) AS UpdatedBy,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN CMD.Amount ELSE 0 END) AS Amountpaidbymorethan120days,
+                       (CM.UpdatedBy) AS UpdatedBy,
 					   (CM.ManagementStructureId) AS ManagementStructureId,
-					   'AR-Inv' AS 'DocType',
+					   'Credit Memo' AS 'DocType',
 					   wop.CustomerReference AS 'CustomerRef',
 					   ISNULL(emp.FirstName,'Unassigned') AS 'Salesperson',
 					   ctm.Name AS 'Terms',
@@ -372,8 +381,8 @@ BEGIN
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
-			   INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId
-			    LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+			   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId
+			   -- LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 			    OUTER APPLY
 			   (
 					SELECT MAX(CP.ReceiptNo) AS 'ReceiptNo'
@@ -388,7 +397,10 @@ BEGIN
 					LEFT JOIN dbo.CustomerPayments CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId
 					WHERE wobi.BillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId = 2 AND IPS.InvoiceType = 2 GROUP BY IPS.SOBillingInvoicingId 
 		       ) A			   
-			  WHERE CMD.IsWorkOrder = 1 AND wobi.InvoiceStatus = 'Invoiced' and WO.MasterCompanyId = @MasterCompanyId 
+			  WHERE CM.StatusId = @CMPostedStatusId 
+			  AND  CMD.IsWorkOrder = 1 
+			  --AND wobi.InvoiceStatus = 'Invoiced' 
+			  AND CM.MasterCompanyId = @MasterCompanyId 
 
 			  UNION ALL
 
@@ -403,35 +415,35 @@ BEGIN
 					   (sobi.GrandTotal - sobi.RemainingAmount)AS 'CurrentlAmount',   
 					   ISNULL(sobi.RemainingAmount,0)AS 'PaymentAmount',
 					   (CM.CreditMemoNumber) AS 'InvoiceNo',
-			           (sobi.InvoiceDate) AS 'InvoiceDate',
+			           (CM.CreatedDate) AS 'InvoiceDate',
 					   ISNULL(ctm.NetDays,0) AS NetDays,
                       (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN CMD.Amount ELSE 0 END) AS AmountpaidbylessTHEN0days,
 					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 30 THEN CMD.Amount ELSE 0 END) AS Amountpaidby30days,
 					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 60 THEN CMD.Amount ELSE 0 END) AS Amountpaidby60days,
 					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN CMD.Amount ELSE 0 END) AS Amountpaidby90days,
 					  (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN CMD.Amount ELSE 0 END) AS Amountpaidby120days,
 					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
-                       (C.UpdatedBy) AS UpdatedBy,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN CMD.Amount ELSE 0 END) AS Amountpaidbymorethan120days,
+                       (CM.UpdatedBy) AS UpdatedBy,
 					   (CM.ManagementStructureId) AS ManagementStructureId,
-					   'AR-Inv' AS 'DocType',
+					   'Credit Memo' AS 'DocType',
 					   sop.CustomerReference AS 'CustomerRef',
 					   ISNULL(SO.SalesPersonName,'Unassigned') AS 'Salesperson',
 					   ctm.Name AS 'Terms',
@@ -462,8 +474,8 @@ BEGIN
 			   INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			   INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId			  		 	  
-			   INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  
-			    LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+			   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  
+			   -- LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 			   			   			  
 			  OUTER APPLY
 			   (
@@ -479,8 +491,153 @@ BEGIN
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId
 					WHERE sobii.SOBillingInvoicingId = IPS.SOBillingInvoicingId AND CP.StatusId=2 AND IPS.InvoiceType = 1 GROUP BY IPS.SOBillingInvoicingId 
 		       ) A			  
-			  WHERE CMD.IsWorkOrder = 0  AND sobi.InvoiceStatus = 'Invoiced'  AND SO.MasterCompanyId = @MasterCompanyId  
-			)
+			  WHERE CM.StatusId = @CMPostedStatusId 
+			  AND  CMD.IsWorkOrder = 0  
+			  --AND sobi.InvoiceStatus = 'Invoiced'  
+			  AND CM.MasterCompanyId = @MasterCompanyId  
+
+			------------------- Stand Alone Credit Memo ----------------------------------------------------------------------------------------------------
+
+			UNION ALL
+
+			SELECT DISTINCT (C.CustomerId) AS CustomerId,
+			        UPPER(ISNULL(C.[Name],'')) 'CustName' ,      
+                    UPPER(ISNULL(C.CustomerCode,'')) 'CustomerCode' ,      
+                    UPPER(CT.CustomerTypeName) 'CustomertType' ,      
+					UPPER(CR.Code) AS  'currencyCode', 
+					CM.Amount AS 'BalanceAmount',    
+					CM.Amount AS 'CurrentlAmount',     
+					CM.Amount AS 'PaymentAmount', 
+					UPPER(CM.CreditMemoNumber) AS 'InvoiceNo',
+					CM.InvoiceDate AS InvoiceDate,  
+					ISNULL(CTM.NetDays,0) AS NetDays,  
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+							 WHEN ctm.Code='CIA' THEN -1
+							 WHEN ctm.Code='CreditCard' THEN -1
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(CTM.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN CM.Amount ELSE 0 END) AS AmountpaidbylessTHEN0days,
+					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+							 WHEN ctm.Code='CIA' THEN -1      
+							 WHEN ctm.Code='CreditCard' THEN -1      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN CM.Amount ELSE 0 END) AS Amountpaidby30days,      
+					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+							 WHEN ctm.Code='CIA' THEN -1      
+							 WHEN ctm.Code='CreditCard' THEN -1      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN CM.Amount ELSE 0 END) AS Amountpaidby60days,      
+				    (CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+							 WHEN ctm.Code='CIA' THEN -1      
+							 WHEN ctm.Code='CreditCard' THEN -1      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN CM.Amount ELSE 0 END) AS Amountpaidby90days,      
+					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+							 WHEN ctm.Code='CIA' THEN -1      
+							 WHEN ctm.Code='CreditCard' THEN -1      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN CM.Amount ELSE 0 END) AS Amountpaidby120days,      
+					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+							 WHEN ctm.Code='CIA' THEN -1      
+							 WHEN ctm.Code='CreditCard' THEN -1      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN CM.Amount ELSE 0 END) AS Amountpaidbymorethan120days,      
+                    (CM.UpdatedBy) AS UpdatedBy,
+					(CM.ManagementStructureId) AS ManagementStructureId,
+					UPPER('Stand Alone Credit Memo') AS 'DocType',    
+					'' AS 'CustomerRef',      
+				    '' AS 'Salesperson',   						
+					UPPER(CTM.[Name]) AS 'Terms',  
+					'0' AS 'FixRateAmount',    
+					CM.Amount AS 'InvoiceAmount', 
+					0 AS 'InvoicePaidAmount',
+					NULL AS 'InvoicePaidDate',	
+					'Stand Alone Credit Memo' AS 'PaymentRef',
+					CM.Amount AS 'CMAmount', 
+				    CM.Amount AS CreditMemoAmount,
+					CM.CreatedDate AS 'CMDate',
+					0 AS 'AdjustMentAmount',
+					NULL AS 'AdjustMentDate',
+				    '' AS 'AdjustMentAmountType',
+					1 AS IsCreditMemo,					  
+					CM.StatusId
+			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
+			LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
+			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
+			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
+			LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CM.CustomerId = CF.CustomerId    
+			LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON ctm.CreditTermsId = CF.CreditTermsId    
+		    LEFT JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId  
+			LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
+		   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  
+			--LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID  
+		  WHERE CM.MasterCompanyId = @MasterCompanyId
+		    AND CM.IsStandAloneCM = 1           
+		    AND CM.StatusId = @CMPostedStatusId
+
+		------------------- SO Exchange Invoice ----------------------------------------------------------------------------------------------------
+
+			UNION ALL
+
+			SELECT DISTINCT (CUST.CustomerId) AS CustomerId,
+                       ((ISNULL(CUST.[Name],''))) 'CustName' ,
+					   ((ISNULL(CUST.CustomerCode,''))) 'CustomerCode' ,
+                       (CT.CustomerTypeName) 'CustomertType' ,
+					   (CR.Code) AS  'currencyCode',
+					   (ESOBI.GrandTotal) AS 'BalanceAmount',
+					   (ESOBI.GrandTotal - ESOBI.RemainingAmount) AS 'CurrentlAmount',   
+					   ISNULL(ESOBI.RemainingAmount,0) AS 'PaymentAmount',
+					   (ESOBI.InvoiceNo) AS 'InvoiceNo',
+			           (ESOBI.InvoiceDate) AS 'InvoiceDate',
+					   ISNULL(ctm.NetDays,0) AS NetDays,
+                      (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN ESOBI.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
+					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 30 THEN ESOBI.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 60 THEN ESOBI.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN ESOBI.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+					  (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN ESOBI.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+					  (CASE	WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ESOBI.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
+                       (CUST.UpdatedBy) AS UpdatedBy,
+					   (ESO.ManagementStructureId) AS ManagementStructureId,
+					   UPPER('Exchange Invoice') AS 'DocType',
+					   ESO.CustomerReference AS 'CustomerRef',
+					   ISNULL(ESO.SalesPersonName,'Unassigned') AS 'Salesperson',
+					   CTM.[Name] AS 'Terms',
+					   0 AS 'FixRateAmount',
+					   ESOBI.GrandTotal AS 'InvoiceAmount',
+					   0 AS 'InvoicePaidAmount',
+					   NULL AS 'InvoicePaidDate',
+					   'Exchange Invoice' AS 'PaymentRef',
+					   0 AS 'CMAmount',
+					   0 AS CreditMemoAmount,
+					   NULL AS 'CMDate',
+					   0 AS 'AdjustMentAmount',
+					   NULL 'AdjustMentDate',
+					   '' AS AdjustMentAmountType,
+					   0 AS IsCreditMemo,					   
+					   0 AS StatusId
+			FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)       
+			INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
+			INNER JOIN [dbo].[Customer] CUST WITH (NOLOCK) ON CUST.CustomerId = ESO.CustomerId      
+			LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId      
+			INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON CUST.CustomerTypeId = CT.CustomerTypeId      
+			INNER JOIN [dbo].[ExchangeSalesOrderPart] ESOP WITH (NOLOCK) ON ESOP.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId      
+			INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] ESOBII WITH (NOLOCK) ON ESOBII.SOBillingInvoicingId = ESOBI.SOBillingInvoicingId AND ESOBII.ExchangeSalesOrderPartId = ESOP.ExchangeSalesOrderPartId      
+			INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = ESOBI.CurrencyId      
+			INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ESOMSModuleID AND MSD.ReferenceID = ESOBI.ExchangeSalesOrderId      
+			LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
+		    WHERE ESOBI.InvoiceStatus = 'Invoiced'  and ESO.MasterCompanyId = @MasterCompanyId 
+		)
 			
 			, Result AS(
 				SELECT DISTINCT 
@@ -724,6 +881,26 @@ BEGIN
 			
 			--group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate
 			
+		------------------- SO Exchange Invoice ----------------------------------------------------------------------------------------------------
+			UNION ALL
+
+			SELECT C.CustomerId,CAST(esobi.InvoiceDate AS DATE) AS InvoiceDate,
+			esobi.GrandTotal,
+			esobi.RemainingAmount,
+			DATEDIFF(DAY, CAST(esobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
+			ctm.NetDays,
+			DATEDIFF(DAY, CAST(CAST(esobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays
+			FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esobi WITH (NOLOCK) on esobi.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = esobi.CurrencyId
+		 	    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId
+			    WHERE  C.MasterCompanyId=@MasterCompanyId AND esobi.InvoiceStatus = 'Invoiced'
+
 			), CTECalculation AS(
 			SELECT
 				CustomerId,
@@ -856,6 +1033,7 @@ BEGIN
 			  
 			UNION ALL
 
+
           SELECT DISTINCT C.CustomerId,
                        MAX((ISNULL(C.[Name],''))) 'CustName' ,
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
@@ -945,7 +1123,72 @@ BEGIN
 				) E
 			    WHERE  C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'	
 				        GROUP BY C.CustomerId  --,SO.CustomerReference,sobi.InvoiceNo,sobi.SOBillingInvoicingId
-				
+
+		
+		------------------- SO Exchange Invoice ----------------------------------------------------------------------------------------------------
+				UNION ALL
+
+				SELECT DISTINCT C.CustomerId,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CR.Code) AS  'currencyCode',
+					   SUM(esobi.GrandTotal) AS 'BalanceAmount',
+					   ISNULL(SUM(esobi.GrandTotal - esobi.RemainingAmount),0)AS 'CurrentlAmount',   
+					   SUM(esobi.RemainingAmount)AS 'RemainingAmount',
+					   SUM(0) AS 'Amountpaidbylessthen0days',      
+                       SUM(0) AS 'Amountpaidby30days',      
+                       SUM(0) AS 'Amountpaidby60days',
+					   SUM(0) AS 'Amountpaidby90days',
+					   SUM(0) AS 'Amountpaidby120days',
+					   SUM(0) AS 'Amountpaidbymorethan120days',  
+					   MAX(C.CreatedDate) AS CreatedDate,
+                       MAX(C.UpdatedDate) AS UpdatedDate,
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(ESO.ManagementStructureId) AS ManagementStructureId,
+					   MAX(ESO.CreditLimitName) AS 'Terms',
+					   SUM(esobi.GrandTotal) AS 'InvoiceAmount',
+					   0 AS 'InvoicePaidAmount',
+					   0 AS 'FixRateAmount',
+					   NULL AS 'InvoicePaidDate',
+					   0 AS 'AdjustMentAmount',
+					   MAX(ctm.NetDays) AS TermDays,
+					    MAX(B.InvoiceNo) AS 'InvoiceNo',
+					   MAX(esobi.InvoiceDate) AS 'PostedDate',
+					   MAX(E.InvoiceDateNew) AS 'InvoiceDate',
+					   MAX(d.CustomerReference) AS CustomerRef,
+					   '' AS 'ReceiptNo',
+					   MAX(ESO.SalesPersonName) AS 'SalesPerson',
+					   count(esobi.SOBillingInvoicingId) AS 'InvoiceCount',
+					   0 AS 'PaymentCount',
+					   '' AS AdjustMentAmountType
+				   FROM [dbo].Customer C WITH (NOLOCK) 
+				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				   INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.CustomerId = C.CustomerId
+				   INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esobi WITH (NOLOCK) ON esobi.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+				   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = esobi.CurrencyId
+				   INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ESOMSModuleID AND MSD.ReferenceID = esobi.ExchangeSalesOrderId
+		 		   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId
+				   OUTER APPLY(  
+					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceNo) >0 THEN ',' ELSE '' END + s.InvoiceNo  
+						 FROM [dbo].[SalesOrderBillingInvoicing] S WITH (NOLOCK)  
+						 WHERE esobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') InvoiceNo  
+					) B
+					OUTER APPLY(  
+						 SELECT	STUFF((SELECT CASE WHEN LEN(WOS.CustomerReference) > 0 THEN ',' ELSE '' END + WOS.CustomerReference  
+							 FROM [dbo].[ExchangeSalesOrder] WOS WITH (NOLOCK) 
+							 INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] sobis WITH(NOLOCK) on  sobis.ExchangeSalesOrderId=WOS.ExchangeSalesOrderId
+							 WHERE esobi.CustomerId = sobis.CustomerId  AND sobis.InvoiceStatus = 'Invoiced'
+							 FOR XML PATH('')), 1, 1, '') CustomerReference  
+					) D
+					OUTER APPLY(  
+						 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceDate) >0 then ',' ELSE '' END + CONVERT(VARCHAR(MAX), S.InvoiceDate, 110)   
+							 FROM [dbo].[ExchangeSalesOrderBillingInvoicing] S WITH (NOLOCK)  
+							 WHERE esobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
+					) E
+				   WHERE  C.MasterCompanyId=@MasterCompanyId AND esobi.InvoiceStatus = 'Invoiced'	
+				   GROUP BY C.CustomerId
 				),
 				
 				Result AS(
@@ -957,25 +1200,25 @@ BEGIN
 					   --ISNULL(SUM(CTE.PaymentAmount),0) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.RemainingAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.RemainingAmount),0) AS 'PaymentAmount',
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidbylessthen0days > 0 then  (CTECalculation.paidbylessthen0days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidbylessthen0days) END),0) AS 'Amountpaidbylessthen0days',  
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidby30days > 0 then  (CTECalculation.paidby30days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidby30days) END),0) AS 'Amountpaidby30days', 
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidby60days > 0 then  (CTECalculation.paidby60days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidby60days) END),0) AS 'Amountpaidby60days', 
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidby90days > 0 then  (CTECalculation.paidby90days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidby90days) END),0) AS 'Amountpaidby90days', 
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidby120days > 0 then  (CTECalculation.paidby120days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidby120days) END),0) AS 'Amountpaidby120days', 
-					   ISNULL(MAX(CASE WHEN CTECalculation.paidbymorethan120days > 0 then  (CTECalculation.paidbymorethan120days + ISNULL(E.CMAmount,0)) ELSE (CTECalculation.paidbymorethan120days) END),0) AS 'Amountpaidbymorethan120days', 
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidbylessthen0days > 0 then  (CTECalculation.paidbylessthen0days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidbylessthen0days) END),0) AS 'Amountpaidbylessthen0days',  
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidby30days > 0 then  (CTECalculation.paidby30days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidby30days) END),0) AS 'Amountpaidby30days', 
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidby60days > 0 then  (CTECalculation.paidby60days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidby60days) END),0) AS 'Amountpaidby60days', 
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidby90days > 0 then  (CTECalculation.paidby90days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidby90days) END),0) AS 'Amountpaidby90days', 
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidby120days > 0 then  (CTECalculation.paidby120days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidby120days) END),0) AS 'Amountpaidby120days', 
+					   ISNULL(MAX(CASE WHEN CTECalculation.paidbymorethan120days > 0 then  (CTECalculation.paidbymorethan120days + ISNULL(E.CMAmount,0) + ISNULL(H.SCMAmount,0)) ELSE (CTECalculation.paidbymorethan120days) END),0) AS 'Amountpaidbymorethan120days', 
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
 					   MAX(C.CreatedBy) AS CreatedBy,
                        MAX(C.UpdatedBy) AS UpdatedBy,
 					   MAX(CTE.ManagementStructureId) AS ManagementStructureId,
 					   MAX(ctm.Name) AS 'Terms',
-					   DATEADD(DAY, MAX(CTE.TermDays), MAX(CTE.InvoiceDate)) AS 'DueDate',
-					   ISNULL(SUM(CTE.RemainingAmount) + MAX(ISNULL(E.CMAmount,0)),0) + SUM(CTE.AdjustMentAmount)   AS 'BalanceAmount',
+					   DATEADD(DAY, MAX(CTE.TermDays), MAX(CTE.PostedDate)) AS 'DueDate',
+					   ISNULL(SUM(CTE.RemainingAmount) + MAX(ISNULL(E.CMAmount,0)) + MAX(ISNULL(H.SCMAmount,0)),0) +  SUM(CTE.AdjustMentAmount)   AS 'BalanceAmount',
 					   SUM(ISNULL(CTE.InvoiceAmount,0)) AS 'InvoiceAmount',
 					   SUM(ISNULL(CTE.FixRateAmount,0)) AS 'FixRateAmount',
 					   SUM(ISNULL(CTE.InvoicePaidAmount,0)) AS 'InvoicePaidAmount',
 					   MAX(AB.InvoicePaidDate) AS 'InvoicePaidDateType',
-					   ISNULL(MAX(E.CMAmount),0) AS 'CMAmount',
+					   ISNULL(MAX(E.CMAmount),0) + ISNULL(MAX(H.SCMAmount),0) AS 'CMAmount',
 					   MAX(F.CMDate) AS 'CMDateType',
 					   MAX(A.InvoiceNo) AS 'InvoiceNoType',
 					   MAX(B.InvoiceDate) AS 'InvoiceDateType',
@@ -1033,14 +1276,14 @@ BEGIN
 					       COUNT(CM.CreditMemoHeaderId) AS 'CMCount'
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)
 					INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
-					WHERE  CM.CustomerId = C.CustomerId GROUP BY CM.CustomerId 
+					WHERE CM.StatusId = @CMPostedStatusId AND CM.CustomerId = C.CustomerId GROUP BY CM.CustomerId 
 		        ) E
 			    OUTER APPLY
 				(
 					 SELECT STUFF((SELECT CASE WHEN LEN(CM.CreatedDate) > 0 THEN ',' ELSE '' END + CONVERT(VARCHAR(MAX), CM.CreatedDate, 110)  
 					 FROM CreditMemo CM WITH (NOLOCK)  
 					 INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
-					 WHERE C.CustomerId = CM.CustomerId FOR XML PATH('')), 1, 1, '') CMDate  
+					 WHERE CM.StatusId = @CMPostedStatusId AND C.CustomerId = CM.CustomerId FOR XML PATH('')), 1, 1, '') CMDate  
 		       ) F
 			   OUTER APPLY
 			   (  
@@ -1048,6 +1291,19 @@ BEGIN
 					 FROM CTE S WITH (NOLOCK)  
 					 WHERE C.CustomerId = s.CustomerId FOR XML PATH('')), 1, 1, '') SalesPerson  
 			   ) G
+			   OUTER APPLY
+			   (
+					SELECT SUM(CM.Amount) AS 'SCMAmount',
+					       COUNT(CM.CreditMemoHeaderId) AS 'SCMCount'					
+					  FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
+					LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
+					LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0  
+					WHERE CM.[StatusId] = @CMPostedStatusId 
+					  AND CM.[CustomerId] = C.CustomerId 
+					  AND CM.[IsStandAloneCM] = 1        
+					  GROUP BY CM.CustomerId 
+		       ) H
+
 			   WHERE  C.MasterCompanyId=@MasterCompanyId	
 			   GROUP BY C.CustomerId
 
@@ -1205,29 +1461,29 @@ BEGIN
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			,@AdhocComments VARCHAR(150) = 'ProcLegalEntityList'
 			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
-			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
-			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
-			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
-			   + '@Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') AS varchar(100))
-			   + '@Parameter6 = ''' + CAST(ISNULL(@StatusId, '') AS varchar(100))
-			   + '@Parameter7 = ''' + CAST(ISNULL(@CustName, '') AS varchar(100))
-			   + '@Parameter8 = ''' + CAST(ISNULL(@CustomerCode, '') AS varchar(100))
-			   + '@Parameter9 = ''' + CAST(ISNULL(@CustomertType , '') AS varchar(100))
-			   + '@Parameter10 = ''' + CAST(ISNULL(@currencyCode , '') AS varchar(100))
-			   + '@Parameter11 = ''' + CAST(ISNULL(@BalanceAmount, '') AS varchar(100))
-			   + '@Parameter12 = ''' + CAST(ISNULL(@CurrentlAmount, '') AS varchar(100))
-			  + '@Parameter13 = ''' + CAST(ISNULL(@Amountpaidby30days, '') AS varchar(100))
-			  + '@Parameter14 = ''' + CAST(ISNULL(@Amountpaidby60days, '') AS varchar(100))
-			  + '@Parameter15 = ''' + CAST(ISNULL(@Amountpaidby90days , '') AS varchar(100))
-			  + '@Parameter16 = ''' + CAST(ISNULL(@Amountpaidby120days , '') AS varchar(100))
-			  + '@Parameter17 = ''' + CAST(ISNULL(@Amountpaidbymorethan120days , '') AS varchar(100))
-			  + '@Parameter18 = ''' + CAST(ISNULL(@LegelEntity , '') AS varchar(100))
-			  + '@Parameter19 = ''' + CAST(ISNULL(@EmployeeId , '') AS varchar(100))	
-			  + '@Parameter20 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
-			  + '@Parameter21 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
-			  + '@Parameter22 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
-			  + '@Parameter23 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))
-			  + '@Parameter24 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			  -- + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
+			  -- + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
+			  -- + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
+			  -- + '@Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') AS varchar(100))
+			  -- + '@Parameter6 = ''' + CAST(ISNULL(@StatusId, '') AS varchar(100))
+			  -- + '@Parameter7 = ''' + CAST(ISNULL(@CustName, '') AS varchar(100))
+			  -- + '@Parameter8 = ''' + CAST(ISNULL(@CustomerCode, '') AS varchar(100))
+			  -- + '@Parameter9 = ''' + CAST(ISNULL(@CustomertType , '') AS varchar(100))
+			  -- + '@Parameter10 = ''' + CAST(ISNULL(@currencyCode , '') AS varchar(100))
+			  -- + '@Parameter11 = ''' + CAST(ISNULL(@BalanceAmount, '') AS varchar(100))
+			  -- + '@Parameter12 = ''' + CAST(ISNULL(@CurrentlAmount, '') AS varchar(100))
+			  --+ '@Parameter13 = ''' + CAST(ISNULL(@Amountpaidby30days, '') AS varchar(100))
+			  --+ '@Parameter14 = ''' + CAST(ISNULL(@Amountpaidby60days, '') AS varchar(100))
+			  --+ '@Parameter15 = ''' + CAST(ISNULL(@Amountpaidby90days , '') AS varchar(100))
+			  --+ '@Parameter16 = ''' + CAST(ISNULL(@Amountpaidby120days , '') AS varchar(100))
+			  --+ '@Parameter17 = ''' + CAST(ISNULL(@Amountpaidbymorethan120days , '') AS varchar(100))
+			  --+ '@Parameter18 = ''' + CAST(ISNULL(@LegelEntity , '') AS varchar(100))
+			  --+ '@Parameter19 = ''' + CAST(ISNULL(@EmployeeId , '') AS varchar(100))	
+			  --+ '@Parameter20 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
+			  --+ '@Parameter21 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
+			  --+ '@Parameter22 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
+			  --+ '@Parameter23 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))
+			  --+ '@Parameter24 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

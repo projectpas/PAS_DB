@@ -47,7 +47,7 @@ BEGIN
        WHEN @ModuleId = 5  
              THEN (SELECT ISNULL(SWP.Quantity,0)  
                      FROM VendorRFQPurchaseOrderPart POP  
-                     LEFT JOIN [DBO].[SubWorkOrderPartNumber] SWP WITH (NOLOCK) ON SWP.ItemMasterId = POP.ItemMasterId AND SWP.ConditionId = POP.ConditionId  
+                     LEFT JOIN [DBO].[SubWorkOrderMaterials] SWP WITH (NOLOCK) ON SWP.ItemMasterId = POP.ItemMasterId AND SWP.ConditionCodeId = POP.ConditionId  
                      WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND SWP.SubWorkOrderId = @ReferenceId)  
   
         ELSE 0 END AS 'ReqQty'  

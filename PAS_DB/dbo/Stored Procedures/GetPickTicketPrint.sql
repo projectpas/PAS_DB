@@ -18,11 +18,12 @@
 	2    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
 	3    08/17/2023	  Devendra SHekh		REMOVED ReadyToPick and added QtyRemaining
 	4    09/25/2023	  Devendra SHekh		PICKTICKET issue resolved
+	5    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
      
 -- -- EXEC [dbo].[GetPickTicketPrint] 503, 747, 290
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPickTicketPrint]
+CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
 	@SalesOrderId bigint,
 	@SalesOrderPartId bigint,
 	@SOPickTicketId bigint
@@ -39,18 +40,19 @@ BEGIN
 		SELECT @pickTicketNo = SOPickTicketNumber, @masterCompanyId = MasterCompanyId FROM DBO.SOPickTicket WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;
 
 		;WITH TResrvePart as (
-		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId,  MIN(QtyRemaining)as MinQty, SUM(QtyToShip)as NewTotalQtyToShip
+		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId,  MIN(QtyRemaining)as MinQty, QtyToShip as NewTotalQtyToShip
 			FROM SalesOrderPart sopp WITH(NOLOCK)
 			INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 			LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-			WHERE sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo
-			group by sopp.SalesOrderId)
+			WHERE sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo AND sopt.SalesOrderPartId = @SalesOrderPartId
+			group by sopp.SalesOrderId,QtyToShip)
 		,cte as(
 				select SUM(QtyToShip)as TotalQtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
 				FROM DBO.SOPickTicket SOPick WITH(NOLOCK) 
 				JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
 				WHERE SOPick.SalesOrderId = @SalesOrderId 
 				AND SOPickTicketNumber = @pickTicketNo
+				AND SOPick.SalesOrderPartId = @SalesOrderPartId
 				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
 		)
 		SELECT sopt.SOPickTicketId, sopt.CreatedDate as SOPickTicketDate, sopt.SalesOrderId, sl.StockLineNumber, 

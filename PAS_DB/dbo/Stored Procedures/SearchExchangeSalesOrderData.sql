@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [SearchExchangeSalesOrderData]             
  ** Author:    
  ** Description: Get Search Data for ExchangeSalesOrderList   
@@ -12,8 +13,9 @@
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
+	2    25/09/2023   Rajesh Gami	     Add Exchange Vendor Related Change(Add new Vendor Join and return flag IsVendor)
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[SearchExchangeSalesOrderData]
+CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderData]
 -- Add the parameters for the stored procedure here
 @PageNumber int=1,
 @PageSize int=10,
@@ -46,7 +48,8 @@ CREATE     PROCEDURE [dbo].[SearchExchangeSalesOrderData]
 @UpdatedBy varchar(50)=null,
 @MasterCompanyId int = 1,
 @EmployeeId bigint,
-@ManufacturerName varchar(50)=null
+@ManufacturerName varchar(50)=null,
+@FilterType nvarchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -57,6 +60,24 @@ BEGIN
 	BEGIN TRY
 	--BEGIN TRANSACTION
 	--BEGIN
+		DECLARE @isVendorFilter bit = null,@isCustomerFilter bit = null
+		IF(@FilterType = '1')
+		BEGIN
+			SET @isVendorFilter = 1; SET @isCustomerFilter  = 1;
+		END
+		ELSE IF(@FilterType = '2')
+		BEGIN
+			SET @isVendorFilter = 0; SET @isCustomerFilter  = 0;
+		END
+		ELSE IF(@FilterType = '3')
+		BEGIN
+			SET @isVendorFilter = 1; SET @isCustomerFilter  = 0;
+		END
+		ELSE
+		BEGIN
+		    SET @isVendorFilter = 0; SET @isCustomerFilter  = 0;
+		END
+
 		DECLARE @RecordFrom int;
 			SET @RecordFrom = (@PageNumber-1) * @PageSize;
 			IF @IsDeleted IS NULL
@@ -83,14 +104,14 @@ BEGIN
 			End
 			DECLARE @MSModuleID INT = 19; -- Exchange SalesOrder Management Structure Module ID
 		-- Insert statements for procedure here
-		;WITH Result AS(
-			SELECT EQ.ExchangeSalesOrderId,
+		SELECT * INTO #TempResult FROM (SELECT DISTINCT EQ.ExchangeSalesOrderId,
 			       EQ.ExchangeSalesOrderNumber, 
 				   EXQ.ExchangeQuoteNumber, 
 				   EQ.OpenDate AS 'OpenDate', 
 				   EXQ.QuoteExpireDate AS 'QuoteExpireDate', 
-				   C.CustomerId, 
-				   C.[Name] AS 'CustomerName', 
+				   CASE WHEN ISNULL(EQ.IsVendor,0) = 1 THEN V.VendorId ELSE C.CustomerId END AS CustomerId, 
+				   CASE WHEN ISNULL(EQ.IsVendor,0) = 1 THEN V.VendorName ELSE C.[Name] END AS 'CustomerName', 
+				 --C.[Name] AS 'CustomerName', 
 				   MST.[Name] AS 'Status',
 			       --ISNULL(SP.NetSales,0) as 'QuoteAmount',ISNULL(SP.UnitCost, 0) as 'UnitCost', 
 			      ISNULL(SP.CustomerRequestDate, '0001-01-01') AS 'CustomerRequestDate',
@@ -115,9 +136,11 @@ BEGIN
 			      --ISNULL(EQ.ShippedDate, '0001-01-01') as 'ShippedDate', 
 			      EQ.IsDeleted,
 			      dbo.GenearteVersionNumber(EQ.Version) AS 'VersionNumber'
+				 ,ISNULL(EQ.IsVendor,0) IsVendor
 			FROM [dbo].[ExchangeSalesOrder] EQ WITH (NOLOCK)
 			INNER JOIN [dbo].[ExchangeStatus] MST WITH (NOLOCK) on EQ.StatusId = MST.ExchangeStatusId
-			INNER JOIN [dbo].[Customer] C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId
+			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId AND ISNULL(EQ.IsVendor,0) = 0
+			LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) on V.VendorId = EQ.CustomerId AND ISNULL(EQ.IsVendor,0) = 1
 			LEFT JOIN  [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) on EQ.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			LEFT JOIN  [dbo].[ExchangeQuote] EXQ WITH (NOLOCK) on EXQ.ExchangeQuoteId = EQ.ExchangeQuoteId
 			LEFT JOIN  [dbo].[ItemMaster] IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
@@ -126,17 +149,18 @@ BEGIN
 			INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId
 			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			WHERE EQ.MasterCompanyId = @MasterCompanyId AND (EQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR EQ.StatusId = @StatusID) AND ISNULL(Eq.IsVendor,0) in (ISNULL(@isVendorFilter,0), ISNULL(@isCustomerFilter,0)) ) AS C
 
-			WHERE EQ.MasterCompanyId = @MasterCompanyId AND (EQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR EQ.StatusId = @StatusID)
-			 
-			GROUP BY EQ.ExchangeSalesOrderId,ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate,EXQ.QuoteExpireDate, C.CustomerId, C.Name, 
-			MST.Name, 
+		;WITH Result AS(
+			SELECT * FROM #TempResult			
+			GROUP BY ExchangeSalesOrderId,ExchangeSalesOrderNumber, ExchangeQuoteNumber, OpenDate,QuoteExpireDate, CustomerId, CustomerName, 
+			Status, 
 			--SP.NetSales, SP.UnitCost,
-			SP.CustomerRequestDate, EQ.StatusId, EQ.CustomerReference,
-			P.Description, E.FirstName, E.LastName,
-			IM.partnumber, IM.ManufacturerName,IM.PartDescription,
-			EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SP.CustomerRequestDate, EQ.IsDeleted
-			,EQ.Version
+			CustomerRequestDate,CustomerRequestDateType, StatusId, CustomerReference,
+			[Priority], SalesPerson,
+			PartNumber, ManufacturerName,PartDescription,
+			CreatedDate, UpdatedDate,UpdatedBy, CreatedBy, EstimateShipDate,PromiseDate, IsDeleted,PriorityType
+			,VersionNumber,PartNumberType,PartDescriptionType,EstimateShipDateType,IsVendor
 			),
 			--ResultCount AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)
 			FinalResult AS (
@@ -150,7 +174,7 @@ BEGIN
 					EstimateShipDate,CustomerRequestDateType, EstimateShipDateType, PromiseDate, 
 					SalesPerson, Status, StatusId,
 					PartNumber,ManufacturerName, PartNumberType, PartDescription, PartDescriptionType,
-					CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result
+					CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,IsVendor FROM Result
 			WHERE (
 				        (@GlobalFilter <>'' AND ((ExchangeQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR 
 						(ExchangeSalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -207,7 +231,7 @@ BEGIN
 					--ShippedDate,
 					UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId,
 					UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerName) 'ManufacturerName', UPPER(PartNumberType) 'PartNumberType', UPPER(PartDescription) 'PartDescription', UPPER(PartDescriptionType) 'PartDescriptionType',
-					CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy', NumberOfItems FROM FinalResult, ResultCount
+					CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',IsVendor, NumberOfItems FROM FinalResult, ResultCount
 
 					ORDER BY  
 				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,

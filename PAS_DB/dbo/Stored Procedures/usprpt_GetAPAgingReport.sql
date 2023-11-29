@@ -17,6 +17,13 @@
     1    28-Aug-2023    Rajesh Gami		   Created        
 	2    25-SEP-2023    Moin Bloch         Manual Journal Entry Posted Status and Posted date
 	3    27-SEP-2023    Moin Bloch         Modify(Updated InvoiceDate insted of OpenDate)
+	4    20-OCT-2023    Moin Bloch         Modify(Updated Posted Status For Vendor Credit Memo)
+	5    23-OCT-2023    Moin Bloch         Modify(Updated REMAINING AMOUNT Receiving Reconciliation)
+	6    01-NOV-2023    Moin Bloch         Modify(Updated MANUAL JE AMOUNT VALUE SHOUD COME > 0 )
+	7    03-NOV-2023    Devendra Shekh     added union all for NonPODetails
+	8    07-NOV-2023    Devendra Shekh     issure for 0 balance data resolved
+	9    09-NOV-2023    Moin Bloch         Modify(Issue Resolved Credit Memo Export Data)
+	10   15-NOV-2023    Moin Bloch         Modify(Added Invoice Paid Amount For Calculaton)
 	 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
@@ -52,21 +59,20 @@ BEGIN
 	  DECLARE @PostStatusId INT;
 	  SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
 
-	  DECLARE @CMApprovedStatusId INT;
-	  SELECT @CMApprovedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WHERE [Name] = 'Approved';
+	  --DECLARE @CMApprovedStatusId INT;
+	  --SELECT @CMApprovedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WHERE [Name] = 'Approved';
+
+	  DECLARE @CMPostedStatusId INT;
+	  SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WHERE [Name] = 'Posted';
 
       SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
       DECLARE @MSModuleId INT = 0	
 
 	  SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
-	
-	  
+		  
 	  DECLARE @CMMSModuleID BIGINT = 61;
 	  SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='CreditMemoHeader';
-	
-	  DECLARE @FulfillingCreditMemoStatus bigint
-	  SELECT @FulfillingCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Fulfilling';
-      
+		      
     SELECT @todate = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='AS of Date'       
 	  THEN CONVERT(DATE,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @todate END,      
 	  @vendorId = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Vendor Name(Optional)'       
@@ -112,7 +118,7 @@ BEGIN
        SELECT @PageSize=COUNT(*)       
 			FROM (SELECT rrh.ReceivingReconciliationId AS ReceivingReconciliationId 
 					FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
-			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId     
+			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId AND rrd.[Type] > 0    
 			  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vpd.ReceivingReconciliationId      
 			  LEFT JOIN dbo.VendorReadyToPayDetails vrp WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vrp.ReceivingReconciliationId
 			  LEFT JOIN dbo.VendorReadyToPayHeader rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
@@ -124,7 +130,9 @@ BEGIN
 			  LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
 			  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID                  
 			  WHERE rrh.VendorId = ISNULL(@vendorId,rrh.VendorId)        
-			  AND CAST(rrh.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) AND rrh.MasterCompanyId = @mastercompanyid      
+			  AND CAST(rrh.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
+			  AND vpd.RemainingAmount > 0
+			  AND rrh.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -140,7 +148,7 @@ BEGIN
 			
 			UNION ALL
  
-	   SELECT DISTINCT (VCM.[VendorId]) AS VendorId		
+	   SELECT DISTINCT (VCD.[VendorCreditMemoId]) AS VendorCreditMemoId		
 			 FROM [dbo].[VendorCreditMemo] VCM WITH (NOLOCK)       
 			  INNER JOIN [dbo].[VendorCreditMemoDetail] VCD WITH (NOLOCK) on VCM.VendorCreditMemoId = VCD.VendorCreditMemoId 
 			  INNER JOIN [dbo].[Vendor] VEN WITH (NOLOCK) ON VEN.VendorId = VCM.VendorId      
@@ -150,7 +158,8 @@ BEGIN
 			   LEFT JOIN [dbo].[EntityStructureSetup] SES ON SES.EntityStructureId = SMSD.EntityMSID  	
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
-			  AND VCM.[VendorCreditMemoStatusId] = @CMApprovedStatusId
+			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
+			  AND ISNULL(VCD.OriginalAmt, 0) > 0
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -185,7 +194,8 @@ BEGIN
 			 LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID	
 		   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)   
 		    AND MJH.[ManualJournalStatusId] = @PostStatusId
-			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.mastercompanyid = @mastercompanyid      
+			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) 
+			AND MJH.mastercompanyid = @mastercompanyid      
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -197,11 +207,42 @@ BEGIN
 			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) 
+
+	UNION ALL
+
+		SELECT NPH.NonPOInvoiceId AS NonPOInvoiceId 
+					FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)       
+			  INNER JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) on NPH.NonPOInvoiceId  = NPD.NonPOInvoiceId
+			  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON NPH.NonPOInvoiceId = vpd.NonPOInvoiceId      
+			  LEFT JOIN dbo.VendorReadyToPayDetails vrp WITH (NOLOCK) ON NPH.NonPOInvoiceId = vrp.NonPOInvoiceId
+			  LEFT JOIN dbo.VendorReadyToPayHeader rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
+			  INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId=NPH.VendorId      
+			  LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId      
+			  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = NPH.CurrencyId      
+			  LEFT JOIN dbo.NonPOInvoiceManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = NPH.NonPOInvoiceId
+			  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID                  
+			  WHERE NPH.VendorId = ISNULL(@vendorId,NPH.VendorId)        
+			  AND CAST(NPH.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
+			  AND vpd.RemainingAmount > 0
+			  AND NPH.MasterCompanyId = @mastercompanyid			  
+			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
+			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
+			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
+			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
+			  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
+			  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
+			  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
+			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
+			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
+			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
+			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))        
+			GROUP BY NPH.NonPOInvoiceId 
 		   
 		) TEMP 
 
-   END      
-      
+   END    
+   
+      PRINT @PageSize
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END      
 
@@ -214,8 +255,7 @@ BEGIN
 
              SELECT DISTINCT (V.VendorId) AS VendorId,      
                     ISNULL(V.[VendorName],'') 'vendorName' ,      
-                    ISNULL(V.VendorCode,'') 'vendorCode' ,      
-                    --(CT.CustomerTypeName) 'CustomertType' ,      
+                    ISNULL(V.VendorCode,'') 'vendorCode' ,                          
                     (CR.Code) AS  'currencyCode',      
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
@@ -255,8 +295,8 @@ BEGIN
 					'0' AS 'FixRateAmount',      
 					rrh.InvoiceTotal AS 'InvoiceAmount',
 					0 AS 'cmAmount',
-					0 AS CreditMemoAmount,
-					vpd.DueDate AS 'DueDate',      
+					0 AS CreditMemoAmount,					
+					DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',   
 					UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,       
@@ -270,19 +310,20 @@ BEGIN
 					rrh.MasterCompanyId,
 					0 AS IsCreditMemo,
 					0 AS StatusId
-				   ,0 AS InvoicePaidAmount
+				   ,vpd.PaymentMade AS InvoicePaidAmount
          FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
-			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId     
+			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId AND rrd.[Type] > 0       
 			  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vpd.ReceivingReconciliationId      
-			   LEFT JOIN [dbo].VendorReadyToPayDetails vrp WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vrp.ReceivingReconciliationId
-			   LEFT JOIN [dbo].VendorReadyToPayHeader rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
+			   LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vrp.ReceivingReconciliationId
+			   LEFT JOIN [dbo].[VendorReadyToPayHeader] rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
 			  INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId=rrh.VendorId      
 			  LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
 			  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = rrh.CurrencyId      
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
 			   LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID                
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
-			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid      
+			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
+			  AND vpd.RemainingAmount > 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -366,7 +407,8 @@ BEGIN
 			   LEFT JOIN [dbo].[EntityStructureSetup] SES ON SES.EntityStructureId = SMSD.EntityMSID  	
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
-			  AND VCM.[VendorCreditMemoStatusId] = @CMApprovedStatusId
+			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
+			  AND ISNULL(VCD.OriginalAmt, 0) > 0
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -387,43 +429,43 @@ BEGIN
                     ISNULL(V.[VendorName],'') 'vendorName' ,      
                     ISNULL(V.VendorCode,'') 'vendorCode' ,      
                     (CR.Code) AS  'currencyCode',  
-					 MJD.Credit AS 'BalanceAmount',       -- need to discuss
-					 MJD.Credit AS 'CurrentlAmount',      -- need to discuss
-			         MJD.Credit AS 'PaymentAmount',      
+					 0 AS 'BalanceAmount',       -- need to discuss
+					 0 AS 'CurrentlAmount',      -- need to discuss
+			         0 AS 'PaymentAmount',      
 					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 					 WHEN ctm.Code='CIA' THEN -1      
 					 WHEN ctm.Code='CreditCard' THEN -1      
-					 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN MJD.Credit ELSE 0 END) AS AmountpaidbylessTHEN0days,      
+					 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN  ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS AmountpaidbylessTHEN0days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN MJD.Credit ELSE 0 END) AS Amountpaidby30days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby30days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN MJD.Credit ELSE 0 END) AS Amountpaidby60days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby60days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN MJD.Credit ELSE 0 END) AS Amountpaidby90days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby90days,      
+			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
+	   				 WHEN ctm.Code='CIA' THEN -1      
+	   				 WHEN ctm.Code='CreditCard' THEN -1      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby120days,      
 			   (CASE WHEN DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN MJD.Credit ELSE 0 END) AS Amountpaidby120days,      
-			   (CASE WHEN DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
-	   				 WHEN ctm.Code='CIA' THEN -1      
-	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN MJD.Credit ELSE 0 END) AS Amountpaidbymorethan120days,
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId, 
 			   UPPER('Manual Journal Adjustment') AS 'DocType', 
 			   '' AS 'vendorRef',   
 			   ''AS 'Salesperson',	   
 			   ctm.Name AS 'Terms',   
 			   '0' AS 'FixRateAmount', 			        
-			   (ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0)) AS 'InvoiceAmount', 
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 
 			   0 AS 'cmAmount',
 			   0 AS CreditMemoAmount,
 			   NULL AS 'DueDate', 
@@ -446,7 +488,7 @@ BEGIN
 		  INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 		  INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 		   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
-		   LEFT JOIN  [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = V.CreditTermsId
+		   LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = V.CreditTermsId
 		   LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = MJH.FunctionalCurrencyId
 		   LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON  MSD.Level1Id = MSL1.ID
 		   LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON  MSD.Level2Id = MSL2.ID
@@ -461,6 +503,7 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2 
+			--AND ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0) <> 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
@@ -473,6 +516,110 @@ BEGIN
 			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			AND (ISNULL(@Level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+
+		GROUP BY MJD.ReferenceId,V.[VendorName],V.VendorCode,CR.Code,MJH.JournalNumber, 
+			MJH.[PostedDate],CTM.NetDays,MJD.UpdatedBy,MJD.ManagementStructureId,CTM.[Name],ctm.Code,
+			MSL1.Code,MSL1.[Description],
+			MSL2.Code, MSL2.[Description],
+			MSL3.Code, MSL3.[Description],
+			MSL4.Code, MSL4.[Description],
+			MSL5.Code, MSL5.[Description],
+			MSL6.Code, MSL6.[Description],
+			MSL7.Code, MSL7.[Description],
+			MSL8.Code, MSL8.[Description],
+			MSL9.Code, MSL9.[Description],
+			MSL10.Code , MSL10.[Description],
+			MJH.MasterCompanyId
+		HAVING SUM(ISNULL(MJD.Credit, 0)) - SUM(ISNULL(MJD.Debit, 0)) <> 0
+
+	UNION ALL
+
+	--	NonPO Details  --
+
+             SELECT DISTINCT (V.VendorId) AS VendorId,      
+                    ISNULL(V.[VendorName],'') 'vendorName' ,      
+                    ISNULL(V.VendorCode,'') 'vendorCode' ,                          
+                    (CR.Code) AS  'currencyCode',      
+                    ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
+                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
+                    ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
+                    (NPH.NPONumber) AS 'InvoiceNo',      
+                    NPH.PostedDate AS InvoiceDate,      
+                    ISNULL(ctm.NetDays,0) AS NetDays, 
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+					(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='CIA' THEN -1
+																	WHEN ctm.Code='CreditCard' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
+					(rtp.ManagementStructureId) AS ManagementStructureId,      
+					'NPO-Inv' AS 'DocType',      
+					'' AS 'vendorRef',      
+					'' AS 'Salesperson',      
+					ctm.Name AS 'Terms',      
+					'0' AS 'FixRateAmount',      
+					PartData.InvoiceTotal AS 'InvoiceAmount',
+					0 AS 'cmAmount',
+					0 AS CreditMemoAmount,					
+					DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',   
+					UPPER(MSD.Level1Name) AS level1,        
+					UPPER(MSD.Level2Name) AS level2,       
+					UPPER(MSD.Level3Name) AS level3,       
+					UPPER(MSD.Level4Name) AS level4,       
+					UPPER(MSD.Level5Name) AS level5,       
+					UPPER(MSD.Level6Name) AS level6,       
+					UPPER(MSD.Level7Name) AS level7,       
+					UPPER(MSD.Level8Name) AS level8,       
+					UPPER(MSD.Level9Name) AS level9,       
+					UPPER(MSD.Level10Name) AS level10,
+					NPH.MasterCompanyId,
+					0 AS IsCreditMemo,
+					0 AS StatusId
+				   ,0 AS InvoicePaidAmount
+         FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)       
+			  --INNER JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) on NPH.NonPOInvoiceId  = NPD.NonPOInvoiceId
+			   INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON NPH.NonPOInvoiceId = vpd.NonPOInvoiceId      
+			   LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON NPH.NonPOInvoiceId = vrp.NonPOInvoiceId
+			   LEFT JOIN [dbo].[VendorReadyToPayHeader] rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
+			   INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId=NPH.VendorId      
+			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
+			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = NPH.CurrencyId      
+			   LEFT JOIN [dbo].[NonPOInvoiceManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = NPH.NonPOInvoiceId
+			   LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID  
+			   OUTER APPLY (SELECT npdd.[NonPOInvoiceId], SUM(npdd.ExtendedPrice) as InvoiceTotal FROM [dbo].[NonPOInvoicePartDetails] npdd WITH(NOLOCK)
+							WHERE npdd.[NonPOInvoiceId] = NPH.NonPOInvoiceId GROUP BY npdd.[NonPOInvoiceId]) PartData
+			  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)        
+			  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid   
+			  AND vpd.RemainingAmount > 0
+			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
+			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
+			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
+			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
+			  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
+			  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
+			  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
+			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
+			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
+			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
+			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
 	)    
       
   , Result AS(      
@@ -489,11 +636,20 @@ BEGIN
 		--ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN  (CTE.Amountpaidbymorethan120days) ELSE (CTE.Amountpaidbymorethan120days) END,0) AS 'Amountpaidbymorethan120days',  		
 		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.InvoiceAmount - ISNULL(CTE.InvoicePaidAmount,0)),0) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount',
 	    CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END  AS 'Amountpaidbylessthen0days',   							
-		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE 0 END AS 'Amountpaidby30days',                            					  
-		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE 0 END AS 'Amountpaidby60days',
-		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE 0 END AS 'Amountpaidby90days',
-		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE 0 END AS 'Amountpaidby120days',
-		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN  (CTE.Amountpaidbymorethan120days) ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE 0 END AS 'Amountpaidbymorethan120days',  		
+	  --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE 0 END AS 'Amountpaidby30days',                            					  
+	    CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby30days) END,0) END AS 'Amountpaidby30days',   							
+
+	  --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE 0 END AS 'Amountpaidby60days',
+		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby60days) END,0) END AS 'Amountpaidby60days',   							
+
+	  --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE 0 END AS 'Amountpaidby90days',
+	    CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby90days) END,0) END AS 'Amountpaidby90days',   							
+
+	  --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE 0 END AS 'Amountpaidby120days',
+        CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby120days) END,0) END AS 'Amountpaidby120days',   							
+
+	  --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN  (CTE.Amountpaidbymorethan120days) ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE 0 END AS 'Amountpaidbymorethan120days',  		
+		CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN CTE.Amountpaidbymorethan120days ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbymorethan120days) END,0) END AS 'Amountpaidbymorethan120days',   													   		
 		ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount',      
         UPPER(CTE.level1) AS level1,        
         UPPER(CTE.level2) AS level2,       
@@ -632,8 +788,8 @@ BEGIN
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
-					(rtp.ManagementStructureId) AS ManagementStructureId,      					
-					(CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' ELSE 'RO-Inv' END) AS 'DocType',
+					(rtp.ManagementStructureId) AS ManagementStructureId,      									
+					(CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END) AS 'DocType',
 					'' AS 'vendorRef',      
 					'' AS 'Salesperson',      
 					ctm.Name AS 'Terms',      
@@ -656,9 +812,9 @@ BEGIN
 					rrh.MasterCompanyId,
 					0 AS IsCreditMemo,
 					0 AS StatusId
-				   ,0 AS InvoicePaidAmount
+				   ,vpd.PaymentMade AS InvoicePaidAmount
          FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
-			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId     
+			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId AND rrd.[Type] > 0       
 			  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vpd.ReceivingReconciliationId      
 			   LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vrp.ReceivingReconciliationId
 			   LEFT JOIN [dbo].[VendorReadyToPayHeader] rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
@@ -666,9 +822,11 @@ BEGIN
 			   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
 			  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = rrh.CurrencyId      
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
-			   LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID                
+			   LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID
+			    
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)  			  
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid      
+			  AND vpd.RemainingAmount > 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -750,7 +908,8 @@ BEGIN
 			   LEFT JOIN [dbo].[EntityStructureSetup] SES ON SES.EntityStructureId = SMSD.EntityMSID  	
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
-			  AND VCM.[VendorCreditMemoStatusId] = @CMApprovedStatusId
+			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
+			  AND ISNULL(VCD.OriginalAmt, 0) > 0
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -771,43 +930,43 @@ BEGIN
                     ISNULL(V.[VendorName],'') 'vendorName' ,      
                     ISNULL(V.VendorCode,'') 'vendorCode' ,      
                     (CR.Code) AS  'currencyCode',  
-					 MJD.Credit AS 'BalanceAmount',       -- need to discuss
-					 MJD.Credit AS 'CurrentlAmount',      -- need to discuss
-			         MJD.Credit AS 'PaymentAmount',      
+					 0 AS 'BalanceAmount',       -- need to discuss
+					 0 AS 'CurrentlAmount',      -- need to discuss
+			         0 AS 'PaymentAmount',      
 					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 					 WHEN ctm.Code='CIA' THEN -1      
 					 WHEN ctm.Code='CreditCard' THEN -1      
-					 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN MJD.Credit ELSE 0 END) AS AmountpaidbylessTHEN0days,      
+					 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS AmountpaidbylessTHEN0days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN MJD.Credit ELSE 0 END) AS Amountpaidby30days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL (ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby30days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN MJD.Credit ELSE 0 END) AS Amountpaidby60days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby60days,      
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN MJD.Credit ELSE 0 END) AS Amountpaidby90days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby90days,      
 			   (CASE WHEN DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN MJD.Credit ELSE 0 END) AS Amountpaidby120days,      
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidby120days,      
 			   (CASE WHEN DATEDIFF(DAY, CASt(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
-	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN MJD.Credit ELSE 0 END) AS Amountpaidbymorethan120days,
+	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId, 
 			   UPPER('Manual Journal Adjustment') AS 'DocType', 
 			   '' AS 'vendorRef',   
 			   ''AS 'Salesperson',	   
 			   ctm.Name AS 'Terms',   
-			   '0' AS 'FixRateAmount', 			        
-			   (ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0)) AS 'InvoiceAmount', 
+			   '0' AS 'FixRateAmount', 			        			   			   
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 
 			   0 AS 'cmAmount',
 			   0 AS CreditMemoAmount,
 			   NULL AS 'DueDate', 
@@ -845,6 +1004,7 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2 
+			--AND ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0) <> 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
@@ -858,6 +1018,110 @@ BEGIN
 			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			AND (ISNULL(@Level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
 
+			GROUP BY MJD.ReferenceId,V.[VendorName],V.VendorCode,CR.Code,MJH.JournalNumber, 
+			MJH.[PostedDate],CTM.NetDays,MJD.UpdatedBy,MJD.ManagementStructureId,CTM.[Name],ctm.Code,
+			MSL1.Code,MSL1.[Description],
+			MSL2.Code, MSL2.[Description],
+			MSL3.Code, MSL3.[Description],
+			MSL4.Code, MSL4.[Description],
+			MSL5.Code, MSL5.[Description],
+			MSL6.Code, MSL6.[Description],
+			MSL7.Code, MSL7.[Description],
+			MSL8.Code, MSL8.[Description],
+			MSL9.Code, MSL9.[Description],
+			MSL10.Code , MSL10.[Description],
+			MJH.MasterCompanyId
+			HAVING SUM(ISNULL(MJD.Credit, 0)) - SUM(ISNULL(MJD.Debit, 0)) <> 0 
+
+	UNION ALL
+
+	--NonPO Details--
+
+		SELECT DISTINCT (V.VendorId) AS VendorId,      
+						ISNULL(V.[VendorName],'') 'vendorName' ,      
+						ISNULL(V.VendorCode,'') 'vendorCode' ,      
+						(CR.Code) AS  'currencyCode',      
+						ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
+						ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
+						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
+						(NPH.NPONumber) AS 'InvoiceNo',      
+						NPH.PostedDate AS InvoiceDate,      
+						ISNULL(ctm.NetDays,0) AS NetDays,      						
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
+						(rtp.ManagementStructureId) AS ManagementStructureId,      									
+						'NPO-Inv' AS 'DocType',
+						'' AS 'vendorRef',      
+						'' AS 'Salesperson',      
+						ctm.Name AS 'Terms',      
+						'0' AS 'FixRateAmount',      
+						PartData.InvoiceTotal AS 'InvoiceAmount',      
+						0 AS 'cmAmount',
+						0 AS CreditMemoAmount,
+						DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',     
+						UPPER(MSD.Level1Name) AS level1,        
+						UPPER(MSD.Level2Name) AS level2,       
+						UPPER(MSD.Level3Name) AS level3,       
+						UPPER(MSD.Level4Name) AS level4,       
+						UPPER(MSD.Level5Name) AS level5,       
+						UPPER(MSD.Level6Name) AS level6,       
+						UPPER(MSD.Level7Name) AS level7,       
+						UPPER(MSD.Level8Name) AS level8,       
+						UPPER(MSD.Level9Name) AS level9,       
+						UPPER(MSD.Level10Name) AS level10,
+						NPH.MasterCompanyId,
+						0 AS IsCreditMemo,
+						0 AS StatusId
+					   ,0 AS InvoicePaidAmount
+			 FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)       
+				  --INNER JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) on NPH.NonPOInvoiceId  = NPD.NonPOInvoiceId
+				   INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON NPH.NonPOInvoiceId = vpd.NonPOInvoiceId      
+				   LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON NPH.NonPOInvoiceId = vrp.NonPOInvoiceId
+				   LEFT JOIN [dbo].[VendorReadyToPayHeader] rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
+				   INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId = NPH.VendorId      
+				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
+				   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = NPH.CurrencyId      
+				   LEFT JOIN [dbo].[NonPOInvoiceManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = NPH.NonPOInvoiceId
+				   LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID         
+				   OUTER APPLY (SELECT npdd.[NonPOInvoiceId], SUM(npdd.ExtendedPrice) as InvoiceTotal FROM [dbo].[NonPOInvoicePartDetails] npdd WITH(NOLOCK)
+							WHERE npdd.[NonPOInvoiceId] = NPH.NonPOInvoiceId GROUP BY npdd.[NonPOInvoiceId]) PartData
+				  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)  			  
+				  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid      
+				  AND vpd.RemainingAmount > 0
+				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
+				  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
+				  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
+				  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
+				  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
+				  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
+				  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
+				  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
+				  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
+				  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
+				  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) 
+
 		),		
 		Result AS(      
 			SELECT DISTINCT      
@@ -869,11 +1133,22 @@ BEGIN
 				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',      
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
 				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END AS 'Amountpaidbylessthen0days',   							
-				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE 0 END AS 'Amountpaidby30days',                            					  
-				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE 0 END AS 'Amountpaidby60days',
-		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE 0 END AS 'Amountpaidby90days',
-		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE 0 END AS 'Amountpaidby120days',
-		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN  (CTE.Amountpaidbymorethan120days) ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE 0 END AS 'Amountpaidbymorethan120days',  
+				  
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE 0 END AS 'Amountpaidby30days',                            					  
+				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby30days) END,0) END AS 'Amountpaidby30days',   							
+				   
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE 0 END AS 'Amountpaidby60days',
+		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN CTE.Amountpaidby60days ELSE (CTE.Amountpaidby60days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby60days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby60days) END,0) END AS 'Amountpaidby60days',   							
+
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE 0 END AS 'Amountpaidby90days',
+		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby90days) END,0) END AS 'Amountpaidby90days',   							
+
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE 0 END AS 'Amountpaidby120days',
+		           CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby120days) END,0) END AS 'Amountpaidby120days',   							
+
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN  (CTE.Amountpaidbymorethan120days) ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE 0 END AS 'Amountpaidbymorethan120days',  
+				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN CTE.Amountpaidbymorethan120days ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbymorethan120days) END,0) END AS 'Amountpaidbymorethan120days',   							
+
 				   ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount', 
 				   UPPER(CTE.DocType) AS DocType,
 				   UPPER(CTE.Terms) AS Terms,  

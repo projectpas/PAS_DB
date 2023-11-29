@@ -1,4 +1,21 @@
-﻿CREATE PROCEDURE [dbo].[GenerateDashboardDataByMS] 
+﻿/*********************           
+ ** File:   [GenerateDashboardDataByMS]        
+ ** Author:   JEVIK RAIYANI
+ ** Description: This stored procedure is used Display snapshot count in DashBoard
+ ** Purpose:         
+ ** Date:   22-11-2023      
+          
+ ** RETURN VALUE:           
+  
+ **********************           
+  ** Change History           
+ **********************           
+ ** PR   Date             Author		         Change Description            
+ ** --   --------         -------		     ----------------------------   
+    1    22 Nov 2023   JEVIK RAIYANI              update SQProcessed variable calculation                                            
+**********************/
+
+CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
 	@EmployeeId BIGINT = NULL,
 	@MasterCompanyId INT = NULL,
 	@SelectedDate DATETIME = NULL
@@ -89,8 +106,8 @@ BEGIN
 		AND CONVERT(DATE, WOQ.OpenDate) = CONVERT(DATE, @SelectedDate) 
 		AND WOQ.MasterCompanyId = @MasterCompanyId
 
-		SELECT @SQProcessed = SUM(SQP.QuantityRequested) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
-		INNER JOIN DBO.SpeedQuotePart SQP WITH (NOLOCK) ON SQ.SpeedQuoteId = SQP.SpeedQuoteId
+		SELECT @SQProcessed = COUNT(SQ.SpeedQuoteId) FROM DBO.SpeedQuote SQ WITH (NOLOCK) 
+		--INNER JOIN DBO.SpeedQuotePart SQP WITH (NOLOCK) ON SQ.SpeedQuoteId = SQP.SpeedQuoteId
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
 	    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
 	    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId

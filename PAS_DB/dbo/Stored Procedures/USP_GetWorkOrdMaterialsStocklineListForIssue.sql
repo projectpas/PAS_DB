@@ -19,6 +19,7 @@
 	2    03/27/2023   Hemant Saliya		Added WO Materials KIT Changes
 	3    03/28/2023   Vishal Suthar		Added WO Materials KIT Changes
 	4    25/05/2023   Hemant Saliya		Update for Internal WO Type Issue 
+	5    10/04/2023   Hemant Saliya		Condition Group Changes
 
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForIssue 2940,0
 **************************************************************/ 
@@ -127,6 +128,7 @@ SET NOCOUNT ON
 						--IM.PartNumber AS MainPartNumber,
 						--IM.PartDescription AS MainPartDescription, 
 						--IM.ManufacturerName MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -166,6 +168,7 @@ SET NOCOUNT ON
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
@@ -210,6 +213,7 @@ SET NOCOUNT ON
 							 WHEN WOMS.IsEquPart = 1 THEN IM_EquMain.ManufacturerName
 							 ELSE IM.ManufacturerName
 						END MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -251,6 +255,7 @@ SET NOCOUNT ON
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
@@ -261,7 +266,6 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 
 						AND WOM.IsDeleted = 0 						
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 					
 				END
@@ -300,6 +304,7 @@ SET NOCOUNT ON
 						--IM.PartNumber AS MainPartNumber,
 						--IM.PartDescription AS MainPartDescription, 
 						--IM.ManufacturerName MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -340,6 +345,7 @@ SET NOCOUNT ON
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
 						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
@@ -347,14 +353,12 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 
 						AND WOM.IsDeleted = 0 						
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
 					UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
 						WOM.WorkFlowWorkOrderId,
-						--WOM.WorkOrderMaterialsKitId,	
 						WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOM.ItemMasterId,
 						WOM.ConditionCodeId AS ConditionId,
@@ -382,6 +386,7 @@ SET NOCOUNT ON
 							 WHEN WOMS.IsEquPart = 1 THEN IM_EquMain.ManufacturerName
 							 ELSE IM.ManufacturerName
 						END MainManufacturer,
+						C.[Description] AS MainCondition,
 						SL.StocklineId,
 						SL.Condition,
 						SL.StockLineNumber,
@@ -423,15 +428,15 @@ SET NOCOUNT ON
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
-						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
+						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
+						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
+						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId						
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 
 						AND WOM.IsDeleted = 0 						
-						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 				END
 			END

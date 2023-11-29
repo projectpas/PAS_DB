@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------            
     1    09/01/2023   Vishal Suthar		Created
   
-EXEC [GetStocklineIdsForReceivingPO] 1833
+EXEC [GetStocklineIdsForReceivingPO] 1986
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetStocklineIdsForReceivingPO]
 (  
@@ -34,7 +34,12 @@ BEGIN
         FROM DBO.Stockline Stk WITH (NOLOCK)
         Where Stk.PurchaseOrderId = @PurchaseOrderId    
         AND Stk.IsActive = 1 AND Stk.IsDeleted = 0    
-        FOR XML PATH('')), 1, 1, '') StocklineIds;
+        FOR XML PATH('')), 1, 1, '') StocklineIds, 
+			STUFF((SELECT ',' + CAST(Stk.AssetInventoryId AS VARCHAR(100))
+        FROM DBO.AssetInventory Stk WITH (NOLOCK)
+        Where Stk.PurchaseOrderId = @PurchaseOrderId    
+        AND Stk.IsActive = 1 AND Stk.IsDeleted = 0    
+        FOR XML PATH('')), 1, 1, '') AssetInventoryIds;
 
 	END
   

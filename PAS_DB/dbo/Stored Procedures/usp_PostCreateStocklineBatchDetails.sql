@@ -13,7 +13,8 @@
 	2    01/06/2023   Satish Gohil  Modify (convert GETDATE() to GETUTCDATE())
 	3    24/07/2023   Satish Gohil  Modify(Formatted and set name to distribution code in condition and dynamic cr/dr set)
 	3    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
-	4    18/08/2023   Moin Bloch     Modify(Added Accounting MS Entry)
+	4    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
+	5    23/11/2023   Moin Bloch    Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -79,8 +80,8 @@ BEGIN
 		DECLARE @AccountingPeriodId BIGINT=0
 		DECLARE @CurrentPeriodId BIGINT=0
 		DECLARE @Currentbatch VARCHAR(100)
-		DECLARE @LastMSLevel VARCHAR(200)
-		DECLARE @AllMSlevels VARCHAR(max)
+		DECLARE @LastMSLevel NVARCHAR(200)
+		DECLARE @AllMSlevels NVARCHAR(MAX)
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @IsAccountByPass bit=0
 		DECLARE @DistributionCode VARCHAR(200)
@@ -142,8 +143,7 @@ BEGIN
 					    
 		INSERT INTO #StocklinePostType ([StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType])
 		SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM @tbl_PostStocklineBatchType
-
-
+		
 		SELECT @DistributionMasterId =ID FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
 					  
 		SELECT @IsAccountByPass =IsAccountByPass FROM MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
@@ -156,10 +156,7 @@ BEGIN
 					  
 		SELECT @Amount =SUM(Amount) FROM #StocklinePostType
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
-
-
-
-
+			   		 
 		IF(ISNULL(@Amount,0) > 0)
 		BEGIN
 			IF((@JournalTypeCode ='RPO') and @IsAccountByPass=0)
@@ -292,7 +289,14 @@ BEGIN
 
 							SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+							
+							--SELECT TOP 1 @LastMSLevel=[LastMSLevel],@AllMSlevels=[AllMSlevels] 
+							--FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK)  
+							--WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+
+							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
 							Set @ReferencePartId=@partId	
 
 							SELECT @PieceItemmasterId=ItemMasterId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
@@ -311,7 +315,7 @@ BEGIN
 							BEGIN
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-									[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+									[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 								VALUES
 									(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@STKGlAccountId ,@STKGlAccountNumber ,@STKGlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
@@ -382,8 +386,13 @@ BEGIN
 
 							SELECT @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
-							Set @ReferencePartId=@partId	
+							
+							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
+							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
+							SET @ReferencePartId=@partId	
+
 
 							SELECT @PieceItemmasterId=MasterPartId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
@@ -472,7 +481,10 @@ BEGIN
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
+							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
+							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
 							Set @ReferencePartId=@partId	
 
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId

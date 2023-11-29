@@ -1,4 +1,24 @@
-﻿--- EXEC sp_UpdatePurchaseOrderDetail 214
+﻿/*************************************************************           
+ ** File:   [sp_UpdatePurchaseOrderDetail]           
+ ** Author:   -
+ ** Description: This stored procedure is used to update different module data based on purchase order part 
+ ** Purpose:         
+ ** Date:   10/19/2023        
+          
+ ** PARAMETERS:           
+ @PurchaseOrderId BIGINT
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/19/2023   Vishal Suthar		Added history
+	
+ EXEC sp_UpdatePurchaseOrderDetail 214
+**************************************************************/
 CREATE   Procedure [dbo].[sp_UpdatePurchaseOrderDetail]
 	@PurchaseOrderId  bigint
 AS
@@ -13,18 +33,26 @@ BEGIN
 
 		UPDATE dbo.WorkOrderMaterials
 		SET 
-		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.EstDeliveryDate
+		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(PP.Qty, 0)
+		THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+		ELSE ISNULL(PP.Qty, 0)
+		END, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.EstDeliveryDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.WorkOrderMaterials WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
+		LEFT JOIN dbo.PurchaseOrderPartReference PP ON PP.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0
 
 		UPDATE dbo.WorkOrderMaterialsKit
 		SET 
-		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.EstDeliveryDate
+		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = CASE WHEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) < ISNULL(PP.Qty, 0)
+		THEN (ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) 
+		ELSE ISNULL(PP.Qty, 0)
+		END, PONum = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.EstDeliveryDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.WorkOrderMaterialsKit WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
+		LEFT JOIN dbo.PurchaseOrderPartReference PP ON PP.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0
 
 		UPDATE dbo.SubWorkOrderMaterials

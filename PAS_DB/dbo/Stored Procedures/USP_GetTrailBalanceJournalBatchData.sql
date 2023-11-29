@@ -150,7 +150,7 @@ BEGIN
 			INNER JOIN dbo.BatchDetails bd WITH(NOLOCK) ON cbd.JournalBatchDetailId = bd.JournalBatchDetailId AND bd.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
 			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId
-		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
+		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId --AND cbd.ManagementStructureId = @managementStructureId 
 			AND cbd.IsDeleted = 0 AND BD.IsDeleted = 0 
 			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -175,7 +175,7 @@ BEGIN
 			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
 			LEFT JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON  bd.AccountingPeriodId = AC.AccountingCalendarId
-		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
+		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId --AND cbd.ManagementStructureId = @managementStructureId 
 			AND cbd.IsDeleted = 0 AND bd.IsDeleted = 0
 			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  

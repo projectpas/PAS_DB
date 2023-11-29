@@ -64,7 +64,8 @@ CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]
 @VendorRMADetailStatusId  INT=NULL,
 @VendorRMAId BIGINT=NULL,
 @VendorName VARCHAR(100) NULL,
-@QtyShipped varchar(50)=NULL
+@QtyShipped varchar(50)=NULL,
+@Condition VARCHAR(50)=NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -141,7 +142,8 @@ BEGIN
 			RMAD.ModuleId,
 			RMS.QtyShipped,
 			RMAD.VendorRMADetailId,
-			RQTY.QuantityReceived
+			RQTY.QuantityReceived,
+			SL.Condition as 'Condition'
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 		LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
@@ -170,7 +172,7 @@ BEGIN
     SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, RMAStatusType, VendorRMAReturnReasonId, ReasonType, ShippedDate, ShipRefrence,   
       ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType, 
       ReplacementDate, ReceiverID, RefundedDate, RefundedRef, MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, VendorRMADetailStatus, 
-	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId, QuantityReceived FROM Result  
+	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,Condition, QuantityReceived FROM Result  
     WHERE  (  
      (@GlobalFilter <>'' AND ((RMANumber LIKE '%' +@GlobalFilter+'%' ) OR   
        (OpenDate LIKE '%' +@GlobalFilter+'%') OR  
@@ -193,7 +195,8 @@ BEGIN
 	   (VendorName LIKE '%' +@GlobalFilter+'%') OR  
 	   (MemoType LIKE '%' +@GlobalFilter+'%') OR  
        (CreatedDate LIKE '%' +@GlobalFilter+'%') OR  
-       (UpdatedDate LIKE '%' +@GlobalFilter+'%') 
+       (UpdatedDate LIKE '%' +@GlobalFilter+'%') OR
+	   (Condition LIKE '%' +@GLOBALFILTER+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@RMANumber,'') ='' OR RMANumber LIKE  '%'+ @RMANumber+'%') AND   
@@ -219,14 +222,16 @@ BEGIN
        (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
 	   (ISNULL(@VendorRMADetailStatus,'') ='' OR VendorRMADetailStatus LIKE  '%'+@VendorRMADetailStatus+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
-       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))
+       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+	    (ISNULL(@Condition,'') ='' OR Condition LIKE '%'+@Condition+'%')   
 	   )  
        )),  
       ResultCount AS (Select COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
+
       SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, RMAStatusType, VendorRMAReturnReasonId, ReasonType, ShippedDate, ShipRefrence,   
       ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType, 
-      ReplacementDate, ReceiverID, RefundedDate, RefundedRef, MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, VendorRMADetailStatus,
-	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived, NumberOfItems FROM FinalResult, ResultCount  
+      ReplacementDate, ReceiverID, RefundedDate, RefundedRef, MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, VendorRMADetailStatus 
+	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived, Condition, NumberOfItems FROM FinalResult, ResultCount  
   
       ORDER BY    
       CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END ASC,  
@@ -255,7 +260,9 @@ BEGIN
       CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-      CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,   	  
+      CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,   	 
+	  CASE WHEN (@SortOrder=1 AND @SortColumn='Condition')  THEN Condition END ASC, 
+
       CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END DESC,  
       CASE WHEN (@SortOrder=-1 AND @SortColumn='RMANUMBER')  THEN RMANumber END DESC,  
       CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN OpenDate END DESC,  
@@ -282,7 +289,8 @@ BEGIN
       CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-      CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+      CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
 	END
@@ -433,7 +441,24 @@ BEGIN
 				) A 
 				WHERE RMAD.VendorRMAId IS NOT NULL
 				GROUP BY RMAD.VendorRMAId, A.StockLineNumber
+			)
+
+			,StockCondCTE AS(
+				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineNumber END) AS 'Condition',A.StockLineNumber 
+				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+				OUTER APPLY(
+					SELECT 
+					   STUFF((SELECT CASE WHEN SL.Condition != '' THEN ',' ELSE '' END + SL.Condition
+							  FROM [DBO].[VendorRMADetail] RMAD_A
+							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							 
+							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+							  FOR XML PATH('')), 1, 1, '') StockLineNumber
+				) A 
+				WHERE RMAD.VendorRMAId IS NOT NULL
+				GROUP BY RMAD.VendorRMAId, A.StockLineNumber
 			),
+
 			StatusCTE AS(
 				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMAStatus END) AS 'RMAStatusType',A.VendorRMAStatus 
 				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
@@ -553,7 +578,7 @@ BEGIN
 		SELECT M.VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, ST.VendorRMAStatus, ST.RMAStatusType,  RST.VendorRMAReturnReason, RST.ReasonType ,ShippedDate, ShipRefrence,   
 		  RT.ReferenceNumber, RT.ReferenceNumberType, PT.Partnumber, PT.PartNumberType, STKT.StockLineId, STKT.StockLineIdType, SNT.SerialNumber, SNT.SerialNumberType, STNT.StockLineNumber, STNT.StockLineNumberType, PDT.PartDescription, PDT.PartDescriptionType, QT.Qty, QT.QtyType, UCT.UnitCost, UCT.UnitCostType, ECT.ExtendedCost, ECT.ExtendedCostType,  RIT.ReferenceId, RIT.ReferenceIdType, 
 		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef, NT.Memo, Nt.MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, 
-		  VendorCreditMemoId, RMAS.VendorRMADetailStatus, RMAS.VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QTY.QuantityReceivedType,QTY.QuantityReceived FROM Result M
+		  VendorCreditMemoId, RMAS.VendorRMADetailStatus, RMAS.VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QTY.QuantityReceivedType,QTY.QuantityReceived , Condition FROM Result M
 		  LEFT JOIN RQTYCTE QTY ON M.VendorRMAId=QTY.VendorRMAId
 		  LEFT JOIN PartCTE PT ON M.VendorRMAId=PT.VendorRMAId
 		  LEFT JOIN PartDescCTE PDT ON M.VendorRMAId=PDT.VendorRMAId
@@ -569,6 +594,7 @@ BEGIN
 		  LEFT JOIN RefrenceIdCTE RIT ON M.VendorRMAId=RIT.VendorRMAId
 		  LEFT JOIN NotesCTE NT ON M.VendorRMAId=NT.VendorRMAId
 		  LEFT JOIN RMAStatusCTE RMAS ON M.VendorRMAId=RMAS.VendorRMAId
+		  LEFT JOIN StockCondCTE SC ON M.VendorRMAId=SC.VendorRMAId
 		WHERE (  
 		 (@GlobalFilter <>'' AND ((RMANumber LIKE '%' +@GlobalFilter+'%' ) OR   
 		   (OpenDate LIKE '%' +@GlobalFilter+'%') OR  
@@ -591,7 +617,8 @@ BEGIN
 		   (VendorName LIKE '%' +@GlobalFilter+'%') OR  
 		   (NT.Memo LIKE '%' +@GlobalFilter+'%') OR  
 		   (CreatedDate LIKE '%' +@GlobalFilter+'%') OR  
-		   (UpdatedDate LIKE '%' +@GlobalFilter+'%') 
+		   (UpdatedDate LIKE '%' +@GlobalFilter+'%') OR
+		   (Condition LIKE '%' +@GlobalFilter+'%') 
 		   ))  
 		   OR     
 		   (@GlobalFilter='' AND (ISNULL(@RMANumber,'') ='' OR RMANumber LIKE  '%'+ @RMANumber+'%') AND   
@@ -616,14 +643,16 @@ BEGIN
 		   (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
 		   (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
 		   (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND  
-		   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE))
+		   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
+		   (ISNULL(@Condition,'') ='' OR SC.Condition LIKE '%'+@Condition+'%') 
 		   )  
 		   )),  
 		  ResultCount AS (SELECT COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
+
 		  SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, VendorRMAStatus, RMAStatusType, VendorRMAReturnReason, ReasonType, ShippedDate, ShipRefrence,   
 		  ReferenceNumber, ReferenceNumberType, Partnumber, PartNumberType, StockLineId, StockLineIdType, SerialNumber, SerialNumberType, StockLineNumber, StockLineNumberType, PartDescription, PartDescriptionType, Qty, QtyType, UnitCost, UnitCostType , ExtendedCost, ExtendedCostType,  ReferenceId, ReferenceIdType, 
 		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef, Memo,  MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, 
-		  VendorRMADetailStatus,VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived,QuantityReceivedType, NumberOfItems FROM FinalResult, ResultCount  
+		  VendorRMADetailStatus,VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived,QuantityReceivedType , Condition , NumberOfItems FROM FinalResult, ResultCount  
   
 		  ORDER BY    
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END ASC,  
@@ -650,6 +679,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,   	  
+		   CASE WHEN (@SortOrder=1 AND @SortColumn='Condition')  THEN UpdatedBy END ASC,
+
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RMANUMBER')  THEN RMANumber END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN OpenDate END DESC,  
@@ -673,7 +704,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN UpdatedBy END DESC
 		 OFFSET @RecordFrom ROWS   
 		 FETCH NEXT @PageSize ROWS ONLY  
 	END

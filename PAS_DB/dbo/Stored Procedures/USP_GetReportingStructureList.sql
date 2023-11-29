@@ -1,10 +1,30 @@
-﻿CREATE    PROCEDURE [DBO].[USP_GetReportingStructureList]  
+﻿/*************************************************************             
+ ** File:   [USP_GetReportingStructureList]             
+ ** Author:   
+ ** Description: This stored procedure is used GetReportingStructureList  
+ ** Purpose:           
+ ** Date:        
+            
+ ** PARAMETERS: @JournalBatchHeaderId bigint  
+           
+ ** RETURN VALUE:             
+ **************************************************************             
+ ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------		--------------------------------            
+ 1										 Created  
+ 2    11/10/2022  Devendra Shekh		 added active/inactive filter, and isactive field to select
+  
+************************************************************************/  
+CREATE   PROCEDURE [dbo].[USP_GetReportingStructureList]  
 (  
   @PageNumber int,      
   @PageSize int,      
   @SortColumn varchar(50)=null,      
   @SortOrder int,      
   @GlobalFilter varchar(50) = null,   
+  @StatusId int = NULL,
   @ReportName varchar(50) = null,  
   @ReportDescription varchar(50) = null,  
   @VersionNumber varchar(20) = null,  
@@ -19,67 +39,79 @@ BEGIN
  SET NOCOUNT ON;      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED       
  BEGIN TRY  
-  DECLARE @RecordFrom int;      
-  DECLARE @IsActive bit=1      
-  DECLARE @Count Int;      
-  SET @RecordFrom = (@PageNumber-1)*@PageSize;      
-  IF @SortColumn IS NULL      
-  BEGIN      
-   SET @SortColumn=UPPER('CreatedDate')      
-  END       
-  Else      
-  BEGIN       
-   SET @SortColumn=UPPER(@SortColumn)      
-  END      
+	DECLARE @RecordFrom int;      
+	DECLARE @IsActive bit=1      
+	DECLARE @Count Int;      
+	SET @RecordFrom = (@PageNumber-1)*@PageSize;      
+	IF @SortColumn IS NULL      
+	BEGIN      
+		SET @SortColumn=UPPER('CreatedDate')      
+	END       
+	Else      
+	BEGIN       
+		SET @SortColumn=UPPER(@SortColumn)      
+	END      
+
+	IF(@StatusId=0)
+	BEGIN
+		SET @IsActive=0;
+	END
+	ELSE IF(@StatusId=1)
+	BEGIN
+		SET @IsActive=1;
+	END
+	ELSE
+	BEGIN
+		SET @IsActive=NULL;
+	END
   
-  ;WITH Result AS(  
-   SELECT   
-   ReportingStructureId,ReportName,ReportDescription,IsVersionIncrease,  
-   VersionNumber,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,
-   IsDefault
-   FROM ReportingStructure WITH(NOLOCK)  
-   WHERE MasterCompanyId = @MasterCompanyId  
-  )  
+	;WITH Result AS(  
+	SELECT   
+	ReportingStructureId,ReportName,ReportDescription,IsVersionIncrease,  
+	VersionNumber,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,
+	IsDefault,IsActive
+	FROM ReportingStructure WITH(NOLOCK)  
+	WHERE MasterCompanyId = @MasterCompanyId AND (@IsActive IS NULL OR IsActive=@IsActive)
+	)  
   
-  SELECT * INTO #TempResult FROM Result  
-  WHERE(  
-   (@GlobalFilter <>'' AND (  
-   (ReportName LIKE '%' +@GlobalFilter+'%') OR      
-   (ReportDescription LIKE '%' +@GlobalFilter+'%') OR      
-   (VersionNumber LIKE '%' +@GlobalFilter+'%') OR      
-   (CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
-   (UpdatedBy LIKE '%' +@GlobalFilter+'%')       
-  )) OR  
-  (@GlobalFilter='' AND   
-  (ISNULL(@ReportName,'') ='' OR ReportName LIKE '%' + @ReportName+'%') AND       
-  (ISNULL(@ReportDescription,'') ='' OR ReportDescription LIKE '%' + @ReportDescription+'%') AND       
-  (ISNULL(@VersionNumber,'') ='' OR VersionNumber LIKE '%' + @VersionNumber+'%') AND       
-  (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND      
-  (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND      
-  (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND      
-  (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))      
-  )  
+	SELECT * INTO #TempResult FROM Result  
+	WHERE(  
+		(@GlobalFilter <>'' AND (  
+		(ReportName LIKE '%' +@GlobalFilter+'%') OR      
+		(ReportDescription LIKE '%' +@GlobalFilter+'%') OR      
+		(VersionNumber LIKE '%' +@GlobalFilter+'%') OR      
+		(CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
+		(UpdatedBy LIKE '%' +@GlobalFilter+'%')       
+		)) OR  
+		(@GlobalFilter='' AND   
+		(ISNULL(@ReportName,'') ='' OR ReportName LIKE '%' + @ReportName+'%') AND       
+		(ISNULL(@ReportDescription,'') ='' OR ReportDescription LIKE '%' + @ReportDescription+'%') AND       
+		(ISNULL(@VersionNumber,'') ='' OR VersionNumber LIKE '%' + @VersionNumber+'%') AND       
+		(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND      
+		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND      
+		(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND      
+		(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))      
+		)  
   
-  Select @Count = COUNT(ReportingStructureId) FROM #TempResult      
+	Select @Count = COUNT(ReportingStructureId) FROM #TempResult      
     
-  SELECT *, @Count AS NumberOfItems FROM #TempResult      
-  ORDER BY        
-  CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,      
-  CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,      
-  CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,      
-  CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,      
-  CASE WHEN (@SortOrder=1 AND @SortColumn='ReportName')  THEN ReportName END ASC,  
-  CASE WHEN (@SortOrder=1 AND @SortColumn='ReportDescription')  THEN ReportDescription END ASC,      
-  CASE WHEN (@SortOrder=1 AND @SortColumn='VersionNumber')  THEN VersionNumber END ASC,      
-    
-      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReportName')  THEN ReportName END DESC,  
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReportDescription')  THEN ReportDescription END DESC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='VersionNumber')  THEN VersionNumber END DESC      
+	SELECT *, @Count AS NumberOfItems FROM #TempResult      
+	ORDER BY        
+		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,      
+		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,      
+		CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,      
+		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,      
+		CASE WHEN (@SortOrder=1 AND @SortColumn='ReportName')  THEN ReportName END ASC,  
+		CASE WHEN (@SortOrder=1 AND @SortColumn='ReportDescription')  THEN ReportDescription END ASC,      
+		CASE WHEN (@SortOrder=1 AND @SortColumn='VersionNumber')  THEN VersionNumber END ASC,    
+		
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,      
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,      
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,      
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,      
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ReportName')  THEN ReportName END DESC,  
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ReportDescription')  THEN ReportDescription END DESC,      
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VersionNumber')  THEN VersionNumber END DESC      
   OFFSET @RecordFrom ROWS       
   FETCH NEXT @PageSize ROWS ONLY      
   

@@ -1,15 +1,39 @@
-﻿-- EXEC [dbo].[SearchCustomerInvoicesPaid] 68,10153  
-CREATE   PROCEDURE [dbo].[SearchCustomerInvoicesPaid]  
- @customerId bigint = null,  
- @receiptId bigint = null  
+﻿/*************************************************************             
+ ** File:   [SearchCustomerInvoicesPaid]             
+ ** Author:   
+ ** Description: This stored procedure is used to GET Customer Invoices 
+ ** Purpose:           
+ ** Date:   
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date          Author			Change Description              
+ ** --   --------      -------			-------------------------------            
+	1                  unknown			Created	
+	2    16/10/2023    MOIN BLOCH		Modify(Added INVOICE TYPE FOR Stand Alone Credit Memo / Manual Journal)
+	3    22/11/2023    AMIT GHEDIYA     Modify(Added INVOICE TYPE FOR Exchange Invoice)
+
+	EXEC [dbo].[SearchCustomerInvoicesPaid]  1,1
+**************************************************************/  
+CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaid]  
+@customerId bigint = NULL,  
+@receiptId bigint = NULL  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
     SELECT [IP].PaymentId,   
-     CASE WHEN IP.InvoiceType = 3 THEN 'Credit Memo' ELSE 'Invoice' END AS 'DocumentType',   
-        C.Name AS 'CustName',   
+     --CASE WHEN IP.InvoiceType = 3 THEN 'Credit Memo' ELSE 'Invoice' END AS 'DocumentType',   
+	 CASE WHEN IP.InvoiceType = 1 THEN 'Invoice' 
+	      WHEN IP.InvoiceType = 2 THEN 'Invoice'  
+		  WHEN IP.InvoiceType = 3 THEN 'Credit Memo'  
+		  WHEN IP.InvoiceType = 4 THEN 'Stand Alone Credit Memo' 
+		  WHEN IP.InvoiceType = 5 THEN 'Manual Journal' 
+		  WHEN IP.InvoiceType = 6 THEN 'Exchange Invoice'
+	  END AS 'DocumentType', 
+     C.Name AS 'CustName',   
      C.CustomerCode,   
      [IP].SOBillingInvoicingId,   
      [IP].DocNum,   
@@ -22,7 +46,7 @@ BEGIN
      0 AS 'FxRate',   
      [IP].OriginalAmount AS 'OriginalAmount',   
      --[IP].RemainingAmount AS 'RemainingAmount',  
-     CASE WHEN InvoiceType = 1 THEN SOBI.RemainingAmount WHEN InvoiceType = 2 THEN WOBI.RemainingAmount ELSE 0 END AS 'RemainingAmount',  
+     CASE WHEN InvoiceType = 1 THEN SOBI.RemainingAmount WHEN InvoiceType = 2 THEN WOBI.RemainingAmount WHEN InvoiceType = 6 THEN ESOBI.RemainingAmount ELSE 0 END AS 'RemainingAmount',  
      GETDATE() AS 'InvDueDate',   
      CASE WHEN IP.InvoiceType = 3 THEN 0 ELSE DATEDIFF(DAY, [IP].InvoiceDate, GETDATE()) END AS 'DSI',       
      CASE WHEN IP.InvoiceType = 3 THEN 0 ELSE (CT.NetDays - DATEDIFF(DAY, CASt([IP].InvoiceDate as date), GETDATE())) END AS 'DSO',  
@@ -51,18 +75,19 @@ BEGIN
      [IP].ReceiptId,  
      [IP].GLARAccount,  
      [IP].CreatedDate  
-	  FROM InvoicePayments [IP] WITH (NOLOCK)    
-	  LEFT JOIN Customer C WITH (NOLOCK) ON [IP].CustomerId = C.CustomerId  
-	  LEFT JOIN CustomerFinancial CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId  
-	  LEFT JOIN CreditTerms CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId   
-	  LEFT JOIN SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
-	  LEFT JOIN WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId  
-	  WHERE [IP].CustomerId = @customerId AND [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0  
-	  Group By [IP].PaymentId, C.Name, C.CustomerCode, [IP].SOBillingInvoicingId,[IP].DocNum,[IP].InvoiceDate,[IP].WOSONum,[IP].RemainingAmount,    
+FROM [dbo].[InvoicePayments] [IP] WITH (NOLOCK)    
+	  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON [IP].CustomerId = C.CustomerId  
+	  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId  
+	  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId   
+	  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
+	  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId  
+	  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
+WHERE [IP].CustomerId = @customerId AND [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0  
+	  GROUP BY [IP].PaymentId, C.Name, C.CustomerCode, [IP].SOBillingInvoicingId,[IP].DocNum,[IP].InvoiceDate,[IP].WOSONum,[IP].RemainingAmount,    
      [IP].CurrencyCode,[IP].OriginalAmount,[IP].RemainingAmount,[IP].ARBalance,[IP].CreditLimit,[IP].CreditTermName,[IP].PaymentAmount,   
      [IP].DiscAmount,[IP].DiscType,[IP].BankFeeAmount,[IP].BankFeeType,[IP].OtherAdjustAmt,[IP].Reason,[IP].NewRemainingBal,  
      [IP].Status,[IP].CtrlNum,[IP].LastMSLevel,[IP].AllMSlevels,[IP].InvoiceType,[IP].Id,[IP].ReceiptId,[IP].GLARAccount,[CT].NetDays,  
-     [IP].AmountPastDue,[IP].CreatedDate,SOBI.RemainingAmount,WOBI.RemainingAmount  
+     [IP].AmountPastDue,[IP].CreatedDate,SOBI.RemainingAmount,WOBI.RemainingAmount,ESOBI.RemainingAmount  
   
         -- OLD SP  
   --SELECT [IP].PaymentId, 'Invoice' AS 'DocumentType', C.Name AS 'CustName', C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo AS 'DocNum', SOBI.InvoiceDate, S.SalesOrderNumber AS 'WOSONum',  

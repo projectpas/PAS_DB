@@ -20,6 +20,13 @@
     [UpdatedDate]               DATETIME2 (7)   CONSTRAINT [DF_NonPOInvoicePartDetails_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [DF__NonPOInvoicePartDetails_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF__NonPOInvoicePartDetails_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [Item]                      VARCHAR (250)   NULL,
+    [Description]               VARCHAR (500)   NULL,
+    [UnitOfMeasureId]           BIGINT          NULL,
+    [Qty]                       BIGINT          NULL,
+    [ExtendedPrice]             DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_NonPOInvoicePartDetails] PRIMARY KEY CLUSTERED ([NonPOInvoicePartDetailsId] ASC)
 );
+
+
 

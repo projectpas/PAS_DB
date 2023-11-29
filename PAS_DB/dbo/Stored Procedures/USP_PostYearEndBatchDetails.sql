@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	1    06/09/2023   Hemant Saliya  Created
 	2    30/09/2023   Hemant Saliya  Updated For GL Account Number And JE Auto Number
+	3    20/10/2023   Hemant Saliya  Added Manual Journal Batches
  ************************************************************** 
  EXEC dbo.USP_PostYearEndBatchDetails @StartPeriodId=128,@EndPeriodId=140,@MasterCompanyId=1,@UserName=N'ADMIN User',@LegalEntityIds=N'1',@Memo=N'<p>Run for Demo And SilverXis</p>'
 **************************************************************/  
@@ -190,14 +191,26 @@ BEGIN
 					FROM dbo.CommonBatchDetails CB WITH(NOLOCK)
 						INNER JOIN dbo.BatchDetails B WITH(NOLOCK) ON B.JournalBatchDetailId = CB.JournalBatchDetailId AND B.StatusId = @PostedStatusId
 						INNER JOIN #tmpAccountingPeriod tmp ON B.AccountingPeriodId = tmp.AccountPeriodId
-						INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId
-						INNER JOIN dbo.GLAccountClass GLC WITH(NOLOCK) ON GL.GLAccountTypeId = GLC.GLAccountClassId AND GLC.GLAccountClassId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId)
+						INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND  GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId)
 						INNER JOIN dbo.AccountingBatchManagementStructureDetails M WITH(NOLOCK) ON CB.CommonJournalBatchDetailId = M.ReferenceId AND ModuleId = @BatchMSModuleId
 						INNER JOIN dbo.ManagementStructureLevel ML WITH(NOLOCK) on M.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 					WHERE CB.IsDeleted = 0 AND CB.MasterCompanyId = @MasterCompanyId AND B.IsDeleted = 0 AND
 						CAST(B.PostedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
 					GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId,ML.LegalEntityId
-					ORDER BY GL.AccountCode
+					
+					UNION ALL
+
+					SELECT cbd.GlAccountId, GL.AccountCode, GL.AccountName, cbd.ManagementStructureId, ML.LegalEntityId,
+						ISNULL(SUM(cbd.Debit),0), ISNULL(SUM(cbd.Credit),0)
+					FROM dbo.ManualJournalDetails cbd WITH(NOLOCK)
+						INNER JOIN dbo.ManualJournalHeader bd WITH(NOLOCK) ON  cbd.ManualJournalHeaderId = bd.ManualJournalHeaderId AND ManualJournalStatusId = @ManualJournalStatusId
+						INNER JOIN #tmpAccountingPeriod tmp ON bd.AccountingPeriodId = tmp.AccountPeriodId
+						INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId) 
+						INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
+						INNER JOIN dbo.ManagementStructureLevel ML WITH(NOLOCK) on MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
+					WHERE cbd.MasterCompanyId = @masterCompanyId AND cbd.IsDeleted = 0 AND bd.IsDeleted = 0
+						AND CAST(bd.PostedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+					GROUP BY cbd.GlAccountId,GL.AccountCode,GL.AccountName,cbd.ManagementStructureId,ML.LegalEntityId
 
 					SELECT @TotalDebit = SUM(ISNULL(DebitAmount,0)), @TotalCredit = SUM(ISNULL(CreditAmount,0)) FROM #TempTable WHERE LegalEntityId = @LegalEntityId GROUP BY LegalEntityId
 
@@ -206,7 +219,7 @@ BEGIN
 
 						SET @Expenses = ISNULL(@TotalDebit,0)
 						SET @Revenue = ISNULL(@TotalCredit,0)
-						SET @NetEarning = ISNULL(@TotalDebit,0) - ISNULL(@TotalCredit,0)
+						SET @NetEarning = ISNULL(@TotalCredit,0) - ISNULL(@TotalDebit,0)
 						SELECT @PreviousYearRevenue = ISNULL(NetRevenue, 0) FROM dbo.YearEndCloseProcess WHERE [Year] = (@Year - 1) AND LegalEntityId = @LegalEntityId AND ISNULL(IsVersionIncrease, 0) = 0
 						SET @NetRevenue = ISNULL(@NetEarning,0) + ISNULL(@PreviousYearRevenue,0)
 						

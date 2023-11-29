@@ -21,7 +21,7 @@
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[UpdateStocklineColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateStocklineColumnsWithId]
 @StocklineId INT
 AS
 BEGIN
@@ -75,7 +75,9 @@ BEGIN
 					SL.TaggedByTypeName =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.TaggedByType),				
 					SL.CertifiedType =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.CertifiedTypeId),
 					SL.TagType = tagT.[Name],
-					SL.LotNumber = lot.LotNumber,
+					SL.LotNumber = CASE WHEN ISNULL(SL.LotNumber,'') = '' THEN lot.LotNumber ELSE SL.LotNumber END,
+					SL.LotId = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' THEN (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) ELSE SL.LotId END,
+					SL.IsLotAssigned = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' AND (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) > 0 THEN 1 ELSE 0 END,
 					SL.IsCustomerStock = @IsCustStock,
 					SL.UnitCost = CASE WHEN ISNULL(SL.UnitCost,0) = 0 THEN 0 ELSE SL.UnitCost END
 				FROM [dbo].[Stockline] SL WITH(NOLOCK)

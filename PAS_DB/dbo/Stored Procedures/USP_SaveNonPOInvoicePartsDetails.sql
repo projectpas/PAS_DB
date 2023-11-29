@@ -9,7 +9,8 @@
  **************************************************************           
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
-    1    21-09-2023    Devendra Shekh			Created
+    1    21-09-2023     Devendra Shekh			Created
+	2	 26-10-2023		Devendra				added new columns  
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveNonPOInvoicePartsDetails]
@@ -44,6 +45,11 @@ BEGIN
 								,TARGET.[AllMSlevels] = SOURCE.AllMSlevels
 								,TARGET.[UpdatedBy] = SOURCE.UpdatedBy
 								,TARGET.[UpdatedDate] = GETUTCDATE()
+								,TARGET.[Item] =SOURCE.[Item]
+								,TARGET.[Description] =SOURCE.[Description]
+								,TARGET.[UnitOfMeasureId] =SOURCE.[UnitOfMeasureId]
+								,TARGET.[Qty] =SOURCE.[Qty]
+								,TARGET.[ExtendedPrice] =SOURCE.[ExtendedPrice]
 							
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (
@@ -67,6 +73,11 @@ BEGIN
 										,[UpdatedDate]
 										,[IsActive]
 										,[IsDeleted]
+										,[Item]
+										,[Description]
+										,[UnitOfMeasureId]
+										,[Qty]
+										,[ExtendedPrice]
 								   )
 							VALUES (
 										 SOURCE.[NonPOInvoiceId]
@@ -89,6 +100,11 @@ BEGIN
 										,GETUTCDATE()
 										,1
 										,SOURCE.[IsDeleted]
+										,SOURCE.[Item]
+										,SOURCE.[Description]
+										,SOURCE.[UnitOfMeasureId]
+										,SOURCE.[Qty]
+										,SOURCE.[ExtendedPrice]
 										);
 					 END
 

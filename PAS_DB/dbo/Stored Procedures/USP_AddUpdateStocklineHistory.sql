@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    07/10/2023   Vishal Suthar		Created
+	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
   
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 39974, 15, 6, NULL, NULL, 2, 2
 **************************************************************/
@@ -64,9 +65,9 @@ BEGIN
 		SET @HistoryNote = REPLACE(@HistoryNote, '#RefferenceNum#', @ReferenceNumber);
 
 		INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
-			[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate])
+			[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)
 		SELECT @StockLineId, @ModuleId, @ReferenceId, @ReferenceNumber, @SubModuleId, @SubRefferenceId, @SubReferenceNumber, @ActionId, @ActionType, 
-			STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, @Qty, @HistoryNote, @UpdatedBy, GETUTCDATE()
+			STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, @Qty, @HistoryNote, @UpdatedBy, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate
 		FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
 
 		EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;

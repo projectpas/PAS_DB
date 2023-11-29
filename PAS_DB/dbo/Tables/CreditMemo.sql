@@ -13,7 +13,7 @@
     [CustomerCode]          VARCHAR (50)    NULL,
     [CustomerContactId]     BIGINT          NULL,
     [CustomerContact]       VARCHAR (100)   NULL,
-    [CustomerContactPhone]  VARCHAR (20)    NULL,
+    [CustomerContactPhone]  VARCHAR (MAX)   NULL,
     [IsWarranty]            BIT             NULL,
     [IsAccepted]            BIT             NULL,
     [ReasonId]              BIGINT          NULL,
@@ -50,6 +50,8 @@
     [IsStandAloneCM]        BIT             NULL,
     [AcctingPeriodId]       BIGINT          NULL,
     [IsClosed]              BIT             NULL,
+    [CustomerRefundId]      BIGINT          NULL,
+    [IsUsedInVendorPayment] BIT             NULL,
     CONSTRAINT [PK_CreditMemo] PRIMARY KEY CLUSTERED ([CreditMemoHeaderId] ASC),
     CONSTRAINT [FK_CreditMemo_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CREDITMEMO_CUSTOMER] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -57,6 +59,8 @@
     CONSTRAINT [FK_CREDITMEMO_RequestedById] FOREIGN KEY ([RequestedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CreditMemo_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[CreditMemoStatus] ([Id])
 );
+
+
 
 
 

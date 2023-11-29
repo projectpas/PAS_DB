@@ -188,6 +188,9 @@
     [ReferenceName]                       VARCHAR (100)   NULL,
     [SubModuleName]                       VARCHAR (100)   NULL,
     [SubReferenceName]                    VARCHAR (100)   NULL,
+    [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ChildStockline] PRIMARY KEY CLUSTERED ([ChildStockLineId] ASC)
 );
+
+
 

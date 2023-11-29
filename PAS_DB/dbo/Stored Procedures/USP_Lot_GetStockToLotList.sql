@@ -11,9 +11,10 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    05/04/2023   Amit Ghediya     Created
+	2    21/11/2023   Amit Ghediya     Updated for get lotout unitcost & ext Cost amount for trans out.
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
+CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -228,8 +229,8 @@ BEGIN
 					CAST(ind.QtyToTransOut AS varchar) 'Quantity',
 					CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',
 					CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',
-					CAST(stl.UnitCost AS varchar) 'UnitCost',		
-					CAST((ISNULL(stl.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
+					CAST(ind.UnitCost AS varchar) 'UnitCost',		
+					CAST((ISNULL(ind.UnitCost,0) * ISNULL(ind.QtyToTransOut,0)) AS varchar) 'ExtUnitCost',
 					UPPER((ISNULL(po.PurchaseOrderNumber,''))) 'PONum',
 					UPPER((ISNULL(ro.RepairOrderNumber,''))) 'RepairOrderNumber',		
 					vp.VendorName AS Vendor,						  

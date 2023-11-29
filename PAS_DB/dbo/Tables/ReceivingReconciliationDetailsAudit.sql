@@ -31,8 +31,14 @@
     [Type]                                 INT             NULL,
     [StockType]                            VARCHAR (50)    NULL,
     [RemainingRRQty]                       INT             NULL,
+    [FreightAdjustment]                    DECIMAL (18, 2) NULL,
+    [TaxAdjustment]                        DECIMAL (18, 2) NULL,
+    [FreightAdjustmentPerUnit]             DECIMAL (18, 2) NULL,
+    [TaxAdjustmentPerUnit]                 DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetailsAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationDetailId] ASC)
 );
+
+
 
 
 

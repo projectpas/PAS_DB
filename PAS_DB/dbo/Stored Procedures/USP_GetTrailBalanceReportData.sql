@@ -19,7 +19,8 @@
 	3	 07/04/2023   Satish Gohil  Manual Journal Entry added in Report
 	4    07/05/2023   Satish Gohil  Year calculation count issue fixed
 	5    08/08/2023   Devendra Shekh Glaccountid column added 
-	6    09/01/2023   Hemant Saliya  Added MS Filters	 
+	6    09/01/2023   Hemant Saliya  Added MS Filters	
+	6    10/23/2023   Hemant Saliya  Updated for All GL Account List
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 **************************************************************/
@@ -188,6 +189,25 @@ BEGIN
 			 SequenceNumber INT
 		 ) 
 
+
+		
+		CREATE TABLE #tmpEntityStructureSetup(        
+			 ID BIGINT  IDENTITY(1,1),        
+			 EntityStructureId BIGINT,
+			 LegalEntityId BIGINT,
+			 MasterCompanyId INT,
+			 Level1Name VARCHAR(100),
+			 Level2Name VARCHAR(100),
+			 Level3Name VARCHAR(100),
+			 Level4Name VARCHAR(100),
+			 Level5Name VARCHAR(100),
+			 Level6Name VARCHAR(100),
+			 Level7Name VARCHAR(100),
+			 Level8Name VARCHAR(100),
+			 Level9Name VARCHAR(100),
+			 Level10Name VARCHAR(100)
+		 )
+
 		SELECT @FromDate = StartDate, @ToDate = EndDate, @Type= PeriodType, @FiscalYear = FiscalYear, @PeriodEndDate = ToDate, @PeriodName = UPPER(PeriodName)
 		FROM dbo.AccountingCalendar WITH(NOLOCK) 
 		WHERE AccountingCalendarId = @AccountingPeriodId
@@ -327,6 +347,49 @@ BEGIN
 		GROUP BY GlAccountId,EntityStructureId, MasterCompanyId, Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,
 			  Level6Name,Level7Name,Level8Name,Level9Name,Level10Name,SequenceNumber
 
+
+		--SELECT * FROM #AccPeriodTable_All
+		INSERT INTO #tmpEntityStructureSetup(EntityStructureId, MasterCompanyId,LegalEntityId, level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,Level7Name,Level8Name,Level9Name,Level10Name)
+		SELECT ESS.EntityStructureId, ESS.MasterCompanyId, MSL1.LegalEntityId, 
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] ELSE  CAST(MSL1.Code AS VARCHAR(250)) END AS Level1Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] ELSE  CAST(MSL2.Code AS VARCHAR(250)) END AS Level2Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description] ELSE  CAST(MSL3.Code AS VARCHAR(250)) END AS Level3Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description] ELSE  CAST(MSL4.Code AS VARCHAR(250)) END AS Level4Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description] ELSE  CAST(MSL5.Code AS VARCHAR(250)) END AS Level5Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description] ELSE  CAST(MSL6.Code AS VARCHAR(250)) END AS Level6Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description] ELSE  CAST(MSL7.Code AS VARCHAR(250)) END AS Level7Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] ELSE  CAST(MSL8.Code AS VARCHAR(250)) END AS Level8Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] ELSE  CAST(MSL9.Code AS VARCHAR(250)) END AS Level9Name,
+				CASE WHEN @IsShortMS = 0 THEN CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] ELSE  CAST(MSL10.Code AS VARCHAR(250)) END AS Level10Nam
+		FROM dbo.EntityStructureSetup ESS 
+				LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON ESS.Level2Id = MSL2.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON ESS.Level3Id = MSL3.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON ESS.Level4Id = MSL4.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON ESS.Level5Id = MSL5.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON ESS.Level6Id = MSL6.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON ESS.Level7Id = MSL7.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON ESS.Level8Id = MSL8.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON ESS.Level9Id = MSL9.ID
+				LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON ESS.Level10Id = MSL10.ID
+		WHERE ESS.MasterCompanyId = @MasterCompanyId
+				AND ESS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
+				AND (ISNULL(@Level1,'') ='' OR ESS.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
+				AND (ISNULL(@Level2,'') ='' OR ESS.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
+				AND (ISNULL(@Level3,'') ='' OR ESS.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
+				AND (ISNULL(@Level4,'') ='' OR ESS.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
+				AND (ISNULL(@Level5,'') ='' OR ESS.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
+				AND (ISNULL(@Level6,'') ='' OR ESS.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
+				AND (ISNULL(@Level7,'') ='' OR ESS.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
+				AND (ISNULL(@Level8,'') ='' OR ESS.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
+				AND (ISNULL(@Level9,'') ='' OR ESS.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
+				AND  (ISNULL(@Level10,'') =''  OR ESS.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		GROUP BY MSL1.LegalEntityId,EntityStructureId, ESS.MasterCompanyId, MSL1.Code,MSL2.Code,MSL3.Code,MSL4.Code,
+				MSL5.Code,MSL6.Code,MSL7.Code, MSL8.Code, MSL9.Code,MSL10.Code,MSL1.[Description],MSL2.[Description],
+				MSL3.[Description],MSL4.[Description],MSL5.[Description],MSL6.[Description],MSL7.[Description],
+				MSL8.[Description],MSL9.[Description],MSL10.[Description]
+
+
 		INSERT INTO #Temptbl(GlAccountId,EntityStructureId,MasterCompanyId,
 			Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,Level7Name,Level8Name,Level9Name,Level10Name,
 			CreditAmount,DebitAmount,SequenceNumber)
@@ -461,30 +524,6 @@ BEGIN
 			WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
 			ORDER BY CAST(AccountNum AS BIGINT)
 
-			--SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			--FROM #TempResults 
-			--WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 AND AccountNum LIKE '%[0-9]%'
-			--ORDER BY CAST(AccountNum AS BIGINT)
-
-			--INSERT INTO #TempFinalResults(GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name, Credit,Debit,CR,DR )
-			--SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			--FROM #TempResults 
-			--WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 AND AccountNum NOT LIKE '%[^0-9]%'
-			--ORDER BY CAST(AccountNum AS BIGINT)
-
-			--INSERT INTO #TempFinalResults(GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name, Credit,Debit,CR,DR )
-			--SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			--FROM #TempResults 
-			--WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 AND AccountNum LIKE '%[^0-9]%'
-			--ORDER BY AccountNum 
-
-			--SELECT * FROM #TempFinalResults
-
 		END
 		ELSE
 		BEGIN 
@@ -513,29 +552,30 @@ BEGIN
 						GROUP BY T1.GlAccountId, T1.EntityStructureId
 			) results WHERE results.GlAccountId = #TempResults.GlAccountId AND results.EntityStructureId = #TempResults.EntityStructureId
 
-		
+			--SELECT * FRoM #TempResults
+			DECLARE @LID AS int = 0;
+			DECLARE @IsFristRow AS bit = 1;
+			DECLARE @LCOUNT AS int = 0;
+			SELECT @LCOUNT = MAX(ID) FROM #tmpEntityStructureSetup
+			WHILE(@LCOUNT > 0)
+			BEGIN
+				INSERT INTO #TempResults(GlAccountId, MasterCompanyId, AccountNum,AccountName)
+				SELECT GlAccountId, MasterCompanyId, GL.AccountCode, AccountName
+				FROM dbo.GLAccount GL
+				WHERE GL.GlAccountId NOT IN (SELECT GlAccountId FROM #TempResults) AND GL.MasterCompanyId = @masterCompanyId
+
+				UPDATE #TempResults SET Level1Name = ESS.Level1Name, Level2Name = ESS.Level2Name, Level3Name = ESS.Level3Name, Level4Name = ESS.Level4Name,
+						Level5Name = ESS.Level5Name, Level6Name = ESS.Level6Name, Level7Name = ESS.Level7Name, Level8Name = ESS.Level8Name, Level9Name = ESS.Level9Name, Level10Name = ESS.Level10Name
+				FROM #tmpEntityStructureSetup ESS 
+				WHERE ESS.ID  = @LCOUNT AND ISNULL(#TempResults.Level1Name, '') = ''
+
+				SET @LCOUNT = @LCOUNT - 1
+			END
+
 			SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
 				Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
 			FROM #TempResults 			
 			ORDER BY CAST(AccountNum AS BIGINT)
-
-			--INSERT INTO #TempFinalResults(GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name, Credit,Debit,CR,DR )
-			--SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			--FROM #TempResults 
-			--WHERE AccountNum NOT LIKE '%[^0-9]%'
-			--ORDER BY CAST(AccountNum AS BIGINT)
-
-			--INSERT INTO #TempFinalResults(GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name, Credit,Debit,CR,DR )
-			--SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-			--	Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			--FROM #TempResults 		
-			--WHERE AccountNum LIKE '%[^0-9]%'
-			--ORDER BY AccountNum 
-
-			--SELECT * FROM #TempFinalResults
 
 		END
 	END

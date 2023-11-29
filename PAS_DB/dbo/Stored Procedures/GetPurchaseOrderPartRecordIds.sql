@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/02/2022  Moin Bloch     Created
+    2    10/10/2023  Vishal Suthar  Modified to handle New Receiving PO changes
      
 -- EXEC [GetPurchaseOrderPartRecordIds] 171,2
 ************************************************************************/ 
@@ -41,7 +42,7 @@ BEGIN
 	END
 	ELSE IF (@Opr = 3)
 	BEGIN
-		SELECT PurchaseOrderPartRecordId FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND StockLineId > 0
+		SELECT PurchaseOrderPartRecordId FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND StockLineId IS NOT NULL --> 0
 		UNION
 		SELECT PurchaseOrderPartRecordId FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND NonStockInventoryId > 0
 		UNION

@@ -1,6 +1,7 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_Lot_AddUpdate]           
- ** Author: Moin Bloch
+ ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Create or update Lot General Info
  ** Date:   15/02/2023
  ** PARAMETERS:           
@@ -10,12 +11,12 @@
  **************************************************************           
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
-    1    15/02/2023   Moin Bloch     Created
+    1    15/02/2023   Rajesh Gami     Created
 **************************************************************
  EXEC USP_Lot_AddUpdate 
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdate] 
+CREATE     PROCEDURE [dbo].[USP_Lot_AddUpdate] 
 @LotId bigint OUTPUT,
 @LotName varchar(50),
 @VendorId bigint NULL=0, 

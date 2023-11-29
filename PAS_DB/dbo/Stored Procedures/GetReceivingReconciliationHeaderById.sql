@@ -13,6 +13,7 @@
     1                 unknown        Created
 	2    09/27/2023   Moin Bloch     Modify(Added Invoice Date)
 	3    09/30/2023   Hemant Saliya  Modify(Added Accounting Calendor Id)
+	4    10/25/2023   Moin Bloch     Modify(Added Invoice On Hold Field)
 
 ***********************************************************************     
 -- EXEC GetReceivingReconciliationHeaderById 106
@@ -49,18 +50,17 @@ BEGIN
                ,RRH.[IsDeleted]
 			   ,RRH.[InvoiceDate]
 			   ,RRH.[AccountingCalendarId]
+			   ,RRH.[IsInvoiceOnHold]
           FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
-
-
+		  
     END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
+			PRINT 'ROLLBACK'			
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'GetJournalBatchHeaderById' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceivingReconciliationId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'GetJournalBatchHeaderById'             
+			, @ProcedureParameters VARCHAR(200) = '@Parameter1 = ''' + CAST(ISNULL(@ReceivingReconciliationId, '') AS varchar(100)) 
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

@@ -19,6 +19,7 @@
 	3    09/20/2023   MOIN BLOCH    Modefied (Added missing Fields)
 	4    09/26/2023   MOIN BLOCH    Modefied (Added 0 ADDAND IN ACCOUNT NUMBER)
 	5    09/29/2023   MOIN BLOCH    Modefied (Removed 10 digit length from Entry Hash)
+	6    10/19/2023   MOIN BLOCH    Modefied (Added Print Amount For Display Decimal Value)
 	
 --EXEC VendorPositivePayExportACHList 
 **************************************************************/
@@ -327,19 +328,45 @@ BEGIN
 					  WHEN LEN(UPPER(ISNULL(DWP.[AccountNumber],''))) > 17 THEN LEFT(UPPER(DWP.[AccountNumber]), 17) 
 					  ELSE dbo.GetNumOfZero(17)
 				END AS DFIAccountNumber
-			   ,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 1 THEN '000000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-				      WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 2 THEN '00000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 3 THEN '0000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 4 THEN '000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 5 THEN '00000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 6 THEN '0000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 7 THEN '000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 8 THEN '00' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 9 THEN '0' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 10 THEN CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
-					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) > 10 THEN LEFT(CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT),10)
+			 --  ,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 1 THEN '000000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--      WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 2 THEN '00000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 3 THEN '0000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 4 THEN '000000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 5 THEN '00000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 6 THEN '0000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT) 
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 7 THEN '000' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 8 THEN '00' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 9 THEN '0' + CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 10 THEN CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT)
+				--	  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) > 10 THEN LEFT(CAST(ROUND(SUM(VRP.PaymentMade),0) AS INT),10)
+				--	  ELSE  '0000000000'  
+				--END AS Amount
+			    ,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 1 THEN '000000000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+				      WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 2 THEN '00000000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 3 THEN '0000000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 4 THEN '000000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 5 THEN '00000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 6 THEN '0000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 7 THEN '000' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 8 THEN '00' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 9 THEN '0' + CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) = 10 THEN CAST(SUM(VRP.PaymentMade) AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0))) > 10 THEN LEFT(CAST(SUM(VRP.PaymentMade) AS VARCHAR),10)
 					  ELSE  '0000000000'
 				END AS Amount
+				,CASE WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 1 THEN '000000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+				      WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 2 THEN '00000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 3 THEN '0000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 4 THEN '000000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 5 THEN '00000' +  CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 6 THEN '0000' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 7 THEN '000' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 8 THEN '00' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 9 THEN '0' + CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 = 10 THEN CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR)
+					  WHEN LEN(SUM(ISNULL(VRP.PaymentMade,0)))- 1 > 10 THEN LEFT(CAST(REPLACE(SUM(VRP.PaymentMade),'.','') AS VARCHAR),10)
+					  ELSE  '0000000000'
+				END AS PrintAmount
 				,CASE WHEN LEN(UPPER(DWP.[AccountNumber])) <= 15 THEN UPPER(DWP.[AccountNumber]) + SPACE(dbo.GetSpace(15,LEN(DWP.[AccountNumber])))			          
 					  WHEN LEN(UPPER(DWP.[AccountNumber])) > 15  THEN LEFT(UPPER(DWP.[AccountNumber]), 15) 
 					  ELSE SPACE(15) END AS IdentificationNumber
@@ -377,7 +404,7 @@ BEGIN
 		FinalResult AS (  
 		SELECT RecordTypeCode,TransactionCode,ReceivingDFIID,CheckDigit,DFIAccountNumber,Amount,IdentificationNumber,
 			   ReceivingCompanyName,DiscretionaryData,AddendaRecordIndicator,TraceNumber,CheckNumber,Date,
-			   VendorName,PaymentAmount,BankName,AccountNumber,PaymentMethod
+			   VendorName,PaymentAmount,BankName,AccountNumber,PaymentMethod,PrintAmount
 		FROM Result  
 		WHERE ( 
 		   (@GlobalFilter <>'' AND ((CheckNumber LIKE '%' +@GlobalFilter+'%' ) OR             
@@ -398,7 +425,7 @@ BEGIN
 		   ResultCount AS (SELECT COUNT(RecordTypeCode) AS NumberOfItems FROM FinalResult)  
 		  SELECT RecordTypeCode,TransactionCode,ReceivingDFIID,CheckDigit,DFIAccountNumber,Amount,IdentificationNumber,
 		         ReceivingCompanyName,DiscretionaryData,AddendaRecordIndicator,TraceNumber,
-				 CheckNumber,Date,VendorName,PaymentAmount,BankName,AccountNumber,PaymentMethod,NumberOfItems
+				 CheckNumber,Date,VendorName,PaymentAmount,BankName,AccountNumber,PaymentMethod,PrintAmount,NumberOfItems
 			FROM FinalResult, ResultCount    
 		 ORDER BY CASE WHEN (@SortOrder=1  AND @SortColumn='CheckNumber')  THEN CheckNumber END ASC,  
 				  CASE WHEN (@SortOrder=1  AND @SortColumn='PAYMENTMETHOD')  THEN PaymentMethod END ASC,   

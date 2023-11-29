@@ -20,8 +20,9 @@
 	3	 09/13/2021	  Hemant Saliya  Add Calculated Field for Labor All Labor are Completd
     4	 07/26/2022	  Subhash Saliya Add Calculated Field for Sipping or Invoiced are Completd
 	5	 06/08/2023	  Hemant Saliya  Updated for Calucation for Materilas Qty
+	6    10/04/2023   Hemant Saliya	 Condition Group Changes
 
---EXEC [GetWorkOrderSettlementDetails] 2757,2267,2261
+EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 	@WorkorderId bigint,
@@ -60,7 +61,6 @@ BEGIN
 
 				SELECT  @qtyreq = SUM(ISNULL(Quantity,0)),
 						@QtyToTendered = SUM(ISNULL(QtyToTurnIn,0))
-						--@qtyissue=SUM(ISNULL(QuantityIssued,0))						
 				FROM dbo.WorkOrderMaterials WITH(NOLOCK) 	  
 				WHERE WorkFlowWorkOrderId = @workflowWorkorderId
 
@@ -81,7 +81,6 @@ BEGIN
 
 				SELECT  @kitqtyreq =  SUM(ISNULL(Quantity,0)),
 						@kitQtyTendered =  SUM(ISNULL(QtyToTurnIn,0))
-						--@kitqtyissue =  SUM(ISNULL(QuantityIssued,0))						
 				FROM dbo.WorkOrderMaterialsKit WITH(NOLOCK) 	  
 				WHERE WorkFlowWorkOrderId = @workflowWorkorderId
 
@@ -152,7 +151,6 @@ BEGIN
 						ISNULL(wosd.WorkFlowWorkOrderId,0) as WorkFlowWorkOrderId,
 						ISNULL(wosd.workOrderPartNoId,0) as workOrderPartNoId,
 						ISNULL(wosd.WorkOrderSettlementDetailId,0) as WorkOrderSettlementDetailId,
-						--CASE WHEN wos.WorkOrderSettlementId = 1 THEN CASE WHEN ISNULL(@qtyreq, 0) +  ISNULL(@QtyToTendered, 0) = (ISNULL(@qtyissue, 0) + ISNULL(@QtyTendered, 0)) THEN 1 ELSE 0 END 
 						CASE WHEN wos.WorkOrderSettlementId = 1 THEN CASE WHEN ISNULL(@qtyrequested, 0) = (ISNULL(@qtyissued, 0)) THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 6 THEN CASE WHEN @AllToolsAreCheckOut <= 0 THEN 1 ELSE 0 END 

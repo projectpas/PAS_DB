@@ -31,11 +31,12 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 	  BEGIN TRANSACTION
-		
+		DECLARE @lotModuleId int = (SELECT TOP 1 ModuleId FROM dbo.Module WHERE	UPPER(ModuleName) = 'LOT')
 		DECLARE @TotalCounts INT,@count INT,@LatestId BIGINT,@LastOrignalCost DECIMAL(18,2),@UpdatedUnitCost DECIMAL(18,2),@TotalMarginCost DECIMAL(18,2)=0,@CommissionCost DECIMAL(18,2)=0,@TotalSalesCost DECIMAL(18,2)=0;
 		DECLARE @LastLotTransInOutId BIGINT =NULL, @LastStockLineId BIGINT =NULL,@LastQty int =NULL;
 		DECLARE @IsMaintainStkLine bit = 0,@IsInitialPO bit = 0,@InitialPOCost DECIMAL(18,2),@InitialPOId BIGINT = 0;
-		DECLARE @PercentId BIGINT = 0,@PercentValue DECIMAL(18,2),@Qty INT = 0;
+		DECLARE @PercentId BIGINT = 0,@PercentValue DECIMAL(18,2),@Qty INT = 0, @lotNumber varchar(20) ='', @lotDesc varchar(max);
+		Select @lotNumber = LotNumber, @lotDesc = LotName from dbo.Lot WITH(NOLOCK) WHERE LotId = @LotId
 		DECLARE @ConsignmentPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
 		SET @count = 1;
 		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0) ,@PercentId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
@@ -126,20 +127,23 @@ BEGIN
 				IF(UPPER(@Type) = UPPER('Trans In (Lot)') OR (UPPER(@Type) = UPPER('Trans In (RO)') ))
 				BEGIN
 					Update dbo.Stockline set 
-										LOTQty = ISNULL(LOTQty,0) + ISNULL(@LastQty,0), LotId =@LotId, IsLotAssigned = 1 WHERE StockLineId = @LastStockLineId
+										LOTQty = ISNULL(LOTQty,0) + ISNULL(@LastQty,0), LotId =@LotId, IsLotAssigned = 1,LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId
+
+					EXEC USP_AddUpdateStocklineHistory @LastStockLineId, @lotModuleId, @LotId, NULL, NULL, 1, @LastQty, @UpdatedBy;
 				END	
 				
 				IF(@LotId >0)
 				BEGIN
 					SELECT @IsInitialPO = ISNULL(IsInitialPO,0) FROM DBO.LOT WITH(NOLOCK) WHERE LotId = @LotId;
 					IF(UPPER(@Type) = UPPER('Trans In (PO)'))
-					BEGIN
-						
+					BEGIN						
 							IF(@IsInitialPO = 0)
 							BEGIN
 								SELECT Top 1 @InitialPOCost =TransferredInCost,@InitialPOId = ReferenceId from #tmpLotCalculationDetailsType WITH(NOLOCK)
 								UPDATE LOT Set IsInitialPO = 1, InitialPOCost = @InitialPOCost,InitialPOId =@InitialPOId WHERE LOTID = @LotId;
 							END
+							Update dbo.Stockline set LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId
+							EXEC USP_AddUpdateStocklineHistory @LastStockLineId, @lotModuleId, @LotId, NULL, NULL, 1, @LastQty, @UpdatedBy;
 					END
 
 					--IF(@IsMaintainStkLine =0 AND  UPPER(@Type) = UPPER('Trans In(PO)'))
@@ -212,7 +216,16 @@ BEGIN
 
 					UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost WHERE LotCalculationId = @LatestId; 
 						
-				
+					IF(UPPER(@Type) = UPPER('Trans Out (RO)'))
+					BEGIN
+						Update dbo.Stockline set LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId
+						EXEC USP_AddUpdateStocklineHistory @LastStockLineId, @lotModuleId, @LotId, NULL, NULL, 2, @LastQty, @UpdatedBy;
+					END	
+					IF(UPPER(@Type) = UPPER('Trans Out (Lot)'))
+					BEGIN
+						Update dbo.Stockline set LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId
+						EXEC USP_AddUpdateStocklineHistory @LastStockLineId, @lotModuleId, @LotId, NULL, NULL, 1, @LastQty, @UpdatedBy;
+					END	
 					SET @count = @count + 1;
 			END
 		END

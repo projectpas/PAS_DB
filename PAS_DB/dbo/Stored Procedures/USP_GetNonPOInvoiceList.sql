@@ -16,11 +16,12 @@
     1    09/13/2023		Devendra Shekh					Created
     2    09/14/2023		Devendra Shekh					added paymentmethodId
     3    10/03/2023		Devendra Shekh					changes for multiple part
+    3    10/03/2023		Devendra Shekh					added filtering by headerstatus(open,posted,etc)
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
 exec USP_GetNonPOInvoiceList 
-@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
+@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
 @NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate='2023-09-13 11:31:09.640',@UpdatedBy=NULL,@UpdatedDate='2023-09-13 11:31:09.640',@IsDeleted=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -31,6 +32,7 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @SortOrder int = NULL,
 @GlobalFilter varchar(50) = NULL,
 @StatusId int = NULL,
+@HeaderStatusId int = NULL,
 @ViewType varchar(50) = null,
 @VendorName varchar(50) = NULL,
 @VendorCode varchar(50) = NULL,
@@ -81,6 +83,15 @@ BEGIN
 			SET @IsActive=NULL;
 		END
 
+		--IF (@StatusID=6 AND @Status='All')      
+		--BEGIN         
+		--	SET @Status = ''      
+		--END      
+		IF (@HeaderStatusId=7 OR @HeaderStatusId=0)      
+		BEGIN      
+			SET @HeaderStatusId = NULL         
+		END  
+
 		IF(@ViewType = 'npoview')
 		BEGIN
 			;WITH Result AS(
@@ -112,7 +123,7 @@ BEGIN
 				LEFT JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) ON NPD.NonPOInvoiceId = NPH.NonPOInvoiceId
 				LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON NPD.GlAccountId = GL.GlAccountId
 
-				WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive))			     
+				WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)	     
 					AND NPH.MasterCompanyId=@MasterCompanyId	
 				GROUP BY NPH.NonPOInvoiceId,
 					NPH.VendorId,
@@ -219,7 +230,7 @@ BEGIN
 				LEFT JOIN [dbo].[NonPOInvoicePartDetails] NPD WITH (NOLOCK) ON NPD.NonPOInvoiceId = NPH.NonPOInvoiceId
 				LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON NPD.GlAccountId = GL.GlAccountId
 
-		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive))			     
+		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)		     
 					AND NPH.MasterCompanyId=@MasterCompanyId	
 			),ResultData AS( Select NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
 						IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum

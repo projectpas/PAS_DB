@@ -17,25 +17,33 @@
     1    22-June-2022	Shrey Chandegara			Created    
     2    14-SEP-2023	Devendra Shekh			added paymentMethodId    
     3    26-SEP-2023	Devendra Shekh			added employeeid    and IsEnforceNonPoApproval
-    4    26-SEP-2023	Devendra Shekh			added employeeid    and IsEnforceNonPoApproval
-    5    03-OCT-2023	Devendra Shekh			added NPONum for insert
+    4    03-OCT-2023	Devendra Shekh			added NPONum for insert
+    5    11-OCT-2023	Devendra Shekh			added new columns for insert
+    6    26-OCT-2023	Devendra Shekh			added new columns for insert
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
-@NonPOInvoiceId bigint,  
-@VendorId bigint,  
-@VendorName varchar(150),  
-@VendorCode varchar(150),  
-@PaymentTermsId bigint,  
+@NonPOInvoiceId BIGINT,  
+@VendorId BIGINT,  
+@VendorName VARCHAR(150),  
+@VendorCode VARCHAR(150),  
+@PaymentTermsId BIGINT,  
 @StatusId INT,  
 @ManagementStructureId INT, 
-@MasterCompanyId bigint,  
-@CreatedBy varchar(50),  
-@UpdatedBy  varchar(50),  
+@MasterCompanyId BIGINT,  
+@CreatedBy VARCHAR(50),  
+@UpdatedBy  VARCHAR(50),  
 @IsDeleted bit,
-@PaymentMethodId bigint,
-@EmployeeId bigint,
-@IsEnforceNonPoApproval bit
+@PaymentMethodId BIGINT,
+@EmployeeId BIGINT,
+@IsEnforceNonPoApproval bit,
+@EntryDate DATETIME2,
+@InvoiceNumber VARCHAR(150),
+@InvoiceDate DATETIME2,
+@PONumber VARCHAR(150) = NULL,
+@AccountingCalendarId BIGINT,
+@CurrencyId BIGINT
+
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -58,7 +66,7 @@ BEGIN
       DROP TABLE #tmpReturnNonPOInvoiceId   
      END   
 
-	 CREATE TABLE #tmpReturnNonPOInvoiceId([NonPOInvoiceId] [bigint] NULL)   
+	 CREATE TABLE #tmpReturnNonPOInvoiceId([NonPOInvoiceId] [BIGINT] NULL)   
   
    IF(@NonPOInvoiceId = 0)  
    BEGIN  
@@ -101,9 +109,11 @@ BEGIN
 		IF(@CurrentNPONumber!='' OR @CurrentNPONumber!=NULL)
 		BEGIN
 			INSERT INTO [dbo].[NonPOInvoiceHeader]([VendorId] ,[VendorName] ,[VendorCode] ,[PaymentTermsId] ,[StatusId] ,[ManagementStructureId], [MasterCompanyId],  
-								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber])  
+								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber]
+								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId])  
 			VALUES	(@VendorId , @VendorName, @VendorCode, @PaymentTermsId, @StatusId, @ManagementStructureId, @MasterCompanyId,  
-					@CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber)  
+					@CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber
+					, @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId)  
 
 			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPONumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 		END
@@ -124,10 +134,15 @@ BEGIN
 					,[PaymentTermsId] = @PaymentTermsId
 					,[StatusId] = @StatusId
 					,[ManagementStructureId] = @ManagementStructureId
-                   ,[UpdatedBy] = @CreatedBy  
-                   ,[UpdatedDate] = GETUTCDATE()  
-                   ,[IsDeleted] = @IsDeleted  
-                   ,[PaymentMethodId] = @PaymentMethodId  
+					,[UpdatedBy] = @CreatedBy  
+					,[UpdatedDate] = GETUTCDATE()  
+					,[IsDeleted] = @IsDeleted  
+					,[PaymentMethodId] = @PaymentMethodId
+					,[EntryDate] = @EntryDate
+					,[InvoiceNumber] = @InvoiceNumber
+					,[InvoiceDate] = @InvoiceDate
+					,[AccountingCalendarId] = @AccountingCalendarId
+					,[CurrencyId] = @CurrencyId
               WHERE NonPOInvoiceId= @NonPOInvoiceId  
 
 		INSERT INTO #tmpReturnNonPOInvoiceId ([NonPOInvoiceId]) VALUES (@NonPOInvoiceId);    

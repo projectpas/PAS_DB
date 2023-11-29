@@ -48,6 +48,7 @@
     [PostedDate]                          DATETIME2 (7)   NULL,
     [BillingId]                           BIGINT          DEFAULT ((0)) NOT NULL,
     [CreditMemoUsed]                      DECIMAL (18, 2) NULL,
+    [RemainingAmount]                     DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_BillToCustomer] FOREIGN KEY ([BillToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -58,6 +59,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_ShipToCustomer] FOREIGN KEY ([ShipToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_SoldToCustomer] FOREIGN KEY ([SoldToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 

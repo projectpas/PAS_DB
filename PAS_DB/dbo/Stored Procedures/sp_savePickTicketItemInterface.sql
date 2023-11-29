@@ -13,11 +13,12 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 2    21-07-2023      Bhargav Saliya            Change Date In UTC
 ** 3    21-07-2023      Devendra Shekh            added qtyremaing for insert AND UPDATE
 ** 4    25-09-2023      Devendra Shekh            pick ticket issue resolved
+** 5    08-11-2023      Amit Ghediya              pick ticket issue for multipele part resolved
  
 
 EXEC Usp_savePickTicketItemInterface
 ********************************************************************************/
-CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
+CREATE     PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
 (      
   @SOPickTicketId bigint = 0,  
   @SOPickTicketNumber varchar(100)='',  
@@ -62,7 +63,7 @@ BEGIN
 		FROM SalesOrderPart sopp WITH(NOLOCK)
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-		WHERE sorpp.SalesOrderId = @SalesOrderId --AND sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.QtyToReserve
+		WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId --GROUP BY sorpp.QtyToReserve
 	END
 	ELSE
 	BEGIN

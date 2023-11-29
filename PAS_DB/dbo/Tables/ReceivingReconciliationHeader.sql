@@ -23,8 +23,11 @@
     [IsDeleted]                     BIT             CONSTRAINT [DF_ReceivingReconciliationHeader_IsDeleted] DEFAULT ((0)) NOT NULL,
     [InvoiceDate]                   DATETIME2 (7)   NULL,
     [AccountingCalendarId]          BIGINT          NULL,
+    [IsInvoiceOnHold]               BIT             NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeader] PRIMARY KEY CLUSTERED ([ReceivingReconciliationId] ASC)
 );
+
+
 
 
 

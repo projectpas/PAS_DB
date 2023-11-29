@@ -14,9 +14,8 @@
 	3    20/07/2023   Hemant Saliya Formated SP and Added MasterCompany Condition
 	4    24/07/2023	  Satish Gohil  Modify(Set condition name to distribution code and dynamic setup)
 	5    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
-	6    18/08/2023   Moin Bloch     Modify(Added Accounting MS Entry)
+	6    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 **************************************************************/  
-
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId int,
@@ -280,7 +279,8 @@ BEGIN
 
 								INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount],
 									[ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
-								VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, 'ReceivingPOStockline', NULL, NULL, @MasterCompanyId, @updatedByName, @updatedByName, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
+								VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0,
+								0, 'ReceivingROStockline', NULL, NULL, @MasterCompanyId, @updatedByName, @updatedByName, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 						
 								SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
@@ -488,8 +488,20 @@ BEGIN
 
 								 SET @TotalDebit=0;
 								 SET @TotalCredit=0;
-								 SELECT @TotalDebit =SUM(DebitAmount), @TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
-								 UPDATE dbo.BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
+								 SELECT @TotalDebit =SUM(DebitAmount),
+								        @TotalCredit=SUM(CreditAmount) 
+								  FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) 
+								  WHERE [JournalBatchDetailId] = @JournalBatchDetailId GROUP BY JournalBatchDetailId
+								 
+								 UPDATE [dbo].[BatchDetails] 
+								    SET [DebitAmount]=@TotalDebit,
+								        [CreditAmount]=@TotalCredit,
+										[UpdatedDate]=GETUTCDATE(),
+										[UpdatedBy]=@UpdateBy,
+										[LastMSLevel] = @LastMSLevel,
+										[AllMSlevels] = @AllMSlevels,
+										[ManagementStructureId] = @ManagementStructureId
+								  WHERE [JournalBatchDetailId] = @JournalBatchDetailId
 						  
 					  			FETCH NEXT FROM @PostStocklineBatchCursor INTO @StocklineId,@Qty,@Amount,@ModuleName,@UpdateBy,@MasterCompanyId,@StockType;
 							END	

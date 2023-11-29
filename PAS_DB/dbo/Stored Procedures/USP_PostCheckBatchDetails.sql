@@ -18,14 +18,11 @@
 	2    07/06/2023   Satish Gohil  Batch detail table insert value added
 	3    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
 	4    08/14/2023   Moin Bloch    Added Check Payment Method to check only check payments
-     
+	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry)     
 **************************************************************/
-
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
-(
-	@ReadyToPayId BIGINT,
-	@VendorId BIGINT
-)
+@ReadyToPayId BIGINT,
+@VendorId BIGINT
 AS
 BEGIN 
 	BEGIN TRY
@@ -78,8 +75,10 @@ BEGIN
 		DECLARE @BankGLAccId BIGINT
 		DECLARE @IsAccountByPass bit=0
 		DECLARE @Check INT;
+		DECLARE @AccountMSModuleId INT = 0
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
+		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -124,8 +123,8 @@ BEGIN
 		END
 
 		SELECT @BankGLAccId = G.GLAccountId
-				FROM LegalEntityBankingLockBox LB WITH(NOLOCK)
-				INNER JOIN VendorReadyToPayHeader V WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = V.BankId
+				FROM dbo.LegalEntityBankingLockBox LB WITH(NOLOCK)
+				INNER JOIN dbo.VendorReadyToPayHeader V WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = V.BankId
 				LEFT JOIN GLAccount G WITH(NOLOCK) ON LB.GLAccountId = G.GLAccountId
 				WHERE ReadyToPayId= @ReadyToPayId
 
@@ -137,10 +136,10 @@ BEGIN
 		IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1 AND @IsAccountByPass = 0)
 		BEGIN
 
-			select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-			from EntityStructureSetup est WITH(NOLOCK) 
-			inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-			inner join AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+			FROM EntityStructureSetup est WITH(NOLOCK) 
+			INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+			INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
 			and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
@@ -157,7 +156,6 @@ BEGIN
 			BEGIN
 				ROLLBACK TRAN;
 			END
-
 
 			IF NOT EXISTS(select JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 			BEGIN
@@ -227,7 +225,6 @@ BEGIN
 		
 			SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
-
 			 -----Account Payable--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
@@ -251,8 +248,12 @@ BEGIN
 				@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
-			
-				INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
+
+				-----  Accounting MS Entry  -----
+
+				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+								
+				INSERT INTO [dbo].[VendorPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 
 			 -----Account Payable--------
@@ -288,7 +289,9 @@ BEGIN
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
-			
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 				END
@@ -319,7 +322,9 @@ BEGIN
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
-			
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 				END
@@ -327,17 +332,19 @@ BEGIN
 
 			SET @TotalDebit=0;
 			SET @TotalCredit=0;
-			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM CommonBatchDetails WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
-			Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
+			SELECT @TotalDebit = SUM(DebitAmount),
+			       @TotalCredit=SUM(CreditAmount) 
+			  FROM dbo.CommonBatchDetails WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
+			Update BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
 		END
 
 		
-		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails 
+		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM dbo.BatchDetails   
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-	    Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+		UPDATE dbo.CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+	    Update dbo.BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 	END TRY
 	BEGIN CATCH

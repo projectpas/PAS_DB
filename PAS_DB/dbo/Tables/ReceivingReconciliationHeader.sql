@@ -21,8 +21,12 @@
     [UpdatedDate]                   DATETIME2 (7)   CONSTRAINT [DF_ReceivingReconciliationHeader_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                      BIT             CONSTRAINT [DF_ReceivingReconciliationHeader_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                     BIT             CONSTRAINT [DF_ReceivingReconciliationHeader_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [InvoiceDate]                   DATETIME2 (7)   NULL,
+    [AccountingCalendarId]          BIGINT          NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeader] PRIMARY KEY CLUSTERED ([ReceivingReconciliationId] ASC)
 );
+
+
 
 
 GO

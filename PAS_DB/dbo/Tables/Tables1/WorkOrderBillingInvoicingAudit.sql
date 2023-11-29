@@ -74,8 +74,16 @@
     [SalesTax]                           DECIMAL (18, 2) NULL,
     [OtherTax]                           DECIMAL (18, 2) NULL,
     [SubTotal]                           DECIMAL (18, 2) NULL,
-    CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC)
+    [IsCustomerShipping]                 BIT             NULL,
+    [CreditMemoUsed]                     DECIMAL (18, 2) NULL,
+    [ConditionId]                        BIGINT          NULL,
+    CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC),
+    FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
+
+
 
 
 

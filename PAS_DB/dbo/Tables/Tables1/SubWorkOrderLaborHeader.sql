@@ -9,7 +9,7 @@
     [WorkOrderHoursType]        INT             NULL,
     [LabourMemo]                NVARCHAR (MAX)  NULL,
     [ExpertiseId]               SMALLINT        NULL,
-    [EmployeeId]                BIGINT          NOT NULL,
+    [EmployeeId]                BIGINT          NULL,
     [TotalWorkHours]            DECIMAL (20, 2) NULL,
     [MasterCompanyId]           INT             NOT NULL,
     [CreatedBy]                 VARCHAR (256)   NOT NULL,
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_SubWorkOrderLaborHeader_SubWorkOrder] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_SubWorkOrderLaborHeader_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

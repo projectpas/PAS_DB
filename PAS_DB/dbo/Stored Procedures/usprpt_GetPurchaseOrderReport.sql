@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_GetPurchaseOrderReport]           
  ** Author:   HEMANT 
  ** Description: Get Data for PurchaseOrderReport  
@@ -14,13 +13,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
-	1	 02-MAY-2022   Hemant		Added Updated for Upper Case
-     
+ ** S NO   Date         Author  			Change Description            
+ ** --   --------     -------			--------------------------------          
+	1	 02-MAY-2022   Hemant				Added Updated for Upper Case
+	2    16-JUNE-2023   Devendra Shekh        made changes TO DO TOTAL
+	
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usprpt_GetPurchaseOrderReport] 
+CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseOrderReport] 
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,
@@ -128,6 +128,9 @@ BEGIN
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 			 
+			;WITH rptCTE (TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
+				 vendorcode, uom, Approver, requisitioner, qty, unitcost, curr, extamt, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, masterCompanyId) AS (
 			  SELECT COUNT(1) OVER () AS TotalRecordsCount,				
 				UPPER(PO.PurchaseOrderNumber) 'ponum',
 				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PO.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PO.OpenDate, 107) END 'podate', 
@@ -143,9 +146,9 @@ BEGIN
 				UPPER(PO.Approvedby) 'Approver',
 				UPPER(PO.Requisitioner) 'requisitioner',
 				UPPER(POP.QuantityOrdered) 'qty',
-				FORMAT(POP.UnitCost , 'N', 'en-us') 'unitcost',
+				ISNULL(POP.UnitCost,0) 'unitcost',
 				UPPER(POP.functionalcurrency) 'curr',
-				FORMAT(POP.ExtendedCost , 'N', 'en-us') 'extamt',
+				ISNULL(POP.ExtendedCost ,0) 'extamt',
 				--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.ExtendedCost , 'N', 'en-us') ELSE CAST('&nbsp;' + FORMAT(POP.ExtendedCost , 'N', 'en-us') AS VARCHAR(20)) END 'extamt',
 				--CAST('&nbsp;' + FORMAT(POP.ExtendedCost , 'N', 'en-us') AS VARCHAR(20)) 'extamt',
 				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.NeedByDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), POP.NeedByDate, 107) END 'needby',
@@ -160,7 +163,8 @@ BEGIN
 				UPPER(MSD.Level7Name) AS level7, 
 				UPPER(MSD.Level8Name) AS level8, 
 				UPPER(MSD.Level9Name) AS level9, 
-				UPPER(MSD.Level10Name) AS level10 
+				UPPER(MSD.Level10Name) AS level10,
+				PO.MasterCompanyId
 			FROM dbo.PurchaseOrder PO WITH (NOLOCK)
 				INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 				INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
@@ -180,8 +184,34 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			ORDER BY POP.partnumber
-			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
+				)
+
+			,FinalCTE (TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
+				 vendorcode, uom, Approver, requisitioner, qty, unitcost, curr, extamt, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, masterCompanyId)
+			  AS (SELECT DISTINCT TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
+				 vendorcode, uom, Approver, requisitioner, qty, unitcost, curr, extamt, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, masterCompanyId FROM rptCTE)
+
+			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtAmt) 
+			  AS (SELECT masterCompanyId, 
+				FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
+				FORMAT(SUM(extamt), 'N', 'en-us') TotalExtAmt
+				FROM FinalCTE
+				GROUP BY masterCompanyId)
+
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
+					vendorcode, uom, Approver, requisitioner, qty,
+					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
+					FORMAT(ISNULL(extamt,0) , 'N', 'en-us') 'extamt',    
+					curr, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
+					level9, level10,
+					WC.TotalUnitCost,
+					WC.TotalExtAmt
+				FROM FinalCTE FC
+					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+				ORDER BY pn DESC
+				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
 
     COMMIT TRANSACTION
   END TRY

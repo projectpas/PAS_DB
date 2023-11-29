@@ -18,9 +18,9 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2021   Vishal Suthar Created
      
---EXEC [GetCommonWorkOrderTearDownPrintView] 67
+--EXEC [GetCommonWorkOrderTearDownPrintView] 10410,10429
 **************************************************************/
-CREATE PROCEDURE [dbo].[GetCommonWorkOrderTearDownPrintView]
+Create   PROCEDURE [dbo].[GetCommonWorkOrderTearDownPrintView]
 	@workOrderId bigint = 0,
 	@workFlowWorkOrderId bigint = 0
 AS
@@ -37,8 +37,8 @@ BEGIN
 
 			    SELECT DISTINCT tdt.CommonTearDownTypeId,
 					ISNULL(td.ReasonName,'') ReasonName,
-                    ISNULL(td.TechnicalName,'') as Technician,
-                    ISNULL(td.InspectorName,'') as Inspector,
+                    UPPER(ISNULL(td.TechnicalName,'')) as Technician,
+                    UPPER(ISNULL(td.InspectorName,'')) as Inspector,
                     ISNULL(td.Memo,'') as Memo,
                     td.TechnicianDate as TechnicianDate,
                     td.InspectorDate as InspectorDate,
@@ -53,7 +53,7 @@ BEGIN
 					tdt.DocumentModuleName
 				FROM [dbo].[CommonTeardownType] tdt WITH(NOLOCK)
 				LEFT JOIN [dbo].[CommonWorkOrderTearDown] td ON td.CommonTearDownTypeId = tdt.CommonTearDownTypeId
-				AND td.WorkOrderId = @workOrderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId AND td.IsSubWorkOrder = 0
+				AND td.WorkOrderId = @workOrderId AND td.WorkFlowWorkOrderId = @workFlowWorkOrderId AND Isnull(td.IsSubWorkOrder,0) = 0
 				WHERE tdt.CommonTearDownTypeId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				ORDER BY tdt.[Sequence]
 			END

@@ -12,7 +12,7 @@
     [CreatedDate]       DATETIME2 (7)   NOT NULL,
     [UpdatedDate]       DATETIME2 (7)   NOT NULL,
     [ShippingAccountNo] VARCHAR (100)   NULL,
-    [ShipVia]           VARCHAR (100)   NULL,
+    [ShipVia]           VARCHAR (400)   NULL,
     [IsActive]          BIT             DEFAULT ((1)) NOT NULL,
     [MasterCompanyId]   INT             NOT NULL,
     [IsDeleted]         BIT             DEFAULT ((0)) NOT NULL,
@@ -20,6 +20,8 @@
     CONSTRAINT [PK_PurchaseOrderShipVia] PRIMARY KEY CLUSTERED ([POShipViaId] ASC),
     CONSTRAINT [FK_PurchaseOrderShipVia_PurchaseOrder] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId])
 );
+
+
 
 
 GO

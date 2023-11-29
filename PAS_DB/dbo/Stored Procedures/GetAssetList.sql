@@ -100,7 +100,8 @@ BEGIN
 	  FROM dbo.AssetInventory ai  WITH(NOLOCK) WHERE ai.AssetRecordId=asm.AssetRecordId FOR XML PATH('')) AS AssetInventoryIds
      FROM dbo.Asset asm WITH(NOLOCK)  
       LEFT JOIN dbo.AssetCalibration ascal WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId  
-      LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
+      --LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
+	  LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.AssetAttributeTypeId = asty.AssetAttributeTypeId  
       LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId  
       Left Join AssetCapes AC WITH (NOLOCK) on asm.AssetRecordId = AC.AssetRecordId and AC.IsDeleted = 0  
       Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = AC.ItemMasterId

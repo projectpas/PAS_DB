@@ -31,8 +31,8 @@
     [IsConvertedToSalesOrder] BIT            DEFAULT ((0)) NOT NULL,
     [IsActive]                BIT            CONSTRAINT [SalesOrderQuotePart_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [CustomerRequestDate]     DATETIME2 (7)  NOT NULL,
-    [PromisedDate]            DATETIME2 (7)  NOT NULL,
-    [EstimatedShipDate]       DATETIME2 (7)  NOT NULL,
+    [PromisedDate]            DATETIME2 (7)  NULL,
+    [EstimatedShipDate]       DATETIME2 (7)  NULL,
     [PriorityId]              BIGINT         NOT NULL,
     [StatusId]                INT            NULL,
     [CustomerReference]       VARCHAR (100)  NULL,
@@ -59,6 +59,8 @@
     [CurrencyName]            NVARCHAR (100) NULL,
     [ItemNo]                  INT            NULL,
     [UnitSalesPricePerUnit]   NUMERIC (9, 2) NULL,
+    [IsLotAssigned]           BIT            NULL,
+    [LotId]                   BIGINT         NULL,
     CONSTRAINT [PK_SalesOrderQuotePart] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderQuotePart_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -69,6 +71,8 @@
     CONSTRAINT [FK_SalesOrderQuotePart_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [Unique_SalesOrderQuotePart] UNIQUE NONCLUSTERED ([SalesOrderQuoteId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ConditionId] ASC)
 );
+
+
 
 
 GO

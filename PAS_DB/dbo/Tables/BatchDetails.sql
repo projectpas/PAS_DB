@@ -28,8 +28,16 @@
     [DistributionName]      VARCHAR (200)   NULL,
     [JournalTypeNumber]     VARCHAR (50)    NULL,
     [CurrentNumber]         BIGINT          NULL,
+    [StatusId]              INT             DEFAULT ((1)) NOT NULL,
+    [PostedDate]            DATETIME        NULL,
+    [AccountingPeriodId]    BIGINT          NULL,
+    [AccountingPeriod]      VARCHAR (100)   NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
+
+
+
+
 
 
 

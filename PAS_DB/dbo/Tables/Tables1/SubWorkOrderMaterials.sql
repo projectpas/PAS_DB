@@ -57,6 +57,8 @@
     [QtyOnOrder]                    INT             NULL,
     [QtyOnBkOrder]                  INT             NULL,
     [QtyToTurnIn]                   INT             NULL,
+    [Figure]                        NVARCHAR (50)   NULL,
+    [Item]                          NVARCHAR (50)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterials] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_SubWorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_ItemClassification] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
@@ -70,6 +72,8 @@
     CONSTRAINT [FK_SubWorkOrderMaterials_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

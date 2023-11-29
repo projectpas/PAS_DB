@@ -15,7 +15,10 @@
     [IsActive]                   BIT           NOT NULL,
     [IsDeleted]                  BIT           NOT NULL,
     [AccountNameId]              BIGINT        NULL,
+    [VendorBankAccountTypeId]    INT           NULL,
     CONSTRAINT [PK_DomesticWirePaymentAuditId] PRIMARY KEY CLUSTERED ([DomesticWirePaymentAuditId] ASC),
     CONSTRAINT [FK_DomesticWirePaymentAudit_DomesticWirePayment] FOREIGN KEY ([DomesticWirePaymentId]) REFERENCES [dbo].[DomesticWirePayment] ([DomesticWirePaymentId])
 );
+
+
 

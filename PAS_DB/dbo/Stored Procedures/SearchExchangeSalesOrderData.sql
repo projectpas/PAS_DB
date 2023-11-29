@@ -1,36 +1,52 @@
-﻿CREATE PROCEDURE [dbo].[SearchExchangeSalesOrderData]
-	-- Add the parameters for the stored procedure here
-	@PageNumber int=1,
-	@PageSize int=10,
-	@SortColumn varchar(50)='ExchangeSalesOrderId',
-	@SortOrder int=1,
-	@StatusID int=1,
-	@GlobalFilter varchar(50) = '',
-	@ExchangeQuoteNumber varchar(50)=null,
-	@ExchangeSalesOrderNumber varchar(50)=null,
-	@CustomerName varchar(50)=null,
-	@Status varchar(50)=null,
-    @OpenDate datetime=null,
-	@QuoteExpireDate datetime=null,
-	--@EstimateShipDate datetime=null,
-    @SalesPerson varchar(50)=null,
-    @PriorityType varchar(50)=null,
-	@CustomerRequestDateType varchar(50)=null,
-	@EstimateShipDateType varchar(50)=null,
-	--@CustomerRequestDate datetime=null,
-	@PromiseDate datetime=null,
-    @PartNumberType varchar(50)=null,
-    @PartDescriptionType varchar(50)=null,
-    @CustomerReference varchar(50)=null,
-    --@CustomerType varchar(50)=null,
-	@VersionNumber varchar(50)=null,
-    @CreatedDate datetime=null,
-    @UpdatedDate  datetime=null,
-    @IsDeleted bit = null,
-	@CreatedBy varchar(50)=null,
-	@UpdatedBy varchar(50)=null,
-	@MasterCompanyId int = 1,
-	@EmployeeId bigint
+﻿/*************************************************************             
+ ** File:   [SearchExchangeSalesOrderData]             
+ ** Author:    
+ ** Description: Get Search Data for ExchangeSalesOrderList   
+ ** Purpose:           
+ ** Date:     
+           
+ ** RETURN VALUE:             
+ **************************************************************             
+ ** Change History             
+ **************************************************************             
+ ** PR   Date         Author             Change Description              
+ ** --   --------     -------           --------------------------------            
+    1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
+**************************************************************/   
+CREATE     PROCEDURE [dbo].[SearchExchangeSalesOrderData]
+-- Add the parameters for the stored procedure here
+@PageNumber int=1,
+@PageSize int=10,
+@SortColumn varchar(50)='ExchangeSalesOrderId',
+@SortOrder int=1,
+@StatusID int=1,
+@GlobalFilter varchar(50) = '',
+@ExchangeQuoteNumber varchar(50)=null,
+@ExchangeSalesOrderNumber varchar(50)=null,
+@CustomerName varchar(50)=null,
+@Status varchar(50)=null,
+@OpenDate datetime=null,
+@QuoteExpireDate datetime=null,
+--@EstimateShipDate datetime=null,
+@SalesPerson varchar(50)=null,
+@PriorityType varchar(50)=null,
+@CustomerRequestDateType varchar(50)=null,
+@EstimateShipDateType varchar(50)=null,
+--@CustomerRequestDate datetime=null,
+@PromiseDate datetime=null,
+@PartNumberType varchar(50)=null,
+@PartDescriptionType varchar(50)=null,
+@CustomerReference varchar(50)=null,
+--@CustomerType varchar(50)=null,
+@VersionNumber varchar(50)=null,
+@CreatedDate datetime=null,
+@UpdatedDate  datetime=null,
+@IsDeleted bit = null,
+@CreatedBy varchar(50)=null,
+@UpdatedBy varchar(50)=null,
+@MasterCompanyId int = 1,
+@EmployeeId bigint,
+@ManufacturerName varchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -39,67 +55,86 @@ BEGIN
 	SET NOCOUNT ON;
 
 	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN
+	--BEGIN TRANSACTION
+	--BEGIN
 		DECLARE @RecordFrom int;
 			SET @RecordFrom = (@PageNumber-1) * @PageSize;
-			IF @IsDeleted is null
-			Begin
-				Set @IsDeleted=0
-			End
-			print @IsDeleted	
-			IF @SortColumn is null
-			Begin
-				Set @SortColumn=Upper('CreatedDate')
+			IF @IsDeleted IS NULL
+			BEGIN
+				SET @IsDeleted=0
+			END			
+			IF @SortColumn IS NULL
+			BEGIN
+				SET @SortColumn=UPPER('CreatedDate')
 			End 
 			Else
-			Begin 
-				Set @SortColumn=Upper(@SortColumn)
+			BEGIN 
+				SET @SortColumn=UPPER(@SortColumn)
 			End
 			
-			If @StatusID=0
-			Begin 
+			IF @StatusID=0
+			BEGIN 
 				Set @StatusID=null
 			End 
 
-			If @Status='0'
-			Begin
+			IF @Status='0'
+			BEGIN
 				Set @Status=null
 			End
 			DECLARE @MSModuleID INT = 19; -- Exchange SalesOrder Management Structure Module ID
 		-- Insert statements for procedure here
-		;With Result AS(
-			Select EQ.ExchangeSalesOrderId,EQ.ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate as 'OpenDate', EXQ.QuoteExpireDate as 'QuoteExpireDate', C.CustomerId, C.Name as 'CustomerName', MST.Name as 'Status',
-			--ISNULL(SP.NetSales,0) as 'QuoteAmount',ISNULL(SP.UnitCost, 0) as 'UnitCost', 
-			ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'CustomerRequestDate',
-			ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'CustomerRequestDateType',
-			EQ.StatusId, EQ.CustomerReference, IsNull(P.Description, '') as 'Priority', IsNull(P.Description, '') as 'PriorityType',
-			(E.FirstName+' '+E.LastName)as SalesPerson,
-			IsNull(IM.partnumber,'') as 'PartNumber', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',
-			EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromiseDate',
-			--ISNULL(EQ.ShippedDate, '0001-01-01') as 'ShippedDate', 
-			EQ.IsDeleted
-			, dbo.GenearteVersionNumber(EQ.Version) as 'VersionNumber'
-			from ExchangeSalesOrder EQ WITH (NOLOCK)
-			Inner Join ExchangeStatus MST WITH (NOLOCK) on EQ.StatusId = MST.ExchangeStatusId
-			Inner Join Customer C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId
-			Left Join ExchangeSalesOrderPart SP WITH (NOLOCK) on EQ.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
-			LEFT JOIN ExchangeQuote EXQ WITH (NOLOCK) on EXQ.ExchangeQuoteId = EQ.ExchangeQuoteId
-			Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-			Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
-			Left Join Priority P WITH (NOLOCK) on EXQ.PriorityId=P.PriorityId
-			--Left Join SalesOrderQuote SOQ on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-			INNER JOIN dbo.ExchangeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
+		;WITH Result AS(
+			SELECT EQ.ExchangeSalesOrderId,
+			       EQ.ExchangeSalesOrderNumber, 
+				   EXQ.ExchangeQuoteNumber, 
+				   EQ.OpenDate AS 'OpenDate', 
+				   EXQ.QuoteExpireDate AS 'QuoteExpireDate', 
+				   C.CustomerId, 
+				   C.[Name] AS 'CustomerName', 
+				   MST.[Name] AS 'Status',
+			       --ISNULL(SP.NetSales,0) as 'QuoteAmount',ISNULL(SP.UnitCost, 0) as 'UnitCost', 
+			      ISNULL(SP.CustomerRequestDate, '0001-01-01') AS 'CustomerRequestDate',
+			      ISNULL(SP.CustomerRequestDate, '0001-01-01') AS 'CustomerRequestDateType',
+			      EQ.StatusId, 
+				  EQ.CustomerReference, 
+				  ISNULL(P.[Description], '') AS 'Priority', 
+				  ISNULL(P.[Description], '') AS 'PriorityType',
+			      (E.FirstName+' '+E.LastName) AS SalesPerson,
+			      ISNULL(IM.partnumber,'') AS 'PartNumber', 
+			      ISNULL(im.ManufacturerName,'') AS 'ManufacturerName',
+			      ISNULL(IM.partnumber,'') AS 'PartNumberType', 
+				  ISNULL(im.PartDescription,'') AS 'PartDescription', 
+				  ISNULL(im.PartDescription,'') AS 'PartDescriptionType',
+			      EQ.CreatedDate, 
+				  EQ.UpdatedDate, 
+				  EQ.UpdatedBy, 
+				  EQ.CreatedBy, 
+				  ISNULL(SP.EstimatedShipDate, '0001-01-01') AS 'EstimateShipDate', 
+				  ISNULL(SP.EstimatedShipDate, '0001-01-01') AS 'EstimateShipDateType', 
+				  ISNULL(SP.PromisedDate, '0001-01-01') AS 'PromiseDate',
+			      --ISNULL(EQ.ShippedDate, '0001-01-01') as 'ShippedDate', 
+			      EQ.IsDeleted,
+			      dbo.GenearteVersionNumber(EQ.Version) AS 'VersionNumber'
+			FROM [dbo].[ExchangeSalesOrder] EQ WITH (NOLOCK)
+			INNER JOIN [dbo].[ExchangeStatus] MST WITH (NOLOCK) on EQ.StatusId = MST.ExchangeStatusId
+			INNER JOIN [dbo].[Customer] C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId
+			LEFT JOIN  [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) on EQ.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
+			LEFT JOIN  [dbo].[ExchangeQuote] EXQ WITH (NOLOCK) on EXQ.ExchangeQuoteId = EQ.ExchangeQuoteId
+			LEFT JOIN  [dbo].[ItemMaster] IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
+			LEFT JOIN  [dbo].[Employee] E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
+			LEFT JOIN  [dbo].[Priority] P WITH (NOLOCK) on EXQ.PriorityId=P.PriorityId			
+			INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-			Where (EQ.IsDeleted = @IsDeleted) and (@StatusID is null or EQ.StatusId = @StatusID)
-			AND EQ.MasterCompanyId = @MasterCompanyId
-			Group By EQ.ExchangeSalesOrderId,ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate,EXQ.QuoteExpireDate, C.CustomerId, C.Name, 
+			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+
+			WHERE EQ.MasterCompanyId = @MasterCompanyId AND (EQ.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR EQ.StatusId = @StatusID)
+			 
+			GROUP BY EQ.ExchangeSalesOrderId,ExchangeSalesOrderNumber, EXQ.ExchangeQuoteNumber, EQ.OpenDate,EXQ.QuoteExpireDate, C.CustomerId, C.Name, 
 			MST.Name, 
 			--SP.NetSales, SP.UnitCost,
 			SP.CustomerRequestDate, EQ.StatusId, EQ.CustomerReference,
 			P.Description, E.FirstName, E.LastName,
-			IM.partnumber, IM.PartDescription,
+			IM.partnumber, IM.ManufacturerName,IM.PartDescription,
 			EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SP.CustomerRequestDate, EQ.IsDeleted
 			,EQ.Version
 			),
@@ -114,65 +149,65 @@ BEGIN
 					--RequestedDateType,
 					EstimateShipDate,CustomerRequestDateType, EstimateShipDateType, PromiseDate, 
 					SalesPerson, Status, StatusId,
-					PartNumber, PartNumberType, PartDescription, PartDescriptionType,
+					PartNumber,ManufacturerName, PartNumberType, PartDescription, PartDescriptionType,
 					CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result
-			where (
-				(@GlobalFilter <>'' AND ((ExchangeQuoteNumber like '%' +@GlobalFilter+'%' ) OR 
-						(ExchangeSalesOrderNumber like '%' +@GlobalFilter+'%') OR
-						(OpenDate like '%' +@GlobalFilter+'%') OR
-						(CustomerName like '%' +@GlobalFilter+'%') OR
-						(SalesPerson like '%' +@GlobalFilter+'%') OR
-						(VersionNumber like '%'+@GlobalFilter+'%') OR
-						(CustomerReference like '%' +@GlobalFilter+'%') OR
-						(PriorityType like '%' +@GlobalFilter+'%') OR
-						(CustomerRequestDateType like '%' +@GlobalFilter+'%') OR
-						(QuoteExpireDate like '%' +@GlobalFilter+'%') OR
-						(EstimateShipDateType like '%' +@GlobalFilter+'%') OR
-						(EstimateShipDate like '%' +@GlobalFilter+'%') OR
-						(PromiseDate like '%' +@GlobalFilter+'%') OR
-						(PartNumberType like '%' +@GlobalFilter+'%') OR
-						(PartDescriptionType like '%' +@GlobalFilter+'%') OR
-						(CreatedDate like '%' +@GlobalFilter+'%') OR
-						(UpdatedDate like '%' +@GlobalFilter+'%') OR
-						(Status like '%' +@GlobalFilter+'%')
-						))
+			WHERE (
+				        (@GlobalFilter <>'' AND ((ExchangeQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR 
+						(ExchangeSalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
+						(OpenDate LIKE '%' +@GlobalFilter+'%') OR
+						(CustomerName LIKE '%' +@GlobalFilter+'%') OR
+						(SalesPerson LIKE '%' +@GlobalFilter+'%') OR
+						(VersionNumber LIKE '%'+@GlobalFilter+'%') OR
+						(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
+						(PriorityType LIKE '%' +@GlobalFilter+'%') OR
+						(CustomerRequestDateType LIKE '%' +@GlobalFilter+'%') OR
+						(QuoteExpireDate LIKE '%' +@GlobalFilter+'%') OR
+						(EstimateShipDateType LIKE '%' +@GlobalFilter+'%') OR
+						(EstimateShipDate LIKE '%' +@GlobalFilter+'%') OR
+						(PromiseDate LIKE '%' +@GlobalFilter+'%') OR
+						(PartNumberType LIKE '%' +@GlobalFilter+'%') OR
+						(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
+						(PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR
+						(CreatedDate LIKE '%' +@GlobalFilter+'%') OR
+						(UpdatedDate LIKE '%' +@GlobalFilter+'%') OR
+						(Status LIKE '%' +@GlobalFilter+'%')))
 						OR   
-						(@GlobalFilter='' AND (IsNull(@ExchangeQuoteNumber,'') ='' OR ExchangeQuoteNumber like  '%'+ @ExchangeQuoteNumber+'%') and 
-						(IsNull(@ExchangeSalesOrderNumber,'') ='' OR ExchangeSalesOrderNumber like '%'+@ExchangeSalesOrderNumber+'%') and
-						(IsNull(@CustomerName,'') ='' OR CustomerName like  '%'+@CustomerName+'%') and
-						(IsNull(@CustomerReference,'') ='' OR CustomerReference like '%'+@CustomerReference+'%') and
-						(IsNull(@PriorityType,'') ='' OR PriorityType like '%'+ @PriorityType+'%') and
-						(IsNull(@VersionNumber,'') ='' OR VersionNumber like '%'+@VersionNumber+'%') and
-						(IsNull(@SalesPerson,'') ='' OR SalesPerson like '%'+ @SalesPerson+'%') and
-						(IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) and
-						(IsNull(@QuoteExpireDate,'') ='' OR Cast(QuoteExpireDate as Date) = Cast(@QuoteExpireDate as date)) and
-						(IsNull(@CustomerRequestDateType,'') ='' OR CustomerRequestDateType like '%'+ @CustomerRequestDateType +'%') and
-						(IsNull(@EstimateShipDateType,'') ='' OR EstimateShipDateType like '%'+ @EstimateShipDateType +'%') and
+						(@GlobalFilter='' AND (ISNULL(@ExchangeQuoteNumber,'') ='' OR ExchangeQuoteNumber LIKE  '%'+ @ExchangeQuoteNumber+'%') AND 
+						(ISNULL(@ExchangeSalesOrderNumber,'') ='' OR ExchangeSalesOrderNumber LIKE '%'+@ExchangeSalesOrderNumber+'%') AND
+						(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE  '%'+@CustomerName+'%') AND
+						(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE  '%'+ @ManufacturerName +'%') AND
+						(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%'+@CustomerReference+'%') AND
+						(ISNULL(@PriorityType,'') ='' OR PriorityType LIKE '%'+ @PriorityType+'%') AND
+						(ISNULL(@VersionNumber,'') ='' OR VersionNumber LIKE '%'+@VersionNumber+'%') AND
+						(ISNULL(@SalesPerson,'') ='' OR SalesPerson LIKE '%'+ @SalesPerson+'%') AND
+						(ISNULL(@OpenDate,'') ='' OR Cast(OpenDate as Date) = Cast(@OpenDate as date)) AND
+						(ISNULL(@QuoteExpireDate,'') ='' OR Cast(QuoteExpireDate as Date) = Cast(@QuoteExpireDate as date)) and
+						(ISNULL(@CustomerRequestDateType,'') ='' OR CustomerRequestDateType LIKE '%'+ @CustomerRequestDateType +'%') AND
+						(ISNULL(@EstimateShipDateType,'') ='' OR EstimateShipDateType LIKE '%'+ @EstimateShipDateType +'%') AND
 						--(IsNull(@QuoteDate,'') ='' OR Cast(QuoteDate as Date) = Cast(@QuoteDate as date)) and
 						--(IsNull(@ShippedDate,'') ='' OR Cast(ShippedDate as Date) = Cast(@ShippedDate as date)) and
 						--(IsNull(@CustomerRequestDate,'') ='' OR Cast(CustomerRequestDate as Date) = Cast(@CustomerRequestDate as date)) and
-						(IsNull(@PromiseDate,'') ='' OR Cast(PromiseDate as Date) = Cast(@PromiseDate as date)) and
+						(ISNULL(@PromiseDate,'') ='' OR Cast(PromiseDate as Date) = Cast(@PromiseDate as date)) AND
 						--(IsNull(@EstimateShipDate,'') ='' OR Cast(EstimateShipDate as Date) = Cast(@EstimateShipDate as date)) and
-						(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%') and
-						(IsNull(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') and
-						(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%'+ @CreatedBy+'%') and
-						(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
-						(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
-						(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
-						(IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%'))
-						)
-						),
-					ResultCount AS (Select COUNT(ExchangeSalesOrderId) AS NumberOfItems FROM FinalResult)
-					SELECT ExchangeSalesOrderId,ExchangeSalesOrderNumber, ExchangeQuoteNumber,
-					VersionNumber,
-					OpenDate, CustomerId, CustomerName, CustomerReference, Priority, 
-					PriorityType,
+						(ISNULL(@PartNumberType,'') ='' OR PartNumberType LIKE '%'+@PartNumberType+'%') AND
+						(ISNULL(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') AND
+						(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND
+						(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND
+						(ISNULL(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
+						(ISNULL(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) AND
+						(ISNULL(@Status,'') ='' OR Status LIKE  '%'+@Status+'%')))),
+
+					ResultCount AS (SELECT COUNT(ExchangeSalesOrderId) AS NumberOfItems FROM FinalResult)
+					SELECT ExchangeSalesOrderId,UPPER(ExchangeSalesOrderNumber) 'ExchangeSalesOrderNumber', UPPER(ExchangeQuoteNumber) 'ExchangeQuoteNumber',
+					UPPER(VersionNumber) 'VersionNumber',
+					OpenDate, CustomerId, UPPER(CustomerName) 'CustomerName', UPPER(CustomerReference) 'CustomerReference', UPPER(Priority) 'Priority', 
+					UPPER(PriorityType) 'PriorityType',
 					--QuoteAmount, UnitCost,
 					CustomerRequestDate, CustomerRequestDateType, QuoteExpireDate, EstimateShipDate, EstimateShipDateType, PromiseDate, 
 					--ShippedDate,
-					SalesPerson, Status, StatusId,
-					PartNumber, PartNumberType, PartDescription, PartDescriptionType,
-					CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, NumberOfItems FROM FinalResult, ResultCount
+					UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId,
+					UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerName) 'ManufacturerName', UPPER(PartNumberType) 'PartNumberType', UPPER(PartDescription) 'PartDescription', UPPER(PartDescriptionType) 'PartDescriptionType',
+					CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy', NumberOfItems FROM FinalResult, ResultCount
 
 					ORDER BY  
 				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,
@@ -194,6 +229,7 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 
 		        CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,
 		        CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGEQUOTENUMBER')  THEN ExchangeQuoteNumber END DESC,
@@ -213,12 +249,13 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+				CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
 				OFFSET @RecordFrom ROWS 
 				FETCH NEXT @PageSize ROWS ONLY
 				Print @SortOrder
-	END
-	COMMIT  TRANSACTION
+	--END
+	--COMMIT  TRANSACTION
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

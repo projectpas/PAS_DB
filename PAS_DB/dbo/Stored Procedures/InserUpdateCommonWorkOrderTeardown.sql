@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2021   Vishal Suthar Created
 **************************************************************/
-CREATE PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
+Create   PROCEDURE [dbo].[InserUpdateCommonWorkOrderTeardown]
     @CommonWorkOrderTeardownId bigint = 0,
     @CommonTeardownTypeId bigint = 0,
 	@WorkOrderId bigint = 0,
@@ -145,6 +145,46 @@ BEGIN
 					LEFT JOIN dbo.Employee E WITH(NOLOCK) ON @inspectorId = E.EmployeeId
 					LEFT JOIN dbo.Employee E1 WITH(NOLOCK) ON @technicianId = E1.EmployeeId
 					WHERE WoTD.CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
+
+					Declare @CommonTeardownType varchar(250)
+
+					Select @CommonTeardownType=Name from CommonTeardownType   where CommonTeardownTypeId= @CommonTeardownTypeId
+					
+					INSERT INTO [dbo].[CommonWorkOrderTearDownAudit]
+                               ([CommonWorkOrderTearDownId]
+                               ,[CommonTeardownType]
+                               ,[Memo]
+                               ,[TechnicianDate]
+                               ,[InspectorDate]
+                               ,[ReasonName]
+                               ,[InspectorName]
+                               ,[TechnicalName]
+                               ,[CreatedBy]
+                               ,[UpdatedBy]
+                               ,[CreatedDate]
+                               ,[UpdatedDate]
+                               ,[IsActive]
+                               ,[IsDeleted]
+                               ,[MasterCompanyId]
+                               ,[IsSubWorkOrder])
+                        Select  @CommonWorkOrderTeardownId
+                               ,@CommonTeardownType
+                               ,@memo
+                               ,@technicianDate
+                               ,@inspectorDate
+                               ,ReasonName
+                               ,InspectorName
+                               ,TechnicalName
+                               ,CreatedBy
+                               ,UpdatedBy
+                               ,CreatedDate
+                               ,GETDATE()
+                               ,IsActive
+                               ,IsDeleted
+                               ,MasterCompanyId
+                               ,IsSubWorkOrder from CommonWorkOrderTearDown
+							   WHERE CommonWorkOrderTearDownId = @CommonWorkOrderTeardownId
+
 				 END
 			END
 			COMMIT  TRANSACTION

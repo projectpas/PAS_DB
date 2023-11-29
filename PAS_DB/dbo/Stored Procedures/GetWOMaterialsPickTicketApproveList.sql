@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList_New]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get Pick Ticket Details    
@@ -15,16 +14,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
-	2    06/07/2021   Hemant Saliya Updated SP for Get Proper Data
-	3    06/07/2021   Hemant Saliya Updated For Update WO Work Flow ID
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    02/22/2021   Hemant Saliya			Created
+	2    06/07/2021   Hemant Saliya			Updated SP for Get Proper Data
+	3    06/07/2021   Hemant Saliya			Updated For Update WO Work Flow ID
+	4    08/11/2023	  Devendra Shekh		changes for ReadyToPick
      
- EXECUTE sp_GetPickTicketApproveList_New 323
+ EXECUTE GetWOMaterialsPickTicketApproveList 823, 828
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetWOMaterialsPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[GetWOMaterialsPickTicketApproveList]
 @workOrderId BIGINT,
 @workflowWorkOrderId BIGINT
 AS
@@ -36,12 +36,14 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN 
 				SELECT WOMS.* INTO #WOMStockline FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId WHERE WOM.WorkOrderId = @workOrderId AND WOM.WorkFlowWorkOrderId = @workflowWorkOrderId
-				
+				SELECT WOMS.* INTO #WOMStocklineKIT FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId WHERE WOM.WorkOrderId = @workOrderId AND WOM.WorkFlowWorkOrderId = @workflowWorkOrderId
+
 				SELECT 
 					wom.WorkOrderMaterialsId as OrderPartId, 
 					wom.WorkOrderId as referenceId, 
 					imt.PartNumber, 
 					imt.PartDescription,
+					imt.ManufacturerName as Manufacturer,
 					wom.Quantity as Qty,
 					wo.WorkOrderNum as OrderNumber, 
 					''  as OrderQuoteNumber,
@@ -50,19 +52,58 @@ SET NOCOUNT ON
 					cr.[Name] as CustomerName, 
 					cr.CustomerCode,
 					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStockline wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId) AS QuantityAvailable,
-					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
-					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId) END AS QtyToShip,
+					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
+					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0) END AS QtyToShip,
 
-					(ISNULL(wom.Quantity, 0) - ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId), 0)) AS QtyToPick,
+					(ISNULL(wom.Quantity, 0) - ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0), 0)) AS QtyToPick,
 
-					CASE WHEN ISNULL(wom.Quantity, 0) = ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId), 0) THEN 'Fulfilled'
+					CASE WHEN ISNULL(wom.Quantity, 0) = ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0), 0) THEN 'Fulfilled'
 					ELSE 'Fullfillng' END as [Status],
 
 					(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
-					+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)) 
-					- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId),0))  
-					AS ReadyToPick
+					 + ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0)) 
+					- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) 
+					--+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) 
+					--FROM #WOMStockline wmsl WHERE wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId),0) 
+					FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND ISNULL(wopt.IsKitType, 0) = 0),0))  
+					AS ReadyToPick,
+					0 AS IsKitType
 				FROM dbo.WorkOrderMaterials wom WITH (NOLOCK)
+					INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
+					INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
+					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
+				WHERE wom.WorkOrderId=@workOrderId AND wom.WorkFlowWorkOrderId = @workflowWorkOrderId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
+
+				UNION ALL
+				
+				SELECT 
+					wom.WorkOrderMaterialsKitId as OrderPartId, 
+					wom.WorkOrderId as referenceId, 
+					imt.PartNumber, 
+					imt.PartDescription,
+					imt.ManufacturerName as Manufacturer,
+					wom.Quantity as Qty,
+					wo.WorkOrderNum as OrderNumber, 
+					''  as OrderQuoteNumber,
+					wom.ItemMasterId, 
+					wom.ConditionCodeId AS ConditionId,
+					cr.[Name] as CustomerName, 
+					cr.CustomerCode,
+					(SELECT SUM(ISNULL(sl.QuantityAvailable, 0)) FROM #WOMStocklineKIT wmsl JOIN dbo.StockLine sl WITH (NOLOCK) ON wmsl.StockLineId = sl.StockLineId WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId) AS QuantityAvailable,
+					CASE WHEN ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1), 0) = 0 THEN ISNULL(wom.Quantity, 0) ELSE
+					(SELECT SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1) END AS QtyToShip,
+
+					(ISNULL(wom.Quantity, 0) - ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1), 0)) AS QtyToPick,
+
+					CASE WHEN ISNULL(wom.Quantity, 0) = ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1), 0) THEN 'Fulfilled'
+					ELSE 'Fullfillng' END as [Status],
+
+					(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM #WOMStocklineKIT wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0) 
+					+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM #WOMStocklineKIT wmsl WHERE wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId),0)) 
+					- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND ISNULL(wopt.IsKitType, 0) = 1),0))  
+					AS ReadyToPick,
+					1 AS IsKitType
+				FROM dbo.WorkOrderMaterialsKit wom WITH (NOLOCK)
 					INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 					INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId

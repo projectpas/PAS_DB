@@ -1,8 +1,7 @@
 ﻿
-------------------------------------------------------------------------------------------------------------------------------
 
---exec UpdateStocklineDraftDetail 251
-CREATE  Procedure [dbo].[UpdateStocklineDraftDetail]
+-- EXEC [dbo].[UpdateStocklineDraftDetail] 251
+CREATE    Procedure [dbo].[UpdateStocklineDraftDetail]
 @PurchaseOrderId  bigint
 AS
 BEGIN
@@ -118,47 +117,46 @@ BEGIN
 	    IsDER = IM.IsDER,
 	    OEM = IM.IsOEM,
 	    WorkOrderId = POP.WorkOrderId,
-	    --TaggedByName = (ISNULL(Emp.FirstName,'')+' '+ISNULL(Emp.LastName,'')),
+		SubWorkOrderId = POP.SubWorkOrderId,
+		SalesOrderId = POP.SalesOrderId,
+		ExchangeSalesOrderId = POP.ExchangeSalesOrderId,
 	    UnitOfMeasure = UM.shortname,
-		TagType = TT.[Name]
-	    
-	    FROM dbo.StocklineDraft SD WITH (NOLOCK)
-	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
-	    --LEFT JOIN #StocklineDraftMSDATA PMS WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
-	    LEFT JOIN dbo.Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
-	    LEFT JOIN dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
-	    LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId	
-	    LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
-	    LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping NHA WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
-	    LEFT JOIN dbo.Warehouse WH WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
-	    LEFT JOIN dbo.[Location] LC WITH (NOLOCK) ON LC.LocationId = SD.LocationId
-	    LEFT JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = SD.GlAccountId
-	    LEFT JOIN dbo.Asset    AST WITH (NOLOCK) ON AST.AssetId = SD.AssetId
-	    LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId = SD.LegalEntityId
-	    LEFT JOIN dbo.Shelf SF WITH (NOLOCK) ON SF.ShelfId = SD.ShelfId
-	    LEFT JOIN dbo.Bin B WITH (NOLOCK) ON B.BinId = SD.BinId
-	    LEFT JOIN dbo.[Site] S WITH (NOLOCK) ON S.SiteId = SD.SiteId
-	    LEFT JOIN dbo.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
-	    LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = POP.WorkOrderId
-	    LEFT JOIN dbo.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = SD.ObtainFrom
-	    LEFT JOIN dbo.Vendor VEN WITH (NOLOCK) ON VEN.VendorId = SD.ObtainFrom
-	    LEFT JOIN dbo.LegalEntity COM WITH (NOLOCK) ON COM.LegalEntityId = ObtainFrom 
-        LEFT JOIN dbo.Customer CUSTON  WITH (NOLOCK) ON CUSTON.CustomerId = SD.[Owner]
-        LEFT JOIN dbo.Customer CUSTTTN  WITH (NOLOCK) ON CUSTTTN.CustomerId = SD.TraceableTo        
-        LEFT JOIN dbo.Vendor VENON  WITH (NOLOCK) ON VENON.VendorId = SD.[Owner]
-        LEFT JOIN dbo.Vendor VENTTN  WITH (NOLOCK) ON VENTTN.VendorId = SD.TraceableTo 
-        LEFT JOIN dbo.LegalEntity COMON  WITH (NOLOCK) ON COMON.LegalEntityId = [Owner]
-        LEFT JOIN dbo.LegalEntity COMTTN  WITH (NOLOCK) ON COMTTN.LegalEntityId = TraceableTo
-	    LEFT JOIN dbo.Customer TAGCUST WITH (NOLOCK) ON TAGCUST.CustomerId = SD.TaggedBy
-	    LEFT JOIN dbo.Vendor TAGVEN WITH (NOLOCK) ON TAGVEN.VendorId = SD.TaggedBy
-	    LEFT JOIN dbo.LegalEntity TAGCOM WITH (NOLOCK) ON TAGCOM.LegalEntityId = SD.TaggedBy	    
-	    LEFT JOIN dbo.Customer CERCUST WITH (NOLOCK) ON CERCUST.CustomerId = SD.CertifiedById
-	    LEFT JOIN dbo.Vendor CERVEN WITH (NOLOCK) ON CERVEN.VendorId = SD.CertifiedById
-	    LEFT JOIN dbo.LegalEntity CERCOM WITH (NOLOCK) ON CERCOM.LegalEntityId = SD.CertifiedById	    
-	    LEFT JOIN dbo.PurchaseOrder Po WITH (NOLOCK) ON Po.purchaseorderid =  SD.PurchaseOrderID
-	    --LEFT JOIN dbo.Employee Emp  ON Emp.EmployeeId = SD.TaggedBy
-	    LEFT JOIN dbo.UnitOfMeasure  UM WITH (NOLOCK) ON UM.unitOfMeasureId = SD.UnitOfMeasureId
-		LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId		
+		TagType = TT.[Name]	    
+	    FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)
+	    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
+	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
+	    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
+	    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId	
+	    LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
+	    LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] NHA WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
+	    LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
+	    LEFT JOIN [dbo].[Location] LC WITH (NOLOCK) ON LC.LocationId = SD.LocationId
+	    LEFT JOIN [dbo].[GLAccount] GLA WITH (NOLOCK) ON GLA.GLAccountId = SD.GlAccountId
+	    LEFT JOIN [dbo].[Asset]    AST WITH (NOLOCK) ON AST.AssetId = SD.AssetId
+	    LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON LE.LegalEntityId = SD.LegalEntityId
+	    LEFT JOIN [dbo].[Shelf] SF WITH (NOLOCK) ON SF.ShelfId = SD.ShelfId
+	    LEFT JOIN [dbo].[Bin] B WITH (NOLOCK) ON B.BinId = SD.BinId
+	    LEFT JOIN [dbo].[Site] S WITH (NOLOCK) ON S.SiteId = SD.SiteId
+	    LEFT JOIN [dbo].[ShippingVia] SV WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
+	    LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = POP.WorkOrderId
+	    LEFT JOIN [dbo].[Customer] CUST WITH (NOLOCK) ON CUST.CustomerId = SD.ObtainFrom
+	    LEFT JOIN [dbo].[Vendor] VEN WITH (NOLOCK) ON VEN.VendorId = SD.ObtainFrom
+	    LEFT JOIN [dbo].[LegalEntity] COM WITH (NOLOCK) ON COM.LegalEntityId = ObtainFrom 
+        LEFT JOIN [dbo].[Customer] CUSTON  WITH (NOLOCK) ON CUSTON.CustomerId = SD.[Owner]
+        LEFT JOIN [dbo].[Customer] CUSTTTN  WITH (NOLOCK) ON CUSTTTN.CustomerId = SD.TraceableTo        
+        LEFT JOIN [dbo].[Vendor] VENON  WITH (NOLOCK) ON VENON.VendorId = SD.[Owner]
+        LEFT JOIN [dbo].[Vendor] VENTTN  WITH (NOLOCK) ON VENTTN.VendorId = SD.TraceableTo 
+        LEFT JOIN [dbo].[LegalEntity] COMON  WITH (NOLOCK) ON COMON.LegalEntityId = [Owner]
+        LEFT JOIN [dbo].[LegalEntity] COMTTN  WITH (NOLOCK) ON COMTTN.LegalEntityId = TraceableTo
+	    LEFT JOIN [dbo].[Customer] TAGCUST WITH (NOLOCK) ON TAGCUST.CustomerId = SD.TaggedBy
+	    LEFT JOIN [dbo].[Vendor] TAGVEN WITH (NOLOCK) ON TAGVEN.VendorId = SD.TaggedBy
+	    LEFT JOIN [dbo].[LegalEntity] TAGCOM WITH (NOLOCK) ON TAGCOM.LegalEntityId = SD.TaggedBy	    
+	    LEFT JOIN [dbo].[Customer] CERCUST WITH (NOLOCK) ON CERCUST.CustomerId = SD.CertifiedById
+	    LEFT JOIN [dbo].[Vendor] CERVEN WITH (NOLOCK) ON CERVEN.VendorId = SD.CertifiedById
+	    LEFT JOIN [dbo].[LegalEntity] CERCOM WITH (NOLOCK) ON CERCOM.LegalEntityId = SD.CertifiedById	    
+	    LEFT JOIN [dbo].[PurchaseOrder] Po WITH (NOLOCK) ON Po.purchaseorderid =  SD.PurchaseOrderID	   
+	    LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = SD.UnitOfMeasureId
+		LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId		
 	    WHERE SD.PurchaseOrderID = @PurchaseOrderId
 	    
 		--UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(COUNT(StockLineId),0) from dbo.Stockline WITH (NOLOCK)

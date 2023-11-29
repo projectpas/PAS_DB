@@ -1,0 +1,5 @@
+﻿CREATE TABLE [dbo].[WOS_TO_IMPORT] (
+    [QWOId] SMALLINT NOT NULL,
+    [WOId]  SMALLINT NOT NULL
+);
+

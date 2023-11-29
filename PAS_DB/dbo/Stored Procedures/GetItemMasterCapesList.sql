@@ -1,5 +1,5 @@
 ﻿
-CREATE PROCEDURE [dbo].[GetItemMasterCapesList]
+CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -8,6 +8,7 @@ CREATE PROCEDURE [dbo].[GetItemMasterCapesList]
 @capabilityType varchar(50) = NULL,
 @partNo varchar(50) = NULL,
 @pnDiscription varchar(250) = NULL,
+@ManufacturerName varchar(250) = NULL,
 @level1 varchar(250) = NULL,
 @level2 varchar(250) = NULL,
 @level3 varchar(250) = NULL,
@@ -56,6 +57,7 @@ BEGIN
 			SELECT DISTINCT imc.ItemMasterCapesId,
 				(ISNULL(UPPER(imc.[PartNumber]),'')) 'partNo',
 				(ISNULL(UPPER(imc.[PartDescription]),'')) 'pnDiscription',
+				(ISNULL(UPPER(im.[ManufacturerName]),'')) 'ManufacturerName',
 				(ISNULL(UPPER(imc.[CapabilityType]),'')) 'capabilityType',
 				imc.CapabilityTypeId AS capabilityTypeId,
 				--imc.IsVerified AS isVerified,
@@ -81,6 +83,7 @@ BEGIN
 				MSD.LastMSLevel LastMSLevel,
 				MSD.AllMSlevels AllMSlevels
 			FROM dbo.ItemMasterCapes imc WITH (NOLOCK)
+					INNER JOIN dbo.ItemMaster im WITH (NOLOCK) on imc.ItemMasterId = im.ItemMasterId
 					INNER JOIN dbo.ItemMasterManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleId AND MSD.ReferenceID = imc.ItemMasterCapesId
 	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON imc.ManagementStructureId = RMS.EntityStructureId
 	                INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
@@ -94,7 +97,8 @@ BEGIN
 				SELECT * INTO #TempResult FROM  Result
 				WHERE ((@GlobalFilter <>'' AND ((capabilityType LIKE '%' +@GlobalFilter+'%') OR
 			        (partNo LIKE '%' +@GlobalFilter+'%') OR	
-					(pnDiscription LIKE '%' +@GlobalFilter+'%') OR					
+					(pnDiscription LIKE '%' +@GlobalFilter+'%') OR	
+					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR			
 					(verifiedBy LIKE '%' +@GlobalFilter+'%') OR						
 					(memo LIKE '%' +@GlobalFilter+'%') OR	
 					(level1 LIKE '%' +@GlobalFilter+'%') OR	
@@ -108,6 +112,7 @@ BEGIN
 					(@GlobalFilter='' AND (ISNULL(@capabilityType,'') ='' OR capabilityType LIKE '%' + @capabilityType+'%') AND
 					(ISNULL(@partNo,'') ='' OR partNo LIKE '%' + @partNo + '%') AND
 					(ISNULL(@pnDiscription,'') ='' OR pnDiscription LIKE '%' + @pnDiscription + '%') AND
+					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@verifiedBy,'') ='' OR verifiedBy LIKE '%' + @verifiedBy + '%') AND
 					(ISNULL(@memo,'') ='' OR memo LIKE '%' + @memo + '%') AND						
 					(ISNULL(@level1,'') ='' OR level1 LIKE '%' + @level1 + '%') AND
@@ -131,6 +136,8 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 AND @SortColumn='partNo')  THEN partNo END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='pnDiscription')  THEN pnDiscription END ASC,
 				   CASE WHEN (@SortOrder=-1 AND @SortColumn='pnDiscription')  THEN pnDiscription END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
+				   CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='level1')  THEN level1 END ASC,
 				   CASE WHEN (@SortOrder=-1 AND @SortColumn='level1')  THEN level1 END DESC,			
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='level2')  THEN level2 END ASC,

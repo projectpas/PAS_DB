@@ -1,20 +1,21 @@
-﻿--EXEC GetBankDetailsByLegalEntity 1
-CREATE PROCEDURE [dbo].[GetBankDetailsByLegalEntity]
+﻿
+-- EXEC GetBankDetailsByLegalEntity 1
+CREATE     PROCEDURE [dbo].[GetBankDetailsByLegalEntity]
 @LegalEntityId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			select LegalEntityBankingLockBoxId as 'BankingId',BankName,BankAccountNumber as 'BankAccountNumber','Lockbox' as 'Type',GLAccountId from dbo.LegalEntityBankingLockBox WITH(NOLOCK)
-			where LegalEntityId=@LegalEntityId
+			SELECT LegalEntityBankingLockBoxId AS 'BankingId',BankName,BankAccountNumber AS 'BankAccountNumber','Operating Account' AS 'Type',GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.LegalEntityBankingLockBox WITH(NOLOCK)
+			WHERE LegalEntityId=@LegalEntityId AND (AccountTypeId=1 OR AccountTypeId=3)
 			UNION ALL
-			select iwp.InternationalWirePaymentId as 'BankingId',BankName,iwp.BeneficiaryBankAccount as 'BankAccountNumber','WirePayment' as 'Type',iwp.GLAccountId from dbo.InternationalWirePayment iwp WITH(NOLOCK)
-			inner join dbo.LegalEntityInternationalWireBanking leiwp WITH(NOLOCK) on iwp.InternationalWirePaymentId = leiwp.InternationalWirePaymentId
-			where leiwp.LegalEntityId=@LegalEntityId
+			SELECT iwp.InternationalWirePaymentId AS 'BankingId',BankName,iwp.BeneficiaryBankAccount AS 'BankAccountNumber','WirePayment' AS 'Type',iwp.GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.InternationalWirePayment iwp WITH(NOLOCK)
+			INNER JOIN dbo.LegalEntityInternationalWireBanking leiwp WITH(NOLOCK) ON iwp.InternationalWirePaymentId = leiwp.InternationalWirePaymentId
+			WHERE leiwp.LegalEntityId=@LegalEntityId
 			UNION
-			select ACHId as 'BankingId',BankName,AccountNumber as 'BankAccountNumber','ACH' as 'Type',GLAccountId from dbo.ACH WITH(NOLOCK)
-			where LegalEntityId=@LegalEntityId
+			SELECT ACHId AS 'BankingId',BankName,AccountNumber AS 'BankAccountNumber','ACH' AS 'Type',GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.ACH WITH(NOLOCK)
+			WHERE LegalEntityId=@LegalEntityId
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

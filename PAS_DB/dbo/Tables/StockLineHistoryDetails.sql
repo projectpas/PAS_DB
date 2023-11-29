@@ -24,6 +24,10 @@
     [extstocklineId]     BIGINT         NULL,
     [InventoryCost]      DECIMAL (9, 2) NULL,
     [AltEquiPartNumber]  VARCHAR (250)  NULL,
+    [VendorRMAId]        BIGINT         NULL,
+    [RMANumber]          VARCHAR (50)   NULL,
     CONSTRAINT [PK_StockLineHistoryDetails] PRIMARY KEY CLUSTERED ([StocklineHistoryId] ASC)
 );
+
+
 

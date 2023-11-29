@@ -19,7 +19,7 @@
     [ItemMasterId]          BIGINT          NOT NULL,
     [PartNumber]            VARCHAR (256)   NULL,
     [Order]                 INT             NULL,
-    [PartDescription]       VARCHAR (200)   NULL,
+    [PartDescription]       VARCHAR (MAX)   NULL,
     [WFParentId]            BIGINT          NULL,
     [IsVersionIncrease]     BIT             NULL,
     CONSTRAINT [PK_WorkflowMeasurement] PRIMARY KEY CLUSTERED ([WorkflowMeasurementId] ASC),
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_WorkflowMeasurement_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkflowMeasurement_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

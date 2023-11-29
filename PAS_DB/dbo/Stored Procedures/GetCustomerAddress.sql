@@ -27,16 +27,16 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	SET NOCOUNT ON  
 	BEGIN TRY
-		SELECT	ad.AddressId,
-				ad.Line1 AS Address1,
-				ad.Line2 AS Address2,
-				ad.Line3 AS Address3,
-				ad.City,
-				ad.StateOrProvince,
+		SELECT	UPPER(ad.AddressId) AS AddressId,
+				UPPER(ad.Line1) AS Address1,
+				UPPER(ad.Line2) AS Address2,
+				UPPER(ad.Line3) AS Address3,
+				UPPER(ad.City) AS City,
+				UPPER(ad.StateOrProvince) StateOrProvince,
 				ad.PostalCode,
 				ad.CountryId,
-			    ct.countries_name 'Country',
-				c.Name AS 'SiteName'
+			    UPPER(ct.countries_name) 'Country',
+				UPPER(c.Name) AS 'SiteName'
 		  FROM dbo.Customer c WITH (NOLOCK) 
 	     INNER JOIN dbo.Address ad WITH (NOLOCK)  ON c.AddressId = ad.AddressId
 		 LEFT JOIN dbo.Countries ct WITH (NOLOCK)  ON ct.countries_id = ad.CountryId

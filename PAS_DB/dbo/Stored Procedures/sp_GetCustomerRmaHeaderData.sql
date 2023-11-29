@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    04/18/2022   Subhash Saliya Created
+    1    04/18/2022   Subhash Saliya	 Created
+    2	 19/06/2023   Ayesha Sultana	 ALtered - get new column ReceiverNum
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
@@ -93,6 +94,7 @@ BEGIN
 			  ,@AddressCount As AddressCount
 			  ,@PartCount As PartCount
 			  ,CRM.PDFPath
+			  ,CRM.[ReceiverNum]
 		  FROM [dbo].[CustomerRMAHeader] CRM  WITH (NOLOCK) 
 		  LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON CRM.MasterCompanyId = RMAC.MasterCompanyId
 		  WHERE  RMAHeaderId =@RMAHeaderId AND ISNULL(CRM.IsDeleted,0)=0

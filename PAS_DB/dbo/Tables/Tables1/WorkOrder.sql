@@ -31,6 +31,7 @@
     [ReasonId]                BIGINT          NULL,
     [Reason]                  VARCHAR (500)   NULL,
     [CreditTermId]            INT             NULL,
+    [IsManualForm]            BIT             NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -43,6 +44,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -86,7 +89,7 @@ BEGIN
 
 END
 GO
-CReate TRIGGER [dbo].[Trg_WorkOrderAudit]
+CREATE     TRIGGER [dbo].[Trg_WorkOrderAudit]
    ON  [dbo].[WorkOrder]
    AFTER INSERT,UPDATE
 AS 
@@ -102,15 +105,9 @@ BEGIN
 
 	SELECT @Status=Status FROM WorkOrderStatus WHERE Id=@StatusId
 
-	--SELECT @CustomerName=Name FROM Customer WHERE CustomerId=@CustomerId
-
 	SELECT @ContactName=C.FirstName+' '+C.LastName,@ContactPhone=C.WorkPhone+' '+c.WorkPhoneExtn FROM CustomerContact CC
 	INNER JOIN Contact C ON CC.ContactId=C.ContactId
 	WHERE CustomerContactId=@ContactId
-
-	--SELECT @CreditTerms= CT.Name,@CreditLimit=CF.CreditLimit FROM CustomerFinancial CF
-	--JOIN CreditTerms CT ON CF.CreditTermsId=CT.CreditTermsId
-	--WHERE CustomerId=@CustomerId
 
 	SELECT @SalesPerson=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@SalesPersonId
 	SELECT @CSR=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@CSRId
@@ -121,7 +118,7 @@ BEGIN
     SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
 	MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
 	Memo, Notes, CustomerContactId, @Status, CustomerName,
-	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId
+	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId,IsManualForm
 	FROM INSERTED 
 
 	SET NOCOUNT ON;

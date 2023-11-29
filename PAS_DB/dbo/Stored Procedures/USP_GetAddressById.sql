@@ -22,12 +22,13 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    12/28/2020   Deep Patel	Changes relaed to AllAddress Common table.
+    1    12/28/2020   Deep Patel	Changes related to AllAddress Common table.
+	2    06/29/2023   Amit Ghediya	Changes related to get Vendor Address of VendorRMA Bill/Ship Address.
      
  EXECUTE [USP_GetAddressById] 175
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetAddressById]
+CREATE       PROCEDURE [dbo].[USP_GetAddressById]
 (    
 @Id BIGINT,--Id is primaryKey value from respective module 
 @AddressType NVARCHAR(10),
@@ -41,6 +42,9 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION  
+		
+		DECLARE @vendorID BIGINT;
+
 		IF(@AddressType = 'PO')
 		BEGIN
 		SELECT PO.PurchaseOrderId,
@@ -592,6 +596,32 @@ BEGIN
 			LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleID
 			LEFT JOIN AllShipVia RMASV WITH (NOLOCK) ON RMASV.ReferenceId = CRMA.RMAHeaderId and RMASV.ModuleId = @ModuleID
 		WHERE CRMA.RMAHeaderId = @Id
+		END
+
+		ELSE IF(@AddressType = 'VendorRMA')
+		BEGIN
+			--Get Vendor id get from vendorrma table.
+			SELECT @vendorID = VendorId FROM VendorRMA WITH (NOLOCK) WHERE VendorRMAId = @Id;
+
+			SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
+				   VSA.AddressId AS ShipAddressId,VSA.SiteName AS ShipSiteName,
+				   SAD.Line1 AS ShipLine1,SAD.Line2 AS ShipLine2,SAD.Line3 AS ShipLine3,SAD.City AS ShipCity,SAD.StateOrProvince AS ShipStateOrProvince,SAD.PostalCode AS ShipPostalCode,
+				   SCO.countries_name AS Shipcountries_name,SCO.nice_name AS Shipnice_name,SCO.countries_isd_code AS Shipcountries_isd_code,SCO.countries_iso3 AS Shipcountries_iso3,	  
+				   VBA.AddressId AS BillAddressId,
+				   VBA.SiteName AS BillSiteName,
+				   BAD.Line1 AS BillLine1,BAD.Line2 AS BillLine2,BAD.Line3 AS BillLine3,BAD.City AS BillCity,BAD.StateOrProvince AS BillStateOrProvince,BAD.PostalCode AS BillPostalCode,
+				   BCO.countries_id AS countries_id,BCO.countries_name AS Billcountries_name,BCO.nice_name AS Billnice_name,BCO.countries_isd_code AS Billcountries_isd_code,BCO.countries_iso3 AS Billcountries_iso3,
+				   SV.ShippingViaId, SV.Name,VS.ShippingAccountinfo,Vs.ShippingId,VS.IsPrimary
+		FROM Vendor V WITH (NOLOCK)
+				LEFT JOIN VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
+				LEFT JOIN ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
+				LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 AND VSA.IsPrimary = 1
+				LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 AND VBA.IsPrimary = 1
+				LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+				LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+				LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+				LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+			WHERE V.VendorId = @vendorID;
 		END
 
 

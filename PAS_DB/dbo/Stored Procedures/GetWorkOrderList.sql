@@ -1,45 +1,65 @@
-﻿CREATE   PROCEDURE [dbo].[GetWorkOrderList]  
+﻿/*************************************************************           
+ ** File:   [GetWorkOrderList]           
+ ** Author:   Hemant Saliya
+ ** Description: This stored procedure is used to get work order List for both MPN and WO View
+ ** Purpose:         
+ ** Date:   
+          
+ ** PARAMETERS:          
+
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/28/2023   Vishal Suthar Added history
+    2    08/01/2023   Vishal Suthar Converting all the data in Upper case which was creating an issue in download
+     
+**************************************************************/
+CREATE   PROCEDURE [dbo].[GetWorkOrderList]
  -- Add the parameters for the stored procedure here  
- @PageNumber int,  
- @PageSize int,  
- @SortColumn varchar(50)=null,  
- @SortOrder int,  
- @StatusID int,  
- @GlobalFilter varchar(50) = '',  
- @ViewType varchar(50) = null,  
- @WorkOrderNum varchar(50)=null,  
- @PartNumber varchar(50)=null,  
- @PartDescription varchar(50)=null,  
- @WorkScope varchar(50)=null,  
- @Priority varchar(50)=null,  
- @CustomerName varchar(50)=null,  
- @CustomerAffiliation varchar(50)=null,  
- @Stage varchar(200)=null,  
- @WorkOrderStatus varchar(50)=null,      
- @OpenDate datetime=null,  
- @CustReqDate datetime=null,  
- @PromiseDate datetime=null,  
- @EstShipDate datetime=null,  
- @ShipDate datetime=null,  
- @CreatedDate datetime=null,  
- @UpdatedDate  datetime=null,  
- @CreatedBy  varchar(50)=null,  
- @UpdatedBy  varchar(50)=null,  
- @IsDeleted bit= null,  
- @MasterCompanyId varchar(200)=null,  
- @EmployeeId varchar(200)=null,   
- @WorkOrderStatusType varchar(200)=null,  
- @WorkOrderType varchar(50)=null,  
- @TechName  varchar(50)=null,  
- @TechStation  varchar(50)=null,  
- @SerialNumber  varchar(50)=null,  
- @CustRef varchar(50)=null,
- @MSModuleID INT=12 
+	 @PageNumber int,  
+	 @PageSize int,  
+	 @SortColumn varchar(50)=null,  
+	 @SortOrder int,  
+	 @StatusID int,  
+	 @GlobalFilter varchar(50) = '',  
+	 @ViewType varchar(50) = null,  
+	 @WorkOrderNum varchar(50)=null,  
+	 @PartNumber varchar(50)=null,  
+	 @PartDescription varchar(50)=null,  
+	 @WorkScope varchar(50)=null,  
+	 @Priority varchar(50)=null,  
+	 @CustomerName varchar(50)=null,  
+	 @CustomerAffiliation varchar(50)=null,  
+	 @Stage varchar(200)=null,  
+	 @WorkOrderStatus varchar(50)=null,      
+	 @OpenDate datetime=null,  
+	 @CustReqDate datetime=null,  
+	 @PromiseDate datetime=null,  
+	 @EstShipDate datetime=null,  
+	 @ShipDate datetime=null,  
+	 @CreatedDate datetime=null,  
+	 @UpdatedDate  datetime=null,  
+	 @CreatedBy  varchar(50)=null,  
+	 @UpdatedBy  varchar(50)=null,  
+	 @IsDeleted bit= null,  
+	 @MasterCompanyId varchar(200)=null,  
+	 @EmployeeId varchar(200)=null,   
+	 @WorkOrderStatusType varchar(200)=null,  
+	 @WorkOrderType varchar(50)=null,  
+	 @TechName  varchar(50)=null,  
+	 @TechStation  varchar(50)=null,  
+	 @SerialNumber  varchar(50)=null,  
+	 @CustRef varchar(50)=null,
+	 @MSModuleID INT=12,
+	 @ManufacturerName varchar(50)=null
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
-  
  BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN   
@@ -50,50 +70,50 @@ BEGIN
   
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
-    DROP TABLE #TempResult   
+		DROP TABLE #TempResult   
     END  
   
     IF OBJECT_ID(N'tempdb..#TempResult1') IS NOT NULL  
     BEGIN  
-    DROP TABLE #TempResult1  
+		DROP TABLE #TempResult1  
     END  
   
     SET @RecordFrom = (@PageNumber-1)*@PageSize;  
     IF @IsDeleted is null  
     BEGIN  
-     Set @IsDeleted=0  
+		SET @IsDeleted = 0;
     END    
   
     IF (@ViewType IS NULL OR @ViewType = '')  
     BEGIN  
-     Set @ViewType= 'mpn'  
+		SET @ViewType= 'mpn';
     END   
   
     IF (@GlobalFilter IS NULL OR @GlobalFilter = '')  
     BEGIN  
-     Set @GlobalFilter= ''  
+		SET @GlobalFilter= '';
     END   
   
-    IF @SortColumn is null  
+    IF @SortColumn IS NULL
     BEGIN  
-     Set @SortColumn=Upper('CreatedDate')  
-    END   
-    Else  
+		SET @SortColumn = Upper('CreatedDate')
+    END
+    ELSE
     BEGIN   
-     Set @SortColumn=Upper(@SortColumn)  
+		SET @SortColumn=Upper(@SortColumn)  
     END  
   
-    If @StatusID = 0  
+    IF @StatusID = 0  
     BEGIN   
-     Set @IsActive = 0  
+		SET @IsActive = 0  
     END   
     ELSE IF @StatusID = 1  
     BEGIN   
-     Set @IsActive = 1  
+		SET @IsActive = 1  
     END   
     ELSE IF @StatusID = 2  
     BEGIN   
-     Set @IsActive=null  
+		SET @IsActive = null  
     END   
   
     IF COALESCE(@WorkOrderStatus, '') <> ''    
@@ -117,27 +137,36 @@ BEGIN
       END  
     END  
   
+	DECLARE @EmpLegalEntiyId BIGINT = 0;
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+	WHERE LE.LegalEntityId = @EmpLegalEntiyId;
+
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
       ;WITH Result AS(  
        SELECT   
-        WO.WorkOrderNum,   
-        WO.WorkOrderId,  
-        WO.CustomerId,  
-        IM.partnumber AS PartNos,  
-        IM.partnumber AS PartNoType,  
-        IM.PartDescription AS PNDescription,  
-        IM.PartDescription AS PNDescriptionType,  
-        WPN.WorkScope,  
-        WPN.WorkScope AS WorkScopeType,  
-        PR.Description As Priority,    
-        PR.Description As PriorityType,   
-        WO.CustomerName,  
-        WO.CustomerType,       
-        WOSG.Code + '-' + WOSG.Stage AS  Stage,  
-        WOSG.Code + '-' + WOSG.Stage AS  StageType,  
-        WOS.Description AS WorkOrderStatus,  
-        WOS.Description AS WorkOrderStatusType,  
+        UPPER(WO.WorkOrderNum) AS WorkOrderNum,
+        UPPER(WO.WorkOrderId) AS WorkOrderId,
+        UPPER(WO.CustomerId) AS CustomerId,
+        UPPER(IM.partnumber) AS PartNos,
+        UPPER(IM.partnumber) AS PartNoType,  
+        UPPER(IM.PartDescription) AS PNDescription,  
+        UPPER(IM.PartDescription) AS PNDescriptionType,
+		UPPER(IM.ManufacturerName) AS ManufacturerName,  
+        UPPER(IM.ManufacturerName) AS ManufacturerNameType,  
+        UPPER(WPN.WorkScope) AS WorkScope,
+        UPPER(WPN.WorkScope) AS WorkScopeType,
+        UPPER(PR.Description) AS Priority,
+        UPPER(PR.Description) As PriorityType,
+        UPPER(WO.CustomerName) AS CustomerName,
+        UPPER(WO.CustomerType) AS CustomerType,
+        UPPER(WOSG.Code + '-' + WOSG.Stage) AS Stage,  
+        UPPER(WOSG.Code + '-' + WOSG.Stage) AS StageType,  
+        UPPER(WOS.Description) AS WorkOrderStatus,  
+        UPPER(WOS.Description) AS WorkOrderStatusType,  
         WO.OpenDate,  
         WPN.CustomerRequestDate,  
         WPN.CustomerRequestDate AS CustomerRequestDateType,  
@@ -151,17 +180,17 @@ BEGIN
         --(Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc) AS EstimatedCompletionDateType,  
         WO.CreatedDate,  
         WO.UpdatedDate,  
-        WO.CreatedBy,  
-        WO.UpdatedBy,  
+        UPPER(WO.CreatedBy) AS CreatedBy,
+        UPPER(WO.UpdatedBy) AS UpdatedBy,
         WO.IsActive,  
         WO.IsDeleted,  
         WPN.WorkOrderStatusId,  
-        WT.Description AS WorkOrderType,  
-        EMP.FirstName + ' ' + EMP.LastName AS TechName,  
-        EMPS.StationName AS TechStation,  
-        STL.SerialNumber,  
-        WPN.CustomerReference,  
-        WPN.CustomerReference AS CustomerReferenceType  
+        UPPER(WT.Description) AS WorkOrderType,
+        UPPER(EMP.FirstName + ' ' + EMP.LastName) AS TechName,
+        UPPER(EMPS.StationName) AS TechStation,
+        UPPER(STL.SerialNumber) AS SerialNumber,
+        UPPER(WPN.CustomerReference) AS CustomerReference,
+        UPPER(WPN.CustomerReference) AS CustomerReferenceType
        FROM WorkOrder WO WITH(NOLOCK)  
         JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
         JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
@@ -182,7 +211,8 @@ BEGIN
         (WorkOrderNum like '%' +@GlobalFilter+'%') OR  
         (WorkOrderType like '%' +@GlobalFilter+'%') OR  
         (PartNos like '%' +@GlobalFilter+'%') OR  
-        (PNDescription like '%' +@GlobalFilter+'%') OR  
+        (PNDescription like '%' +@GlobalFilter+'%') OR
+		(ManufacturerName like '%' +@GlobalFilter+'%') OR  
         (WorkScope like '%' +@GlobalFilter+'%') OR  
         (Priority like '%' +@GlobalFilter+'%') OR    
         (CustomerName like '%' +@GlobalFilter+'%' ) OR   
@@ -200,7 +230,8 @@ BEGIN
         OR     
         (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
         (IsNull(@PartNumber,'') ='' OR PartNos like '%' + @PartNumber+'%') AND  
-        (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND  
+        (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND 
+		(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
         (IsNull(@WorkScope,'') ='' OR WorkScope like '%' + @WorkScope+'%') AND  
         (IsNull(@WorkOrderType,'') ='' OR WorkOrderType like '%' + @WorkOrderType+'%') AND  
         (IsNull(@Priority,'') ='' OR Priority like '%' + @Priority+'%') AND  
@@ -212,7 +243,7 @@ BEGIN
         (IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND  
         (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
         (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-        (IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date)=Cast(@OpenDate as date)) AND  
+        (IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
         (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
         (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
         (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
@@ -242,7 +273,7 @@ BEGIN
         CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
         CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END ASC,  
         CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END ASC,  
-        
+        CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
         CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,  
         CASE WHEN (@SortOrder=1 and @SortColumn='WORKSCOPE')  THEN WorkScope END ASC,  
         CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN Priority END ASC,  
@@ -278,7 +309,7 @@ BEGIN
         CASE WHEN (@SortOrder=-1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END DESC,  
         CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END DESC,  
         CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END DESC,  
-         
+        CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
         CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,  
         CASE WHEN (@SortOrder=-1 and @SortColumn='WORKSCOPE')  THEN WorkScope END DESC,  
         CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN Priority END DESC,  
@@ -307,22 +338,22 @@ BEGIN
        print  'Step 2';  
         ;WITH Main AS(  
          SELECT DISTINCT   
-          WO.WorkOrderNum,   
-          WO.WorkOrderId,  
+          UPPER(WO.WorkOrderNum) AS WorkOrderNum,
+          WO.WorkOrderId,
           WO.CustomerId,  
-          WO.CustomerName,  
-          WO.CustomerType,  
-          WO.OpenDate,  
-          WO.CreatedDate,  
-          WO.UpdatedDate,  
-          WO.CreatedBy,  
-          WO.UpdatedBy,  
-          WO.IsActive,  
-          WO.IsDeleted,  
-          WT.Description AS WorkOrderType  
-         FROM dbo.WorkOrder WO WITH(NOLOCK)   
-          JOIN dbo.WorkOrderType WT WITH(NOLOCK)  ON WO.WorkOrderTypeId = WT.Id  
-          JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK)  ON WO.WorkOrderId = WPN.WorkOrderId
+          UPPER(WO.CustomerName) AS CustomerName,
+          UPPER(WO.CustomerType) AS CustomerType,
+          WO.OpenDate,
+          WO.CreatedDate,
+          WO.UpdatedDate,
+          UPPER(WO.CreatedBy) AS CreatedBy,
+          UPPER(WO.UpdatedBy) AS UpdatedBy,
+          WO.IsActive,
+          WO.IsDeleted,
+          UPPER(WT.Description) AS WorkOrderType
+          FROM dbo.WorkOrder WO WITH (NOLOCK)   
+          JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+          JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
           AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId)  
           )),  
@@ -352,7 +383,21 @@ BEGIN
               FOR XML PATH('')), 1, 1, '') PartDescription  
           ) A  
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.PartDescription),  
+          GROUP BY WO.WorkOrderId, A.PartDescription),
+		  
+		  ManufacturerCTE AS(  
+          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.ManufacturerName End)  as 'ManufacturerNameType', A.ManufacturerName from WorkOrder WO WITH(NOLOCK)  
+          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+          OUTER APPLY(  
+           SELECT   
+            STUFF((SELECT ',' + im.ManufacturerName  
+              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
+              LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
+              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+              FOR XML PATH('')), 1, 1, '') ManufacturerName  
+          ) A  
+          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
+          GROUP BY WO.WorkOrderId, A.ManufacturerName), 
   
           WorkScopeCTE AS(  
           SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.WorkScopeDescription End)  as 'WorkScopeType', A.WorkScopeDescription from WorkOrder WO WITH(NOLOCK)  
@@ -491,15 +536,16 @@ BEGIN
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = @IsDeleted)  
           GROUP BY WO.WorkOrderId, A.CustomerReference),  
   
-          Result AS( SELECT DISTINCT M.WorkOrderId, WorkOrderNum, WorkOrderType, PT.PartNumber AS PartNos, PT.PartNumberType AS PartNoType, PT.PartNumberType, PD.PartDescription AS PNDescription, PD.PartDescriptionType AS PNDescriptionType,   
-              CustomerId, CustomerName, CustomerType,  WS.WorkScopeDescription AS WorkScope, WS.WorkScopeType,   
-              PC.PriorityDescription AS Priority, PC.PriorityType, SC.WOStageDescription AS Stage, SC.StageType,  WOSC.WorkOrderStatus,             
-              WOSC.WorkOrderStatusType, OpenDate, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, CRC.CustomerRequestDate,   
+          Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PT.PartNumber) AS PartNos, UPPER(PT.PartNumberType) AS PartNoType, UPPER(PT.PartNumberType) AS PartNumberType, UPPER(PD.PartDescription) AS PNDescription, UPPER(PD.PartDescriptionType) AS PNDescriptionType, UPPER(MN.ManufacturerName) AS ManufacturerName, UPPER(MN.ManufacturerNameType) AS ManufacturerNameType,
+              CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WS.WorkScopeDescription) AS WorkScope, UPPER(WS.WorkScopeType) AS WorkScopeType,
+              UPPER(PC.PriorityDescription) AS Priority, UPPER(PC.PriorityType) PriorityType, UPPER(SC.WOStageDescription) AS Stage, UPPER(SC.StageType) StageType, UPPER(WOSC.WorkOrderStatus) WorkOrderStatus,
+              UPPER(WOSC.WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CRC.CustomerRequestDate,   
               CRC.CustomerRequestDateType, PMC.PromisedDate, PMC.PromisedDateType, ESC.EstimatedShipDate, ESC.EstimatedShipDateType,   
-              EC.EstimatedCompletionDate, EC.EstimatedCompletionDateType, TN.TechName, TN.TechNameType, TS.TechStation, TS.TechStationType, CR.CustomerReference, CR.CustomerReferenceType  
+              EC.EstimatedCompletionDate, EC.EstimatedCompletionDateType, UPPER(TN.TechName) TechName, UPPER(TN.TechNameType) TechNameType, UPPER(TS.TechStation) TechStation, UPPER(TS.TechStationType) TechStationType, UPPER(CR.CustomerReference) CustomerReference, UPPER(CR.CustomerReferenceType) CustomerReferenceType
           FROM Main M   
           LEFT JOIN PartCTE PT On M.WorkOrderId = PT.WorkOrderId  
-          LEFT JOIN PartDescCTE PD On M.WorkOrderId = PD.WorkOrderId  
+          LEFT JOIN PartDescCTE PD On M.WorkOrderId = PD.WorkOrderId 
+		  LEFT JOIN ManufacturerCTE MN On M.WorkOrderId = MN.WorkOrderId
           LEFT JOIN WorkScopeCTE WS On M.WorkOrderId = WS.WorkOrderId  
           LEFT JOIN PriorityCTE PC On M.WorkOrderId = PC.WorkOrderId  
           LEFT JOIN StageCTE SC On M.WorkOrderId = SC.WorkOrderId  
@@ -519,7 +565,8 @@ BEGIN
            (WorkOrderNum like '%' +@GlobalFilter+'%') OR  
            (WorkOrderType like '%' +@GlobalFilter+'%') OR  
            (PartNos like '%' +@GlobalFilter+'%') OR  
-           (PNDescription like '%' +@GlobalFilter+'%') OR  
+           (PNDescription like '%' +@GlobalFilter+'%') OR
+		   (ManufacturerName like '%' +@GlobalFilter+'%') OR 
            (WorkScope like '%' +@GlobalFilter+'%') OR  
            (Priority like '%' +@GlobalFilter+'%') OR    
            (CustomerName like '%' +@GlobalFilter+'%' ) OR   
@@ -536,7 +583,8 @@ BEGIN
            (@GlobalFilter='' AND (IsNull(@WorkOrderNum,'') ='' OR WorkOrderNum like '%' + @WorkOrderNum+'%') AND  
            (IsNull(@PartNumber,'') ='' OR PartNos like '%' + @PartNumber+'%') AND  
            (IsNull(@WorkOrderType,'') ='' OR WorkOrderType like '%' + @WorkOrderType+'%') AND  
-           (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND  
+           (IsNull(@PartDescription,'') ='' OR PNDescription like '%' + @PartDescription+'%') AND
+		   (IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
            (IsNull(@WorkScope,'') ='' OR WorkScope like '%' + @WorkScope+'%') AND  
            (IsNull(@Priority,'') ='' OR Priority like '%' + @Priority+'%') AND  
            (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
@@ -546,7 +594,7 @@ BEGIN
            (IsNull(@TechStation,'') ='' OR TechStation like '%' + @TechStation+'%') AND  
            (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
            (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-           (IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date)=Cast(@OpenDate as date)) AND  
+           (IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
            (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
            (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
            (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
@@ -594,7 +642,7 @@ BEGIN
          CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
          CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
          CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERREFERENCE')  THEN CustomerReference END ASC,  
-  
+         CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
          CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNos END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='partNoType')  THEN partNoType END DESC,  
@@ -610,7 +658,8 @@ BEGIN
          CASE WHEN (@SortOrder=-1 and @SortColumn='workOrderStatusType')  THEN workOrderStatusType END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderType')  THEN WorkOrderType END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PNDescription END DESC,  
-         CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,  
+         CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
+		CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='WORKSCOPE')  THEN WorkScope END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN Priority END DESC,  
          CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,  

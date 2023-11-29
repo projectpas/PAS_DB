@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Subhash Saliya Created
+	2    04/19/2023   MOIN BLOCH     ADDED NEW FIELDS   
 	
 declare @p1 dbo.CustomerRMADeatilsType
 insert into @p1 values(3,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GPS',N'',N'',N'',7427,N'STL-000063',N'CNTL-000778',N'ID_NUM-000002',145,N'WO-000111',45,74,3330,5,N'Non Functional',N'',N'True',2,N'ADMIN ADMIN',N'ADMIN ADMIN','2022-04-22 05:20:26.5100000','2022-04-22 05:20:26.5100000',1,0)
@@ -19,20 +20,16 @@ insert into @p1 values(4,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GP
 
 exec dbo.usp_SaveRMAPartDetails @tbl_CustomerRMADeatilsType=@p1  
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_SaveRMAPartDetails]
+CREATE   PROCEDURE [dbo].[usp_SaveRMAPartDetails]
 @tbl_CustomerRMADeatilsType CustomerRMADeatilsType READONLY,
 @ModuleId INT
 AS
-BEGIN
-	
+BEGIN	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
 		BEGIN TRY
 				BEGIN TRANSACTION
 				BEGIN
-				
-
 				--  CustomerRMADeatils LIST
 					IF((SELECT COUNT(RMADeatilsId) FROM @tbl_CustomerRMADeatilsType) > 0 )
 					BEGIN
@@ -52,6 +49,9 @@ BEGIN
 								,TARGET.[UpdatedBy] = SOURCE.UpdatedBy
 								,TARGET.[UpdatedDate] = GETUTCDATE()
 								,TARGET.[IsCreateStockline]=1
+								,TARGET.[ReturnDate]  = SOURCE.ReturnDate	
+	                            ,TARGET.[WorkOrderNum]  = SOURCE.WorkOrderNum	
+	                            ,TARGET.[ReceiverNum]  = SOURCE.ReceiverNum		
 							
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT ([RMAHeaderId]
@@ -85,8 +85,12 @@ BEGIN
 										,[BillingInvoicingItemId]
 										,IsCreateStockline
 										,CustomerReference
-										,InvoiceQty)
-							VALUES (
+										,InvoiceQty
+										,[ReturnDate]  
+										,[WorkOrderNum]
+										,[ReceiverNum] 																				
+										)
+								 VALUES (
 										 SOURCE.[RMAHeaderId]
 										,SOURCE.[ItemMasterId]
 										,SOURCE.[PartNumber]
@@ -118,8 +122,11 @@ BEGIN
 										,SOURCE.[BillingInvoicingItemId]
 										,0
 										,SOURCE.CustomerReference
-										,SOURCE.InvoiceQty);
-
+										,SOURCE.InvoiceQty
+										,SOURCE.ReturnDate
+										,SOURCE.WorkOrderNum	
+										,SOURCE.ReceiverNum		
+										);
 
 					 END
 					 Declare @RMAHeaderId bigint 
@@ -168,6 +175,9 @@ BEGIN
                             ,CRM.[UpdatedDate]
                             ,CRM.[IsActive]
                             ,CRM.[IsDeleted]
+							,CRM.[ReturnDate]  
+					        ,CRM.[WorkOrderNum]
+					        ,CRM.[ReceiverNum] 	
 		                    ,ST.isSerialized
 							,CRM.InvoiceId
 							,@InvoiceStatus as InvoiceStatus
@@ -177,13 +187,13 @@ BEGIN
 							,CRM.InvoiceQty
 							,AltPartNumber=(  
 								 Select top 1  
-								A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 
+								A.PartNumber [AltPartNumberType] from dbo.CustomerRMADeatils SOBIIA WITH (NOLOCK) 
 								Outer Apply(  
 								 SELECT   
 									STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  
-									 FROM Nha_Tla_Alt_Equ_ItemMapping AL WITH (NOLOCK)  
-									 INNER Join ItemMaster I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
-									 INNER Join ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
+									 FROM dbo.Nha_Tla_Alt_Equ_ItemMapping AL WITH (NOLOCK)  
+									 INNER Join dbo.ItemMaster I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
+									 INNER Join dbo.ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
 									 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1  
 									 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 									 FOR XML PATH('')), 1, 1, '') PartNumber  
@@ -192,8 +202,8 @@ BEGIN
 								Group By SOBIIA.ItemMasterId, A.PartNumber  
 								) 
 		                    FROM dbo.CustomerRMADeatils CRM  WITH (NOLOCK)
-							LEFT JOIN CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
-			                LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
+							LEFT JOIN dbo.CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
+			                LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
 				            WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 
 				
 				END

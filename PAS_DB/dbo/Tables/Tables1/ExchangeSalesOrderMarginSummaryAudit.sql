@@ -13,7 +13,11 @@
     [MarginPercentage]                       NUMERIC (9, 2) NULL,
     [TotalEstCost]                           NUMERIC (9, 2) NULL,
     [FreightAmount]                          NUMERIC (9, 2) NULL,
+    [IsFreightInsert]                        BIT            NULL,
+    [IsChargeInsert]                         BIT            NULL,
     CONSTRAINT [PK_ExchangeSalesOrderMarginSummaryAudit] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderMarginSummaryIdAudit] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderMarginSummaryAudit_ExchangeSalesOrderMarginSummary] FOREIGN KEY ([ExchangeSalesOrderMarginSummaryId]) REFERENCES [dbo].[ExchangeSalesOrderMarginSummary] ([ExchangeSalesOrderMarginSummaryId])
 );
+
+
 

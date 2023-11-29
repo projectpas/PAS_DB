@@ -22,6 +22,10 @@
     [IsDeleted]                        BIT           CONSTRAINT [DF_ExchangeSalesOrderSettingsAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsApprovalRule]                   BIT           NULL,
     [EffectiveDate]                    DATETIME2 (7) NULL,
+    [FeesBillingIntervalDays]          INT           NULL,
+    [ExpectedConditionId]              BIGINT        NULL,
     CONSTRAINT [PK_ExchangeSalesOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderSettingId] ASC)
 );
+
+
 

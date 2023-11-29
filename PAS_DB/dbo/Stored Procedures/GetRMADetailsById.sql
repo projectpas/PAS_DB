@@ -19,7 +19,7 @@
      
 -- EXEC GetRMADetailsById 1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetRMADetailsById]
+CREATE   PROCEDURE [dbo].[GetRMADetailsById]
 @RMAHeaderId bigint
 AS
 BEGIN
@@ -29,9 +29,9 @@ BEGIN
 
 SELECT [RMADeatilsId]
       ,[RMAHeaderId]
-      ,[ItemMasterId]
-      ,[PartNumber]
-      ,[PartDescription]
+      ,CRD.[ItemMasterId]
+      ,CRD.[PartNumber]
+      ,CRD.[PartDescription]
       ,[AltPartNumber]
       ,[CustPartNumber]
       ,[SerialNumber]
@@ -48,14 +48,18 @@ SELECT [RMADeatilsId]
       ,[RMAReason]
       ,[Notes]
       ,[isWorkOrder]
-	  ,[MasterCompanyId]
-	  ,[CreatedBy]
-	  ,[UpdatedBy]
-	  ,[CreatedDate]
-	  ,[UpdatedDate]
-	  ,[IsActive]
-	  ,[IsDeleted]
-  FROM [dbo].[CustomerRMADeatils] WITH (NOLOCK) WHERE RMAHeaderId = @RMAHeaderId AND IsDeleted = 0 AND IsActive = 1;
+	  ,CRD.[MasterCompanyId]
+	  ,CRD.[CreatedBy]
+	  ,CRD.[UpdatedBy]
+	  ,CRD.[CreatedDate]
+	  ,CRD.[UpdatedDate]
+	  ,CRD.[IsActive]
+	  ,CRD.[IsDeleted]
+	  ,IM.ManufacturerName
+	  ,CRD.BillingInvoicingItemId
+  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
+  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CRD.ItemMasterId=IM.ItemMasterId
+  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
 
 END TRY    
 	BEGIN CATCH

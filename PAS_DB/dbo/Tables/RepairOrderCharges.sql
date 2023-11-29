@@ -30,8 +30,12 @@
     [PartNumber]               VARCHAR (100)   NULL,
     [ConditionId]              BIGINT          NULL,
     [LineNum]                  INT             NULL,
+    [ManufacturerId]           BIGINT          NULL,
+    [Manufacturer]             VARCHAR (100)   NULL,
     CONSTRAINT [PK_RepairOrderCharges] PRIMARY KEY CLUSTERED ([RepairOrderChargesId] ASC)
 );
+
+
 
 
 GO

@@ -14,7 +14,7 @@
     1    11/10/2022  Deep Patel     Created
 -- EXEC GetRepairOrderFreightList 8,0
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetRepairOrderFreightList]
+CREATE   PROCEDURE [dbo].[GetRepairOrderFreightList]
 @RepairOrderId bigint,
 @IsDeleted bit,
 @Opr int
@@ -26,8 +26,8 @@ BEGIN
 	IF(@Opr=1)
 	BEGIN
 	SELECT [RepairOrderFreightId]
-          ,RepairOrderId
-          ,RepairOrderPartRecordId
+          ,[RepairOrderId]
+          ,[RepairOrderPartRecordId]
           ,[ItemMasterId]
           ,[PartNumber]
           ,[ShipViaId]
@@ -59,12 +59,14 @@ BEGIN
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]
-      FROM [dbo].RepairOrderFreight WITH (NOLOCK) WHERE RepairOrderId=@RepairOrderId AND IsDeleted=@IsDeleted;
+		  ,[ManufacturerId]
+		  ,[Manufacturer]
+      FROM [dbo].[RepairOrderFreight] WITH (NOLOCK) WHERE RepairOrderId=@RepairOrderId AND IsDeleted=@IsDeleted;
 	END
 	BEGIN
 	SELECT [RepairOrderFreightId]
-          ,RepairOrderId
-          ,RepairOrderPartRecordId
+          ,[RepairOrderId]
+          ,[RepairOrderPartRecordId]
           ,[ItemMasterId]
           ,[PartNumber]
           ,[ShipViaId]
@@ -96,7 +98,9 @@ BEGIN
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]
-      FROM [dbo].[RepairOrderFreightAudit] WITH (NOLOCK) WHERE RepairOrderFreightId=@RepairOrderId;
+		  ,[ManufacturerId]
+		  ,[Manufacturer]
+      FROM [dbo].[RepairOrderFreightAudit] WITH (NOLOCK) WHERE [RepairOrderFreightId]=@RepairOrderId;
 	END
 	END TRY    
 	BEGIN CATCH

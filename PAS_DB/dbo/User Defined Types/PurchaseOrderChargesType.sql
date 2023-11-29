@@ -26,5 +26,9 @@
     [IsActive]                  BIT             NULL,
     [IsDeleted]                 BIT             NULL,
     [LineNum]                   INT             NULL,
-    [PartNumber]                VARCHAR (256)   NULL);
+    [PartNumber]                VARCHAR (256)   NULL,
+    [ManufacturerId]            BIGINT          NULL,
+    [Manufacturer]              VARCHAR (100)   NULL);
+
+
 

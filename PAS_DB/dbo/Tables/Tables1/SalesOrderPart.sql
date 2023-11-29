@@ -54,6 +54,8 @@
     [PONumber]              VARCHAR (100)  NULL,
     [PONextDlvrDate]        DATETIME       NULL,
     [UnitSalesPricePerUnit] NUMERIC (9, 2) NULL,
+    [LotId]                 BIGINT         NULL,
+    [IsLotAssigned]         BIT            NULL,
     CONSTRAINT [PK_SalesOrderPart] PRIMARY KEY CLUSTERED ([SalesOrderPartId] ASC),
     CONSTRAINT [FK_SalesOrder_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_SalesOrderPart_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -62,9 +64,10 @@
     CONSTRAINT [FK_SalesOrderPart_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
     CONSTRAINT [FK_SalesOrderPart_SalesOrderQuoteId] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderPart_SalesOrderQuotePartId] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePart] ([SalesOrderQuotePartId]),
-    CONSTRAINT [FK_SalesOrderPart_StockLineId] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
-    CONSTRAINT [Unique_SalesOrderPart] UNIQUE NONCLUSTERED ([SalesOrderId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ConditionId] ASC)
+    CONSTRAINT [FK_SalesOrderPart_StockLineId] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

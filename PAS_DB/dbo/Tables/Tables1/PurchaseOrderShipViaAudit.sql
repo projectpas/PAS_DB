@@ -13,11 +13,13 @@
     [CreatedDate]       DATETIME2 (7)   NOT NULL,
     [UpdatedDate]       DATETIME2 (7)   NOT NULL,
     [ShippingAccountNo] VARCHAR (100)   NULL,
-    [ShipVia]           VARCHAR (100)   NULL,
+    [ShipVia]           VARCHAR (400)   NULL,
     [IsActive]          BIT             NOT NULL,
     [MasterCompanyId]   INT             NOT NULL,
     [IsDeleted]         BIT             NOT NULL,
     [ShippingViaId]     BIGINT          NULL,
     CONSTRAINT [PK_POShipViaAudit] PRIMARY KEY CLUSTERED ([POShipViaAuditId] ASC)
 );
+
+
 

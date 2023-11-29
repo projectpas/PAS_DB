@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    05-May-2022  Mahesh Sorathiya   Created  
+	2    20-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
@@ -118,8 +119,10 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
+	   ;WITH rptCTE (TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty, extcost, unitcost,
+				 opendate, custreqdate, shipdate,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,  
-			UPPER(SO.SalesOrderNumber) 'sonum',
+			UPPER(SO.SalesOrderNumber) AS 'sonum',
 			UPPER(SOQ.SalesOrderQuoteNumber) 'quotenum',
 			UPPER(ST.name) AS 'status',        
 			UPPER(IM.partnumber) AS 'pn',
@@ -129,8 +132,10 @@ BEGIN
 			SUM(SOP.qty) 'qty',
 			--FORMAT(SOP.unitcost,'#,0.00') 'unitcost',
 			--FORMAT((SUM(SOP.qty * SOP.unitcost)),'#,0.00') 'extcost',
-			FORMAT(SUM(SOP.qty * SOP.unitcost) , 'N', 'en-us') 'extcost',
-			FORMAT(SOP.unitcost , 'N', 'en-us') 'unitcost',
+			--FORMAT(SUM(SOP.qty * SOP.unitcost) , 'N', 'en-us') 'extcost',
+			ISNULL(SUM(SOP.qty * SOP.unitcost) , 0) 'extcost',
+			--FORMAT(SOP.unitcost , 'N', 'en-us') 'unitcost',
+			ISNULL(SOP.unitcost , 0) 'unitcost',
 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',
@@ -145,7 +150,8 @@ BEGIN
 			UPPER(MSD.Level7Name) AS level7, 
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
-			UPPER(MSD.Level10Name) AS level10
+			UPPER(MSD.Level10Name) AS level10,
+			SO.MasterCompanyId
       FROM DBO.salesorder SO WITH (NOLOCK)  
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -170,14 +176,38 @@ BEGIN
 		GROUP BY 
 			SO.SalesOrderNumber, 
 			SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
-			FORMAT(SOP.unitcost , 'N', 'en-us'),
-			FORMAT(SOP.qty * SOP.unitcost, 'N', 'en-us') ,
+			--FORMAT(SOP.unitcost , 'N', 'en-us'),
+			ISNULL(SOP.unitcost , 0),
+			ISNULL((SOP.qty * SOP.unitcost) , 0),
+			--FORMAT(SOP.qty * SOP.unitcost, 'N', 'en-us') ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END,
-			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name
-		ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END
-			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
+			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, SO.MasterCompanyId
+			)
+			,FinalCTE(TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty, extcost, unitcost,
+				 opendate, custreqdate, shipdate,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
+			  AS (SELECT DISTINCT TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty, extcost, unitcost,
+				 opendate, custreqdate, shipdate,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
+
+			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost) 
+			  AS (SELECT masterCompanyId, 
+				FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
+				FORMAT(SUM(extcost), 'N', 'en-us') TotalExtCost
+				FROM FinalCTE
+				GROUP BY masterCompanyId)
+
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, sonum, quotenum, status, pn, pndescription, customer, custref, qty,
+					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
+					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
+					opendate, custreqdate, shipdate, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+					WC.TotalUnitCost,
+					WC.TotalExtCost
+				FROM FinalCTE FC
+					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+				--ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(opendate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), opendate, 107) END
+				ORDER BY opendate
+				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
    
   END TRY  
   

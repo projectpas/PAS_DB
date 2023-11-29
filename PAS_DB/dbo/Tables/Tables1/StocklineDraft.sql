@@ -149,6 +149,25 @@
     [PerformedById]                       BIGINT          NULL,
     [LastCalibrationDate]                 DATETIME        NULL,
     [NextCalibrationDate]                 DATETIME        NULL,
+    [LotId]                               BIGINT          NULL,
+    [SalesOrderId]                        BIGINT          NULL,
+    [SubWorkOrderId]                      BIGINT          NULL,
+    [ExchangeSalesOrderId]                BIGINT          NULL,
+    [WOQty]                               INT             NULL,
+    [SOQty]                               INT             NULL,
+    [ForStockQty]                         INT             NULL,
+    [IsLotAssigned]                       BIT             NULL,
+    [LOTQty]                              INT             NULL,
+    [LOTQtyReserve]                       INT             NULL,
+    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [POOriginalCost]                      DECIMAL (18, 2) NULL,
+    [ROOriginalCost]                      DECIMAL (18, 2) NULL,
+    [VendorRMAId]                         BIGINT          NULL,
+    [VendorRMADetailId]                   BIGINT          NULL,
+    [LotMainStocklineId]                  BIGINT          NULL,
+    [IsFromInitialPO]                     BIT             NULL,
+    [LotSourceId]                         INT             NULL,
+    [Adjustment]                          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_StocklineDraft] PRIMARY KEY CLUSTERED ([StockLineDraftId] ASC),
     CONSTRAINT [FK_StocklineDraft_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_StocklineDraft_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -166,6 +185,10 @@
     CONSTRAINT [FK_StocklineDraft_SiteId] FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Site] ([SiteId]),
     CONSTRAINT [FK_StocklineDraft_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
+
+
 
 
 

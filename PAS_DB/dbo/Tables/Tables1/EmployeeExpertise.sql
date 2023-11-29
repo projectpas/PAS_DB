@@ -14,11 +14,14 @@
     [Avglaborrate]            DECIMAL (18, 2) CONSTRAINT [DF_EmployeeExpertise_Avglaborrate] DEFAULT ((0)) NOT NULL,
     [Overheadburden]          DECIMAL (18, 2) CONSTRAINT [DF_EmployeeExpertise_Overheadburden] DEFAULT ((0)) NOT NULL,
     [OverheadburdenPercentId] BIGINT          NULL,
+    [FlatAmount]              DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_EmployeeExpertise] PRIMARY KEY CLUSTERED ([EmployeeExpertiseId] ASC),
     CONSTRAINT [FK_EmployeeExpertise_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_EmployeeExpertiser_PercentId] FOREIGN KEY ([OverheadburdenPercentId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [Unique_EmployeeExpertise] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

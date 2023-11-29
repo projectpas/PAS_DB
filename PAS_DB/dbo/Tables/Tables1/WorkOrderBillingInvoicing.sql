@@ -73,7 +73,11 @@
     [SalesTax]                           DECIMAL (18, 2) NULL,
     [OtherTax]                           DECIMAL (18, 2) NULL,
     [SubTotal]                           DECIMAL (18, 2) NULL,
+    [IsCustomerShipping]                 BIT             NULL,
+    [CreditMemoUsed]                     DECIMAL (18, 2) NULL,
+    [ConditionId]                        BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC),
+    FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -83,13 +87,16 @@
     CONSTRAINT [FK_WorkOrderBillingInvoicing_RevisionType] FOREIGN KEY ([RevisionTypeId]) REFERENCES [dbo].[RevisionType] ([RevisionTypeId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_ShipToCustomer] FOREIGN KEY ([ShipToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_ShipToSite] FOREIGN KEY ([ShipToSiteId]) REFERENCES [dbo].[CustomerDomensticShipping] ([CustomerDomensticShippingId]),
-    CONSTRAINT [FK_WorkOrderBillingInvoicing_ShipVia] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_SoldToCustomer] FOREIGN KEY ([SoldToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_SoldToSite] FOREIGN KEY ([SoldToSiteId]) REFERENCES [dbo].[CustomerBillingAddress] ([CustomerBillingAddressId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
+
+
 
 
 

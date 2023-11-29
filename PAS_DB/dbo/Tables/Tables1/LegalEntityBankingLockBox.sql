@@ -14,11 +14,15 @@
     [BankName]                    VARCHAR (100) NULL,
     [BankAccountNumber]           VARCHAR (50)  NULL,
     [IsPrimay]                    BIT           NULL,
+    [AccountTypeId]               INT           NULL,
+    [AttachmentId]                BIGINT        NULL,
     CONSTRAINT [PK_LegalEntityBankingLockBox] PRIMARY KEY CLUSTERED ([LegalEntityBankingLockBoxId] ASC),
     CONSTRAINT [FK_LegalEntityBankingLockBox_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_LegalEntityBankingLockBox_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_LegalEntityBankingLockBox_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

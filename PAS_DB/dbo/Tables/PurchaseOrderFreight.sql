@@ -33,6 +33,8 @@
     [IsActive]                  BIT             CONSTRAINT [DF_PurchaseOrderFreight_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_PurchaseOrderFreight_IsDeleted] DEFAULT ((0)) NOT NULL,
     [LineNum]                   INT             NULL,
+    [ManufacturerId]            BIGINT          NULL,
+    [Manufacturer]              VARCHAR (100)   NULL,
     CONSTRAINT [PK_PurchaseOrderFreight] PRIMARY KEY CLUSTERED ([PurchaseOrderFreightId] ASC),
     CONSTRAINT [FK_PurchaseOrderFreight_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_PurchaseOrderFreight_DimensionUOM] FOREIGN KEY ([DimensionUOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
@@ -40,6 +42,8 @@
     CONSTRAINT [FK_PurchaseOrderFreight_ShipVia] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [FK_PurchaseOrderFreight_UOM] FOREIGN KEY ([UOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 GO

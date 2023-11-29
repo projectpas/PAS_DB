@@ -1,10 +1,20 @@
-﻿-- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
--- Description:	<Description,,>
--- =============================================
-CREATE PROCEDURE [dbo].[UpdatePaymentPrice]
-	@ReceiptId BIGINT = NULL
+﻿/*************************************************************             
+ ** File:   [SearchCustomerInvoicesByCustId]             
+ ** Author:   Subhash Saliya
+ ** Description: This stored procedure is used to Update Payment Price
+ ** Purpose:           
+ ** Date:   21/04/2023
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		 Change Description              
+ ** --   --------     -------		 -------------------------------            
+    1    21/04/2023   Subhash Saliya  Created
+	2    02/10/2023   Moin Bloch      Formetted SP
+ **************************************************************/
+CREATE   PROCEDURE [dbo].[UpdatePaymentPrice]
+@ReceiptId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -16,49 +26,45 @@ BEGIN
 		DECLARE @paymentAmt DECIMAL(20, 2)
 		DECLARE @remPaymentAmt DECIMAL(20, 2)
 
-		SELECT @paymentAmt = (SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0)))
-		--, @remPaymentAmt = ((SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0))) - (ISNULL(IPS.PaymentAmount, 0)) + (ISNULL(ICN.Amount,0)))
-		, @remPaymentAmt = (ISNULL(IPS.PaymentAmount, 0)) + (ISNULL(ICN.Amount,0))
-		FROM DBO.CustomerPayments C  WITH(NOLOCK)
-		LEFT JOIN (SELECT ReceiptId, SUM(PaymentAmount) PaymentAmount FROM DBO.InvoicePayments WITH(NOLOCK) WHERE ReceiptId = @ReceiptId GROUP BY ReceiptId) AS IPS ON IPS.ReceiptId = C.ReceiptId 
-		LEFT JOIN DBO.InvoiceCheckPayment IC WITH(NOLOCK) ON C.ReceiptId = IC.ReceiptId
-		LEFT JOIN DBO.InvoiceWireTransferPayment IW WITH(NOLOCK) ON C.ReceiptId = IW.ReceiptId
-		LEFT JOIN DBO.InvoiceCreditDebitCardPayment ICC WITH(NOLOCK) ON C.ReceiptId = ICC.ReceiptId
-		--LEFT JOIN DBO.InvoiceCheckPayment ICN WITH(NOLOCK) ON C.ReceiptId = ICN.ReceiptId AND ICN.Ismiscellaneous = 1
-		--LEFT JOIN (SELECT ReceiptId, SUM(Amount) Amount,Ismiscellaneous FROM DBO.InvoiceCheckPayment WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND Ismiscellaneous = 1 GROUP BY ReceiptId,Ismiscellaneous) 
-		--AS ICN ON ICN.ReceiptId = C.ReceiptId AND ICN.Ismiscellaneous = 1
-		LEFT JOIN (SELECT ReceiptId, SUM(Amount) Amount FROM DBO.CustomerOverDuePayment WITH(NOLOCK) WHERE ReceiptId = @ReceiptId GROUP BY ReceiptId)
-		AS ICN ON ICN.ReceiptId = C.ReceiptId
-		--LEFT JOIN DBO.Customer CT WITH(NOLOCK) ON CT.CustomerId = IC.CustomerId
-		Where C.ReceiptId = @ReceiptId
-		GROUP BY IPS.PaymentAmount,ICN.Amount
-		--,CT.Ismiscellaneous,IC.Amount
+		--SELECT @paymentAmt = (SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0)))
+		--FROM DBO.CustomerPayments C  WITH(NOLOCK)
+		--LEFT JOIN (SELECT ReceiptId, SUM(PaymentAmount) PaymentAmount FROM DBO.InvoicePayments WITH(NOLOCK) WHERE ReceiptId = @ReceiptId  and isnull(IsDeleted,0)=0 GROUP BY ReceiptId) AS IPS ON IPS.ReceiptId = C.ReceiptId 
+		--LEFT JOIN DBO.InvoiceCheckPayment IC WITH(NOLOCK) ON C.ReceiptId = IC.ReceiptId and isnull(IC.IsDeleted,0)=0
+		--LEFT JOIN DBO.InvoiceWireTransferPayment IW WITH(NOLOCK) ON C.ReceiptId = IW.ReceiptId and isnull(IW.IsDeleted,0)=0
+		--LEFT JOIN DBO.InvoiceCreditDebitCardPayment ICC WITH(NOLOCK) ON C.ReceiptId = ICC.ReceiptId and isnull(ICC.IsDeleted,0)=0
+		--LEFT JOIN (SELECT ReceiptId, SUM(Amount) Amount FROM DBO.CustomerOverDuePayment WITH(NOLOCK) WHERE ReceiptId = @ReceiptId and isnull(IsDeleted,0)=0 GROUP BY ReceiptId)
+		--AS ICN ON ICN.ReceiptId = C.ReceiptId
+		--Where C.ReceiptId = @ReceiptId
+		--GROUP BY IPS.PaymentAmount,ICN.Amount
 
-		--Update DBO.CustomerPayments
-		--SET AmtApplied = (@paymentAmt - ABS(@remPaymentAmt)),UpdatedDate=GETDATE()
-		--Where ReceiptId = @ReceiptId
+		SELECT @paymentAmt = SUM(ISNULL(Amount, 0)) 
+		  FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK) 
+		 WHERE [ReceiptId] = @ReceiptId AND ISNULL(IsDeleted,0) = 0;
 
-		Update DBO.CustomerPayments
-		SET AmtApplied = (ABS(@remPaymentAmt)),UpdatedDate=GETDATE()
-		Where ReceiptId = @ReceiptId
+		UPDATE [dbo].[CustomerPayments]
+		   SET [AmtApplied] = (ABS(@paymentAmt)),
+		       [UpdatedDate] = GETUTCDATE()
+		 WHERE [ReceiptId] = @ReceiptId;
 
-		Update DBO.CustomerPayments
-		SET AmtRemaining = Amount - AmtApplied,UpdatedDate=GETDATE()
-		Where ReceiptId = @ReceiptId
+		UPDATE [dbo].[CustomerPayments]
+		   SET [AmtRemaining] = [Amount] - [AmtApplied],
+		       [UpdatedDate] = GETUTCDATE()
+		 WHERE [ReceiptId] = @ReceiptId
 
-		SELECT ReceiptNo as 'value' FROM DBO.CustomerPayments WITH(NOLOCK) Where ReceiptId = @ReceiptId
+		SELECT [ReceiptNo] AS 'value' 
+		  FROM [dbo].[CustomerPayments] WITH(NOLOCK)
+		 WHERE [ReceiptId] = @ReceiptId;
 	END
 	COMMIT  TRANSACTION
 
 	END TRY    
 	BEGIN CATCH      
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
+		IF @@trancount > 0			
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'UpdatePaymentPrice' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceiptId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ CAST(ISNULL(@ReceiptId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

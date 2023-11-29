@@ -15,10 +15,14 @@
     [SalesOrderShippingId]     BIGINT          NULL,
     [PDFPath]                  NVARCHAR (MAX)  NULL,
     [StockLineId]              BIGINT          NULL,
+    [VersionNo]                VARCHAR (100)   NULL,
+    [IsVersionIncrease]        BIT             NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingItem] PRIMARY KEY CLUSTERED ([SOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItem_SalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[SalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 
 
 

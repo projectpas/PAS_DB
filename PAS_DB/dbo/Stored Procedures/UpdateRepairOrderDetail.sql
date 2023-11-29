@@ -1,4 +1,5 @@
-﻿CREATE  Procedure [dbo].[UpdateRepairOrderDetail]
+﻿
+CREATE    Procedure [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -179,6 +180,7 @@ BEGIN
 		RO.VendorCode = V.VendorCode,
 		RO.VendorContact = ISNULL(C.FirstName,'') + ' ' + ISNULL(C.LastName,''),
 		RO.VendorContactPhone = ISNULL(C.WorkPhone,'') + '-' + ISNULL(C.WorkPhoneExtn,''),
+		RO.VendorContactEmail = ISNULL(C.Email,''),
 		RO.Terms = CT.Name,
 		RO.CreditLimit = ISNULL(V.CreditLimit,0.00),
 		RO.Status = RS.Description,

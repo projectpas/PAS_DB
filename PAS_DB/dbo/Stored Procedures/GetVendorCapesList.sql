@@ -1,4 +1,5 @@
-﻿CREATE PROCEDURE [dbo].[GetVendorCapesList]
+﻿
+CREATE   PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -24,7 +25,8 @@
     @IsDeleted bit= null,	
 	@MasterCompanyId bigint=NULL,
 	@ConditionId int=null,
-	@CostDate datetime=null
+	@CostDate datetime=null,
+	@ManufacturerName  varchar(50)=null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -112,6 +114,7 @@ BEGIN
 					(CapabilityTypeName LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(VendorRanking LIKE '%' +@GlobalFilter+'%') OR
 					(TAT LIKE '%' +@GlobalFilter+'%') OR
 					(Cost LIKE '%' +@GlobalFilter+'%') OR
@@ -125,6 +128,7 @@ BEGIN
 					(ISNULL(@CapabilityType,'') ='' OR CapabilityTypeName LIKE '%' + @CapabilityType+'%') AND
 					(ISNULL(@PN,'') ='' OR partnumber LIKE '%' + @PN+'%') AND
 					(ISNULL(@PNDescription,'') ='' OR PartDescription LIKE '%' + @PNDescription+'%') AND
+					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%') AND
 					(ISNULL(@Ranking,'') ='' OR VendorRanking LIKE '%' + @Ranking+'%') AND
 					(ISNULL(@TAT,'') ='' OR TAT LIKE '%' + @TAT+'%') AND
 					(ISNULL(@Price,'') ='' OR Cost LIKE '%' + @Price+'%') AND
@@ -155,6 +159,7 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='capabilityTypeName')  THEN CapabilityTypeName END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRANKING')  THEN VendorRanking END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRANKING')  THEN VendorRanking END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='TAT')  THEN TAT END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='TAT')  THEN TAT END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='COST')  THEN Cost END ASC,
@@ -170,6 +175,7 @@ BEGIN
 		CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='COSTDATE')  THEN CostDate END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='COSTDATE')  THEN CostDate END DESC
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY		

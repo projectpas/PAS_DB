@@ -11,11 +11,14 @@
  **************************************************************           
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    02-August-2022  Deep Patel        Created
+    1    02-August-2022  Deep Patel			   Created
+    2    16-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
+
+
 EXECUTE   [dbo].[usprpt_GetNonStockReport] '2','2010-01-01','2022-04-26',null,1,10
 EXECUTE   [dbo].[usprpt_GetNonStockReport] 1,10,1,''
 **************************************************************/
-CREATE PROCEDURE [dbo].[usprpt_GetNonStockReport] 
+CREATE   PROCEDURE [dbo].[usprpt_GetNonStockReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -107,6 +110,9 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
+	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, AltEquiv,
+				 vendorname, vendorcode, qtyonhand,unitcost,extcost,mfg,unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rcvddate, receivernum, masterCompanyId) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
         UPPER(im.partnumber) AS 'pn',
         UPPER(im.PartDescription) AS 'pndescription',
@@ -114,12 +120,14 @@ BEGIN
         UPPER(stl.NonStockInventoryNumber) 'nonstockinventorynumber',
         UPPER(stl.condition) 'cond',
         UPPER(stl.unitofmeasure) 'uom',
-        UPPER(POP.altequipartnumber) 'Alt/Equiv',
+        UPPER(POP.altequipartnumber) 'AltEquiv',
         UPPER(VNDR.VendorName) 'vendorname',
         UPPER(VNDR.VendorCode) 'vendorcode',
         stl.QuantityOnHand 'qtyonhand',
-		FORMAT(stl.UnitCost , 'N', 'en-us') 'unitcost',
-		FORMAT(stl.ExtendedCost , 'N', 'en-us') 'extcost',
+		--FORMAT(stl.UnitCost , 'N', 'en-us') 'unitcost',
+		ISNULL(stl.UnitCost ,0) 'unitcost', 
+		--FORMAT(stl.ExtendedCost , 'N', 'en-us') 'extcost',
+		ISNULL(stl.ExtendedCost ,0) 'extcost', 
         UPPER(stl.manufacturer) 'mfg',
 		FORMAT(stl.UnitCost , 'N', 'en-us') 'unitprice',
 		FORMAT(ISNULL(stl.UnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 'N', 'en-us') 'extprice',
@@ -143,7 +151,8 @@ BEGIN
         UPPER(rox.RepairOrderNumber) 'ronum',
 		--FORMAT(stl.RepairOrderUnitCost , 'N', 'en-us') 'rocost',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(STL.receiveddate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), STL.receiveddate, 107) END 'rcvddate', 
-        UPPER(stl.ReceiverNumber) 'receivernum'
+        UPPER(stl.ReceiverNumber) 'receivernum',
+		stl.MasterCompanyId
       FROM DBO.NonStockInventory stl WITH (NOLOCK)
 	    INNER JOIN dbo.NonStocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.NonStockInventoryId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -165,8 +174,33 @@ BEGIN
 			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-	   ORDER BY IM.partnumber
-	   OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
+			)
+			,FinalCTE(TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, AltEquiv,
+				 vendorname, vendorcode, qtyonhand,unitcost,extcost,mfg,unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rcvddate, receivernum, masterCompanyId) 
+			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, AltEquiv,
+				 vendorname, vendorcode, qtyonhand,unitcost,extcost,mfg,unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
+			  level9, level10, site, warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rcvddate, receivernum, masterCompanyId FROM rptCTE)
+
+			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost) 
+			  AS (SELECT masterCompanyId, 
+				FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
+				FORMAT(SUM(extcost), 'N', 'en-us') TotalExtCost
+				FROM FinalCTE
+				GROUP BY masterCompanyId)
+
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, sernum, nonstockinventorynumber, cond, uom, AltEquiv, 
+					vendorname, vendorcode,qtyonhand, 
+					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
+					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
+					mfg, unitprice, extprice, level1, level2, level3, level4, level5, level6, level7, level8,
+					level9, level10, site,warehouse, Location, Shelf, Bin, glaccount, ponum, ronum, rcvddate, receivernum,
+					WC.TotalUnitCost,
+					WC.TotalExtCost
+				FROM FinalCTE FC
+					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+				ORDER BY pn DESC
+				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
   END TRY
   BEGIN CATCH
     DECLARE @ErrorLogID int,

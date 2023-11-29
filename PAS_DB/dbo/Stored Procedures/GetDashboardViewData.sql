@@ -29,12 +29,12 @@ BEGIN
 				SELECT rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup,
 				rec_cust.Quantity, wo.WorkOrderNum, rec_cust.CustomerName, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
 				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
 				WHERE rec_cust.IsActive = 1 
 				AND rec_cust.IsDeleted = 0 
 				AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 

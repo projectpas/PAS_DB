@@ -10,6 +10,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    02/07/2022  HEMANT SALIYA    Save Sub Work Order Materials Issued Stockline Details
+** 2    07/18/2023  VISHAL SUTHAR    Added new stockline history
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -20,19 +21,14 @@ INSERT INTO @p1 values(65,72,10099,512,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'A
 INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000311',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
 
 EXEC dbo.usp_UnIssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
-
-
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_UnIssueSubWorkOrderMaterialsStockline]
+CREATE   PROCEDURE [dbo].[usp_UnIssueSubWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
 AS
-BEGIN
-	
+BEGIN	
 	SET NOCOUNT ON;
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-		
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED		
 		BEGIN TRY
-
 			BEGIN TRANSACTION
 				BEGIN
 					--CASE 1 UPDATE WORK ORDER MATERILS
@@ -55,9 +51,11 @@ BEGIN
 					DECLARE @IsSerialised BIT;
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @UpdateBy varchar(200);
+					DECLARE @IssueQty bigint = 0;
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
-					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
+					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'SubWorkOrderMaterials'; -- For WORK ORDER Materials Module
 					SET @PartStatus = 4; -- FOR Un-Issue
 					SET @IsAddUpdate = 0;
 					SET @ExecuteParentChild = 1;
@@ -69,39 +67,39 @@ BEGIN
 
 					IF OBJECT_ID(N'tempdb..#tmpUnIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
-					DROP TABLE #tmpUnIssueWOMaterialsStockline
+						DROP TABLE #tmpUnIssueWOMaterialsStockline
 					END
 			
 					CREATE TABLE #tmpUnIssueWOMaterialsStockline
-							(
-								 ID BIGINT NOT NULL IDENTITY, 
-								 [WorkOrderId] BIGINT NULL,
-								 [SubWorkOrderId] BIGINT NULL,
-								 [SubWOPartNoId] BIGINT NULL,
-								 [SubWorkOrderMaterialsId] BIGINT NULL,
-								 [StockLineId] BIGINT NULL,
-								 [ItemMasterId] BIGINT NULL,
-								 [ConditionId] BIGINT NULL,
-								 [ProvisionId] BIGINT NULL,
-								 [TaskId] BIGINT NULL,								 
-								 [Condition] VARCHAR(500) NULL,
-								 [PartNumber] VARCHAR(500) NULL,
-								 [PartDescription] VARCHAR(max) NULL,
-								 [Quantity] INT NULL,
-								 [QtyToBeReserved] INT NULL,
-								 [QuantityActUnIssued] INT NULL,
-								 [ControlNo] VARCHAR(500) NULL,
-								 [ControlId] VARCHAR(500) NULL,
-								 [StockLineNumber] VARCHAR(500) NULL,
-								 [SerialNumber] VARCHAR(500) NULL,
-								 [ReservedBy] VARCHAR(500) NULL,						 
-								 [IsStocklineAdded] BIT NULL,
-								 [MasterCompanyId] BIGINT NULL,
-								 [UpdatedBy] VARCHAR(500) NULL,
-								 [UpdatedById] BIGINT NULL,
-								 [UnitCost] DECIMAL(18,2),
-								 [IsSerialized] BIT
-							)
+					(
+						ID BIGINT NOT NULL IDENTITY, 
+						[WorkOrderId] BIGINT NULL,
+						[SubWorkOrderId] BIGINT NULL,
+						[SubWOPartNoId] BIGINT NULL,
+						[SubWorkOrderMaterialsId] BIGINT NULL,
+						[StockLineId] BIGINT NULL,
+						[ItemMasterId] BIGINT NULL,
+						[ConditionId] BIGINT NULL,
+						[ProvisionId] BIGINT NULL,
+						[TaskId] BIGINT NULL,								 
+						[Condition] VARCHAR(500) NULL,
+						[PartNumber] VARCHAR(500) NULL,
+						[PartDescription] VARCHAR(max) NULL,
+						[Quantity] INT NULL,
+						[QtyToBeReserved] INT NULL,
+						[QuantityActUnIssued] INT NULL,
+						[ControlNo] VARCHAR(500) NULL,
+						[ControlId] VARCHAR(500) NULL,
+						[StockLineNumber] VARCHAR(500) NULL,
+						[SerialNumber] VARCHAR(500) NULL,
+						[ReservedBy] VARCHAR(500) NULL,						 
+						[IsStocklineAdded] BIT NULL,
+						[MasterCompanyId] BIGINT NULL,
+						[UpdatedBy] VARCHAR(500) NULL,
+						[UpdatedById] BIGINT NULL,
+						[UnitCost] DECIMAL(18,2),
+						[IsSerialized] BIT
+					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIgnoredStockline') IS NOT NULL
 					BEGIN
@@ -109,21 +107,21 @@ BEGIN
 					END
 			
 					CREATE TABLE #tmpIgnoredStockline
-							(
-								 ID BIGINT NOT NULL IDENTITY, 
-								 [Condition] VARCHAR(500) NULL,
-								 [PartNumber] VARCHAR(500) NULL,
-								 [ControlNo] VARCHAR(500) NULL,
-								 [ControlId] VARCHAR(500) NULL,
-								 [StockLineNumber] VARCHAR(500) NULL,
-							)
+					(
+						ID BIGINT NOT NULL IDENTITY, 
+						[Condition] VARCHAR(500) NULL,
+						[PartNumber] VARCHAR(500) NULL,
+						[ControlNo] VARCHAR(500) NULL,
+						[ControlId] VARCHAR(500) NULL,
+						[StockLineNumber] VARCHAR(500) NULL,
+					)
 
 					INSERT INTO #tmpUnIssueWOMaterialsStockline ([WorkOrderId],[SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
-							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized])
+						[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],
+						[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized])
 					SELECT tblMS.[WorkOrderId],tblMS.[SubWorkOrderId],tblMS.[SubWOPartNoId], tblMS.[SubWorkOrderMaterialsId], tblMS.[StockLineId], tblMS.[ItemMasterId], tblMS.[ConditionId], [ProvisionId], 
-							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],
-							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized
+						[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],
+						tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
 					WHERE SL.QuantityIssued > 0 AND SL.QuantityIssued >= tblMS.QuantityActUnIssued
 
@@ -194,20 +192,26 @@ BEGIN
 						SELECT	@StocklineId = tmpWOM.StockLineId,
 								@MasterCompanyId = tmpWOM.MasterCompanyId,
 								@ReferenceId = tmpWOM.SubWorkOrderId,
-								@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId
+								@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
+								@UpdateBy = UpdatedBy,
+								@IssueQty = QuantityActUnIssued
 						FROM #tmpUnIssueWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @slcount
 
 						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
 
-						IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
-						BEGIN
-							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						END
-						ELSE
-						BEGIN
-							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						END
+						--IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
+						--BEGIN
+						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						--END
+						--ELSE
+						--BEGIN
+						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
+						--END
+
+						DECLARE @ActionId INT;
+						SET @ActionId = 5; -- UnIssue
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
 
 						SET @slcount = @slcount + 1;
 					END;

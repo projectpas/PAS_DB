@@ -38,6 +38,9 @@
     [IsActive]                      BIT            CONSTRAINT [DF_VendorRFQPurchaseOrderAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                     BIT            CONSTRAINT [DF_VendorRFQPurchaseOrderAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]                       NVARCHAR (100) NULL,
+    [IsFromBulkPO]                  BIT            NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderAudit] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderAuditId] ASC)
 );
+
+
 

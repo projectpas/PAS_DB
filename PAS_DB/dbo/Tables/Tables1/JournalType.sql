@@ -9,8 +9,12 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [JournalType_DC_UDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]        BIT           CONSTRAINT [JournalType_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [JournalType_DC_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [SequenceNo]      INT           NULL,
+    [BatchType]       VARCHAR (20)  NULL,
     CONSTRAINT [PK_JournalType] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 
 
 

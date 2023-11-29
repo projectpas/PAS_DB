@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPurchaseOrderFreightList]           
  ** Author: Subhash Saliya
  ** Description: This stored procedure is used to Get Purchase Order Freight List Details
@@ -18,8 +17,7 @@
      
 -- EXEC GetPurchaseOrderFreightList 8,0
 ************************************************************************/
-
-CREATE PROCEDURE [dbo].[GetPurchaseOrderFreightList]
+CREATE   PROCEDURE [dbo].[GetPurchaseOrderFreightList]
 @PurchaseOrderId bigint,
 @IsDeleted bit,
 @Opr int
@@ -64,6 +62,8 @@ BEGIN
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]
+		  ,[ManufacturerId]
+		  ,[Manufacturer]
       FROM [dbo].PurchaseOrderFreight WITH (NOLOCK) WHERE PurchaseOrderId=@PurchaseOrderId AND IsDeleted=@IsDeleted;
 	END
 	BEGIN
@@ -101,7 +101,9 @@ BEGIN
           ,[IsActive]
           ,[IsDeleted]
 		  ,[LineNum]
-      FROM [dbo].[PurchaseOrderFreightAudit] WITH (NOLOCK) WHERE PurchaseOrderFreightId=@PurchaseOrderId;
+		  ,[ManufacturerId]
+		  ,[Manufacturer]
+      FROM [dbo].[PurchaseOrderFreightAudit] WITH (NOLOCK) WHERE [PurchaseOrderFreightId]=@PurchaseOrderId;
 	END
 	END TRY    
 	BEGIN CATCH

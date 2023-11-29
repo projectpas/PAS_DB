@@ -20,9 +20,11 @@
     [ItemMasterId]               BIGINT          NOT NULL,
     [PartNumber]                 VARCHAR (256)   NULL,
     [Order]                      INT             NULL,
-    [PartDescription]            VARCHAR (200)   NULL,
+    [PartDescription]            VARCHAR (MAX)   NULL,
     [WFParentId]                 BIGINT          NULL,
     [IsVersionIncrease]          BIT             NULL,
     CONSTRAINT [PK_WorkflowMeasurementAudit] PRIMARY KEY CLUSTERED ([WorkflowMeasurementAuditId] ASC)
 );
+
+
 

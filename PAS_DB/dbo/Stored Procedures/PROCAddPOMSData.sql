@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************           
  ** File:   [PROCAddPOMSData]           
  ** Author:  Moin Bloch
@@ -20,7 +19,7 @@
 -- EXEC PROCAddPOMSData 47,3,2,'moin','moin',47,2,2
 ************************************************************************/
 
-CREATE PROCEDURE [dbo].[PROCAddPOMSData]
+CREATE   PROCEDURE [dbo].[PROCAddPOMSData]
 @PurchaseOrderId bigint,
 @EntityMSID bigint,
 @MasterCompanyId int,
@@ -87,7 +86,7 @@ BEGIN
 
 			  SELECT @MSDetailsId = IDENT_CURRENT('PurchaseOrderManagementStructureDetails');
 			  		      
-			  UPDATE dbo.PurchaseOrder SET ManagementStructureId = @EntityMSID WHERE [PurchaseOrderId] = @PurchaseOrderId; 
+			  --UPDATE dbo.PurchaseOrder SET ManagementStructureId = @EntityMSID WHERE [PurchaseOrderId] = @PurchaseOrderId; 
 
 			  SELECT @MSLevel = MC.ManagementStructureLevel
 					FROM [dbo].[MasterCompany] MC WITH(NOLOCK) 
@@ -225,7 +224,7 @@ BEGIN
 
 			  SELECT @MSDetailsId = IDENT_CURRENT('PurchaseOrderManagementStructureDetails');
 			  		      
-			  UPDATE dbo.PurchaseOrderPart SET ManagementStructureId = @EntityMSID WHERE [PurchaseOrderPartRecordId] = @PurchaseOrderId; 
+			  --UPDATE dbo.PurchaseOrderPart SET ManagementStructureId = @EntityMSID WHERE [PurchaseOrderPartRecordId] = @PurchaseOrderId; 
 
 			  SELECT @MSLevel = MC.ManagementStructureLevel
 					FROM [dbo].[MasterCompany] MC WITH(NOLOCK) 

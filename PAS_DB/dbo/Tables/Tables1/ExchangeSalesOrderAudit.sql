@@ -14,7 +14,7 @@
     [TotalSalesAmount]          NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_TotalSalesAmount] DEFAULT ((0)) NOT NULL,
     [CustomerHold]              NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_CustomerHold] DEFAULT ((0)) NOT NULL,
     [DepositAmount]             NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_DepositAmount] DEFAULT ((0)) NOT NULL,
-    [BalanceDue]                NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_BalanceDue] DEFAULT ((0)) NOT NULL,
+    [BalanceDue]                DECIMAL (18, 2) NULL,
     [SalesPersonId]             BIGINT          NULL,
     [AgentId]                   BIGINT          NULL,
     [CustomerSeviceRepId]       BIGINT          NULL,
@@ -61,6 +61,8 @@
     [CoreAccepted]              BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 
 
 

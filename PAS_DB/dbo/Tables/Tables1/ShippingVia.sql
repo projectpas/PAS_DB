@@ -10,10 +10,13 @@
     [IsActive]        BIT            CONSTRAINT [D_ShippingVia_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT            CONSTRAINT [D_ShippingVia_Delete] DEFAULT ((0)) NOT NULL,
     [Description]     VARCHAR (500)  NULL,
+    [CarrierId]       BIGINT         NULL,
     PRIMARY KEY CLUSTERED ([ShippingViaId] ASC),
     CONSTRAINT [FK_ShippingVia_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_ShippingVia] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

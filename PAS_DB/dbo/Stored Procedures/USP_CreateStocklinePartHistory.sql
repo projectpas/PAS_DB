@@ -1,10 +1,26 @@
-﻿
-CREATE PROCEDURE [dbo].[USP_CreateStocklinePartHistory] 
+﻿/*************************************************************           
+ ** File:   [USP_CreateStocklinePartHistory]           
+ ** Author: Moin Bloch
+ ** Description: This stored procedure is used to Store Stock Line History
+ ** Date:   06/28/2023
+ ** PARAMETERS: @VendorRMAId BIGINT          
+ ** RETURN VALUE:
+ ******************************************************************************           
+  ** Change History           
+ ******************************************************************************           
+ ** PR   Date         Author  		Change Description            
+ ** --   --------     -------		---------------------------     
+    1    06/28/2023   Moin Bloch     Added IsRMA Flag
+*******************************************************************************
+EXEC USP_CreateStocklinePartHistory 1,0,0,2,1
+*******************************************************************************/
+CREATE   PROCEDURE [dbo].[USP_CreateStocklinePartHistory] 
 (
 	@StocklineId BIGINT = NULL,
 	@IsPO bit=0,
 	@IsRO bit=0,
-	@extstocklineId BIGINT = NULL
+	@extstocklineId BIGINT = NULL,
+	@IsRMA bit=0
 )
 AS
 BEGIN
@@ -55,12 +71,11 @@ BEGIN
 				SELECT @StocklineId, STL.ItemMasterId, 0, STL.StockLineNumber,
 					STL.PurchaseOrderId, po.PurchaseOrderNumber, pop.UnitCost, STL.ConditionId,STL.Condition,NULL,NULL,NULL,NULL,
 					NULL,po.VendorId,po.VendorName,STL.ReceivedDate,pop.ExtendedCost,STL.LotNumber,wo.WorkOrderNum,NULL,0,STL.UnitCost,pop.AltEquiPartNumber
-				FROM DBO.Stockline STL 
-				LEFT JOIN PurchaseOrder po WITH (NOLOCK) on STL.PurchaseOrderId = po.PurchaseOrderId
-				LEFT JOIN PurchaseOrderPart pop WITH (NOLOCK) on STL.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
-				--LEFT JOIN WorkOrder wo WITH (NOLOCK) on STL.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN WorkOrder wo WITH (NOLOCK) on pop.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN WorkOrderPartNumber wop WITH (NOLOCK) on STL.WorkOrderPartNoId = wop.ID
+				FROM [dbo].[Stockline] STL WITH (NOLOCK)
+				LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON STL.PurchaseOrderId = po.PurchaseOrderId
+				LEFT JOIN [dbo].[PurchaseOrderPart] pop WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId
+				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON pop.WorkOrderId = wo.WorkOrderId
+				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
 				WHERE STL.StockLineId = @StocklineId
 		END
 		IF(@IsRO = 1)
@@ -77,13 +92,13 @@ BEGIN
 				SELECT @extstocklineId, STL.ItemMasterId, 0, STL.StockLineNumber,
 					NULL, NULL, NULL, STL.ConditionId,STL.Condition,ro.RepairOrderId,ro.RepairOrderNumber,wop.WorkOrderScopeId,wos.[Description],
 					rop.UnitCost,ro.VendorId,ro.VendorName,STL.ReceivedDate,rop.ExtendedCost,STL.LotNumber,wo.WorkOrderNum,rop.StockLineNumber,@StocklineId,STL.UnitCost,rop.AltEquiPartNumber
-				FROM DBO.Stockline STL 
-				LEFT JOIN RepairOrder ro WITH (NOLOCK) on STL.RepairOrderId = ro.RepairOrderId
-				LEFT JOIN RepairOrderPart rop WITH (NOLOCK) on STL.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
-				LEFT JOIN WorkOrder wo WITH (NOLOCK) on rop.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN WorkOrderPartNumber wop WITH (NOLOCK) on STL.WorkOrderPartNoId = wop.ID
-				LEFT JOIN WorkScope wos WITH (NOLOCK) on wop.WorkOrderScopeId = wos.WorkScopeId
-				WHERE STL.StockLineId = @extstocklineId
+				FROM [dbo].[Stockline] STL WITH (NOLOCK)
+				LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON STL.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN [dbo].[RepairOrderPart] rop WITH (NOLOCK) ON STL.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
+				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON rop.WorkOrderId = wo.WorkOrderId
+				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
+				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
+				WHERE STL.StockLineId = @extstocklineId;
 
 				INSERT INTO [dbo].[StockLineHistoryDetails] ([StocklineId], [ItemMasterId_o], [ItemMasterId_m], [StocklineNum],
 					[PurchaseOrderId], [PONum], [POCost], [ConditionId], [ConditionName], [RepairOrderId], [RONum], [WorkscoprId],[WorkscopeName],
@@ -91,27 +106,27 @@ BEGIN
 				SELECT @StocklineId, rop.ItemMasterId, rop.RevisedPartId, STL.StockLineNumber,
 					rop.RevisedPartId, NULL, NULL, STL.ConditionId,STL.Condition,ro.RepairOrderId,ro.RepairOrderNumber,wop.WorkOrderScopeId,wos.[Description],
 					rop.UnitCost,ro.VendorId,ro.VendorName,STL.ReceivedDate,rop.ExtendedCost,STL.LotNumber,wo.WorkOrderNum,rop.StockLineNumber,@StocklineId,STL.UnitCost,rop.AltEquiPartNumber
-				FROM DBO.Stockline STL 
-				LEFT JOIN RepairOrder ro WITH (NOLOCK) on STL.RepairOrderId = ro.RepairOrderId
-				LEFT JOIN RepairOrderPart rop WITH (NOLOCK) on STL.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
-				LEFT JOIN WorkOrder wo WITH (NOLOCK) on rop.WorkOrderId = wo.WorkOrderId
-				LEFT JOIN WorkOrderPartNumber wop WITH (NOLOCK) on STL.WorkOrderPartNoId = wop.ID
-				LEFT JOIN WorkScope wos WITH (NOLOCK) on wop.WorkOrderScopeId = wos.WorkScopeId
-				WHERE STL.StockLineId = @StocklineId
+				FROM [dbo].[Stockline] STL WITH (NOLOCK)
+				LEFT JOIN [dbo].[RepairOrder] ro WITH (NOLOCK) ON STL.RepairOrderId = ro.RepairOrderId
+				LEFT JOIN [dbo].[RepairOrderPart] rop WITH (NOLOCK) ON STL.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
+				LEFT JOIN [dbo].[WorkOrder] wo WITH (NOLOCK) ON rop.WorkOrderId = wo.WorkOrderId
+				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON STL.WorkOrderPartNoId = wop.ID
+				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON wop.WorkOrderScopeId = wos.WorkScopeId
+				WHERE STL.StockLineId = @StocklineId;
 
-				declare @stlnum varchar(100);
-				SET @stlnum = (select StocklineNum from StockLineHistoryDetails where StocklineId = @StocklineId and extstocklineId = @StocklineId)
-				declare @opn bigint;
-				SET @opn = (select ItemMasterId_o from StockLineHistoryDetails where StocklineId = @extstocklineId and extstocklineId = @StocklineId)
-				declare @mpn bigint;
-				SET @mpn = (select ItemMasterId_o from StockLineHistoryDetails where StocklineId = @StocklineId and extstocklineId = @StocklineId)
-				declare @modpn bigint=0;
-				if(@opn != @mpn)
-				begin
-					set @modpn = @mpn;
-				end
+				DECLARE @stlnum VARCHAR(100);
+				SET @stlnum = (SELECT StocklineNum FROM dbo.StockLineHistoryDetails WITH (NOLOCK) WHERE StocklineId = @StocklineId AND extstocklineId = @StocklineId)
+				DECLARE @opn BIGINT;
+				SET @opn = (SELECT ItemMasterId_o FROM dbo.StockLineHistoryDetails WITH (NOLOCK) WHERE StocklineId = @extstocklineId AND extstocklineId = @StocklineId)
+				DECLARE @mpn bigint;
+				SET @mpn = (SELECT ItemMasterId_o FROM dbo.StockLineHistoryDetails WITH (NOLOCK) WHERE StocklineId = @StocklineId AND extstocklineId = @StocklineId)
+				DECLARE @modpn BIGINT=0;
+				IF(@opn != @mpn)
+				BEGIN
+					SET @modpn = @mpn;
+				END
 
-				UPDATE StockLineHistoryDetails SET
+				UPDATE [dbo].[StockLineHistoryDetails] SET
 					  StockLineHistoryDetails.RepairOrderId = q.RepairOrderId,
 					  StockLineHistoryDetails.RONum = q.RONum,
 					  StockLineHistoryDetails.ItemMasterId_m = q.ItemMasterId_m,
@@ -135,6 +150,20 @@ BEGIN
 					  WHERE StocklineId = @StocklineId AND extstocklineId = @StocklineId
 					) q
 					WHERE StocklineId = @extstocklineId AND extstocklineId = @StocklineId
+		END
+		IF(@IsRMA = 1)
+		BEGIN
+			INSERT INTO [dbo].[StockLineHistoryDetails] ([StocklineId], [ItemMasterId_o], [ItemMasterId_m], [StocklineNum],
+					[PurchaseOrderId], [PONum], [POCost], [ConditionId], [ConditionName], [RepairOrderId], [RONum], [WorkscoprId],[WorkscopeName],
+					[RepairCost],[VendorId],[VendorName],[RecdDate],[Cost],[LotNum],[WONum],[PreviousStockLine],[extstocklineId],[InventoryCost],[AltEquiPartNumber],[VendorRMAId],[RMANumber])
+				SELECT @StocklineId, STL.ItemMasterId, 0, STL.StockLineNumber,
+					NULL, NULL, pop.UnitCost, STL.ConditionId,STL.Condition,NULL,NULL,NULL,NULL,
+					NULL,po.VendorId,v.VendorName,STL.ReceivedDate,pop.ExtendedCost,STL.LotNumber,NULL,NULL,0,STL.UnitCost,NULL,po.VendorRMAId,po.RMANumber
+				FROM [dbo].[Stockline] STL WITH (NOLOCK)
+				LEFT JOIN [dbo].[VendorRMA] po WITH (NOLOCK) ON STL.VendorRMAId = po.VendorRMAId
+				LEFT JOIN [dbo].[VendorRMADetail] pop WITH (NOLOCK) ON STL.VendorRMADetailId = pop.VendorRMADetailId
+				LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = po.VendorId
+				WHERE STL.StockLineId = @StocklineId;
 		END
 	END
     COMMIT TRANSACTION

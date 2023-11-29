@@ -37,8 +37,11 @@
     [AttachmentId]            BIGINT          NULL,
     [EmployeeExpIds]          VARCHAR (100)   NULL,
     [EmailSignature]          NVARCHAR (MAX)  NULL,
+    [EmailSignatureLogo]      NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
+
+
 
 
 

@@ -25,6 +25,13 @@ BEGIN
 		FROM [dbo].[ReceivingReconciliationDetails] RRDE WITH (NOLOCK)
 		LEFT JOIN DBO.GLAccount G WITH (NOLOCK) ON G.GlAccountId = RRDE.GlAccountId
 		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId
+
+		Update ST
+		SET ReconciliationNumber = RRDH.ReceivingReconciliationNumber
+		FROM [dbo].Stockline ST WITH (NOLOCK)
+		LEFT JOIN DBO.[ReceivingReconciliationDetails] RRDE WITH (NOLOCK) ON st.StockLineId = RRDE.StocklineId
+		LEFT JOIN DBO.ReceivingReconciliationHeader RRDH WITH (NOLOCK) ON RRDH.ReceivingReconciliationId = RRDE.ReceivingReconciliationId
+		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0
 	END
 	COMMIT  TRANSACTION
 

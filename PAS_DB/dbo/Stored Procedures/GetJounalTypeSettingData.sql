@@ -21,7 +21,7 @@
  EXECUTE [GetJounalTypeSettingData] 1
 **************************************************************/ 
 
-Create     PROCEDURE [dbo].[GetJounalTypeSettingData]
+CREATE       PROCEDURE [dbo].[GetJounalTypeSettingData]
 	@masterCompanyId bigint = null
 AS
 BEGIN
@@ -49,7 +49,7 @@ BEGIN
                     
 				FROM dbo.JournalType jt  WITH(NOLOCK)
 				left join JournalTypeSetting jts   WITH(NOLOCK) on jt.ID=jts.JournalTypeID and jts.MasterCompanyId= @masterCompanyId
-				WHERE  jt.IsDeleted = 0
+				WHERE  jt.IsDeleted = 0 order by SequenceNo asc
 			END
 		COMMIT  TRANSACTION
 

@@ -26,8 +26,12 @@
     [ProvisionId]             INT             DEFAULT ((2)) NOT NULL,
     [RepairOrderId]           BIGINT          NULL,
     [QuantityTurnIn]          INT             DEFAULT ((0)) NULL,
+    [Figure]                  NVARCHAR (50)   NULL,
+    [Item]                    NVARCHAR (50)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialStockLineAudit] PRIMARY KEY CLUSTERED ([SWOMStockLineAuditId] ASC)
 );
+
+
 
 
 

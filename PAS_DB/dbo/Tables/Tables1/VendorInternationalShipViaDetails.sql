@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[VendorInternationalShipViaDetails] (
     [VendorInternationalShipViaDetailsId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [VendorInternationalShippingId]       BIGINT         NOT NULL,
-    [ShipVia]                             VARCHAR (100)  NULL,
+    [ShipVia]                             VARCHAR (400)  NULL,
     [ShippingAccountInfo]                 VARCHAR (200)  NULL,
     [Memo]                                NVARCHAR (MAX) NULL,
     [MasterCompanyId]                     INT            NOT NULL,
@@ -19,6 +19,8 @@
     CONSTRAINT [FK_VendorInternationalShipViaDetails_VendorInternationalShipping] FOREIGN KEY ([VendorInternationalShippingId]) REFERENCES [dbo].[VendorInternationalShipping] ([VendorInternationalShippingId]),
     CONSTRAINT [Unique_VendorInternationalShipViaDetails] UNIQUE NONCLUSTERED ([VendorInternationalShippingId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

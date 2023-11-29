@@ -130,8 +130,12 @@
     [OH]                                INT             DEFAULT ((0)) NOT NULL,
     [REP]                               INT             DEFAULT ((0)) NOT NULL,
     [SVC]                               INT             DEFAULT ((0)) NOT NULL,
+    [Figure]                            VARCHAR (15)    NULL,
+    [Item]                              VARCHAR (15)    NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
+
+
 
 
 

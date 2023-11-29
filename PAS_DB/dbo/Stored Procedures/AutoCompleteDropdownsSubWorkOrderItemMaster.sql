@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdownsSubWorkOrderItemMaster]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used retrieve work Order Item Master List for Auto complete Dropdown List    
@@ -22,7 +20,7 @@
 --EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'108,109,11',1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
@@ -40,6 +38,7 @@ AS
 
 				SELECT DISTINCT TOP 20 
 					IM.ItemMasterId AS Value, 
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = WOM.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
@@ -47,6 +46,7 @@ AS
 				UNION     
 				SELECT DISTINCT TOP 20 
 					IM.ItemMasterId AS Value, 
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = WOM.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId

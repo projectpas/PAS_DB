@@ -95,6 +95,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					IM.partnumber AS PartNumber,
+					M.Name As Manufacturer,
 					IM.PartDescription,
 					RC.CustomerName,
 					WOS.Stage AS StageCode,
@@ -128,6 +129,7 @@ BEGIN
 					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					INNER JOIN dbo.Stockline SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
+					LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					LEFT JOIN dbo.ItemMaster RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId

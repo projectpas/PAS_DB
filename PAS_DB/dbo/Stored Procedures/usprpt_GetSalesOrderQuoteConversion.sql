@@ -1,24 +1,24 @@
 ﻿/*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuoteConversion]             
- ** Author:   Deep Patel
+ ** Author:   
  ** Description: Get Data for SalesOrderQuotes Report   
  ** Purpose:           
- ** Date:   07-september-2022
+ ** Date:   
             
  ** PARAMETERS:             
            
  ** RETURN VALUE:             
-    
  **************************************************************             
   ** Change History             
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    07-september-2022  Deep Patel   Created  
+   1   16/08/2023       Ekta Chandegra     Convert text into uppercase   
+
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetSalesOrderQuoteConversion] 
+CREATE     PROCEDURE [dbo].[usprpt_GetSalesOrderQuoteConversion] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -153,13 +153,17 @@ BEGIN
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))))
 
 
+		;WITH rptCTE (TotalRecordsCount, customerName, customerCode, pn, pndescription, serialnumber, condition, quotenumber, quoteversion, quoteStatus,
+						datesent, quotedate, quoterevenue, sorevenue, qtedirectcost, qtemarginamt, marginperc, contactname, email, 
+						level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+						salesperson, csr, convertedtoso, sonumber, invoicenumber, conversionration, masterCompanyId) AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(SOQ.CustomerName) 'customerName',  
 			UPPER(SOQ.CustomerCode) 'customerCode',  
 			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN (A.partnumber) 
-			ELSE SOQP.PartNumber END as 'pn',  
+			ELSE UPPER(SOQP.PartNumber) END as 'pn',  
 			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN (A.PartDescription) 
-			ELSE SOQP.PartDescription END as 'pndescription', 
+			ELSE UPPER(SOQP.PartDescription) END as 'pndescription', 
 			--UPPER(SOQP.PartNumber) 'pn',
 			--UPPER(SOQP.PartDescription) 'pndescription', 
 			UPPER(STL.SerialNumber) 'serialnumber',  
@@ -169,8 +173,8 @@ BEGIN
 			UPPER(SOQ.statusname) 'quoteStatus',  
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate', 
-			FORMAT((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0)),'#,0.00') 'quoterevenue',
-			FORMAT((ISNULL(A.NetSales, 0) + ISNULL(A.BillingAmount, 0)),'#,0.00') 'sorevenue',
+			ISNULL((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0)), 0) 'quoterevenue',
+			ISNULL((ISNULL(A.NetSales, 0) + ISNULL(A.BillingAmount, 0)), 0) 'sorevenue',
 			FORMAT(ISNULL(SOQP.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
 			FORMAT(((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
 		    FORMAT((((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0)))*100) /  
@@ -189,12 +193,13 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			UPPER(SOQ.SalesPersonName) 'salesperson',  
 			UPPER(SOQ.CustomerServiceRepName) 'csr',
-			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN 'Yes'
-			ELSE 'No' END as 'convertedtoso',
+			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN UPPER('Yes')
+			ELSE UPPER('No') END as 'convertedtoso',
 			UPPER(A.SalesOrderNumber) 'sonumber',
 			UPPER(A.InvoiceNo) as 'invoicenumber',
 			--CAST((COUNT(1) OVER () * CONVERT(decimal(4,2), @SOConvertedCount)) / 100 as float) as 'conversionration'
-			FORMAT(@SOConvertedCount / (CONVERT(decimal(4,2), COUNT(1) OVER ())) * 100 , 'N', 'en-us') as 'conversionration'
+			FORMAT(@SOConvertedCount / (CONVERT(decimal(18,2), COUNT(1) OVER ())) * 100 , 'N', 'en-us') as 'conversionration',
+			SOQ.MasterCompanyId
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 		  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -238,8 +243,35 @@ BEGIN
 				AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			ORDER BY SOQ.OpenDate
-			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
+				)
+				,FinalCTE(TotalRecordsCount, customerName, customerCode, pn, pndescription, serialnumber, condition, quotenumber, quoteversion, quoteStatus,
+						datesent, quotedate, quoterevenue, sorevenue, qtedirectcost, qtemarginamt, marginperc, contactname, email, 
+						level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+						salesperson, csr, convertedtoso, sonumber, invoicenumber, conversionration, masterCompanyId) 
+			  AS (SELECT DISTINCT TotalRecordsCount, customerName, customerCode, pn, pndescription, serialnumber, condition, quotenumber, quoteversion, quoteStatus,
+						datesent, quotedate, quoterevenue, sorevenue, qtedirectcost, qtemarginamt, marginperc, contactname, email, 
+						level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+						salesperson, csr, convertedtoso, sonumber, invoicenumber, conversionration, masterCompanyId FROM rptCTE)
+
+			,WithTotal (masterCompanyId, TotalQuoteRevenue, TotalSoRevenue) 
+			  AS (SELECT masterCompanyId, 
+				FORMAT(SUM(quoterevenue), 'N', 'en-us') TotalQuoteRevenue,
+				FORMAT(SUM(sorevenue), 'N', 'en-us') TotalSoRevenue
+				FROM FinalCTE
+				GROUP BY masterCompanyId)
+
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, customerName, customerCode, pn, pndescription, serialnumber, condition, quotenumber, quoteversion, quoteStatus,
+					datesent, quotedate,
+					FORMAT(ISNULL(quoterevenue,0) , '#,0.00') 'quoterevenue',    
+					FORMAT(ISNULL(sorevenue,0) , '#,0.00') 'sorevenue',    
+					qtedirectcost, qtemarginamt, marginperc, contactname, email, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, 
+					salesperson, csr, convertedtoso, sonumber, invoicenumber, conversionration,
+					WC.TotalQuoteRevenue,
+					WC.TotalSoRevenue
+				FROM FinalCTE FC
+					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+				ORDER BY quotedate
+				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
   END TRY  
   
   BEGIN CATCH  

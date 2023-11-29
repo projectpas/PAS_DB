@@ -20,8 +20,7 @@
      
 --EXEC [GetWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
-
-CREATE PROCEDURE [dbo].[GetWOMaterialsPickTicketChildList]
+CREATE   PROCEDURE [dbo].[GetWOMaterialsPickTicketChildList]
 @WorkOrderId  bigint,
 @OrderPartId bigint
 AS
@@ -45,10 +44,36 @@ BEGIN
 					sl.IdNumber,
 					wopt.ConfirmedDate,
 					sl.StockLineId,
-					wopt.IsConfirmed 
+					wopt.IsConfirmed,
+					0 AS IsKitType 
 			FROM dbo.WorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
+
+			UNION ALL
+
+			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
+					wopt.QtyToShip,
+					sl.SerialNumber,
+					sl.StockLineNumber,
+					wopt.CreatedDate as PickedDate,
+					CONCAT(emp.FirstName ,' ', emp.LastName) as PickedBy,
+					wopt.PickTicketId as PickTicketId,
+					wopt.WorkorderId as referenceId,
+					wopt.WorkOrderMaterialsId as OrderPartId,
+					CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy,
+					sl.ControlNumber,
+					sl.IdNumber,
+					wopt.ConfirmedDate,
+					sl.StockLineId,
+					wopt.IsConfirmed,
+					1 AS IsKitType 
+			FROM dbo.WorkorderPickTicket wopt WITH(NOLOCK)
+				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
+				INNER JOIN dbo.WorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 

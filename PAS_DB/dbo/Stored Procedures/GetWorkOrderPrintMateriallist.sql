@@ -14,18 +14,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** PR   Date         Author		 Change Description            
+ ** --   --------     -------		 --------------------------------          
     1    06/02/2020   Subhash Saliya Created
+    2    03/27/2023   Vishal Suthar  Modified to include KIT material data
      
---EXEC [GetWorkOrderPrintPdfData] 274,258
---EXEC [GetWorkOrderPirntMateriallist] 37,42
+--EXEC [GetWorkOrderPrintMateriallist] 37,42
 **************************************************************/
-
-CREATE PROCEDURE [dbo].[GetWorkOrderPirntMateriallist]
-@WorkorderId bigint,
-@workOrderPartNoId bigint,
-@workFlowWorkOrderId bigint
+CREATE   PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
+	@WorkorderId bigint,
+	@workOrderPartNoId bigint,
+	@workFlowWorkOrderId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -39,9 +38,18 @@ BEGIN
 						imt.partnumber as partnumber,
 						imt.PartDescription as PartDescription
 				FROM WorkOrderMaterials mt WITH(NOLOCK)
-					--INNER JOIN WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = mt.WorkOrderId 
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
 				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0
+
+				UNION ALL
+
+				SELECT  mtk.Quantity,
+				        mtk.QuantityIssued,
+						imt.partnumber as partnumber,
+						imt.PartDescription as PartDescription
+				FROM [DBO].[WorkOrderMaterialsKit] mtk WITH(NOLOCK)
+				LEFT JOIN [DBO].[ItemMaster] imt WITH(NOLOCK) on imt.ItemMasterId = mtk.ItemMasterId
+				WHERE mtk.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mtk.IsDeleted = 0
 			END
 		COMMIT  TRANSACTION
 
@@ -50,15 +58,13 @@ BEGIN
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
-
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderPirntMateriallist' 
+              , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderPrintMateriallist' 
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '''
 													   @Parameter2 = ' + ISNULL(@workOrderPartNoId ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-
+------------------------------------PLEASE DO NOT EDIT BELOW--------------------------------------------------------------------
               exec spLogException 
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments

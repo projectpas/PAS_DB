@@ -49,13 +49,13 @@
     [BinId]                           BIGINT          NULL,
     [ManufacturerPN]                  NVARCHAR (80)   NULL,
     [CntrlNumber]                     INT             NULL,
+    [AssetAttributeTypeId]            BIGINT          NULL,
     CONSTRAINT [PK_Asset] PRIMARY KEY CLUSTERED ([AssetRecordId] ASC),
     FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_Asset_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_Asset_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_Asset_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_Asset_TangibleClassId] FOREIGN KEY ([TangibleClassId]) REFERENCES [dbo].[TangibleClass] ([TangibleClassId]),
     CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
 
@@ -66,12 +66,10 @@
 
 
 
+
+
 GO
-
-
-
-
-CREATE Trigger [dbo].[trg_Asset]
+CREATE   Trigger [dbo].[trg_Asset]
 
 on [dbo].[Asset] 
 
@@ -89,13 +87,13 @@ INSERT INTO AssetAudit (AssetRecordId,AssetId,[Name],[Description],ManagementStr
 
 ExpirationDate,Memo,TangibleClassId,AssetIntangibleTypeId,AssetMaintenanceIsContract,AssetMaintenanceContractFile,UnexpiredTime,MasterCompanyId,AssetLocationId,
 
-IsDeleted,IsActive,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AssetMaintenanceContractFileExt,MasterPartId,EntryDate,IsDepreciable,IsNonDepreciable,IsAmortizable,IsNonAmortizable,AlternateAssetRecordId,AssetParentRecordId)
+IsDeleted,IsActive,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AssetMaintenanceContractFileExt,MasterPartId,EntryDate,IsDepreciable,IsNonDepreciable,IsAmortizable,IsNonAmortizable,AlternateAssetRecordId,AssetParentRecordId, AssetAttributeTypeId)
 
 SELECT AssetRecordId,AssetId,[Name],[Description],ManagementStructureId,IsIntangible,AssetAcquisitionTypeId,ManufacturerId,IsTangible,ManufacturedDate,Model,IsSerialized,UnitOfMeasureId,CurrencyId,UnitCost,
 
 ExpirationDate,Memo,TangibleClassId,AssetIntangibleTypeId,AssetMaintenanceIsContract,AssetMaintenanceContractFile,UnexpiredTime,MasterCompanyId,AssetLocationId,
 
-IsDeleted,IsActive,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AssetMaintenanceContractFileExt,MasterPartId,EntryDate,IsDepreciable,IsNonDepreciable,IsAmortizable,IsNonAmortizable,AlternateAssetRecordId,AssetParentRecordId FROM INSERTED
+IsDeleted,IsActive,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AssetMaintenanceContractFileExt,MasterPartId,EntryDate,IsDepreciable,IsNonDepreciable,IsAmortizable,IsNonAmortizable,AlternateAssetRecordId,AssetParentRecordId,AssetAttributeTypeId FROM INSERTED
 
 
 

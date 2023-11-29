@@ -15,6 +15,9 @@
     [Avglaborrate]             DECIMAL (18, 2) NULL,
     [Overheadburden]           DECIMAL (18, 2) NULL,
     [OverheadburdenPercentId]  BIGINT          NULL,
+    [FlatAmount]               DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_EmployeeExpertiseAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeExpertiseId] ASC)
 );
+
+
 

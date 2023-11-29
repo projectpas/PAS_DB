@@ -1,4 +1,5 @@
 ﻿
+
 /*************************************************************           
  ** File:   [GetWODashboardData]           
  ** Author:   Hemant Saliya
@@ -17,6 +18,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/22/2022   Hemant Saliya Created
+	2    05/03/2022   Hemant Saliya Remove Duplicate Records
 
 exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@WOTypeId=N'ALL',@GlobalFilter=N'',
 @WorkOrderStageId=18,@WorkOrderNum=NULL,@PartNumber=NULL,@PartDescription=NULL,@Customer=NULL,@SerialNumber=NULL,
@@ -25,7 +27,7 @@ exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@Sort
 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWODashboardData]
+CREATE   PROCEDURE [dbo].[GetWODashboardData]
 	@PageNumber INT,
 	@PageSize INT,
 	@SortColumn VARCHAR(50) = NULL,
@@ -124,13 +126,12 @@ BEGIN
 
 				INSERT INTO #tmpWorkOrderData (WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber)
-				SELECT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, 
 					CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType,
 					p.Description AS [Priority], 
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
-					--CASE WHEN ISNULL(WOC.ActualRevenue, 0) != 0 THEN ISNULL(WOC.ActualRevenue, 0) ELSE ISNULL(WOC.Revenue, 0) END AS EstRevenue, 
 					ISNULL(WOC.TotalCost, 0) AS EstCost, ISNULL(WOC.ActualMargin, 0) AS EstMargin,
 					''  AS PONumber, WOP.CustomerReference AS RONumber
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
@@ -147,7 +148,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
 					'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
 					0 AS EstRevenue, 
@@ -163,7 +164,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, p.Description AS [Priority], 
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
@@ -184,7 +185,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
 					'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
 					0 AS EstRevenue, 
@@ -199,7 +200,7 @@ BEGIN
 				AND RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
 				;With Result AS(
-					SELECT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
+					SELECT DISTINCT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 						[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber FROM #tmpWorkOrderData
 					),
 				FinalResult AS (
@@ -231,7 +232,6 @@ BEGIN
 							(IsNull(@PartNumber, '') = '' OR PartNumber like '%'+ @PartNumber +'%') AND
 							(IsNull(@PartDescription, '') = '' OR PartDescription like '%'+ @PartDescription +'%') AND
 							(IsNull(@Customer, '') = '' OR Customer like '%'+ @Customer +'%') AND
-							--(IsNull(@WOType, '') = '' OR WOType like '%'+ @WOType +'%') AND
 							(IsNull(@Techname, '') = '' OR Techname like '%'+ @Techname +'%') AND
 							(IsNull(@SerialNumber, '') = '' OR SerialNumber like '%'+ @SerialNumber +'%') AND
 							(ISNULL(@EstRevenue,0) =0 OR EstRevenue = @EstRevenue) AND

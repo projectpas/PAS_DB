@@ -15,7 +15,7 @@
     [IsActive]               BIT             CONSTRAINT [WorkOrderLaborHeader_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT             CONSTRAINT [WorkOrderLaborHeader_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ExpertiseId]            SMALLINT        NULL,
-    [EmployeeId]             BIGINT          NOT NULL,
+    [EmployeeId]             BIGINT          NULL,
     [TotalWorkHours]         DECIMAL (20, 2) NULL,
     [WOPartNoId]             BIGINT          DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkOrderLaborHeader] PRIMARY KEY CLUSTERED ([WorkOrderLaborHeaderId] ASC),
@@ -26,6 +26,8 @@
     CONSTRAINT [FK_WorkOrderLaborHeader_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderLaborHeader_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

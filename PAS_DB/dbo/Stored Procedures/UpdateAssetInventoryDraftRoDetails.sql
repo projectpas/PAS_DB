@@ -1,6 +1,6 @@
 ﻿
---- exec UpdateAssetInventoryDraftRoDetails  139
-CREATE  PROCEDURE [dbo].[UpdateAssetInventoryDraftRoDetails]
+--- exec UpdateAssetInventoryDraftRoDetails  1133
+CREATE    PROCEDURE [dbo].[UpdateAssetInventoryDraftRoDetails]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -10,61 +10,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRY
 BEGIN TRANSACTION
 
---DECLARE @MSID as bigint
---DECLARE @Level1 as varchar(200)
---DECLARE @Level2 as varchar(200)
---DECLARE @Level3 as varchar(200)
---DECLARE @Level4 as varchar(200)
-
---IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
---BEGIN
---DROP TABLE #AssetInventoryDraftMSDATA 
---END
---CREATE TABLE #AssetInventoryDraftMSDATA
---(
--- MSID bigint,
--- Level1 varchar(200) NULL,
--- Level2 varchar(200) NULL,
--- Level3 varchar(200) NULL,
--- Level4 varchar(200) NULL 
---)
-
---IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
---BEGIN
---DROP TABLE #MSDATA 
---END
---CREATE TABLE #MSDATA
---(
---	ID int IDENTITY, 
---	MSID bigint 
---)
---INSERT INTO #MSDATA (MSID)
---  SELECT RO.ManagementStructureId FROM dbo.AssetInventoryDraft RO Where RO.RepairOrderId = @RepairOrderId
-
-
---DECLARE @LoopID as int 
---SELECT  @LoopID = MAX(ID) FROM #MSDATA
---WHILE(@LoopID > 0)
---BEGIN
---SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
-
---EXEC dbo.GetMSNameandCode @MSID,
--- @Level1 = @Level1 OUTPUT,
--- @Level2 = @Level2 OUTPUT,
--- @Level3 = @Level3 OUTPUT,
--- @Level4 = @Level4 OUTPUT
-
---INSERT INTO #AssetInventoryDraftMSDATA (MSID, Level1,Level2,Level3,Level4)
---                              SELECT @MSID,@Level1,@Level2,@Level3,@Level4
---SET @LoopID = @LoopID - 1;
---END
-
-UPDATE dbo.AssetInventoryDraft SET ParentId =  (SELECT TOP 1 S.AssetInventoryDraftId FROM dbo.AssetInventoryDraft S WHERE 
+	UPDATE dbo.AssetInventoryDraft SET ParentId =  (SELECT TOP 1 S.AssetInventoryDraftId FROM dbo.AssetInventoryDraft S WHERE 
 	                                      S.InventoryNumber = SDF.InventoryNumber 
 								          AND (ISNULL(IsParent,0) = 1))
 	  FROM dbo.AssetInventoryDraft SDF WHERE SDF.RepairOrderId = @RepairOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
 
-UPDATE SD SET	
+	UPDATE SD SET	
 	   SD.[AlternateAssetRecordId] = AI.AlternateAssetRecordId
       ,SD.[Description] = AI.Description
       ,SD.[IsTangible] =ISNULL( AI.IsTangible,0)
@@ -72,7 +23,7 @@ UPDATE SD SET
       ,SD.[Model] = AI.Model
       ,SD.[Memo] = AI.Memo
       ,SD.[AssetParentRecordId] = AI.AssetParentRecordId
-      ,SD.[TangibleClassId] = AI.TangibleClassId
+      ,SD.[TangibleClassId] = AAT.TangibleClassId  --------------------
       ,SD.[AssetIntangibleTypeId] = AI.AssetIntangibleTypeId
       ,SD.[AssetCalibrationMin] = AI.AssetCalibrationMin
       ,SD.[AssetCalibrationMinTolerance] = AI.AssetCalibrationMinTolerance
@@ -170,6 +121,8 @@ INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId
 --LEFT JOIN #AssetInventoryDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
 LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) on AI.AssetInventoryId=SD.AssetInventoryId
+LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON AST.AssetRecordId = SD.AssetRecordId
+LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) ON AST.AssetAttributeTypeId = AAT.AssetAttributeTypeId
 LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
 LEFT JOIN dbo.[Location] LC  WITH (NOLOCK) ON LC.LocationId = SD.LocationId
 LEFT JOIN dbo.GLAccount GLA  WITH (NOLOCK) ON GLA.GLAccountId = SD.GLAccountId
@@ -179,36 +132,27 @@ LEFT JOIN dbo.[Site] S  WITH (NOLOCK) ON S.SiteId = SD.SiteId
 LEFT JOIN dbo.ShippingVia SV  WITH (NOLOCK) ON SV.ShippingViaId = SD.ShippingViaId
 WHERE SD.RepairOrderId = @RepairOrderId
 
-UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory   WITH (NOLOCK)
+	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Qty),0) FROM dbo.AssetInventory   WITH (NOLOCK)
 WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1
 )) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
 WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId<>1
 
 
-UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
+	UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
 where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId<>1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
 where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId<>1
 AND ISNULL((SELECT COUNT(RepairOrderPartRecordId)
 			from dbo.RepairOrderPart  WITH (NOLOCK)
 			where POP.ItemTypeId<>1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
 
-SELECT RepairOrderNumber as value FROM dbo.RepairOrder PO WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId	
+	SELECT RepairOrderNumber as value FROM dbo.RepairOrder PO WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId	
 
 
 COMMIT TRANSACTION
 END TRY
   BEGIN CATCH  
 	   IF @@trancount > 0	  
-       ROLLBACK TRANSACTION;
-	  -- IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
-	  -- BEGIN
-	  --  DROP TABLE #AssetInventoryDraftMSDATA 
-	  -- END
-	  -- IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	  -- BEGIN
-			--DROP TABLE #MSDATA 
-	  -- END
-	   -- temp table drop
+       ROLLBACK TRANSACTION;	 
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
 	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
@@ -231,13 +175,5 @@ END TRY
 
 		RETURN (1);           
   END CATCH
-	--IF OBJECT_ID(N'tempdb..#AssetInventoryDraftMSDATA') IS NOT NULL
-	--BEGIN
-	--   DROP TABLE #AssetInventoryDraftMSDATA 
-	--END
-	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	--BEGIN
-	--	DROP TABLE #MSDATA 
-	--END
 
 END

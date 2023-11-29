@@ -1,4 +1,6 @@
-﻿CREATE PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
+﻿--exec USP_FieldsMaster_GetByModuleId 15,1
+
+CREATE   PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
 @ModuleId bigint=10,
 @MasterCompanyId int=1
 AS
@@ -74,24 +76,34 @@ SET NOCOUNT ON;
 				FETCH NEXT FROM tablefeildcursor INTO @AutoId,@TableName,@IDName,@ValueName,@ApplyFilter,@FieldType
 						WHILE @@FETCH_STATUS = 0  
 							BEGIN  
-							if(@FieldType='autoddl')
-								begin
+							IF(@FieldType='autoddl')
+							BEGIN
 								
 								SET @Sql = N'INSERT INTO #TempTable (Value, Label,MasterCompanyId,AutoId)   
 								   SELECT DISTINCT top(20) CAST ( '+@IDName+' AS BIGINT) As Value,  
-										   CAST ( '+ @ValueName+  ' AS VARCHAR) AS Label,MasterCompanyId, '+convert(varchar,@AutoId)+' FROM dbo.'+@TableName+       
+										   UPPER(CAST ( '+ @ValueName+  ' AS VARCHAR)) AS Label,MasterCompanyId, '+convert(varchar,@AutoId)+' FROM dbo.'+@TableName+       
 								   ' WITH(NOLOCK)  where MasterCompanyId=0 or MasterCompanyId='+convert(varchar,@MasterCompanyId)+ ' '+@ApplyFilter+' order by Label'
-								   EXEC sp_executesql @Sql; 
-								end
-								else
-								begin
-
-								SET @Sql = N'INSERT INTO #TempTable (Value, Label,MasterCompanyId,AutoId)   
-								   SELECT DISTINCT  CAST ( '+@IDName+' AS BIGINT) As Value,  
-										   CAST ( '+ @ValueName+  ' AS VARCHAR) AS Label,MasterCompanyId, '+convert(varchar,@AutoId)+' FROM dbo.'+@TableName+       
-								   ' WITH(NOLOCK)  where MasterCompanyId=0 or MasterCompanyId='+convert(varchar,@MasterCompanyId)+ ' '+@ApplyFilter+' order by Label'
-								   EXEC sp_executesql @Sql; 
-								   end
+								   EXEC sp_executesql @Sql; 								   
+								END
+								ELSE
+								BEGIN
+									IF(@TableName = 'POStatus')
+									BEGIN
+									SET @Sql = N'INSERT INTO #TempTable (Value, Label,MasterCompanyId,AutoId)   
+									   SELECT DISTINCT  CAST ( '+@IDName+' AS BIGINT) As Value,  
+											   UPPER(CAST ( '+ @ValueName+  ' AS VARCHAR)) AS Label,MasterCompanyId, '+convert(varchar,@AutoId)+' FROM dbo.'+@TableName+       
+									   ' WITH(NOLOCK)  where MasterCompanyId=0 ' +@ApplyFilter+' order by Label'
+									END
+									ELSE
+									BEGIN
+										SET @Sql = N'INSERT INTO #TempTable (Value, Label,MasterCompanyId,AutoId)   
+									   SELECT DISTINCT  CAST ( '+@IDName+' AS BIGINT) As Value,  
+											   UPPER(CAST ( '+ @ValueName+  ' AS VARCHAR)) AS Label,MasterCompanyId, '+convert(varchar,@AutoId)+' FROM dbo.'+@TableName+       
+									   ' WITH(NOLOCK)  where MasterCompanyId=0 or MasterCompanyId='+convert(varchar,@MasterCompanyId)+ ' '+@ApplyFilter+' order by Label'
+									END
+									EXEC sp_executesql @Sql; 
+								   
+								END
 							  FETCH NEXT FROM tablefeildcursor INTO @AutoId,@TableName,@IDName,@ValueName,@ApplyFilter,@FieldType
 							END 
 
@@ -105,7 +117,7 @@ SET NOCOUNT ON;
 			FROM dbo.GlobalFilter GF
 			WHERE ModuleId=@ModuleId  and IsActive=1 ORDER BY GF.Sequnse ASC
 		
-		SELECT ReportTitle,SPname,BredCum,case when @mSSEQ IS NULL THEN 1 ELSE 0 END 'disableMs' FROM  ReportMaster WHERE ModuleId=@ModuleId
+		    SELECT ReportTitle,SPname,BredCum,case when @mSSEQ IS NULL THEN 1 ELSE 0 END 'disableMs' FROM  ReportMaster WHERE ModuleId=@ModuleId
 	
 
 	END TRY    

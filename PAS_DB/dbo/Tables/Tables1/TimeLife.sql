@@ -25,12 +25,16 @@
     [DetailsNotProvided]        BIT           DEFAULT ((1)) NOT NULL,
     [RepairOrderId]             BIGINT        NULL,
     [RepairOrderPartRecordId]   BIGINT        NULL,
+    [VendorRMAId]               BIGINT        NULL,
+    [VendorRMADetailId]         BIGINT        NULL,
     CONSTRAINT [PK__TimeLife__714D5BA5DC0EB54C] PRIMARY KEY CLUSTERED ([TimeLifeCyclesId] ASC),
     CONSTRAINT [FK__TimeLife__Purcha__64247DE6] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId]),
     CONSTRAINT [FK__TimeLife__Purcha__660CC658] FOREIGN KEY ([PurchaseOrderPartRecordId]) REFERENCES [dbo].[PurchaseOrderPart] ([PurchaseOrderPartRecordId]),
     CONSTRAINT [FK__TimeLife__Repair__2C09769E] FOREIGN KEY ([RepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
     CONSTRAINT [FK__TimeLife__Repair__2CFD9AD7] FOREIGN KEY ([RepairOrderPartRecordId]) REFERENCES [dbo].[RepairOrderPart] ([RepairOrderPartRecordId])
 );
+
+
 
 
 GO

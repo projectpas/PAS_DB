@@ -138,7 +138,7 @@
     [TLAPartNumber]                       VARCHAR (100)   NULL,
     [NHAPartNumber]                       VARCHAR (100)   NULL,
     [TLAPartDescription]                  VARCHAR (100)   NULL,
-    [NHAPartDescription]                  VARCHAR (100)   NULL,
+    [NHAPartDescription]                  NVARCHAR (MAX)  NULL,
     [itemType]                            VARCHAR (100)   NULL,
     [CustomerId]                          BIGINT          NULL,
     [CustomerName]                        VARCHAR (200)   NULL,
@@ -168,6 +168,23 @@
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
     [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
+    [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
+    [IsManualEntry]                       BIT             NULL,
+    [WorkOrderMaterialsKitId]             BIGINT          NULL,
+    [LotId]                               BIGINT          NULL,
+    [IsLotAssigned]                       BIT             NULL,
+    [LOTQty]                              INT             NULL,
+    [LOTQtyReserve]                       INT             NULL,
+    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [POOriginalCost]                      DECIMAL (18, 2) NULL,
+    [ROOriginalCost]                      DECIMAL (18, 2) NULL,
+    [VendorRMAId]                         BIGINT          NULL,
+    [VendorRMADetailId]                   BIGINT          NULL,
+    [LotMainStocklineId]                  BIGINT          NULL,
+    [IsFromInitialPO]                     BIT             NULL,
+    [LotSourceId]                         INT             NULL,
+    [Adjustment]                          DECIMAL (18, 2) NULL,
+    [SalesOrderPartId]                    BIGINT          NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -185,6 +202,10 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_Stockline_WorkOrderMaterialsId] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
+
+
 
 
 

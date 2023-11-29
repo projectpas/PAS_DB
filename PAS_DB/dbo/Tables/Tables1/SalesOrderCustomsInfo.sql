@@ -19,10 +19,13 @@
     [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_SalesOrderCustomsInfo_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                BIT             CONSTRAINT [DF_SCI_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_SCI_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [CustomCurrencyId]        INT             NULL,
     CONSTRAINT [PK_SalesOrderCustomsInfo] PRIMARY KEY CLUSTERED ([SalesOrderCustomsInfoId] ASC),
     CONSTRAINT [FK_SalesOrderCustomsInfo_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderCustomsInfo_SalesOrderShipping] FOREIGN KEY ([SalesOrderShippingId]) REFERENCES [dbo].[SalesOrderShipping] ([SalesOrderShippingId])
 );
+
+
 
 
 GO

@@ -48,9 +48,12 @@
     [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
     [IsTrackScoreCard]        BIT             NULL,
     [IsVendorOnHold]          BIT             DEFAULT ((0)) NULL,
+    [TaxIdNumber]             NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

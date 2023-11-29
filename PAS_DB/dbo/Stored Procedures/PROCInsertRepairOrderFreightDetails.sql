@@ -14,7 +14,7 @@
     1    12/10/2022   Deep Patel     Created
 -- EXEC [PROCInsertRepairOrderFreightDetails] 15
 ************************************************************************/
-CREATE PROCEDURE [dbo].[PROCInsertRepairOrderFreightDetails](@TableRepairOrderFreightType RepairOrderFreightType READONLY)  
+CREATE   PROCEDURE [dbo].[PROCInsertRepairOrderFreightDetails](@TableRepairOrderFreightType RepairOrderFreightType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -60,8 +60,9 @@ BEGIN
 						TARGET.[UpdatedDate] = SOURCE.UpdatedDate,
 						TARGET.[IsActive] = SOURCE.IsActive,
 						TARGET.[IsDeleted] = SOURCE.IsDeleted,
-						TARGET.[LineNum] = SOURCE.LineNum
-						
+						TARGET.[LineNum] = SOURCE.LineNum,
+						TARGET.[ManufacturerId] = SOURCE.ManufacturerId,
+						TARGET.[Manufacturer] = SOURCE.Manufacturer
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -69,13 +70,15 @@ BEGIN
 							       [ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
 								   [BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
 								   [Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-								   [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum])
+								   [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+								   [ManufacturerId],[Manufacturer])
 
 					         VALUES(SOURCE.RepairOrderId,SOURCE.RepairOrderPartRecordId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.ShipViaId,
 							       SOURCE.ShipViaName,SOURCE.MarkupPercentageId,SOURCE.MarkupFixedPrice,SOURCE.HeaderMarkupId,SOURCE.BillingMethodId,
 								   SOURCE.BillingRate,SOURCE.BillingAmount,SOURCE.HeaderMarkupPercentageId,SOURCE.Weight,SOURCE.UOMId,SOURCE.UOMName,SOURCE.Length,
 								   SOURCE.Width,SOURCE.Height,SOURCE.DimensionUOMId,SOURCE.DimensionUOMName,SOURCE.CurrencyId,SOURCE.CurrencyName,SOURCE.Amount,SOURCE.Memo,
-								   SOURCE.MasterCompanyId,SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.LineNum);	
+								   SOURCE.MasterCompanyId,SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.LineNum,
+								   SOURCE.ManufacturerId,SOURCE.Manufacturer);	
 					END
 					
 				END

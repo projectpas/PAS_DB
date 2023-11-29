@@ -107,11 +107,14 @@ BEGIN
 						wosd.UpdatedDate,
 						wosd.IsActive,
 						wosd.IsDeleted,
-						Im.partnumber
+						Im.partnumber,
+						wosd.RevisedItemmasterid as RevisedPartId,
+						IMR.partnumber as 'RevisedPartNumber'
 				FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 					LEFT JOIN dbo.SubWorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 					LEFT JOIN dbo.SubWorkOrderPartNumber sop WITH(NOLOCK) on sop.SubWOPartNoId = wosd.SubWOPartNoId
 					LEFT JOIN dbo.ItemMaster Im WITH(NOLOCK) on sop.ItemMasterId = Im.ItemMasterId
+					LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
 				WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
 			END
 		COMMIT  TRANSACTION

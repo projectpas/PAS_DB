@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [CreateUpdateCreditMemoHeader]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to create and update Credit Memo Details
@@ -13,13 +11,14 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    18/04/2022  Moin Bloch     Created
+ ** PR   Date         Author					Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    18/04/2022  Moin Bloch					Created
+    1    03/07/2023  Devendra Shekh				added new condition for rmaid and rmanum
      
 -- EXEC CreateUpdateCreditMemoHeader 1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
+CREATE   PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
 @CreditMemoHeaderId bigint=NULL,
 @CreditMemoNumber varchar(50)=NULL,
 @RMAHeaderId bigint=NULL,
@@ -68,6 +67,15 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
+
+			DECLARE @rmaId BIGINT = null;
+			DECLARE @rmaNum VARCHAR(100) = null;
+			IF(@ReferenceId IS NOT NULL)
+			BEGIN 
+				SET @rmaId = (SELECT RMAHeaderId FROM CustomerRMAHeader WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
+				SET @rmaNum = (SELECT RMANumber FROM CustomerRMAHeader WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
+			END
+
 			IF (@CreditMemoHeaderId IS NULL OR @CreditMemoHeaderId=0)
 			BEGIN
 				INSERT INTO [dbo].[CreditMemo]([CreditMemoNumber],[RMAHeaderId],[RMANumber],[InvoiceId],[InvoiceNumber],[InvoiceDate],[StatusId],[Status],
@@ -75,7 +83,7 @@ BEGIN
 											   [IsWarranty],[IsAccepted],[ReasonId],[DeniedMemo],[RequestedById],[RequestedBy],[ApproverId],[ApprovedBy],
 											   [WONum],[WorkOrderId],[Originalwosonum],[Memo],[Notes],[ManagementStructureId],[IsEnforce],[MasterCompanyId],
                                                [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsWorkOrder],[ReferenceId],[ReturnDate])
-										VALUES (@CreditMemoNumber,@RMAHeaderId,@RMANumber,@InvoiceId,@InvoiceNumber,@InvoiceDate,@StatusId,@Status,
+										VALUES (@CreditMemoNumber,@rmaId,@rmaNum,@InvoiceId,@InvoiceNumber,@InvoiceDate,@StatusId,@Status,
 												@CustomerId,@CustomerName,@CustomerCode,@CustomerContactId,@CustomerContact,@CustomerContactPhone,  
 												@IsWarranty,@IsAccepted,@ReasonId,@DeniedMemo,@RequestedById,@RequestedBy,@ApproverId,@ApprovedBy,  
 												@WONum,@WorkOrderId,@Originalwosonum,@Memo,@Notes,@ManagementStructureId,@IsEnforce,@MasterCompanyId,

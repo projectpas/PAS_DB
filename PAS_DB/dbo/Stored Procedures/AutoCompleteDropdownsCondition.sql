@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdownsCondition]           
  ** Author:   Hemant Saliya
  ** Description: This SP is used retrieve COndition List for Auto Complete Dropdown With Code
@@ -18,10 +17,9 @@
  ** --   --------     -------		--------------------------------          
     1    09/24/2021   Hemant Saliya Created
      
---EXEC [AutoCompleteDropdownsCondition] '',1,20,'0',4
+--EXEC [AutoCompleteDropdownsCondition] '',1,20,'0',11
 **************************************************************/
-
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsCondition]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsCondition]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -37,14 +35,15 @@ BEGIN
 
 		IF(@Count = '0') 
 		   BEGIN
-		   SET @Count='20';	
+		   SET @Count='50';	
 		END	
 		IF(@IsActive = 1)
 			BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						C.ConditionId AS Value, 
 						C.Description AS Label,		
-						C.Code AS StatusCode
+						C.Code AS StatusCode,
+						C.Memo AS SettleCondition
 					FROM dbo.Condition C WITH(NOLOCK)
 					WHERE C.MasterCompanyId = @MasterCompanyId AND (C.IsActive=1 AND ISNULL(C.IsDeleted,0) = 0 
 						AND (C.Description LIKE @StartWith + '%'))
@@ -52,17 +51,19 @@ BEGIN
 					SELECT DISTINCT  
 						C.ConditionId AS Value, 
 						C.Description AS Label,		
-						C.Code AS StatusCode
+						C.Code AS StatusCode,
+						C.Memo AS SettleCondition
 					FROM dbo.Condition C WITH(NOLOCK)
 					WHERE C.MasterCompanyId = @MasterCompanyId AND C.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
 				ORDER BY Label				
 			End
 			ELSE
 			BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						C.ConditionId AS Value, 
 						C.Description AS Label,		
-						C.Code AS StatusCode
+						C.Code AS StatusCode,
+						C.Memo AS SettleCondition
 					FROM dbo.Condition C WITH(NOLOCK)
 					WHERE C.MasterCompanyId = @MasterCompanyId AND (ISNULL(C.IsDeleted,0) = 0 
 						AND (C.Description LIKE '%' + @StartWith + '%'))
@@ -70,7 +71,8 @@ BEGIN
 				SELECT DISTINCT  
 						C.ConditionId AS Value, 
 						C.Description AS Label,		
-						C.Code AS StatusCode
+						C.Code AS StatusCode,
+						C.Memo AS SettleCondition
 					FROM dbo.Condition C WITH(NOLOCK)
 					WHERE C.MasterCompanyId = @MasterCompanyId AND C.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
 				ORDER BY Label	

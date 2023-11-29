@@ -1,50 +1,73 @@
-﻿CREATE PROCEDURE [dbo].[GetAssetInventoryList]
-	-- Add the parameters for the stored procedure here	
-	@PageSize int,
-    @PageNumber int,
-	@SortColumn varchar(50) = null,
-	@SortOrder int,
-	@StatusID int = 0,
-	@GlobalFilter varchar(50) = '',
-	@AssetId varchar(50) = null,
-	@Name varchar(50) = null,
-	@AlternateAssetId varchar(50) = null,
-	@ManufacturerName varchar(50) = null,
-	@SerialNumber varchar(50) = null,
-    @CalibrationRequiredNew varchar(50) = null,
-	@AssetStatus varchar(50) = null,
-	@AssetType varchar(50) = null,
-	@InventoryNumber varchar(50) = null,
-	@InventoryStatus varchar(50) = null,
-	@AssetClass varchar(50) = null,
-	@EntryDate  datetime = null,
-	@CompanyName varchar(50) = null,
-	@BuName varchar(50) = null,
-	@DivName varchar(50) = null,
-	@DeptName varchar(50) = null,
-	@deprAmort varchar(50) = null,
-	@AssetInventoryIds varchar(1000) = NULL,
-    @CreatedDate datetime = null,
-    @UpdatedDate  datetime = null,
-	@CreatedBy  varchar(50) = null,
-	@UpdatedBy  varchar(50) = null,
-    @IsDeleted bit = null,
-	@MasterCompanyId int = 0,
-	@ManufacturerPN varchar(50) = null,
-	@Model varchar(50) = null,
-	@StklineNumber varchar(50) = null,
-	@ControlNumber varchar(50) = null,
-	@EmployeeId bigint=1
+﻿/*************************************************************           
+ ** File:   [GetAssetInventoryList]           
+ ** Author:   Moin Bloch
+ ** Description: This stored procedure is used to get list of Asset Inventory List   
+ ** Purpose:         
+ ** Date:    19/05/2023 
+          
+ ** PARAMETERS:    
+
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    19/05/2023   Moin Bloch    Added WorkOrderNum Parameter To get WorkOrderNum  for check in status
+     
+--  EXEC [GetAssetInventoryList] 
+**************************************************************/
+
+CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
+-- Add the parameters for the stored procedure here	
+@PageSize int,
+@PageNumber int,
+@SortColumn varchar(50) = null,
+@SortOrder int,
+@StatusID int = 0,
+@GlobalFilter varchar(50) = '',
+@AssetId varchar(50) = null,
+@Name varchar(50) = null,
+@AlternateAssetId varchar(50) = null,
+@ManufacturerName varchar(50) = null,
+@SerialNumber varchar(50) = null,
+@CalibrationRequiredNew varchar(50) = null,
+@AssetStatus varchar(50) = null,
+@AssetType varchar(50) = null,
+@InventoryNumber varchar(50) = null,
+@InventoryStatus varchar(50) = null,
+@WorkOrderNum varchar(50) = null,
+@AssetClass varchar(50) = null,
+@EntryDate  datetime = null,
+@CompanyName varchar(50) = null,
+@BuName varchar(50) = null,
+@DivName varchar(50) = null,
+@DeptName varchar(50) = null,
+@deprAmort varchar(50) = null,
+@AssetInventoryIds varchar(1000) = NULL,
+@CreatedDate datetime = null,
+@UpdatedDate  datetime = null,
+@CreatedBy  varchar(50) = null,
+@UpdatedBy  varchar(50) = null,
+@IsDeleted bit = null,
+@MasterCompanyId int = 0,
+@ManufacturerPN varchar(50) = null,
+@Model varchar(50) = null,
+@StklineNumber varchar(50) = null,
+@ControlNumber varchar(50) = null,
+@EmployeeId bigint=1
 AS
 BEGIN
 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
-		DECLARE @RecordFrom int;
-		DECLARE @ModuleID varchar(500) ='42,43'
-		Declare @IsActive bit = 1
-		Declare @Count Int;
+		DECLARE @RecordFrom INT;
+		DECLARE @ModuleID VARCHAR(500) ='42,43'
+		DECLARE @IsActive BIT = 1
+		DECLARE @Count INT;
+		DECLARE @AssetInventoryCheckInStatus INT = 4; 
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -74,15 +97,15 @@ BEGIN
 		END 
 
 		BEGIN TRY
-			BEGIN TRANSACTION
-				BEGIN
+			--BEGIN TRANSACTION
+			--	BEGIN
 						;With Result AS(
 							SELECT	
 								asm.AssetRecordId as AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.Name AS Name,
 								asm.AssetId AS AssetId,
-								(SELECT top 1 AssetId FROM dbo.Asset WITH (NOLOCK) WHERE AssetRecordId=asm.AlternateAssetRecordId) AS AlternateAssetId,
+								(SELECT TOP 1 AssetId FROM [dbo].[Asset] WITH (NOLOCK) WHERE AssetRecordId=asm.AlternateAssetRecordId) AS AlternateAssetId,
 								maf.Name AS ManufacturerName,
 								SerialNumber =asm.SerialNo,
 								CASE WHEN asm.IsSerialized = 1 THEN 'Yes'ELSE 'No' END AS IsSerializedNew,
@@ -92,8 +115,8 @@ BEGIN
 								AssetType = CASE WHEN ISNULL(asty.AssetAttributeTypeName,'') != '' THEN asty.AssetAttributeTypeName ELSE ISNULL(asti.AssetIntangibleName,'') END, --case  when (SELECT top 1 AssetIntangibleName from AssetIntangibleType asp WHERE asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
 								InventoryNumber = asm.InventoryNumber,
 								EntryDate = asm.EntryDate,
-								AssetStatus = (SELECT top 1 Name from AssetStatus WHERE AssetStatusId = asm.AssetStatusId),
-								InventoryStatus = (SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = asm.InventoryStatusId),
+								AssetStatus = (SELECT TOP 1 [Name] FROM [dbo].[AssetStatus] WITH(NOLOCK) WHERE AssetStatusId = asm.AssetStatusId),
+								InventoryStatus = (SELECT TOP 1 [Status] FROM [dbo].[AssetInventoryStatus]  WITH(NOLOCK) WHERE AssetInventoryStatusId = asm.InventoryStatusId),
 								asm.InventoryStatusId AS InventoryStatusId,
 								asm.level1 AS CompanyName,
 								asm.level2 AS BuName,
@@ -110,70 +133,75 @@ BEGIN
 								ast.Model,
 								asm.StklineNumber,
 								asm.ControlNumber,
-								ISNULL(cal.CalibrationDefaultVendorId,0) as VendorId,	
-								V.VendorName as VendorName,	
+								ISNULL(cal.CalibrationDefaultVendorId,0) AS VendorId,	
+								V.VendorName,	
 								MSD.LastMSLevel,	
-								MSD.AllMSlevels,asm.statusNote
-							FROM dbo.AssetInventory asm WITH(NOLOCK)
-								INNER JOIN Asset AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
-								LEFT JOIN dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
-								LEFT JOIN dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
-								LEFT JOIN dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
-								LEFT JOIN dbo.AssetCalibration as cal WITH(NOLOCK) on asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	
-								LEFT JOIN dbo.Vendor as V WITH(NOLOCK) on cal.CalibrationDefaultVendorId=V.VendorId	
-								LEFT JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
-								LEFT JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
-								LEFT JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								MSD.AllMSlevels,asm.statusNote,
+								awo.WorkOrderNum
+							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
+								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
+								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
+								LEFT JOIN  [dbo].[WorkOrder] awo WITH(NOLOCK) ON awo.WorkOrderId = aci.WorkOrderId
+								LEFT JOIN  [dbo].[AssetAttributeType] asty WITH(NOLOCK) ON ast.AssetAttributeTypeId = asty.AssetAttributeTypeId
+								LEFT JOIN  [dbo].[AssetIntangibleType]  AS astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
+								LEFT JOIN  [dbo].[Manufacturer]  AS maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
+								LEFT JOIN  [dbo].[AssetCalibration] as cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId and asm.CalibrationRequired=1	
+								LEFT JOIN  [dbo].[Vendor] AS V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId	
+								LEFT JOIN  [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								LEFT JOIN  [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
+								LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
-							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))
+							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (
 						(@GlobalFilter <> '' AND (
-								(AssetId like '%' +@GlobalFilter+'%') OR
-								(Name like '%' +@GlobalFilter+'%') OR
-								(AlternateAssetId like '%' +@GlobalFilter+'%') OR
-								(ManufacturerName like '%' +@GlobalFilter+'%') OR		
-								(SerialNumber like '%' +@GlobalFilter+'%') OR
-								(AssetClass like '%' +@GlobalFilter+'%') OR
-								(CalibrationRequiredNew like '%'+@GlobalFilter+'%') OR
-								(AssetType like '%' +@GlobalFilter+'%') OR
-								(AssetClass like '%' +@GlobalFilter+'%') OR
-								(InventoryNumber like '%' +@GlobalFilter+'%') OR
-								(AssetStatus like '%' +@GlobalFilter+'%') OR
-								(InventoryStatus like '%' +@GlobalFilter+'%') OR
-								(CompanyName like '%' +@GlobalFilter+'%') OR
-								(BuName like '%'+@GlobalFilter+'%') OR
-								(DivName like '%' +@GlobalFilter+'%') OR
-								(DeptName like '%' +@GlobalFilter+'%') OR
-								(UpdatedBy like '%' +@GlobalFilter+'%') 
+								(AssetId LIKE '%' +@GlobalFilter+'%') OR
+								(Name LIKE '%' +@GlobalFilter+'%') OR
+								(AlternateAssetId LIKE '%' +@GlobalFilter+'%') OR
+								(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR		
+								(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
+								(AssetClass LIKE '%' +@GlobalFilter+'%') OR
+								(CalibrationRequiredNew LIKE '%'+@GlobalFilter+'%') OR
+								(AssetType LIKE '%' +@GlobalFilter+'%') OR
+								(AssetClass LIKE '%' +@GlobalFilter+'%') OR
+								(InventoryNumber LIKE '%' +@GlobalFilter+'%') OR
+								(WorkOrderNum LIKE '%' +@GlobalFilter+'%') OR								
+								(AssetStatus LIKE '%' +@GlobalFilter+'%') OR
+								(InventoryStatus LIKE '%' +@GlobalFilter+'%') OR
+								(CompanyName LIKE '%' +@GlobalFilter+'%') OR
+								(BuName LIKE '%'+@GlobalFilter+'%') OR
+								(DivName LIKE '%' +@GlobalFilter+'%') OR
+								(DeptName LIKE '%' +@GlobalFilter+'%') OR
+								(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
 								))
 							OR   
-							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId like '%' + @AssetId+'%') AND
-								(ISNULL(@Name,'') ='' OR Name like '%' + @Name+'%') AND
-								(ISNULL(@AlternateAssetId,'') ='' OR AlternateAssetId like '%' + @AlternateAssetId+'%') AND
-								(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND
-								(ISNULL(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
-								(ISNULL(@CalibrationRequiredNew,'') ='' OR CalibrationRequiredNew like '%' + @CalibrationRequiredNew+'%') AND
-								(ISNULL(@AssetStatus,'') ='' OR AssetStatus like '%' + @AssetStatus+'%') AND
-								(ISNULL(@AssetType,'') ='' OR AssetType like '%' + @AssetType+'%') AND
-								(ISNULL(@AssetClass,'') ='' OR AssetClass like '%' + @AssetClass+'%') AND
-								(ISNULL(@InventoryNumber,'') ='' OR InventoryNumber like '%' + @InventoryNumber+'%') AND
-								(ISNULL(@InventoryStatus,'') ='' OR InventoryStatus like '%' + @InventoryStatus+'%') AND
-								(ISNULL(@CompanyName,'') ='' OR CompanyName like '%' + @CompanyName+'%') AND
-								(ISNULL(@BuName,'') ='' OR BuName like '%' + @BuName+'%') AND
-								(ISNULL(@DivName,'') ='' OR DivName like '%' + @DivName+'%') AND
-								(ISNULL(@DeptName,'') ='' OR DeptName like '%' + @DeptName+'%') AND
-								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN like '%' + @ManufacturerPN+'%') AND
+							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
+								(ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
+								(ISNULL(@AlternateAssetId,'') ='' OR AlternateAssetId LIKE '%' + @AlternateAssetId+'%') AND
+								(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%') AND
+								(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber+'%') AND
+								(ISNULL(@CalibrationRequiredNew,'') ='' OR CalibrationRequiredNew LIKE '%' + @CalibrationRequiredNew+'%') AND
+								(ISNULL(@AssetStatus,'') ='' OR AssetStatus LIKE '%' + @AssetStatus+'%') AND
+								(ISNULL(@AssetType,'') ='' OR AssetType LIKE '%' + @AssetType+'%') AND
+								(ISNULL(@AssetClass,'') ='' OR AssetClass LIKE '%' + @AssetClass+'%') AND
+								(ISNULL(@InventoryNumber,'') ='' OR InventoryNumber LIKE '%' + @InventoryNumber+'%') AND
+								(ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE '%' + @WorkOrderNum+'%') AND			
+								(ISNULL(@InventoryStatus,'') ='' OR InventoryStatus LIKE '%' + @InventoryStatus+'%') AND													
+								(ISNULL(@CompanyName,'') ='' OR CompanyName LIKE '%' + @CompanyName+'%') AND
+								(ISNULL(@BuName,'') ='' OR BuName LIKE '%' + @BuName+'%') AND
+								(ISNULL(@DivName,'') ='' OR DivName LIKE '%' + @DivName+'%') AND
+								(ISNULL(@DeptName,'') ='' OR DeptName LIKE '%' + @DeptName+'%') AND
+								(ISNULL(@ManufacturerPN,'') ='' OR ManufacturerPN LIKE '%' + @ManufacturerPN+'%') AND
 								(ISNULL(@Model,'') ='' OR Model like '%' + @Model+'%') AND
-								(ISNULL(@StklineNumber,'') ='' OR StklineNumber like '%' + @StklineNumber+'%') AND
-								(ISNULL(@ControlNumber,'') ='' OR ControlNumber like '%' + @ControlNumber+'%') AND
-								(ISNULL(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND
-								(ISNULL(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND
-								(ISNULL(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
-								(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
-								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') 
+								(ISNULL(@StklineNumber,'') ='' OR StklineNumber LIKE '%' + @StklineNumber+'%') AND
+								(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND
+								(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS DATE)=CAST(@EntryDate AS DATE)) AND
+								(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
+								(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
+								(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
+								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') 
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) from #TempResult			
@@ -194,6 +222,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='AssetStatus')  THEN AssetStatus END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,					
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
@@ -211,11 +240,12 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='AssetStatus')  THEN AssetStatus END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,		
 					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
-				END
-			COMMIT  TRANSACTION
+				--END
+			--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

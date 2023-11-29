@@ -33,15 +33,6 @@
 
 
 
+
+
 GO
-
-
-CREATE TRIGGER [dbo].[Trg_CommonWorkOrderTearDownAudit]
-   ON  [dbo].[CommonWorkOrderTearDown]
-   AFTER INSERT,DELETE,UPDATE
-AS
-BEGIN
-	INSERT INTO CommonWorkOrderTearDownAudit
-	SELECT * FROM INSERTED
-	SET NOCOUNT ON;
-END

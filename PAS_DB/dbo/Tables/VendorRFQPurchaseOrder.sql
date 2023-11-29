@@ -37,6 +37,7 @@
     [IsActive]                     BIT            CONSTRAINT [VendorRFQPurchaseOrder_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT            CONSTRAINT [DF__VendorRFQPurchaseOrder__IsDel__7A1D154F] DEFAULT ((0)) NOT NULL,
     [PDFPath]                      NVARCHAR (100) NULL,
+    [IsFromBulkPO]                 BIT            NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrder] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderId] ASC),
     FOREIGN KEY ([StatusId]) REFERENCES [dbo].[VendorRFQStatus] ([VendorRFQStatusId]),
     FOREIGN KEY ([StatusId]) REFERENCES [dbo].[VendorRFQStatus] ([VendorRFQStatusId]),
@@ -46,6 +47,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrder_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 
 
 

@@ -30,7 +30,12 @@
     [InvoiceId]              BIGINT          NULL,
     [BillingInvoicingItemId] BIGINT          NULL,
     [CustomerReference]      VARCHAR (100)   NULL,
-    [InvoiceQty]             INT             NOT NULL);
+    [InvoiceQty]             INT             NOT NULL,
+    [ReturnDate]             DATETIME2 (7)   NULL,
+    [WorkOrderNum]           VARCHAR (50)    NULL,
+    [ReceiverNum]            VARCHAR (50)    NULL);
+
+
 
 
 

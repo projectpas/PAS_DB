@@ -1,4 +1,7 @@
-﻿CREATE PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
+﻿
+
+--EXEC UpdateAssetInventoryDraftPoDetails 1104
+CREATE   PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
 @PurchaseOrderId  bigint
 AS
 BEGIN
@@ -73,7 +76,7 @@ BEGIN
 			  --,SD.[AssetAcquisitionTypeId] = AST.AssetAcquisitionTypeId
 			  ,SD.[CurrencyId] = AST.CurrencyId
 			  ,SD.[AssetParentRecordId] = AST.AssetParentRecordId
-			  ,SD.[TangibleClassId] = AST.TangibleClassId
+			  ,SD.[TangibleClassId] = AAT.TangibleClassId
               ,SD.[AssetIntangibleTypeId] = AST.AssetIntangibleTypeId
 			  --,SD.[AssetCalibrationMin] = AST.AssetCalibrationMin                                       Neet To Discuss
 			  --,SD.[AssetCalibrationMinTolerance] = AI.AssetCalibrationMinTolerance					  Neet To Discuss
@@ -147,11 +150,10 @@ BEGIN
 			  ,SD.SiteName = S.[Name]	          
           FROM dbo.AssetInventoryDraft SD WITH (NOLOCK)
           INNER JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId and POP.ItemTypeId = @StockType
-          --LEFT JOIN #AssetinventorypoDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId
 		  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON AST.AssetRecordId = SD.AssetRecordId
+		  LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) ON AST.AssetAttributeTypeId = aat.AssetAttributeTypeId
 		  LEFT JOIN dbo.AssetCalibration ASTC  WITH (NOLOCK) ON AST.AssetRecordId = ASTC.AssetRecordId
           LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
-          --LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) on AI.AssetInventoryId=SD.AssetInventoryId
           LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
           LEFT JOIN dbo.[Location] LC  WITH (NOLOCK) ON LC.LocationId = SD.LocationId
           LEFT JOIN dbo.GLAccount GLA  WITH (NOLOCK) ON GLA.GLAccountId = SD.GLAccountId

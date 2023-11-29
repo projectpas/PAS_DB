@@ -1,5 +1,5 @@
 ﻿-- EXEC GetCustomerPaymentDetailsByReceiptId 90,0,2
-CREATE PROCEDURE [dbo].[GetCustomerPaymentDetailsByReceiptId]
+CREATE   PROCEDURE [dbo].[GetCustomerPaymentDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,
 @Opr int = NULL
@@ -40,7 +40,7 @@ BEGIN
 			  ,[BankAcctNum]
 			  ,[BankingId]
 			  ,[Type]
-	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
+	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId and Isnull(IsDeleted,0)=0 ORDER BY PageIndex
 		END
 		IF(@Opr=2)
 		BEGIN
@@ -74,7 +74,7 @@ BEGIN
 			  ,[BankAcctNum]
 			  ,[BankingId]
 			  ,[Type]
-	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
+	      FROM [dbo].[CustomerPaymentDetails] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId and Isnull(IsDeleted,0)=0 AND PageIndex=@PageIndex;
 		END
 	END TRY    
 		BEGIN CATCH

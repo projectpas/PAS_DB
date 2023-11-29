@@ -1,5 +1,5 @@
 ﻿
-Create PROC [dbo].[GetSubWorkorderReleaseEasaFromData]
+CREATE   PROC [dbo].[GetSubWorkorderReleaseEasaFromData]
 @SubWorkOrderId bigint = null,
 @SubWOPartNoId bigint = null
 AS
@@ -28,8 +28,8 @@ BEGIN
 						ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince as OrganizationAddress ,
 						swo.SubWorkOrderNo as InvoiceNo,
 					    '1' as ItemName,
-					    UPPER(im.PartDescription) as Description,
-					    UPPER(im.partnumber) as PartNumber,
+					    CASE WHEN isnull(wosc.RevisedItemmasterid,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END as Description,  
+                        CASE WHEN isnull(wosc.RevisedItemmasterid,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END as PartNumber,  
 					    rc.Reference as Reference,
 					    wop.Quantity as Quantity,
 					    UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end) as Batchnumber,
@@ -73,7 +73,7 @@ BEGIN
 					    LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 						LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
 						LEFT JOIN dbo.SubWorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
-						--LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId  --c.ConditionId = ws.ConditionId
+						LEFT JOIN dbo.ItemMaster ims WITH(NOLOCK) on ims.ItemMasterId = wosc.RevisedItemmasterid  
 						LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 					    LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					    LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

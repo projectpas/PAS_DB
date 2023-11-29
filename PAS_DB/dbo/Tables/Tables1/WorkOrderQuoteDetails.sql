@@ -65,6 +65,7 @@
     [IsVersionIncrease]             BIT             DEFAULT ((0)) NOT NULL,
     [QuoteMethod]                   BIT             DEFAULT ((0)) NULL,
     [CommonFlatRate]                DECIMAL (9, 2)  NULL,
+    [EvalFees]                      DECIMAL (20, 2) NULL,
     CONSTRAINT [PK_WorkOrderQuoteDetails] PRIMARY KEY CLUSTERED ([WorkOrderQuoteDetailsId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteDetails_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderQuoteDetails_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -72,6 +73,8 @@
     CONSTRAINT [FK_WorkOrderQuoteDetails_WorkFlowWorkOrderId] FOREIGN KEY ([WorkflowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderQuoteDetails_WorkOrderQuote] FOREIGN KEY ([WorkOrderQuoteId]) REFERENCES [dbo].[WorkOrderQuote] ([WorkOrderQuoteId])
 );
+
+
 
 
 

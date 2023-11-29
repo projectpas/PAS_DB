@@ -67,8 +67,11 @@
     [PONextDlvrDate]                DATETIME       NULL,
     [IsExpCoreSN]                   BIT            DEFAULT ((0)) NOT NULL,
     [CoreAccepted]                  BIT            DEFAULT ((0)) NOT NULL,
+    [ReceivedDate]                  DATETIME       NULL,
     CONSTRAINT [PK_ExchangeSalesOrderPartAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderPartId] ASC)
 );
+
+
 
 
 

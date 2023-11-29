@@ -1,4 +1,21 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetApprovalRuleList]
+﻿/*************************************************************           
+ ** File:   [usp_GetApprovalRuleList]           
+ ** Author:  Amit Ghediya
+ ** Description: 
+ ** Purpose:         
+ ** Date:        
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/09/2023  Amit Ghediya   Update UserRole select based on ApprovalRule.  
+     
+--exec [dbo].[usp_GetApprovalRuleList]
+************************************************************************/
+CREATE   PROCEDURE [dbo].[usp_GetApprovalRuleList]
 --@EmployeeId BIGINT,
 @MasterCompanyId int = null,
 @TaskID BIGINT,
@@ -41,8 +58,8 @@ BEGIN
 						LEFT JOIN ApprovalRuleNo ARN  WITH (NOLOCK) ON AP.RuleNumberId = ARN.ApprovalRuleNoId
 						LEFT JOIN ApprovalAmount AMT  WITH (NOLOCK) ON AP.AmountId = AMT.ApprovalAmountId
 						--INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.EntityMSID = AP.ManagementStructureId
-						LEFT JOIN Approver APR WITH (NOLOCK) ON AP.ApproverId = APR.EmployeeId
-						INNER JOIN UserRole USR WITH (NOLOCK) ON APR.RoleId = USR.Id
+						LEFT JOIN Approver APR WITH (NOLOCK) ON AP.ApproverId = APR.ApproverId
+						INNER JOIN UserRole USR WITH (NOLOCK) ON AP.RoleId = USR.Id
 						WHERE AP.ApprovalTaskId = @TaskID AND AP.MasterCompanyId = @MasterCompanyId AND AP.IsDeleted = @IsDeleted ORDER BY AP.ApprovalRuleId DESC;
 					END
 					ELSE
@@ -73,8 +90,8 @@ BEGIN
 						LEFT JOIN ApprovalRuleNo ARN  WITH (NOLOCK) ON AP.RuleNumberId = ARN.ApprovalRuleNoId
 						LEFT JOIN ApprovalAmount AMT  WITH (NOLOCK) ON AP.AmountId = AMT.ApprovalAmountId
 						--INNER JOIN dbo.ManagementStructureDetails MSD WITH (NOLOCK) ON MSD.EntityMSID = AP.ManagementStructureId
-						LEFT JOIN Approver APR WITH (NOLOCK) ON AP.ApproverId = APR.EmployeeId
-						INNER JOIN UserRole USR WITH (NOLOCK) ON APR.RoleId = USR.Id
+						LEFT JOIN Approver APR WITH (NOLOCK) ON AP.ApproverId = APR.ApproverId
+						INNER JOIN UserRole USR WITH (NOLOCK) ON AP.RoleId = USR.Id
 						WHERE AP.ApprovalTaskId = @TaskID AND AP.MasterCompanyId = @MasterCompanyId AND AP.IsDeleted = @IsDeleted AND AP.IsActive = @StatusID ORDER BY AP.ApprovalRuleId DESC;
 					END
 				END

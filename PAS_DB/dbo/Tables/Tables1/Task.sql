@@ -10,8 +10,11 @@
     [IsActive]        BIT            DEFAULT ((1)) NULL,
     [IsDeleted]       BIT            CONSTRAINT [DF_Task_IsDeleted] DEFAULT ((0)) NULL,
     [Sequence]        BIGINT         NOT NULL,
+    [IsTravelerTask]  BIT            NULL,
     PRIMARY KEY CLUSTERED ([TaskId] ASC)
 );
+
+
 
 
 GO

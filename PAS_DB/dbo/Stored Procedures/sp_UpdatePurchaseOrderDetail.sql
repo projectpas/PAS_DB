@@ -1,30 +1,29 @@
-﻿
-
----------------------------------------------------------------------------------------------------
-
-
-
-
---- exec sp_UpdatePurchaseOrderDetail  214
-CREATE  Procedure [dbo].[sp_UpdatePurchaseOrderDetail]
-@PurchaseOrderId  bigint
+﻿--- EXEC sp_UpdatePurchaseOrderDetail 214
+CREATE   Procedure [dbo].[sp_UpdatePurchaseOrderDetail]
+	@PurchaseOrderId  bigint
 AS
 BEGIN
-
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON  
 	BEGIN TRY
 	BEGIN TRAN
-
 		DECLARE @StockType int = 1;
 		DECLARE @NonStockType int = 2;
 		DECLARE @AssetType int = 11;
 
 		UPDATE dbo.WorkOrderMaterials
 		SET 
-		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.NeedByDate
+		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.EstDeliveryDate
 		from dbo.PurchaseOrderPart POP
 		INNER JOIN dbo.WorkOrderMaterials WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
+		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
+		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0
+
+		UPDATE dbo.WorkOrderMaterialsKit
+		SET 
+		QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.EstDeliveryDate
+		from dbo.PurchaseOrderPart POP
+		INNER JOIN dbo.WorkOrderMaterialsKit WOM ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0
 
@@ -168,6 +167,7 @@ BEGIN
 		PO.VendorCode = V.VendorCode,
 		PO.VendorContact = ISNULL(C.FirstName,'') + ' ' + ISNULL(C.LastName,''),
 		PO.VendorContactPhone = ISNULL(C.WorkPhone,'') + '-' + ISNULL(C.WorkPhoneExtn,''),
+		PO.VendorContactEmail = ISNULL(C.Email,''),
 		PO.Terms = CT.Name,
 		PO.CreditLimit = ISNULL(V.CreditLimit,0.00),
 		PO.Status = PS.Description,

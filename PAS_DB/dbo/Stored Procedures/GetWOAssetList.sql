@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[GetWOAssetList]  
+﻿CREATE   PROCEDURE [dbo].[GetWOAssetList]  
  @PageSize int,  
  @PageNumber int,  
  @SortColumn varchar(50) = null,  
@@ -96,7 +96,8 @@ BEGIN
       FROM dbo.WorkOrderAssets WOA WITH(NOLOCK)  
        JOIN dbo.Asset A WITH(NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
        JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
-       JOIN dbo.AssetAttributeType AAT WITH(NOLOCK) on A.TangibleClassId = AAT.TangibleClassId  
+       JOIN dbo.AssetAttributeType AAT WITH(NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  	
+       JOIN dbo.TangibleClass TY WITH(NOLOCK) on AAT.TangibleClassId=TY.TangibleClassId 
        LEFT JOIN dbo.CheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) ON WOA.WorkOrderAssetId = COCI.WorkOrderAssetId AND COCI.IsQtyCheckOut = 1  
        LEFT JOIN dbo.AssetInventory AI WITH(NOLOCK) ON COCI.AssetInventoryId =  AI.AssetInventoryId  
        --LEFT JOIN dbo.AssetInventoryStatus AIS ON AIS.AssetInventoryStatusId =  AI.InventoryStatusId  

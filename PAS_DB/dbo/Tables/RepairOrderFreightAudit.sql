@@ -34,6 +34,10 @@
     [IsActive]                  BIT             CONSTRAINT [DF_RepairOrderFreightAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_RepairOrderFreightAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [LineNum]                   INT             NULL,
+    [ManufacturerId]            BIGINT          NULL,
+    [Manufacturer]              VARCHAR (100)   NULL,
     CONSTRAINT [PK_RepairOrderFreightAudit] PRIMARY KEY CLUSTERED ([RepairOrderFreightAuditId] ASC)
 );
+
+
 

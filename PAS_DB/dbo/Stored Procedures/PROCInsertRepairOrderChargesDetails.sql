@@ -1,4 +1,6 @@
-﻿CREATE PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
+﻿
+
+CREATE   PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -38,7 +40,9 @@ BEGIN
 						TARGET.[IsActive] = SOURCE.IsActive,
 						TARGET.[IsDeleted] = SOURCE.IsDeleted,
 						TARGET.[LineNum] = SOURCE.LineNum,
-						TARGET.[PartNumber] = SOURCE.PartNumber
+						TARGET.[PartNumber] = SOURCE.PartNumber,
+						TARGET.[ManufacturerId] = SOURCE.ManufacturerId,
+                        TARGET.[Manufacturer] = SOURCE.Manufacturer
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -69,7 +73,10 @@ BEGIN
 							,[ItemMasterId]
 							,[ConditionId]
 							,[LineNum]
-							,PartNumber)
+							,[PartNumber]
+							,[ManufacturerId]
+							,[Manufacturer]					
+							)
                      VALUES
 							 (SOURCE.RepairOrderId
 							 ,SOURCE.RepairOrderPartRecordId
@@ -97,7 +104,10 @@ BEGIN
 							 ,SOURCE.ItemMasterId
 							 ,SOURCE.ConditionId
 							 ,SOURCE.LineNum
-							 ,SOURCE.PartNumber);	
+							 ,SOURCE.PartNumber
+							 ,SOURCE.ManufacturerId
+							 ,SOURCE.Manufacturer							 
+							 );	
 					END
 
 					SELECT top 1 @RepairOrderId = RepairOrderId FROM @TableRepairOrderChargesType

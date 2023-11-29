@@ -2,12 +2,12 @@
     [Id]                 BIGINT         IDENTITY (1, 1) NOT NULL,
     [RMAStatusId]        INT            NOT NULL,
     [RMAStatus]          VARCHAR (50)   NULL,
-    [RMAReasonId]        INT            NOT NULL,
+    [RMAReasonId]        INT            NULL,
     [RMAReason]          VARCHAR (1000) NULL,
     [RMAValiddate]       DATETIME2 (7)  NULL,
     [CreditMemoStatusId] INT            NOT NULL,
     [CreditMemoStatus]   VARCHAR (50)   NULL,
-    [CreditMemoReasonId] INT            NOT NULL,
+    [CreditMemoReasonId] INT            NULL,
     [CreditMemoReason]   VARCHAR (1000) NULL,
     [IsEnforceApproval]  BIT            CONSTRAINT [DF_RMACreditMemoSettings_IsEnforceApproval] DEFAULT ((0)) NOT NULL,
     [Effectivedate]      DATETIME2 (7)  NULL,
@@ -22,4 +22,6 @@
     CONSTRAINT [PK_RMACreditMemoSettings] PRIMARY KEY CLUSTERED ([Id] ASC),
     CONSTRAINT [FK_RMACreditMemoSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

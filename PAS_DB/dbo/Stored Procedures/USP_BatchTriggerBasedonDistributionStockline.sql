@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [USP_BatchTriggerBasedonDistributionStockline]           
+ ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
  ** Purpose:         
@@ -44,21 +44,17 @@ BEGIN
 	         Declare @GlAccountNumber varchar(200) 
 	         Declare @JournalTypename varchar(200) 
 	         Declare @Distributionname varchar(200) 
-	         --Declare @CustomerId bigint
 	         Declare @ManagementStructureId bigint
-	         --Declare @CustomerName varchar(200)
              Declare @WorkOrderNumber varchar(200) 
              Declare @MPNName varchar(200) 
 	         Declare @PiecePNId bigint
              Declare @PiecePN varchar(200) 
-             --Declare @ItemmasterId bigint
 	         Declare @PieceItemmasterId bigint
 	         Declare @CustRefNumber varchar(200)
 	         declare @LineNumber int=1
 	         declare @TotalDebit decimal(18,2)=0
 	         declare @TotalCredit decimal(18,2)=0
 	         declare @TotalBalance decimal(18,2)=0
-	         --declare @Qty int =0
 	         declare @UnitPrice decimal(18,2)=0
 	         declare @LaborHrs decimal(18,2)=0
 	         declare @DirectLaborCost decimal(18,2)=0
@@ -86,9 +82,7 @@ BEGIN
 			 declare @RevenuWO decimal(18,2)=0
 			 declare @CurrentManagementStructureId bigint=0
 
-			 --declare @MasterCompanyId bigint=0;
 			 DECLARE @DistributionMasterId bigint;
-			 --DECLARE @Amount decimal(18,2);
 			 Declare @VendorId bigint;
 			 Declare @VendorName varchar(50);
 			 DECLARE @ReferenceId bigint=NULL;
@@ -115,14 +109,11 @@ BEGIN
 			 DECLARE @ShelfId BIGINT;
 			 DECLARE @Shelf varchar(100)='';
 			 DECLARE @Desc varchar(100);
-
-			 --Select @VendorId=VendorId,@ReferenceId=StockLineId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StocklineNumber
-			 --,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf]
-			 --from Stockline where StockLineId=@StocklineId;
+			 declare @CommonJournalBatchDetailId bigint=0;
+			 DECLARE @currentNo AS BIGINT = 0;
+			 DECLARE @CodeTypeId AS BIGINT = 74;
+			 DECLARE @JournalTypeNumber varchar(100);
 			 select @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
-			 --select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
-			 --select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
-			 --select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
 
 			 select @IsAccountByPass =IsAccountByPass from MasterCompany WITH(NOLOCK)  where MasterCompanyId= @MasterCompanyId
 	         select @DistributionCode =DistributionCode from DistributionMaster WITH(NOLOCK)  where ID= @DistributionMasterId
@@ -130,24 +121,51 @@ BEGIN
 	         select top 1 @JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
 	         select @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
 	         select @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId
-	         select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(FirstName,' ',LastName) IN (@UpdateBy) and MasterCompanyId=@MasterCompanyId
+	         --select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(FirstName,' ',LastName) IN (@UpdateBy) and MasterCompanyId=@MasterCompanyId
+			 select @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 	         
 			 if((@JournalTypeCode ='RPO') and @IsAccountByPass=0)
 			 BEGIN
-					  --Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId from Stockline where StockLineId=@StocklineId;
-
-			    --      --select @WorkOrderNumber = WorkOrderNum,@CustomerId=CustomerId,@CustomerName= CustomerName from WorkOrder WITH(NOLOCK)  where WorkOrderId=@ReferenceId
-		     --         --select @partId=WorkOrderPartNoId from WorkOrderWorkFlow where WorkFlowWorkOrderId=@ReferencePartId
-	      --            --select @ManagementStructureId =ManagementStructureId,@ItemmasterId=ItemMasterId,@CustRefNumber=CustomerReference from WorkOrderPartNumber WITH(NOLOCK)  where WorkOrderId=@ReferenceId and ID=@partId
-	      --            select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	      --            select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 					  select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK) 
 					  inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 					  inner join AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 					  where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(getdate() as date)   >= CAST(FromDate as date) and  CAST(getdate() as date) <= CAST(ToDate as date)
-		              --Set @ReferencePartId=@partId	
 
-	            
+
+				  IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+				  BEGIN
+				  DROP TABLE #tmpCodePrefixes
+				  END
+				  
+				  CREATE TABLE #tmpCodePrefixes
+				  (
+				  	 ID BIGINT NOT NULL IDENTITY, 
+				  	 CodePrefixId BIGINT NULL,
+				  	 CodeTypeId BIGINT NULL,
+				  	 CurrentNumber BIGINT NULL,
+				  	 CodePrefix VARCHAR(50) NULL,
+				  	 CodeSufix VARCHAR(50) NULL,
+				  	 StartsFrom BIGINT NULL,
+				  )
+				  
+				  INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+				  SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+				  FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+				  WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+				  
+				    IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
+				  BEGIN 
+				  	SELECT 
+				  		@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+				  			ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+				  	FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+				  
+				  	SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+				  END
+				  ELSE 
+				  BEGIN
+				  	ROLLBACK TRAN;
+				  END
 
 				  IF NOT EXISTS(select JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
                   BEGIN
@@ -234,36 +252,77 @@ BEGIN
 		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				      SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Stock - Inventory') AND DistributionMasterId=@DistributionMasterId
+				      					SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Stock - Inventory') AND DistributionMasterId=@DistributionMasterId
 
 				     INSERT INTO [dbo].[BatchDetails]
-                            (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
-							--[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN] ,
+                            (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
 							[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
-							--[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber],
 							[ManagementStructureId],[ModuleName],
-							--Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,
 							LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
                      VALUES
-                           (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
-						   --@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,
+                           (@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
 						   @JournalTypeId ,@JournalTypename ,1,@Amount ,0,
-						   --0 ,'',null ,null,null,@CustRefNumber,
 						   @ManagementStructureId ,@ModuleName,
-						   --@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,
 						   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
-					SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+
 
 					INSERT INTO [StocklineBatchDetails]
 						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
-						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType])
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 					VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
-						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType)
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+                   -----Goods Received Not Invoiced (GRNI)--------
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND DistributionMasterId=@DistributionMasterId
+
+				 --    INSERT INTO [dbo].[BatchDetails]
+     --                       (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
+					--		[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
+					--		[ManagementStructureId],[ModuleName],
+					--		LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+     --                VALUES
+     --                      (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
+					--	   @JournalTypeId ,@JournalTypename ,0,0 ,@Amount,
+					--	   @ManagementStructureId ,@ModuleName,
+					--	   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+
+					--SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,0,0,@Amount,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+
+
+					INSERT INTO [StocklineBatchDetails]
+						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
+					VALUES
+						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+
+					SET @TotalDebit=0;
+					SET @TotalCredit=0;
+					SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM CommonBatchDetails WITH(NOLOCK) where JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
+			        Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy where JournalBatchDetailId=@JournalBatchDetailId
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -286,40 +345,81 @@ BEGIN
 	                  select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from NonStocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
 					  Set @ReferencePartId=@partId	
 
-		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=MasterPartId from NonStockInventory  where NonStockInventoryId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				      SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('NonStock - Inventory') AND DistributionMasterId=@DistributionMasterId
+				      SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+					  -----NonStock - Inventory--------
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('NonStock - Inventory') AND DistributionMasterId=@DistributionMasterId
 
 				     INSERT INTO [dbo].[BatchDetails]
-                            (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
-							--[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN] ,
+                            (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
 							[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
-							--[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber],
 							[ManagementStructureId],[ModuleName],
-							--Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,
 							LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
                      VALUES
-                           (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
-						   --@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,
+                           (@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
 						   @JournalTypeId ,@JournalTypename ,1,@Amount ,0,
-						   --0 ,'',null ,null,null,@CustRefNumber,
 						   @ManagementStructureId ,@ModuleName,
-						   --@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,
 						   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
 					
-					SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+					
 
 					INSERT INTO [StocklineBatchDetails]
 						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
-						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType])
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 					VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
-						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType)
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+					-----Goods Received Not Invoiced (GRNI)--------
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND DistributionMasterId=@DistributionMasterId
+
+				 --    INSERT INTO [dbo].[BatchDetails]
+     --                       (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
+					--		[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
+					--		[ManagementStructureId],[ModuleName],
+					--		LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+     --                VALUES
+     --                      (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
+					--	   @JournalTypeId ,@JournalTypename ,0,0 ,@Amount,
+					--	   @ManagementStructureId ,@ModuleName,
+					--	   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+
+					--SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,0,0,@Amount,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+
+					INSERT INTO [StocklineBatchDetails]
+						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
+					VALUES
+						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+
+					SET @TotalDebit=0;
+					SET @TotalCredit=0;
+					SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM CommonBatchDetails WITH(NOLOCK) where JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
+			        Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy where JournalBatchDetailId=@JournalBatchDetailId
+
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -332,7 +432,6 @@ BEGIN
 					  from AssetInventory where AssetInventoryId=@StocklineId;
 					  select @PurchaseOrderNumber=PurchaseOrderNumber,@VendorId=VendorId from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
 					  select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
-					  --select @RepairOrderNumber=RepairOrderNumber from RepairOrder WITH(NOLOCK)  where RepairOrderId= @RepairOrderId;
 						
 					  SET @UnitPrice = @Amount;
 					  SET @Amount = (@Qty * @Amount);
@@ -342,40 +441,79 @@ BEGIN
 	                  select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from AssetManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
 					  Set @ReferencePartId=@partId	
 
-		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=MasterPartId from AssetInventory  where AssetInventoryId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
 				      SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Asset - Inventory') AND DistributionMasterId=@DistributionMasterId
 
 				     INSERT INTO [dbo].[BatchDetails]
-                            (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
-							--[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN] ,
+                            (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
 							[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
-							--[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber],
 							[ManagementStructureId],[ModuleName],
-							--Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,
 							LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
                      VALUES
-                           (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
-						   --@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,
+                           (@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
 						   @JournalTypeId ,@JournalTypename ,1,@Amount ,0,
-						   --0 ,'',null ,null,null,@CustRefNumber,
 						   @ManagementStructureId ,@ModuleName,
-						   --@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,
 						   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
 					
 					SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 
 					INSERT INTO [StocklineBatchDetails]
 						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
-						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType])
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 					VALUES
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
-						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType)
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+                    
+					-----Goods Received Not Invoiced (GRNI)--------
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND DistributionMasterId=@DistributionMasterId
+
+				 --    INSERT INTO [dbo].[BatchDetails]
+     --                       (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
+					--		[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],
+					--		[ManagementStructureId],[ModuleName],
+					--		LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+     --                VALUES
+     --                      (@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
+					--	   @JournalTypeId ,@JournalTypename ,0,0 ,@Amount,
+					--	   @ManagementStructureId ,@ModuleName,
+					--	   @LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+
+					--SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+					 INSERT INTO [dbo].[CommonBatchDetails]
+                            (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+                     VALUES
+                           (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,0,0,@Amount,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+
+					 SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+
+					INSERT INTO [StocklineBatchDetails]
+						(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
+						[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
+					VALUES
+						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
+
+
+					SET @TotalDebit=0;
+					SET @TotalCredit=0;
+					SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM CommonBatchDetails WITH(NOLOCK) where JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
+			        Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy where JournalBatchDetailId=@JournalBatchDetailId
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -386,6 +524,7 @@ BEGIN
 			         SET @TotalBalance =@TotalDebit-@TotalCredit
 				         
 			         Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   where JournalBatchHeaderId= @JournalBatchHeaderId
+					 UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
 			 
             END
 

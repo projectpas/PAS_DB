@@ -23,7 +23,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_Reserve_ReleaseSubWorkOrderStockline]    
+CREATE   PROCEDURE [dbo].[USP_Reserve_ReleaseSubWorkOrderStockline]    
 (    
 @WorkOrderId  BIGINT  = NULL,
 @SubWorkOrderId  BIGINT  = NULL,
@@ -47,6 +47,7 @@ SET NOCOUNT ON
 
 				DECLARE @SubWorkOrderStatusId BIGINT;
 				DECLARE @UpdatedBy VARCHAR(200);
+				DECLARE @SubWorkorderNum VARCHAR(200);
 				DECLARE @SubWOPartQty INT;
 
 				SELECT @UpdatedBy = FirstName + ' ' + LastName FROM dbo.Employee Where EmployeeId = @UpdatedById
@@ -54,11 +55,11 @@ SET NOCOUNT ON
 
 				SELECT @SubWorkOrderStatusId  = Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE UPPER(StatusCode) = 'CLOSED'
 				--SELECT @ProvisionId  = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE UPPER(StatusCode) = 'REPLACE'
-				--SELECT @MasterCompanyId  = MasterCompanyId FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @SubWorkOrderId
+			    SELECT @SubWorkorderNum  = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @SubWorkOrderId
 
 				IF(@IsCreate = 1)
 				BEGIN
-					UPDATE dbo.Stockline SET QuantityAvailable = QuantityAvailable - @SubWOPartQty WHERE StockLineId = @StocklineId
+					UPDATE dbo.Stockline SET QuantityAvailable = QuantityAvailable - @SubWOPartQty,SubWorkOrderNumber=@SubWorkorderNum,SubWorkOrderId=@SubWorkOrderId,SubWOPartNoId=@SubWorkOrderPartNoId WHERE StockLineId = @StocklineId
 				END
 				--ELSE
 				--BEGIN

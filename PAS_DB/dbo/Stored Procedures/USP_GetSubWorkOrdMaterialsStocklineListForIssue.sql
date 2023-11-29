@@ -22,7 +22,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForIssue]    
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForIssue]    
 (    
 @SubWOPartNoId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL
@@ -75,9 +75,10 @@ SET NOCOUNT ON
 				)
 
 				SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
-				SELECT @WorkOrderTypeId = Id FROM dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER([Description]) = 'CUSTOMER' AND IsActive = 1 AND IsDeleted = 0;
+
 				SELECT @MasterCompanyId = MasterCompanyId, @WorkOrderId = WorkOrderId FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId AND IsActive = 1 AND IsDeleted = 0;
-				SELECT @CustomerID = CustomerId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
+				SELECT @CustomerID = CustomerId, @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
+
 				SELECT @IsEnforcePickTicket = ISNULL(EnforcePickTicket,0) FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderTypeId = @WorkOrderTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
 				IF(@ItemMasterId = 0)

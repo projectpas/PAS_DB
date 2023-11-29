@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [PROCAddStockLineDraftMSData]             
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to store StockLineDraft Management Structure Details  
@@ -19,7 +18,7 @@
 -- EXEC PROCAddStockLineDraftMSData 47,3,2,'moin','moin',47,2,2  
 ************************************************************************/  
   
-CREATE PROCEDURE [dbo].[PROCAddStockLineDraftMSData]  
+CREATE   PROCEDURE [dbo].[PROCAddStockLineDraftMSData]  
 @StockLineDraftId bigint,  
 @EntityMSID bigint,  
 @MasterCompanyId int,  
@@ -71,22 +70,22 @@ BEGIN
              EST.Level9Id,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description],  
              EST.Level10Id,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description],  
        @MasterCompanyId,@CreatedBy,@UpdatedBy,GETDATE(),GETDATE(),1,0  
-         FROM dbo.EntityStructureSetup EST WITH(NOLOCK)                  
-       LEFT JOIN ManagementStructureLevel MSL1 WITH (NOLOCK) ON  EST.Level1Id = MSL1.ID  
-             LEFT JOIN ManagementStructureLevel MSL2 WITH (NOLOCK) ON  EST.Level2Id = MSL2.ID  
-             LEFT JOIN ManagementStructureLevel MSL3 WITH (NOLOCK) ON  EST.Level3Id = MSL3.ID  
-             LEFT JOIN ManagementStructureLevel MSL4 WITH (NOLOCK) ON  EST.Level4Id = MSL4.ID  
-             LEFT JOIN ManagementStructureLevel MSL5 WITH (NOLOCK) ON  EST.Level5Id = MSL5.ID  
-             LEFT JOIN ManagementStructureLevel MSL6 WITH (NOLOCK) ON  EST.Level6Id = MSL6.ID  
-             LEFT JOIN ManagementStructureLevel MSL7 WITH (NOLOCK) ON  EST.Level7Id = MSL7.ID  
-             LEFT JOIN ManagementStructureLevel MSL8 WITH (NOLOCK) ON  EST.Level8Id = MSL8.ID  
-             LEFT JOIN ManagementStructureLevel MSL9 WITH (NOLOCK) ON  EST.Level9Id = MSL9.ID  
-             LEFT JOIN ManagementStructureLevel MSL10 WITH (NOLOCK) ON EST.Level10Id = MSL10.ID                  
+         FROM [dbo].[EntityStructureSetup] EST WITH(NOLOCK)                  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON  EST.Level1Id = MSL1.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON  EST.Level2Id = MSL2.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON  EST.Level3Id = MSL3.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON  EST.Level4Id = MSL4.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON  EST.Level5Id = MSL5.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON  EST.Level6Id = MSL6.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON  EST.Level7Id = MSL7.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON  EST.Level8Id = MSL8.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON  EST.Level9Id = MSL9.ID  
+             LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON EST.Level10Id = MSL10.ID                  
        WHERE EST.EntityStructureId=@EntityMSID;   
   
      SELECT @MSDetailsId = IDENT_CURRENT('StockLineDraftManagementStructureDetails');  
                
-     UPDATE dbo.StockLineDraft SET ManagementStructureEntityId = @EntityMSID WHERE [StockLineDraftId] = @StockLineDraftId;   
+     UPDATE [dbo].[StockLineDraft] SET [ManagementStructureEntityId] = @EntityMSID WHERE [StockLineDraftId] = @StockLineDraftId;   
   
      SELECT @MSLevel = MC.ManagementStructureLevel  
      FROM [dbo].[MasterCompany] MC WITH(NOLOCK)   
@@ -138,17 +137,17 @@ BEGIN
        [Level9Name] = CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + CAST(MSL9.[Description] AS VARCHAR(MAX)),  
        [Level10Id] = EST.Level10Id,  
        [Level10Name] = CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + CAST(MSL10.[Description] AS VARCHAR(MAX))  
-     FROM [dbo].EntityStructureSetup EST WITH(NOLOCK)  
-        LEFT JOIN ManagementStructureLevel MSL1 WITH (NOLOCK) ON  EST.Level1Id = MSL1.ID  
-        LEFT JOIN ManagementStructureLevel MSL2 WITH (NOLOCK) ON  EST.Level2Id = MSL2.ID  
-        LEFT JOIN ManagementStructureLevel MSL3 WITH (NOLOCK) ON  EST.Level3Id = MSL3.ID  
-        LEFT JOIN ManagementStructureLevel MSL4 WITH (NOLOCK) ON  EST.Level4Id = MSL4.ID  
-        LEFT JOIN ManagementStructureLevel MSL5 WITH (NOLOCK) ON  EST.Level5Id = MSL5.ID  
-        LEFT JOIN ManagementStructureLevel MSL6 WITH (NOLOCK) ON  EST.Level6Id = MSL6.ID  
-        LEFT JOIN ManagementStructureLevel MSL7 WITH (NOLOCK) ON  EST.Level7Id = MSL7.ID  
-        LEFT JOIN ManagementStructureLevel MSL8 WITH (NOLOCK) ON  EST.Level8Id = MSL8.ID  
-        LEFT JOIN ManagementStructureLevel MSL9 WITH (NOLOCK) ON  EST.Level9Id = MSL9.ID  
-        LEFT JOIN ManagementStructureLevel MSL10 WITH (NOLOCK) ON EST.Level10Id = MSL10.ID                  
+     FROM [dbo].[EntityStructureSetup] EST WITH(NOLOCK)  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON  EST.Level1Id = MSL1.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON  EST.Level2Id = MSL2.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON  EST.Level3Id = MSL3.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON  EST.Level4Id = MSL4.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON  EST.Level5Id = MSL5.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON  EST.Level6Id = MSL6.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON  EST.Level7Id = MSL7.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON  EST.Level8Id = MSL8.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON  EST.Level9Id = MSL9.ID  
+        LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON EST.Level10Id = MSL10.ID                  
      WHERE ModuleID = @ModuleId AND ReferenceID = @StockLineDraftId AND EST.EntityStructureId=@EntityMSID;  
   
      SELECT @MasterCompanyId = [MasterCompanyId], @MSDetailsId = MSDetailsId  

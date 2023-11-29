@@ -80,6 +80,10 @@
     [ManufacturerPN]            VARCHAR (150)   NULL,
     [AssetModel]                VARCHAR (30)    NULL,
     [AssetClass]                VARCHAR (50)    NULL,
+    [IsLotAssigned]             BIT             NULL,
+    [LotId]                     BIGINT          NULL,
+    [WorkOrderMaterialsId]      BIGINT          NULL,
+    [VendorRFQPOPartRecordId]   BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderPart] PRIMARY KEY CLUSTERED ([PurchaseOrderPartRecordId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrder_PurchaseOrderPart] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_Currency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -95,6 +99,10 @@
     CONSTRAINT [FK_PurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
+
+
 
 
 

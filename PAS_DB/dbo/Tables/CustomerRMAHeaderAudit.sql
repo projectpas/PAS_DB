@@ -36,8 +36,11 @@
     [IsDeleted]             BIT             NOT NULL,
     [ReferenceId]           BIGINT          NULL,
     [PDFPath]               NVARCHAR (2000) NULL,
+    [ReceiverNum]           VARCHAR (30)    NULL,
     CONSTRAINT [PK_CustomerRMAHeaderAudit] PRIMARY KEY CLUSTERED ([RMAHeaderAuditId] ASC)
 );
+
+
 
 
 

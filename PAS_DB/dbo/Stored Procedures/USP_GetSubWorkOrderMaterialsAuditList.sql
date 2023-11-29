@@ -1,6 +1,4 @@
-﻿----------------------------------------------------------------------------------------------------------------------
-
-
+﻿
 /*************************************************************           
  ** File:   [USP_GetSubWorkOrderMaterialsAuditList]           
  ** Author:   Subhash Saliya
@@ -21,12 +19,11 @@
  ** --   --------     -------		--------------------------------          
     1    03/23/2021   Subhash Saliya Created
 	2    12/07/2021   Hemant Saliya  Added new field for Audit log
-     
+    3    02/06/2023   Rajesh Gami    Added Figure and Item field for the audit
  EXECUTE USP_GetSubWorkOrderMaterialsAuditList 68
 
-**************************************************************/ 
-    
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsAuditList]    
+**************************************************************/     
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsAuditList]    
 (    
 @SubWorkOrderMaterialsId BIGINT = NULL  
 )    
@@ -131,6 +128,8 @@ SET NOCOUNT ON
 							WOM.UpdatedDate,
 							ROP.EstRecordDate 'RONextDlvrDate',
 							RO.RepairOrderNumber
+							,WOM.Figure
+							,WOM.Item
 					FROM dbo.SubWorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId

@@ -10,7 +10,7 @@
     [WorkOrderHoursType]             INT             NULL,
     [LabourMemo]                     NVARCHAR (MAX)  NULL,
     [ExpertiseId]                    SMALLINT        NULL,
-    [EmployeeId]                     BIGINT          NOT NULL,
+    [EmployeeId]                     BIGINT          NULL,
     [TotalWorkHours]                 DECIMAL (20, 2) NULL,
     [MasterCompanyId]                INT             NOT NULL,
     [CreatedBy]                      VARCHAR (256)   NOT NULL,
@@ -21,4 +21,6 @@
     [IsDeleted]                      BIT             NOT NULL,
     CONSTRAINT [PK_SubWorkOrderLaborHeaderAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderLaborHeaderAuditId] ASC)
 );
+
+
 

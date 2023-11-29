@@ -1,29 +1,4 @@
-﻿
-
-/*************************************************************           
- ** File:   [GetWorkFlowWorkOrderChargesList]           
- ** Author:   Subhash Saliya
- ** Description: Get Search Data for Work order Chagres List    
- ** Purpose:         
- ** Date:   22-Feb-2021        
-          
- ** PARAMETERS:           
- @POId varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Subhash Saliya Created
-	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
-     
- EXECUTE [GetWorkFlowWorkOrderChargesList] 148, null, 0
-**************************************************************/ 
-
-CREATE PROCEDURE [dbo].[GetWorkFlowWorkOrderChargesList]
+﻿CREATE   PROCEDURE [dbo].[GetWorkFlowWorkOrderChargesList]
 @wfwoId bigint = null,
 @workOrderId bigint = null,
 @IsDeleted bit= null,
@@ -66,7 +41,7 @@ BEGIN
 					JOIN dbo.Charge ct WITH(NOLOCK) on woc.ChargesTypeId = ct.ChargeId
 					LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId
 					JOIN dbo.Task ts WITH(NOLOCK) on woc.TaskId = ts.TaskId
-					JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId				
+					LEFT JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId				
 				WHERE woc.IsDeleted = @IsDeleted AND woc.WorkFlowWorkOrderId = @wfwoId and woc.MasterCompanyId=@masterCompanyId
 			END
 			COMMIT  TRANSACTION

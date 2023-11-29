@@ -1,5 +1,6 @@
-﻿-- EXEC [dbo].[GetReserveStockPartsListByExchangeSOId] 190
-CREATE PROC [dbo].[GetReserveStockPartsListByExchangeSOId]
+﻿
+-- EXEC [dbo].[GetReserveStockPartsListByExchangeSOId] 190
+CREATE   PROC [dbo].[GetReserveStockPartsListByExchangeSOId]
 @SalesOrderId  bigint
 AS
 BEGIN
@@ -10,6 +11,7 @@ BEGIN
 	BEGIN
 			SELECT DISTINCT so.ExchangeSalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description as Condition, 0 AS ExchangeSalesOrderPartId,
 			im.PartNumber, im.PartDescription, 
+			im.ManufacturerName ManufacturerName,
 			sop.QtyQuoted as Quantity
 			, ISNULL(sor.ReservedById, 0) ReservedById
 			, ISNULL(sor.IssuedById, 0) IssuedById
@@ -23,6 +25,7 @@ BEGIN
 			, sl.StockLineNumber, sl.ControlNumber,
 			CASE WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER' ELSE (CASE WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA' ELSE (CASE WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER' ELSE 'OEM' END) END) END as StockType
 			,SO.MasterCompanyId
+	
 			FROM ExchangeSalesOrder SO WITH (NOLOCK)
 			INNER JOIN ExchangeSalesOrderPart SOP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SOP.ExchangeSalesOrderId
 			LEFT JOIN ItemMaster im WITH (NOLOCK) on sop.ItemMasterId = im.ItemMasterId
@@ -38,7 +41,7 @@ BEGIN
 			((sop.MethodType <> 'I' AND sl.StockLineId = sop.StockLineId)
 			OR (sop.MethodType = 'I' AND sl.ItemMasterId = sop.ItemMasterId AND sl.ConditionId = sop.ConditionId))
 			GROUP BY so.ExchangeSalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description,
-			im.PartNumber, im.PartDescription
+			im.PartNumber, im.PartDescription,im.ManufacturerName
 			, sor.ReservedById
 			, sor.IssuedById
 			, sor.IsAltPart

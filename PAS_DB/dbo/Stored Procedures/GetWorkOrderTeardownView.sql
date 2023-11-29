@@ -18,16 +18,15 @@
  ** --   --------     -------		--------------------------------          
     1    02/26/2021   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
+**  3    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
      
 --EXEC [GetWorkOrderTeardownView] 33
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWorkOrderTeardownView]
+CREATE   PROCEDURE [dbo].[GetWorkOrderTeardownView]
 @wowfId  bigint = 0
 AS
 BEGIN
-	
-
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
@@ -100,20 +99,20 @@ BEGIN
                     td.IsRemovalReasons,
                     td.IsTestDataUsed,
                     td.IsWorkPerformed,
-					Isshortteardown =(SELECT TOP 1 isnull(Isshortteardown,0) FROM WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderSettingId=1)
+					Isshortteardown = 0
 				FROM dbo.WorkOrderTeardown td WITH(NOLOCK)
-					join  dbo.WorkOrderAdditionalComments ac WITH(NOLOCK) on td.WorkOrderTeardownId = ac.WorkOrderTeardownId
-					join  dbo.WorkOrderBulletinsModification bm WITH(NOLOCK) on td.WorkOrderTeardownId = bm.WorkOrderTeardownId
-					join  dbo.WorkOrderDiscovery  wd WITH(NOLOCK) on td.WorkOrderTeardownId = wd.WorkOrderTeardownId
-					join  dbo.WorkOrderFinalInspection wf WITH(NOLOCK) on td.WorkOrderTeardownId = wf.WorkOrderTeardownId
-					join  dbo.WorkOrderFinalTest ft WITH(NOLOCK) on td.WorkOrderTeardownId = ft.WorkOrderTeardownId
-					join  dbo.WorkOrderPmaDerBulletins pd WITH(NOLOCK) on td.WorkOrderTeardownId = pd.WorkOrderTeardownId
-					join  dbo.WorkOrderPreAssemblyInspection pa WITH(NOLOCK) on td.WorkOrderTeardownId = pa.WorkOrderTeardownId
-					join  dbo.WorkOrderPreAssmentResults par WITH(NOLOCK) on td.WorkOrderTeardownId = par.WorkOrderTeardownId
-					join  dbo.WorkOrderPreliinaryReview pr WITH(NOLOCK) on td.WorkOrderTeardownId = pr.WorkOrderTeardownId
-					join  dbo.WorkOrderRemovalReasons rr WITH(NOLOCK) on td.WorkOrderTeardownId = rr.WorkOrderTeardownId
-					join  dbo.WorkOrderTestDataUsed tdu WITH(NOLOCK) on td.WorkOrderTeardownId = tdu.WorkOrderTeardownId
-					join  dbo.WorkOrderWorkPerformed wp WITH(NOLOCK) on td.WorkOrderTeardownId = wp.WorkOrderTeardownId
+					JOIN dbo.WorkOrderAdditionalComments ac WITH(NOLOCK) on td.WorkOrderTeardownId = ac.WorkOrderTeardownId
+					JOIN dbo.WorkOrderBulletinsModification bm WITH(NOLOCK) on td.WorkOrderTeardownId = bm.WorkOrderTeardownId
+					JOIN dbo.WorkOrderDiscovery  wd WITH(NOLOCK) on td.WorkOrderTeardownId = wd.WorkOrderTeardownId
+					JOIN dbo.WorkOrderFinalInspection wf WITH(NOLOCK) on td.WorkOrderTeardownId = wf.WorkOrderTeardownId
+					JOIN dbo.WorkOrderFinalTest ft WITH(NOLOCK) on td.WorkOrderTeardownId = ft.WorkOrderTeardownId
+					JOIN dbo.WorkOrderPmaDerBulletins pd WITH(NOLOCK) on td.WorkOrderTeardownId = pd.WorkOrderTeardownId
+					JOIN dbo.WorkOrderPreAssemblyInspection pa WITH(NOLOCK) on td.WorkOrderTeardownId = pa.WorkOrderTeardownId
+					JOIN dbo.WorkOrderPreAssmentResults par WITH(NOLOCK) on td.WorkOrderTeardownId = par.WorkOrderTeardownId
+					JOIN dbo.WorkOrderPreliinaryReview pr WITH(NOLOCK) on td.WorkOrderTeardownId = pr.WorkOrderTeardownId
+					JOIN dbo.WorkOrderRemovalReasons rr WITH(NOLOCK) on td.WorkOrderTeardownId = rr.WorkOrderTeardownId
+					JOIN dbo.WorkOrderTestDataUsed tdu WITH(NOLOCK) on td.WorkOrderTeardownId = tdu.WorkOrderTeardownId
+					JOIN dbo.WorkOrderWorkPerformed wp WITH(NOLOCK) on td.WorkOrderTeardownId = wp.WorkOrderTeardownId
 				WHERE td.WorkFlowWorkOrderId =@wowfId
 			END
 		COMMIT  TRANSACTION

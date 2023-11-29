@@ -15,10 +15,11 @@
  ** PR   Date				Author			Change Description            
  ** --   --------			-------			-------------------          
 	1    10-May-2022		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
+	2    27-July-2023		Hemant Saliya	Allow Customer stocklto use in other customer
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
+CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 @ConditionIds VARCHAR(100) = NULL,
 @CustomerId BIGINT = NULL,
@@ -57,8 +58,8 @@ BEGIN
 					)
 					,1,1,''), '') AlternateFor
 					,CASE 
-						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
-						WHEN im.IsPma = 1 and im.IsDER = 0 THEN OEMPMA.partnumber --'PMA'
+						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
+						WHEN im.IsPma = 1 and im.IsDER = 0 THEN 'PMA'
 						WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS Oempmader
@@ -69,7 +70,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

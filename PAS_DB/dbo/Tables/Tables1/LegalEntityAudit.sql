@@ -35,8 +35,14 @@
     [EASALicense]             VARCHAR (100) NULL,
     [CAACLicense]             VARCHAR (100) NULL,
     [TCCALicense]             VARCHAR (100) NULL,
+    [TimeZoneId]              BIGINT        NULL,
+    [IsPrintCheckNumber]      BIT           NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
+
+
 
 
 

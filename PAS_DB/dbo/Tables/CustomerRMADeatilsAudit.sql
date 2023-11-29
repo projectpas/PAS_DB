@@ -33,8 +33,13 @@
     [IsCreateStockline]      BIT             NULL,
     [CustomerReference]      VARCHAR (100)   NULL,
     [InvoiceQty]             INT             NULL,
+    [ReturnDate]             DATETIME2 (7)   NULL,
+    [WorkOrderNum]           VARCHAR (50)    NULL,
+    [ReceiverNum]            VARCHAR (50)    NULL,
     CONSTRAINT [PK_CustomerRMADeatilsAudit] PRIMARY KEY CLUSTERED ([RMADeatilsAuditId] ASC)
 );
+
+
 
 
 

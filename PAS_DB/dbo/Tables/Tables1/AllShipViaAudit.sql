@@ -9,7 +9,7 @@
     [HandlingCost]      DECIMAL (20, 3) NOT NULL,
     [IsModuleShipVia]   BIT             NULL,
     [ShippingAccountNo] VARCHAR (100)   NULL,
-    [ShipVia]           VARCHAR (100)   NULL,
+    [ShipVia]           VARCHAR (400)   NULL,
     [ShippingViaId]     BIGINT          NULL,
     [MasterCompanyId]   INT             NOT NULL,
     [CreatedBy]         VARCHAR (256)   NOT NULL,
@@ -20,4 +20,6 @@
     [IsDeleted]         BIT             CONSTRAINT [DF_AllShipViaAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_AllShipViaAudit] PRIMARY KEY CLUSTERED ([AllShipViaAuditId] ASC)
 );
+
+
 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
@@ -11,6 +10,7 @@ EXEC [usp_ReserveIssueSubWorkOrderMaterialsStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    12/30/2021  HEMANT SALIYA    Save Sub Work Order Materials reserve & Issue Stockline Details
+   2    08/29/2023  Moin Bloch       Batch Detail Entry For Issue SubWO
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -24,8 +24,8 @@ EXEC dbo.usp_ReserveIssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineT
 
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_ReserveIssueSubWorkOrderMaterialsStockline]
-	@tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
+CREATE   PROCEDURE [dbo].[usp_ReserveIssueSubWorkOrderMaterialsStockline]
+@tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
 AS
 BEGIN
 	
@@ -44,6 +44,7 @@ BEGIN
 					DECLARE @MasterCompanyId INT; 
 					DECLARE @ModuleId INT;
 					DECLARE @ReferenceId BIGINT;
+					DECLARE @ReferencePartId BIGINT;
 					DECLARE @IsAddUpdate BIT; 
 					DECLARE @ExecuteParentChild BIT; 
 					DECLARE @UpdateQuantities BIT;
@@ -57,6 +58,16 @@ BEGIN
 					DECLARE @IsSerialised BIT;
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @DistributionMasterId BIGINT;
+					DECLARE @InvoiceId bigint=0;
+					DECLARE @IssueQty bigint=1;
+					DECLARE @laborType varchar(200)='';
+					DECLARE @issued bit=1;
+					DECLARE @Amount decimal(18,2);
+					DECLARE @ModuleName varchar(200)='SWOP-PartsIssued'
+					DECLARE @UpdateBy varchar(200);
+
+					SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('WOMATERIALGRIDTAB');
 
 					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
@@ -212,7 +223,11 @@ BEGIN
 						SELECT	@StocklineId = tmpWOM.StockLineId,
 								@MasterCompanyId = tmpWOM.MasterCompanyId,
 								@ReferenceId = tmpWOM.SubWorkOrderId,
-								@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId
+								@ReferencePartId = tmpWOM.SubWOPartNoId,
+								@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
+								--@IssueQty = QuantityActReserved,
+								@Amount = UnitCost,
+								@UpdateBy = UpdatedBy
 						FROM #tmpReserveSWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @slcount
 
@@ -227,6 +242,10 @@ BEGIN
 							EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
 						END
 
+						-- Batch Detail Entry For Issue SubWO
+
+						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder] @DistributionMasterId,@ReferenceId,@ReferencePartId,@SubReferenceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+						
 						SET @slcount = @slcount + 1;
 					END;
 
@@ -234,12 +253,12 @@ BEGIN
 
 					IF OBJECT_ID(N'tempdb..#tmpIgnoredStockline') IS NOT NULL
 					BEGIN
-					DROP TABLE #tmpIgnoredStockline
+						DROP TABLE #tmpIgnoredStockline
 					END
 
 					IF OBJECT_ID(N'tempdb..#tmpReserveSWOMaterialsStockline') IS NOT NULL
 					BEGIN
-					DROP TABLE #tmpReserveSWOMaterialsStockline
+						DROP TABLE #tmpReserveSWOMaterialsStockline
 					END
 
 				END

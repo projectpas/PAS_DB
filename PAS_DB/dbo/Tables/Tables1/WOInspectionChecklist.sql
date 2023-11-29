@@ -22,8 +22,8 @@
     [HavetheotherRSsseals]                 BIT            NULL,
     [Notes]                                NVARCHAR (MAX) NULL,
     [WorkRequested]                        NVARCHAR (MAX) NULL,
-    [SpecialInstructions]                  VARCHAR (250)  NULL,
-    [TroubleReported]                      VARCHAR (250)  NULL,
+    [SpecialInstructions]                  NVARCHAR (MAX) NULL,
+    [TroubleReported]                      NVARCHAR (MAX) NULL,
     [ApplicableADs]                        NVARCHAR (MAX) NULL,
     [ShippingContainers]                   NVARCHAR (MAX) NULL,
     [Comments]                             NVARCHAR (MAX) NULL,
@@ -38,6 +38,8 @@
     CONSTRAINT [PK_WOInspectionChecklist] PRIMARY KEY CLUSTERED ([WOInspectionId] ASC),
     CONSTRAINT [FK_WOInspectionChecklist_ReceivingCustomerWorkId] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId])
 );
+
+
 
 
 GO

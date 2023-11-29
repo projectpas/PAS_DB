@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetAddressDetailsByUser]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Billing & Shiping Address for Purchage Order    
@@ -15,17 +13,20 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/23/2020   Hemant Saliya Created
-    2    07/01/2021   Vishal Suthar Added Attention field
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    09/23/2020   Hemant Saliya		Created
+    2    07/01/2021   Vishal Suthar		Added Attention field
+	3    06/29/2023   Amit Ghediya		Added Vendor RMA both ship/bill address.
      
  EXECUTE [USP_GetAddressDetailsByUser] 9, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
  EXECUTE [USP_GetAddressDetailsByUser] 9, 98, 'Bill'
+  EXECUTE [USP_GetAddressDetailsByUser] 45, 2492, 'Ship' --VendorRMA
+  EXECUTE [USP_GetAddressDetailsByUser] 45, 34, 'Bill',53 --VendorRMA
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
+CREATE    PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
 (    
 @UserTypeId BIGINT,   
 @UserId BIGINT,
@@ -524,6 +525,112 @@ BEGIN
 				WHERE VendorId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 		END
+
+		IF(@UserType = 'VendorRMA')
+		BEGIN
+			IF(@AddressType = 'Ship')
+			BEGIN
+
+				SELECT DISTINCT 
+						VSA.AddressId AS AddressId,VSA.AddressId AS SiteId,VSA.SiteName AS SiteName,VSA.IsPrimary,0 AS IsPoOnly
+					FROM Vendor V WITH (NOLOCK)
+						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+						LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+						LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+						WHERE V.VendorId = @UserId;
+
+				SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
+						VSA.AddressId AS AddressId,VSA.AddressId AS SiteId,VSA.SiteName AS SiteName,VSA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
+						SAD.Line1 AS Address1,SAD.Line2 AS Address2,SAD.Line3 AS Address3,SAD.City AS City,SAD.StateOrProvince AS StateOrProvince,SAD.PostalCode AS PostalCode,
+						SCO.countries_id AS CountryId,SCO.countries_name AS countries_name,SCO.nice_name AS Billnice_name,SCO.countries_isd_code AS Billcountries_isd_code,SCO.countries_iso3 AS Billcountries_iso3
+
+					FROM Vendor V WITH (NOLOCK)
+						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+						LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+						LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+						WHERE V.VendorId = @UserId
+
+				SELECT 0 AS ContactId, '' AS Name, VSA.IsPrimary AS IsDefaultContact
+				FROM Vendor V WITH (NOLOCK)
+						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+						LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+						LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+						WHERE V.VendorId = @UserId;
+
+				select SV.ShippingViaId, SV.ShippingViaId AS ShipViaId, SV.Name,VS.ShippingAccountinfo,0 AS ShippingId,VS.IsPrimary,VS.Memo
+					FROM Vendor V WITH (NOLOCK)
+						--LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+						LEFT JOIN VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
+						LEFT JOIN ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
+						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON VS.VendorShippingAddressId = vsa.VendorShippingAddressId
+						WHERE V.VendorId = @UserId;
+
+				--SELECT 0 AS ShippingViaId,0 AS ShipViaId,'' AS Name,'' AS ShippingAccountInfo,'' AS Memo,VSA.IsPrimary AS IsPrimary,0 AS ShippingId
+				--FROM Vendor V WITH (NOLOCK)
+				--		LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+				--		--LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+				--		--LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+				--		WHERE V.VendorId = @UserId;
+
+				--SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
+				--		VSA.AddressId AS ShipAddressId,VSA.SiteName AS ShipSiteName,VSA.IsPrimary,
+				--		SAD.Line1 AS ShipLine1,SAD.Line2 AS ShipLine2,SAD.Line3 AS ShipLine3,SAD.City AS ShipCity,SAD.StateOrProvince AS ShipStateOrProvince,SAD.PostalCode AS ShipPostalCode,
+				--		SCO.countries_name AS Shipcountries_name,SCO.nice_name AS Shipnice_name,SCO.countries_isd_code AS Shipcountries_isd_code,SCO.countries_iso3 AS Shipcountries_iso3  
+
+				--FROM Vendor V WITH (NOLOCK)
+				--		LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 AND VSA.IsPrimary = 1
+				--		--LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 AND VBA.IsPrimary = 1
+				--		LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+				--		--LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+				--		LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+				--		--LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+				--	WHERE V.VendorId = @UserId;
+			END
+			IF(@AddressType = 'Bill')
+			BEGIN
+				SELECT DISTINCT 
+						VBA.AddressId AS AddressId,VBA.AddressId AS SiteId,VBA.SiteName AS SiteName,VBA.IsPrimary,0 AS IsPoOnly
+					FROM Vendor V WITH (NOLOCK)
+								LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 --AND VBA.IsPrimary = 1
+								LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+								LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+						WHERE V.VendorId = @UserId;
+
+				SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
+						VBA.AddressId AS AddressId,VBA.AddressId AS SiteId,VBA.SiteName AS SiteName,VBA.IsPrimary,0 AS IsPoOnly,'' AS Attention,
+						BAD.Line1 AS Address1,BAD.Line2 AS Address2,BAD.Line3 AS Address3,BAD.City AS City,BAD.StateOrProvince AS StateOrProvince,BAD.PostalCode AS PostalCode,
+						BCO.countries_id AS CountryId,BCO.countries_name AS countries_name,BCO.nice_name AS Billnice_name,BCO.countries_isd_code AS Billcountries_isd_code,BCO.countries_iso3 AS Billcountries_iso3
+
+					FROM Vendor V WITH (NOLOCK)
+								LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 --AND VBA.IsPrimary = 1
+								LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+								LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+						WHERE V.VendorId = @UserId
+
+				SELECT 0 AS ContactId, '' AS Name, VBA.IsPrimary AS IsDefaultContact
+				FROM Vendor V WITH (NOLOCK)
+								LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 --AND VBA.IsPrimary = 1
+								LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+								LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+						WHERE V.VendorId = @UserId;
+
+				select SV.ShippingViaId,SV.ShippingViaId AS ShipViaId, SV.Name,VS.ShippingAccountinfo,0 AS ShippingId,VS.IsPrimary,VS.Memo
+					FROM Vendor V WITH (NOLOCK)
+						--LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
+						LEFT JOIN VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
+						LEFT JOIN ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
+						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON VS.VendorShippingAddressId = vsa.VendorShippingAddressId
+						WHERE V.VendorId = @UserId;
+
+				--SELECT 0 AS ShippingViaId,0 AS ShipViaId,'' AS Name,'' AS ShippingAccountInfo,'' AS Memo,VBA.IsPrimary AS IsPrimary,0 AS ShippingId
+				--FROM Vendor V WITH (NOLOCK)
+				--				LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 --AND VBA.IsPrimary = 1
+				--				LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+				--				LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+				--		WHERE V.VendorId = @UserId;
+			END
+		END
+
 	COMMIT  TRANSACTION
 	END TRY    
 	BEGIN CATCH      

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -28,23 +29,27 @@ AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON  
-	BEGIN TRY 
+	BEGIN TRY
 		DECLARE @Sql NVARCHAR(MAX);	
 		IF(@Count = '0') 
 		   BEGIN
 		   set @Count = '20';	
 		END	
+
 		IF(@IsActive = 1)
 			BEGIN		
 					SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label,						
+						Im.partnumber AS Label,	
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
+						Im.Figure,
+						Im.Item,
 						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
 						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
@@ -69,15 +74,18 @@ BEGIN
 					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 			   UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label,						
+						Im.partnumber AS Label,	
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
-						uom.ShortName AS UnitOfMeasure, 
+						uom.ShortName AS UnitOfMeasure,
+						Im.Figure,
+						Im.Item,
 						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
-						Ig.Description As ItemGroup,
+						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
 							 WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'
@@ -97,14 +105,15 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-					WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
+					WHERE im.ItemMasterId in (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY Label				
 			End
 			ELSE
 			BEGIN
 				SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label,						
+						Im.partnumber AS Label,	
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -113,7 +122,7 @@ BEGIN
 						uom.ShortName AS UnitOfMeasure, 
 						--imps.PP_UnitPurchasePrice AS UnitCost,
 						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
-						Ig.Description As ItemGroup,
+						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
 							 WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'
@@ -137,7 +146,8 @@ BEGIN
 				UNION 
 				SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value,  
-						Im.partnumber AS Label,						
+						Im.partnumber AS Label,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -145,7 +155,7 @@ BEGIN
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure,
 						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
-						Ig.Description As ItemGroup,
+						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
 							 WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'
@@ -165,7 +175,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-				WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+				WHERE Im.ItemMasterId in (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 				ORDER BY Label	
 			END
 	END TRY 

@@ -4,7 +4,7 @@
     [SubWorkOrderLaborHeaderId] BIGINT          NOT NULL,
     [TaskId]                    BIGINT          NOT NULL,
     [ExpertiseId]               SMALLINT        NULL,
-    [EmployeeId]                BIGINT          NOT NULL,
+    [EmployeeId]                BIGINT          NULL,
     [Hours]                     DECIMAL (10, 2) NULL,
     [Adjustments]               DECIMAL (10, 2) NULL,
     [AdjustedHours]             DECIMAL (10, 2) NULL,
@@ -27,6 +27,10 @@
     [TotalCost]                 DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
     [TaskStatusId]              BIGINT          NULL,
     [StatusChangedDate]         DATETIME2 (7)   NULL,
+    [TaskInstruction]           VARCHAR (MAX)   NULL,
+    [IsBegin]                   BIT             NULL,
     CONSTRAINT [PK_SubWorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderLaborAuditId] ASC)
 );
+
+
 

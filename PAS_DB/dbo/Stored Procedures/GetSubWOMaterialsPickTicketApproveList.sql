@@ -23,7 +23,7 @@
  EXECUTE GetSubWOMaterialsPickTicketApproveList 48,30,31
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetSubWOMaterialsPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[GetSubWOMaterialsPickTicketApproveList]
 @WorkOrderId BIGINT,
 @SubworkOrderId BIGINT,
 @SubworkOrderPartNoId BIGINT
@@ -44,6 +44,7 @@ SET NOCOUNT ON
 					wom.SubWOPartNoId,
 					IM.PartNumber, 
 					IM.PartDescription,
+					IM.ManufacturerName as Manufacturer,
 					wom.Quantity as Qty,
 					wo.WorkOrderNum as OrderNumber, 
 					''  as OrderQuoteNumber,

@@ -98,7 +98,8 @@ BEGIN
 	  FROM dbo.AssetInventory ai  WITH(NOLOCK) WHERE ai.AssetRecordId=asm.AssetRecordId FOR XML PATH('')) AS AssetInventoryIds
      FROM dbo.Asset asm WITH(NOLOCK)  
       LEFT JOIN dbo.AssetCalibration ascal WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId  
-      LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
+      --LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId  
+	  LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asm.AssetAttributeTypeId = asty.AssetAttributeTypeId
       LEFT JOIN dbo.Manufacturer maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId 
 	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID  IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId

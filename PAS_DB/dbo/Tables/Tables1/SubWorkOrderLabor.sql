@@ -3,7 +3,7 @@
     [SubWorkOrderLaborHeaderId] BIGINT          NOT NULL,
     [TaskId]                    BIGINT          NOT NULL,
     [ExpertiseId]               SMALLINT        NULL,
-    [EmployeeId]                BIGINT          NOT NULL,
+    [EmployeeId]                BIGINT          NULL,
     [Hours]                     DECIMAL (10, 2) NULL,
     [Adjustments]               DECIMAL (10, 2) NULL,
     [AdjustedHours]             DECIMAL (10, 2) NULL,
@@ -26,6 +26,8 @@
     [TotalCost]                 DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
     [TaskStatusId]              BIGINT          NULL,
     [StatusChangedDate]         DATETIME2 (7)   NULL,
+    [TaskInstruction]           VARCHAR (MAX)   NULL,
+    [IsBegin]                   BIT             NULL,
     CONSTRAINT [PK_SubWorkOrderLabor] PRIMARY KEY CLUSTERED ([SubWorkOrderLaborId] ASC),
     CONSTRAINT [FK_SubWorkOrderLabor_BurdaenRatePercentageId] FOREIGN KEY ([BurdaenRatePercentageId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [FK_SubWorkOrderLabor_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -35,6 +37,8 @@
     CONSTRAINT [FK_SubWorkOrderLabor_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId])
 );
+
+
 
 
 GO

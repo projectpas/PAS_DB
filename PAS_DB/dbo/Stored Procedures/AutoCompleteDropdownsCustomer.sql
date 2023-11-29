@@ -14,11 +14,12 @@
  ** --   --------     -------		--------------------------------          
     1    12/23/2020   Hemant Saliya Created
 	1    05/05/2020   Hemant Saliya Added Try-catch & Content Managment
+	3    05/25/2020   Subhash Saliya Get Data From Customer type wise
      
 -- EXEC [AutoCompleteDropdownsCustomer] '',1,25,'0',1,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -73,7 +74,7 @@ BEGIN
 									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
 									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
 									) H 
-							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))    -- AND (c.CustomerAffiliationId = 2 OR c.CustomerAffiliationId = 3)
+							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))    AND (c.CustomerAffiliationId = 2)
 					   UNION     
 							SELECT DISTINCT
 								c.CustomerId,
@@ -142,7 +143,7 @@ BEGIN
 									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
 									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
 									) H
-						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted,0) = 0 AND (c.CustomerAffiliationId = 2 OR c.CustomerAffiliationId = 3) AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
+						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted,0) = 0 AND (c.CustomerAffiliationId = 2) AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
 						SELECT DISTINCT TOP 20 
 								c.CustomerId,
@@ -179,7 +180,7 @@ BEGIN
 						ORDER BY CustomerName	
 					END
 				END
-				ELSE IF(@customerType = 2)
+				ELSE IF(@customerType = 2 or @customerType = 3 or @customerType = 4)
 				BEGIN
 					IF(@IsActive = 1)
 					BEGIN		

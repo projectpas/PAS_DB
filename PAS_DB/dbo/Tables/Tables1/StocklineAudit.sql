@@ -169,8 +169,29 @@
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
     [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
+    [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
+    [IsManualEntry]                       BIT             NULL,
+    [WorkOrderMaterialsKitId]             BIGINT          NULL,
+    [LotId]                               BIGINT          NULL,
+    [IsLotAssigned]                       BIT             NULL,
+    [LOTQty]                              INT             NULL,
+    [LOTQtyReserve]                       INT             NULL,
+    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [POOriginalCost]                      DECIMAL (18, 2) NULL,
+    [ROOriginalCost]                      DECIMAL (18, 2) NULL,
+    [VendorRMAId]                         BIGINT          NULL,
+    [VendorRMADetailId]                   BIGINT          NULL,
+    [LotMainStocklineId]                  BIGINT          NULL,
+    [IsFromInitialPO]                     BIT             NULL,
+    [LotSourceId]                         INT             NULL,
+    [Adjustment]                          DECIMAL (18, 2) NULL,
+    [SalesOrderPartId]                    BIGINT          NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
+
+
 
 
 

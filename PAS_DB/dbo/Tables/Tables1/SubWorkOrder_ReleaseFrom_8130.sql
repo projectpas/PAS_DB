@@ -40,8 +40,11 @@
     [IsClosed]            BIT           DEFAULT ((0)) NOT NULL,
     [PDFPath]             VARCHAR (MAX) NULL,
     [IsEASALicense]       BIT           NULL,
+    [EmployeeId]          BIGINT        NULL,
     CONSTRAINT [PK_SubWorkOrder_ReleaseFrom_8130] PRIMARY KEY CLUSTERED ([SubReleaseFromId] ASC)
 );
+
+
 
 
 

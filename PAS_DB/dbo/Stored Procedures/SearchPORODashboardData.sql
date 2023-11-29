@@ -1,7 +1,5 @@
-﻿-------------------------------------------------------------------------------------------
-
--- EXEC [dbo].[SearchPORODashboardData] 1, 10, null, 1, 1
-CREATE PROCEDURE [dbo].[SearchPORODashboardData]
+﻿-- exec SearchPORODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@StatusID=1,@GlobalFilter=N'',@Module=N'RO',@RefId=0,@PORO=NULL,@OpenDate=NULL,@PartNumber=NULL,@PartDescription=NULL,@Requisitioner=NULL,@Age=0,@Amount=0,@Currency=NULL,@Vendor=NULL,@WorkOrderNo=NULL,@SalesOrderNo=NULL,@PromisedDate=NULL,@EstRecdDate=NULL,@Status=NULL,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=104,@Priority=NULL,@Qty=NULL,@UnitCost=NULL,@ExtCost=NULL,@SubWorkOrderNo=NULL
+CREATE   PROCEDURE [dbo].[SearchPORODashboardData]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -42,8 +40,8 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @RecordFrom int;
-				DECLARE @POModuleId int =5;
-				DECLARE @ROModuleId int =25;
+				DECLARE @POModuleId int = 4;
+				DECLARE @ROModuleId int = 24;
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				
 				IF @SortColumn IS NULL
@@ -66,28 +64,34 @@ BEGIN
 				END
 
 				;With Result AS(
-				SELECT 'PO' AS 'Module', POP.PurchaseOrderPartRecordId AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO', PO.OpenDate, POP.PartNumber, POP.PartDescription, PO.Requisitioner, 
-				(DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', POP.VendorListPrice AS 'Amount', POP.UnitOfMeasure AS 'Currency', 
+				SELECT 'PO' AS 'Module', ISNULL(POP.PurchaseOrderPartRecordId, 0) AS 'RefId', PO.PurchaseOrderId AS 'POROId', PO.PurchaseOrderNumber AS 'PORO', PO.OpenDate, POP.PartNumber, POP.PartDescription, PO.Requisitioner, 
+				(DATEDIFF(day, PO.OpenDate, GETDATE())) AS 'Age', ISNULL(POP.VendorListPrice, 0) AS 'Amount', POP.UnitOfMeasure AS 'Currency', 
 				PO.VendorName AS 'Vendor', POP.WorkOrderNo, POP.SalesOrderNo, PO.NeedByDate AS 'PromisedDate', POP.EstDeliveryDate AS 'EstRecdDate', PO.Status ,
-				POP.Priority as Priority,POP.QuantityOrdered as Qty,pop.VendorListPrice as UnitCost,pop.ExtendedCost as ExtCost,POP.SubWorkOrderNo as SubWorkOrderNo
+				POP.Priority as Priority, ISNULL(POP.QuantityOrdered, 0) as Qty, ISNULL(pop.VendorListPrice, 0) as UnitCost, ISNULL(pop.ExtendedCost, 0) as ExtCost,POP.SubWorkOrderNo as SubWorkOrderNo
 				FROM 
-				DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId
-				INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId
+				[dbo].[PurchaseOrder] PO WITH (NOLOCK)
+				INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = PO.PurchaseOrderId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				Where (PO.IsDeleted = 0) and (POP.IsDeleted = 0) and POP.isParent=1  and (@StatusID is null or PO.StatusId = @StatusID)
+				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1 AND POP.IsDeleted = @IsDeleted
+				--DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId
+				--INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
+	   --         INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId
+	   --         INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+				Where (PO.IsDeleted = 0) and (@StatusID is null or PO.StatusId = @StatusID)
 				AND PO.MasterCompanyId = @MasterCompanyId
 				UNION
-				SELECT 'RO' AS 'Module', ROP.RepairOrderPartRecordId AS 'RefId', RO.RepairOrderId AS 'POROId', RO.RepairOrderNumber AS 'PORO', RO.OpenDate, ROP.PartNumber, ROP.PartDescription, RO.Requisitioner, 
-				(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ROP.VendorListPrice AS 'Amount', ROP.UnitOfMeasure AS 'Currency', 
+				SELECT 'RO' AS 'Module', ISNULL(ROP.RepairOrderPartRecordId, 0) AS 'RefId', RO.RepairOrderId AS 'POROId', RO.RepairOrderNumber AS 'PORO', RO.OpenDate, ROP.PartNumber, ROP.PartDescription, RO.Requisitioner, 
+				(DATEDIFF(day, RO.OpenDate, GETDATE())) AS 'Age', ISNULL(ROP.VendorListPrice, 0) AS 'Amount', ROP.UnitOfMeasure AS 'Currency', 
 				RO.VendorName AS 'Vendor', ROP.WorkOrderNo, ROP.SalesOrderNo, RO.NeedByDate AS 'PromisedDate', ROP.EstRecordDate AS 'EstRecdDate', RO.Status, 
-				ROP.Priority as Priority,ROP.QuantityOrdered as Qty,ROP.VendorListPrice as UnitCost,ROP.ExtendedCost as ExtCost,ROP.SubWorkOrderNo as SubWorkOrderNo
+				ROP.Priority as Priority, ISNULL(ROP.QuantityOrdered, 0) as Qty, ISNULL(ROP.VendorListPrice, 0) as UnitCost, ISNULL(ROP.ExtendedCost, 0) as ExtCost,ROP.SubWorkOrderNo as SubWorkOrderNo
 				FROM 
-				DBO.RepairOrderPart ROP INNER JOIN DBO.RepairOrder RO ON RO.RepairOrderId = ROP.RepairOrderId
-				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = ROP.RepairOrderPartRecordId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId
+				DBO.RepairOrder RO  WITH (NOLOCK)
+				LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = @IsDeleted
+				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = RO.RepairOrderId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				Where (RO.IsDeleted = 0) and (ROP.IsDeleted = 0) and ROP.isParent=1 and (@StatusID is null or RO.StatusId = @StatusID)
+				Where (RO.IsDeleted = 0) and (@StatusID is null or RO.StatusId = @StatusID)
 				AND RO.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (
 				SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age, 

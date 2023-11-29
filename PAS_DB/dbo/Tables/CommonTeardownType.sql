@@ -24,9 +24,12 @@
 
 
 
+
+
 GO
 
-CREATE TRIGGER [dbo].[Trg_CommonTeardownTypeAudit]
+
+CREATE   TRIGGER [dbo].[Trg_CommonTeardownTypeAudit]
    ON  [dbo].[CommonTeardownType]
    AFTER INSERT,DELETE,UPDATE
 AS
@@ -38,10 +41,13 @@ BEGIN
 	UPDATE [dbo].[CommonTeardownType]
 	SET DocumentModuleName = REPLACE(REPLACE([Name], '/' ,''), ' ', '')
 	Where CommonTeardownTypeId = @CommonTeardownTypeId
-
-	INSERT INTO DBO.AttachmentModule (Name, Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
-	SELECT DocumentModuleName, [Name], 0, 'admin', 'admin', GETDATE(), GETDATE(), 1, 0 FROM [dbo].[CommonTeardownType]
-	Where CommonTeardownTypeId = @CommonTeardownTypeId
+	
+	IF NOT EXISTS (SELECT 1 FROM [dbo].[AttachmentModule] WHERE [Name] = (SELECT DocumentModuleName FROM [dbo].[CommonTeardownType] WHERE [CommonTeardownTypeId] = @CommonTeardownTypeId))
+	BEGIN
+		INSERT INTO DBO.AttachmentModule ([Name], Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted)
+		SELECT DocumentModuleName, [Name], 0, 'admin', 'admin', GETDATE(), GETDATE(), 1, 0 FROM [dbo].[CommonTeardownType]
+		Where CommonTeardownTypeId = @CommonTeardownTypeId
+	END
 
 	INSERT INTO CommonTeardownTypeAudit
 	SELECT * FROM INSERTED

@@ -37,6 +37,11 @@
     [IsFinishGood]            BIT            DEFAULT ((0)) NULL,
     [RevisedConditionId]      BIGINT         NULL,
     [CustomerReference]       VARCHAR (256)  NULL,
+    [RevisedItemmasterid]     BIGINT         NULL,
+    [IsTraveler]              BIT            NULL,
+    [IsManualForm]            BIT            NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([SubWOPartNoAuditId] ASC)
 );
+
+
 

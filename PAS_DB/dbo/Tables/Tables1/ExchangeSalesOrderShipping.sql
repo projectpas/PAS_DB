@@ -7,7 +7,7 @@
     [CustomerId]                         BIGINT          NOT NULL,
     [ShipViaId]                          BIGINT          NOT NULL,
     [ShipDate]                           DATETIME2 (7)   NOT NULL,
-    [AirwayBill]                         VARCHAR (50)    NOT NULL,
+    [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NOT NULL,
     [TrackingNum]                        VARCHAR (50)    NOT NULL,
     [Weight]                             DECIMAL (10, 2) NULL,
@@ -60,6 +60,12 @@
     [ShippingAccountNo]                  VARCHAR (150)   NULL,
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [NoOfItems]                          INT             NULL,
+    [IsCustomerShipping]                 BIT             NULL,
+    [IsManualShipping]                   BIT             NULL,
+    [ManufactureCountryId]               INT             NULL,
+    [QtyUOM]                             BIGINT          NULL,
+    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [UnitPriceCurrencyId]                INT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderShipping] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderShippingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_ExchangeSalesOrder] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
@@ -70,6 +76,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderShipping_ShipToCountry] FOREIGN KEY ([ShipToCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_SoldToCountry] FOREIGN KEY ([SoldToCountryId]) REFERENCES [dbo].[Countries] ([countries_id])
 );
+
+
 
 
 GO

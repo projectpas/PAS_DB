@@ -11,12 +11,15 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    08/12/2021   Hemant Saliya Created
- EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    08/12/2021   Hemant Saliya			Created
+    2    09/08/2021   Devendra Shekh		added CurrentDateTime field
+
+
+ EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
+CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
 (    
 @ManagementStructId  BIGINT  = NULL
 )    
@@ -31,91 +34,41 @@ SET NOCOUNT ON
 			BEGIN
 				DECLARE @ModuleId BIGINT;
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO')
-
-				--SELECT DISTINCT TOP 1
-				--	le.CompanyName,
-				--	le.CompanyCode,
-				--	atd.Link,
-				--	at.ModuleId,
-				--	Address1 = ad.Line1,
-				--	Address2 = ad.Line2,
-				--	City = ad.City,
-				--	StateOrProvince = ad.StateOrProvince,
-				--	PostalCode = ad.PostalCode,
-				--	Country = co.countries_name,
-				--	PhoneNumber = le.PhoneNumber,
-				--	PhoneExt = le.PhoneExt,
-				--	LogoName = atd.FileName,
-				--	AttachmentDetailId = atd.AttachmentDetailId,
-				--	Email = c.Email,
-				--	FAALicense = le.FAALicense
-				--FROM ManagementStructure ms join LegalEntity le ON ms.LegalEntityId = le.LegalEntityId
-				--	JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
-				--	JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
-				--	LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
-				--	LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
-				--	LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON ms.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
-				--	LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
-				--WHERE ms.ManagementStructureId = @ManagementStructId 
-
-				--SELECT DISTINCT TOP 1
-				--	le.CompanyName,
-				--	le.CompanyCode,
-				--	atd.Link,
-				--	at.ModuleId,
-				--	Address1 = ad.Line1,
-				--	Address2 = ad.Line2,
-				--	City = ad.City,
-				--	StateOrProvince = ad.StateOrProvince,
-				--	PostalCode = ad.PostalCode,
-				--	Country = co.countries_name,
-				--	PhoneNumber = le.PhoneNumber,
-				--	PhoneExt = le.PhoneExt,
-				--	LogoName = atd.FileName,
-				--	AttachmentDetailId = atd.AttachmentDetailId,
-				--	Email = c.Email,
-				--	FAALicense = le.FAALicense
-				--FROM ManagementStructureDetails ms 
-				--	join ManagementStructureLevel msl WITH(NOLOCK) ON ms.Level1Id = msl.ID
-				--	join LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-				--	JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
-				--	JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
-				--	LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
-				--	LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
-				--	LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
-				--	LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
-				--WHERE ms.MSDetailsId = @ManagementStructId;
-
+				print @ModuleId
 
 				SELECT DISTINCT TOP 1
-					le.CompanyName,
+					CompanyName = Upper(le.CompanyName),
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					Address1 = ad.Line1,
-					Address2 = ad.Line2,
-					City = ad.City,
-					StateOrProvince = ad.StateOrProvince,
-					PostalCode = ad.PostalCode,
-					Country = co.countries_name,
-					PhoneNumber = le.PhoneNumber,
-					PhoneExt = le.PhoneExt,
+					Address1 = Upper(ad.Line1),
+					Address2 = Upper(ad.Line2),
+					City = Upper(ad.City),
+					StateOrProvince = Upper(ad.StateOrProvince),
+					PostalCode = Upper(ad.PostalCode),
+					Country = Upper(co.countries_name),
+					PhoneNumber = Upper(le.PhoneNumber),
+					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = c.Email,
+					Email = Upper(c.Email),
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
-					Upper(le.TCCALicense) as TCCALicense
+					Upper(le.TCCALicense) as TCCALicense,
+					CompanyLogoPath = MS.companylogo,
+					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime'
 				FROM EntityStructureSetup est
-				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
-				INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-				JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
-				JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
-				LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
-				LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
-				LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
-				LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
+					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
+					INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+					INNER JOIN MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
+					JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
+					JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
+					LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
+					LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
+					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
+					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
+					LEFT JOIN dbo.TimeZone tz WITH(NOLOCK) ON tz.TimeZoneId = le.TimeZoneId
 				WHERE est.EntityStructureId = @ManagementStructId;
 			END
 		COMMIT  TRANSACTION

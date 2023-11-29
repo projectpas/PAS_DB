@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetCustomerInvoicedatabyInvoiceId]           
  ** Author:   Subhash Saliya
  ** Description: Get Customer Invoicedataby InvoiceId   
@@ -10,9 +9,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04/18/2022   Subhash Saliya Created
+ ** PR   Date         Author		  Change Description            
+ ** --   --------     -------		  --------------------------------          
+    1    04/18/2022   Subhash 		  Saliya Created
+	2	 23/06/2023   Ayesha Sultana  Alter - Added Receiver Num in Customer RMA History
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
@@ -55,6 +55,7 @@ BEGIN
 			  ,CRM.[ReturnDate]
 			  ,CRM.[WorkOrderId]
 			  ,CRM.[WorkOrderNum]
+			  ,CRM.[ReceiverNum]
 			  ,CRM.[ManagementStructureId]
 			  ,CRM.[Notes]
 			  ,CRM.[Memo]

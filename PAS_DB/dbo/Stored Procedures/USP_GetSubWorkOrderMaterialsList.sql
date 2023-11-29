@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_GetSubWorkOrderMaterialsList]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used retrieve Work Order Sub Materials List      
@@ -17,16 +16,15 @@
  **************************************************************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
-    1    03/23/2021   Hemant Saliya Created  
+    1    03/23/2021   Hemant Saliya Created
+	2    02/06/2023   Rajesh Gami   Added Figure and Item fields  
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 49  
   
 **************************************************************/   
       
-Create     PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
-(      
-@subWOPartNoId BIGINT = NULL    
-)      
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
+(@subWOPartNoId BIGINT = NULL )      
 AS      
 BEGIN      
   
@@ -231,7 +229,13 @@ SET NOCOUNT ON
       SL.StockLineId AS  StockLIneId ,  
       Employeename = (SELECT TOP 1 (EMP.FirstName +''+ EMP.LastName) FROM dbo.Employee EMP WITH (NOLOCK) WHERE W.EmployeeID = EMP.EmployeeID ),  
       ROP.EstRecordDate 'RONextDlvrDate',  
-      RO.RepairOrderNumber  
+      RO.RepairOrderNumber
+	  ,WOM.Figure Figure
+	  ,WOM.Item Item
+	  ,MSTL.Figure StockLineFigure
+	  ,MSTL.Item StockLineItem
+	  ,0 AS IsKitType
+	  ,0 AS KitQty
      FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
       JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
       JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  

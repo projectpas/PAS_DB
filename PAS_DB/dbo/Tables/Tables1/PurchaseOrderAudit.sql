@@ -47,8 +47,14 @@
     [TotalFreight]             DECIMAL (18, 2) NULL,
     [ChargesBilingMethodId]    INT             NULL,
     [TotalCharges]             DECIMAL (18, 2) NULL,
+    [IsFromBulkPO]             BIT             NULL,
+    [IsLotAssigned]            BIT             NULL,
+    [LotId]                    BIGINT          NULL,
+    [VendorContactEmail]       VARCHAR (50)    NULL,
     CONSTRAINT [PK_PurchaseOrderAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderAuditId] ASC)
 );
+
+
 
 
 

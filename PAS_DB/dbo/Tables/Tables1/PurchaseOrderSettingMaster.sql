@@ -13,9 +13,17 @@
     [Effectivedate]          DATETIME2 (7) NULL,
     [PriorityId]             BIGINT        NULL,
     [Priority]               VARCHAR (100) NULL,
+    [WorkOrderStageId]       BIGINT        NULL,
+    [WorkOrderStage]         VARCHAR (100) NULL,
+    [IsRequestor]            BIT           NULL,
+    [IsEnforceNonPoApproval] BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMaster] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingId] ASC),
     CONSTRAINT [FK_PurchaseOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 

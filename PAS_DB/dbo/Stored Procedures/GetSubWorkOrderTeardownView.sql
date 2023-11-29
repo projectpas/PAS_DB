@@ -18,11 +18,12 @@
  ** --   --------     -------		--------------------------------          
     1    03/22/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
+**  3    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
      
 --EXEC [GetSubWorkOrderTeardownView] 68
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetSubWorkOrderTeardownView]
+CREATE   PROCEDURE [dbo].[GetSubWorkOrderTeardownView]
 @subWOPartNoId  bigint=0
 AS
 	BEGIN
@@ -98,7 +99,7 @@ AS
                     td.IsRemovalReasons,
                     td.IsTestDataUsed,
                     td.IsWorkPerformed,
-					Isshortteardown =(select top 1 isnull(Isshortteardown,0) from WorkOrderSettings WITH(NOLOCK) where WorkOrderSettingId=1)
+					Isshortteardown = 0 
 				FROM dbo.SubWorkOrderTeardown td WITH(NOLOCK)
 					JOIN  dbo.WorkOrderAdditionalComments ac WITH(NOLOCK) on td.SubWorkOrderTeardownId = ac.SubWorkOrderTeardownId
 					JOIN  dbo.WorkOrderBulletinsModification bm WITH(NOLOCK) on td.SubWorkOrderTeardownId = bm.SubWorkOrderTeardownId

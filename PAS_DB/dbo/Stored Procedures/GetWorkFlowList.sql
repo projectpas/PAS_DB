@@ -21,7 +21,7 @@
  EXECUTE [GetWorkFlowList] 1, 10, null, -1, 1, '', '','','','','','','','','','','','',0,5
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetWorkFlowList]
+CREATE   PROCEDURE [dbo].[GetWorkFlowList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -33,6 +33,7 @@ CREATE PROCEDURE [dbo].[GetWorkFlowList]
 	@Version varchar(50)=null,
 	@PartNumber varchar(50)=null,
 	@PartDescription varchar(50)=null,
+	@ManufacturerName varchar(50)=null,
 	@Description varchar(50)=null,
 	@CustomerName varchar(50)=null,	
 	@WorkflowCreateDate datetime=null,
@@ -107,6 +108,7 @@ BEGIN
 					wf.UpdatedDate,
 					wf.UpdatedBy,
 					CASE WHEN wf.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE wf.IsVersionIncrease END AS IsVersionIncrease
+					,im.ManufacturerName ManufacturerName
 					FROM Workflow wf WITH (NOLOCK)
 					INNER JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId
@@ -121,6 +123,7 @@ BEGIN
 					(Version like '%' +@GlobalFilter+'%') OR
 					(PartNumber like '%' +@GlobalFilter+'%') OR					
 					(PartDescription like '%' +@GlobalFilter+'%') OR
+					(ManufacturerName like '%' +@GlobalFilter+'%') OR
 					(Description like '%' +@GlobalFilter+'%') OR
 					(Name like '%' +@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
@@ -131,6 +134,7 @@ BEGIN
 					(IsNull(@Version,'') ='' OR Version like '%' + @Version+'%') and
 					(IsNull(@PartNumber,'') ='' OR partnumber like '%' + @PartNumber+'%') and
 					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
+					(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') and
 					(IsNull(@Description,'') ='' OR Description like '%' + @Description+'%') and
 					(IsNull(@CustomerName,'') ='' OR Name like '%' + @CustomerName+'%') and
 					(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
@@ -157,6 +161,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='WORKFLOWEXPIRATIONDATE')  THEN WorkflowExpirationDate END ASC,
             CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -169,7 +174,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKFLOWCREATEDATE')  THEN WorkflowCreateDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKFLOWEXPIRATIONDATE')  THEN WorkflowExpirationDate END DESC,
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

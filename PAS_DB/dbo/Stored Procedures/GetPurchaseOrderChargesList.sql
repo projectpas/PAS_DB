@@ -18,7 +18,7 @@
 -- EXEC GetPurchaseOrderChargesList 8,0
 ************************************************************************/
 
-CREATE PROCEDURE [dbo].[GetPurchaseOrderChargesList]
+CREATE   PROCEDURE [dbo].[GetPurchaseOrderChargesList]
 @PurchaseOrderId BIGINT,
 @IsDeleted bit,
 @Opr int
@@ -61,6 +61,8 @@ BEGIN
       ,[ConditionId]
 	  ,[PartNumber]
 	  ,[LineNum]
+	  ,[ManufacturerId]
+	  ,[Manufacturer]
       FROM [dbo].[PurchaseOrderCharges] WITH (NOLOCK) WHERE PurchaseOrderId=@PurchaseOrderId AND IsDeleted=@IsDeleted;
 	END
 	BEGIN
@@ -96,7 +98,9 @@ BEGIN
       ,[ConditionId]
 	  ,[PartNumber]
 	  ,[LineNum]
-      FROM [dbo].[PurchaseOrderCharges] WITH (NOLOCK) WHERE PurchaseOrderChargestId=@PurchaseOrderId;
+	  ,[ManufacturerId]
+	  ,[Manufacturer]
+      FROM [dbo].[PurchaseOrderChargesAudit] WITH (NOLOCK) WHERE PurchaseOrderChargestId=@PurchaseOrderId;
 	END
 	END TRY    
 	BEGIN CATCH

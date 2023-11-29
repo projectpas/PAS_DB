@@ -12,10 +12,13 @@
     [IsActive]                 BIT            CONSTRAINT [DF_SOSI_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                BIT            CONSTRAINT [DF_SOSI_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]                  NVARCHAR (MAX) NULL,
+    [FedexPdfPath]             VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_SalesOrderShippingItem] PRIMARY KEY CLUSTERED ([SalesOrderShippingItemId] ASC),
     CONSTRAINT [FK_SalesOrderShippingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderShippingItem_SOPickTicket] FOREIGN KEY ([SOPickTicketId]) REFERENCES [dbo].[SOPickTicket] ([SOPickTicketId])
 );
+
+
 
 
 GO

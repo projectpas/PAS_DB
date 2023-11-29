@@ -1,13 +1,12 @@
 ﻿/*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
- ** Author:   Hemant Saliya
- ** Description: This stored procedure is used Update Stockline Details based on Stockline Id.    
+ ** Author:   MOIN BLOCH
+ ** Description: This stored procedure is used Update Stockline Details
  ** Purpose:         
- ** Date:   04/21/2020        
+ ** Date:   06/06/2023      
           
- ** PARAMETERS:           
- @UserType varchar(60)   
-         
+ ** PARAMETERS:  @StocklineId INT          
+          
  ** RETURN VALUE:           
   
  **************************************************************           
@@ -15,15 +14,15 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    12/30/2020   Hemant Saliya Created
-	2    07/10/2021   Hemant Saliya Added SQL Content Managment
-	3    11/16/2021   Vishal Suthar Added IsDeleted in the condition
+    1    06/06/2023   MOIN BLOCH    UPDATED
+	2    06/06/2023   MOIN BLOCH    Added @IsCustStock For Update IsCustomerStock Or Not
+	3    07/14/2023   Amit Ghediya  Update UnitCost set 0 if NULL
      
---  EXEC [UpdateStocklineColumnsWithId] 917
+-- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateStocklineColumnsWithId]
-	@StocklineId int
+CREATE     PROCEDURE [dbo].[UpdateStocklineColumnsWithId]
+@StocklineId INT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -34,9 +33,26 @@ BEGIN
 				DECLARE @MSModuleID INT;
 				SET @MSModuleID = 2; -- FOR STOCKLINE
 
+				DECLARE @CustomerAffiliationId INT;
+				DECLARE @IsCustStock BIT;
+
+				SELECT @CustomerAffiliationId = CU.[CustomerAffiliationId]
+				  FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+				INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON SL.CustomerId = CU.CustomerId	
+				WHERE SL.StocklineId = @StocklineId;
+
+				IF(@CustomerAffiliationId = 2)  -- 2 For External Customer
+				BEGIN
+					SET @IsCustStock = 1;
+				END
+				ELSE
+				BEGIN
+					SET @IsCustStock = 0;
+				END
+								
 				UPDATE SL SET 
 					SL.Condition = CN.Description,
-					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountName ELSE SL.glAccountname END,
+					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName + GL.AccountCode ELSE SL.glAccountname END,
 					SL.UnitOfMeasure = um.ShortName,
 					SL.Manufacturer = MF.Name,
 					SL.Site = S.Name,
@@ -45,11 +61,12 @@ BEGIN
 					SL.Shelf = SF.Name,
 					SL.Bin = B.Name,
 					SL.WorkOrderNumber = WO.WorkOrderNum,
+					SL.SubWorkOrderNumber = SWO.SubWorkOrderNo,
 					SL.itemGroup = IG.Description,
 					SL.TLAPartNumber = IMTLA.partnumber,
 					SL.NHAPartNumber = IMNHA.partnumber,
 					SL.TLAPartDescription = IMTLA.PartDescription,
-					SL.NHAPartDescription = IMNHA.PartDescription,
+					SL.NHAPartDescription = CAST(IMNHA.PartDescription AS NVARCHAR(100)),
 					SL.itemType = IT.Name,
 					SL.PNDescription = IM.PartDescription,
 					SL.PartNumber = IM.partnumber,
@@ -57,30 +74,35 @@ BEGIN
 					SL.OEMPNNumber = IMoem.partnumber,
 					SL.TaggedByTypeName =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.TaggedByType),				
 					SL.CertifiedType =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.CertifiedTypeId),
-					SL.TagType = tagT.[Name]
+					SL.TagType = tagT.[Name],
+					SL.LotNumber = lot.LotNumber,
+					SL.IsCustomerStock = @IsCustStock,
+					SL.UnitCost = CASE WHEN ISNULL(SL.UnitCost,0) = 0 THEN 0 ELSE SL.UnitCost END
 				FROM [dbo].[Stockline] SL WITH(NOLOCK)
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
-					INNER JOIN dbo.Condition CN WITH(NOLOCK) ON CN.ConditionId = SL.ConditionId
-					INNER JOIN dbo.Manufacturer MF WITH(NOLOCK) ON SL.ManufacturerId = MF.ManufacturerId
-					INNER JOIN dbo.Site S WITH(NOLOCK) ON S.SiteId = SL.SiteId
-					LEFT JOIN dbo.ItemMaster IMRI WITH(NOLOCK) ON IMRI.ItemMasterId = SL.RevicedPNId
-					LEFT JOIN dbo.ItemMaster IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
-					LEFT JOIN dbo.ItemMaster IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
-					LEFT JOIN dbo.ItemMaster IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
-					LEFT JOIN dbo.Itemgroup IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
-					LEFT JOIN dbo.ItemType IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
-					LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-					LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON SL.WorkOrderId = WO.WorkOrderId 
-					LEFT JOIN dbo.Warehouse W WITH(NOLOCK) ON W.WarehouseId = SL.WarehouseId
-					LEFT JOIN dbo.Location L WITH(NOLOCK) ON L.LocationId = SL.LocationId
-					LEFT JOIN dbo.Shelf SF WITH(NOLOCK) ON SF.ShelfId = SL.ShelfId
-					LEFT JOIN dbo.Bin B WITH(NOLOCK) ON B.BinId = SL.BinId
-					LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 
-					LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON SL.PurchaseOrderId = po.PurchaseOrderId
-					LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON SL.RepairOrderId = ro.RepairOrderId
-					LEFT JOIN dbo.TagType tagT WITH(NOLOCK) ON SL.TagTypeId = tagT.TagTypeId
-				WHERE SL.StocklineId = @StocklineId
-
+					INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
+					INNER JOIN [dbo].[Condition] CN WITH(NOLOCK) ON CN.ConditionId = SL.ConditionId
+					INNER JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.ManufacturerId = MF.ManufacturerId
+					INNER JOIN [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
+					 LEFT JOIN [dbo].[ItemMaster] IMRI WITH(NOLOCK) ON IMRI.ItemMasterId = SL.RevicedPNId
+					 LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
+					 LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
+					 LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
+					 LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
+					 LEFT JOIN [dbo].[ItemType] IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
+					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+					 LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SL.WorkOrderId = WO.WorkOrderId 
+					 LEFT JOIN [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SL.WarehouseId
+					 LEFT JOIN [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
+					 LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SF.ShelfId = SL.ShelfId
+					 LEFT JOIN [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
+					 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 
+					 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON SL.PurchaseOrderId = po.PurchaseOrderId
+					 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON SL.RepairOrderId = ro.RepairOrderId
+					 LEFT JOIN [dbo].[TagType] tagT WITH(NOLOCK) ON SL.TagTypeId = tagT.TagTypeId
+					 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SL.SubWorkOrderId = SWO.SubWorkOrderId 
+					 LEFT JOIN [dbo].[LOT] lot WITH(NOLOCK) ON SL.LotId = lot.LotId
+			  WHERE SL.StocklineId = @StocklineId
+				
 				UPDATE [dbo].[Stockline] 
 					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 

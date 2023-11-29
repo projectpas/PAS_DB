@@ -17,14 +17,15 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/22/2022   Hemant Saliya Created
-	1    02/28/2022   Hemant Saliya Updated for Eomplyee Roll wise
-	1    04/27/2022   Mukesh        Upercase description
+	2    02/28/2022   Hemant Saliya Updated for Eomplyee Roll wise
+	3    04/27/2022   Mukesh        Upercase description
+	4    09/14/2023   Hemant Saliya Updated for Eomplyee Big Int
      
-exec USP_GetAllEntityManagementStructureList @MasterCompanyId=2,@EmployeeId=6,@EntityStructureId=9
+exec USP_GetAllEntityManagementStructureList @MasterCompanyId=1,@EmployeeId=2,@EntityStructureId=1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetAllEntityManagementStructureList]
 	@MasterCompanyId INT = null,
-	@EmployeeId INT = null,
+	@EmployeeId BIGINT = null,
 	@EntityStructureId varchar(100) = null
 AS
 BEGIN

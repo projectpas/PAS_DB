@@ -3,7 +3,7 @@
     [LegalEntityShippingId]        BIGINT         NOT NULL,
     [LegalEntityId]                BIGINT         NOT NULL,
     [LegalEntityShippingAddressId] BIGINT         NOT NULL,
-    [ShipVia]                      VARCHAR (30)   NULL,
+    [ShipVia]                      VARCHAR (400)  NULL,
     [ShippingAccountInfo]          VARCHAR (200)  NULL,
     [Memo]                         NVARCHAR (MAX) NULL,
     [MasterCompanyId]              INT            NOT NULL,
@@ -17,4 +17,6 @@
     [ShipViaId]                    BIGINT         NULL,
     CONSTRAINT [PK_LegalEntityShippingAudit] PRIMARY KEY CLUSTERED ([AuditLegalEntityShippingId] ASC)
 );
+
+
 

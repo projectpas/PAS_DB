@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [CreateUpdateCustomerRMAHeader]           
  ** Author:   Subhash Saliya
  ** Description: Create Update Customer RMAHeader
@@ -12,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    04/18/2022   Subhash Saliya Created
+    1    04/18/2022   Subhash Saliya 		Created
+    2	 19/06/2023   Ayesha Sultana  		Altered - Added ReceiverNum to the DB and SP
 	
  -- exec CreateUpdateCustomerRMAHeader 92,1    
 **************************************************************/ 
@@ -38,7 +38,8 @@ CREATE PROCEDURE [dbo].[CreateUpdateCustomerRMAHeader]
 @ApprovedDate datetime = NULL ,
 @ReturnDate datetime = NULL,
 @WorkOrderId bigint = NULL,
-@WorkOrderNum varchar(50) = NULL,  
+@WorkOrderNum varchar(50) = NULL, 
+@ReceiverNum varchar(30) = NULL, 
 @Memo nvarchar(max) = NULL, 
 @Notes nvarchar(max) = NULL, 
 @ManagementStructureId bigint = NULL,
@@ -71,12 +72,12 @@ BEGIN
 				INSERT INTO [dbo].[CustomerRMAHeader]([RMANumber],[InvoiceId],[InvoiceNo],[InvoiceDate],RMAStatusId,RMAStatus,
 											   [CustomerId],[CustomerName],[CustomerCode],[CustomerContactId],ContactInfo,
 											   [IsWarranty],RequestedId,Requestedby,ApprovedbyId,[ApprovedBy],ValidDate,ApprovedDate,OpenDate,
-											   [WorkOrderId],WorkOrderNum,[Memo],[Notes],[ManagementStructureId],[MasterCompanyId],
+											   [WorkOrderId],WorkOrderNum,[ReceiverNum],[Memo],[Notes],[ManagementStructureId],[MasterCompanyId],
                                                [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[isWorkOrder],ReferenceId)
 										VALUES (@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@RMAStatusId,@RMAStatus,
 												@CustomerId,@CustomerName,@CustomerCode,@CustomerContactId,@ContactInfo,  
 												@IsWarranty,@RequestedId,@RequestedBy,@ApprovedbyId,@ApprovedBy,@ValidDate,@ApprovedDate,@OpenDate, 
-												@WorkOrderId,@WorkOrderNum,@Memo,@Notes,@ManagementStructureId,@MasterCompanyId,
+												@WorkOrderId,@WorkOrderNum,@ReceiverNum,@Memo,@Notes,@ManagementStructureId,@MasterCompanyId,
 												@CreatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),@IsActive,@IsDeleted,@isWorkOrder,@ReferenceId);
 
 				SELECT	@Result = IDENT_CURRENT('CustomerRMAHeader');
@@ -111,6 +112,7 @@ BEGIN
 				,[ReturnDate] = @ReturnDate
 				,[WorkOrderId] = @WorkOrderId
 				,[WorkOrderNum] = @WorkOrderNum
+				,[ReceiverNum]=@ReceiverNum
 				,[ManagementStructureId] = @ManagementStructureId
 				,[Notes] = @Notes
 				,[Memo] = @Memo
@@ -168,7 +170,7 @@ BEGIN
 
 			END
 		END
-	COMMIT  TRANSACTION
+		COMMIT
 	END TRY 
 	BEGIN CATCH      
 		IF @@trancount > 0
@@ -200,16 +202,18 @@ BEGIN
 													+ '@Parameter11 = ''' + CAST(ISNULL(@WorkOrderId, '') AS varchar(100)) 
 
 													+ '@Parameter2 = ''' + CAST(ISNULL(@WorkOrderNum, '') AS varchar(100)) 
-													+ '@Parameter3 = ''' + CAST(ISNULL(@Memo, '') AS varchar(100)) 
-													+ '@Parameter4 = ''' + CAST(ISNULL(@Notes, '') AS varchar(100)) 
-													+ '@Parameter5 = ''' + CAST(ISNULL(@ManagementStructureId, '') AS varchar(100)) 
-													+ '@Parameter6 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)) 
-													+ '@Parameter7 = ''' + CAST(ISNULL(@CreatedBy, '') AS varchar(100)) 
-													+ '@Parameter8 = ''' + CAST(ISNULL(@UpdatedBy, '') AS varchar(100)) 
-													+ '@Parameter9 = ''' + CAST(ISNULL(@CreatedDate, '') AS varchar(100)) 
-													+ '@Parameter10 = ''' + CAST(ISNULL(@UpdatedDate, '') AS varchar(100)) 
+													+ '@Parameter3 = ''' + CAST(ISNULL(@ReceiverNum, '') AS varchar(100))
+													+ '@Parameter4 = ''' + CAST(ISNULL(@Memo, '') AS varchar(100)) 
+													+ '@Parameter5 = ''' + CAST(ISNULL(@Notes, '') AS varchar(100)) 
+													+ '@Parameter6 = ''' + CAST(ISNULL(@ManagementStructureId, '') AS varchar(100)) 
+													+ '@Parameter7 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)) 
+													+ '@Parameter8 = ''' + CAST(ISNULL(@CreatedBy, '') AS varchar(100)) 
+													+ '@Parameter9 = ''' + CAST(ISNULL(@UpdatedBy, '') AS varchar(100)) 
+													+ '@Parameter10 = ''' + CAST(ISNULL(@CreatedDate, '') AS varchar(100)) 
+													+ '@Parameter11 = ''' + CAST(ISNULL(@UpdatedDate, '') AS varchar(100)) 
 													+ '@Parameter11 = ''' + CAST(ISNULL(@IsActive, '') AS varchar(100)) 
-												    + '@Parameter11 = ''' + CAST(ISNULL(@IsDeleted, '') AS varchar(100)) 
+												    + '@Parameter11 = ''' + CAST(ISNULL(@IsDeleted, '') AS varchar(100))
+													
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

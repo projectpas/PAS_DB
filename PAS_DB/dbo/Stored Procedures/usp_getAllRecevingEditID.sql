@@ -1,6 +1,7 @@
-﻿  
-CREATE Procedure [dbo].[usp_getAllRecevingEditID]  
-	@poID  bigint  
+﻿
+  
+CREATE   PROCEDURE [dbo].[usp_getAllRecevingEditID]  
+@poID  bigint  
 AS  
 BEGIN  
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -55,24 +56,26 @@ BEGIN
   
 		INSERT INTO #POEditList ([Value],Label)  
 		SELECT DISTINCT ISNULL(SLD.ObtainFrom,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.ObtainFromType = 9  
+    
+
+		INSERT INTO #POEditList ([Value],Label)  
+		SELECT DISTINCT ISNULL(SLD.Owner,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 1   
   
 		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.OwnerType,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 1   
+		SELECT DISTINCT ISNULL(SLD.Owner,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 2   
   
 		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.OwnerType,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 2   
+		SELECT DISTINCT ISNULL(SLD.Owner,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.OwnerType = 9  
+  
+
+		INSERT INTO #POEditList ([Value],Label)  
+		SELECT DISTINCT ISNULL(SLD.TraceableTo,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.TraceableToType = 1   
   
 		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.OwnerType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.OwnerType = 9  
+		SELECT DISTINCT ISNULL(SLD.TraceableTo,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.TraceableToType = 2   
   
 		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.TraceableToType,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 1   
-  
-		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.TraceableToType,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID  AND SLD.OwnerType = 2   
-  
-		INSERT INTO #POEditList ([Value],Label)  
-		SELECT DISTINCT ISNULL(SLD.TraceableToType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.OwnerType = 9  
+		SELECT DISTINCT ISNULL(SLD.TraceableTo,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.PurchaseOrderId = @poID    AND SLD.TraceableToType = 9  
 
 		SELECT * FROM #POEditList  
 

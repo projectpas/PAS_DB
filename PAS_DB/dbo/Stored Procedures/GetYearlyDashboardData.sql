@@ -1,5 +1,5 @@
 ﻿/*************************************************************
-EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
+EXEC [dbo].[GetYearlyDashboardData] 11, 2, 98
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -80,10 +80,11 @@ BEGIN
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
 						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						--INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
 						WHERE WOBI.IsVersionIncrease = 0 
 						AND MONTH(CONVERT(DATE, InvoiceDate)) = @Month AND YEAR(CONVERT(DATE, InvoiceDate)) = @Year
-						AND EMS.EmployeeId = @EmployeeId
+						--AND EMS.EmployeeId = @EmployeeId
 						AND WOBI.MasterCompanyId = @MasterCompanyId
 					)
 
@@ -118,7 +119,7 @@ BEGIN
 				SET @MasterLoopID = @MasterLoopID + 1;
 			END
 
-			SELECT ResultData FROM #tmpMonthlyData
+			SELECT ResultData FROM #tmpMonthlyData;
 		END
 	END TRY    
 	BEGIN CATCH      

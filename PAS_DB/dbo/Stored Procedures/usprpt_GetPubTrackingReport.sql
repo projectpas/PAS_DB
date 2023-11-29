@@ -15,10 +15,11 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    06-May-2022  Mahesh Sorathiya   Created  
+    1    06-May-2022    Mahesh Sorathiya   Created  
+	2    01-SEPT-2023   Ekta Chandegra	   Convert text into uppercase
 
 **************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
+CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -124,21 +125,21 @@ BEGIN
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
       SELECT COUNT(1) OVER () AS TotalRecordsCount, 
-		(IM.partnumber) 'pn',
-        (IM.PartDescription) 'pndescription',
-        MNFR.name 'manufacturer',
-        PUB.publicationid 'pubid',
-        PUB.Description 'pubdescription',
-        PUBType.name 'pubtype',
-        LC.Name 'location',
-        WFPUB.Source 'source',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN M.model ELSE M.model END 'model',
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN A.aircraft ELSE A.aircraft END 'aircraft',
+		UPPER(IM.partnumber) 'pn',
+        UPPER(IM.PartDescription) 'pndescription',
+        UPPER(MNFR.name) 'manufacturer',
+        UPPER(PUB.publicationid) 'pubid',
+        UPPER(PUB.Description) 'pubdescription',
+        UPPER(PUBType.name) 'pubtype',
+        UPPER(LC.Name) 'location',
+        UPPER(WFPUB.Source) 'source',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN UPPER(M.model) ELSE UPPER(M.model) END 'model',
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN UPPER(A.aircraft) ELSE UPPER(A.aircraft) END 'aircraft',
         --IMAM.aircraftmodel 'model',
         --IMAM.AircraftType 'aircraft',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN T.atachapter ELSE T.atachapter END 'atachapter',
-		PUB.revisionnum 'revnum',        
-        E.firstname + ' ' + E.lastname 'verifiedby',
+		UPPER(PUB.revisionnum) 'revnum',        
+        UPPER(E.firstname + ' ' + E.lastname) 'verifiedby',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.EntryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.EntryDate, 107) END 'entrydate', 
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.revisiondate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.revisiondate, 107) END 'revdate',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PUB.expirationdate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PUB.expirationdate, 107) END 'expdate',

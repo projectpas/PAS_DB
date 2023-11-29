@@ -150,8 +150,31 @@
     [PerformedById]                       BIGINT          NULL,
     [LastCalibrationDate]                 DATETIME        NULL,
     [NextCalibrationDate]                 DATETIME        NULL,
+    [LotId]                               BIGINT          NULL,
+    [SalesOrderId]                        BIGINT          NULL,
+    [SubWorkOrderId]                      BIGINT          NULL,
+    [ExchangeSalesOrderId]                BIGINT          NULL,
+    [WOQty]                               INT             NULL,
+    [SOQty]                               INT             NULL,
+    [ForStockQty]                         INT             NULL,
+    [IsLotAssigned]                       BIT             NULL,
+    [LOTQty]                              INT             NULL,
+    [LOTQtyReserve]                       INT             NULL,
+    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [POOriginalCost]                      DECIMAL (18, 2) NULL,
+    [ROOriginalCost]                      DECIMAL (18, 2) NULL,
+    [VendorRMAId]                         BIGINT          NULL,
+    [VendorRMADetailId]                   BIGINT          NULL,
+    [LotMainStocklineId]                  BIGINT          NULL,
+    [IsFromInitialPO]                     BIT             NULL,
+    [LotSourceId]                         INT             NULL,
+    [Adjustment]                          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
+
+
+
+
 
 
 

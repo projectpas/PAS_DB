@@ -1,4 +1,5 @@
-﻿CREATE PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
+﻿
+CREATE   PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -33,7 +34,8 @@
 	@AccountTypeName varchar(50)='',
 	@LeadSourceReference varchar(50)='',
 	@ConditionCodeType varchar(50)='',
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@ManufacturerNameType varchar(50)=''
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -90,6 +92,7 @@ BEGIN
 				(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(IM.partnumber,'') as 'PartNumberType',IsNull(im.PartDescription,'') as 'PartDescription',IsNull(im.PartDescription,'') as 'PartDescriptionType',
 				Ct.CustomerTypeName as 'CustomerType',
+				IsNull(im.ManufacturerName,'') as 'ManufacturerName',IsNull(im.ManufacturerName,'') as 'ManufacturerNameType',
 				--SOP.NetSales as 'SoAmount',
 				--SOP.UnitSalePrice as 'SoAmount',
 				SOQ.QuoteExpireDate,SOQ.AccountTypeName,SOQ.LeadSourceReference,
@@ -113,7 +116,7 @@ BEGIN
 				FinalResult AS (SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,CustomerCode,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 			,CustomerReference,
 			--Priority,PriorityType,
-			SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,
+			SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ManufacturerName,ManufacturerNameType,
 			--SalesOrderNumber,
 			--SoAmount,
 			QuoteExpireDate,AccountTypeName,LeadSourceReference,
@@ -128,6 +131,7 @@ BEGIN
 							--(PriorityType like '%' +@GlobalFilter+'%') OR
 							(PartNumberType like '%' +@GlobalFilter+'%') OR
 							(PartDescriptionType like '%' +@GlobalFilter+'%') OR
+							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CustomerReference like '%' +@GlobalFilter+'%') OR
 							(@VersionNumber like '%'+@GlobalFilter+'%') OR
 							(CustomerType like '%' +@GlobalFilter+'%') OR 
@@ -150,6 +154,7 @@ BEGIN
 							(IsNull(@SalesPerson,'') ='' OR SalesPerson like '%'+ @SalesPerson+'%') and
 							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%') and
 							(IsNull(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') and
+							(IsNull(@ManufacturerNameType,'') ='' OR ManufacturerNameType like '%'+@ManufacturerNameType+'%') and
 							(IsNull(@CustomerReference,'') ='' OR CustomerReference like '%'+@CustomerReference+'%') and
 							(IsNull(@CustomerType,'') ='' OR CustomerType like '%'+@CustomerType+'%') and
 							(IsNull(@VersionNumber,'') ='' OR VersionNumber like '%'+@VersionNumber+'%') and
@@ -169,7 +174,7 @@ BEGIN
 					,CustomerReference,
 					--Priority,
 					--PriorityType,
-					SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,
+					SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ManufacturerName,ManufacturerNameType,
 					--SalesOrderNumber,
 					QuoteExpireDate,AccountTypeName,LeadSourceReference,
 					LeadSourceName,Probability,
@@ -197,6 +202,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END ASC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,
@@ -217,6 +223,7 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

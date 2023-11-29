@@ -13,7 +13,7 @@
     [TotalSalesAmount]         NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_TotalSalesAmount] DEFAULT ((0)) NOT NULL,
     [CustomerHold]             NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_CustomerHold] DEFAULT ((0)) NOT NULL,
     [DepositAmount]            NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_DepositAmount] DEFAULT ((0)) NOT NULL,
-    [BalanceDue]               NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrder_BalanceDue_1] DEFAULT ((0)) NOT NULL,
+    [BalanceDue]               DECIMAL (18, 2) NULL,
     [SalesPersonId]            BIGINT          NULL,
     [AgentId]                  BIGINT          NULL,
     [CustomerSeviceRepId]      BIGINT          NULL,
@@ -72,6 +72,8 @@
     CONSTRAINT [FK_ExchangeSalesOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

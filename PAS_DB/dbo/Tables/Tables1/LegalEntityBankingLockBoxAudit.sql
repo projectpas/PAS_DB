@@ -15,8 +15,12 @@
     [BankName]                         VARCHAR (100) NULL,
     [BankAccountNumber]                VARCHAR (50)  NULL,
     [IsPrimay]                         BIT           NULL,
+    [AccountTypeId]                    INT           NULL,
+    [AttachmentId]                     BIGINT        NULL,
     CONSTRAINT [PK_LegalEntityBankingLockBoxAudit] PRIMARY KEY CLUSTERED ([LegalEntityBankingLockBoxAuditId] ASC)
 );
+
+
 
 
 

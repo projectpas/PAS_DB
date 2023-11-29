@@ -1,28 +1,17 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetWorkOrderQuoteList]             
- ** Author:   SUBHASH  Saliya  
+ ** Author:    
  ** Description: Get Search Data for WorkOrderQuoteList   
  ** Purpose:           
- ** Date:   15-march-2021          
-            
- ** PARAMETERS: @POId varchar(60)     
+ ** Date:     
            
  ** RETURN VALUE:             
-    
  **************************************************************             
-  ** Change History             
+ ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    15/03/2021   SUBHASH Saliya Created  
- 2  06/28/2021   Hemant Saliya  Added Transation & Content Managment  
- 3  07/27/2021   Hemant Saliya  Added Master Company Id Filter  
- 4  08/08/2021   Hemant Saliya  Update Setting Table   
- 5  25/03/2022   Vishal Suthar  Added New Column for "MPN Status" 
- 6  12/04/2022   Mahesh Sorathiya  Management Structure Right wise data retrived" 
-       
- EXECUTE [GetWorkOrderQuoteList] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
+ ** PR   Date         Author             Change Description              
+ ** --   --------     -------           --------------------------------            
+    1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -53,7 +42,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]
  @EmployeeId varchar(200)=null,
  @MSModuleID INT=12,
  @WoStage  varchar(200)=null,
- @WoStatus varchar(200)=null
+ @WoStatus varchar(200)=null,
+ @ManufacturerName varchar(200)=null
 AS   
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -91,53 +81,54 @@ BEGIN
          SELECT  
            woq.WorkOrderQuoteId as WorkOrderQuoteId,  
                              wo.WorkOrderId as WorkOrderId,  
-                             woq.QuoteNumber as quoteNumber,  
-                             wo.WorkOrderNum,  
-                             cust.Name as customerName,  
-                             cust.CustomerCode,  
-        im.partnumber as PartNumber,  
-        im.PartDescription,  
-        stl.SerialNumber,  
+                             UPPER(woq.QuoteNumber) as quoteNumber,  
+                             UPPER(wo.WorkOrderNum) 'WorkOrderNum',  
+                             UPPER(cust.Name) as customerName,  
+                             UPPER(cust.CustomerCode) 'CustomerCode',  
+        UPPER(im.partnumber) as PartNumber,  
+        UPPER(im.PartDescription) 'PartDescription',  
+        UPPER(stl.SerialNumber) 'SerialNumber',  
                              woq.OpenDate,  
                              (SELECT TOP 1 wop.PromisedDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as  promisedDate,  
                              (SELECT TOP 1 wop.EstimatedShipDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estShipDate,  
                              (SELECT TOP 1 wop.EstimatedCompletionDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estCompletionDate,  
-                             wqs.Description as quoteStatus,  
+                             UPPER(wqs.Description) as quoteStatus,  
                              woq.QuoteStatusId as quoteStatusId,  
                              woq.IsActive,  
-                             woq.CreatedBy,  
+                             UPPER(woq.CreatedBy) 'CreatedBy',  
                              woq.CreatedDate,  
-                     woq.UpdatedBy,  
+                     UPPER(woq.UpdatedBy) 'UpdatedBy',  
                              woq.UpdatedDate,  
         woq.IsVersionIncrease,  
-        woq.VersionNo,  
-        (CASE WHEN wopp.ApprovalActionId IS NULL THEN 'Pending'  
+        UPPER(woq.VersionNo) 'VersionNo',  
+        (CASE WHEN wopp.ApprovalActionId IS NULL THEN UPPER('Pending')  
            ELSE   
-          CASE WHEN wopp.ApprovalActionId = 2 THEN appsI.Description  
+          CASE WHEN wopp.ApprovalActionId = 2 THEN UPPER(appsI.Description)  
            ELSE   
-            CASE WHEN wopp.ApprovalActionId = 4 THEN appsC.Description  
+            CASE WHEN wopp.ApprovalActionId = 4 THEN UPPER(appsC.Description)  
              ELSE  
-              CASE WHEN wopp.ApprovalActionId = 5 THEN appsC.Description  
+              CASE WHEN wopp.ApprovalActionId = 5 THEN UPPER(appsC.Description)  
                ELSE  
                 CASE WHEN wopp.ApprovalActionId = 1 THEN  
-                  CASE WHEN appsI.Description IS NULL THEN appsA.Description   
-                  ELSE appsI.Description  
+                  CASE WHEN appsI.Description IS NULL THEN UPPER(appsA.Description)   
+                  ELSE UPPER(appsI.Description)
                   END  
                 ELSE  
                  CASE WHEN wopp.ApprovalActionId = 3 THEN   
-                  CASE WHEN appsC.Description IS NULL THEN appsA.Description  
-                  ELSE appsC.Description  
+                  CASE WHEN appsC.Description IS NULL THEN UPPER(appsA.Description)  
+                  ELSE UPPER(appsC.Description)  
                   END  
                  ELSE  
-                  'Pending'  
+                  UPPER('Pending')
                  END  
                 END  
                END  
              END  
            END  
          END) AS WorkOrderStatus,
-		wos.CodeDescription as WoStage,
-		woss.Description as WoStatus
+		UPPER(wos.CodeDescription) as WoStage,
+		UPPER(woss.Description) as WoStatus,
+		UPPER(im.ManufacturerName) 'ManufacturerName'
      FROM dbo.WorkOrderQuote woq WITH (NOLOCK)  
                            JOIN dbo.WorkOrder wo WITH (NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
                            JOIN dbo.WorkOrderPartNumber wopn WITH (NOLOCK) on woq.WorkOrderId = wopn.WorkOrderId
@@ -158,6 +149,7 @@ BEGIN
       (@GlobalFilter <>'' AND (  
       (quoteNumber like '%' +@GlobalFilter+'%') OR        
       (WorkOrderNum like '%' +@GlobalFilter+'%') OR  
+	  (ManufacturerName like '%' +@GlobalFilter+'%') OR 
       (customerName like '%' +@GlobalFilter+'%') OR  
       (CustomerCode like '%' +@GlobalFilter+'%') OR  
       (VersionNo like '%' +@GlobalFilter+'%') OR  
@@ -181,7 +173,8 @@ BEGIN
       (@GlobalFilter='' AND (IsNull(@workOrderNum,'') ='' OR WorkOrderNum like '%' + @workOrderNum+'%') AND  
       (IsNull(@quoteNumber,'') ='' OR quoteNumber like '%' + @quoteNumber+'%') AND  
       (IsNull(@customerName,'') ='' OR customerName like '%' + @customerName+'%') AND  
-      (IsNull(@customerCode,'') ='' OR customerCode like '%' + @customerCode+'%') AND  
+      (IsNull(@customerCode,'') ='' OR customerCode like '%' + @customerCode+'%') AND 
+	  (IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND 
       (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND  
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
@@ -214,7 +207,7 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='PROMISEDATE')  THEN PromisedDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='ESTSHIPDATE')  THEN estShipDate END ASC,  
-            CASE WHEN (@SortOrder=1 and @SortColumn='QUOTESTATUSID')  THEN quoteStatusId END ASC,  
+      CASE WHEN (@SortOrder=1 and @SortColumn='QUOTESTATUSID')  THEN quoteStatusId END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='QUOTESTATUS')  THEN quoteStatus END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='ESTCOMPLETIONDATE')  THEN estCompletionDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
@@ -226,6 +219,7 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END ASC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTAGE')  THEN WoStage END ASC, 
 	  CASE WHEN (@SortOrder=1 and @SortColumn='WOSTATUS')  THEN WoStatus END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC, 
   
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTENUMBER')  THEN quoteNumber END DESC,  
@@ -247,6 +241,7 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC, 
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTAGE')  THEN WoStage END DESC, 
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WOSTATUS')  THEN WoStatus END DESC, 
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC, 
       CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERSTATUS')  THEN WorkOrderStatus END DESC  
   
       OFFSET @RecordFrom ROWS   

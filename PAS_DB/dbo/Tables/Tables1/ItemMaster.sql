@@ -129,6 +129,8 @@
     [OH]                                INT             DEFAULT ((0)) NOT NULL,
     [REP]                               INT             DEFAULT ((0)) NOT NULL,
     [SVC]                               INT             DEFAULT ((0)) NOT NULL,
+    [Figure]                            VARCHAR (15)    NULL,
+    [Item]                              VARCHAR (15)    NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -160,8 +162,10 @@
     CONSTRAINT [FK_ItemMaster_StockUOM] FOREIGN KEY ([StockUnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_ItemMaster_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
-    CONSTRAINT [UC_ItemMaster_partnumber] UNIQUE NONCLUSTERED ([partnumber] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

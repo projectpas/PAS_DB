@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   SearchCreditMemoPNViewData         
  ** Author:  Moin
  ** Description: Get Credit Memo Filter Data
@@ -12,41 +11,44 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    04/18/2022   Moin Bloch Created
+    1    04/18/2022   Moin Bloch		Created
+	2    09/04/2023   AMIT GHEDIYA      Updated to get from standaloneCM.
+	3    09/15/2023   AMIT GHEDIYA      Updated to Cast.
 	
  -- exec SearchCreditMemoPNViewData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1	
 **************************************************************/ 
 
 
-CREATE PROCEDURE [dbo].[SearchCreditMemoPNViewData]
-@PageSize int=NULL,
-@PageNumber int=NULL,
-@SortColumn varchar(50)=NULL, 
-@SortOrder int=NULL,
-@GlobalFilter varchar(50)=NULL,
-@StatusID int=NULL,
-@CreditMemoNumber varchar(50)=NULL,
-@IssueDate datetime=NULL,
-@Status varchar(50)=NULL,
-@Reason varchar(50)=NULL,
-@RMANumber varchar(50)=NULL,
-@WONum varchar(50)=NULL,
-@CustomerName varchar(50)=NULL,
-@PartNumber	varchar(50)=NULL,
-@PartDescription varchar(250)=NULL,
-@ReferenceNo varchar(50)=NULL,
-@Qty int=0,
-@UnitPrice decimal(18,2)=0,
-@Amount decimal(18,2)=0,
-@RequestedBy varchar(50)=NULL,
-@LastMSLevel varchar(50)=NULL,
-@Memo varchar(50)=NULL,
-@ReturnDate datetime=NULL,
-@MasterCompanyId int=NULL,
-@ViewType varchar(10)=NULL,
-@EmployeeId bigint=1,
-@IsDeleted bit=NULL,
-@IsActive bit=NULL
+CREATE       PROCEDURE [dbo].[SearchCreditMemoPNViewData]
+	@PageSize int=NULL,
+	@PageNumber int=NULL,
+	@SortColumn varchar(50)=NULL, 
+	@SortOrder int=NULL,
+	@GlobalFilter varchar(50)=NULL,
+	@StatusID int=NULL,
+	@CreditMemoNumber varchar(50)=NULL,
+	@IssueDate datetime=NULL,
+	@Status varchar(50)=NULL,
+	@Reason varchar(50)=NULL,
+	@RMANumber varchar(50)=NULL,
+	@WONum varchar(50)=NULL,
+	@CustomerName varchar(50)=NULL,
+	@PartNumber	varchar(50)=NULL,
+	@PartDescription varchar(250)=NULL,
+	@ReferenceNo varchar(50)=NULL,
+	@Qty varchar(50),
+	@UnitPrice varchar(50),
+	@Amount varchar(50),
+	@RequestedBy varchar(50)=NULL,
+	@LastMSLevel varchar(50)=NULL,
+	@Memo varchar(50)=NULL,
+	@ReturnDate datetime=NULL,
+	@MasterCompanyId int=NULL,
+	@ViewType varchar(10)=NULL,
+	@EmployeeId bigint=1,
+	@IsDeleted bit=NULL,
+	@IsActive bit=NULL,
+	@ManufacturerName varchar(10)=NUL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -99,7 +101,9 @@ BEGIN
              ,CM.[IsWarranty]
              ,CM.[IsAccepted]
              ,CM.[ReasonId]
-	         ,CM.[Reason]
+	         --,CM.[Reason]
+			 ,(Case When Count(SACD.CreditMemoHeaderId) > 1 Then 'Multiple' ELse CASE WHEN SACD.Reason IS NULL THEN CD.Reason ELSE SACD.Reason END End)  as 'Reason'    
+			 ,SACD.Reason AS [ReasonType]
              ,CM.[DeniedMemo]
              ,CM.[RequestedById]
              ,CM.[RequestedBy]
@@ -123,20 +127,37 @@ BEGIN
              ,MS.[AllMSlevels]	
 			 ,CD.[PartNumber]
 			 ,CD.[PartDescription]			
-			 ,CD.[Qty]
-			 ,CD.[UnitPrice]
-			 ,CD.[Amount]
+			 ,CASE WHEN ABS(SUM(SACD.[Qty])) > 0 THEN SUM(SACD.[Qty]) ELSE CD.[Qty] END AS Qty
+			 ,CASE WHEN SUM(SACD.[Rate]) > 0 THEN CAST(SUM(SACD.[Rate]) AS VARCHAR(200)) ELSE CAST(CD.[UnitPrice] AS VARCHAR(200)) END AS UnitPrice
+			 ,CASE WHEN ABS(SUM(SACD.[Amount])) > 0 THEN SUM(SACD.[Amount]) ELSE CD.[Amount] END AS Amount
+			 --,CD.[UnitPrice]
+			 --,CD.[Amount]
 			 ,CM.[CreatedDate] AS IssueDate
 			 ,CM.[ReturnDate]
 			 ,CD.[ReferenceNo]
 			 ,CD.[isWorkOrder]
 			 ,CD.[ReferenceId]
+			 ,IM.ManufacturerName
+			 ,CM.IsStandAloneCM
         FROM dbo.[CreditMemo] CM WITH (NOLOCK) 
 		INNER JOIN dbo.[RMACreditMemoManagementStructureDetails] MS WITH (NOLOCK) ON  MS.ReferenceID = CM.CreditMemoHeaderId AND MS.ModuleID = @ModuleID
 	    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON CM.ManagementStructureId = RMS.EntityStructureId
 	    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = CM.CreditMemoHeaderId
-        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID)) 
+		LEFT JOIN dbo.StandAloneCreditMemoDetails SACD WITH (NOLOCK)  ON SACD.CreditMemoHeaderId = CM.CreditMemoHeaderId AND SACD.IsActive = 1
+		LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CD.ItemMasterId=IM.ItemMasterId
+        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) 
+		AND (@StatusID IS NULL OR CM.StatusId = @StatusID)) 
+		GROUP BY   
+		 CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[RMAHeaderId],CM.[RMANumber],CM.[InvoiceId],CM.[InvoiceNumber]
+             ,CM.[InvoiceDate],CM.[StatusId],CM.[Status],CM.[CustomerId],CM.[CustomerName],CM.[CustomerCode],CM.[CustomerContactId]
+             ,CM.[CustomerContact],CM.[CustomerContactPhone],CM.[IsWarranty],CM.[IsAccepted],CM.[ReasonId],CD.[Reason],SACD.Reason
+             ,CM.[DeniedMemo],CM.[RequestedById],CM.[RequestedBy],CM.[ApproverId],CM.[ApprovedBy],CM.[WONum],CM.[WorkOrderId]
+             ,CM.[Originalwosonum],CM.[Memo],CM.[Notes],CM.[ManagementStructureId],CM.[IsEnforce],CM.[MasterCompanyId]
+             ,CM.[CreatedBy],CM.[UpdatedBy],CM.[CreatedDate],CM.[UpdatedDate],CM.[IsActive],CM.[IsDeleted],MS.[LastMSLevel]
+             ,MS.[AllMSlevels],CD.[PartNumber],CD.[PartDescription],CM.[CreatedDate],CM.[ReturnDate],CD.[ReferenceNo]
+			 ,CD.[isWorkOrder],CD.[ReferenceId],IM.ManufacturerName,CM.IsStandAloneCM
+			 ,CD.[Qty],CD.[UnitPrice], CD.[Amount]
 		
         ), ResultCount AS(Select COUNT(CreditMemoHeaderId) AS totalItems FROM Result)  
         Select * INTO #TempResult from  Result  
@@ -150,12 +171,13 @@ BEGIN
 		(CustomerName like '%' +@GlobalFilter+'%') OR 
 		(PartNumber like '%'+@GlobalFilter+'%') OR  
 		(PartDescription like '%' +@GlobalFilter+'%') OR 
+		(ManufacturerName like '%' +@GlobalFilter+'%') OR 
 		(ReferenceNo like '%' +@GlobalFilter+'%') OR  
 		(RequestedBy like '%' +@GlobalFilter+'%') OR  
 		(LastMSLevel like '%' +@GlobalFilter+'%') OR 
-		(CAST(Qty AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR	
-	    (CAST(UnitPrice AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR	
-		(CAST(Amount AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR	
+		(CAST(Qty AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR	
+	    (CAST(UnitPrice AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR	
+		(CAST(Amount AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR	
 		(Memo like '%'+@GlobalFilter+'%')))  
         OR     
         (@GlobalFilter='' AND 
@@ -168,11 +190,12 @@ BEGIN
 		(IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
 		(IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
         (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND  
+		(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND  
 		(IsNull(@ReferenceNo,'') ='' OR ReferenceNo like '%' + @ReferenceNo+'%') AND  
 		(IsNull(@ReturnDate,'') ='' OR Cast(ReturnDate as Date)=Cast(@ReturnDate as date)) AND 
-		(IsNull(@Qty,0) =0 OR Qty =@Qty) AND  
-		(IsNull(@UnitPrice,0) =0 OR UnitPrice= @UnitPrice) AND 
-		(IsNull(@Amount,0) =0 OR Amount = @Amount) AND 
+		(IsNull(CAST(@Qty AS VARCHAR(200)),'') = '' OR CAST(Qty AS varchar(200)) Like '%' +  ISNULL(CAST(@Qty AS VARCHAR(200)),'') +'%') AND  
+			 (IsNull(CAST(@UnitPrice AS VARCHAR(200)),'') = '' OR CAST(UnitPrice AS varchar(200)) Like '%' +  ISNULL(CAST(@UnitPrice AS VARCHAR(200)),'') +'%') AND  
+            (IsNull(CAST(@Amount AS VARCHAR(200)),'') = '' OR CAST(Amount AS varchar(200)) Like '%' +  ISNULL(CAST(@Amount AS VARCHAR(200)),'') +'%') AND   
 		(ISNULL(@RequestedBy,'') ='' OR RequestedBy like '%' + @RequestedBy+'%') AND 
 		(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') AND
 		(IsNull(@Memo,'') ='' OR Memo like '%' + @Memo+'%')))  
@@ -201,7 +224,9 @@ BEGIN
 		CASE WHEN (@SortOrder=1 and @SortColumn='MEMO')  THEN Memo END ASC,  
 		CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC, 
 		CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNo')  THEN ReferenceNo END ASC,  
-		
+		CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
+
+		CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END Desc,  
 		CASE WHEN (@SortOrder=-1 and @SortColumn='CREDITMEMONUMBER')  THEN CreditMemoNumber END DESC,  
 		CASE WHEN (@SortOrder=-1 and @SortColumn='ISSUEDATE')  THEN IssueDate END DESC,  
 		CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,  

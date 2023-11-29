@@ -47,8 +47,16 @@
     [TotalFreight]            DECIMAL (20, 2) NULL,
     [ChargesBilingMethodId]   INT             NULL,
     [TotalCharges]            DECIMAL (18, 2) NULL,
+    [Amount]                  DECIMAL (18, 2) NULL,
+    [AcctingPeriodId]         BIGINT          NULL,
+    [IsStandAloneCM]          BIT             NULL,
+    [IsClosed]                BIT             NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
+
+
+
+
 
 
 

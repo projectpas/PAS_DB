@@ -32,5 +32,9 @@
     [UpdatedDate]               DATETIME2 (7)   NULL,
     [IsActive]                  BIT             NULL,
     [IsDeleted]                 BIT             NULL,
-    [LineNum]                   INT             NULL);
+    [LineNum]                   INT             NULL,
+    [ManufacturerId]            BIGINT          NULL,
+    [Manufacturer]              VARCHAR (100)   NULL);
+
+
 

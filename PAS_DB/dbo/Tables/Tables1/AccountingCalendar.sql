@@ -27,10 +27,21 @@
     [IsCurrentActivePeriod] BIT            NULL,
     [StartDate]             DATETIME       NULL,
     [EndDate]               DATETIME       NULL,
+    [IsCalendarMethod]      BIT            DEFAULT ((1)) NULL,
+    [isaccStatusName]       BIT            NULL,
+    [isacpStatusName]       BIT            NULL,
+    [isacrStatusName]       BIT            NULL,
+    [isassetStatusName]     BIT            NULL,
+    [isinventoryStatusName] BIT            NULL,
+    [NextYearStartDate]     DATE           NULL,
     CONSTRAINT [PK_AccountingCalendar] PRIMARY KEY CLUSTERED ([AccountingCalendarId] ASC),
     CONSTRAINT [FK_AccountingCalendar_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_AccountingCalendar_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 

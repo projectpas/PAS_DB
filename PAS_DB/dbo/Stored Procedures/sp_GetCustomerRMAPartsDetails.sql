@@ -13,13 +13,13 @@
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Subhash Saliya Created
 	
- -- exec sp_GetCustomerRMAPartsDetails 91,1,1,1    
+ -- exec sp_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
 
-CREATE Procedure [dbo].[sp_GetCustomerRMAPartsDetails]
+CREATE   Procedure [dbo].[sp_GetCustomerRMAPartsDetails]
 @InvoicingId bigint,
-@isWorkOrder bit,
-@RMAheaderId BIGINT,
+@IsWorkOrder  bit,
+@RMAHeaderId  BIGINT,
 @Ispopup bit = 0
 AS
 BEGIN
@@ -35,7 +35,7 @@ BEGIN
 			   if(@isWorkOrder =0)
 			BEGIN
 
-				SELECT SOBI.SOBillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
+				SELECT SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
 				SOBI.GrandTotal [InvoiceAmt],IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 				SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
@@ -54,32 +54,32 @@ BEGIN
                  ,SOBI.[IsDeleted]
 				 ,ST.isSerialized
 				 ,SOBII.NoofPieces as InvoiceQty
+				 ,IM.ManufacturerName
 				 ,AltPartNumber=(  
 				 Select top 1  
-				A.PartNumber [AltPartNumberType] from SalesOrderBillingInvoicingItem SOBIIA WITH (NOLOCK) 
-				Outer Apply(  
+				A.PartNumber [AltPartNumberType] from [dbo].[SalesOrderBillingInvoicingItem] SOBIIA WITH (NOLOCK) 
+				OUTER APPLY(  
 				 SELECT   
-					STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  
-					 FROM Nha_Tla_Alt_Equ_ItemMapping AL WITH (NOLOCK)  
-					 INNER Join ItemMaster I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
-					 INNER Join ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
+					STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
+					 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] AL WITH (NOLOCK)  
+					 INNER JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON AL.ItemMasterId=I.ItemMasterId 
+					 INNER JOIN [dbo].[ItemMaster] AI WITH (NOLOCK) ON AL.MappingItemMasterId=AI.ItemMasterId 
 					 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1  
 					 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  
-				WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId and SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND isnull(SOBII.IsDeleted,0)=0
-				Group By SOBIIA.ItemMasterId, A.PartNumber  
+				WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND isnull(SOBII.IsDeleted,0)=0
+				GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 				) 
-			    FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-				LEFT JOIN SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
-				LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-				LEFT JOIN SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
-				LEFT JOIN ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-			    Where SOBI.SOBillingInvoicingId=@InvoicingId		
-
+			    FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
+				LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
+				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
+				LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
+			    WHERE SOBI.SOBillingInvoicingId=@InvoicingId		
 
 			END
 			ELSE 
@@ -105,31 +105,31 @@ BEGIN
                  ,WOBI.[IsDeleted]
 				 ,ST.isSerialized
 				 ,WOBII.NoofPieces as InvoiceQty
+				 ,IM.ManufacturerName
 				 ,AltPartNumber=(  
 				 Select top 1  
-				A.PartNumber [AltPartNumberType] from WorkOrderBillingInvoicingItem WOBIIA WITH (NOLOCK) 
+				A.PartNumber [AltPartNumberType] from [dbo].[WorkOrderBillingInvoicingItem] WOBIIA WITH (NOLOCK) 
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  
-					 FROM Nha_Tla_Alt_Equ_ItemMapping AL WITH (NOLOCK)  
-					 INNER Join ItemMaster I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
-					 INNER Join ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
+					 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] AL WITH (NOLOCK)  
+					 INNER Join [dbo].[ItemMaster] I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
+					 INNER Join [dbo].[ItemMaster] AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
 					 Where I.ItemMasterId = WOBIIA.ItemMasterId  and MappingType=1  
 					 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  
 				WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId and WOBIIA.ItemMasterId =WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId =WOBII.BillingInvoicingId AND isnull(WOBII.IsDeleted,0)=0
-				Group By WOBIIA.ItemMasterId, A.PartNumber  
+				GROUP BY WOBIIA.ItemMasterId, A.PartNumber  
 				) 
-				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-				LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON WO.MasterCompanyId = RMAC.MasterCompanyId
-			    Where WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0
-			
+				FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+				LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
+				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+				LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON WO.MasterCompanyId = RMAC.MasterCompanyId
+			    WHERE WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0			
 			
 			END
 			END
@@ -137,18 +137,18 @@ BEGIN
 			BEGIN
 
 
-			DECLARE @InvoiceStatus varchar(30)
-			DECLARE @InvoiceId bigint
+			DECLARE @InvoiceStatus VARCHAR(30)
+			DECLARE @InvoiceId BIGINT
 			SELECT @isWorkOrder =isWorkOrder,@InvoiceId= InvoiceId FROM [dbo].[CustomerRMAHeader]  WITH (NOLOCK) WHERE  RMAHeaderId =@RMAHeaderId
 
 
 			if(@isWorkOrder =1)
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM WorkOrderBillingInvoicing WOBI WITH (NOLOCK) WHERE  BillingInvoicingId =@InvoiceId
+			  SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) WHERE  BillingInvoicingId =@InvoiceId
 			END
 			ELSE
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId
+			  SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId
 			END
 
 			   SELECT CRM.[RMADeatilsId]
@@ -178,6 +178,9 @@ BEGIN
            ,CRM.[UpdatedDate]
            ,CRM.[IsActive]
            ,CRM.[IsDeleted]
+		   ,CRM.[ReturnDate]  
+		   ,CRM.[WorkOrderNum]
+		   ,CRM.[ReceiverNum] 	
 		   ,ST.isSerialized
 		   ,CRM.InvoiceId
 		   ,@InvoiceStatus as InvoiceStatus
@@ -185,15 +188,16 @@ BEGIN
 		   ,CRH.InvoiceNo
 		   ,CRM.CustomerReference
 		   ,CRM.InvoiceQty
+		   ,IM.ManufacturerName
 		   ,AltPartNumber=(  
 				 Select top 1  
-				A.PartNumber [AltPartNumberType] from CustomerRMADeatils SOBIIA WITH (NOLOCK) 
+				A.PartNumber [AltPartNumberType] from [dbo].[CustomerRMADeatils] SOBIIA WITH (NOLOCK) 
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 then ',' ELSE '' END + AI.partnumber  
 					 FROM Nha_Tla_Alt_Equ_ItemMapping AL WITH (NOLOCK)  
-					 INNER Join ItemMaster I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
-					 INNER Join ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
+					 INNER Join [dbo].[ItemMaster] I WITH (NOLOCK) On AL.ItemMasterId=I.ItemMasterId 
+					 INNER Join [dbo].[ItemMaster] AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
 					 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1  
 					 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
@@ -202,8 +206,9 @@ BEGIN
 				Group By SOBIIA.ItemMasterId, A.PartNumber  
 				) 
            FROM [dbo].[CustomerRMADeatils] CRM  WITH (NOLOCK)
-		   LEFT JOIN CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId  
-	       LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ST.IsParent = 1 where  CRM.RMAHeaderId =@RMAheaderId AND isnull(CRM.IsDeleted,0) =0 AND  isnull(CRM.IsActive,1)=1
+		   LEFT JOIN [dbo].[CustomerRMAHeader] CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
+		   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRM.ItemMasterId=IM.ItemMasterId
+	       LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ST.IsParent = 1 where  CRM.RMAHeaderId =@RMAheaderId AND isnull(CRM.IsDeleted,0) =0 AND  isnull(CRM.IsActive,1)=1
 
 			END
 			

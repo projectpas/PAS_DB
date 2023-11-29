@@ -1,6 +1,8 @@
-﻿-- EXEC GetAllBankNameBasedOnEmployeeId 10
-CREATE PROCEDURE [dbo].[GetAllBankNameBasedOnEmployeeId]
-@EmployeeId BIGINT = NULL
+﻿
+-- EXEC GetAllBankNameBasedOnEmployeeId 10
+CREATE   PROCEDURE [dbo].[GetAllBankNameBasedOnEmployeeId]
+@EmployeeId BIGINT = NULL,
+@LegalEntityId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -16,12 +18,13 @@ BEGIN
 			INNER JOIN dbo.EmployeeUserRole ER WITH(NOLOCK) ON E.EmployeeId = ER.EmployeeId
 			WHERE ER.EmployeeId = @EmployeeId;
 
-			select DISTINCT lebl.LegalEntityBankingLockBoxId,lebl.BankName,lebl.BankAccountNumber,lebl.LegalEntityId,lebl.GLAccountId from RoleManagementStructure rms WITH (NOLOCK)
+			select DISTINCT lebl.LegalEntityBankingLockBoxId,lebl.BankName,lebl.BankAccountNumber,lebl.LegalEntityId,lebl.GLAccountId 
+			from RoleManagementStructure rms WITH (NOLOCK)
 			INNER JOIN EntityStructureSetup ess WITH (NOLOCK) on ess.EntityStructureId = rms.EntityStructureId
 			INNER JOIN ManagementStructureLevel msl WITH (NOLOCK) on msl.ID = ess.Level1Id
 			INNER JOIN LegalEntity le WITH (NOLOCK) on le.LegalEntityId = msl.LegalEntityId
 			INNER JOIN LegalEntityBankingLockBox lebl WITH (NOLOCK) on lebl.LegalEntityId = le.LegalEntityId
-			where RoleId IN (SELECT RoleId FROM #tmpEmployeeUserRole)
+			where RoleId IN (SELECT RoleId FROM #tmpEmployeeUserRole) AND (@LegalEntityId IS NULL OR le.LegalEntityId = @LegalEntityId)
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

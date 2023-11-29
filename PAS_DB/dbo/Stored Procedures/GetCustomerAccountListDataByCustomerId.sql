@@ -1,462 +1,437 @@
-﻿--exec GetCustomerAccountListDataByCustomerId 68,'2022-04-26','2022-04-27',1,1
---exec GetCustomerAccountListDataByCustomerId 76,'2022-05-24','2022-05-24',1,1,76,3
---exec GetCustomerAccountListDataByCustomerId 14,'2021-11-25','2022-05-25',1,1,20,1
-CREATE PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
-@CustomerId bigint = null,
-@StartDate DateTime=null,
-@EndDate DateTime=null,
-@OpenTransactionsOnly bit=false,
-@IncludeCredits bit=false,
-@SiteId bigint=null,
-@LegalEntityId bigint=null
+﻿/*************************************************************                   
+ ** File:   [GetCustomerAccountListDataByCustomerId]                   
+ ** Author:  unknown   
+ ** Description: Get Data For Customer Account List
+ ** Purpose:                 
+ ** Date:     
+ ** PARAMETERS:         
+ ** RETURN VALUE:       
+ **************************************************************                   
+  ** Change History                   
+ *************************************************************************************************                   
+ ** S NO   Date            Author          Change Description                    
+ ** --   --------         -------          --------------------------------   
+	1                      unknown         Created            
+	2    20-SEP-2023       Moin Bloch      Modified (changed  InvoiceDate insted of PostedDate and Formated The SP)
+	3    25-SEP-2023       Moin Bloch      Modified (Added Manual JE Amount)
+***************************************************************************************************/ 
+CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
+@CustomerId BIGINT = NULL,
+@StartDate DATETIME = NULL,
+@EndDate DATETIME = NULL,
+@OpenTransactionsOnly BIT = false,
+@IncludeCredits BIT = false,
+@SiteId BIGINT = NULL,
+@LegalEntityId BIGINT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
-		DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12;
+		DECLARE @SOMSModuleID INT = 17;
+		DECLARE @WOMSModuleID INT = 12;
+	    DECLARE @CreditMemoMSModuleID INT = 61
+		DECLARE @PostStatusId INT;
+	    SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
+
 		
 		IF(@OpenTransactionsOnly = 1)
 		BEGIN
-
 		 ;WITH CTEData AS(
-			select ct.CustomerId,CASt(sobi.InvoiceDate as date) AS InvoiceDate,
-			sobi.GrandTotal,
-			--sobi.RemainingAmount,
-			(sobi.RemainingAmount +(ISNULL(SUM(CM.Amount),0))) AS RemainingAmount,
-			DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE()) AS dayDiff,
-			ctm.NetDays,
-			--(DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
-			--DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
-																	WHEN ctm.Code='CIA' THEN -1
-																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			,CASt(sobi.PostedDate as date) AS PostedDate
-			from SalesOrderBillingInvoicing sobi
-			INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
-			INNER JOIN SalesOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
-			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
-			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'			 
-			 ON CM.InvoiceId = sobi.SOBillingInvoicingId
-			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
-			where sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced'
-			AND CAST(sobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
-			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
+			SELECT ct.CustomerId,
+			       CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
+				   sobi.GrandTotal,
+				   sobi.RemainingAmount AS RemainingAmount,
+				   DATEDIFF(DAY, CAST(sobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
+				   ctm.NetDays,
+				   DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
+				   CAST(sobi.PostedDate AS DATE) AS PostedDate
+			FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
+				INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
+				INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
+				 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
+				INNER JOIN [dbo].[SalesOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
+				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
+				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+			WHERE sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND
+				 CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
+				AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
+			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
 			
 			UNION ALL
 			
-			select ct.CustomerId,CASt(wobi.InvoiceDate as date) AS InvoiceDate,
-			wobi.GrandTotal,
-			--wobi.RemainingAmount,
-			(wobi.RemainingAmount +(ISNULL(SUM(CM.Amount),0))) AS RemainingAmount,
-			DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE()) AS dayDiff,
-			ctm.NetDays,
-			--(DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
-			--DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
-																	WHEN ctm.Code='CIA' THEN -1
-																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			,CASt(wobi.PostedDate as date) AS PostedDate
-			from WorkOrderBillingInvoicing wobi
-			INNER JOIN WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
-			INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
-			--LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
-			INNER JOIN WorkOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
-			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
-			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'			
-			ON CM.InvoiceId = wobi.BillingInvoicingId
-			--where ct.CustomerId=58 AND wobi.InvoiceStatus='Reviewed'
-			where wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
-			AND CAST(wobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
-			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,wobi.PostedDate,ctm.Code
+			SELECT ct.CustomerId,
+			       CAST(wobi.InvoiceDate AS DATE) AS InvoiceDate,
+				   wobi.GrandTotal,
+				   wobi.RemainingAmount AS RemainingAmount,
+				DATEDIFF(DAY, CAST(wobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
+				ctm.NetDays,
+				DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
+				CAST(wobi.PostedDate AS DATE) AS PostedDate
+			FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
+				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
+				INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
+				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
+				INNER JOIN [dbo].[WorkOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
+				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
+				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+			WHERE wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' AND 
+			    wobi.IsVersionIncrease = 0
+				AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
+				AND wobi.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
+			GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,wobi.PostedDate,ctm.Code
 			
 			), CTECalculation AS(
-			select
+			SELECT
 				CustomerId,
-				SUM (CASE
-			    WHEN CreditRemainingDays < 0 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidbylessthen0days,
-			   SUM (CASE
-			    WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby30days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby60days,
-			   SUM (CASE
-			    WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby90days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby120days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 120 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidbymorethan120days
-			    from CTEData c group by CustomerId
+					SUM (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) AS paidbylessthen0days,
+					SUM (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) AS paidby30days,
+					SUM (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) AS paidby60days,
+					SUM (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) AS paidby90days,
+					SUM (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) AS paidby120days,
+					SUM (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) AS paidbymorethan120days
+			    FROM CTEData c GROUP BY CustomerId
 			),CTE AS(
-						SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					   Max(CR.Code) as  'currencyCode',
-					   SUM(wobi.GrandTotal) as 'BalanceAmount',
-					   SUM(wobi.GrandTotal - wobi.RemainingAmount)as 'CurrentlAmount',             
-					   SUM(wobi.RemainingAmount)as 'PaymentAmount',
-					   SUM(0) as 'Amountpaidbylessthen0days',      
-                       SUM(0) as 'Amountpaidby30days',      
-                       SUM(0) as 'Amountpaidby60days',
-					   SUM(0) as 'Amountpaidby90days',
-					   SUM(0) as 'Amountpaidby120days',
-					   SUM(0) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
-                       --MIN(C.IsActive) AS IsActive,
-                       --MIN(C.IsDeleted)AS IsDeleted,
+					SELECT DISTINCT C.CustomerId,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CR.Code) AS  'currencyCode',
+					   SUM(wobi.GrandTotal) AS 'BalanceAmount',
+					   SUM(wobi.GrandTotal - wobi.RemainingAmount) AS 'CurrentlAmount',             
+					   SUM(wobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(0) AS 'Amountpaidbylessthen0days',      
+                       SUM(0) AS 'Amountpaidby30days',      
+                       SUM(0) AS 'Amountpaidby60days',
+					   SUM(0) AS 'Amountpaidby90days',
+					   SUM(0) AS 'Amountpaidby120days',
+					   SUM(0) AS 'Amountpaidbymorethan120days',  
+					   Max('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(wop.ManagementStructureId) as ManagementStructureId,
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(wop.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + WP.CustomerReference
 							FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
 							INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
 							WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId
 							FOR XML PATH('')), 1, 1, '') 
 							AS 'Reference',
-						ISNULL(SUM(CM.Amount),0) AS CM
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
-			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   --INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-			   --INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
-			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId = WO.WorkOrderId
-		 	   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-			   --LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = wobi.BillingInvoicingId AND ipy.InvoiceType=2
-			   --INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
-			   INNER JOIN WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON MSD.ReferenceID = wop.ID AND MSD.ModuleID = @WOMSModuleID
-			   INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-			  INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			  LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'			
-			ON CM.InvoiceId = wobi.BillingInvoicingId
-			  WHERE wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId AND CAST(wobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
-UNION ALL
-SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					  Max(CR.Code) as  'currencyCode',
-					   SUM(sobi.GrandTotal) as 'BalanceAmount',
-					   SUM(sobi.GrandTotal - sobi.RemainingAmount)as 'CurrentlAmount',   
-					   SUM(sobi.RemainingAmount)as 'PaymentAmount',
-					   SUM(0) as 'Amountpaidbylessthen0days',      
-                       SUM(0) as 'Amountpaidby30days',      
-                       SUM(0) as 'Amountpaidby60days',
-					   SUM(0) as 'Amountpaidby90days',
-					   SUM(0) as 'Amountpaidby120days',
-					   SUM(0) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
-                       --MIN(C.IsActive) AS IsActive,
-                       --MIN(C.IsDeleted)AS IsDeleted,
+						0 AS CM
+			   FROM [dbo].Customer C WITH (NOLOCK) 
+				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
+				   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
+				   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId = WO.WorkOrderId
+		 		   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
+				   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = wop.ID AND MSD.ModuleID = @WOMSModuleID
+				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+			  WHERE wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' AND 
+			  c.CustomerId = @CustomerId 
+			  AND wobi.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId 
+			  AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)	
+			  GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
+		
+			UNION ALL
+
+				SELECT DISTINCT C.CustomerId,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CR.Code) AS  'currencyCode',
+					   SUM(sobi.GrandTotal) AS 'BalanceAmount',
+					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',   
+					   SUM(sobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(0) AS 'Amountpaidbylessthen0days',      
+                       SUM(0) AS 'Amountpaidby30days',      
+                       SUM(0) AS 'Amountpaidby60days',
+					   SUM(0) AS 'Amountpaidby90days',
+					   SUM(0) AS 'Amountpaidby120days',
+					   SUM(0) AS 'Amountpaidbymorethan120days',  
+					   Max('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(SO.ManagementStructureId) as ManagementStructureId,
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(SO.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
 							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference',
-						ISNULL(SUM(CM.Amount),0) AS CM
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   --INNER JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-			   INNER JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
-			   --INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId
-			   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
-			   --LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ipy.InvoiceType=1
-			   		--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
-				INNER JOIN SalesOrderManagementStructureDetails MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
-				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-				INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'			 
-			 ON CM.InvoiceId = sobi.SOBillingInvoicingId
-		 	  WHERE sobi.InvoiceStatus='Invoiced' AND sobi.RemainingAmount > 0 AND c.CustomerId=@CustomerId AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId AND CAST(sobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
-						), Result AS(
+						    0 AS CM
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+				   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
+				   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
+				   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
+				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+		 	  WHERE sobi.InvoiceStatus='Invoiced' AND sobi.RemainingAmount > 0 AND 
+			  c.CustomerId=@CustomerId
+			  AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
+			  AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)	
+			  GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
+			)
+
+		   ,Creditmemo AS(
+				SELECT CGL.CustomerId AS CustomerId, 
+				(ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount' 
+				FROM dbo.CustomerGeneralLedger CGL  WITH (NOLOCK) 
+					INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.ReferenceId 
+					AND CM.StatusId=3
+			   WHERE CGL.ModuleId=@CreditMemoMSModuleID AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND CGL.CustomerId = @CustomerId  
+			   GROUP BY CGL.CustomerId
+			)
+			
+			,ManualJE AS (			 
+			  SELECT MJD.ReferenceId AS CustomerId,
+				     ISNULL(SUM(ISNULL(MJD.Debit,0) - ISNULL(MJD.Credit,0)),0) AS 'ManualJEAmount' 	
+		     FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
+				  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
+				   WHERE MJD.[ReferenceId] = @CustomerId AND MJD.[ReferenceTypeId] = 1
+				AND MJH.[ManualJournalStatusId] = @PostStatusId
+			    AND CAST(MJH.[PostedDate] AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
+				GROUP BY MJD.ReferenceId
+
+			), Result AS(
 				SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					   Max(CTE.currencyCode) as  'currencyCode',
-					   --SUM(CTE.BalanceAmount) as 'BalanceAmount',
-					   --ISNULL(SUM(CTE.PaymentAmount),0) as 'BalanceAmount',
-					   ISNULL(SUM(CTE.PaymentAmount),0)+(ISNULL(SUM(CTE.CM),0)) as 'BalanceAmount',
-					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0)as 'CurrentlAmount',                    
-					   ISNULL(SUM(CTE.PaymentAmount),0) as 'PaymentAmount',
-					   MAX(CTECalculation.paidbylessthen0days) as 'Amountpaidbylessthen0days',      
-					   MAX(CTECalculation.paidby30days) as 'Amountpaidby30days',      
-                       MAX(CTECalculation.paidby60days) as 'Amountpaidby60days',
-					   MAX(CTECalculation.paidby90days) as 'Amountpaidby90days',
-					   MAX(CTECalculation.paidby120days) as 'Amountpaidby120days',
-					   MAX(CTECalculation.paidbymorethan120days) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CTE.currencyCode) AS  'currencyCode',
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',
+					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
+					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
+					   MAX(CTECalculation.paidbylessthen0days) AS 'Amountpaidbylessthen0days',      
+					   MAX(CTECalculation.paidby30days) AS 'Amountpaidby30days',      
+                       MAX(CTECalculation.paidby60days) AS 'Amountpaidby60days',
+					   MAX(CTECalculation.paidby90days) AS 'Amountpaidby90days',
+					   MAX(CTECalculation.paidby120days) AS 'Amountpaidby120days',
+					   MAX(CTECalculation.paidbymorethan120days) AS 'Amountpaidbymorethan120days',  
+					   Max('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(CTE.ManagementStructureId) as ManagementStructureId
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
-			   INNER JOIN CTECalculation as CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId 
-			   WHERE c.CustomerId=@CustomerId 
-			   --AND CAST(CTECalculation.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) 
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(CTE.ManagementStructureId) AS ManagementStructureId
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				   INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
+				   INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
+				    LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
+					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 
+					
+			   WHERE c.CustomerId = @CustomerId 
 			   GROUP BY C.CustomerId
-
-
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 
-			SELECT * INTO #TempResult FROM  Result
-			select * from #TempResult;
+			SELECT * INTO #TempResult FROM Result
+
+			SELECT * FROM #TempResult;
 
          END
 		 ELSE
 		 BEGIN
 			;WITH CTEData AS(
-			select ct.CustomerId,CASt(sobi.InvoiceDate as date) AS InvoiceDate,
-			sobi.GrandTotal,
-			--sobi.RemainingAmount,
-			(sobi.RemainingAmount +(ISNULL(SUM(CM.Amount),0))) AS RemainingAmount,
-			DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) AS dayDiff,
-			ctm.NetDays,
-			--(DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE())) AS CreditRemainingDays
-			--DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
-																	WHEN ctm.Code='CIA' THEN -1
-																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			from SalesOrderBillingInvoicing sobi
-			INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
-			INNER JOIN SalesOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
-			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
-			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'			 
-			 ON CM.InvoiceId = sobi.SOBillingInvoicingId
-			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
-			where sobi.InvoiceStatus = 'Invoiced'
-			AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
-			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
+				SELECT ct.CustomerId,
+						CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
+						sobi.GrandTotal,
+						(sobi.RemainingAmount) AS RemainingAmount,
+						DATEDIFF(DAY, CAST(sobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
+						ctm.NetDays,
+						DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																			WHEN ctm.Code='CIA' THEN -1
+																			WHEN ctm.Code='CreditCard' THEN -1
+																			WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays
+				FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
+					INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
+					INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
+					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
+					INNER JOIN [dbo].[SalesOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
+					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
+					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+				WHERE sobi.InvoiceStatus = 'Invoiced'
+					AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
+				GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
 			
 			UNION ALL
 			
-			select ct.CustomerId,CASt(wobi.InvoiceDate as date) AS InvoiceDate,
-			wobi.GrandTotal,
-			--wobi.RemainingAmount,
-			(wobi.RemainingAmount +(ISNULL(SUM(CM.Amount),0))) AS RemainingAmount,
-			DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) AS dayDiff,
-			ctm.NetDays,
-			--(DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
-			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE())) AS CreditRemainingDays
-			--DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
-																	WHEN ctm.Code='CIA' THEN -1
-																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			from WorkOrderBillingInvoicing wobi
-			INNER JOIN WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
-			INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
-			INNER JOIN WorkOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
-			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
-			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'			
-			ON CM.InvoiceId = wobi.BillingInvoicingId
-			--where ct.CustomerId=58 AND wobi.InvoiceStatus='Reviewed'
-			where wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
-			AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
-			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,wobi.PostedDate,ctm.Code
+				SELECT ct.CustomerId,
+					CAST(wobi.InvoiceDate AS DATE) AS InvoiceDate,
+					wobi.GrandTotal,
+					(wobi.RemainingAmount) AS RemainingAmount,
+					DATEDIFF(DAY, CAST(wobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
+					ctm.NetDays,
+					DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='CIA' THEN -1
+																		WHEN ctm.Code='CreditCard' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays
+				FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
+					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
+					INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
+					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
+					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
+					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+				WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
+					AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId
+				GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,wobi.PostedDate,ctm.Code
 			
 			), CTECalculation AS(
-			select
-				CustomerId,
-				SUM (CASE
-			    WHEN CreditRemainingDays < 0 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidbylessthen0days,
-			   SUM (CASE
-			    WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby30days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby60days,
-			   SUM (CASE
-			    WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby90days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidby120days,
-			  SUM (CASE
-			    WHEN CreditRemainingDays > 120 THEN RemainingAmount
-			    ELSE 0
-			  END) AS paidbymorethan120days
-			    from CTEData c group by CustomerId
+			SELECT CustomerId, SUM (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) AS paidbylessthen0days,
+							   SUM (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) AS paidby30days,
+							   SUM (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) AS paidby60days,
+							   SUM (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) AS paidby90days,
+			                   SUM (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) AS paidby120days,
+							   SUM (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) AS paidbymorethan120days
+			FROM CTEData c GROUP BY CustomerId
 			),CTE AS(
-						SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					   Max(CR.Code) as  'currencyCode',
-					   SUM(wobi.GrandTotal) as 'BalanceAmount',
-					   SUM(wobi.GrandTotal - wobi.RemainingAmount)as 'CurrentlAmount',             
-					   SUM(wobi.RemainingAmount)as 'PaymentAmount',
-					   SUM(0) as 'Amountpaidbylessthen0days',      
-                       SUM(0) as 'Amountpaidby30days',      
-                       SUM(0) as 'Amountpaidby60days',
-					   SUM(0) as 'Amountpaidby90days',
-					   SUM(0) as 'Amountpaidby120days',
-					   SUM(0) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
-                       --MIN(C.IsActive) AS IsActive,
-                       --MIN(C.IsDeleted)AS IsDeleted,
+				SELECT DISTINCT C.CustomerId,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CR.Code) AS  'currencyCode',
+					   SUM(wobi.GrandTotal) AS 'BalanceAmount',
+					   SUM(wobi.GrandTotal - wobi.RemainingAmount) AS 'CurrentlAmount',             
+					   SUM(wobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(0) AS 'Amountpaidbylessthen0days',      
+                       SUM(0) AS 'Amountpaidby30days',      
+                       SUM(0) AS 'Amountpaidby60days',
+					   SUM(0) AS 'Amountpaidby90days',
+					   SUM(0) AS 'Amountpaidby120days',
+					   SUM(0) AS 'Amountpaidbymorethan120days',  
+					   MAX('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(wop.ManagementStructureId) as ManagementStructureId,
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(wop.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + WP.CustomerReference
 							FROM dbo.WorkOrderBillingInvoicing WI WITH (NOLOCK)
 							INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WI.WorkOrderId=WP.WorkOrderId
 							WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId
 							FOR XML PATH('')), 1, 1, '') 
 							AS 'Reference',
-						ISNULL(SUM(CM.Amount),0) AS CM
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
-			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   --INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-			   --INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
-			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId = WO.WorkOrderId
-		 	   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-			   --LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = wobi.BillingInvoicingId AND ipy.InvoiceType=2
-			   --INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
-			   INNER JOIN WorkOrderManagementStructureDetails MSD WITH(NOLOCK) ON MSD.ReferenceID = wop.ID AND MSD.ModuleID = @WOMSModuleID
-			   INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-			  INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			  LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'			
-			ON CM.InvoiceId = wobi.BillingInvoicingId
-			  --WHERE c.CustomerId=@CustomerId AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
-			  WHERE wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId AND CAST(wobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
-UNION ALL
-SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					  Max(CR.Code) as  'currencyCode',
-					   SUM(sobi.GrandTotal) as 'BalanceAmount',
-					   SUM(sobi.GrandTotal - sobi.RemainingAmount)as 'CurrentlAmount',   
-					   SUM(sobi.RemainingAmount)as 'PaymentAmount',
-					   SUM(0) as 'Amountpaidbylessthen0days',      
-                       SUM(0) as 'Amountpaidby30days',      
-                       SUM(0) as 'Amountpaidby60days',
-					   SUM(0) as 'Amountpaidby90days',
-					   SUM(0) as 'Amountpaidby120days',
-					   SUM(0) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
-                       --MIN(C.IsActive) AS IsActive,
-                       --MIN(C.IsDeleted)AS IsDeleted,
+						0 AS CM
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
+			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId = WO.WorkOrderId
+		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
+			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = wop.ID AND MSD.ModuleID = @WOMSModuleID
+			   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+			   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+			  WHERE wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
+			  AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)	
+			  GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
+		
+		UNION ALL
+		
+			    SELECT DISTINCT C.CustomerId,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CR.Code) AS  'currencyCode',
+					   SUM(sobi.GrandTotal) AS 'BalanceAmount',
+					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',   
+					   SUM(sobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(0) AS 'Amountpaidbylessthen0days',      
+                       SUM(0) AS 'Amountpaidby30days',      
+                       SUM(0) AS 'Amountpaidby60days',
+					   SUM(0) AS 'Amountpaidby90days',
+					   SUM(0) AS 'Amountpaidby120days',
+					   SUM(0) AS 'Amountpaidbymorethan120days',  
+					   MAX('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(SO.ManagementStructureId) as ManagementStructureId,
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   MAX(SO.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
 							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference',
-						ISNULL(SUM(CM.Amount),0) AS CM
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   --INNER JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-			   INNER JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
-			   --INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId
-			   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
-			   --LEFT JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ipy.InvoiceType=1
-			   --INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
-			   INNER JOIN SalesOrderManagementStructureDetails MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
-			   INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
-			   INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			   LEFT JOIN dbo.CreditMemoDetails CM WITH(NOLOCK) 
-				INNER JOIN dbo.CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'			 
-			 ON CM.InvoiceId = sobi.SOBillingInvoicingId
-		 	  --WHERE c.CustomerId=@CustomerId AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
-			  WHERE sobi.InvoiceStatus='Invoiced' AND c.CustomerId=@CustomerId AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId AND CAST(sobi.PostedDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)	GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
-						), Result AS(
+						0 AS CM
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
+			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
+			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
+			   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
+			   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
+			  WHERE sobi.InvoiceStatus='Invoiced' AND c.CustomerId=@CustomerId AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
+			  AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)	
+			  GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId),
+
+			 
+			Creditmemo AS(
+			 SELECT CGL.CustomerId AS CustomerId, 
+			     (ISNULL(SUM(CGL.CreditAmount),0)) AS 'CreditMemoAmount' 
+			   FROM dbo.CustomerGeneralLedger CGL  WITH (NOLOCK) 
+			   INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CGL.ReferenceId and CM.StatusId=3
+			   WHERE  CGL.ModuleId=@CreditMemoMSModuleID AND CAST(CGL.CreatedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND CGL.CustomerId=@CustomerId  
+			   GROUP BY CGL.CustomerId
+			) 
+
+		    ,ManualJE AS (			 
+			  SELECT MJD.ReferenceId AS CustomerId,
+				     ISNULL(SUM(ISNULL(MJD.Debit,0) - ISNULL(MJD.Credit,0)),0) AS 'ManualJEAmount' 				 
+		     FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
+				  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
+				   WHERE MJD.[ReferenceId] = @CustomerId AND MJD.[ReferenceTypeId] = 1
+				AND MJH.[ManualJournalStatusId] = @PostStatusId
+			    AND CAST(MJH.[PostedDate] AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
+				GROUP BY MJD.ReferenceId
+			),
+			
+			Result AS(
 				SELECT DISTINCT C.CustomerId,
-                       Max((ISNULL(C.[Name],''))) 'CustName' ,
-					   Max((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
-                       Max(CT.CustomerTypeName) 'CustomertType' ,
-					   Max(CTE.currencyCode) as  'currencyCode',
-					   --SUM(CTE.BalanceAmount) as 'BalanceAmount',
-					   --ISNULL(SUM(CTE.PaymentAmount),0) as 'BalanceAmount',
-					   ISNULL(SUM(CTE.PaymentAmount),0)+(ISNULL(SUM(CTE.CM),0)) as 'BalanceAmount',
-					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0)as 'CurrentlAmount',                    
-					   ISNULL(SUM(CTE.PaymentAmount),0) as 'PaymentAmount',
-					   MAX(CTECalculation.paidbylessthen0days) as 'Amountpaidbylessthen0days',      
-					   MAX(CTECalculation.paidby30days) as 'Amountpaidby30days',      
-                       MAX(CTECalculation.paidby60days) as 'Amountpaidby60days',
-					   MAX(CTECalculation.paidby90days) as 'Amountpaidby90days',
-					   MAX(CTECalculation.paidby120days) as 'Amountpaidby120days',
-					   MAX(CTECalculation.paidbymorethan120days) as 'Amountpaidbymorethan120days',  
-					   Max('') as 'LegelEntity',	
-                       --MIN(C.IsActive) AS IsActive,
-                       --MIN(C.IsDeleted)AS IsDeleted,
+                       MAX((ISNULL(C.[Name],''))) 'CustName' ,
+					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
+                       MAX(CT.CustomerTypeName) 'CustomertType' ,
+					   MAX(CTE.currencyCode) AS  'currencyCode',
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount * -1),0)) AS 'CreditMemoAmount',
+					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
+					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
+					   MAX(CTECalculation.paidbylessthen0days) AS 'Amountpaidbylessthen0days',      
+					   MAX(CTECalculation.paidby30days) AS 'Amountpaidby30days',      
+                       MAX(CTECalculation.paidby60days) AS 'Amountpaidby60days',
+					   MAX(CTECalculation.paidby90days) AS 'Amountpaidby90days',
+					   MAX(CTECalculation.paidby120days) AS 'Amountpaidby120days',
+					   MAX(CTECalculation.paidbymorethan120days) AS 'Amountpaidbymorethan120days',  
+					   Max('') AS 'LegelEntity',	
 					   MAX(C.CreatedDate) AS CreatedDate,
                        MAX(C.UpdatedDate) AS UpdatedDate,
-					   MAX(C.CreatedBy) as CreatedBy,
-                       MAX(C.UpdatedBy) as UpdatedBy,
-					   max(CTE.ManagementStructureId) as ManagementStructureId
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
-			   INNER JOIN CTECalculation as CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId 
-			   WHERE c.CustomerId=@CustomerId
-			   --AND CAST(CTECalculation.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)
-			   GROUP BY C.CustomerId
-
+					   MAX(C.CreatedBy) AS CreatedBy,
+                       MAX(C.UpdatedBy) AS UpdatedBy,
+					   max(CTE.ManagementStructureId) AS ManagementStructureId
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN CTE AS CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
+			   INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
+			    LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
+				LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 				
+			   WHERE c.CustomerId = @CustomerId  GROUP BY C.CustomerId
 
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult2 FROM  Result
@@ -464,13 +439,8 @@ SELECT DISTINCT C.CustomerId,
 
 		 END
 
-			--COMMIT  TRANSACTION
-
 	END TRY    
 	BEGIN CATCH      
-		--IF @@trancount > 0
-			--PRINT 'ROLLBACK'
-            --ROLLBACK TRANSACTION;
             -- temp table drop
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()

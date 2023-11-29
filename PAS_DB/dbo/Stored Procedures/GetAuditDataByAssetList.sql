@@ -1,27 +1,4 @@
-﻿
-/*************************************************************           
- ** File:   [GetAuditDataByAssetList]           
- ** Author:   Subhash Saliya
- ** Description: Get Data for Get Audit DataBy AssetList 
- ** Purpose:         
- ** Date:   16-March-2021        
-          
- ** PARAMETERS:           
- @POId varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    03/16/2021   Subhash Saliya Created
-	     
- EXECUTE [GetAuditDataByAssetList] 11
-**************************************************************/ 
-
-CREATE PROCEDURE [dbo].[GetAuditDataByAssetList]
+﻿CREATE   PROCEDURE [dbo].[GetAuditDataByAssetList]
 	@Id bigint = null
 AS
 BEGIN
@@ -69,7 +46,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				asm.IsDeleted AS IsDeleted
 			FROM dbo.AssetAudit asm WITH(NOLOCK)
 			left join dbo.AssetCalibration   As ascal  WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId
-			left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.TangibleClassId = asty.TangibleClassId
+			left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.AssetAttributeTypeId = asty.AssetAttributeTypeId
 			left join dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 			left join dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
 			inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId

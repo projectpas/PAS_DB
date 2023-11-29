@@ -14,8 +14,16 @@
     [Effectivedate]               DATETIME2 (7) NULL,
     [PriorityId]                  BIGINT        NULL,
     [Priority]                    VARCHAR (100) NULL,
+    [WorkOrderStageId]            BIGINT        NULL,
+    [WorkOrderStage]              VARCHAR (100) NULL,
+    [IsRequestor]                 BIT           NULL,
+    [IsEnforceNonPoApproval]      BIT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
+
+
+
+
 
 
 

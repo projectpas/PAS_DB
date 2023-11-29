@@ -3,7 +3,7 @@
     [WorkOrderLaborHeaderId]  BIGINT          NOT NULL,
     [TaskId]                  BIGINT          NOT NULL,
     [ExpertiseId]             SMALLINT        NULL,
-    [EmployeeId]              BIGINT          NOT NULL,
+    [EmployeeId]              BIGINT          NULL,
     [Hours]                   DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Hours] DEFAULT ((0)) NULL,
     [Adjustments]             DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
     [AdjustedHours]           DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
@@ -17,15 +17,17 @@
     [StartDate]               DATETIME2 (7)   NULL,
     [EndDate]                 DATETIME2 (7)   NULL,
     [BillableId]              INT             NULL,
-    [IsFromWorkFlow]          BIT             DEFAULT ((0)) NULL,
+    [IsFromWorkFlow]          BIT             CONSTRAINT [DF__WorkOrder__IsFro__0762CD2B] DEFAULT ((0)) NULL,
     [MasterCompanyId]         INT             NOT NULL,
-    [DirectLaborOHCost]       DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [DirectLaborOHCost]       DECIMAL (18, 2) CONSTRAINT [DF__WorkOrder__Direc__0856F164] DEFAULT ((0)) NOT NULL,
     [BurdaenRatePercentageId] BIGINT          NULL,
-    [BurdenRateAmount]        DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
-    [TotalCostPerHour]        DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
-    [TotalCost]               DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [BurdenRateAmount]        DECIMAL (18, 2) CONSTRAINT [DF__WorkOrder__Burde__094B159D] DEFAULT ((0)) NULL,
+    [TotalCostPerHour]        DECIMAL (18, 2) CONSTRAINT [DF__WorkOrder__Total__0A3F39D6] DEFAULT ((0)) NOT NULL,
+    [TotalCost]               DECIMAL (18, 2) CONSTRAINT [DF__WorkOrder__Total__0B335E0F] DEFAULT ((0)) NOT NULL,
     [TaskStatusId]            BIGINT          NULL,
     [StatusChangedDate]       DATETIME2 (7)   NULL,
+    [TaskInstruction]         VARCHAR (MAX)   NULL,
+    [IsBegin]                 BIT             NULL,
     CONSTRAINT [PK_WorkOrderLabor] PRIMARY KEY CLUSTERED ([WorkOrderLaborId] ASC),
     CONSTRAINT [FK_WorkOrderLabor_BurdaenRatePercentageId] FOREIGN KEY ([BurdaenRatePercentageId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [FK_WorkOrderLabor_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -35,6 +37,8 @@
     CONSTRAINT [FK_WorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId]),
     CONSTRAINT [FK_WorkOrderLabor_WorkOrderLaborHeader] FOREIGN KEY ([WorkOrderLaborHeaderId]) REFERENCES [dbo].[WorkOrderLaborHeader] ([WorkOrderLaborHeaderId])
 );
+
+
 
 
 GO

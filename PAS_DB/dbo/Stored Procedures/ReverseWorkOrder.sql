@@ -78,7 +78,7 @@ AS
 					DELETE FROM dbo.SubWorkOrderMaterials WHERE SubWOPartNoId = @SubWOPartNoId
 
 					/* SUB WO Teardown deletion */
-					DELETE FROM [dbo].[CommonWorkOrderTearDownAudit] WHERE SubWOPartNoId = @SubWOPartNoId
+					--DELETE FROM [dbo].[CommonWorkOrderTearDownAudit] WHERE SubWOPartNoId = @SubWOPartNoId
 					DELETE FROM [dbo].[CommonWorkOrderTearDown] WHERE SubWOPartNoId = @SubWOPartNoId AND IsSubWorkOrder = 1
 
 					/* SUB WO Labour deletion*/
@@ -199,7 +199,7 @@ AS
 					DELETE FROM dbo.WorkOrderMaterials WHERE WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM dbo.WorkOrderMaterials WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
 
 					/* Teardown deletion */
-					DELETE FROM [dbo].[CommonWorkOrderTearDownAudit] WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+					--DELETE FROM [dbo].[CommonWorkOrderTearDownAudit] WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					DELETE FROM [dbo].[CommonWorkOrderTearDown] WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
 					/*Labour deletion*/

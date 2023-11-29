@@ -40,7 +40,7 @@ BEGIN
 			BEGIN		
 				SELECT DISTINCT TOP 50 CAST(EE.EmployeeExpertiseId AS bigint) AS Value, EE.Description AS Label
 				FROM dbo.EmployeeExpertise EE WITH(NOLOCK) 
-				WHERE EE.MasterCompanyId = @MasterCompanyId AND (EE.IsActive = 1 AND EE.IsWorksInShop = 1 AND ISNULL(EE.IsDeleted, 0) = 0 AND (EE.Description LIKE @Parameter3 + '%' OR EE.Description  LIKE '%' + @Parameter3 + '%'))
+				WHERE EE.MasterCompanyId = @MasterCompanyId AND (EE.IsActive = 1 AND ISNULL(EE.IsDeleted, 0) = 0 AND (EE.Description LIKE @Parameter3 + '%' OR EE.Description  LIKE '%' + @Parameter3 + '%')) --EE.IsWorksInShop = 1 AND
 				UNION 
 				SELECT DISTINCT  CAST(EmployeeExpertiseId AS bigint) AS Value, Description AS Label
 				FROM dbo.EmployeeExpertise WITH(NOLOCK) 
@@ -51,7 +51,7 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT TOP 50  CAST(EE.EmployeeExpertiseId AS bigint) AS Value, EE.Description AS Label
 				FROM dbo.EmployeeExpertise EE  WITH(NOLOCK) 
-				WHERE EE.MasterCompanyId = @MasterCompanyId AND Ee.IsActive = 1 AND eE.IsWorksInShop = 1 AND ISNULL(Ee.IsDeleted, 0) = 0 AND EE.Description LIKE '%' + @Parameter3 + '%' OR EE.Description  LIKE '%' + @Parameter3 + '%'
+				WHERE EE.MasterCompanyId = @MasterCompanyId AND Ee.IsActive = 1 AND ISNULL(Ee.IsDeleted, 0) = 0 AND EE.Description LIKE '%' + @Parameter3 + '%' OR EE.Description  LIKE '%' + @Parameter3 + '%' --AND eE.IsWorksInShop = 1
 				UNION 
 				SELECT DISTINCT CAST(EmployeeExpertiseId AS bigint) AS Value, Description AS Label
 				FROM dbo.EmployeeExpertise WITH(NOLOCK) 

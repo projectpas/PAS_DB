@@ -10,6 +10,9 @@
     [IsActive]           BIT           NOT NULL,
     [IsDeleted]          BIT           NOT NULL,
     [JournalTypeName]    VARCHAR (100) NOT NULL,
+    [BatchType]          VARCHAR (20)  NULL,
     CONSTRAINT [PK_JournalTypeAudit] PRIMARY KEY CLUSTERED ([AuditJournalTypeId] ASC)
 );
+
+
 

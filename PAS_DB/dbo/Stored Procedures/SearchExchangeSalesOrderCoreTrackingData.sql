@@ -1,5 +1,21 @@
-﻿--exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
-CREATE PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
+﻿/*************************************************************             
+ ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
+ ** Author:    
+ ** Description: Get Search Data for ExchangeCoreTrackingList   
+ ** Purpose:           
+ ** Date:     
+           
+ ** RETURN VALUE:             
+ **************************************************************             
+ ** Change History             
+ **************************************************************             
+ ** PR   Date         Author             Change Description              
+ ** --   --------     -------           --------------------------------            
+    1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
+**************************************************************/   
+
+--exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
+CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -112,13 +128,13 @@ BEGIN
 						))
 						),
 					ResultCount AS (Select COUNT(ExchangeSalesOrderId) AS NumberOfItems FROM FinalResult)
-					SELECT ExchangeSalesOrderId,ExchangeSalesOrderNumber,CustomerId,CustomerName,
-					ReceivingCustomerWorkId,OpenDate,SerialNumber,
-					PartNumber, PartDescription, CustomerName, Manufacturer, ExpDate, ItemMasterId,
-					ManagementStructureId,LetterSentDate,LetterTypeId,LetterType,
-					ManufacturerId, MasterCompanyId,PartCertificationNumber,Quantity,
-					ReceivingNumber, Reference, RevisedPartId,ReceivedDate,CustReqDate, EmployeeName, CoreStatusId,[Status],CoreDueDate,
-					Memo, ExpectedCoreSN, ExpecedCoreCond,CoreAccepted,WorkOrderId,WONum,NumberOfItems FROM FinalResult, ResultCount
+					SELECT ExchangeSalesOrderId,UPPER(ExchangeSalesOrderNumber) 'ExchangeSalesOrderNumber',CustomerId,UPPER(CustomerName) 'CustomerName',
+					ReceivingCustomerWorkId,OpenDate,UPPER(SerialNumber) 'SerialNumber',
+					UPPER(PartNumber) 'PartNumber', UPPER(PartDescription) 'PartDescription', UPPER(CustomerName) 'CustomerName', UPPER(Manufacturer) 'Manufacturer', ExpDate, ItemMasterId,
+					ManagementStructureId,LetterSentDate,LetterTypeId,UPPER(LetterType) 'LetterType',
+					ManufacturerId, MasterCompanyId,UPPER(PartCertificationNumber) 'PartCertificationNumber',Quantity,
+					UPPER(ReceivingNumber) 'ReceivingNumber', UPPER(Reference) 'Reference', RevisedPartId,ReceivedDate,CustReqDate, UPPER(EmployeeName) 'EmployeeName', CoreStatusId,UPPER(Status) 'Status',CoreDueDate,
+					Memo, UPPER(ExpectedCoreSN) 'ExpectedCoreSN', ExpecedCoreCond,CoreAccepted,WorkOrderId,UPPER(WONum) 'WONum',NumberOfItems FROM FinalResult, ResultCount
 					ORDER BY  
 				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,

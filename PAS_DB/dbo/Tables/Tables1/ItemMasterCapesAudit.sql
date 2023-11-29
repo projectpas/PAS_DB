@@ -17,7 +17,7 @@
     [IsDeleted]              BIT            NOT NULL,
     [AddedDate]              DATETIME2 (7)  NULL,
     [PartNumber]             VARCHAR (250)  NULL,
-    [PartDescription]        VARCHAR (250)  NULL,
+    [PartDescription]        NVARCHAR (MAX) NULL,
     [CapabilityType]         VARCHAR (250)  NULL,
     [VerifiedBy]             VARCHAR (250)  NULL,
     [Level1]                 VARCHAR (200)  NULL,
@@ -26,4 +26,6 @@
     [Level4]                 VARCHAR (200)  NULL,
     CONSTRAINT [PK_ItemMasterCapesAudit] PRIMARY KEY CLUSTERED ([AuditItemMasterCapesId] ASC)
 );
+
+
 

@@ -13,9 +13,12 @@
     [Effectivedate]        DATETIME2 (7) NULL,
     [PriorityId]           BIGINT        NULL,
     [Priority]             VARCHAR (100) NULL,
+    [IsRequestor]          BIT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMaster] PRIMARY KEY CLUSTERED ([RepairOrderSettingId] ASC),
     CONSTRAINT [FK_RepairOrderSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

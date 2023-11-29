@@ -48,6 +48,11 @@
     [PONum]                      VARCHAR (100)   NULL,
     [PONextDlvrDate]             DATETIME        NULL,
     [QtyToTurnIn]                INT             NULL,
+    [Figure]                     NVARCHAR (50)   NULL,
+    [Item]                       NVARCHAR (50)   NULL,
+    [EquPartMasterPartId]        BIGINT          NULL,
+    [isfromsubWorkOrder]         BIT             NULL,
+    [ExpectedSerialNumber]       VARCHAR (30)    NULL,
     CONSTRAINT [PK_WorkOrderMaterials] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsId] ASC),
     CONSTRAINT [FK_WorkOrderMaterials_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderMaterials_IssuedById] FOREIGN KEY ([IssuedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -66,12 +71,11 @@
 
 
 
+
+
+
+
 GO
-
-
-
-
-----------------------------------------------
 
 CREATE TRIGGER [dbo].[Trg_WorkOrderMaterialsAudit]
 
@@ -157,7 +161,7 @@ BEGIN
 
 	  ,[TotalStocklineQtyReq], [QtyOnOrder],[QtyOnBkOrder] ,[POId], [PONum], [PONextDlvrDate]
 
-      ,TaskName,PartNum,PartDescription,Condition,RequestType,Provision,ItemClassification,UOM,StockType) 
+      ,TaskName,PartNum,PartDescription,Condition,RequestType,Provision,ItemClassification,UOM,StockType,Figure,Item) 
 
     SELECT [WorkOrderMaterialsId]
 
@@ -173,7 +177,7 @@ BEGIN
 
 	  ,[TotalStocklineQtyReq], [QtyOnOrder],[QtyOnBkOrder] ,[POId], [PONum], [PONextDlvrDate]
 
-      ,@TaskName,@PartNum,@PartDesc,@Condition,@RequestType,@Provision,@ItemClassification,@UOM,@StockType
+      ,@TaskName,@PartNum,@PartDesc,@Condition,@RequestType,@Provision,@ItemClassification,@UOM,@StockType,Figure,Item
 
 	FROM INSERTED 
 

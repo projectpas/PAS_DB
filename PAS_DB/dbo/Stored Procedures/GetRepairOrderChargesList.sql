@@ -14,7 +14,7 @@
     1    12-10-2022  Deep Patel     Created
 -- EXEC GetRepairOrderChargesList 8,0
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetRepairOrderChargesList]
+CREATE   PROCEDURE [dbo].[GetRepairOrderChargesList]
 @RepairOrderId BIGINT,
 @IsDeleted bit,
 @Opr int
@@ -57,8 +57,9 @@ BEGIN
       ,[ConditionId]
 	  ,[PartNumber]
 	  ,[LineNum]
-	  ,CASE WHEN BillingMethodId = 1 THEN 'T&M'
-	  ELSE 'Actual' END AS 'BillingMethodName'
+	  ,CASE WHEN BillingMethodId = 1 THEN 'T&M' ELSE 'Actual' END AS 'BillingMethodName'
+	  ,[ManufacturerId]
+	  ,[Manufacturer]		
       FROM [dbo].[RepairOrderCharges] WITH (NOLOCK) WHERE RepairOrderId=@RepairOrderId AND IsDeleted=@IsDeleted;
 	END
 	BEGIN
@@ -94,8 +95,9 @@ BEGIN
       ,[ConditionId]
 	  ,[PartNumber]
 	  ,[LineNum]
-	  ,CASE WHEN BillingMethodId = 1 THEN 'T&M'
-	  ELSE 'Actual' END AS 'BillingMethodName'
+	  ,CASE WHEN BillingMethodId = 1 THEN 'T&M' ELSE 'Actual' END AS 'BillingMethodName'
+	  ,[ManufacturerId]
+	  ,[Manufacturer]
       FROM [dbo].[RepairOrderChargesAudit] WITH (NOLOCK) WHERE RepairOrderChargesId=@RepairOrderId and ChargeName is not null;
 	END
 	END TRY    

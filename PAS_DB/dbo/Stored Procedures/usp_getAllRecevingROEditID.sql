@@ -1,4 +1,7 @@
-﻿CREATE Procedure [dbo].[usp_getAllRecevingROEditID]
+﻿
+
+
+CREATE   PROCEDURE [dbo].[usp_getAllRecevingROEditID]
 @roID  bigint
 AS
 BEGIN
@@ -38,7 +41,7 @@ BEGIN
 
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(SLD.ConditionId,0), 'CONDITIONID' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID 
-
+		
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(SLD.ObtainFrom,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.ObtainFromType = 1 
 
@@ -47,25 +50,26 @@ BEGIN
 
 		INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(SLD.ObtainFrom,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.ObtainFromType = 9
+			   
+		INSERT INTO #ROEditList ([Value],Label)
+		SELECT ISNULL(SLD.Owner,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 1 
 
 		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.OwnerType,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 1 
+		SELECT ISNULL(SLD.Owner,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 2 
 
 		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.OwnerType,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 2 
+		SELECT ISNULL(SLD.Owner,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.OwnerType = 9
+		
+		INSERT INTO #ROEditList ([Value],Label)
+		SELECT ISNULL(SLD.TraceableTo,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.TraceableToType = 1 
 
 		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.OwnerType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.OwnerType = 9
+		SELECT ISNULL(SLD.TraceableTo,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.TraceableToType = 2 
 
 		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.TraceableToType,0), 'CUSTOMER' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 1 
+		SELECT ISNULL(SLD.TraceableTo,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.TraceableToType = 9
 
-		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.TraceableToType,0), 'VENDOR' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID  AND SLD.OwnerType = 2 
-
-		INSERT INTO #ROEditList ([Value],Label)
-		SELECT ISNULL(SLD.TraceableToType,0), 'COMPANY' FROM  dbo.StocklineDraft SLD WITH(NOLOCK)  Where SLD.RepairOrderId = @roID    AND SLD.OwnerType = 9
-	
+		
 	-------------------------------From Inventory Draft
 	INSERT INTO #ROEditList ([Value],Label)
 		SELECT ISNULL(ShippingViaId,0), 'SHIPPINGVIA' FROM dbo.AssetInventoryDraft WITH(NOLOCK) Where RepairOrderId = @roID  

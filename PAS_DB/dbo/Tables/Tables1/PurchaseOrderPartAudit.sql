@@ -81,8 +81,16 @@
     [ManufacturerPN]            VARCHAR (150)   NULL,
     [AssetModel]                VARCHAR (30)    NULL,
     [AssetClass]                VARCHAR (50)    NULL,
+    [IsLotAssigned]             BIT             NULL,
+    [LotId]                     BIGINT          NULL,
+    [WorkOrderMaterialsId]      BIGINT          NULL,
+    [VendorRFQPOPartRecordId]   BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
+
+
+
+
 
 
 

@@ -58,8 +58,12 @@
     [QtyOnOrder]                    INT             NULL,
     [QtyOnBkOrder]                  INT             NULL,
     [QtyToTurnIn]                   INT             NULL,
+    [Figure]                        NVARCHAR (50)   NULL,
+    [Item]                          NVARCHAR (50)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialsAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsAuditId] ASC)
 );
+
+
 
 
 

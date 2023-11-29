@@ -26,9 +26,12 @@
     [EmailSentTime]     DATETIME2 (7)  NULL,
     [IsAttach]          BIT            NULL,
     [EmailStatusId]     INT            DEFAULT ('1') NULL,
+    [AttemptCount]      BIGINT         NULL,
     CONSTRAINT [PK_Email] PRIMARY KEY CLUSTERED ([EmailId] ASC),
     CONSTRAINT [FK_Email_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

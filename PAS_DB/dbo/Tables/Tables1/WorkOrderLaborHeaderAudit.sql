@@ -16,15 +16,17 @@
     [IsActive]               BIT             NOT NULL,
     [IsDeleted]              BIT             NOT NULL,
     [ExpertiseId]            SMALLINT        NULL,
-    [EmployeeId]             BIGINT          NOT NULL,
+    [EmployeeId]             BIGINT          NULL,
     [TotalWorkHours]         DECIMAL (20, 2) NULL,
     [WOPartNoId]             BIGINT          NOT NULL,
     [Expertise]              VARCHAR (256)   NOT NULL,
-    [Employee]               VARCHAR (256)   NOT NULL,
+    [Employee]               VARCHAR (256)   NULL,
     [DataEnteredByName]      VARCHAR (256)   NOT NULL,
     [HoursType]              VARCHAR (50)    NOT NULL,
     [TaskCompletedBy]        VARCHAR (10)    NULL,
     [TaskType]               VARCHAR (256)   NOT NULL,
     CONSTRAINT [PK_WorkOrderLaborHeaderAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
+
+
 

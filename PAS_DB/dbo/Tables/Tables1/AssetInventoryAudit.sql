@@ -140,9 +140,43 @@
     [BinName]                           VARCHAR (250)   NULL,
     [StatusNote]                        VARCHAR (500)   NULL,
     [RRQty]                             INT             DEFAULT ((0)) NOT NULL,
+    [DepreciationMethodId]              BIGINT          NULL,
+    [DepreciationMethodName]            VARCHAR (250)   NULL,
+    [ResidualPercentageId]              BIGINT          NULL,
+    [ResidualPercentage]                DECIMAL (18, 2) NULL,
+    [DepreciationFrequencyId]           BIGINT          NULL,
+    [DepreciationFrequencyName]         VARCHAR (250)   NULL,
+    [AcquiredGLAccountId]               BIGINT          NULL,
+    [AcquiredGLAccountName]             VARCHAR (250)   NULL,
+    [DeprExpenseGLAccountId]            BIGINT          NULL,
+    [DeprExpenseGLAccountName]          VARCHAR (250)   NULL,
+    [AdDepsGLAccountId]                 BIGINT          NULL,
+    [AdDepsGLAccountName]               VARCHAR (250)   NULL,
+    [AssetSaleGLAccountId]              BIGINT          NULL,
+    [AssetSaleGLAccountName]            VARCHAR (250)   NULL,
+    [AssetWriteOffGLAccountId]          BIGINT          NULL,
+    [AssetWriteOffGLAccountName]        VARCHAR (250)   NULL,
+    [AssetWriteDownGLAccountId]         BIGINT          NULL,
+    [AssetWriteDownGLAccountName]       VARCHAR (250)   NULL,
+    [IntangibleGLAccountId]             BIGINT          NULL,
+    [IntangibleGLAccountName]           VARCHAR (250)   NULL,
+    [AmortExpenseGLAccountId]           BIGINT          NULL,
+    [AmortExpenseGLAccountName]         VARCHAR (250)   NULL,
+    [AccAmortDeprGLAccountId]           BIGINT          NULL,
+    [AccAmortDeprGLAccountName]         VARCHAR (250)   NULL,
+    [IntangibleWriteDownGLAccountId]    BIGINT          NULL,
+    [IntangibleWriteDownGLAccountName]  VARCHAR (250)   NULL,
+    [IntangibleWriteOffGLAccountId]     BIGINT          NULL,
+    [IntangibleWriteOffGLAccountName]   VARCHAR (250)   NULL,
+    [AssetAttributeTypeId]              BIGINT          NULL,
+    [ReceivablesAmount]                 DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );
+
+
+
+
 
 
 

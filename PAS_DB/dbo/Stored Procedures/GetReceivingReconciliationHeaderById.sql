@@ -1,7 +1,23 @@
-﻿/*************************************************************     
--- EXEC GetJournalBatchHeaderById 3
+﻿/*************************************************************           
+ ** File:   [GetReceivingReconciliationHeaderById]
+ ** Author: unknown
+ ** Description: This stored procedure is used TO Get Receiving Reconciliation Header Details
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1                 unknown        Created
+	2    09/27/2023   Moin Bloch     Modify(Added Invoice Date)
+	3    09/30/2023   Hemant Saliya  Modify(Added Accounting Calendor Id)
+
+***********************************************************************     
+-- EXEC GetReceivingReconciliationHeaderById 106
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetReceivingReconciliationHeaderById]
+CREATE   PROCEDURE [dbo].[GetReceivingReconciliationHeaderById]
 @ReceivingReconciliationId bigint
 AS
 BEGIN
@@ -31,7 +47,9 @@ BEGIN
                ,RRH.[UpdatedDate]
                ,RRH.[IsActive]
                ,RRH.[IsDeleted]
-      FROM [dbo].[ReceivingReconciliationHeader] RRH where ReceivingReconciliationId =@ReceivingReconciliationId
+			   ,RRH.[InvoiceDate]
+			   ,RRH.[AccountingCalendarId]
+          FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) WHERE ReceivingReconciliationId = @ReceivingReconciliationId
 
 
     END TRY    

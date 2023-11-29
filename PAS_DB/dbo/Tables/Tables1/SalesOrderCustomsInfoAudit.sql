@@ -20,7 +20,10 @@
     [UpdatedDate]                  DATETIME2 (7)   NOT NULL,
     [IsActive]                     BIT             NOT NULL,
     [IsDeleted]                    BIT             NOT NULL,
+    [CustomCurrencyId]             INT             NULL,
     CONSTRAINT [PK_SalesOrderCustomsInfoAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderCustomsInfoId] ASC),
     CONSTRAINT [FK_SalesOrderCustomsInfoAudit_SalesOrderCustomsInfo] FOREIGN KEY ([SalesOrderCustomsInfoId]) REFERENCES [dbo].[SalesOrderCustomsInfo] ([SalesOrderCustomsInfoId])
 );
+
+
 

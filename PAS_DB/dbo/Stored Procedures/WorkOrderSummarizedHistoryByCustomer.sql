@@ -1,4 +1,5 @@
 ﻿
+
 /*************************************************************           
  ** File:   [WorkOrderSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
@@ -22,7 +23,7 @@
 --EXEC [WorkOrderSummarizedHistoryByCustomer] 240,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WorkOrderSummarizedHistoryByCustomer]
+CREATE   PROCEDURE [dbo].[WorkOrderSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -57,9 +58,10 @@ BEGIN
 						SUM(ISNULL(WC.DirectCost, 0)) AS DirectCost,
 						SUM(ISNULL(WC.Margin, 0)) AS Margin,
 						CASE WHEN SUM(ISNULL(WC.Revenue, 0)) > 0 THEN CONVERT(DECIMAL(18,2),(SUM(ISNULL(WC.Margin, 0)) * 100 ) / SUM(ISNULL(WC.Revenue, 0))) ELSE 0 END AS RevenuePercentage,
-						SUM(ISNULL(WOP.TATDaysCurrent, 0)) As TATDays
+						sum(dbo.FN_GetTatCurrentDays(WOP.Id)) As TATDays
 					FROM dbo.WorkOrderCostDetails WC WITH(NOLOCK) 
 						JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WC.WOPartNoId = WOP.ID
+						LEFT JOIN dbo.WorkOrderTurnArroundTime WTT WITH(NOLOCK) ON WTT.WorkOrderPartNoId = WOP.ID AND WOP.WorkOrderStageId = WTT.CurrentStageId
 						JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WC.WorkOrderId
 						JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WOP.WorkOrderStageId = WOSG.WorkOrderStageId	
 						JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WO.WorkOrderStatusId

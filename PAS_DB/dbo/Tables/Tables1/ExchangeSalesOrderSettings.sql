@@ -21,9 +21,13 @@
     [IsDeleted]                   BIT           CONSTRAINT [DF_ExchangeSalesOrderSettings_IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsApprovalRule]              BIT           NULL,
     [EffectiveDate]               DATETIME2 (7) NULL,
+    [FeesBillingIntervalDays]     INT           NULL,
+    [ExpectedConditionId]         BIGINT        NULL,
     CONSTRAINT [PK_ExchangeSalesOrderSettings] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderSettingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

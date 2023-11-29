@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Credit Memo Part Details
@@ -18,7 +17,7 @@
      
 -- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetCreditMemoDetailsById]
+CREATE   PROCEDURE [dbo].[GetCreditMemoDetailsById]
 @CreditMemoHeaderId bigint
 AS
 BEGIN
@@ -60,8 +59,10 @@ BEGIN
           ,CM.[IsDeleted]
 		  ,CM.[BillingInvoicingItemId]
 		  ,CASE WHEN CA.ActionId = 5 THEN 1 ELSE 0 END  'IsApproved'
+		  ,IM.ManufacturerName
   FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
+	   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
 	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    

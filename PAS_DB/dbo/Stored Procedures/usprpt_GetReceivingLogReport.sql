@@ -15,6 +15,7 @@
   ** S NO   Date            Author          Change Description              
   ** --   --------         -------          --------------------------------            
      1    27-April-2022  Mahesh Sorathiya   Created 
+	 2    20-JUNE-203     Devendra Shekh        made changes for total 
        
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -212,6 +213,9 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
+	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, 
+					manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+					lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
 SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
   SELECT 
         UPPER(POP.partnumber) 'pn',  
@@ -231,8 +235,8 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-        UPPER(POP.UnitCost) 'unitcost',  
-        UPPER(POP.ExtendedCost) 'extcost',  
+		ISNULL(POP.UnitCost, 0) 'unitcost',  
+        ISNULL(POP.ExtendedCost, 0) 'extcost',   
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
@@ -252,7 +256,8 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		UPPER(MSD.Level7Name) AS level7, 
 		UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
-		UPPER(MSD.Level10Name) AS level10  
+		UPPER(MSD.Level10Name) AS level10,
+		PO.MasterCompanyId
       FROM DBO.PurchaseOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId and POP.isParent=1  
         --INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON POP.ItemMasterId = im.ItemMasterId  
@@ -294,8 +299,8 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-        UPPER(POP.UnitCost) 'unitcost',  
-        UPPER(POP.ExtendedCost) 'extcost',  
+        ISNULL(POP.UnitCost, 0) 'unitcost',  
+        ISNULL(POP.ExtendedCost, 0) 'extcost',  
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
@@ -315,7 +320,8 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		UPPER(MSD.Level7Name) AS level7,
         UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
-		UPPER(MSD.Level10Name) AS level10  
+		UPPER(MSD.Level10Name) AS level10,
+		PO.MasterCompanyId
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
@@ -336,8 +342,30 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-   ) T ORDER BY rcvddate
-     OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
+   ) T )
+   ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+				lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
+			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+				lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
+
+			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost ) 
+			  AS (SELECT masterCompanyId, 
+				FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
+				FORMAT(SUM(extcost), 'N', 'en-us') TotalExtCost
+				FROM FinalCTE
+				GROUP BY masterCompanyId)
+
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
+					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
+					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
+					qtyrej, qtyonbacklog, lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+					level9, level10,
+					WC.TotalUnitCost,
+					WC.TotalExtCost
+					FROM FinalCTE FC
+					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+			    	ORDER BY rcvddate
+					OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
   
   END TRY  
   

@@ -35,11 +35,14 @@
     [IsDeleted]             BIT             CONSTRAINT [CustomerRMAHeader_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ReferenceId]           BIGINT          NOT NULL,
     [PDFPath]               NVARCHAR (2000) NULL,
+    [ReceiverNum]           VARCHAR (30)    NULL,
     CONSTRAINT [PK_CustomerRMAHeader] PRIMARY KEY CLUSTERED ([RMAHeaderId] ASC),
     CONSTRAINT [FK_CustomerRMAHeader_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerRMAHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_CustomerRMAHeader_RMAStatusId] FOREIGN KEY ([RMAStatusId]) REFERENCES [dbo].[RMAStatus] ([RMAStatusId])
 );
+
+
 
 
 

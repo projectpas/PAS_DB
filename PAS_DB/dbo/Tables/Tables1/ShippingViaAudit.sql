@@ -11,6 +11,9 @@
     [IsActive]           BIT            NOT NULL,
     [IsDeleted]          BIT            NOT NULL,
     [Description]        VARCHAR (500)  NULL,
+    [CarrierId]          BIGINT         NULL,
     PRIMARY KEY CLUSTERED ([AuditShippingViaId] ASC)
 );
+
+
 

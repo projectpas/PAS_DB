@@ -26,6 +26,10 @@
     [DetailsNotProvided]        BIT           CONSTRAINT [DF_TimeLifeAudit_DetailsNotProvided] DEFAULT ((1)) NOT NULL,
     [RepairOrderId]             BIGINT        NULL,
     [RepairOrderPartRecordId]   BIGINT        NULL,
+    [VendorRMAId]               BIGINT        NULL,
+    [VendorRMADetailId]         BIGINT        NULL,
     CONSTRAINT [PK_TimeLifeAudit] PRIMARY KEY CLUSTERED ([TimeLifeCyclesAuditId] ASC)
 );
+
+
 

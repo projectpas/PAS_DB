@@ -3,7 +3,7 @@
 -- Create date: 3-Sep-2021
 -- Description:	Get Search Data for Speed Quote List
 -- ==================================================
-CREATE PROCEDURE [dbo].[SearchSpeedQuoteViewData]
+CREATE   PROCEDURE [dbo].[SearchSpeedQuoteViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -36,7 +36,8 @@ CREATE PROCEDURE [dbo].[SearchSpeedQuoteViewData]
 	@AccountTypeName varchar(50)='',
 	@LeadSourceReference varchar(50)='',
 	@ConditionCodeType varchar(50)='',
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@ManufacturerNameType varchar(50)=''
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -128,6 +129,20 @@ BEGIN
 							) A
 							WHERE ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))
 							Group By SQ.SpeedQuoteId,A.PartDescription
+							)
+							,ManufacturerNameTypeCTE AS(
+							SELECT SQ.SpeedQuoteId,(Case When Count(SP.SpeedQuotePartId) > 1 Then 'Multiple' ELSE A.ManufacturerName End)  as 'ManufacturerNameType',A.ManufacturerName from SpeedQuote SQ WITH (NOLOCK)
+							Left Join SpeedQuotePart SP WITH (NOLOCK) On SQ.SpeedQuoteId=SP.SpeedQuoteId AND SP.IsActive = 1 AND SP.IsDeleted = 0
+							Outer Apply(
+								SELECT 
+								   STUFF((SELECT ', ' + I.ManufacturerName
+										  FROM SpeedQuotePart S WITH (NOLOCK)
+										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+										  FOR XML PATH('')), 1, 1, '') ManufacturerName
+							) A
+							WHERE ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))
+							Group By SQ.SpeedQuoteId,A.ManufacturerName
 							),
 							PartConditionCodeCTE AS(
 							SELECT SQ.SpeedQuoteId,(Case When Count(SP.SpeedQuotePartId) > 1 Then 'Multiple' ELSE A.ConditionCode End)  as 'ConditionCodeType',A.ConditionCode from SpeedQuote SQ WITH (NOLOCK)
@@ -146,13 +161,14 @@ BEGIN
 							Result AS(
 							SELECT M.SpeedQuoteId,M.SpeedQuoteNumber,M.OpenDate as 'QuoteDate',M.CustomerId,M.Name as 'CustomerName',M.Status,
 										M.VersionNumber,IsNull(M.SoAmount,0) as 'QuoteAmount',M.IsNewVersionCreated,M.StatusId,M.CustomerReference,
-										M.SalesPerson,PT.PartNumber,PT.PartNumberType,PD.PartDescription,
+										M.SalesPerson,PT.PartNumber,PT.PartNumberType,PD.PartDescription,MM.ManufacturerName,MM.ManufacturerNameType,
 										PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',IsNULL(M.SoAmount,0) as 'SoAmount',M.CreatedDate,
 										M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.CustomerCode,M.QuoteExpireDate,M.AccountTypeName,M.LeadSourceReference,M.LeadSourceName,M.Probability,
 										PC.ConditionCode,PC.ConditionCodeType
 										from Main M 
 							Left Join PartCTE PT On M.SpeedQuoteId=PT.SpeedQuoteId
 							Left Join PartDescCTE PD on PD.SpeedQuoteId=M.SpeedQuoteId
+							Left Join ManufacturerNameTypeCTE MM on MM.SpeedQuoteId=M.SpeedQuoteId
 							Left Join PartConditionCodeCTE PC on PC.SpeedQuoteId=M.SpeedQuoteId
 							WHERE (
 							(@GlobalFilter <>'' AND ((M.SpeedQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SpeedQuoteNumber like '%' +@GlobalFilter+'%') OR
@@ -163,6 +179,7 @@ BEGIN
 									(M.SalesPerson like '%' +@GlobalFilter+'%') OR
 									(PT.PartNumberType like '%' +@GlobalFilter+'%') OR
 									(PD.PartDescriptionType like '%' +@GlobalFilter+'%') OR
+									(MM.ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 									(M.CustomerReference like '%' +@GlobalFilter+'%') OR
 									(M.CustomerTypeName like '%' +@GlobalFilter+'%') OR 
 									(M.CreatedBy like '%' +@GlobalFilter+'%') OR
@@ -184,6 +201,7 @@ BEGIN
 									(IsNull(@SalesPerson,'') ='' OR M.SalesPerson like '%'+@SalesPerson+'%') and
 									(IsNull(@PartNumberType,'') ='' OR PT.PartNumberType like '%'+@PartNumberType+'%') and
 									(IsNull(@PartDescriptionType,'') ='' OR PD.PartDescriptionType like '%'+@PartDescriptionType+'%') and
+									(IsNull(@ManufacturerNameType,'') ='' OR MM.ManufacturerNameType like '%'+@ManufacturerNameType+'%') and
 									(IsNull(@CustomerReference,'') ='' OR M.CustomerReference like '%'+@CustomerReference+'%') and
 									(IsNull(@CustomerType,'') ='' OR M.CustomerTypeName like '%'+@CustomerType+'%') and
 									(IsNull(@VersionNumber,'') ='' OR M.VersionNumber like '%'+@VersionNumber+'%') and
@@ -203,7 +221,7 @@ BEGIN
 							), CTE_Count AS (SELECT COUNT(SpeedQuoteId) AS NumberOfItems FROM Result)
 							SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 							,CustomerReference,
-							SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ConditionCode,ConditionCodeType,
+							SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,ManufacturerName,ManufacturerNameType,CustomerType,ConditionCode,ConditionCodeType,
 							CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,CustomerCode,LeadSourceName,Probability,QuoteExpireDate,AccountTypeName,LeadSourceReference FROM Result,CTE_Count
 							ORDER BY  
 							CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
@@ -229,6 +247,7 @@ BEGIN
 							CASE WHEN (@SortOrder=1 and @SortColumn='ACCOUNTTYPENAME')  THEN AccountTypeName END ASC,
 							CASE WHEN (@SortOrder=1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END ASC,
 							CASE WHEN (@SortOrder=1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END ASC,
+						    CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END ASC,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,
@@ -251,6 +270,7 @@ BEGIN
 							CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEEXPIREDATE')  THEN QuoteExpireDate END Desc,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='ACCOUNTTYPENAME')  THEN AccountTypeName END Desc,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='LEADSOURCEREFERENCE')  THEN LeadSourceReference END Desc,
+							CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END Desc,
 							CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY

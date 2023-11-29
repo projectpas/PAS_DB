@@ -92,8 +92,12 @@
     [ManufacturerPN]             VARCHAR (150)   NULL,
     [AssetModel]                 VARCHAR (30)    NULL,
     [AssetClass]                 VARCHAR (50)    NULL,
+    [IsLotAssigned]              BIT             NULL,
+    [LotId]                      BIGINT          NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 
 
 

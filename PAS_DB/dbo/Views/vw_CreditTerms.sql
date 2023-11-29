@@ -1,4 +1,5 @@
-﻿CREATE VIEW [dbo].[vw_CreditTerms]
+﻿
+CREATE VIEW [dbo].[vw_CreditTerms]
 AS
 SELECT ct.[CreditTermsId]
       ,ct.[Name]
@@ -14,4 +15,4 @@ SELECT ct.[CreditTermsId]
       ,ct.[UpdatedDate]
       ,ct.[IsActive]
       ,ct.[IsDeleted]
-  FROM [dbo].[CreditTerms] ct INNER JOIN dbo.[Percent] p  ON ct.[Percentage]=p.PercentId
+  FROM [dbo].[CreditTerms] ct left JOIN dbo.[Percent] p  ON ct.[Percentage]=p.PercentId

@@ -27,11 +27,20 @@
     [ExportUomName]               VARCHAR (200)   NULL,
     [ExportSizeUnitOfMeasureName] VARCHAR (200)   NULL,
     [ExportClassificationIdName]  VARCHAR (200)   NULL,
+    [IsIATR]                      BIT             DEFAULT ((0)) NOT NULL,
+    [IsExportLicense]             BIT             DEFAULT ((0)) NOT NULL,
+    [ScheduleB]                   VARCHAR (15)    NULL,
+    [HSCode]                      VARCHAR (15)    NULL,
+    [HTSCode]                     VARCHAR (15)    NULL,
+    [ECCNDeterminationSourceID]   INT             DEFAULT ((0)) NOT NULL,
+    [ECCNDeterminationSourceName] VARCHAR (100)   NULL,
     CONSTRAINT [PK_ItemMasterExportInfo] PRIMARY KEY CLUSTERED ([ItemMasterExportInfoId] ASC),
     CONSTRAINT [FK_ItemMasterExportInfo_Currency] FOREIGN KEY ([ExportCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_ItemMasterExportInfo_ExportClassification] FOREIGN KEY ([ExportClassificationId]) REFERENCES [dbo].[ExportClassification] ([ExportClassificationId]),
     CONSTRAINT [FK_ItemMasterExportInfo_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

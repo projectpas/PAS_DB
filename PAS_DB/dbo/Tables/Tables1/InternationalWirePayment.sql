@@ -19,10 +19,13 @@
     [BankLocation1]              VARCHAR (250) NULL,
     [BankLocation2]              VARCHAR (250) NULL,
     [GLAccountId]                BIGINT        NULL,
+    [VendorBankAccountTypeId]    INT           NULL,
     CONSTRAINT [PK_InternationalWirePayment] PRIMARY KEY CLUSTERED ([InternationalWirePaymentId] ASC),
     CONSTRAINT [FK_InternationalWirePayment_Address] FOREIGN KEY ([BankAddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_InternationalWirePayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

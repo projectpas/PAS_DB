@@ -13,7 +13,10 @@
     [IsActive]                      BIT            NOT NULL,
     [IsDeleted]                     BIT            NOT NULL,
     [PDFPath]                       NVARCHAR (MAX) NULL,
+    [FedexPdfPath]                  VARCHAR (MAX)  NULL,
     CONSTRAINT [PK_SalesOrderShippingItemAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderShippingItemId] ASC),
     CONSTRAINT [FK_SalesOrderShippingItemAudit_SalesOrderShippingItem] FOREIGN KEY ([SalesOrderShippingItemId]) REFERENCES [dbo].[SalesOrderShippingItem] ([SalesOrderShippingItemId])
 );
+
+
 

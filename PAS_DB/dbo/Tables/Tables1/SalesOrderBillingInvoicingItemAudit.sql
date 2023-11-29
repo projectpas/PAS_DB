@@ -15,7 +15,12 @@
     [UnitPrice]                     DECIMAL (20, 2) NULL,
     [SalesOrderShippingId]          BIGINT          NULL,
     [PDFPath]                       NVARCHAR (MAX)  NULL,
+    [StockLineId]                   BIGINT          NULL,
+    [VersionNo]                     VARCHAR (100)   NULL,
+    [IsVersionIncrease]             BIT             NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItemAudit_SalesOrderBillingInvoicingItem] FOREIGN KEY ([SOBillingInvoicingItemId]) REFERENCES [dbo].[SalesOrderBillingInvoicingItem] ([SOBillingInvoicingItemId])
 );
+
+
 

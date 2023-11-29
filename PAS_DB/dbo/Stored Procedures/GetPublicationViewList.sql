@@ -20,35 +20,36 @@
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetPublicationViewList]
-	-- Add the parameters for the stored procedure here
-	@PageNumber int=null,
-	@PageSize int=null,
-	@SortColumn varchar(50)=null,
-	@SortOrder int=null,	
-	@GlobalFilter varchar(50) = null,	
-	@PublicationId varchar(50)=null,
-	@Description varchar(50)=null,
-	@PublicationType varchar(50)=null,
-	@PublishedBy varchar(50)=null,
-	@VerifiedBy varchar(50)=null,
-	@RevisionDate datetime=null,
-	@CreatedDate datetime=null,
-    @UpdatedDate  datetime=null,
-	@RevisionNum varchar(50)=null,
-	@NextReviewDate datetime=null,
-	@ExpirationDate datetime=null,
-	@Location varchar(50)=null,
-	@VerifiedDate datetime=null,
-	@PartNos varchar(50)=null,
-	@PnDescription varchar(50)=null,
-	@AtaChapterName varchar(50)=null,
-	@StatusID int=null,	
-	@IsDeleted bit = null,	
-	@CreatedBy varchar(50)=null,
-	@UpdatedBy varchar(50)=null,
-	@EmployeeId bigint=null,
-    @MasterCompanyId bigint=null
+CREATE   PROCEDURE [dbo].[GetPublicationViewList]	
+@PageNumber int=null,
+@PageSize int=null,
+@SortColumn varchar(50)=null,
+@SortOrder int=null,	
+@GlobalFilter varchar(50) = null,	
+@PublicationId varchar(50)=null,
+@Description varchar(50)=null,
+@PublicationType varchar(50)=null,
+@PublishedBy varchar(50)=null,
+@VerifiedBy varchar(50)=null,
+@RevisionDate datetime=null,
+@CreatedDate datetime=null,
+@UpdatedDate  datetime=null,
+@RevisionNum varchar(50)=null,
+@NextReviewDate datetime=null,
+@ExpirationDate datetime=null,
+@Location varchar(50)=null,
+@VerifiedDate datetime=null,
+@PartNos varchar(50)=null,
+@PnDescription varchar(50)=null,
+@Manufacturers varchar(50)=null,
+@AtaChapterName varchar(50)=null,
+@StatusID int=null,	
+@IsDeleted bit = null,	
+@CreatedBy varchar(50)=null,
+@UpdatedBy varchar(50)=null,
+@EmployeeId bigint=null,
+@MasterCompanyId bigint=null,
+@ModuleID bigint=null
 AS
 BEGIN
     -- SET NOCOUNT ON added to prevent extra result sets from
@@ -94,77 +95,111 @@ BEGIN
 						pu.[Description],
 						pt.[Name] AS PublicationType,
 						pemp.ModuleName  AS PublishedBy,
-						ISNULL(pu.RevisionDate,'')AS RevisionDate,
+						pu.RevisionDate AS RevisionDate,
 						pu.RevisionNum,
-						ISNULL(pu.NextReviewDate,'') AS NextReviewDate,
-					    ISNULL(pu.ExpirationDate,'') AS ExpirationDate,
+						pu.NextReviewDate AS NextReviewDate,
+					    pu.ExpirationDate AS ExpirationDate,
 						loc.[Name] AS [Location],
 						e.FirstName AS VerifiedBy,
-						ISNULL(pu.VerifiedDate,'') AS VerifiedDate,
+						pu.VerifiedDate AS VerifiedDate,
 						pu.CreatedDate,
 					    pu.UpdatedDate,
 					    pu.CreatedBy,
 					    pu.UpdatedBy,
 						pu.IsActive,
-					    pu.IsDeleted
-						--IsNull(A.PartNumber,'') AS PartNos,						
-					    --IsNull(B.PartDescription,'') AS PnDescription						 				   
-					   FROM Publication pu WITH (NOLOCK)
-					   INNER JOIN  PublicationType pt WITH (NOLOCK) ON pU.PublicationTypeId = pt.PublicationTypeId
-                        LEFT JOIN Employee e WITH (NOLOCK) ON pu.VerifiedBy = e.EmployeeId    
-                        LEFT JOIN [Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
-                        LEFT JOIN Module pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId  
-				 
-				  WHERE pu.IsDeleted = 0 AND (@IsActive is null or pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
+					    pu.IsDeleted,
+					     REPLACE(REPLACE(STUFF(
+						(SELECT distinct ',' + t1.AllMSlevels
+						 FROM [dbo].[PublicationManagementStructureDetails] t1 WITH (NOLOCK)
+						 INNER JOIN [dbo].[Publication] t WITH (NOLOCK)
+						    ON t1.PublicationRecordId = t.PublicationRecordId 
+						 WHERE pu.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, ''),'&lt;p&gt;','<p>'),'&lt;/p&gt;','</p>') AllMSlevels,
+						 STUFF(
+						(SELECT DISTINCT ',' + t1.LastMSLevel
+						 FROM [dbo].[PublicationManagementStructureDetails] t1
+						 INNER JOIN [dbo].[Publication] t
+						     ON t1.PublicationRecordId = t.PublicationRecordId 
+						 WHERE pu.PublicationRecordId = t.PublicationRecordId 
+						 FOR XML PATH ('')), 1, 1, '') LastMSLevel
+						 
+					   FROM [dbo].[Publication] pu WITH (NOLOCK)
+					   INNER JOIN  [dbo].[PublicationType] pt WITH (NOLOCK) ON pU.PublicationTypeId = pt.PublicationTypeId
+                        LEFT JOIN  [dbo].[Employee] e WITH (NOLOCK) ON pu.VerifiedBy = e.EmployeeId    
+                        LEFT JOIN  [dbo].[Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
+                        LEFT JOIN  [dbo].[Module] pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId  
+				  WHERE pu.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
 				  PartCTE AS(
-						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',
-						A.PartNumber from Publication PC WITH (NOLOCK)
-						Left Join PublicationItemMasterMapping PCI WITH (NOLOCK) On PC.PublicationRecordId = PCI.PublicationRecordId
-						Outer Apply(
+						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',
+						A.PartNumber FROM [dbo].[Publication] PC WITH (NOLOCK)
+						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT ',' + I.partnumber
-									  FROM PublicationItemMasterMapping S WITH (NOLOCK)
-									  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+									  Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
 									  Where S.PublicationRecordId = PC.PublicationRecordId
 									  AND S.IsActive = 1 AND S.IsDeleted = 0
 									  FOR XML PATH('')), 1, 1, '') PartNumber
 						) A
-						Where ((PC.IsDeleted = @IsDeleted))
+						WHERE ((PC.IsDeleted = @IsDeleted))
 						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
-						Group By PC.PublicationRecordId, A.PartNumber
-						),
-				
+						GROUP BY PC.PublicationRecordId, A.PartNumber
+						),				
 				  PartDescCTE AS(
-						Select PC.PublicationRecordId, (Case When Count(PCI.PublicationRecordId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PartDescriptionType',
-						A.PartDescription from Publication PC WITH (NOLOCK)
-						Left Join PublicationItemMasterMapping PCI WITH (NOLOCK) On PC.PublicationRecordId = PCI.PublicationRecordId
-						Outer Apply(
+						Select PC.PublicationRecordId, (CASE WHEN COUNT(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELSE A.PartDescription END)  AS 'PartDescriptionType',
+						A.PartDescription FROM [dbo].[Publication] PC WITH (NOLOCK)
+						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT ', ' + I.PartDescription
-									  FROM PublicationItemMasterMapping S WITH (NOLOCK)
-									  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.PublicationRecordId = PC.PublicationRecordId
+									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+									  LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId
+									  WHERE S.PublicationRecordId = PC.PublicationRecordId
 									  AND S.IsActive = 1 AND S.IsDeleted = 0
 									  FOR XML PATH('')), 1, 1, '') PartDescription
 						) A
-						Where ((PC.IsDeleted = @IsDeleted))
+						WHERE ((PC.IsDeleted = @IsDeleted))
 						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
-						Group By PC.PublicationRecordId,A.PartDescription
-						),Results AS(
+						GROUP BY PC.PublicationRecordId,A.PartDescription
+						),						
+				ManufacturerCTE AS(
+						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELse A.Manufacturer End) AS 'ManufacturerType',
+						A.Manufacturer FROM [dbo].[Publication] PC WITH (NOLOCK)
+						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
+						OUTER APPLY(
+							SELECT 
+							   STUFF((SELECT ',' + MF.Name
+									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+									  LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
+									  Where S.PublicationRecordId = PC.PublicationRecordId
+									  AND S.IsActive = 1 AND S.IsDeleted = 0
+									  FOR XML PATH('')), 1, 1, '') Manufacturer
+						) A
+						WHERE ((PC.IsDeleted = @IsDeleted))
+						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
+						GROUP BY PC.PublicationRecordId, A.Manufacturer
+						),			
+						Results AS(
 						Select M.PublicationRecordId, PublicationId,M.[Description] as 'Description',
-							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',ISNULL(M.RevisionDate,'')AS RevisionDate,
-							   M.RevisionNum as 'RevisionNum',ISNULL(M.NextReviewDate,'') AS NextReviewDate,
-									ISNULL(M.ExpirationDate,'') AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy', ISNULL(M.VerifiedDate,'') AS VerifiedDate,
+							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.RevisionDate AS RevisionDate,
+							   M.RevisionNum as 'RevisionNum',M.NextReviewDate AS NextReviewDate,
+									M.ExpirationDate AS ExpirationDate,[Location] as 'Location', VerifiedBy AS 'VerifiedBy',M.VerifiedDate AS VerifiedDate,
 									M.CreatedDate,M.UpdatedDate,M.CreatedBy,M.UpdatedBy,M.IsActive,M.IsDeleted, PT.PartNumber, PT.PartNumberType as 'PartNos',
-									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription'
-									from Result M 
-						Left Join PartCTE PT On M.PublicationRecordId = PT.PublicationRecordId
-						Left Join PartDescCTE PD on PD.PublicationRecordId = M.PublicationRecordId),
+									PD.PartDescription,PD.PartDescriptionType  as 'PnDescription',M.LastMSLevel,M.AllMSlevels,
+									MFG.Manufacturer,MFG.ManufacturerType AS 'Manufacturers'
+						FROM Result M 
+						LEFT JOIN PartCTE PT ON M.PublicationRecordId = PT.PublicationRecordId
+						LEFT JOIN PartDescCTE PD ON PD.PublicationRecordId = M.PublicationRecordId
+						LEFT JOIN ManufacturerCTE MFG ON MFG.PublicationRecordId = M.PublicationRecordId						
+						),
 				  ResultCount AS(Select COUNT(PublicationRecordId) AS totalItems FROM Results)
 				  SELECT * INTO #TempResult FROM Results				  
 				  WHERE ((@GlobalFilter <>'' AND  
 				    ((PartNos LIKE '%' +@GlobalFilter+'%') OR
 				    (PnDescription LIKE '%' +@GlobalFilter+'%') OR
+					(Manufacturers LIKE '%' +@GlobalFilter+'%') OR
 					(RevisionNum LIKE '%' +@GlobalFilter+'%') OR
 				    (PublicationId LIKE '%' +@GlobalFilter+'%') OR
 					([Description] LIKE '%' +@GlobalFilter+'%') OR	
@@ -179,6 +214,7 @@ BEGIN
 					(@GlobalFilter='' AND
 					(ISNULL(@PartNos,'') ='' OR PartNos LIKE '%' + @PartNos + '%') AND
 					(ISNULL(@PnDescription,'') ='' OR PnDescription LIKE '%' + @PnDescription + '%') AND
+					(ISNULL(@Manufacturers,'') ='' OR Manufacturers LIKE '%' + @Manufacturers + '%') AND
 					(ISNULL(@RevisionNum,'') ='' OR RevisionNum LIKE '%' + @RevisionNum + '%') AND
 					(ISNULL(@PublicationId,'') ='' OR PublicationId LIKE '%' + @PublicationId+'%') AND 					
 					(ISNULL(@Description,'') ='' OR [Description] LIKE '%' + @Description + '%') AND
@@ -202,6 +238,8 @@ BEGIN
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNos')  THEN PartNos END DESC,
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='PnDescription')  THEN PnDescription END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='PnDescription')  THEN PnDescription END DESC,
+				   CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturers')  THEN Manufacturers END ASC,
+			       CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturers')  THEN Manufacturers END DESC,
 			       CASE WHEN (@SortOrder=1  AND @SortColumn='RevisionNum')  THEN RevisionNum END ASC,
 			       CASE WHEN (@SortOrder=-1 AND @SortColumn='RevisionNum')  THEN RevisionNum END DESC,
 				   CASE WHEN (@SortOrder=1  AND @SortColumn='PublicationId')  THEN PublicationId END ASC,

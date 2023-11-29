@@ -14,11 +14,12 @@
  ** --   --------     -------		--------------------------------          
     1    12/23/2020   Hemant Saliya Created
 	1    05/05/2020   Hemant Saliya Added Try-catch & Content Managment
+	3    05/25/2020   Subhash Saliya Get Data From Customer type wise
      
--- EXEC [AutoCompleteDropdownsCustomer] 'he',0,25,'108,109,11',1,1
+-- EXEC [AutoCompleteDropdownsCustomer] '',1,25,'0',1,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
+Create   PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -58,7 +59,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -67,7 +69,12 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.CustomerAffiliationId = 2 OR c.CustomerAffiliationId = 3) AND (c.Name LIKE  '%'+ @StartWith + '%'))    
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H 
+							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))    AND (c.CustomerAffiliationId = 2)
 					   UNION     
 							SELECT DISTINCT
 								c.CustomerId,
@@ -85,7 +92,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -94,6 +102,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H 
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
 					End
@@ -115,7 +128,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -124,7 +138,12 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted,0) = 0 AND (c.CustomerAffiliationId = 2 OR c.CustomerAffiliationId = 3) AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
+						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted,0) = 0 AND (c.CustomerAffiliationId = 2) AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
 						SELECT DISTINCT TOP 20 
 								c.CustomerId,
@@ -142,7 +161,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -151,11 +171,16 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	
 					END
 				END
-				ELSE IF(@customerType = 2)
+				ELSE IF(@customerType = 2 or @customerType = 3 or @customerType = 4)
 				BEGIN
 					IF(@IsActive = 1)
 					BEGIN		
@@ -175,7 +200,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -184,6 +210,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND c.CustomerAffiliationId = 1 AND (c.Name LIKE '%'+ @StartWith + '%' ))    
 					   UNION     
 							SELECT DISTINCT
@@ -202,7 +233,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -211,6 +243,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
 					End
@@ -232,7 +269,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -241,6 +279,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 						WHERE c.IsActive=1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.CustomerAffiliationId = 1 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
 						SELECT DISTINCT TOP 20 
@@ -259,7 +302,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -268,6 +312,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	
 					END
@@ -292,7 +341,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -301,6 +351,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+								( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+								) H
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%'+ @StartWith + '%' ))    
 					   UNION     
 							SELECT DISTINCT
@@ -319,7 +374,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -328,6 +384,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
 					End
@@ -349,7 +410,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -358,6 +420,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
 						SELECT DISTINCT TOP 20 
@@ -376,7 +443,8 @@ BEGIN
 								emp.FirstName AS SalesPerson,
 								ct.Name CreditTerm,
 								c.RestrictPMA,
-								c.RestrictDER
+								c.RestrictDER,
+								ISNULL(H.ARBalance,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -385,6 +453,11 @@ BEGIN
 								LEFT JOIN dbo.Employee e WITH(NOLOCK) ON e.EmployeeId = cs.CsrId
 								LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON emp.EmployeeId = cs.PrimarySalesPersonId
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+								OUTER APPLY 
+									( 
+									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	
 					END

@@ -36,36 +36,39 @@ BEGIN
 			BEGIN
 			
 				    DECLARE @ManagementStructureId INT;
+					DECLARE @MSModuleId INT;
+					DECLARE @WopartId INT;
+				    SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
-
-					SELECT @ManagementStructureId = WS.ManagementStructureId FROM DBO.SubWorkOrderPartNumber sWS WITH (NOLOCK) inner join WorkOrderPartNumber ws on sws.WorkOrderId=ws.WorkOrderId 
+					SELECT @WopartId = WS.ID,@ManagementStructureId = WS.ManagementStructureId FROM DBO.SubWorkOrderPartNumber sWS WITH (NOLOCK) inner join WorkOrderPartNumber ws on sws.WorkOrderId=ws.WorkOrderId 
 					WHERE sWS.SubWorkOrderId = (select top 1 wop.SubWorkOrderId FROM [dbo].SubWorkOrder_ReleaseFrom_8130 wro WITH(NOLOCK)
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId where wro.SubReleaseFromId =  @ReleaseFromId )
 				 SELECT 
 					   wro.[SubReleaseFromId]
-					  ,wro.[WorkorderId]
+					  ,wo.[WorkorderId]
 					  ,wro.[SubWorkOrderId]
 					  ,wro.[SubWOPartNoId]
 					  ,wro.[Country]
 					  ,wro.[OrganizationName]
-					  ,wro.[InvoiceNo]
+					  ,wro.[InvoiceNo] as SWOInvoiceNo
+					  ,wo.WorkOrderNum [InvoiceNo]
 					  ,wro.[ItemName]
-					  ,wro.[Description]
-					  ,wro.[PartNumber]
+					  ,UPPER(wro.[Description]) as Description
+					  ,UPPER(wro.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,wro.[Batchnumber]
-					  ,wro.[status]
+					  ,UPPER(wro.[Batchnumber]) as Batchnumber 
+					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
 					  ,wro.[approved]
 					  ,wro.[Nonapproved]
 					  ,wro.[AuthorisedSign]
-					  ,wro.[AuthorizationNo]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [AuthorizationNo]
 					  ,wro.[PrintedName]
 					  ,wro.[Date]
 					  ,wro.[AuthorisedSign2]
-					  ,wro.[ApprovalCertificate]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [ApprovalCertificate]
 					  ,wro.[PrintedName2]
 					  ,wro.[Date2]
 					  ,wro.[CFR]
@@ -82,11 +85,18 @@ BEGIN
 					  ,wro.[is8130from]
 					  ,wro.[IsClosed]
 					  ,wop.[islocked]
+					  ,wop.[IsFinishGood]
+					  ,wro.[PDFPath]
 					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
 					  ,wop.CustomerRequestDate as ReceivedDate,
 					@ManagementStructureId as ManagementStructureId
 				FROM [dbo].SubWorkOrder_ReleaseFrom_8130 wro WITH(NOLOCK)
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId
+				      LEFT JOIN dbo.WorkOrder wo WITH(NOLOCK) on wo.WorkorderId = wop.WorkOrderId
+					  LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
+					  LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+					  LEFT JOIN dbo.SubWorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9
+					  LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 				WHERE wro.SubReleaseFromId=@ReleaseFromId
 			END
 		COMMIT  TRANSACTION

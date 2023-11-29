@@ -18,12 +18,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
-     
+    2    02/06/2023   Rajesh Gami   Added Figure and Item field for the audit
  EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
-**************************************************************/ 
-    
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderMaterialsAuditList]    
+**************************************************************/     
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsAuditList]    
 (    
 @WorkOrderMaterialsId BIGINT = NULL  
 )    
@@ -127,7 +126,7 @@ SET NOCOUNT ON
 					CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 					IsRoleUp = 0,
 					WOM.ProvisionId,
-					CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreaetd,
+					CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
 					CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 					isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 					WOM.CreatedBy,
@@ -136,6 +135,8 @@ SET NOCOUNT ON
 					WOM.UpdatedDate,
 					ROP.EstRecordDate 'RONextDlvrDate',
 					RO.RepairOrderNumber
+					,WOM.Figure
+					,WOM.Item
 				FROM dbo.WorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 					JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId

@@ -15,7 +15,7 @@
     [MobilePhone]      VARCHAR (20)   NULL,
     [AlternatePhone]   VARCHAR (20)   NULL,
     [Fax]              VARCHAR (20)   NULL,
-    [Email]            VARCHAR (30)   NULL,
+    [Email]            VARCHAR (200)  NULL,
     [WebsiteURL]       VARCHAR (200)  NULL,
     [Notes]            NVARCHAR (MAX) NULL,
     [MasterCompanyId]  INT            NOT NULL,
@@ -30,4 +30,6 @@
     [Attention]        VARCHAR (250)  NULL,
     CONSTRAINT [PK_ContactAudit] PRIMARY KEY CLUSTERED ([AuditContactId] ASC)
 );
+
+
 

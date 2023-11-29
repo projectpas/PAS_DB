@@ -1,4 +1,5 @@
-﻿CREATE  Procedure [dbo].[UpdateRepairOrderDetail]
+﻿
+CREATE    Procedure [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -53,67 +54,69 @@ BEGIN
 		UPDATE RepairOrderApproval
 		SET ApprovedByName = AE.FirstName + ' ' + AE.LastName,
 			RejectedByName = RE.FirstName + ' ' + RE.LastName,
-			StatusName = ASS.Description
+			StatusName = ASS.Description,
+			InternalSentToName = (INST.FirstName + ' ' + INST.LastName)
 		FROM dbo.RepairOrderApproval PA
 			 LEFT JOIN dbo.Employee AE on PA.ApprovedById = AE.EmployeeId
 			 LEFT JOIN dbo.Employee RE on PA.RejectedBy = RE.EmployeeId
+			 LEFT JOIN DBO.Employee INST WITH (NOLOCK) ON INST.EmployeeId = PA.InternalSentToId
 			 LEFT JOIN dbo.ApprovalStatus ASS on PA.StatusId = ASS.ApprovalStatusId;
 
 
-		DECLARE @MSID as bigint
-		DECLARE @Level1 as varchar(200)
-		DECLARE @Level2 as varchar(200)
-		DECLARE @Level3 as varchar(200)
-		DECLARE @Level4 as varchar(200)
+		--DECLARE @MSID as bigint
+		--DECLARE @Level1 as varchar(200)
+		--DECLARE @Level2 as varchar(200)
+		--DECLARE @Level3 as varchar(200)
+		--DECLARE @Level4 as varchar(200)
 
-		IF OBJECT_ID(N'tempdb..#RepairOrderPartMSDATA') IS NOT NULL
-		BEGIN
-		DROP TABLE #RepairOrderPartMSDATA 
-		END
-		CREATE TABLE #RepairOrderPartMSDATA
-		(
-		 MSID bigint,
-		 Level1 varchar(200) NULL,
-		 Level2 varchar(200) NULL,
-		 Level3 varchar(200) NULL,
-		 Level4 varchar(200) NULL 
-		)
+		--IF OBJECT_ID(N'tempdb..#RepairOrderPartMSDATA') IS NOT NULL
+		--BEGIN
+		--DROP TABLE #RepairOrderPartMSDATA 
+		--END
+		--CREATE TABLE #RepairOrderPartMSDATA
+		--(
+		-- MSID bigint,
+		-- Level1 varchar(200) NULL,
+		-- Level2 varchar(200) NULL,
+		-- Level3 varchar(200) NULL,
+		-- Level4 varchar(200) NULL 
+		--)
 
-		IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-		BEGIN
-		DROP TABLE #MSDATA 
-		END
-		CREATE TABLE #MSDATA
-		(
-			ID int IDENTITY, 
-			MSID bigint 
-		)
-		INSERT INTO #MSDATA (MSID)
-		  SELECT PO.ManagementStructureId FROM dbo.RepairOrder PO WITH (NOLOCK) Where PO.RepairOrderId = @RepairOrderId
+		--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+		--BEGIN
+		--DROP TABLE #MSDATA 
+		--END
+		--CREATE TABLE #MSDATA
+		--(
+		--	ID int IDENTITY, 
+		--	MSID bigint 
+		--)
+		--INSERT INTO #MSDATA (MSID)
+		--  SELECT PO.ManagementStructureId FROM dbo.RepairOrder PO WITH (NOLOCK) Where PO.RepairOrderId = @RepairOrderId
 
-		INSERT INTO #MSDATA (MSID)
-		  SELECT DISTINCT ROP.ManagementStructureId
-			 FROM dbo.RepairOrderPart ROP WITH (NOLOCK) Where ROP.RepairOrderId = @RepairOrderId
-				  AND ROP.ManagementStructureId 
-				  NOT IN (SELECT MSID FROM #MSDATA)
+		--INSERT INTO #MSDATA (MSID)
+		--  SELECT DISTINCT ROP.ManagementStructureId
+		--	 FROM dbo.RepairOrderPart ROP WITH (NOLOCK) Where ROP.RepairOrderId = @RepairOrderId
+		--		  AND ROP.ManagementStructureId 
+		--		  NOT IN (SELECT MSID FROM #MSDATA)
 
-		DECLARE @LoopID as int 
-		SELECT  @LoopID = MAX(ID) FROM #MSDATA
-		WHILE(@LoopID > 0)
-		BEGIN
-		SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
+		--DECLARE @LoopID as int 
+		--SELECT  @LoopID = MAX(ID) FROM #MSDATA
+		--WHILE(@LoopID > 0)
+		--BEGIN
+		--SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
 
-		EXEC dbo.GetMSNameandCode @MSID,
-		 @Level1 = @Level1 OUTPUT,
-		 @Level2 = @Level2 OUTPUT,
-		 @Level3 = @Level3 OUTPUT,
-		 @Level4 = @Level4 OUTPUT
+		--EXEC dbo.GetMSNameandCode @MSID,
+		-- @Level1 = @Level1 OUTPUT,
+		-- @Level2 = @Level2 OUTPUT,
+		-- @Level3 = @Level3 OUTPUT,
+		-- @Level4 = @Level4 OUTPUT
 
-		INSERT INTO #RepairOrderPartMSDATA
-					(MSID, Level1,Level2,Level3,Level4)
-			  SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-		SET @LoopID = @LoopID - 1;
-		END 
+		--INSERT INTO #RepairOrderPartMSDATA
+		--			(MSID, Level1,Level2,Level3,Level4)
+		--	  SELECT @MSID,@Level1,@Level2,@Level3,@Level4
+		--SET @LoopID = @LoopID - 1;
+		--END 
 
 
 		--IF OBJECT_ID(N'tempdb..#RepairOrderPartStockline') IS NOT NULL
@@ -177,17 +180,18 @@ BEGIN
 		RO.VendorCode = V.VendorCode,
 		RO.VendorContact = ISNULL(C.FirstName,'') + ' ' + ISNULL(C.LastName,''),
 		RO.VendorContactPhone = ISNULL(C.WorkPhone,'') + '-' + ISNULL(C.WorkPhoneExtn,''),
+		RO.VendorContactEmail = ISNULL(C.Email,''),
 		RO.Terms = CT.Name,
 		RO.CreditLimit = ISNULL(V.CreditLimit,0.00),
 		RO.Status = RS.Description,
 		RO.Requisitioner = ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,''),
-		RO.Level1 = RMS.Level1,
-		RO.Level2 = RMS.Level2,
-		RO.Level3 = RMS.Level3,
-		RO.Level4 = RMS.Level4,
+		--RO.Level1 = RMS.Level1,
+		--RO.Level2 = RMS.Level2,
+		--RO.Level3 = RMS.Level3,
+		--RO.Level4 = RMS.Level4,
 		RO.ApprovedBy = ISNULL(AP.FirstName,'') + ' ' + ISNULL(AP.LastName,'')
 		FROM dbo.RepairOrder RO WITH (NOLOCK)
-		LEFT JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = RO.ManagementStructureId
+		--LEFT JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = RO.ManagementStructureId
 		LEFT JOIN ROStatus RS WITH (NOLOCK) on RS.ROStatusId = RO.StatusId
 		LEFT JOIN Vendor V WITH (NOLOCK) ON V.VendorId = RO.VendorId
 		LEFT JOIN VendorContact VC WITH (NOLOCK) ON VC.VendorContactId = RO.VendorContactId
@@ -243,36 +247,36 @@ BEGIN
 		INNER JOIN dbo.RepairOrderPart POP1 WITH (NOLOCK) ON POP.ParentId = POP1.RepairOrderPartRecordId AND POP.RepairOrderId =  @RepairOrderId;
 
 		UPDATE dbo.RepairOrderPart SET
-		   PartNumber = IM.partnumber,
-		   PartDescription = IM.PartDescription,
-		   AltEquiPartNumber = AIM.PartNumber,
-		   AltEquiPartDescription = AIM.PartDescription,
-		   StockType = (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
+		   PartNumber =CASE WHEN ROP.IsAsset=1 THEN asi.AssetId ELSE IM.partnumber END,
+		   PartDescription =CASE WHEN ROP.IsAsset=1 THEN asi.Description ELSE IM.PartDescription END,
+		   AltEquiPartNumber =CASE WHEN ROP.IsAsset=1 THEN (select AssetId from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE  AIM.PartNumber END,
+		   AltEquiPartDescription =CASE WHEN ROP.IsAsset=1 THEN (select Name from Asset where AssetRecordId=ROP.AltEquiPartNumberId ) ELSE AIM.PartDescription END,
+		   StockType =CASE WHEN ROP.IsAsset=1 THEN '' ELSE (CASE WHEN IM.IsPma = 1 AND IM.IsDER = 1 THEN 
 							'PMA&DER' 
 							WHEN IM.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA' 
 							WHEN IM.IsPma = 0 AND IM.IsDER = 1  THEN 'DER' 
 							ELSE 'OEM'
-							END),
+							END) END,
 		   Manufacturer = MF.[NAME],
 		   [Priority] = PR.[Description],
 		   Condition = CO.[Description],
 		   FunctionalCurrency = CR.Code,
 		   ReportCurrency= RC.Code,
-		   StockLineNumber = SL.StockLineNumber,
-		   ControlId = SL.IdNumber,
-		   ControlNumber = SL.ControlNumber,
+		   StockLineNumber =CASE WHEN ROP.IsAsset=1 THEN asi.StklineNumber ELSE  SL.StockLineNumber END,
+		   ControlId =CASE WHEN ROP.IsAsset=1 THEN '' else SL.IdNumber END,
+		   ControlNumber =CASE WHEN ROP.IsAsset=1 THEN asi.ControlNumber ELSE SL.ControlNumber END,
 		   PurchaseOrderNumber= Po.PurchaseOrderNumber, 
 		   WorkOrderNo =  WO.WorkOrderNum ,
 		   SubWorkOrderNo =SWO.SubWorkOrderNo, 
 		   SalesOrderNo = SO.SalesOrderNumber,
-		   ItemTypeId = IM.ItemTypeId,
-		   ItemType = IT.[Description],   
+		   ItemTypeId =CASE WHEN ROP.IsAsset=1 THEN (select ItemTypeId from ItemType where Name='Asset') ELSE IM.ItemTypeId END,
+		   ItemType =CASE WHEN ROP.IsAsset=1 THEN (select Description from ItemType where Name='Asset') ELSE IT.[Description] END,   
 		   GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
 		   UnitOfMeasure = UOM.ShortName,
-		   Level1 = RMS.Level1,
-		   Level2 = RMS.Level2,
-		   Level3 = RMS.Level3,
-		   Level4 = RMS.Level4,	
+		   --Level1 = RMS.Level1,
+		   --Level2 = RMS.Level2,
+		   --Level3 = RMS.Level3,
+		   --Level4 = RMS.Level4,	
 		   RoPartSplitUserType = M.ModuleName, 
 		   ROPartSplitUser = CASE WHEN ROP.RoPartSplitUserTypeId = 1 THEN CUST.[Name] 
 								  WHEN ROP.RoPartSplitUserTypeId = 2 THEN VEN.VendorName
@@ -285,21 +289,21 @@ BEGIN
  									WHEN ROPartSplitUserTypeId = 9 THEN
  									(select TOP 1 ISNULL(SiteName,'') from LegalEntityShippingAddress WITH (NOLOCK) where LegalEntityShippingAddressId = ROP.ROPartSplitSiteId)
  									END),
-		   RevisedPartNumber = RIM.partnumber,
-		   WorkPerformed = WP.WorkPerformedCode
-
-
+		   RevisedPartNumber =CASE WHEN ROP.IsAsset=1 THEN (select AssetId from Asset where AssetRecordId=ROP.RevisedPartId ) ELSE RIM.partnumber END,
+		   WorkPerformed = CPT.CapabilityTypeDesc,
+		   SerialNumber = CASE WHEN ROP.IsAsset = 1 THEN ASI.SerialNo ELSE SL.SerialNumber END
 		FROM  dbo.RepairOrderPart ROP WITH (NOLOCK)
-			  INNER JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = ROP.ManagementStructureId
+			  --INNER JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = ROP.ManagementStructureId
 			  INNER JOIN RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId	
-			  INNER JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
-			  INNER JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
+			  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
+			  LEFT JOIN AssetInventory ASI WITH (NOLOCK) ON ROP.ItemMasterId=ASI.AssetRecordId and ROP.StockLineId=ASI.AssetInventoryId	
+			  LEFT JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
 			  INNER JOIN Priority PR WITH (NOLOCK) ON PR.PriorityId = ROP.PriorityId
 			  INNER JOIN Currency CR WITH (NOLOCK) ON CR.CurrencyId = ROP.FunctionalCurrencyId
 			  INNER JOIN Currency RC WITH (NOLOCK) ON RC.CurrencyId = ROP.ReportCurrencyId
-			  INNER JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
+			  LEFT JOIN Manufacturer MF WITH (NOLOCK) ON MF.ManufacturerId = ROP.ManufacturerId
 			  INNER JOIN GLAccount    GLA WITH (NOLOCK) ON GLA.GLAccountId = ROP.GlAccountId
-			  INNER JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
+			  LEFT JOIN UnitOfMeasure  UOM WITH (NOLOCK)  ON UOM.UnitOfMeasureId = ROP.UOMId
 			  LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = ROP.WorkOrderId
 			  LEFT JOIN ItemType ITP WITH (NOLOCK) ON ITP.ItemTypeId= ROP.ItemTypeId
 			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
@@ -314,7 +318,8 @@ BEGIN
 			  LEFT JOIN  ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
 			  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = ROP.RoPartSplitUserTypeId	
 			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
-			  LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
+			  --LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId
+			  LEFT JOIN CapabilityType CPT WITH (NOLOCK) ON ROP.WorkPerformedId=CPT.CapabilityTypeId
 
 		WHERE ROP.RepairOrderId  = @RepairOrderId 
 

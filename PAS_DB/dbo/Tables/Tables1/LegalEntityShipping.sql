@@ -2,7 +2,7 @@
     [LegalEntityShippingId]        BIGINT         IDENTITY (1, 1) NOT NULL,
     [LegalEntityId]                BIGINT         NOT NULL,
     [LegalEntityShippingAddressId] BIGINT         NOT NULL,
-    [ShipVia]                      VARCHAR (30)   NULL,
+    [ShipVia]                      VARCHAR (400)  NULL,
     [ShippingAccountInfo]          VARCHAR (200)  NOT NULL,
     [Memo]                         NVARCHAR (MAX) NULL,
     [MasterCompanyId]              INT            NOT NULL,
@@ -21,6 +21,8 @@
     CONSTRAINT [FK_LegalEntityShipping_ShippingViaId] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [Unique_LegalEntityShipping] UNIQUE NONCLUSTERED ([LegalEntityShippingAddressId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

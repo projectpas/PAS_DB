@@ -8,8 +8,11 @@
     [UpdatedDate]                   DATETIME2 (7) CONSTRAINT [DF_StocklineAdjustmentDataType_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                      BIT           CONSTRAINT [DF_StocklineAdjustmentDataType_IsActive] DEFAULT ((1)) NULL,
     [IsDeleted]                     BIT           CONSTRAINT [DF_StocklineAdjustmentDataType_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [SortOrder]                     INT           NULL,
     CONSTRAINT [PK_StocklineAdjustmentDataType] PRIMARY KEY CLUSTERED ([StocklineAdjustmentDataTypeId] ASC)
 );
+
+
 
 
 GO

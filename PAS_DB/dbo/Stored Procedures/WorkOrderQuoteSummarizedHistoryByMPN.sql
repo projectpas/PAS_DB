@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Quote Summarized History By MPN.    
@@ -19,19 +18,18 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Hemant Saliya Created
      
---EXEC [WorkOrderQuoteSummarizedHistoryByMPN] 5,0
+ EXEC [WorkOrderQuoteSummarizedHistoryByMPN] 129,0
 **************************************************************/
-
-CREATE PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
-@ItemMasterId BIGINT,
-@IsTwelveMonth BIT = 1
+CREATE   PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
+	@ItemMasterId BIGINT,
+	@IsTwelveMonth BIT = 1
 AS
 BEGIN
 	   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	   SET NOCOUNT ON;
 
-		BEGIN TRY
-			BEGIN TRANSACTION
+		--BEGIN TRY
+		--	BEGIN TRANSACTION
 				BEGIN  
 					DECLARE @Month INT;
 
@@ -79,7 +77,10 @@ BEGIN
 						(ISNULL(WOQD.MaterialCost, 0) + ISNULL(WOQD.LaborCost, 0) + ISNULL(WOQD.ChargesCost, 0)) AS DirectCost,
 						(ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)) -  (ISNULL(WOQD.MaterialCost, 0) + ISNULL(WOQD.LaborCost, 0) + ISNULL(WOQD.ChargesCost, 0)) As Margin,
 						CASE WHEN (ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)) > 0 
-							 THEN (((ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)) -  (ISNULL(WOQD.MaterialCost, 0) + ISNULL(WOQD.LaborCost, 0) + ISNULL(WOQD.ChargesCost, 0))) / (ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0))) * 100
+							 THEN 
+							 (CASE WHEN (ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)) > 0 THEN
+							 (((ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)) -  (ISNULL(WOQD.MaterialCost, 0) + ISNULL(WOQD.LaborCost, 0) + ISNULL(WOQD.ChargesCost, 0))) / (ISNULL(WOQD.MaterialFlatBillingAmount, 0) + ISNULL(WOQD.LaborFlatBillingAmount, 0) + ISNULL(WOQD.ChargesFlatBillingAmount, 0) + ISNULL(WOQD.FreightFlatBillingAmount, 0)))
+							 ELSE 0 END) * 100
 						ELSE 0 END AS MarginPercentage,
 						CASE WHEN UPPER(WOQS.Description) = 'APPROVED' THEN 'YES' ELSE 'NO' END AS ApprovedStatus,
 						WO.WorkOrderId
@@ -110,7 +111,7 @@ BEGIN
 							AND #tmpWorkOrderCostDetails.CurrencyName = CTE.CurrencyName
 
 						UPDATE #tmpWorkOrderCostDetails SET AvgMargin = ISNULL(AvgRevenue,0) - ISNULL(DirectCost, 0)
-						UPDATE #tmpWorkOrderCostDetails SET MarginPercentage = (AvgMargin * 100) / AvgRevenue
+						UPDATE #tmpWorkOrderCostDetails SET MarginPercentage = CASE WHEN AvgRevenue > 0 THEN (AvgMargin * 100) / AvgRevenue ELSE 0 END
 						SELECT * FROM #tmpWorkOrderCostDetails
 					END
 					ELSE
@@ -124,28 +125,28 @@ BEGIN
 					END
 
 				END
-			COMMIT  TRANSACTION
-		END TRY    
-		BEGIN CATCH      
-			IF @@trancount > 0
-				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
-				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+--			COMMIT  TRANSACTION
+--		END TRY    
+--		BEGIN CATCH      
+--			IF @@trancount > 0
+--				PRINT 'ROLLBACK'
+--				ROLLBACK TRAN;
+--				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'WorkOrderQuoteSummarizedHistoryByMPN' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@IsTwelveMonth AS VARCHAR(10)), '') + ''',
-													   @Parameter2 = ' + ISNULL(@ItemMasterId ,'') +''
-              , @ApplicationName VARCHAR(100) = 'PAS'
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+-------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+--              , @AdhocComments     VARCHAR(150)    = 'WorkOrderQuoteSummarizedHistoryByMPN' 
+--              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@IsTwelveMonth AS VARCHAR(10)), '') + ''',
+--													   @Parameter2 = ' + ISNULL(@ItemMasterId ,'') +''
+--              , @ApplicationName VARCHAR(100) = 'PAS'
+-------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 
-              exec spLogException 
-                       @DatabaseName           = @DatabaseName
-                     , @AdhocComments          = @AdhocComments
-                     , @ProcedureParameters = @ProcedureParameters
-                     , @ApplicationName        =  @ApplicationName
-                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
-              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
-              RETURN(1);
-		END CATCH
+--              exec spLogException 
+--                       @DatabaseName           = @DatabaseName
+--                     , @AdhocComments          = @AdhocComments
+--                     , @ProcedureParameters = @ProcedureParameters
+--                     , @ApplicationName        =  @ApplicationName
+--                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
+--              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+--              RETURN(1);
+--		END CATCH
 END

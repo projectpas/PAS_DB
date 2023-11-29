@@ -4,7 +4,7 @@
     [VendorId]                BIGINT         NOT NULL,
     [IsPrimary]               BIT            NOT NULL,
     [VendorShippingAddressId] BIGINT         NOT NULL,
-    [ShipVia]                 VARCHAR (30)   NULL,
+    [ShipVia]                 VARCHAR (400)  NULL,
     [ShippingAccountInfo]     VARCHAR (200)  NULL,
     [ShippingId]              VARCHAR (50)   NULL,
     [ShippingURL]             VARCHAR (50)   NULL,
@@ -20,4 +20,6 @@
     CONSTRAINT [PK_VendorShippingAudit] PRIMARY KEY CLUSTERED ([AuditVendorShippingId] ASC),
     CONSTRAINT [FK_VendorShippingAudit_VendorShipping] FOREIGN KEY ([VendorShippingId]) REFERENCES [dbo].[VendorShipping] ([VendorShippingId])
 );
+
+
 

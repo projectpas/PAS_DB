@@ -6,15 +6,30 @@
  ** Date		:   19-may-2021
 
      
- EXECUTE [dbo].[SearchItemMasterBySpeedQuotePopData] 303,1
+ EXECUTE [dbo].[SearchItemMasterBySpeedQuotePopData] 7,1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchItemMasterBySpeedQuotePopData]
+CREATE    PROCEDURE [dbo].[SearchItemMasterBySpeedQuotePopData]
 @ItemMasterIdlist VARCHAR(max) = '0',
 @mastercompanyid int
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON
+
+	DECLARE @OHCondition INT=NULL, @REPCondition INT=NULL,@BCCondition INT =NULL;
+
+	IF(@mastercompanyid = 11)
+	BEGIN
+		SELECT @OHCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'OVERHAULED';
+		SELECT @REPCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'REPAIRED';
+		SELECT @BCCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'BC';	
+	END
+	ELSE
+	BEGIN
+		SELECT @OHCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'OVERHAUL';
+		SELECT @REPCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'REPAIR';
+		SELECT @BCCondition = ConditionId FROM DBO.Condition WITH (NOLOCK) WHERE MasterCompanyId = @mastercompanyid AND Code = 'BC';	
+	END
 
 	 BEGIN TRY
 		BEGIN TRANSACTION
@@ -56,9 +71,9 @@ BEGIN
 					,im.IsPma
 					,ISNULL(imps.PP_UnitPurchasePrice,0) AS UnitCost
 					,ISNULL(imps.SP_CalSPByPP_UnitSalePrice,0) AS UnitSalePrice
-					,CASE WHEN c.Code ='BENCH CHECK' THEN im.turnTimeBenchTest
-					WHEN c.Code ='OVERHAUL' THEN im.TurnTimeOverhaulHours
-					WHEN c.Code ='REPAIR' THEN im.TurnTimeRepairHours
+					,CASE WHEN c.ConditionId = @BCCondition THEN im.turnTimeBenchTest
+					WHEN c.ConditionId = @OHCondition THEN im.TurnTimeOverhaulHours
+					WHEN c.ConditionId = @REPCondition THEN im.TurnTimeRepairHours
 					ELSE 0 END AS TAT
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (Select ConditionId from Condition where MasterCompanyId=@mastercompanyid)
@@ -72,7 +87,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-					AND c.Code in('OVERHAUL','REPAIR','BENCH CHECK')
+					AND c.ConditionId in(@OHCondition, @REPCondition, @BCCondition)
 				GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
@@ -99,9 +114,9 @@ BEGIN
 					,c.Code
 					--ORDER BY c.Description
 					order 
-						by case when c.Code = 'OVERHAUL' then 1
-						        when c.Code = 'REPAIR' then 2
-						        when c.Code = 'BENCH CHECK' then 3
+						by case when c.ConditionId = @OHCondition then 1
+						        when c.ConditionId = @REPCondition then 2
+						        when c.ConditionId = @BCCondition then 3
 						      else null end 
 			END
 		COMMIT  TRANSACTION

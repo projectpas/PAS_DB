@@ -1,4 +1,7 @@
-﻿CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
+﻿
+---------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 --@ConditionId BIGINT = NULL,
 @ConditionIds VARCHAR(100) = NULL,
@@ -7,7 +10,7 @@
 
 AS
 BEGIN
-
+    DECLARE @StockType int = 1;
 	SELECT 
 		im.PartNumber
 		,im.ItemMasterId As PartId
@@ -48,6 +51,7 @@ BEGIN
 	LEFT JOIN DBO.PurchaseOrderPart pop ON po.PurchaseOrderId = pop.PurchaseOrderId 
 		AND pop.ItemMasterId = im.ItemMasterId 
 		AND pop.IsDeleted = 0
+		AND pop.ItemTypeId = @StockType
 	LEFT JOIN DBO.ItemGroup ig ON im.ItemGroupId = ig.ItemGroupId
 	LEFT JOIN DBO.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 	LEFT JOIN DBO.ItemClassification ic ON im.ItemClassificationId = ic.ItemClassificationId

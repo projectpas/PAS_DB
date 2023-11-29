@@ -28,6 +28,11 @@
     [InternalRejectedID]       BIGINT         NULL,
     [CustomerRejectedDate]     DATETIME       NULL,
     [CustomerRejectedbyID]     BIGINT         NULL,
+    [InternalSentToId]         BIGINT         NULL,
+    [InternalSentToName]       VARCHAR (100)  NULL,
+    [InternalSentById]         BIGINT         NULL,
     CONSTRAINT [PK_WorkOrderApprovalsAudit] PRIMARY KEY CLUSTERED ([WorkOrderApprovalAuditId] ASC)
 );
+
+
 

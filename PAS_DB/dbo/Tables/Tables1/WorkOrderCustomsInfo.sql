@@ -19,10 +19,13 @@
     [UpdatedDate]            DATETIME2 (7)   CONSTRAINT [DF_WorkOrderCustomsInfo_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]               BIT             CONSTRAINT [DF_WCI_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT             CONSTRAINT [DF_WCI_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [CustomCurrencyId]       INT             NULL,
     CONSTRAINT [PK_WorkOrderCustomsInfo] PRIMARY KEY CLUSTERED ([WorkOrderCustomsInfoId] ASC),
     CONSTRAINT [FK_WorkOrderCustomsInfo_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderCustomsInfo_WorkOrderShipping] FOREIGN KEY ([WorkOrderShippingId]) REFERENCES [dbo].[WorkOrderShipping] ([WorkOrderShippingId])
 );
+
+
 
 
 GO

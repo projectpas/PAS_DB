@@ -21,7 +21,7 @@
     [InspectionDefaultVendorId]         BIGINT          NULL,
     [VerificationDefaultVendorId]       BIGINT          NULL,
     [CertificationFrequencyMonths]      TINYINT         NULL,
-    [CertificationFrequencyDays]        TINYINT         NULL,
+    [CertificationFrequencyDays]        BIGINT          NULL,
     [CertificationDefaultCost]          DECIMAL (18, 2) NULL,
     [CertificationGlAccountId]          BIGINT          NULL,
     [CertificationMemo]                 NVARCHAR (MAX)  NULL,
@@ -29,13 +29,13 @@
     [InspectionGlaAccountId]            BIGINT          NULL,
     [InspectionDefaultCost]             DECIMAL (18, 2) NULL,
     [InspectionFrequencyMonths]         TINYINT         NULL,
-    [InspectionFrequencyDays]           TINYINT         NULL,
-    [VerificationFrequencyDays]         TINYINT         NULL,
+    [InspectionFrequencyDays]           BIGINT          NULL,
+    [VerificationFrequencyDays]         BIGINT          NULL,
     [VerificationFrequencyMonths]       TINYINT         NULL,
     [VerificationDefaultCost]           DECIMAL (18, 2) NULL,
     [CalibrationDefaultCost]            DECIMAL (18, 2) NULL,
     [CalibrationFrequencyMonths]        TINYINT         NULL,
-    [CalibrationFrequencyDays]          TINYINT         NULL,
+    [CalibrationFrequencyDays]          BIGINT          NULL,
     [CalibrationGlAccountId]            BIGINT          NULL,
     [CalibrationMemo]                   NVARCHAR (MAX)  NULL,
     [VerificationMemo]                  NVARCHAR (MAX)  NULL,
@@ -48,8 +48,14 @@
     [UpdatedBy]                         VARCHAR (256)   NULL,
     [CreatedDate]                       DATETIME2 (7)   NULL,
     [UpdatedDate]                       DATETIME2 (7)   NOT NULL,
+    [CalibrationProvider]               VARCHAR (10)    NULL,
+    [CertificationProvider]             VARCHAR (10)    NULL,
+    [InspectionProvider]                VARCHAR (10)    NULL,
+    [VerificationProvider]              VARCHAR (10)    NULL,
     CONSTRAINT [PK__AssetCalibrationAud__88889B1E86626B25] PRIMARY KEY CLUSTERED ([AssetCalibrationAuditId] ASC),
     CONSTRAINT [FK_AssetCalibrationAudit_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_AssetCalibrationAudit_AssetCalibration] FOREIGN KEY ([AssetCalibrationId]) REFERENCES [dbo].[AssetCalibration] ([AssetCalibrationId])
 );
+
+
 

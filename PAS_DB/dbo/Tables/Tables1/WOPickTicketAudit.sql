@@ -21,6 +21,9 @@
     [IsConfirmed]         BIT            NULL,
     [ConfirmedDate]       DATETIME2 (7)  NULL,
     [PDFPath]             NVARCHAR (MAX) NULL,
+    [QtyRemaining]        INT            NULL,
     CONSTRAINT [PK_WOPickTicketAudit] PRIMARY KEY CLUSTERED ([PickTicketAuditId] ASC)
 );
+
+
 

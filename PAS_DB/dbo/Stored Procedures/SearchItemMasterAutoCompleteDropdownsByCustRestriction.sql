@@ -18,7 +18,7 @@
      
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
+ CREATE   PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]  
   @CustomerId INT,
   @CustRestrictedDer BIT,
   @CustRestrictedPMA BIT,
@@ -47,6 +47,8 @@ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]
 							StockLineId BIGINT,
 							PartId BIGINT,      
 							PartNumber VARCHAR(MAX),
+							Label VARCHAR(MAX),
+							ManufacturerName VARCHAR(MAX),
 							PartDescription VARCHAR(MAX),
 							StockType VARCHAR(50),
 							QuantityOnHand INT,
@@ -67,6 +69,8 @@ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]
 								StockLineId BIGINT,
 								PartId BIGINT,      
 								PartNumber VARCHAR(MAX),
+								Label VARCHAR(MAX),
+								ManufacturerName VARCHAR(MAX),
 								PartDescription VARCHAR(MAX),
 								StockType VARCHAR(50),
 								QuantityOnHand INT,
@@ -79,10 +83,12 @@ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]
 
 				CREATE TABLE #RestrictedPart(PartId BIGINT) 
 
-				INSERT INTO #TempTable (PartId, PartNumber, PartDescription, StockType, ItemClassificationId, ItemClassification, UnitOfMeasureId, UnitOfMeasure, UnitCost, ConditionId, StockLineId, QuantityOnHand, QtyAvailable)
+				INSERT INTO #TempTable (PartId, PartNumber,Label,ManufacturerNamem, PartDescription, StockType, ItemClassificationId, ItemClassification, UnitOfMeasureId, UnitOfMeasure, UnitCost, ConditionId, StockLineId, QuantityOnHand, QtyAvailable)
 				SELECT DISTINCT TOP 20
 					  im.ItemMasterId AS PartId,
-					  im.partnumber + ' - ' + sl.StockLineNumber AS PartNumber,
+					  im.partnumber AS PartNumber,
+					  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS label,
+					  im.ManufacturerName AS ManufacturerName,
 					  im.PartDescription AS PartDescription,
 					  (CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
 						WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
@@ -132,10 +138,12 @@ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]
 
 				IF(@Idlist IS NOT NULL)
 				BEGIN
-					INSERT INTO #Result(PartId, PartNumber, PartDescription, StockType, ItemClassificationId, ItemClassification, UnitOfMeasureId, UnitOfMeasure, UnitCost, ConditionId, StockLineId, QuantityOnHand, QtyAvailable)
+					INSERT INTO #Result(PartId, PartNumber,Label,ManufacturerNamem, PartDescription, StockType, ItemClassificationId, ItemClassification, UnitOfMeasureId, UnitOfMeasure, UnitCost, ConditionId, StockLineId, QuantityOnHand, QtyAvailable)
 					SELECT DISTINCT TOP 20
 						  im.ItemMasterId AS PartId,
-						  im.partnumber + ' - ' + sl.StockLineNumber AS PartNumber,
+						  im.partnumber  AS PartNumber,
+						  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS label,
+					      im.ManufacturerName AS ManufacturerName,
 						  im.PartDescription AS PartDescription,
 						  (CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
 							WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
@@ -165,9 +173,10 @@ CREATE PROCEDURE [dbo].[SearchItemMasterAutoCompleteDropdownsByCustRestriction]
 
 				SELECT TOP 20 
 					PartId AS Value, 
-					PartNumber AS Label,
+					label AS Label,
 					PartId AS ItemMasterId, 
 					PartNumber, 
+					ManufacturerName,
 					PartDescription, 
 					StockType, 
 					ItemClassificationId, 

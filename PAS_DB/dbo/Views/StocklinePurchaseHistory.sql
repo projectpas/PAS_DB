@@ -1,4 +1,7 @@
-﻿Create view [dbo].[StocklinePurchaseHistory] as
+﻿
+---------------------------------------------------------------------------------------------------
+
+CREATE view [dbo].[StocklinePurchaseHistory] as
 select distinct
 IT.Description as ItemType,
 PO.purchaseordernumber as #ofPO,
@@ -12,7 +15,7 @@ VNDRCLS.classificationname as Classification
 from stockline STL
 LEFT JOIN Itemtype IT ON STL.itemtypeid=IT.itemtypeid
 LEFT JOIN PurchaseOrder PO ON STL.PurchaseOrderId=PO.PurchaseOrderId
-LEFT JOIN PurchaseOrderPart POP ON PO.PurchaseOrderId=POP.PurchaseOrderId
+LEFT JOIN PurchaseOrderPart POP ON PO.PurchaseOrderId=POP.PurchaseOrderId AND POP.ItemTypeId = 1
 LEFT JOIN Vendor VNDR ON STL.VendorId=VNDR.VendorId
 LEFT JOIN Condition CNDN ON STL.ConditionId=CNDN.ConditionId
 LEFT JOIN ClassificationMapping CM ON VNDR.VendorId=CM.ModuleId

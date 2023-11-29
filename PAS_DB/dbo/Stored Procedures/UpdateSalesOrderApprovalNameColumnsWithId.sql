@@ -15,6 +15,7 @@ BEGIN
 		CustomerApprovedBy = (Con.FirstName + ' ' + Con.LastName),
 		RejectedByName = (Reg.FirstName + ' ' + Reg.LastName),
 		InternalRejectedByName = (InReg.FirstName + ' ' + InReg.LastName),
+		InternalSentToName = (INST.FirstName + ' ' + INST.LastName),
 		ApprovalAction = (CASE WHEN SOA.ApprovalActionId = 1 THEN 'SentForInternalApproval'
 								WHEN SOA.ApprovalActionId = 2 THEN 'SubmitInternalApproval'
 								WHEN SOA.ApprovalActionId = 3 THEN 'SentForCustomerApproval'
@@ -28,6 +29,7 @@ BEGIN
 		LEFT JOIN DBO.Contact Con WITH (NOLOCK) ON Con.ContactId = SOA.CustomerApprovedById
 		LEFT JOIN DBO.Contact Reg WITH (NOLOCK) ON Reg.ContactId = SOA.RejectedById
 		LEFT JOIN DBO.Employee InReg WITH (NOLOCK) ON InReg.EmployeeId = SOA.InternalRejectedById
+		LEFT JOIN DBO.Employee INST WITH (NOLOCK) ON INST.EmployeeId = SOA.InternalSentToId
 		LEFT JOIN DBO.ApprovalStatus APSI WITH (NOLOCK) ON APSI.ApprovalStatusId = SOA.InternalStatusId
 		LEFT JOIN DBO.ApprovalStatus APSC WITH (NOLOCK) ON APSC.ApprovalStatusId = SOA.CustomerStatusId
 		Where SOA.SalesOrderApprovalId = @SalesOrderApprovalId

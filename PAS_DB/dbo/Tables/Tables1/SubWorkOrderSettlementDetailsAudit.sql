@@ -20,6 +20,9 @@
     [UserName]                            VARCHAR (500)  NULL,
     [sattlement_DateTime]                 DATETIME       NULL,
     [conditionName]                       VARCHAR (200)  NULL,
+    [RevisedItemmasterid]                 BIGINT         NULL,
     CONSTRAINT [PK_SubWorkOrderSettlementDetailsAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderSettlementDetailAuditId] ASC)
 );
+
+
 

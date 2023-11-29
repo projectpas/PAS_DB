@@ -55,6 +55,10 @@
     [PONum]                 VARCHAR (100)  NULL,
     [PONextDlvrDate]        DATETIME       NULL,
     [UnitSalesPricePerUnit] NUMERIC (9, 2) NULL,
+    [LotId]                 BIGINT         NULL,
+    [IsLotAssigned]         BIT            NULL,
     CONSTRAINT [PK_SalesOrderPartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 

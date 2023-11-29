@@ -18,8 +18,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
+	2    01/19/2022   Hemant Saliya Update Calculated Values
      
- EXECUTE USP_GetWorkOrderLaborAnalysisSummary 35, 35,0
+ EXECUTE USP_GetWorkOrderLaborAnalysisSummary 60, 67,false
 
 **************************************************************/ 
     
@@ -45,8 +46,9 @@ SET NOCOUNT ON
 								SELECT	SUM(wfx.EstimatedHours) AS AdjustedHours,wo.WorkOrderId
 								from  dbo.WorkOrderPartNumber wop 
 									JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
-									LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wop.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
-									LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wop.WorkflowId 
+									JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId
+									LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wowf.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
+									LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wowf.WorkflowId 
 									WHERE wop.WorkOrderId = @WorkOrderId 
 									GROUP BY wo.WorkOrderId
 			             )
@@ -56,9 +58,9 @@ SET NOCOUNT ON
 							wop.Id AS WOPartNum,
 							im.RevisedPart AS RevisedPN,
 							CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-							SUM(wl.Hours) AS [Hours],
+							ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+							--ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(CTE.AdjustedHours,0)) AS [Adjustments],
 							SUM(wl.Adjustments) AS [Adjustments],
-							--SUM(wl.AdjustedHours) AS [AdjustedHours],
 							isnull(CTE.AdjustedHours,0) AS [AdjustedHours],
 							SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
 							c.Name AS Customer,
@@ -86,8 +88,9 @@ SET NOCOUNT ON
 								SELECT	SUM(wfx.EstimatedHours) AS AdjustedHours,wo.WorkOrderId
 								from  dbo.WorkOrderPartNumber wop 
 									JOIN dbo.WorkOrder wo WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
-									LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wop.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
-									LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wop.WorkflowId 
+									JOIN dbo.WorkOrderWorkFlow wowf WITH (NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId
+									LEFT JOIN dbo.Workflow wf WITH (NOLOCK) ON wf.WorkflowId = wowf.WorkflowId and wf.WorkScopeId=wop.WorkOrderScopeId
+									LEFT JOIN dbo.WorkflowExpertiseList wfx WITH (NOLOCK) ON wfx.WorkflowId = wowf.WorkflowId 
 									WHERE wop.WorkOrderId = @WorkOrderId  AND wop.ID = @workOrderPartNoId 
 									GROUP BY wo.WorkOrderId
 			                )
@@ -97,9 +100,9 @@ SET NOCOUNT ON
 								im.PartDescription,
 								im.RevisedPart AS RevisedPN,
 								CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
-								SUM(wl.Hours) AS [Hours],
+								ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) AS [Hours],
+								--ISNULL(ISNULL(SUM(wl.Hours), 0) + ISNULL(SUM(wl.Adjustments), 0), 0) - SUM(ISNULL(CTE.AdjustedHours,0)) AS [Adjustments],
 								SUM(wl.Adjustments) AS [Adjustments],
-								--SUM(wl.AdjustedHours) AS [AdjustedHours],
 							    isnull(CTE.AdjustedHours,0) AS [AdjustedHours],
 								SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
 								c.Name AS Customer,

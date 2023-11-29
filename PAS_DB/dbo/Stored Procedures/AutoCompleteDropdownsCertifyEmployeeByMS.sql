@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/23/2020   Hemant Saliya Created
+	2    04/18/2022   Hemant Saliya Updated for MS Changes
      
 --EXEC [AutoCompleteDropdownsCertifyEmployeeByMS] '',1,200,'108,109,11',71,1
 **************************************************************/
@@ -41,9 +42,11 @@ BEGIN
 			IF(@Parameter4=1)
 			BEGIN		
 				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-				FROM dbo.Employee E WITH(NOLOCK) INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK)
-				ON E.EmployeeId = EMS.EmployeeId 
-				WHERE E.MasterCompanyId = @MasterCompanyId AND (E.IsActive = 1 AND E.EmployeeCertifyingStaff = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (EMS.ManagementStructureId = @ManagementStructureId OR E.ManagementStructureId = @ManagementStructureId) AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
+				FROM dbo.Employee E WITH(NOLOCK) 
+				INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH(NOLOCK) ON RMS.RoleId = EUR.RoleId and isnull(RMS.IsDeleted,0)=0
+				--INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK) ON E.EmployeeId = EMS.EmployeeId 				
+				WHERE E.MasterCompanyId = @MasterCompanyId AND (E.IsActive = 1 AND E.EmployeeCertifyingStaff = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (RMS.EntityStructureId =  @ManagementStructureId or E.ManagementStructureId = @ManagementStructureId) AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
 				UNION 
 				SELECT DISTINCT  EmployeeId AS Value, FirstName + ' ' + LastName AS Label
 				FROM dbo.Employee WITH(NOLOCK)
@@ -53,9 +56,11 @@ BEGIN
 			ELSE
 			BEGIN
 				SELECT DISTINCT top 20 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-				FROM dbo.Employee E WITH(NOLOCK) INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK)
-				ON E.EmployeeId = EMS.EmployeeId 
-				WHERE E.MasterCompanyId = @MasterCompanyId AND E.IsActive = 1 AND E.EmployeeCertifyingStaff = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (EMS.ManagementStructureId = @ManagementStructureId OR E.ManagementStructureId = @ManagementStructureId) AND FirstName LIKE '%' + @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'
+				FROM dbo.Employee E WITH(NOLOCK) 
+				INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH(NOLOCK) ON RMS.RoleId = EUR.RoleId and isnull(RMS.IsDeleted,0)=0
+				--INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK) ON E.EmployeeId = EMS.EmployeeId 
+				WHERE E.MasterCompanyId = @MasterCompanyId AND E.IsActive = 1 AND E.EmployeeCertifyingStaff = 1 AND ISNULL(E.IsDeleted, 0) = 0 AND (RMS.EntityStructureId =  @ManagementStructureId or E.ManagementStructureId = @ManagementStructureId) AND FirstName LIKE '%' + @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'
 				UNION 
 				SELECT DISTINCT  EmployeeId AS Value,FirstName + ' ' + LastName AS Label
 				FROM dbo.Employee WITH(NOLOCK)

@@ -11,10 +11,13 @@
     [UpdatedBy]           VARCHAR (256)  NOT NULL,
     [IsActive]            BIT            NOT NULL,
     [IsDeleted]           BIT            NOT NULL,
+    [CustomerID]          BIGINT         NULL,
     CONSTRAINT [PK_Nha_Tla_Alt_Equ_ItemMapping] PRIMARY KEY CLUSTERED ([ItemMappingId] ASC),
     CONSTRAINT [FK_Nha_Tla_Alt_Equ_ItemMapping_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_Nha_Tla_Alt_Equ_ItemMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

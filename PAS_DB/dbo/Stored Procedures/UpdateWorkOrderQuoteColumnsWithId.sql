@@ -44,6 +44,11 @@ BEGIN
 					LEFT JOIN dbo.CreditTerms CT WITH(NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId
 				WHERE WOQ.WorkOrderQuoteId = @WorkOrderQuoteId
 
+				UPDATE WOQA SET 
+					WOQA.InternalSentToName = (INST.FirstName + ' ' + INST.LastName)
+				FROM [dbo].[WorkOrderApproval] WOQA WITH(NOLOCK)
+				LEFT JOIN DBO.Employee INST WITH (NOLOCK) ON INST.EmployeeId = WOQA.InternalSentToId
+				WHERE WOQA.WorkOrderQuoteId = @WorkOrderQuoteId
 			END
 		COMMIT  TRANSACTION
 

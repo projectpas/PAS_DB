@@ -57,6 +57,12 @@
     [POId]                       BIGINT          NULL,
     [PONum]                      VARCHAR (100)   NULL,
     [PONextDlvrDate]             DATETIME        NULL,
+    [QtyToTurnIn]                INT             NULL,
+    [Figure]                     NVARCHAR (50)   NULL,
+    [Item]                       NVARCHAR (50)   NULL,
+    [ExpectedSerialNumber]       VARCHAR (30)    NULL,
     CONSTRAINT [PK_WorkOrderMaterialsAudit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsAuditId] ASC)
 );
+
+
 

@@ -1,7 +1,5 @@
 ﻿
 
-
-
 CREATE PROCEDURE [dbo].[ProcLegalEntityList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
@@ -66,13 +64,13 @@ BEGIN
 
 		;WITH Result AS(
 				SELECT DISTINCT t.LegalEntityId,
-                       (ISNULL(t.[Name],'')) 'Name' ,
-					   (ISNULL(t.CompanyCode,'')) 'CompanyCode' ,
+                       (ISNULL(Upper(t.[Name]),'')) 'Name' ,
+					   (ISNULL(Upper(t.CompanyCode),'')) 'CompanyCode' ,
                        (ISNULL(t.[Name],'')) 'MasterCompany' ,
-					   (ISNULL(ad.Line1,'')) 'Address1',
-					   (ISNULL(ad.Line2,'')) 'Address2',
-					   (ISNULL(ad.City,'')) 'City',                      
-                       (ISNULL(ad.StateOrProvince,'')) 'StateOrProvince',      
+					   (ISNULL(Upper(ad.Line1),'')) 'Address1',
+					   (ISNULL(Upper(ad.Line2),'')) 'Address2',
+					   (ISNULL(Upper(ad.City),'')) 'City',                      
+                       (ISNULL(Upper(ad.StateOrProvince),'')) 'StateOrProvince',      
                        (ISNULL(ad.PostalCode,'')) 'PostalCode',
 					   (ISNULL(cont.countries_name,'')) 'Country',
 					   (ISNULL(t.PhoneNumber,'')) 'PhoneNumber',
@@ -82,8 +80,8 @@ BEGIN
                        t.IsDeleted,
 					   t.CreatedDate,
                        t.UpdatedDate,
-					   t.CreatedBy,
-                       t.UpdatedBy			
+					   Upper(t.CreatedBy) CreatedBy,
+                       Upper(t.UpdatedBy) UpdatedBy			
 			   FROM dbo.LegalEntity t WITH (NOLOCK) LEFT JOIN dbo.[Address] ad WITH (NOLOCK) ON t.AddressId = ad.AddressId
 									  LEFT JOIN dbo.[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id							   
 							          LEFT JOIN dbo.[AttachmentDetails] atd WITH (NOLOCK) ON t.AttachmentId = atd.AttachmentId 			                 

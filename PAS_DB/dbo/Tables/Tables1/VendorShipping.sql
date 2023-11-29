@@ -3,7 +3,7 @@
     [VendorId]                BIGINT         NOT NULL,
     [IsPrimary]               BIT            CONSTRAINT [VendorShipping_DC_IsPrimary] DEFAULT ((0)) NOT NULL,
     [VendorShippingAddressId] BIGINT         NOT NULL,
-    [ShipVia]                 VARCHAR (30)   NULL,
+    [ShipVia]                 VARCHAR (400)  NULL,
     [ShippingAccountInfo]     VARCHAR (200)  NULL,
     [ShippingId]              VARCHAR (50)   NULL,
     [ShippingURL]             VARCHAR (50)   NULL,
@@ -23,6 +23,8 @@
     CONSTRAINT [FK_VendorShipping_VendorShippingAddress] FOREIGN KEY ([VendorShippingAddressId]) REFERENCES [dbo].[VendorShippingAddress] ([VendorShippingAddressId]),
     CONSTRAINT [Unique_VendorShipping] UNIQUE NONCLUSTERED ([VendorId] ASC, [VendorShippingAddressId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

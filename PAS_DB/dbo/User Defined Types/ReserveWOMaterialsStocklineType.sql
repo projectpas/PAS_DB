@@ -22,7 +22,14 @@
     [StockLineNumber]       NVARCHAR (500) NULL,
     [SerialNumber]          NVARCHAR (500) NULL,
     [ReservedBy]            NVARCHAR (500) NULL,
-    [IsStocklineAdded]      BIT            NULL);
+    [IsStocklineAdded]      BIT            NULL,
+    [KitId]                 BIGINT         NULL,
+    [IsAltPart]             BIT            NULL,
+    [IsEquPart]             BIT            NULL,
+    [AltPartMasterPartId]   BIGINT         NULL,
+    [EquPartMasterPartId]   BIGINT         NULL);
+
+
 
 
 

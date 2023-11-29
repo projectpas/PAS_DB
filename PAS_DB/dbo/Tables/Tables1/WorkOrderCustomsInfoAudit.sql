@@ -20,6 +20,9 @@
     [UpdatedDate]                 DATETIME2 (7)   NOT NULL,
     [IsActive]                    BIT             NOT NULL,
     [IsDeleted]                   BIT             NOT NULL,
+    [CustomCurrencyId]            INT             NULL,
     CONSTRAINT [PK_WorkOrderCustomsInfoAudit] PRIMARY KEY CLUSTERED ([WorkOrderCustomsInfoAuditId] ASC)
 );
+
+
 

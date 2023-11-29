@@ -3,7 +3,7 @@
     [CustomerId]                         BIGINT         NOT NULL,
     [CustomerDomensticShippingId]        BIGINT         NOT NULL,
     [IsPrimary]                          BIT            CONSTRAINT [DF__CustomerS__IsPri__19025A79] DEFAULT ((0)) NOT NULL,
-    [ShipVia]                            VARCHAR (30)   NULL,
+    [ShipVia]                            VARCHAR (400)  NULL,
     [ShippingAccountInfo]                VARCHAR (200)  NULL,
     [Memo]                               NVARCHAR (MAX) NULL,
     [MasterCompanyId]                    INT            NOT NULL,
@@ -21,6 +21,8 @@
     CONSTRAINT [FK_CustomerShipping_ShippingViaId] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [Unique_CustomerShipping] UNIQUE NONCLUSTERED ([CustomerId] ASC, [CustomerDomensticShippingId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

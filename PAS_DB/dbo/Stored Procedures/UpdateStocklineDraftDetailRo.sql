@@ -1,7 +1,27 @@
-﻿
+﻿/*************************************************************             
+ ** File:   [UpdateStocklineDraftDetailRo]            
+ ** Author:     
+ ** Description: This stored procedure is used to UPDATE stockline details for RO
+ ** Purpose:           
+ ** Date:   08/21/2023          
+            
+ ** PARAMETERS:  
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1   
+    2    10/13/2023   Devendra Shekh	timelife issue resolved
+  
 
---- exec UpdateStocklineDraftDetailRo  1
-CREATE  Procedure [dbo].[UpdateStocklineDraftDetailRo]
+ exec UpdateStocklineDraftDetailRo  132
+**************************************************************/  
+
+CREATE   Procedure [dbo].[UpdateStocklineDraftDetailRo]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -11,55 +31,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRY
 BEGIN TRANSACTION
 
-DECLARE @MSID as bigint
-DECLARE @Level1 as varchar(200)
-DECLARE @Level2 as varchar(200)
-DECLARE @Level3 as varchar(200)
-DECLARE @Level4 as varchar(200)
-
-IF OBJECT_ID(N'tempdb..#StocklineDraftMSDATA') IS NOT NULL
-BEGIN
-DROP TABLE #StocklineDraftMSDATA 
-END
-CREATE TABLE #StocklineDraftMSDATA
-(
- MSID bigint,
- Level1 varchar(200) NULL,
- Level2 varchar(200) NULL,
- Level3 varchar(200) NULL,
- Level4 varchar(200) NULL 
-)
-
-IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-BEGIN
-DROP TABLE #MSDATA 
-END
-CREATE TABLE #MSDATA
-(
-	ID int IDENTITY, 
-	MSID bigint 
-)
-INSERT INTO #MSDATA (MSID)
-  SELECT RO.ManagementStructureEntityId FROM dbo.StocklineDraft RO Where RO.RepairOrderId = @RepairOrderId
-
-
-DECLARE @LoopID as int 
-SELECT  @LoopID = MAX(ID) FROM #MSDATA
-WHILE(@LoopID > 0)
-BEGIN
-SELECT @MSID = MSID FROM #MSDATA WHERE ID  = @LoopID
-
-EXEC dbo.GetMSNameandCode @MSID,
- @Level1 = @Level1 OUTPUT,
- @Level2 = @Level2 OUTPUT,
- @Level3 = @Level3 OUTPUT,
- @Level4 = @Level4 OUTPUT
-
-INSERT INTO #StocklineDraftMSDATA (MSID, Level1,Level2,Level3,Level4)
-                              SELECT @MSID,@Level1,@Level2,@Level3,@Level4
-SET @LoopID = @LoopID - 1;
-END  
-
 
 UPDATE dbo.StocklineDraft SET ParentId =  (SELECT TOP 1 S.StockLineDraftId FROM dbo.StocklineDraft S WHERE 
 	                                      S.StockLineDraftNumber = SDF.StockLineDraftNumber 
@@ -67,10 +38,7 @@ UPDATE dbo.StocklineDraft SET ParentId =  (SELECT TOP 1 S.StockLineDraftId FROM 
 	  FROM dbo.StocklineDraft SDF WHERE SDF.RepairOrderId = @RepairOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
 
 UPDATE SD SET
-SD.Level1 = PMS.Level1,
-SD.Level2 = PMS.Level2,
-SD.Level3 = PMS.Level3,
-SD.Level4 = PMS.Level4,
+
 Manufacturer = MF.[NAME],
 Condition = CO.[Description],
 Warehouse = WH.[Name],
@@ -122,14 +90,16 @@ IsPMA = IM.IsPma,
 IsDER = IM.IsDER,
 OEM = IM.IsOEM,
 WorkOrderId = ROP.WorkOrderId,
+SalesOrderId = ROP.SalesOrderId,
 --TaggedByName = (ISNULL(Emp.FirstName,'')+' '+ISNULL(Emp.LastName,'')),
 UnitOfMeasure = UM.shortname,
 RevisedPartNumber = RIM.partnumber,
-TagType = TT.[Name]
+TagType = TT.[Name],
+[IsStkTimeLife] = IM.[isTimeLife]
 
 FROM dbo.StocklineDraft SD WITH (NOLOCK)
-INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId
-LEFT JOIN #StocklineDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
+INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId and ROP.ItemTypeId=1
+--LEFT JOIN #StocklineDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
 LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 LEFT JOIN dbo.Condition CO  WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
 LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId
@@ -168,34 +138,16 @@ LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId
 WHERE SD.RepairOrderId = @RepairOrderId
 
 UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) FROM dbo.Stockline  WITH (NOLOCK)
-WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
-WHERE ROP.RepairOrderId = @RepairOrderId 
-
---UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) FROM dbo.RepairOrderPart 
---WHERE ParentId = ROP.RepairOrderPartRecordId )) FROM dbo.RepairOrderPart ROP 
---WHERE ROP.RepairOrderId = @RepairOrderId AND ROP.isParent = 1;
+WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1 and ROP.ItemTypeId=1)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
+WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId=1
 
 
 UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
-where ParentId = POP.RepairOrderPartRecordId )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
-where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1
+where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId=1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
+where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId=1
 AND ISNULL((SELECT COUNT(RepairOrderPartRecordId)
 			from dbo.RepairOrderPart  WITH (NOLOCK)
-			where ParentId = POP.RepairOrderPartRecordId),0) > 0
-
-
---UPDATE StocklineDraft SET NHAItemMasterId = (
---SELECT TOP 1 NHA.MappingItemMasterId from dbo.StocklineDraft SLD 
---inner join dbo.Nha_Tla_Alt_Equ_ItemMapping NHA 
---           ON NHA.ItemMasterId = SLD.ItemMasterId AND NHA.MappingType = 3 AND  SLD.StockLineDraftId = SD.StockLineDraftId)
---FROM dbo.StocklineDraft SD
---		   WHERE SD.RepairOrderId = @RepairOrderId AND SD.NHAItemMasterId IS NULL
-
---UPDATE StocklineDraft SET TLAItemMasterId = (
---SELECT TOP 1 NHA.MappingItemMasterId from dbo.StocklineDraft SLD 
---inner join dbo.Nha_Tla_Alt_Equ_ItemMapping NHA 
---           ON NHA.ItemMasterId = SLD.ItemMasterId AND NHA.MappingType = 4 AND  SLD.StockLineDraftId = SD.StockLineDraftId)
---FROM dbo.StocklineDraft SD WHERE SD.RepairOrderId = @RepairOrderId AND SD.TLAItemMasterId IS NULL
+			where POP.ItemTypeId=1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
 
 SELECT RepairOrderNumber as value FROM dbo.RepairOrder PO WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId	
 
@@ -205,15 +157,7 @@ END TRY
   BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	   IF OBJECT_ID(N'tempdb..#StocklineDraftMSDATA') IS NOT NULL
-	   BEGIN
-	    DROP TABLE #StocklineDraftMSDATA 
-	   END
-	   IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	   BEGIN
-			DROP TABLE #MSDATA 
-	   END
-	   -- temp table drop
+	
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
 	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
@@ -236,13 +180,13 @@ END TRY
 
 		RETURN (1);           
   END CATCH
-	IF OBJECT_ID(N'tempdb..#StocklineDraftMSDATA') IS NOT NULL
-	BEGIN
-	   DROP TABLE #StocklineDraftMSDATA 
-	END
-	IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	BEGIN
-		DROP TABLE #MSDATA 
-	END
+	--IF OBJECT_ID(N'tempdb..#StocklineDraftMSDATA') IS NOT NULL
+	--BEGIN
+	--   DROP TABLE #StocklineDraftMSDATA 
+	--END
+	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
+	--BEGIN
+	--	DROP TABLE #MSDATA 
+	--END
 
 END

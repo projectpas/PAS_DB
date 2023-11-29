@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetWOShippingParentList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Shipping List    
@@ -22,7 +21,7 @@
      
  EXECUTE [sp_GetWOShippingParentList] 34, 39
 **************************************************************/
-CREATE Procedure [dbo].[sp_GetWOShippingParentList]
+Create   Procedure [dbo].[sp_GetWOShippingParentList]
 @WorkOrderId  bigint,
 @WorkOrderPartId bigint
 AS
@@ -36,8 +35,8 @@ BEGIN
 			BEGIN
 				SELECT 
 					wo.WorkOrderNum,
-					imt.partnumber,
-					imt.PartDescription,	
+					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+			        CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 					SUM(ISNULL(wopt.QtyToShip, 0)) as QtyToShip,
 					SUM(ISNULL(wosi.QtyShipped, 0)) as QtyShipped,
 					wop.WorkOrderId,
@@ -56,7 +55,7 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShippingItem wosi  WITH(NOLOCK) on wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId and wos.WorkOrderId = wo.WorkOrderId
 				WHERE wop.WorkOrderId = @WorkOrderId AND wopt.IsConfirmed = 1 --and wop.ID=@WorkOrderPartId
-				GROUP BY wo.WorkOrderNum,imt.partnumber,imt.PartDescription,cds.ShipViaId,wop.WorkOrderId,wop.ID;
+				GROUP BY wo.WorkOrderNum,imt.partnumber,imt.PartDescription,cds.ShipViaId,wop.WorkOrderId,wop.ID,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription;
 			END
 		COMMIT  TRANSACTION
 

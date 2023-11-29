@@ -11,9 +11,10 @@
     [IsDeleted]             BIT           CONSTRAINT [ManagementBin_DC_Delete] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ManagementBin] PRIMARY KEY CLUSTERED ([ManagementBinId] ASC),
     CONSTRAINT [FK_ManagementBin_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
-    CONSTRAINT [FK_ManagementBin_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_ManagementBin_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO
@@ -36,5 +37,50 @@ BEGIN
 	SELECT * FROM INSERTED
 
 	SET NOCOUNT ON;
+
+END
+GO
+
+
+
+
+
+Create TRIGGER [dbo].[Trg_ManagementBinSaveMSDetails]
+
+   ON  [dbo].[ManagementBin]
+
+   AFTER INSERT,UPDATE
+
+AS
+
+BEGIN
+
+
+	SET NOCOUNT ON;
+	DECLARE @ReferenceID bigint,@ModuleID int,@EntityMSID bigint,@MasterCompanyId bigint,@UpdatedBy VARCHAR(256),@MSDetailsId bigint
+
+	set @ModuleID=58
+
+	SELECT @ReferenceID=binid,@EntityMSID=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
+
+	 @UpdatedBy=UpdatedBy
+
+	FROM INSERTED
+
+	EXEC dbo.[USP_SaveMSDetails] @ModuleID, @ReferenceID, @EntityMSID, @MasterCompanyId, @UpdatedBy, @MSDetailsId OUTPUT
+
+	--IF UPDATE (ManagementSiteId) 
+ --   BEGIN
+ --       EXEC USP_UpdateMSDetails @ReferenceID, @EntityMSID, @UpdatedBy
+ --   END 
+	--else
+	--begin
+
+	--EXEC dbo.[USP_SaveMSDetails] @ModuleID, @ReferenceID, @EntityMSID, @MasterCompanyId, @UpdatedBy, @MSDetailsId OUTPUT
+
+	--end
+
+	
+
 
 END

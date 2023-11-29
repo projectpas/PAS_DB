@@ -22,13 +22,15 @@
     [IsDeleted]               BIT             CONSTRAINT [DF_WorkflowMaterial_IsDeleted] DEFAULT ((0)) NOT NULL,
     [MaterialMandatoriesName] VARCHAR (256)   NULL,
     [PartNumber]              VARCHAR (256)   NULL,
-    [PartDescription]         VARCHAR (256)   NULL,
+    [PartDescription]         VARCHAR (MAX)   NULL,
     [ItemClassificationId]    BIGINT          NULL,
     [ExtendedPrice]           DECIMAL (18, 2) NULL,
     [Order]                   INT             NULL,
     [MaterialMandatoriesId]   INT             NULL,
     [WFParentId]              BIGINT          NULL,
     [IsVersionIncrease]       BIT             NULL,
+    [Figure]                  NVARCHAR (50)   NULL,
+    [Item]                    NVARCHAR (50)   NULL,
     CONSTRAINT [PK_ProcessMaterial_1] PRIMARY KEY CLUSTERED ([WorkflowMaterialListId] ASC),
     CONSTRAINT [FK_WorkflowMaterial_ConditionCodeId] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkflowMaterial_ItemClassificationId] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
@@ -38,6 +40,8 @@
     CONSTRAINT [FK_WorkflowMaterial_UnitOfMeasureId] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkflowMaterial_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

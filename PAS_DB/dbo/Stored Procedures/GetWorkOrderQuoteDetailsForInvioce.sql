@@ -19,7 +19,7 @@
     1    05/25/2021   Hemant Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
      
--- EXEC [GetWorkOrderQuoteDetailsForInvioce] 186
+-- EXEC [GetWorkOrderQuoteDetailsForInvioce] 81, 83
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
@@ -63,7 +63,9 @@ BEGIN
                      LaborMarkupId,
                      ChargesMarkupId,
                      FreightMarkupId,
-                     ExclusionsMarkupId
+                     ExclusionsMarkupId,
+					 QuoteMethod,
+					 CommonFlatRate
 				FROM DBO.WorkOrderQuoteDetails WQD  WITH(NOLOCK) 
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId
 				WHERE WorkflowWorkOrderId = @workflowWorkorderId AND WOPartNoId = @WorkOrderPartNoId AND IsVersionIncrease = 0

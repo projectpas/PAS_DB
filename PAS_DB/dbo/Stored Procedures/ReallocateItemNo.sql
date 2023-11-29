@@ -25,21 +25,22 @@ BEGIN
 			)
 
 			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId)
-			       SELECT SalesOrderPartId,ItemMasterId,ConditionId
-				       FROM dbo.SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
-
-			--SELECT * FROM #tmpSalesOrderPart
+			SELECT SalesOrderPartId,ItemMasterId,ConditionId FROM dbo.SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
 
 			DECLARE  @MasterLoopID as bigint  = 0;
 			DECLARE  @ConditionID as bigint  = 0;
 			DECLARE  @ItemMasterID as bigint  = 0;
-			DECLARE  @RankID as bigint  = 1;
-			SELECT @MasterLoopID = MAX(ID) FROM #tmpSalesOrderPart        
+			DECLARE  @RankID as bigint  = 0;
+			SELECT @MasterLoopID = MAX(ID) FROM #tmpSalesOrderPart
+
 			WHILE (@MasterLoopID > 0)
-			BEGIN
-				 
-				 SELECT  @ConditionID = ConditionId,
-				         @ItemMasterID = ItemMasterId FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
+			BEGIN	 
+				 SELECT  @ConditionID = ConditionId, @ItemMasterID = ItemMasterId FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
+
+				 IF EXISTS (SELECT ID FROM #tmpSalesOrderPart wHERE LineId = 0 AND ID = @MasterLoopID) 
+				 BEGIN
+				    SET @RankID = @RankID +  1;
+				 END
 
                  UPDATE #tmpSalesOrderPart 
 				      SET LineId =  @RankID 
@@ -47,16 +48,9 @@ BEGIN
 					                          AND ItemMasterId = @ItemMasterID
 											  AND LineId = 0
 
-                 IF EXISTS (SELECT ID FROM #tmpSalesOrderPart wHERE LineId = 0 ) 
-				 BEGIN
-				    SET @RankID = @RankID +  1;
-				 END
-
 				 SET @MasterLoopID = @MasterLoopID - 1;
 			END
 
-		    --SELECT * FROM #tmpSalesOrderPart
-			
 			UPDATE SalesOrderPart
 			SET ItemNo = t.LineId
 			   FROM dbo.SalesOrderPart SOP WITH(NOLOCK)  INNER JOIN #tmpSalesOrderPart t

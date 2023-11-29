@@ -1,5 +1,4 @@
-﻿
-CREATE PROC [dbo].[GetWorkorderReleaseEasaFromData]
+﻿Create   PROC [dbo].[GetWorkorderReleaseEasaFromData]
 @WorkorderId bigint,
 @workOrderPartNumberId bigint
 AS
@@ -12,6 +11,8 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN  
 				DECLARE @WorkOrderSettlementId INT;
+				DECLARE @MSModuleId INT;
+				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
 				SELECT @WorkOrderSettlementId = WS.WorkOrderSettlementId FROM DBO.WorkOrderSettlement WS WITH (NOLOCK) JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.MasterCompanyId = WS.MasterCompanyId
 				WHERE Wo.WorkOrderId = @WorkorderId AND WS.WorkOrderSettlementName like '%Cond%'
@@ -21,23 +22,21 @@ BEGIN
 						ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince as OrganizationAddress ,
 						wo.WorkOrderNum as InvoiceNo,
 					    '1' as ItemName,
-					    im.PartDescription as Description,
-					    im.partnumber as PartNumber,
+					   	CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END as Description,
+						CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END as PartNumber,
 					    rc.Reference as Reference,
 					    wop.Quantity as Quantity,
-					    sl.SerialNumber as Batchnumber,
-					    --wop.WorkScope as [status],
-						c.Description as [status],
-					    --wo.Notes as Remarks,
+					    UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end) as Batchnumber,
+						wosc.conditionName as [status],
 						'' as Certifies, 
 					    0 as approved ,
 					    0 as Nonapproved,
 					    '' as AuthorisedSign, 
-					    le.FAALicense as AuthorizationNo,
+					    UPPER(le.EASALicense) as AuthorizationNo,
 					    '' as PrintedName,
 						Getdate() as [Date],
 					    '' as AuthorisedSign2,
-					    le.FAALicense as ApprovalCertificate,					    
+					    UPPER(le.EASALicense) as ApprovalCertificate,					    
 						Getdate() Date2,
 					    0 as CFR,
 						0 Otherregulation,
@@ -62,11 +61,13 @@ BEGIN
 					   LEFT JOIN DBO.ItemMaster im  WITH(NOLOCK) on im.ItemMasterId = wop.ItemMasterId
 					   LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					   left join dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.StockLineId = wop.StockLineId
-					   LEFT JOIN DBO.ManagementStructure ms  WITH(NOLOCK) on ms.ManagementStructureId  = wop.ManagementStructureId
-					   LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = ms.LegalEntityId 
+					   LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+					   LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+					   LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 					   LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
-					   --LEFT JOIN DBO.WorkOrderSettlementDetails ws WITH(NOLOCK) ON ws.workOrderPartNoId = wop.ID AND ws.WorkOrderId = wop.WorkOrderId AND ws.WorkOrderSettlementId = @WorkOrderSettlementId
-					   LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
+					   LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+					   LEFT JOIN dbo.ItemMaster ims WITH(NOLOCK) on ims.ItemMasterId = wosc.RevisedPartId
+					   --LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
 					   LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 					   LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					   LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

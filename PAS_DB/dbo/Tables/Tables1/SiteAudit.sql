@@ -18,6 +18,9 @@
     [StateOrProvince] VARCHAR (50)   NULL,
     [PostalCode]      VARCHAR (20)   NULL,
     [Country]         VARCHAR (50)   NULL,
-    [LegalEntity]     VARCHAR (50)   NULL
+    [LegalEntity]     VARCHAR (50)   NULL,
+    [IsDefault]       BIT            NULL
 );
+
+
 

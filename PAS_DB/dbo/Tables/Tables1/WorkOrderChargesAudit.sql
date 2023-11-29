@@ -22,8 +22,10 @@
     [WOPartNoId]              BIGINT          NOT NULL,
     [Task]                    VARCHAR (256)   NOT NULL,
     [ChargeType]              VARCHAR (256)   NOT NULL,
-    [GlAccount]               VARCHAR (256)   NOT NULL,
+    [GlAccount]               VARCHAR (256)   NULL,
     [Vendor]                  VARCHAR (256)   NULL,
     CONSTRAINT [PK_WorkOrderChargesAudit] PRIMARY KEY CLUSTERED ([WorkOrderChargesAuditId] ASC)
 );
+
+
 

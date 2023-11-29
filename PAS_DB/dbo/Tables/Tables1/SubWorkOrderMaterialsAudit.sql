@@ -52,6 +52,17 @@
     [Shelf]                         VARCHAR (50)    NULL,
     [Bin]                           VARCHAR (50)    NULL,
     [TotalStocklineQtyReq]          INT             DEFAULT ((0)) NOT NULL,
+    [POId]                          BIGINT          NULL,
+    [PONum]                         VARCHAR (50)    NULL,
+    [PONextDlvrDate]                DATETIME2 (7)   NULL,
+    [QtyOnOrder]                    INT             NULL,
+    [QtyOnBkOrder]                  INT             NULL,
+    [QtyToTurnIn]                   INT             NULL,
+    [Figure]                        NVARCHAR (50)   NULL,
+    [Item]                          NVARCHAR (50)   NULL,
+    [EquPartMasterPartId]           BIGINT          NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialsAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsAuditId] ASC)
 );
+
+
 

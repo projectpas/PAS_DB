@@ -40,10 +40,19 @@
     [OtherTax]             DECIMAL (20, 2) NULL,
     [MiscCharges]          DECIMAL (20, 2) NULL,
     [Freight]              DECIMAL (20, 2) NULL,
+    [RemainingAmount]      DECIMAL (20, 2) NULL,
+    [PostedDate]           DATETIME2 (7)   NULL,
+    [Notes]                NVARCHAR (MAX)  NULL,
+    [SalesTotal]           DECIMAL (20, 2) NULL,
+    [CreditMemoUsed]       DECIMAL (18, 2) NULL,
+    [VersionNo]            VARCHAR (100)   NULL,
+    [IsVersionIncrease]    BIT             NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicing_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderBillingInvoicing_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 GO

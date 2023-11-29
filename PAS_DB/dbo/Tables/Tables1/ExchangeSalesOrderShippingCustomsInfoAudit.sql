@@ -20,7 +20,10 @@
     [UpdatedDate]                          DATETIME2 (7)   NOT NULL,
     [IsActive]                             BIT             NOT NULL,
     [IsDeleted]                            BIT             NOT NULL,
+    [CustomCurrencyId]                     INT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderShippingCustomsInfoAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderCustomsInfoId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderShippingCustomsInfoAudit_ExchangeSalesOrderShippingCustomsInfo] FOREIGN KEY ([ExchangeSalesOrderCustomsInfoId]) REFERENCES [dbo].[ExchangeSalesOrderShippingCustomsInfo] ([ExchangeSalesOrderCustomsInfoId])
 );
+
+
 

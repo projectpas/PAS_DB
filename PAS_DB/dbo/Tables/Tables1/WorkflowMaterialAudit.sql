@@ -23,13 +23,17 @@
     [IsDeleted]               BIT             NOT NULL,
     [MaterialMandatoriesName] VARCHAR (256)   NULL,
     [PartNumber]              VARCHAR (256)   NULL,
-    [PartDescription]         VARCHAR (256)   NULL,
+    [PartDescription]         VARCHAR (MAX)   NULL,
     [ItemClassificationId]    BIGINT          NULL,
     [ExtendedPrice]           DECIMAL (18, 2) NULL,
     [Order]                   INT             NULL,
     [MaterialMandatoriesId]   INT             NULL,
     [WFParentId]              BIGINT          NULL,
     [IsVersionIncrease]       BIT             NULL,
+    [Figure]                  NVARCHAR (50)   NULL,
+    [Item]                    NVARCHAR (50)   NULL,
     CONSTRAINT [PK_WorkflowMaterialAudit] PRIMARY KEY CLUSTERED ([WorkflowMaterialAuditId] ASC)
 );
+
+
 

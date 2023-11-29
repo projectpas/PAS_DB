@@ -22,12 +22,10 @@
 );
 
 
+
+
 GO
-
-
-----------------------------------------------
-
-CREATE TRIGGER [dbo].[Trg_WorkOrderAssetsAudit]
+CREATE   TRIGGER [dbo].[Trg_WorkOrderAssetsAudit]
 
    ON  [dbo].[WorkOrderAssets]
 
@@ -53,11 +51,13 @@ BEGIN
 
 	
 
-	SELECT  @ToolName=Name,@ToolId=AssetId,@ToolDescription=Description,@ToolClass=TY.TangibleClassName
+	SELECT  @ToolName=Name,@ToolId=AssetId,@ToolDescription=A.Description,@ToolClass=TY.TangibleClassName
 
 	FROM Asset A
 
-	JOIN TangibleClass TY ON A.TangibleClassId=TY.TangibleClassId
+	JOIN AssetAttributeType AAT ON A.AssetAttributeTypeId = AAT.AssetAttributeTypeId
+
+	JOIN TangibleClass TY ON AAT.TangibleClassId=TY.TangibleClassId
 
 	WHERE AssetRecordId=@AssetRecordId
 

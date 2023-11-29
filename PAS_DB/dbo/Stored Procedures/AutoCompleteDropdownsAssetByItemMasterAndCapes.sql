@@ -1,30 +1,4 @@
-﻿
-
-/*************************************************************           
- ** File:   [AutoCompleteDropdownsAssetByItemMasterAndCapes]           
- ** Author:   Hemant Saliya
- ** Description: This stored procedure is used retrieve Asset List for Auto Complete Dropdown based on Part Number & Capes
- ** Purpose:         
- ** Date:   07/20/2021        
-          
- ** PARAMETERS:           
- @UserType varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/20/2021   Hemant Saliya Created
-	2    09/27/2021   Hemant Saliya Added Statu Code for Compare
-	3    10/05/2021   Hemant Saliya Handle Sub WO Tools
-     
---EXEC [AutoCompleteDropdownsAssetByItemMasterAndCapes] '',1,20,'0',5,48,1
-**************************************************************/
-
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsAssetByItemMasterAndCapes]
+﻿CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsAssetByItemMasterAndCapes]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
@@ -73,7 +47,8 @@ BEGIN
 						a.TangibleClassId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = a.TangibleClassId
+						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND ac.ItemMasterId = @ItemMasterId AND (ac.IsActive=1 AND ISNULL(ac.IsDeleted,0) = 0 AND a.IsActive=1 AND ISNULL(a.IsDeleted,0) = 0 AND (Upper(TC.StatusCode) = 'EQUIPMENT' OR Upper(TC.StatusCode) = 'TOOLS' OR Upper(TC.StatusCode) = 'MACHINERY')
 						AND (a.Name LIKE @StartWith + '%'))
 			   UNION     
@@ -88,7 +63,8 @@ BEGIN
 						a.TangibleClassId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = a.TangibleClassId
+						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND a.AssetRecordId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))    
 				ORDER BY Label				
 			End
@@ -105,7 +81,8 @@ BEGIN
 						a.TangibleClassId
 					FROM dbo.Asset a  WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = a.TangibleClassId
+						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND ac.ItemMasterId = @ItemMasterId AND (ac.IsActive=1 AND ISNULL(ac.IsDeleted,0) = 0 AND a.IsActive=1 AND ISNULL(a.IsDeleted,0) = 0 AND (Upper(TC.StatusCode) = 'EQUIPMENT' OR Upper(TC.StatusCode) = 'TOOLS' OR Upper(TC.StatusCode) = 'MACHINERY')
 						AND (a.Name LIKE '%' + @StartWith + '%'))
 				UNION 
@@ -120,7 +97,8 @@ BEGIN
 						a.TangibleClassId
 					FROM dbo.Asset a WITH(NOLOCK)
 						JOIN [dbo].[AssetCapes] ac WITH(NOLOCK) ON a.AssetRecordId = ac.AssetRecordId
-						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = a.TangibleClassId
+						JOIN [dbo].[AssetAttributeType] aat WITH(NOLOCK) ON a.AssetAttributeTypeId = aat.AssetAttributeTypeId
+						JOIN dbo.TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId = aat.TangibleClassId
 					WHERE a.MasterCompanyId = @MasterCompanyId AND a.AssetRecordId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))  
 				ORDER BY Label	
 			END	

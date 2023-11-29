@@ -161,8 +161,39 @@
     [TagTypeId]                           BIGINT          NULL,
     [IsFinishGood]                        BIT             DEFAULT ((0)) NULL,
     [IsTurnIn]                            BIT             NULL,
+    [IsCustomerRMA]                       BIT             NULL,
+    [RMADeatilsId]                        BIGINT          NULL,
+    [DaysReceived]                        INT             NULL,
+    [ManufacturingDays]                   INT             NULL,
+    [TagDays]                             INT             NULL,
+    [OpenDays]                            INT             NULL,
+    [ExchangeSalesOrderId]                BIGINT          NULL,
+    [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
+    [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
+    [IsManualEntry]                       BIT             NULL,
+    [WorkOrderMaterialsKitId]             BIGINT          NULL,
+    [LotId]                               BIGINT          NULL,
+    [IsLotAssigned]                       BIT             NULL,
+    [LOTQty]                              INT             NULL,
+    [LOTQtyReserve]                       INT             NULL,
+    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [POOriginalCost]                      DECIMAL (18, 2) NULL,
+    [ROOriginalCost]                      DECIMAL (18, 2) NULL,
+    [VendorRMAId]                         BIGINT          NULL,
+    [VendorRMADetailId]                   BIGINT          NULL,
+    [LotMainStocklineId]                  BIGINT          NULL,
+    [IsFromInitialPO]                     BIT             NULL,
+    [LotSourceId]                         INT             NULL,
+    [Adjustment]                          DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_Adjustment] DEFAULT ((0)) NULL,
+    [SalesOrderPartId]                    BIGINT          NULL,
+    [FreightAdjustment]                   DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_FreightAdjustment] DEFAULT ((0)) NULL,
+    [TaxAdjustment]                       DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_TaxAdjustment] DEFAULT ((0)) NULL,
+    [IsStkTimeLife]                       BIT             NULL,
+    [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

@@ -1,10 +1,22 @@
-﻿
-CREATE PROCEDURE [dbo].[SearchStockLinePickTicketPop]
-@ItemMasterIdlist bigint, 
-@ConditionId BIGINT,
-@SalesOrderId bigint,
-@IsMultiplePickTicket bit = 0
+﻿/*************************************************************           
+ ** File:   [dbo].[SearchStockLinePickTicketPop]          
+ ** Author:   Vishal Suthar
+ ** Description: Get pick ticket stockline data to pick
+ ** Date: 
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/15/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
+    2    06/21/2023   Vishal Suthar Updated the SP to include pick ticket even after invoice is created
 
+**************************************************************/ 
+CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
+	@ItemMasterIdlist bigint, 
+	@ConditionId BIGINT,
+	@SalesOrderId bigint,
+	@IsMultiplePickTicket bit = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -59,8 +71,9 @@ BEGIN
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
-						 ,(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) AS QtyToReserve
-						 --,sor.QtyToReserve
+						 ,((sor.QtyToReserve + 
+						 (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
+						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 					--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
@@ -82,9 +95,10 @@ BEGIN
 				LEFT JOIN DBO.SOPickTicket Pick WITH(NOLOCK) ON Pick.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
-					--im.ItemMasterId = @ItemMasterIdlist AND 
 					so.SalesOrderId = @SalesOrderId AND 
-					(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) > 0
+					((sor.QtyToReserve + 
+					(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
+					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) > 0
 		END
 		ELSE
 		BEGIN
@@ -106,12 +120,10 @@ BEGIN
 						WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS StockType
-					--,@MappingType AS MappingType
 					,sl.StockLineNumber 
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					--,uom.ShortName AS UomDescription
 					,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
@@ -132,8 +144,12 @@ BEGIN
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
-						 ,(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) AS QtyToReserve
-						 --,sor.QtyToReserve
+						 ,((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
+						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) 
+						 --- (SELECT ISNULL(SUM(SOBI.NoofPieces), 0) FROM SalesOrderBillingInvoicing SOB
+							--LEFT JOIN SalesOrderBillingInvoicingItem SOBI WITH(NOLOCK) on SOBI.SOBillingInvoicingId = SOB.SOBillingInvoicingId 
+							--WHERE SOB.SalesOrderId = @SalesOrderId AND SOBI.SalesOrderPartId = sop.SalesOrderPartId AND SOBI.IsVersionIncrease = 0)
+						 AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 					--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
@@ -157,7 +173,9 @@ BEGIN
 				WHERE 
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.SalesOrderId = @SalesOrderId AND 
-					(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) > 0
+					((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
+					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)
+					) > 0
 		END
 
 				

@@ -21,7 +21,7 @@
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
-CREATE Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
+Create   Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
 	@referenceId bigint,
 	@wfwoId bigint
 AS
@@ -35,9 +35,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN
 			SELECT 
 				wowf.WorkOrderPartNoId as OrderPartId, 
-				wop.WorkOrderId as referenceId, 
-				imt.PartNumber, 
-				imt.PartDescription, 
+				wop.WorkOrderId as referenceId,
+				CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
+				CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 				wop.Quantity as Qty,
 				sl.SerialNumber, 
 				sl.QuantityAvailable, 
@@ -48,7 +48,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				ELSE (wop.Quantity - SUM(ISNULL(wopt.QtyToShip,0))) END as QtyToPick,
 				CASE WHEN wop.Quantity = SUM(wopt.QtyToShip) THEN 'Fulfilled'
 				ELSE 'Fullfillng' END as [Status],
-				wop.ItemMasterId, 
+                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE wop.ItemMasterId END As ItemMasterId,
 				sl.ConditionId, (wop.Quantity - SUM(ISNULL(wopt.QtyToShip,0))) as ReadyToPick, 
 				cr.[Name] as CustomerName, 
 				cr.CustomerCode
@@ -62,7 +62,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			WHERE wowf.WorkOrderId = @referenceId AND wop.IsFinishGood = 1 --wowf.WorkFlowWorkOrderId = @wfwoId and wop.isLocked=1 AND 
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
 			GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
-				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized;
+				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription;
 				
 		END
 	COMMIT  TRANSACTION

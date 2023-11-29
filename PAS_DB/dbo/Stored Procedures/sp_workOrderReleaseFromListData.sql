@@ -17,12 +17,13 @@
  ** --   --------     -------		--------------------------------          
     1    03/23/2020   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
+	3    05/12/2023   Hemant  Saliya Updated for revised Part Panry and Condition
 
      
  EXECUTE [sp_workOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
-CREATE Procedure [dbo].[sp_workOrderReleaseFromListData]
+CREATE   Procedure [dbo].[sp_workOrderReleaseFromListData]
 @WorkorderId bigint,
 @workOrderPartNoId bigint
 AS
@@ -32,8 +33,11 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN  
+		--BEGIN TRANSACTION
+		--	BEGIN  
+
+			    DECLARE @MSModuleId INT;
+				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 				 SELECT 
 					   wro.[ReleaseFromId]
 					  ,wro.[WorkorderId]
@@ -42,11 +46,13 @@ BEGIN
 					  ,wro.[OrganizationName]
 					  ,wro.[InvoiceNo]
 					  ,wro.[ItemName]
-					  ,wro.[Description]
-					  ,wro.[PartNumber]
+					  --,UPPER(wro.[Description]) as Description
+					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber
+					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description
+					  --,UPPER(wop.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,wro.[Batchnumber]
+					  ,UPPER(wro.[Batchnumber]) as Batchnumber 
 					  --,wro.[status]
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
@@ -54,11 +60,11 @@ BEGIN
 					  ,wro.[approved]
 					  ,wro.[Nonapproved]
 					  ,wro.[AuthorisedSign]
-					  ,wro.[AuthorizationNo]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [AuthorizationNo]
 					  ,wro.[PrintedName]
 					  ,wro.[Date]
 					  ,wro.[AuthorisedSign2]
-					  ,wro.[ApprovalCertificate]
+					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [ApprovalCertificate]
 					  ,wro.[PrintedName2]
 					  ,wro.[Date2]
 					  ,wro.[CFR]
@@ -76,14 +82,21 @@ BEGIN
 					  ,wro.[IsClosed]
 					  ,wop.ReceivedDate
 					  ,wop.[islocked]
+					  ,wro.[IsEASALicense]
 					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
-					  ,wop.ManagementStructureId as ManagementStructureId   
+					  ,wop.ManagementStructureId as ManagementStructureId  
+					  ,wro.[EmployeeId]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
+					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
 					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
+				      LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+					  LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+					  LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 				WHERE wro.WorkOrderId=@WorkorderId AND wro.workOrderPartNoId =@workOrderPartNoId  
-			END
-		COMMIT  TRANSACTION
+		--	END
+		--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

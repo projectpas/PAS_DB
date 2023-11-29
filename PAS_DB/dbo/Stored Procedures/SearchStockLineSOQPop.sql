@@ -1,8 +1,9 @@
-﻿-- =============================================
+﻿---------------------------------------------------------------------------------------------------
+-- =============================================
 -- Description:	Get Search Data for SOQ, SO  search for from part list tab
 -- EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 -- =============================================
-CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]
+CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 @ConditionId BIGINT = NULL,
 --@ConditionIds VARCHAR(100) = NULL,
@@ -18,9 +19,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				 
+			DECLARE @StockType int = 1;		 
 			SELECT DISTINCT
 			im.PartNumber
+			,ISNULL(sl.LotId,0) AS LotId
+			,(CASE WHEN ISNULL(sl.LotId,0) > 0 THEN 1 ELSE 0 END) AS IsLotAssigned
+			,ISNULL(per.PercentValue,0.00) PercentValue
+			,ISNULL(lsm.LotSetupId,0) LotSetupId
+			,ISNULL(lsm.IsUseMargin,0) IsUseMargin
 			,sl.StockLineId
 			,im.ItemMasterId As PartId
 			,im.ItemMasterId As ItemMasterId
@@ -99,6 +105,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
+				AND pop.ItemTypeId = @StockType                  --------------------------------  Added For Stock Type
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -115,15 +122,24 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
 							and imps.ConditionId = c.ConditionId
+			LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
+			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
+			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
-				AND sl.IsCustomerStock = 0
+				AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND sl.IsParent = 1
+			
 			UNION
 
 			SELECT DISTINCT
 			im.PartNumber
+			,ISNULL(sl.LotId,0) AS LotId
+			,(CASE WHEN ISNULL(sl.LotId,0) > 0 THEN 1 ELSE 0 END) AS IsLotAssigned
+			,ISNULL(per.PercentValue,0.00) PercentValue
+			,ISNULL(lsm.LotSetupId,0) LotSetupId
+			,ISNULL(lsm.IsUseMargin,0) IsUseMargin
 			,sl.StockLineId
 			,im.ItemMasterId As PartId
 			,im.ItemMasterId As ItemMasterId
@@ -202,6 +218,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
+				AND pop.ItemTypeId = @StockType                  --------------------------------  Added For Stock Type
 			LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -218,6 +235,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
 							and imps.ConditionId = c.ConditionId
+						LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
+			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
+			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
 		END
 		COMMIT  TRANSACTION

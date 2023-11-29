@@ -1,4 +1,4 @@
-﻿
+﻿--------------------------------------------------------------------------------------------------------------
 CREATE PROC [dbo].[UpdateEstRecDate]
 	@ModuleName VARCHAR(50),
 	@RefId  BIGINT,
@@ -12,8 +12,15 @@ SET NOCOUNT ON;
 	BEGIN TRY
 	BEGIN TRANSACTION
 		BEGIN
+			DECLARE @POROID BIGINT=0;
 			IF (@ModuleName = 'PO')
 			BEGIN
+				SET @POROID = (SELECT PurchaseOrderId from PurchaseOrderPart where PurchaseOrderPartRecordId = @RefId)
+
+				UPDATE DBO.PurchaseOrder
+				SET UpdatedDate = GETDATE(), UpdatedBy = @UpdatedBy
+				WHERE PurchaseOrderId = @POROID;
+
 				UPDATE DBO.PurchaseOrderPart 
 				SET EstDeliveryDate = @NextEstDate,
 				UpdatedDate = GETDATE(), UpdatedBy = @UpdatedBy
@@ -33,6 +40,12 @@ SET NOCOUNT ON;
 			END
 			ELSE IF (@ModuleName = 'RO')
 			BEGIN
+				SET @POROID = (SELECT RepairOrderId from RepairOrderPart where RepairOrderPartRecordId = @RefId)
+
+				UPDATE DBO.RepairOrder
+				SET UpdatedDate = GETDATE(), UpdatedBy = @UpdatedBy
+				WHERE RepairOrderId = @POROID;
+
 				UPDATE DBO.RepairOrderPart 
 				SET EstRecordDate = @NextEstDate,
 				UpdatedDate = GETDATE(), UpdatedBy = @UpdatedBy

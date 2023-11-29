@@ -9,10 +9,13 @@
     [UpdatedDate]        DATETIME2 (7)  CONSTRAINT [GLAccountClass_DC_UDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]           BIT            CONSTRAINT [DF_GLAccountClass_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]          BIT            CONSTRAINT [DF_GLAccountClass_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [SequenceNumber]     INT            DEFAULT ((0)) NULL,
     CONSTRAINT [PK_GLAccountClass] PRIMARY KEY CLUSTERED ([GLAccountClassId] ASC),
     CONSTRAINT [FK_GLAccountClass_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_GLAccountClass] UNIQUE NONCLUSTERED ([GLAccountClassName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

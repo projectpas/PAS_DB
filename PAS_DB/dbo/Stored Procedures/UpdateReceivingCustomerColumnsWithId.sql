@@ -104,7 +104,7 @@ BEGIN
 					LEFT JOIN dbo.Vendor CERVEN WITH(NOLOCK) ON CERVEN.VendorId = RCW.CertifiedById
 					LEFT JOIN dbo.LegalEntity CERCOM WITH(NOLOCK) ON CERCOM.LegalEntityId = RCW.CertifiedById
 					LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = RCW.TagTypeIds
-					LEFT JOIN dbo.TeardownReason  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId and tr.TeardownTypeId=(select top 1 tdt.TeardownTypeId from TeardownType as tdt where tdt.[Name]= 'Removal Reasons')
+					LEFT JOIN dbo.TeardownReason  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId and tr.CommonTeardownTypeId=(select top 1 tdt.TeardownTypeId from TeardownType as tdt where tdt.[Name]= 'Removal Reasons')
 					LEFT JOIN dbo.TagType  RTT WITH (NOLOCK) ON RTT.TagTypeId = RCW.CustReqTagTypeId
 
 				WHERE RCW.ReceivingCustomerWorkId = @ReceivingCustomerWorkId

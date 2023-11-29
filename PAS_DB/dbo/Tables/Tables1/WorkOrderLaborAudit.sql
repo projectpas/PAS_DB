@@ -4,7 +4,7 @@
     [WorkOrderLaborAuditHeaderId] BIGINT          NOT NULL,
     [TaskId]                      BIGINT          NOT NULL,
     [ExpertiseId]                 SMALLINT        NULL,
-    [EmployeeId]                  BIGINT          NOT NULL,
+    [EmployeeId]                  BIGINT          NULL,
     [Hours]                       DECIMAL (10, 2) NULL,
     [Adjustments]                 DECIMAL (10, 2) NULL,
     [AdjustedHours]               DECIMAL (10, 2) NULL,
@@ -22,7 +22,7 @@
     [MasterCompanyId]             INT             NOT NULL,
     [TaskName]                    VARCHAR (256)   NOT NULL,
     [LabourExpertise]             VARCHAR (256)   NOT NULL,
-    [LabourEmployee]              VARCHAR (256)   NOT NULL,
+    [LabourEmployee]              VARCHAR (256)   NULL,
     [Billable]                    VARCHAR (10)    NOT NULL,
     [DirectLaborOHCost]           DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
     [BurdaenRatePercentageId]     BIGINT          NULL,
@@ -31,6 +31,9 @@
     [TotalCost]                   DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
     [TaskStatusId]                BIGINT          NULL,
     [StatusChangedDate]           DATETIME2 (7)   NULL,
+    [IsBegin]                     BIT             NULL,
     CONSTRAINT [PK_WorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
+
+
 

@@ -1,6 +1,21 @@
-﻿
-
-CREATE PROCEDURE [dbo].[ProcItemMasterStockList]
+﻿/*********************           
+ ** File:   [USP_AssemplyDetailsByAssemplyId]           
+ ** Author:  
+ ** Description: 
+ ** Purpose:         
+ ** Date:   09 Nov 2023      
+          
+ ** RETURN VALUE:           
+  
+ **********************           
+  ** Change History           
+ **********************           
+ ** PR   Date             Author		         Change Description            
+ ** --   --------         -------		     ----------------------------       
+   
+    2    23 Nov 2023    BHARGAV SALIYA               Add HasSubAssy                                            
+**********************/
+CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -16,6 +31,7 @@ CREATE PROCEDURE [dbo].[ProcItemMasterStockList]
 @NationalStockNumber varchar(50) = NULL,
 @IsSerialized varchar(50) = NULL,
 @IsTimeLife varchar(50) = NULL,
+@HasSubAssy varchar(50) = NULL,
 @StockType varchar(50) = NULL,
 @ItemType varchar(50) = NULL,
 @CreatedBy  varchar(50) = NULL,
@@ -75,6 +91,7 @@ BEGIN
 					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
 					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
+					   CASE WHEN AP.PopulateWoMaterialList = 1 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
 					   im.IsActive,
 					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
@@ -88,7 +105,8 @@ BEGIN
 					   im.CreatedBy,
                        im.UpdatedBy,	
 					   im.IsDeleted
-			   FROM dbo.ItemMaster im WITH (NOLOCK)		                 
+			   FROM dbo.ItemMaster im WITH (NOLOCK)		
+			   LEFT JOIN [DBO].[Assemply] AP WITH (NOLOCK) ON AP.ItemMasterId = im.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
 					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	
 			), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
@@ -101,6 +119,7 @@ BEGIN
 					(NationalStockNumber LIKE '%' +@GlobalFilter+'%') OR										
 					(IsSerialized LIKE '%' +@GlobalFilter+'%') OR
 					(IsTimeLife LIKE '%' +@GlobalFilter+'%') OR
+					(HasSubAssy LIKE '%' +@GlobalFilter+'%') OR
 					(ItemType LIKE '%' +@GlobalFilter+'%') OR
 					--(IsHazardousMaterial LIKE '%' +@GlobalFilter+'%') OR					
 					(StockType LIKE '%' +@GlobalFilter+'%') OR
@@ -115,6 +134,7 @@ BEGIN
 					(ISNULL(@NationalStockNumber,'') ='' OR NationalStockNumber LIKE '%' + @NationalStockNumber + '%') AND				
 					(ISNULL(@IsSerialized,'') ='' OR IsSerialized LIKE '%' + @IsSerialized + '%') AND
 					(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
+					(ISNULL(@HasSubAssy,'') ='' OR HasSubAssy LIKE '%' + @HasSubAssy + '%') AND
 					(ISNULL(@ItemType,'') ='' OR ItemType LIKE '%' + @ItemType + '%') AND
 					--(ISNULL(@IsHazardousMaterial,'') ='' OR IsHazardousMaterial LIKE '%' + @IsHazardousMaterial + '%') AND					
 					(ISNULL(@StockType,'') ='' OR StockType LIKE '%' + @StockType + '%') AND	
@@ -143,6 +163,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSerialized')  THEN IsSerialized END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='HasSubAssy')  THEN HasSubAssy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='HasSubAssy')  THEN HasSubAssy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ItemType')  THEN ItemType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemType')  THEN ItemType END DESC,
 			--CASE WHEN (@SortOrder=1  AND @SortColumn='IsHazardousMaterial')  THEN IsHazardousMaterial END ASC,
@@ -182,6 +204,7 @@ BEGIN
 				 + ' @Parameter12 = ''' + CAST(ISNULL(@ItemGroup, '') as Varchar(100))
 				 + ' @Parameter13 = ''' + CAST(ISNULL(@IsSerialized  , '') as Varchar(100))
 				 + ' @Parameter14 = ''' + CAST(ISNULL(@IsTimeLife   , '') as Varchar(100))
+				 + ' @Parameter14 = ''' + CAST(ISNULL(@HasSubAssy   , '') as Varchar(100))
 				 + ' @Parameter15 = ''' + CAST(ISNULL(@StockType  , '') as Varchar(100))
 				 + ' @Parameter16 = ''' + CAST(ISNULL(@ItemType  , '') as Varchar(100))
 				 + ' @Parameter17 = ''' + CAST(ISNULL(@CreatedBy  , '') as Varchar(100))

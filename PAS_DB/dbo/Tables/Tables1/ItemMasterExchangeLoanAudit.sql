@@ -22,6 +22,12 @@
     [IsActive]                  BIT             CONSTRAINT [DF_ItemMasterExchangeLoanAudit_IsActive] DEFAULT ((1)) NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_ItemMasterExchangeLoanAudit_IsDeleted] DEFAULT ((0)) NULL,
     [ExchangeOverhaulCost]      DECIMAL (18, 2) NULL,
+    [EFcogs]                    INT             DEFAULT ((0)) NOT NULL,
+    [OPcogs]                    INT             DEFAULT ((0)) NOT NULL,
+    [EFcogsamount]              DECIMAL (18, 2) NULL,
+    [OPcogsamount]              DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ItemMasterExchangeLoanAudit] PRIMARY KEY CLUSTERED ([ItemMasterLoanExchAuditId] ASC)
 );
+
+
 

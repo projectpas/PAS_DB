@@ -1,12 +1,13 @@
-﻿/*************************************************************     
--- EXEC [dbo].[AutoCompleteDropdownsExchangeSalesOrder] 'Exch',1,25,'0,0,0',1
-**************************************************************/
+﻿/**************************************************************************
+-- EXEC [dbo].[AutoCompleteDropdownsExchangeSalesOrder] '',1,25,'0',2,0,1
+***************************************************************************/
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsExchangeSalesOrder]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
-@MasterCompanyId int
+@MasterCompanyId int,
+@CustomerId BIGINT=0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -24,13 +25,13 @@ BEGIN
 						c.ExchangeSalesOrderId,
 						c.ExchangeSalesOrderNumber
 					FROM dbo.ExchangeSalesOrder c
-					WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.ExchangeSalesOrderNumber LIKE @StartWith + '%'))
+					WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.ExchangeSalesOrderNumber LIKE @StartWith + '%') AND c.CustomerId=@CustomerId)
 					UNION
 					SELECT DISTINCT TOP 20 
 						c.ExchangeSalesOrderId,
 						c.ExchangeSalesOrderNumber
 					FROM dbo.ExchangeSalesOrder c
-					WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.ExchangeSalesOrderNumber LIKE @StartWith + '%'))
+					WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.ExchangeSalesOrderNumber LIKE @StartWith + '%') AND c.CustomerId=@CustomerId)
 					AND c.ExchangeSalesOrderId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 					ORDER BY ExchangeSalesOrderNumber
 		END TRY    

@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿----------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [usp_GetOperationalMgntDashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for OperationalMgntDashboard 
@@ -60,7 +62,7 @@ BEGIN
         LEFT JOIN DBO.Workorderpartnumber WOPN WITH (NOLOCK)
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT OUTER JOIN DBO.Repairorderpart ROP WITH (NOLOCK)
-          ON WO.workorderid = ROP.workorderid
+          ON WO.workorderid = ROP.workorderid AND ROP.ItemTypeId=1
         LEFT OUTER JOIN DBO.RepairOrder RO WITH (NOLOCK)
           ON ROP.repairorderid = RO.repairorderid
         LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK)

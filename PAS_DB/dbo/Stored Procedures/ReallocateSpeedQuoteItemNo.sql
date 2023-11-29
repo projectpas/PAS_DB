@@ -1,5 +1,5 @@
 ﻿/*************************************************************
-EXEC [dbo].[ReallocateSpeedQuoteItemNo]  74
+EXEC [dbo].[ReallocateSpeedQuoteItemNo]  69
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[ReallocateSpeedQuoteItemNo]  
   @SpeedQuoteId BIGINT
@@ -13,9 +13,10 @@ BEGIN
 			;WITH Ranked
 			AS
 			(
-			   SELECT *, CAST(DENSE_RANK() OVER(ORDER BY ItemMasterId) AS INT) row_num
+			   SELECT *, CAST(DENSE_RANK() OVER(ORDER BY ItemMasterId desc) AS INT) row_num
 			   FROM DBO.SpeedQuotePart WITH (NOLOCK) Where SpeedQuoteId = @SpeedQuoteId AND IsDeleted = 0
 			) 
+			--select * from Ranked;
 			UPDATE Ranked
 			SET ItemNo = row_num;
 

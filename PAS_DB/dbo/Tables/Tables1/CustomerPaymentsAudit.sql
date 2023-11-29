@@ -28,6 +28,11 @@
     [LEVEL2]                VARCHAR (256)   NULL,
     [LEVEL3]                VARCHAR (256)   NULL,
     [LEVEL4]                VARCHAR (256)   NULL,
+    [GLAccountId]           BIGINT          NULL,
+    [LegalEntityId]         BIGINT          NULL,
+    [BankType]              VARCHAR (50)    NULL,
     CONSTRAINT [PK_CustomerPaymentsAudit] PRIMARY KEY CLUSTERED ([ReceiptAuditId] ASC)
 );
+
+
 

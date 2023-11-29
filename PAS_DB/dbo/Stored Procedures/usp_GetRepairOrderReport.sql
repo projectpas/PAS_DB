@@ -1,4 +1,5 @@
-﻿
+﻿----------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [usp_GetRepairOrderReport]           
  ** Author:   Swetha  
@@ -116,7 +117,7 @@ BEGIN
         RO.Level4 'LEVEL4'
       FROM DBO.RepairOrder RO WITH (NOLOCK)
       JOIN DBO.Repairorderpart ROP WITH (NOLOCK)
-        ON RO.RepairOrderId = ROP.repairorderid
+        ON RO.RepairOrderId = ROP.repairorderid AND ROP.ItemTypeId=1
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
           ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
@@ -175,7 +176,7 @@ BEGIN
         RO.Level4 'LEVEL4'
       FROM DBO.RepairOrder RO WITH (NOLOCK)
       JOIN DBO.Repairorderpart ROP WITH (NOLOCK)
-        ON RO.RepairOrderId = ROP.repairorderid
+        ON RO.RepairOrderId = ROP.repairorderid AND ROP.ItemTypeId=1
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
           ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1
         inner JOIN DBO.Workorder WO WITH (NOLOCK)

@@ -20,6 +20,9 @@
     [UpdatedDate]             DATETIME2 (7)  NOT NULL,
     [IsActive]                BIT            CONSTRAINT [PurchaseOrderApprovals_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT            CONSTRAINT [PurchaseOrderApprovals_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [InternalSentToId]        BIGINT         NULL,
+    [InternalSentToName]      VARCHAR (100)  NULL,
+    [InternalSentById]        BIGINT         NULL,
     CONSTRAINT [PK_PurchaseOrderApprovals] PRIMARY KEY CLUSTERED ([PurchaseOrderApprovalId] ASC),
     CONSTRAINT [FK_PurchaseOrderApproval_ApprovalStatus] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ApprovalStatus] ([ApprovalStatusId]),
     CONSTRAINT [FK_PurchaseOrderApproval_EmployeeApprovedby] FOREIGN KEY ([ApprovedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -28,6 +31,8 @@
     CONSTRAINT [FK_PurchaseOrderApproval_PurchaseOrder] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId]),
     CONSTRAINT [FK_PurchaseOrderApproval_PurchaseOrderPart] FOREIGN KEY ([PurchaseOrderPartId]) REFERENCES [dbo].[PurchaseOrderPart] ([PurchaseOrderPartRecordId])
 );
+
+
 
 
 GO

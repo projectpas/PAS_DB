@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_UpdateWOCostDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Recalculate WO Total Cost    
@@ -15,37 +14,39 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/22/2021   Hemant Saliya		Created
+    2    03/29/2023   Vishal Suthar		Modified to handle WO Material KIT changes
      
  EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
 
+ exec sp_executesql N'exec USP_UpdateWOCostDetails @WorkOrderId, @WorkOrderWorkflowId, @UpdatedBy, @MasterCompanyId ',N'@WorkOrderId bigint,
+ @WorkOrderWorkflowId bigint,@UpdatedBy nvarchar(5),@MasterCompanyId int',@WorkOrderId=624,
+ @WorkOrderWorkflowId=638,@UpdatedBy=N'admin',@MasterCompanyId=1
 **************************************************************/ 
-    
-CREATE PROCEDURE [dbo].[USP_UpdateWOCostDetails]    
-(    
-@WorkOrderId  BIGINT  = NULL,
-@WorkOrderWorkflowId  BIGINT  = NULL,
-@UpdatedBy  VARCHAR(100) = NULL,
-@MasterCompanyId  BIGINT  = NULL
-)    
-AS    
-BEGIN    
-
+CREATE   PROCEDURE [dbo].[USP_UpdateWOCostDetails]    
+(
+	@WorkOrderId  BIGINT  = NULL,
+	@WorkOrderWorkflowId  BIGINT  = NULL,
+	@UpdatedBy  VARCHAR(100) = NULL,
+	@MasterCompanyId  BIGINT  = NULL
+)
+AS
+BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-SET NOCOUNT ON    
-
+SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-
 				DECLARE @PartCost DECIMAL(18,2);
 				DECLARE @WOWorkScopeId BIGINT;
 				DECLARE @WOPartNoId BIGINT;
 				DECLARE @RepairWorkScopeId BIGINT;
 				DECLARE @WOQLaborCost DECIMAL(18,2);
 				DECLARE @Revenue DECIMAL(18,2);
+				DECLARE @KitCost DECIMAL(18,2);
+				declare @WorkOrderQuoteId bigint
 
 				IF OBJECT_ID(N'tempdb..#WOCostDetails') IS NOT NULL
 				BEGIN
@@ -59,8 +60,10 @@ SET NOCOUNT ON
 					 WorkOrderPartNumberId BIGINT NULL,
 					 WorkFlowWorkOrderId BIGINT NULL,
 					 WorkOrderQuoteId BIGINT NULL,
-					 LaborCost DECIMAL(18,2) NULL,
-					 LaborOverheadCost DECIMAL(18,2) NULL,
+					 BurdenRateAmount DECIMAL(18,2) NULL,
+					 DirectLaborOHCost DECIMAL(18,2) NULL,
+					 TotalCostPerHour DECIMAL(18,2) NULL,
+					 TotalLaborCost DECIMAL(18,2) NULL,
 					 MaterialCost DECIMAL(18,2) NULL,
 					 ChargesCost DECIMAL(18,2) NULL,
 					 FreightCost DECIMAL(18,2) NULL,
@@ -131,6 +134,7 @@ SET NOCOUNT ON
 
 				SELECT @RepairWorkScopeId = WorkScopeId FROM dbo.WorkScope WITH(NOLOCK) WHERE UPPER(WorkScopeCodeNew) = 'REPAIR' AND MasterCompanyId = @MasterCompanyId
 
+				select @WorkOrderQuoteId=WorkOrderQuoteId from WorkOrderQuote WITH(NOLOCK) where WorkOrderId=@WorkOrderId and IsVersionIncrease=0 and IsDeleted=0
 				INSERT INTO #WOMaterials(WorkOrderId, WorkFlowWorkOrderId, WorkOrderMaterialsId, UnitCost, QtyIssued, QtyReserved, MaterialCost)
 				SELECT  
 					WOM.WorkOrderId, WOM.WorkFlowWorkOrderId,WOM.WorkOrderMaterialsId,
@@ -141,11 +145,29 @@ SET NOCOUNT ON
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 					JOIN dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) ON WOMSL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 				WHERE WOM.WorkOrderId = @WorkOrderId AND WOMSL.QtyIssued > 0 AND WOM.IsDeleted = 0 AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0
+				UNION ALL
+				SELECT  
+					WOM.WorkOrderId, WOM.WorkFlowWorkOrderId,WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
+					ISNULL(WOMSL.UnitCost, 0) AS UnitCost,
+					ISNULL(WOMSL.QtyIssued, 0) AS QtyIssued,
+					ISNULL(WOMSL.QtyReserved, 0) AS QtyReserved,
+					ISNULL(WOMSL.UnitCost, 0) * ISNULL(WOMSL.QtyIssued, 0) AS MaterialCost
+				FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
+					JOIN dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) ON WOMSL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId
+				WHERE WOM.WorkOrderId = @WorkOrderId AND WOMSL.QtyIssued > 0 AND WOM.IsDeleted = 0 AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0
 
-				INSERT INTO #WOCostDetails(WorkOrderId, MaterialCost)
-				SELECT WorkOrderId, SUM(ISNULL(WOM.UnitCost, 0) * ISNULL(WOM.QtyIssued, 0)) FROM #WOMaterials WOM WITH(NOLOCK) 
-				WHERE WOM.QtyIssued > 0
-				GROUP BY WorkOrderId
+				IF((SELECT COUNT(1) FROM #WOMaterials) > 0)
+				BEGIN
+					INSERT INTO #WOCostDetails(WorkOrderId, MaterialCost)
+					SELECT WorkOrderId, SUM(ISNULL(WOM.UnitCost, 0) * ISNULL(WOM.QtyIssued, 0)) FROM #WOMaterials WOM WITH(NOLOCK) 
+					WHERE WOM.QtyIssued > 0
+					GROUP BY WorkOrderId
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #WOCostDetails(WorkOrderId, MaterialCost)
+					SELECT @WorkOrderId , 0.00
+				END
 
 				UPDATE #WOCostDetails SET ChargesCost = 
 				(SELECT SUM(ISNULL(WOC.UnitCost, 0) * ISNULL(WOC.Quantity, 0)) FROM dbo.WorkOrderCharges WOC WITH(NOLOCK)
@@ -160,14 +182,17 @@ SET NOCOUNT ON
 				WHERE WOE.WorkOrderId = @WorkOrderId AND WOE.IsDeleted = 0 AND WOE.IsActive = 1) 
 
 				;WITH CTE AS(
-						SELECT	SUM(ISNULL(WOL.TotalCost, 0)) AS LaborCost,
-								SUM(ISNULL(WOL.DirectLaborOHCost, 0)) AS LaborOverheadCost
+						SELECT	SUM(ISNULL(WOL.BurdenRateAmount, 0)) AS BurdenRateAmount1,
+								SUM(ISNULL((CAST(ISNULL(AdjustedHours,0) AS INT) + (ISNULL(AdjustedHours,0) - CAST(ISNULL(AdjustedHours,0) AS INT))/.6)* ISNULL(WOL.BurdenRateAmount, 0) ,0)) BurdenRateAmount,
+								SUM(ISNULL(WOL.TotalCostPerHour, 0)) AS TotalCostPerHour,
+								SUM(ISNULL(WOL.TotalCost, 0)) AS TotalLaborCost,
+								SUM(ISNULL(WOL.DirectLaborOHCost, 0)) AS DirectLaborOHCost
 						FROM #WOCostDetails WOC 
 							JOIN dbo.WorkOrderLaborHeader WOLH WITH(NOLOCK) ON  WOLH.WorkOrderId = WOC.WorkOrderId
 							JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) ON WOLH.WorkOrderLaborHeaderId = WOL.WorkOrderLaborHeaderId
 						WHERE WOLH.WorkOrderId = @WorkOrderId AND WOL.BillableId = 1 AND WOLH.IsDeleted = 0 AND WOL.IsActive = 1 AND WOL.IsDeleted = 0
 				)UPDATE #WOCostDetails 
-				SET LaborCost = CTE.LaborCost, LaborOverheadCost = CTE.LaborOverheadCost FROM CTE 
+				SET BurdenRateAmount = CTE.BurdenRateAmount, TotalCostPerHour = CTE.TotalCostPerHour, DirectLaborOHCost = CTE.DirectLaborOHCost, TotalLaborCost = CTE.TotalLaborCost FROM CTE 
 
 				INSERT INTO #WOQuoteDetails (WorkOrderId,WorkFlowWorkOrderId,WorkOrderQuoteId, WorkOrderQuoteDetailsId, LaborFlatBillingAmount, MaterialFlatBillingAmount, ChargesFlatBillingAmount, FreightFlatBillingAmount ) 
 				SELECT WorkOrderId,WOWF.WorkFlowWorkOrderId,WorkOrderQuoteId, WorkOrderQuoteDetailsId, LaborFlatBillingAmount, MaterialFlatBillingAmount, ChargesFlatBillingAmount, FreightFlatBillingAmount 
@@ -194,27 +219,35 @@ SET NOCOUNT ON
 						WHERE WOQL.BillableId = 1 AND WOQLH.IsDeleted = 0 AND WOQL.IsActive = 1 AND WOQL.IsDeleted = 0
 					END
 
+					IF((SELECT COUNT(1) FROM WorkOrderQuoteMaterialKitMapping WOQM  WITH(NOLOCK) where WOQM.WorkOrderQuoteId =@WorkOrderQuoteId and WOQM.IsDeleted=0 ) > 0)
+					BEGIN
+						SELECT 
+						@KitCost = SUM(ISNULL(WOQM.BillingAmount, 0))
+						FROM dbo.WorkOrderQuoteMaterialKitMapping WOQM
+						WHERE WOQM.WorkOrderQuoteId =@WorkOrderQuoteId and WOQM.IsDeleted=0 AND WOQM.IsActive = 1 
+					END
+
 					UPDATE #WOCostDetails
-					SET Revenue = @WOQLaborCost + ISNULL(WOQD.MaterialFlatBillingAmount,0) + ISNULL(WOQD.ChargesFlatBillingAmount,0) ,
+					SET Revenue = @WOQLaborCost + ISNULL(WOQD.MaterialFlatBillingAmount,0) + ISNULL(@KitCost,0) + ISNULL(WOQD.ChargesFlatBillingAmount,0) ,
 						WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 					FROM #WOQuoteDetails WOQD
 				END
 				ELSE
 				BEGIN
 					UPDATE #WOCostDetails
-					SET Revenue = ISNULL(LaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
+					SET Revenue = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
 					FROM #WOCostDetails
 				END
 
 				UPDATE #WOCostDetails
 					SET PartsRevePer = dbo.udfCalcPercentage(ISNULL(MaterialCost,0), ISNULL(Revenue,0)),
-						LaborRevePer = dbo.udfCalcPercentage(ISNULL(LaborCost,0), ISNULL(Revenue,0)),
-						OverHeadPer = dbo.udfCalcPercentage(ISNULL(LaborOverheadCost,0), ISNULL(Revenue,0))
+						LaborRevePer = dbo.udfCalcPercentage(ISNULL(TotalLaborCost,0), ISNULL(Revenue,0)),
+						OverHeadPer = dbo.udfCalcPercentage(ISNULL(BurdenRateAmount,0), ISNULL(Revenue,0))
 				FROM #WOCostDetails
 
 				UPDATE #WOCostDetails
-					SET TotalCost = ISNULL(LaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0) + ISNULL(FreightCost,0) + ISNULL(ExclusionCost,0),
-						DirectCost = ISNULL(LaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
+					SET TotalCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0) + ISNULL(FreightCost,0) + ISNULL(ExclusionCost,0),
+						DirectCost = ISNULL(TotalLaborCost,0) + ISNULL(MaterialCost,0) + ISNULL(ChargesCost,0)
 				FROM #WOCostDetails
 
 				UPDATE #WOCostDetails
@@ -235,8 +268,8 @@ SET NOCOUNT ON
 						ActMargin = ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
 						ActMarginPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
 						PartsRevePer = dbo.udfCalcPercentage(ISNULL(WOCD.MaterialCost,0), ISNULL(WOB.GrandTotal,0)),
-						LaborRevePer = dbo.udfCalcPercentage(ISNULL(LaborCost,0), ISNULL(WOB.GrandTotal,0)),
-						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.LaborOverheadCost,0), ISNULL(WOB.GrandTotal,0)),
+						LaborRevePer = dbo.udfCalcPercentage(ISNULL(TotalLaborCost,0), ISNULL(WOB.GrandTotal,0)),
+						OverHeadPer = dbo.udfCalcPercentage(ISNULL(WOCD.BurdenRateAmount,0), ISNULL(WOB.GrandTotal,0)),
 						Margin =  ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0),
 						MarginPer = dbo.udfCalcPercentage(ISNULL(WOB.GrandTotal,0) - ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0)),
 						DirectCostPer = dbo.udfCalcPercentage(ISNULL(DirectCost,0), ISNULL(WOB.GrandTotal,0))
@@ -257,18 +290,17 @@ SET NOCOUNT ON
 							DirectCostPercentage = ISNULL(WOCD.DirectCostPer,0),
 							ExclusionCost = ISNULL(WOCD.ExclusionCost,0),
 							FreightCost = ISNULL(WOCD.FreightCost,0),
-							LaborCost = ISNULL(WOCD.LaborCost,0),
+							LaborCost = ISNULL(WOCD.TotalLaborCost,0),
 							LaborRevPercentage = ISNULL(WOCD.LaborRevePer,0),
 							Margin = ISNULL(WOCD.Margin,0),
 							MarginPercentage = ISNULL(WOCD.MarginPer,0),
 							OtherCost = ISNULL(WOCD.ChargesCost,0),
-							OverHeadCost = ISNULL(WOCD.LaborOverheadCost,0),
+							OverHeadCost = ISNULL(WOCD.BurdenRateAmount,0),
 							OverHeadPercentage = ISNULL(WOCD.OverHeadPer,0),
 							PartsCost = ISNULL(WOCD.MaterialCost,0),
 							PartsRevPercentage = ISNULL(WOCD.PartsRevePer,0),
 							Revenue = ISNULL(WOCD.Revenue,0),
 							TotalCost = ISNULL(WOCD.TotalCost,0),
-							WOBillingShippingId = 0,
 							--WOPartNoId = @WOPartNoId,
 							WOQuoteId = WorkOrderQuoteId,
 							WorkOrderId = WOCD.WorkOrderId,
@@ -307,30 +339,29 @@ SET NOCOUNT ON
 							IsActive,
 							IsDeleted,
 							MasterCompanyId,
-							WOBillingShippingId,
-							--WOPartNoId,
+							WOPartNoId,
 							WOQuoteId,
 							WorkOrderId
 					)
-					SELECT  WOCD.ActMargin,
-							WOCD.ActMarginPer,
-							WOCD.ActRevenue,
-							WOCD.ChargesCost,
-							WOCD.DirectCost,
-							WOCD.DirectCostPer,
-							WOCD.ExclusionCost,
-							WOCD.FreightCost,
-							WOCD.LaborCost,
-							WOCD.LaborRevePer,
-							WOCD.Margin,
-							WOCD.MarginPer,
-							WOCD.ChargesCost,
-							WOCD.LaborOverheadCost,
-							WOCD.OverHeadPer,
-							WOCD.MaterialCost,
-							WOCD.PartsRevePer,
-							WOCD.Revenue,
-							WOCD.TotalCost,
+					SELECT  ISNULL(WOCD.ActMargin, 0),
+							ISNULL(WOCD.ActMarginPer, 0),
+							ISNULL(WOCD.ActRevenue, 0),
+							ISNULL(WOCD.ChargesCost, 0),
+							ISNULL(WOCD.DirectCost, 0),
+							ISNULL(WOCD.DirectCostPer, 0),
+							ISNULL(WOCD.ExclusionCost, 0),
+							ISNULL(WOCD.FreightCost, 0),
+							ISNULL(WOCD.TotalLaborCost, 0),
+							ISNULL(WOCD.LaborRevePer, 0),
+							ISNULL(WOCD.Margin, 0),
+							ISNULL(WOCD.MarginPer, 0),
+							ISNULL(WOCD.ChargesCost, 0),
+							ISNULL(WOCD.BurdenRateAmount, 0),
+							ISNULL(WOCD.OverHeadPer, 0),
+							ISNULL(WOCD.MaterialCost, 0),
+							ISNULL(WOCD.PartsRevePer, 0),
+							ISNULL(WOCD.Revenue, 0),
+							ISNULL(WOCD.TotalCost, 0),
 							@UpdatedBy,
 							@UpdatedBy,
 							GETDATE(),
@@ -338,8 +369,7 @@ SET NOCOUNT ON
 							1,
 							0,
 							@MasterCompanyId,
-							0,
-							--@WOPartNoId,
+							@WOPartNoId,
 							WOCD.WorkOrderQuoteId,
 							WOCD.WorkOrderId 
 					FROM #WOCostDetails WOCD 

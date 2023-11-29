@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿-------------------------------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [WorkOrderROlist]           
  ** Author:   Subhahs Saliya
  ** Description: Get Search Data for Work Order Ro List    
@@ -113,7 +115,7 @@ BEGIN
                                   ro.OpenDate,
                                   ro.NeedByDate
 					FROM RepairOrder ro WITH(NOLOCK)
-						JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
+						JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId AND rop.ItemTypeId=1
 						JOIN dbo.ItemMaster im WITH(NOLOCK) ON rop.ItemMasterId = im.ItemMasterId
 						JOIN dbo.StockLine sl WITH(NOLOCK) ON rop.StockLineId = sl.StockLineId
 						JOIN dbo.Vendor v WITH(NOLOCK) ON ro.VendorId = v.VendorId

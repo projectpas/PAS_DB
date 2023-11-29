@@ -19,10 +19,10 @@
     1    06/02/2020   Subhash Saliya Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
      
---EXEC [GetSubWorkOrderSettlementDetails] 67,41,41
+--EXEC [GetSubWorkOrderSettlementDetails] 212,35,37
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
+CREATE   PROCEDURE [dbo].[GetSubWorkOrderSettlementDetails]
 @WorkorderId bigint,
 @SubWorkOrderId bigint,
 @SubWOPartNoId BIGINT
@@ -41,11 +41,18 @@ BEGIN
 				DECLARE @IsLaborCompleled INT = 0;
 				DECLARE @AllToolsAreCheckOut INT = 0;
 				DECLARE @InventoryStatusID INT;
+				DECLARE @QtyTendered INT =0;				
 
 				SELECT @qtyreq = SUM(ISNULL(Quantity,0)),
-						@qtyissue=SUM(ISNULL(QuantityIssued,0)) 
+						@qtyissue=SUM(ISNULL(QuantityIssued,0)) 						
 				FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) 	  
 				WHERE WorkOrderId=@WorkorderId and SubWorkOrderId=@SubWorkOrderId and SubWOPartNoId =@SubWOPartNoId
+
+				SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.SubWorkOrderMaterialStockLine womsl WITH (NOLOCK)
+					JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId
+					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
+				WHERE WOM.WorkOrderId=@WorkorderId AND WOM.SubWorkOrderId=@SubWorkOrderId AND WOM.SubWOPartNoId =@SubWOPartNoId AND womsl.ConditionId = WOM.ConditionCodeId
+					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
 
 				SELECT @MasterCompanyID = MasterCompanyId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkorderId
 
@@ -53,27 +60,27 @@ BEGIN
 
 				SELECT @InventoryStatusID = AssetInventoryStatusId FROM dbo.AssetInventoryStatus WITH (NOLOCK) WHERE UPPER(Status) = 'AVAILABLE'
 				
-				IF(EXISTS (SELECT 1 FROM dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId and IsDeleted= 0))
 				BEGIN 
 					SELECT @IsLaborCompleled = COUNT(WL.SubWorkOrderLaborId)
 					FROM dbo.SubWorkOrderLabor WL WITH(NOLOCK) 
 						JOIN dbo.SubWorkOrderLaborHeader WLH WITH(NOLOCK) ON WL.SubWorkOrderLaborHeaderId = WLH.SubWorkOrderLaborHeaderId
-					WHERE WLH.SubWorkOrderId = @SubWorkOrderId AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId AND  ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
+					WHERE WLH.SubWorkOrderId = @SubWorkOrderId and WL.IsDeleted= 0 AND WLH.SubWOPartNoId = @SubWOPartNoId AND WLH.WorkOrderId = @WorkorderId AND  ISNULL(WL.TaskStatusId, 0) <> @TaskStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @IsLaborCompleled = 1;
+					SELECT @IsLaborCompleled = 0;
 				END
 
-				IF(EXISTS (SELECT 1 FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId))
+				IF(EXISTS (SELECT 1 FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId  and COCI.IsDeleted= 0))
 				BEGIN 
 					SELECT @AllToolsAreCheckOut = COUNT(COCI.SubWOCheckInCheckOutWorkOrderAssetId)
 					FROM dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH(NOLOCK) 
-					WHERE COCI.SubWOPartNoId = @SubWOPartNoId AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
+					WHERE COCI.SubWOPartNoId = @SubWOPartNoId  and COCI.IsDeleted= 0 AND COCI.SubWorkOrderId = @SubWorkorderId AND COCI.WorkOrderId = @WorkorderId AND ISNULL(COCI.InventoryStatusId, 0) <> @InventoryStatusID
 				END
 				ELSE
 				BEGIN
-					SELECT @AllToolsAreCheckOut = 1;
+					SELECT @AllToolsAreCheckOut = 0;
 				END
 
 				SELECT  wosd.WorkOrderId, 
@@ -82,7 +89,7 @@ BEGIN
 						ISNULL(wosd.SubWorkOrderId,0) as SubWorkOrderId,
 						ISNULL(wosd.SubWOPartNoId,0) as SubWOPartNoId,
 						ISNULL(wosd.SubWorkOrderSettlementDetailId,0) as SubWorkOrderSettlementDetailId,
-						CASE WHEN wos.WorkOrderSettlementId = 1  THEN CASE WHEN @qtyreq=@qtyissue THEN 1 ELSE  0 END 
+						CASE WHEN wos.WorkOrderSettlementId = 1  THEN CASE WHEN ISNULL(@qtyreq, 0) = (ISNULL(@qtyissue, 0) + ISNULL(@QtyTendered, 0)) THEN 1 ELSE  0 END 
 							 WHEN wos.WorkOrderSettlementId = 2 THEN CASE WHEN @IsLaborCompleled <= 0 THEN 1 ELSE 0 END 
 							 WHEN wos.WorkOrderSettlementId = 6 THEN CASE WHEN @AllToolsAreCheckOut <= 0 THEN 1 ELSE 0 END 
 						ELSE wosd.IsMastervalue END as IsMastervalue,
@@ -100,11 +107,14 @@ BEGIN
 						wosd.UpdatedDate,
 						wosd.IsActive,
 						wosd.IsDeleted,
-						Im.partnumber
+						Im.partnumber,
+						wosd.RevisedItemmasterid as RevisedPartId,
+						IMR.partnumber as 'RevisedPartNumber'
 				FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 					LEFT JOIN dbo.SubWorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 					LEFT JOIN dbo.SubWorkOrderPartNumber sop WITH(NOLOCK) on sop.SubWOPartNoId = wosd.SubWOPartNoId
 					LEFT JOIN dbo.ItemMaster Im WITH(NOLOCK) on sop.ItemMasterId = Im.ItemMasterId
+					LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
 				WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
 			END
 		COMMIT  TRANSACTION

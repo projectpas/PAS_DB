@@ -19,10 +19,13 @@
     [IsConfirmed]        BIT            NULL,
     [ConfirmedDate]      DATETIME2 (7)  NULL,
     [PDFPath]            NVARCHAR (MAX) NULL,
+    [QtyRemaining]       INT            NULL,
     CONSTRAINT [PK_SOPickTicket] PRIMARY KEY CLUSTERED ([SOPickTicketId] ASC),
     CONSTRAINT [FK_SOPickTicket_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SOPickTicket_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 GO

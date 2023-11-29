@@ -17,6 +17,7 @@
     [UpdatedDate]          DATETIME2 (7)   CONSTRAINT [CustomerFinancial_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]             BIT             CONSTRAINT [CustomerFinancial_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT             CONSTRAINT [CustomerFinancial_Delete] DEFAULT ((0)) NOT NULL,
+    [IsCustomerSetting]    BIT             NULL,
     CONSTRAINT [PK_CustomerFinancial] PRIMARY KEY CLUSTERED ([CustomerFinancialId] ASC),
     CONSTRAINT [FK_CustomerFinancial_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_CustomerFinancial_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -26,6 +27,8 @@
     CONSTRAINT [FK_CustomerFinancial_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [UC_CustomerFinancial_CustomerId] UNIQUE NONCLUSTERED ([CustomerId] ASC)
 );
+
+
 
 
 GO

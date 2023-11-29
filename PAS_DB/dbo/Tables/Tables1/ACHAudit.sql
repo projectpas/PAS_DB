@@ -17,7 +17,10 @@
     [IsActive]             BIT           NULL,
     [IsDeleted]            BIT           NULL,
     [GLAccountId]          BIGINT        NULL,
+    [IsPrimay]             BIT           NULL,
     CONSTRAINT [PK__ACHAudit__854679C8D5100FF3] PRIMARY KEY CLUSTERED ([ACHAuditId] ASC),
     CONSTRAINT [FK_ACHAudit_ACH] FOREIGN KEY ([ACHId]) REFERENCES [dbo].[ACH] ([ACHId])
 );
+
+
 

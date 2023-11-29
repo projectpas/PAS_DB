@@ -1,13 +1,13 @@
-﻿-- =============================================
+﻿---------------------------------------------------------------------------------------------------
+-- =============================================
 -- Description:	Get Search Data for Exchange Quote  search for from part list tab
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 -- =============================================
-CREATE PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
-@ItemMasterIdlist VARCHAR(max) = '146', 
-@ConditionId BIGINT = 1,
---@ConditionIds VARCHAR(100) = NULL,
-@CustomerId BIGINT = 336,
-@MappingType INT = -1
+CREATE   PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
+@ItemMasterIdlist VARCHAR(max) = '', 
+@ConditionId BIGINT,
+@CustomerId BIGINT ,
+@MappingType INT
 
 AS
 BEGIN
@@ -18,7 +18,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				 
+				DECLARE @StockType int = 1;	
 				SELECT DISTINCT
 					im.PartNumber
 					,sl.StockLineId
@@ -48,7 +48,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,uom.ShortName AS UomDescription
 					,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
+					--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
+					,ISNULL(sl.UnitCost, 0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 							WHEN sl.TraceableToType = 9 THEN leTraceble.Name
@@ -97,6 +98,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 ,imel.LoanOutrightPrice
 						 ,imel.LoanFees
 						 ,imel.ExchangeOverhaulCost
+						 ,imel.EFcogs as cogs
 				FROM DBO.ItemMaster im WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK)ON im.ItemMasterId = sl.ItemMasterId 
 					AND sl.isActive = 1 AND sl.IsDeleted = 0 
@@ -110,6 +112,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 					AND pop.ItemMasterId = im.ItemMasterId 
 					AND pop.IsDeleted = 0 AND pop.isActive = 1
+					AND pop.ItemTypeId = @StockType
 				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				--LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId

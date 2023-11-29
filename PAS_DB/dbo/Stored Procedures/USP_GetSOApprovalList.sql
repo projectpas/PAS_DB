@@ -16,6 +16,7 @@
  ** PR   Date         Author    Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
+    2    01/04/2022   Vishal Suthar Added Internal Sent fields
 
 EXEC [dbo].[USP_GetSOApprovalList]  64
 **************************************************************/
@@ -140,6 +141,9 @@ BEGIN
 			sqp.InternalRejectedById,
 			sqp.InternalRejectedByName,
 			sqp.InternalRejectedDate,
+			sqp.InternalSentToId,
+			sqp.InternalSentToName,
+			sqp.InternalSentById,
 			sqp.InternalMemo,
 			sqp.CustomerMemo,
 			sqp.CreatedBy,

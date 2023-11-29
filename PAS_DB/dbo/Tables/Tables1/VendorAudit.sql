@@ -9,7 +9,7 @@
     [VendorParentId]          BIGINT          NULL,
     [VendorPhone]             VARCHAR (256)   NULL,
     [VendorPhoneExt]          VARCHAR (10)    NULL,
-    [VendorEmail]             VARCHAR (30)    NULL,
+    [VendorEmail]             VARCHAR (200)   NULL,
     [AddressId]               BIGINT          NOT NULL,
     [IsAddressForBilling]     BIT             NOT NULL,
     [IsAddressForShipping]    BIT             NOT NULL,
@@ -44,7 +44,14 @@
     [IsDeleted]               BIT             NOT NULL,
     [BillingAddressId]        BIGINT          NULL,
     [ShippingAddressId]       BIGINT          NULL,
+    [IsTradeRestricted]       BIT             NULL,
+    [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
+    [IsTrackScoreCard]        BIT             NULL,
+    [IsVendorOnHold]          BIT             DEFAULT ((0)) NULL,
+    [TaxIdNumber]             NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 

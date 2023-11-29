@@ -10,6 +10,9 @@
     [UpdatedDate]                                DATETIME2 (7) CONSTRAINT [DF_LegalEntityInternationalWireBankingAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                                   BIT           CONSTRAINT [DF_LegalEntityInternationalWireBankingAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                                  BIT           CONSTRAINT [DF_LegalEntityInternationalWireBankingAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [IsPrimay]                                   BIT           NULL,
     CONSTRAINT [PK_LegalEntityInternationalWireBankingAudit] PRIMARY KEY CLUSTERED ([LegalEntityInternationalWireBankingAuditId] ASC)
 );
+
+
 

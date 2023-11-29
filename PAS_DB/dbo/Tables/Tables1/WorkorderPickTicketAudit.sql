@@ -22,6 +22,10 @@
     [ConfirmedDate]        DATETIME2 (7)  NULL,
     [StocklineId]          BIGINT         NULL,
     [PDFPath]              NVARCHAR (MAX) NULL,
+    [IsKitType]            BIT            NULL,
+    [QtyRemaining]         INT            NULL,
     CONSTRAINT [PK_WorkorderPickTicketAudit] PRIMARY KEY CLUSTERED ([PickTicketAuditId] ASC)
 );
+
+
 

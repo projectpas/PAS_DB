@@ -29,3 +29,7 @@ VALUES(
 @data.value('(/EVENT_INSTANCE/TSQLCommand)[1]', 'varchar(max)'), 
 @data.value('(/EVENT_INSTANCE/LoginName)[1]', 'varchar(256)')
 )
+GO
+DISABLE TRIGGER [backup_objects]
+    ON DATABASE;
+

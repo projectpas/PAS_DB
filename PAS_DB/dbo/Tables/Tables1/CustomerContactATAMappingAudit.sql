@@ -3,9 +3,9 @@
     [CustomerContactATAMappingId]      BIGINT        NOT NULL,
     [CustomerId]                       BIGINT        NOT NULL,
     [CustomerContactId]                BIGINT        NOT NULL,
-    [ATAChapterId]                     BIGINT        NOT NULL,
+    [ATAChapterId]                     BIGINT        NULL,
     [ATAChapterCode]                   VARCHAR (256) NULL,
-    [ATAChapterName]                   VARCHAR (250) NOT NULL,
+    [ATAChapterName]                   VARCHAR (250) NULL,
     [ATASubChapterId]                  BIGINT        NULL,
     [ATASubChapterDescription]         VARCHAR (256) NULL,
     [MasterCompanyId]                  INT           NOT NULL,
@@ -16,7 +16,12 @@
     [IsActive]                         BIT           CONSTRAINT [CustomerContactATAMappingAudit_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                        BIT           CONSTRAINT [CustomerContactATAMappingAudit_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ATASubChapterCode]                VARCHAR (250) NULL,
+    [Level1]                           VARCHAR (50)  NULL,
+    [Level2]                           VARCHAR (50)  NULL,
+    [Level3]                           VARCHAR (50)  NULL,
     CONSTRAINT [PK_CustomerContactATAMappingAudit] PRIMARY KEY CLUSTERED ([AuditCustomerContactATAMappingId] ASC),
     CONSTRAINT [FK_CustomerContactATAMappingAudit_CustomerContactATAMapping] FOREIGN KEY ([CustomerContactATAMappingId]) REFERENCES [dbo].[CustomerContactATAMapping] ([CustomerContactATAMappingId])
 );
+
+
 

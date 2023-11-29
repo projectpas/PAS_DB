@@ -78,8 +78,17 @@
     [EstDeliveryDate]           DATETIME2 (7)   NULL,
     [ExchangeSalesOrderId]      BIGINT          NULL,
     [ExchangeSalesOrderNo]      VARCHAR (250)   NULL,
+    [ManufacturerPN]            VARCHAR (150)   NULL,
+    [AssetModel]                VARCHAR (30)    NULL,
+    [AssetClass]                VARCHAR (50)    NULL,
+    [IsLotAssigned]             BIT             NULL,
+    [LotId]                     BIGINT          NULL,
+    [WorkOrderMaterialsId]      BIGINT          NULL,
+    [VendorRFQPOPartRecordId]   BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
+
+
 
 
 

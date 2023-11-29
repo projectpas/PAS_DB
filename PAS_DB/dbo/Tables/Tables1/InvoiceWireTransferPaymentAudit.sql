@@ -6,10 +6,10 @@
     [WireDate]            DATETIME        NOT NULL,
     [Amount]              DECIMAL (20, 2) NOT NULL,
     [CurrencyId]          INT             NOT NULL,
-    [BankName]            VARCHAR (100)   NULL,
+    [BankName]            INT             NULL,
     [ReferenceNo]         VARCHAR (100)   NULL,
-    [IMAD_OMADNo]         VARCHAR (100)   NOT NULL,
-    [BankAccount]         VARCHAR (256)   NOT NULL,
+    [IMAD_OMADNo]         VARCHAR (100)   NULL,
+    [BankAccount]         VARCHAR (256)   NULL,
     [GLAccountNumber]     BIGINT          NOT NULL,
     [Memo]                NVARCHAR (MAX)  NULL,
     [MasterCompanyId]     INT             NOT NULL,
@@ -19,6 +19,9 @@
     [UpdatedDate]         DATETIME2 (7)   NOT NULL,
     [IsActive]            BIT             NOT NULL,
     [IsDeleted]           BIT             NOT NULL,
+    [PageIndex]           INT             NULL,
     CONSTRAINT [PK_InvoiceWireTransferAudit] PRIMARY KEY CLUSTERED ([WireTransferAuditId] ASC)
 );
+
+
 

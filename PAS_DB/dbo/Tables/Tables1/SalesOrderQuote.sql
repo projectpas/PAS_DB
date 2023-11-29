@@ -80,12 +80,13 @@
     CONSTRAINT [FK_SalesOrderQuote_Employee_CustomerSeviceRep] FOREIGN KEY ([CustomerSeviceRepId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrderQuote_Employee_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrderQuote_LeadSource] FOREIGN KEY ([LeadSourceId]) REFERENCES [dbo].[LeadSource] ([LeadSourceId]),
-    CONSTRAINT [FK_SalesOrderQuote_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_SalesOrderQuote_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteStatus] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 GO

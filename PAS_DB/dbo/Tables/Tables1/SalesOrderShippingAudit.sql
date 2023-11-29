@@ -8,7 +8,7 @@
     [CustomerId]                         BIGINT          NOT NULL,
     [ShipViaId]                          BIGINT          NOT NULL,
     [ShipDate]                           DATETIME2 (7)   NOT NULL,
-    [AirwayBill]                         VARCHAR (50)    NOT NULL,
+    [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NOT NULL,
     [TrackingNum]                        VARCHAR (50)    NOT NULL,
     [Weight]                             DECIMAL (10, 2) NULL,
@@ -62,7 +62,16 @@
     [SmentNum]                           INT             NULL,
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [NoOfItems]                          INT             NULL,
+    [IsCustomerShipping]                 BIT             NULL,
+    [IsManualShipping]                   BIT             NULL,
+    [ManufactureCountryId]               INT             NULL,
+    [QtyUOM]                             BIGINT          NULL,
+    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [UnitPriceCurrencyId]                INT             NULL,
+    [Notes]                              VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_SalesOrderShippingAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderShippingId] ASC),
     CONSTRAINT [FK_SalesOrderShippingAudit_SalesOrderShipping] FOREIGN KEY ([SalesOrderShippingId]) REFERENCES [dbo].[SalesOrderShipping] ([SalesOrderShippingId])
 );
+
+
 

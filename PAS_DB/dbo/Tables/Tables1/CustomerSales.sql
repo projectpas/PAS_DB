@@ -14,6 +14,7 @@
     [UpdatedDate]            DATETIME2 (7)   CONSTRAINT [CustomerSales_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]               BIT             CONSTRAINT [CustomerSales_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]              BIT             CONSTRAINT [CustomerSales_Delete] DEFAULT ((0)) NOT NULL,
+    [CommissionPercentageId] BIGINT          NULL,
     CONSTRAINT [PK_CustomerSales] PRIMARY KEY CLUSTERED ([CustomerSalesId] ASC),
     CONSTRAINT [FK_CustomerSales_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerSales_Employee_CsrId] FOREIGN KEY ([CsrId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -23,6 +24,8 @@
     CONSTRAINT [FK_CustomerSales_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [UC_CustomerSales_CustomerId] UNIQUE NONCLUSTERED ([CustomerId] ASC)
 );
+
+
 
 
 GO

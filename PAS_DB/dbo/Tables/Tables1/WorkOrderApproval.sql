@@ -27,6 +27,9 @@
     [InternalRejectedID]   BIGINT         NULL,
     [CustomerRejectedDate] DATETIME       NULL,
     [CustomerRejectedbyID] BIGINT         NULL,
+    [InternalSentToId]     BIGINT         NULL,
+    [InternalSentToName]   VARCHAR (100)  NULL,
+    [InternalSentById]     BIGINT         NULL,
     CONSTRAINT [PK_WorkOrderApprovals] PRIMARY KEY CLUSTERED ([WorkOrderApprovalId] ASC),
     CONSTRAINT [FK_WorkOrderApproval_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderApproval_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -34,6 +37,8 @@
     CONSTRAINT [FK_WorkOrderApproval_WorkOrderPartNoId] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID]),
     CONSTRAINT [FK_WorkOrderApproval_WorkOrderQuoteId] FOREIGN KEY ([WorkOrderQuoteId]) REFERENCES [dbo].[WorkOrderQuote] ([WorkOrderQuoteId])
 );
+
+
 
 
 GO

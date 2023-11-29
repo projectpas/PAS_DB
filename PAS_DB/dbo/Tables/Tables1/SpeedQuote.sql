@@ -75,12 +75,13 @@
     CONSTRAINT [FK_SpeedQuote_Employee_CustomerSeviceRep] FOREIGN KEY ([CustomerSeviceRepId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SpeedQuote_Employee_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SpeedQuote_LeadSource] FOREIGN KEY ([LeadSourceId]) REFERENCES [dbo].[LeadSource] ([LeadSourceId]),
-    CONSTRAINT [FK_SpeedQuote_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_SpeedQuote_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SpeedQuote_MasterSpeedQuoteStatus] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSpeedQuoteStatus] ([Id]),
     CONSTRAINT [FK_SpeedQuote_MasterSpeedQuoteTypes] FOREIGN KEY ([SpeedQuoteTypeId]) REFERENCES [dbo].[MasterSpeedQuoteTypes] ([Id]),
     CONSTRAINT [FK_SpeedQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 GO

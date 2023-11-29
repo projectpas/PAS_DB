@@ -10,7 +10,8 @@
     [CanUpload]               BIT    CONSTRAINT [DF__RolePermi__CanUp__79877EE5] DEFAULT ((0)) NULL,
     [CanDownload]             BIT    CONSTRAINT [DF__RolePermi__CanDo__7A7BA31E] DEFAULT ((0)) NULL,
     [PermissionID]            INT    CONSTRAINT [DF_RolePermission_PermissionID] DEFAULT ((1)) NOT NULL,
-    CONSTRAINT [PK__RolePerm__3214EC076FCCF7AB] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK__RolePermi__Modul__170E59B8] FOREIGN KEY ([ModuleHierarchyMasterId]) REFERENCES [dbo].[ModuleHierarchyMaster] ([Id])
+    CONSTRAINT [PK__RolePerm__3214EC076FCCF7AB] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
+
+
 

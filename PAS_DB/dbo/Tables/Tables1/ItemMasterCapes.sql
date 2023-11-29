@@ -16,7 +16,7 @@
     [IsDeleted]             BIT            CONSTRAINT [DF_ItemMasterCapes_IsDeleted] DEFAULT ((0)) NOT NULL,
     [AddedDate]             DATETIME2 (7)  NULL,
     [PartNumber]            VARCHAR (250)  NULL,
-    [PartDescription]       VARCHAR (250)  NULL,
+    [PartDescription]       NVARCHAR (MAX) NULL,
     [CapabilityType]        VARCHAR (250)  NULL,
     [VerifiedBy]            VARCHAR (250)  NULL,
     [Level1]                VARCHAR (200)  NULL,
@@ -26,10 +26,10 @@
     CONSTRAINT [PK_ItemMasterCapes] PRIMARY KEY CLUSTERED ([ItemMasterCapesId] ASC),
     CONSTRAINT [FK_ItemMasterCapes_CapabilityTypeId] FOREIGN KEY ([CapabilityTypeId]) REFERENCES [dbo].[CapabilityType] ([CapabilityTypeId]),
     CONSTRAINT [FK_ItemMasterCapes_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
-    CONSTRAINT [FK_ItemMasterCapes_ManagementStructureId] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
-    CONSTRAINT [FK_ItemMasterCapes_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [UC_ItemMasterCapes] UNIQUE NONCLUSTERED ([ItemMasterId] ASC, [CapabilityTypeId] ASC, [ManagementStructureId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [FK_ItemMasterCapes_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

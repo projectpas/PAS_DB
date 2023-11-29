@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[CustomerOverDuePayment] (
+    [CustomerOverDuePaymentId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [ReceiptId]                BIGINT          NULL,
+    [OverDueDate]              DATETIME        NULL,
+    [Reference]                VARCHAR (100)   NULL,
+    [CheckNumber]              VARCHAR (50)    NOT NULL,
+    [CustomerId]               BIGINT          NOT NULL,
+    [BankId]                   INT             NOT NULL,
+    [BankName]                 VARCHAR (100)   NULL,
+    [BankAccountNumber]        VARCHAR (50)    NULL,
+    [GLAccountNumber]          BIGINT          NOT NULL,
+    [CurrencyId]               INT             NULL,
+    [InvoiceAmount]            DECIMAL (20, 2) NULL,
+    [Amount]                   DECIMAL (20, 2) NULL,
+    [Memo]                     VARCHAR (MAX)   NULL,
+    [MasterCompanyId]          INT             NOT NULL,
+    [CreatedBy]                VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                VARCHAR (256)   NOT NULL,
+    [CreatedDate]              DATETIME2 (7)   CONSTRAINT [DF_CustomerOverDuePayment_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]              DATETIME2 (7)   CONSTRAINT [DF_CustomerOverDuePayment_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]                 BIT             CONSTRAINT [DF_CustomerOverDuePayment_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                BIT             CONSTRAINT [DF_CustomerOverDuePayment_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [PageIndex]                INT             NULL,
+    [Ismiscellaneous]          BIT             CONSTRAINT [DF_CustomerOverDuePayment_Ismiscellaneous] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_CustomerOverDuePayment] PRIMARY KEY CLUSTERED ([CustomerOverDuePaymentId] ASC)
+);
+

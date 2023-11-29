@@ -124,8 +124,18 @@
     [ShelfName]                         VARCHAR (250)   NULL,
     [BinName]                           VARCHAR (250)   NULL,
     [CurrentStlNo]                      BIGINT          NULL,
+    [MTBUR]                             INT             DEFAULT ((0)) NOT NULL,
+    [NE]                                INT             DEFAULT ((0)) NOT NULL,
+    [NS]                                INT             DEFAULT ((0)) NOT NULL,
+    [OH]                                INT             DEFAULT ((0)) NOT NULL,
+    [REP]                               INT             DEFAULT ((0)) NOT NULL,
+    [SVC]                               INT             DEFAULT ((0)) NOT NULL,
+    [Figure]                            VARCHAR (15)    NULL,
+    [Item]                              VARCHAR (15)    NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
+
+
 
 
 

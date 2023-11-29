@@ -23,7 +23,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetViewWorkLoad]    
+CREATE   PROCEDURE [dbo].[USP_GetViewWorkLoad]    
 ( 
 @PageNumber int,
 @PageSize int,
@@ -454,8 +454,8 @@ SET NOCOUNT ON
 									LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 									LEFT JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.EmployeeId = emp.EmployeeId	
-								WHERE wo.MasterCompanyId= @MasterCompanyId AND EMS.ManagementStructureId =@ManagementStructureId AND CAST(wop.ReceivedDate as date) >= CAST(@FromRecieveddate as DATE) AND CAST(wop.ReceivedDate as DATE) <= CAST(@ToRecieveddate as date) AND ISNULL(wlh.IsDeleted,0) = 0 AND ISNULL(wlh.IsActive,1) = 1
-					), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
+								WHERE wo.MasterCompanyId= @MasterCompanyId AND EMS.ManagementStructureId =@ManagementStructureId AND CAST(wop.ReceivedDate as date) >= CAST(@FromRecieveddate as DATE) AND CAST(wop.ReceivedDate as DATE) <= CAST(@ToRecieveddate as date) AND ISNULL(wlh.IsDeleted,0) = 0 AND ISNULL(wlh.IsActive,1) = 1 
+					AND wo.WorkOrderNum = @workOrderNumber), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult1 from  Result
 					WHERE (
 										(@GlobalFilter <>'' AND (

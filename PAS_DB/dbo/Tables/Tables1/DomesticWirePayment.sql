@@ -1,23 +1,26 @@
 ﻿CREATE TABLE [dbo].[DomesticWirePayment] (
-    [DomesticWirePaymentId] BIGINT        IDENTITY (1, 1) NOT NULL,
-    [ABA]                   VARCHAR (50)  NOT NULL,
-    [AccountNumber]         VARCHAR (50)  NOT NULL,
-    [BankName]              VARCHAR (100) NOT NULL,
-    [BenificiaryBankName]   VARCHAR (100) NULL,
-    [IntermediaryBankName]  VARCHAR (100) NULL,
-    [BankAddressId]         BIGINT        NULL,
-    [MasterCompanyId]       INT           NOT NULL,
-    [CreatedBy]             VARCHAR (256) NOT NULL,
-    [UpdatedBy]             VARCHAR (256) NOT NULL,
-    [CreatedDate]           DATETIME2 (7) CONSTRAINT [DF_DomesticWirePayment_CreatedDate] DEFAULT (sysdatetime()) NOT NULL,
-    [UpdatedDate]           DATETIME2 (7) CONSTRAINT [DF_DomesticWirePayment_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
-    [IsActive]              BIT           CONSTRAINT [DF_DomesticWirePayment_IsActive] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]             BIT           CONSTRAINT [DF_DomesticWirePayment_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [AccountNameId]         BIGINT        NULL,
+    [DomesticWirePaymentId]   BIGINT        IDENTITY (1, 1) NOT NULL,
+    [ABA]                     VARCHAR (50)  NOT NULL,
+    [AccountNumber]           VARCHAR (50)  NOT NULL,
+    [BankName]                VARCHAR (100) NOT NULL,
+    [BenificiaryBankName]     VARCHAR (100) NULL,
+    [IntermediaryBankName]    VARCHAR (100) NULL,
+    [BankAddressId]           BIGINT        NULL,
+    [MasterCompanyId]         INT           NOT NULL,
+    [CreatedBy]               VARCHAR (256) NOT NULL,
+    [UpdatedBy]               VARCHAR (256) NOT NULL,
+    [CreatedDate]             DATETIME2 (7) CONSTRAINT [DF_DomesticWirePayment_CreatedDate] DEFAULT (sysdatetime()) NOT NULL,
+    [UpdatedDate]             DATETIME2 (7) CONSTRAINT [DF_DomesticWirePayment_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
+    [IsActive]                BIT           CONSTRAINT [DF_DomesticWirePayment_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]               BIT           CONSTRAINT [DF_DomesticWirePayment_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [AccountNameId]           BIGINT        NULL,
+    [VendorBankAccountTypeId] INT           NULL,
     CONSTRAINT [PK_DomesticWirePaymentId] PRIMARY KEY CLUSTERED ([DomesticWirePaymentId] ASC),
     CONSTRAINT [FK_DomesticWirePaymentId_Address] FOREIGN KEY ([BankAddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_DomesticWirePaymentId_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

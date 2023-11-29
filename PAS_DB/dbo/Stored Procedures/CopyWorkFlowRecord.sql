@@ -1,9 +1,10 @@
-﻿Create PROCEDURE [dbo].[CopyWorkFlowRecord]
-	-- Add the parameters for the stored procedure here
-	@WorkflowId bigint,	
-	@CreatedBy  varchar(50)=null,
-	@returnOut varchar(200) out
-	
+﻿
+-- EXEC [dbo].[CopyWorkFlowRecord] 97, 'ADMIN User', 0
+CREATE   PROCEDURE [dbo].[CopyWorkFlowRecord]
+-- Add the parameters for the stored procedure here
+@WorkflowId bigint,	
+@CreatedBy  varchar(50)=null,
+@returnOut varchar(200) out	
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -28,10 +29,53 @@ BEGIN
 				SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
 				UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 				INSERT INTO dbo.Workflow SELECT * FROM #tempTable
-			
-	
+				
 				SET @newWorkFlowId=SCOPE_IDENTITY()
-				Update dbo.Workflow set WorkOrderNumber = 'ACC'+ convert(varchar(30),@newWorkFlowId) where WorkflowId = @newWorkFlowId
+
+				DECLARE @WorkFlowNumber VARCHAR(50);
+				DECLARE @MasterCompanyId INT;
+				SELECT @MasterCompanyId = MasterCompanyId FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+
+				/* Code Prefix */
+				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+				BEGIN
+				DROP TABLE #tmpCodePrefixes
+				END
+				
+				CREATE TABLE #tmpCodePrefixes
+				(
+						ID BIGINT NOT NULL IDENTITY, 
+						CodePrefixId BIGINT NULL,
+						CodeTypeId BIGINT NULL,
+						CurrentNummber BIGINT NULL,
+						CodePrefix VARCHAR(50) NULL,
+						CodeSufix VARCHAR(50) NULL,
+						StartsFrom BIGINT NULL,
+				)
+
+				INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom) 
+				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+				WHERE CT.CodeTypeId IN (33) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+				/* Code Prefix */
+				DECLARE @CurrentNo AS BIGINT;
+
+				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = 33))
+				BEGIN 
+					SELECT @CurrentNo = CASE WHEN CurrentNummber > 0 
+						THEN CAST(CurrentNummber AS BIGINT) + 1 
+							ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+					FROM #tmpCodePrefixes WHERE CodeTypeId = 33
+
+					SET @WorkFlowNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 33), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 33)))
+				END
+
+				
+				Update dbo.Workflow set WorkOrderNumber = @WorkFlowNumber where WorkflowId = @newWorkFlowId
+				
+				UPDATE CodePrefixes SET CurrentNummber = @CurrentNo WHERE CodeTypeId = 33 AND MasterCompanyId = @MasterCompanyId
+
 				DROP TABLE #tempTable	
 					IF(@chargesCount >0)
 					BEGIN
@@ -50,7 +94,7 @@ BEGIN
 					END
 					IF(@equipmentCount >0)
 					BEGIN
-						SELECT WorkflowId, AssetId, AssetTypeId, AssetDescription, Quantity, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, [Order], Memo, WFParentId, IsVersionIncrease INTO #tempTable4 FROM dbo.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						SELECT WorkflowId, AssetId, AssetTypeId, AssetDescription, Quantity, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, [Order], Memo, WFParentId, IsVersionIncrease, AssetAttributeTypeId INTO #tempTable4 FROM dbo.WorkflowEquipmentList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
 						UPDATE #tempTable4 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowEquipmentList SELECT * FROM #tempTable4
 						DROP TABLE #tempTable4
@@ -64,14 +108,14 @@ BEGIN
 					END
 					IF(@expertiseListCount >0)
 					BEGIN
-						SELECT  WorkflowId, ExpertiseTypeId, EstimatedHours, LaborDirectRate, DirectLaborRate, OverheadBurden, OverheadCost, StandardRate, LaborOverheadCost, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, [Order], Memo, WFParentId, IsVersionIncrease INTO #tempTable6 FROM dbo.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						SELECT  WorkflowId, ExpertiseTypeId, EstimatedHours, LaborDirectRate, DirectLaborRate, OverheadBurden, OverheadCost, StandardRate, LaborOverheadCost, TaskId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, [Order], Memo, WFParentId, IsVersionIncrease, OverheadburdenPercentId INTO #tempTable6 FROM dbo.WorkflowExpertiseList WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
 						UPDATE #tempTable6 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowExpertiseList SELECT * FROM #tempTable6
 						DROP TABLE #tempTable6
 					END
 					IF(@materialCount >0)
 					BEGIN
-						SELECT  WorkflowId, ItemMasterId, TaskId, Quantity, UnitOfMeasureId, ConditionCodeId, UnitCost, ExtendedCost, Price, ProvisionId, IsDeferred, WorkflowActionId, Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease INTO #tempTable7 FROM dbo.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
+						SELECT  WorkflowId, ItemMasterId, TaskId, Quantity, UnitOfMeasureId, ConditionCodeId, UnitCost, ExtendedCost, Price, ProvisionId, IsDeferred, WorkflowActionId, Memo, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, MaterialMandatoriesName, PartNumber, PartDescription, ItemClassificationId, ExtendedPrice, [Order], MaterialMandatoriesId, WFParentId, IsVersionIncrease, Figure, Item INTO #tempTable7 FROM dbo.WorkflowMaterial WITH (NOLOCK) WHERE WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0
 						UPDATE #tempTable7 SET WorkflowId = @newWorkFlowId,CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
 						INSERT INTO dbo.WorkflowMaterial SELECT * FROM #tempTable7
 						DROP TABLE #tempTable7

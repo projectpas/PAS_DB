@@ -28,6 +28,15 @@
     [ExportUomName]               VARCHAR (200)   NULL,
     [ExportSizeUnitOfMeasureName] VARCHAR (200)   NULL,
     [ExportClassificationIdName]  VARCHAR (200)   NULL,
+    [IsIATR]                      BIT             DEFAULT ((0)) NOT NULL,
+    [IsExportLicense]             BIT             DEFAULT ((0)) NOT NULL,
+    [ScheduleB]                   VARCHAR (15)    NULL,
+    [HSCode]                      VARCHAR (15)    NULL,
+    [HTSCode]                     VARCHAR (15)    NULL,
+    [ECCNDeterminationSourceID]   INT             DEFAULT ((0)) NOT NULL,
+    [ECCNDeterminationSourceName] VARCHAR (100)   NULL,
     CONSTRAINT [PK_ItemMasterExportInfoAudit] PRIMARY KEY CLUSTERED ([ItemMasterExportInfoAuditId] ASC)
 );
+
+
 

@@ -10,7 +10,7 @@
     [CustomerId]                         BIGINT          NOT NULL,
     [ShipViaId]                          BIGINT          NOT NULL,
     [ShipDate]                           DATETIME2 (7)   NOT NULL,
-    [AirwayBill]                         VARCHAR (50)    NOT NULL,
+    [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NULL,
     [TrackingNum]                        VARCHAR (50)    NULL,
     [Weight]                             DECIMAL (10, 2) NOT NULL,
@@ -65,6 +65,16 @@
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
     [NoOfItems]                          INT             NULL,
+    [IsCustomerShipping]                 BIT             NULL,
+    [IsManualShipping]                   BIT             NULL,
+    [ManufactureCountryId]               INT             NULL,
+    [QtyUOM]                             BIGINT          NULL,
+    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [UnitPriceCurrencyId]                INT             NULL,
+    [Notes]                              VARCHAR (MAX)   NULL,
+    [isIgnoreAWB]                        BIT             NULL,
     CONSTRAINT [PK_WorkOrderShippingAudit] PRIMARY KEY CLUSTERED ([WorkOrderShippingAuditId] ASC)
 );
+
+
 

@@ -3,7 +3,7 @@
     [AssetRecordId]                     BIGINT          NOT NULL,
     [CalibrationRequired]               BIT             CONSTRAINT [AssetCalibration_CalibrationRequired] DEFAULT ((0)) NULL,
     [CalibrationFrequencyMonths]        INT             NULL,
-    [CalibrationFrequencyDays]          INT             NULL,
+    [CalibrationFrequencyDays]          BIGINT          NULL,
     [CalibrationDefaultVendorId]        BIGINT          NULL,
     [CalibrationDefaultCost]            DECIMAL (18, 2) NULL,
     [CalibrationCurrencyId]             INT             NULL,
@@ -18,7 +18,7 @@
     [AssetCalibrationMemo]              NVARCHAR (MAX)  NULL,
     [CertificationRequired]             BIT             CONSTRAINT [AssetCalibration_CertificationRequired] DEFAULT ((0)) NULL,
     [CertificationFrequencyMonths]      INT             NULL,
-    [CertificationFrequencyDays]        INT             NULL,
+    [CertificationFrequencyDays]        BIGINT          NULL,
     [CertificationDefaultVendorId]      BIGINT          NULL,
     [CertificationDefaultCost]          DECIMAL (18, 2) NULL,
     [CertificationCurrencyId]           INT             NULL,
@@ -26,7 +26,7 @@
     [CertificationMemo]                 NVARCHAR (MAX)  NULL,
     [InspectionRequired]                BIT             CONSTRAINT [AssetCalibration_InspectionRequired] DEFAULT ((0)) NULL,
     [InspectionFrequencyMonths]         INT             NULL,
-    [InspectionFrequencyDays]           INT             NULL,
+    [InspectionFrequencyDays]           BIGINT          NULL,
     [InspectionDefaultCost]             DECIMAL (18, 2) NULL,
     [InspectionCurrencyId]              INT             NULL,
     [InspectionDefaultVendorId]         BIGINT          NULL,
@@ -34,7 +34,7 @@
     [InspectionMemo]                    NVARCHAR (MAX)  NULL,
     [VerificationRequired]              BIT             CONSTRAINT [AssetCalibration_VerificationRequired] DEFAULT ((0)) NULL,
     [VerificationFrequencyMonths]       INT             NULL,
-    [VerificationFrequencyDays]         INT             NULL,
+    [VerificationFrequencyDays]         BIGINT          NULL,
     [VerificationDefaultCost]           DECIMAL (18, 2) NULL,
     [VerificationCurrencyId]            INT             NULL,
     [VerificationDefaultVendorId]       BIGINT          NULL,
@@ -47,6 +47,10 @@
     [UpdatedBy]                         VARCHAR (256)   NOT NULL,
     [CreatedDate]                       DATETIME2 (7)   CONSTRAINT [AssetCalibration_CreatedDate] DEFAULT (getdate()) NOT NULL,
     [UpdatedDate]                       DATETIME2 (7)   CONSTRAINT [AssetCalibration_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [CalibrationProvider]               VARCHAR (10)    NULL,
+    [CertificationProvider]             VARCHAR (10)    NULL,
+    [InspectionProvider]                VARCHAR (10)    NULL,
+    [VerificationProvider]              VARCHAR (10)    NULL,
     CONSTRAINT [PK_AssetCalibration] PRIMARY KEY CLUSTERED ([AssetCalibrationId] ASC),
     CONSTRAINT [FK_AssetCalibration_AssetRecordId] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_AssetCalibration_CalibrationCurrencyId] FOREIGN KEY ([CalibrationCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -63,6 +67,8 @@
     CONSTRAINT [FK_AssetCalibration_VerificationDefaultVendorId] FOREIGN KEY ([VerificationDefaultVendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_AssetCalibration_VerificationGlAccountId] FOREIGN KEY ([VerificationGlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId])
 );
+
+
 
 
 GO

@@ -14,6 +14,12 @@ BEGIN
 	BEGIN TRY
 		BEGIN
 			DECLARE @BacklogStartDt AS DateTime;
+			DECLARE @RecevingModuleID AS INT =1;
+			DECLARE @wopartModuleID AS INT =12
+			DECLARE @woqModuleID AS INT =15
+			DECLARE @SalesOrderModuleID AS INT =17
+			DECLARE @SalesOrderQouteModuleID AS INT =18
+			DECLARE @SpeedQouteModuleID AS INT =27
 
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
@@ -23,13 +29,14 @@ BEGIN
 				SELECT rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup,
 				rec_cust.Quantity, wo.WorkOrderNum, rec_cust.CustomerName, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
+				INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = rec_cust.ManagementStructureId
 				WHERE rec_cust.IsActive = 1 
 				AND rec_cust.IsDeleted = 0 
-				AND EMS.EmployeeId = @EmployeeId
 				AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 
 				AND rec_cust.MasterCompanyId = @MasterCompanyId
 				ORDER BY WO.WorkOrderId
@@ -45,17 +52,18 @@ BEGIN
 				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE wobi.IsActive = 1 
 				AND wobi.IsDeleted = 0 
 				AND wobi.IsVersionIncrease = 0
 				AND CONVERT(DATE, wobi.InvoiceDate) = CONVERT(DATE, @Date) 
 				AND wobi.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 			ELSE IF (@DashboardType = 3)
 			BEGIN
-				SELECT
+				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
 				sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
@@ -66,12 +74,13 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SO.ManagementStructureId
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE sobi.IsActive = 1
 				AND sobi.IsDeleted = 0
 				AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
 				AND sobi.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 			ELSE IF (@DashboardType = 4)
 			BEGIN
@@ -82,7 +91,9 @@ BEGIN
 				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOP.ManagementStructureId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				WHERE 
 				wop.WorkOrderStageId IN (SELECT BacklogMROStage FROM [dbo].[DashboardSettings] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 										AND IsActive = 1 AND IsDeleted = 0)
@@ -90,7 +101,6 @@ BEGIN
 				AND wop.IsDeleted = 0
 				AND CONVERT(DATE, wop.CreatedDate) >= CONVERT(DATE, @BacklogStartDt)
 				AND wop.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 			ELSE IF (@DashboardType = 5)
 			BEGIN
@@ -103,7 +113,9 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SO.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SO.ManagementStructureId
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE
 				SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
 				AND SOP.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
@@ -113,7 +125,6 @@ BEGIN
 				AND SO.IsDeleted = 0
 				AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt)
 				AND SO.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 				GROUP BY item.PartNumber, item.PartDescription, cond.[Description], item.ItemGroup, cust.Name, SO.SalesOrderNumber, emp.FirstName, emp.LastName
 				ORDER BY SO.SalesOrderNumber
 			END
@@ -128,7 +139,9 @@ BEGIN
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON WOQ.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOP.ManagementStructureId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = WOP.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOP.ManagementStructureId = RMS.EntityStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
 				Outer Apply(
 					SELECT 
 					STUFF((SELECT ', ' + WOPP.WorkScope
@@ -143,7 +156,6 @@ BEGIN
 				AND WOQ.SentDate IS NOT NULL
 				AND CONVERT(DATE, WOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND WOQ.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 			ELSE IF (@DashboardType = 7)
 			BEGIN
@@ -156,7 +168,9 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SQP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SQ.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SQ.ManagementStructureId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID =@SpeedQouteModuleID AND MSD.ReferenceID = SQ.SpeedQuoteId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SQ.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE
 				SQ.StatusId IN (SELECT Id FROM DBO.MasterSpeedQuoteStatus WITH (NOLOCK) WHERE 
 						[Name] = 'Open' AND IsActive = 1 AND IsDeleted = 0)
@@ -164,7 +178,6 @@ BEGIN
 				AND SQ.IsDeleted = 0
 				AND CONVERT(DATE, SQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND SQ.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 			ELSE IF (@DashboardType = 8)
 			BEGIN
@@ -179,14 +192,15 @@ BEGIN
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOQP.ItemMasterId = item.ItemMasterId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON SOQ.SalesPersonId = emp.EmployeeId
-				INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = SOQ.ManagementStructureId
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderQouteModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				WHERE
 				SOQA.CustomerApprovedDate IS NOT NULL
 				AND SOQ.IsActive = 1
 				AND SOQ.IsDeleted = 0
 				AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND SOQ.MasterCompanyId = @MasterCompanyId
-				AND EMS.EmployeeId = @EmployeeId
 			END
 		END
 	END TRY    

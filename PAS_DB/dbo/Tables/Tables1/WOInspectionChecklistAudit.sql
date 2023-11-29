@@ -23,8 +23,8 @@
     [HavetheotherRSsseals]                 BIT            NULL,
     [Notes]                                NVARCHAR (MAX) NULL,
     [WorkRequested]                        NVARCHAR (MAX) NULL,
-    [SpecialInstructions]                  VARCHAR (250)  NULL,
-    [TroubleReported]                      VARCHAR (250)  NULL,
+    [SpecialInstructions]                  NVARCHAR (MAX) NULL,
+    [TroubleReported]                      NVARCHAR (MAX) NULL,
     [ApplicableADs]                        NVARCHAR (MAX) NULL,
     [ShippingContainers]                   NVARCHAR (MAX) NULL,
     [Comments]                             NVARCHAR (MAX) NULL,
@@ -38,4 +38,6 @@
     [UpdatedDate]                          DATETIME2 (7)  CONSTRAINT [DF_WOInspectionChecklistAudit_UpdatedDate] DEFAULT (getdate()) NULL,
     CONSTRAINT [PK_WOInspectionChecklistAudit] PRIMARY KEY CLUSTERED ([WOInspectionAuditId] ASC)
 );
+
+
 

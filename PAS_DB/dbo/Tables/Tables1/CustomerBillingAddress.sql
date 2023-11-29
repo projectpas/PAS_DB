@@ -14,12 +14,16 @@
     [TagName]                  VARCHAR (250) NULL,
     [ContactTagId]             BIGINT        NULL,
     [Attention]                VARCHAR (250) NULL,
+    [InvDelPrefStatusId]       BIGINT        NULL,
+    [Email]                    VARCHAR (50)  NULL,
     CONSTRAINT [PK_CustomerBillingAddress] PRIMARY KEY CLUSTERED ([CustomerBillingAddressId] ASC),
     CONSTRAINT [FK_CustomerBillingAddress_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_CustomerBillingAddress_ContactTagId] FOREIGN KEY ([ContactTagId]) REFERENCES [dbo].[ContactTag] ([ContactTagId]),
     CONSTRAINT [FK_CustomerBillingAddress_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerBillingAddress_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

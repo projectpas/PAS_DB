@@ -9,7 +9,7 @@
     [CustomerId]                         BIGINT          NOT NULL,
     [ShipViaId]                          BIGINT          NOT NULL,
     [ShipDate]                           DATETIME2 (7)   NOT NULL,
-    [AirwayBill]                         VARCHAR (50)    NOT NULL,
+    [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NULL,
     [TrackingNum]                        VARCHAR (50)    NULL,
     [Weight]                             DECIMAL (10, 2) NOT NULL,
@@ -64,6 +64,14 @@
     [CustomerDomensticShippingShipViaId] BIGINT          NULL,
     [ShippingAccountInfo]                VARCHAR (200)   NULL,
     [NoOfItems]                          INT             NULL,
+    [IsCustomerShipping]                 BIT             NULL,
+    [IsManualShipping]                   BIT             NULL,
+    [ManufactureCountryId]               INT             NULL,
+    [QtyUOM]                             BIGINT          NULL,
+    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [UnitPriceCurrencyId]                INT             NULL,
+    [Notes]                              VARCHAR (MAX)   NULL,
+    [isIgnoreAWB]                        BIT             NULL,
     CONSTRAINT [PK_WorkOrderShipping] PRIMARY KEY CLUSTERED ([WorkOrderShippingId] ASC),
     CONSTRAINT [FK_WorkOrderShipping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_WorkOrderShipping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -79,6 +87,8 @@
     CONSTRAINT [FK_WorkOrderShipping_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderShipping_WorkOrderPartNo] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 GO

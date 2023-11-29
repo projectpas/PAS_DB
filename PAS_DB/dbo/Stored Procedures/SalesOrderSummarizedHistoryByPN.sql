@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SalesOrderSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SO Summarized History By PN.    
@@ -19,7 +18,6 @@
      
 --EXEC [SalesOrderSummarizedHistoryByPN] 246,0
 **************************************************************/
-
 CREATE PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
 @ItemMasterId BIGINT=3,
 @IsTwelveMonth BIT = 1
@@ -44,6 +42,7 @@ BEGIN
 					;WITH summary AS 
 					(SELECT 
 						IM.partnumber AS PartNumber,
+						IM.PartDescription AS PartDescription,
 						SOP.ItemMasterId,
 						Cond.Description AS Condition,
 						Cond.ConditionId,
@@ -59,14 +58,14 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month)
 
-					SELECT PartNumber, ItemMasterId, Condition, CurrencyName, SUM(Revenue) AS Revenue,(SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) AS AvgRevenue,
+					SELECT PartNumber,PartDescription,ItemMasterId, Condition, CurrencyName, SUM(Revenue) AS Revenue,(SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) AS AvgRevenue,
 					--SUM(DirectCost) AS DirectCost,
 					(SUM(ISNULL(DirectCost,0))) / COUNT(ConditionId) AS DirectCost,
 					--(SUM(Revenue) - SUM(DirectCost)) AS Margin,
 					((SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) - (SUM(ISNULL(DirectCost,0))) / COUNT(ConditionId)) AS Margin,
 					CASE WHEN SUM(ISNULL(Revenue, 0)) > 0 THEN CONVERT(DECIMAL(18,2), (ISNULL((SUM(Revenue) - SUM(DirectCost)), 0) * 100 ) / SUM(ISNULL(Revenue, 0))) ELSE 0 END AS MarginPercentage
 					FROM summary
-					GROUP BY partnumber, ItemMasterId, Condition, CurrencyName;
+					GROUP BY partnumber,PartDescription,ItemMasterId, Condition, CurrencyName;
 				END
 			COMMIT  TRANSACTION
 		END TRY    

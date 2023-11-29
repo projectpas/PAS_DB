@@ -1,5 +1,4 @@
-﻿
--- =============================================
+﻿-- =============================================
 -- Author:		Vishal Suthar
 -- Create date: 23-Dec-2020
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -11,7 +10,6 @@ AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
@@ -30,7 +28,8 @@ BEGIN
 		ManagementStructureName = (MS.Code + ' - ' + MS.Name),
 		CustomerCode = C.CustomerCode,
 		CustomerContactName = customContact.FirstName +' '+ customContact.LastName + '-' +  customContact.WorkPhone,
-		CustomerContactEmail = c.Email,
+		--CustomerContactEmail = c.Email,
+		CustomerContactEmail = customContact.Email,
 		StatusName = msoqs.Name,
 		VersionNumber = dbo.GenearteVersionNumber(SOQ.Version)
 		FROM [dbo].[SalesOrderQuote] SOQ WITH (NOLOCK)

@@ -1,4 +1,5 @@
-﻿CREATE PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
+﻿
+CREATE   PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -32,7 +33,9 @@
 	@QuoteExpireDate datetime=null,
 	@AccountTypeName varchar(50)='',
 	@LeadSourceReference varchar(50)='',
-	@ConditionCodeType varchar(50)=''
+	@ConditionCodeType varchar(50)='',
+	@EmployeeId bigint,
+	@ManufacturerNameType varchar(50)=''
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -78,9 +81,10 @@ BEGIN
 					Begin
 						Set @Status=null
 					End
+					DECLARE @MSModuleID INT = 27; -- Speed Quote Management Structure Module ID
 				-- Insert statements for procedure here
 				;With Result AS(
-				Select SOQ.SpeedQuoteId,SOQ.SpeedQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',C.CustomerCode, MST.Name as 'Status',
+				Select DISTINCT SOQ.SpeedQuoteId,SOQ.SpeedQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',C.CustomerCode, MST.Name as 'Status',
 				--ISNULL(SP.NetSales,0) as 'QuoteAmount',
 				ISNULL(SP.UnitSalePrice,0) as 'QuoteAmount',
 				SOQ.CreatedDate,SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,
@@ -88,6 +92,7 @@ BEGIN
 				(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(IM.partnumber,'') as 'PartNumberType',IsNull(im.PartDescription,'') as 'PartDescription',IsNull(im.PartDescription,'') as 'PartDescriptionType',
 				Ct.CustomerTypeName as 'CustomerType',
+				IsNull(im.ManufacturerName,'') as 'ManufacturerName',IsNull(im.ManufacturerName,'') as 'ManufacturerNameType',
 				--SOP.NetSales as 'SoAmount',
 				--SOP.UnitSalePrice as 'SoAmount',
 				SOQ.QuoteExpireDate,SOQ.AccountTypeName,SOQ.LeadSourceReference,
@@ -104,11 +109,14 @@ BEGIN
 				Left join [Percent] p WITH (NOLOCK) on P.PercentId = SOQ.ProbabilityId
 				Left join [Condition] cn WITH (NOLOCK) on cn.ConditionId = SP.ConditionId
 				--Left join SpeedQuoteExclusionPart spe on spe.SpeedQuoteId = SOQ.SpeedQuoteId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SpeedQuoteId
+				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
+				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (SELECT SpeedQuoteId,SpeedQuoteNumber,QuoteDate,CustomerId,CustomerName,CustomerCode,Status,VersionNumber,QuoteAmount,IsNewVersionCreated,StatusId
 			,CustomerReference,
 			--Priority,PriorityType,
-			SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,
+			SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ManufacturerName,ManufacturerNameType,
 			--SalesOrderNumber,
 			--SoAmount,
 			QuoteExpireDate,AccountTypeName,LeadSourceReference,
@@ -123,6 +131,7 @@ BEGIN
 							--(PriorityType like '%' +@GlobalFilter+'%') OR
 							(PartNumberType like '%' +@GlobalFilter+'%') OR
 							(PartDescriptionType like '%' +@GlobalFilter+'%') OR
+							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CustomerReference like '%' +@GlobalFilter+'%') OR
 							(@VersionNumber like '%'+@GlobalFilter+'%') OR
 							(CustomerType like '%' +@GlobalFilter+'%') OR 
@@ -145,6 +154,7 @@ BEGIN
 							(IsNull(@SalesPerson,'') ='' OR SalesPerson like '%'+ @SalesPerson+'%') and
 							(IsNull(@PartNumberType,'') ='' OR PartNumberType like '%'+@PartNumberType+'%') and
 							(IsNull(@PartDescriptionType,'') ='' OR PartDescriptionType like '%'+@PartDescriptionType+'%') and
+							(IsNull(@ManufacturerNameType,'') ='' OR ManufacturerNameType like '%'+@ManufacturerNameType+'%') and
 							(IsNull(@CustomerReference,'') ='' OR CustomerReference like '%'+@CustomerReference+'%') and
 							(IsNull(@CustomerType,'') ='' OR CustomerType like '%'+@CustomerType+'%') and
 							(IsNull(@VersionNumber,'') ='' OR VersionNumber like '%'+@VersionNumber+'%') and
@@ -164,7 +174,7 @@ BEGIN
 					,CustomerReference,
 					--Priority,
 					--PriorityType,
-					SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,
+					SalesPerson,PartNumber,PartNumberType,PartDescription,PartDescriptionType,CustomerType,ManufacturerName,ManufacturerNameType,
 					--SalesOrderNumber,
 					QuoteExpireDate,AccountTypeName,LeadSourceReference,
 					LeadSourceName,Probability,
@@ -192,6 +202,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END ASC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,
@@ -212,6 +223,7 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerNameType')  THEN ManufacturerNameType END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CONDITIONCODETYPE')  THEN ConditionCodeType END Desc
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

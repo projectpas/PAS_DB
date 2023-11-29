@@ -14,7 +14,9 @@
     [IsDeleted]                             BIT             NOT NULL,
     [UnitPrice]                             DECIMAL (20, 2) NULL,
     [ExchangeSalesOrderShippingId]          BIGINT          NULL,
-    CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSOBillingInvoicingItemId] ASC),
-    CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItemAudit_ExchangeSalesOrderBillingInvoicingItem] FOREIGN KEY ([ExchangeSOBillingInvoicingItemId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicingItem] ([ExchangeSOBillingInvoicingItemId])
+    [ExchangeSalesOrderScheduleBillingId]   BIGINT          NULL,
+    CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSOBillingInvoicingItemId] ASC)
 );
+
+
 

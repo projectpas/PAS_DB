@@ -19,9 +19,12 @@
     [IsConfirmed]              BIT            NULL,
     [ConfirmedDate]            DATETIME2 (7)  NULL,
     [PDFPath]                  NVARCHAR (MAX) NULL,
+    [QtyRemaining]             INT            NULL,
     CONSTRAINT [PK_ExchangeSOPickTicket] PRIMARY KEY CLUSTERED ([SOPickTicketId] ASC),
     CONSTRAINT [FK_ExchangeSOPickTicket_ExchangeSalesOrder] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId])
 );
+
+
 
 
 GO

@@ -17,7 +17,7 @@
 --EXEC [AutoCompleteDropdownsItemMasterIsPmaORIsDer] '822',1,200,'108,109,11',1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
 @StartWith VARCHAR(50),
 @IsActive bit,
 @Count VARCHAR(10) = '0',
@@ -41,12 +41,14 @@ BEGIN
 				BEGIN		
 					SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label
+						Im.partnumber AS Label,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma != 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 					UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label							
+						Im.partnumber AS Label,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 					ORDER BY Label				
@@ -55,13 +57,15 @@ BEGIN
 				BEGIN
 					SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value, 
-						Im.partnumber AS Label	
+						Im.partnumber AS Label,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma != 1 AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 					UNION 
 					SELECT DISTINCT TOP 20 
 						Im.ItemMasterId AS Value,  
-						Im.partnumber AS Label							
+						Im.partnumber AS Label,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 					WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 					ORDER BY Label	
@@ -78,12 +82,14 @@ BEGIN
 				BEGIN		
 					SELECT DISTINCT TOP 20 
 							Im.ItemMasterId AS Value, 
-							Im.partnumber AS Label
+							Im.partnumber AS Label,
+							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 							WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 						   UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
-							Im.partnumber AS Label							
+							Im.partnumber AS Label,
+							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 							WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 							ORDER BY Label				
@@ -92,13 +98,15 @@ BEGIN
 				BEGIN
 					SELECT DISTINCT TOP 20 
 							Im.ItemMasterId AS Value, 
-							Im.partnumber AS Label	
+							Im.partnumber AS Label,
+							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 							WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 							UNION 
 					SELECT DISTINCT TOP 20 
 							Im.ItemMasterId AS Value,  
-							Im.partnumber AS Label							
+							Im.partnumber AS Label,
+							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 							WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 							ORDER BY Label	

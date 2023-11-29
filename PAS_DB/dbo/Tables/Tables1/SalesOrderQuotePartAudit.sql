@@ -32,8 +32,8 @@
     [IsConvertedToSalesOrder]    BIT            NOT NULL,
     [IsActive]                   BIT            NOT NULL,
     [CustomerRequestDate]        DATETIME2 (7)  NOT NULL,
-    [PromisedDate]               DATETIME2 (7)  NOT NULL,
-    [EstimatedShipDate]          DATETIME2 (7)  NOT NULL,
+    [PromisedDate]               DATETIME2 (7)  NULL,
+    [EstimatedShipDate]          DATETIME2 (7)  NULL,
     [PriorityId]                 INT            NOT NULL,
     [StatusId]                   INT            NULL,
     [CustomerReference]          VARCHAR (100)  NULL,
@@ -60,6 +60,11 @@
     [CurrencyName]               NVARCHAR (100) NULL,
     [ItemNo]                     INT            NULL,
     [UnitSalesPricePerUnit]      NUMERIC (9, 2) NULL,
+    [IsLotAssigned]              BIT            NULL,
+    [LotId]                      BIGINT         NULL,
+    [SalesPriceExpiryDate]       DATETIME2 (7)  NULL,
     CONSTRAINT [PK_SalesOrderQuotePartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
+
+
 

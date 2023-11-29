@@ -19,6 +19,9 @@
     [Memo]                         VARCHAR (1000) NULL,
     [WFParentId]                   BIGINT         NULL,
     [IsVersionIncrease]            BIT            NULL,
+    [AssetAttributeTypeId]         BIGINT         NULL,
     CONSTRAINT [PK_WorkflowEquipmentListAudit] PRIMARY KEY CLUSTERED ([WorkflowEquipmentListAuditId] ASC)
 );
+
+
 

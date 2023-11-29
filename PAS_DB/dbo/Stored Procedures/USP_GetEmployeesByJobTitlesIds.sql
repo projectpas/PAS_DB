@@ -9,15 +9,29 @@ BEGIN
 
   BEGIN TRY
 
-    SELECT
+    --SELECT
+    --  EMP.EmployeeId AS employeeId,
+    --  EMP.EmployeeExpertiseId AS EmployeeExpertiseId,
+    --  EMP.EmployeeCode AS employeeCode,
+    --  EMP.FirstName + ' ' + EMP.LastName AS [name]
+    --FROM Employee EMP WITH (NOLOCK)
+    --WHERE EMP.isDeleted = 0
+    --AND EMP.IsActive = 1
+    --AND EMP.EmployeeExpertiseId IN (SELECT
+    --  Item
+    --FROM DBO.SPLITSTRING(@JobTitleIds, ','))
+    --ORDER BY EMP.FirstName
+
+	SELECT
       EMP.EmployeeId AS employeeId,
-      EMP.EmployeeExpertiseId AS EmployeeExpertiseId,
+      EEMP.EmployeeExpertiseIds AS EmployeeExpertiseId,
       EMP.EmployeeCode AS employeeCode,
       EMP.FirstName + ' ' + EMP.LastName AS [name]
     FROM Employee EMP WITH (NOLOCK)
+	LEFT JOIN EmployeeExpertiseMapping EEMP WITH (NOLOCK) ON EMP.EmployeeId = EEMP.EmployeeId
     WHERE EMP.isDeleted = 0
     AND EMP.IsActive = 1
-    AND EMP.EmployeeExpertiseId IN (SELECT
+    AND EEMP.EmployeeExpertiseIds IN (SELECT
       Item
     FROM DBO.SPLITSTRING(@JobTitleIds, ','))
     ORDER BY EMP.FirstName

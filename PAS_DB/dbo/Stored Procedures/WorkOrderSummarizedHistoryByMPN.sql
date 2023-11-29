@@ -22,7 +22,7 @@
 --EXEC [WorkOrderSummarizedHistoryByMPN] 18,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
+CREATE   PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -71,21 +71,23 @@ BEGIN
 						WOP.ItemMasterId,
 						WOP.WorkScope,
 						WOP.WorkOrderScopeId AS WorkScopeId,
-						C.Code AS CurrencyName,
+						max(C.Code) AS CurrencyName,
 						SUM(ISNULL(WC.Revenue, 0)) AS Revenue,
 						SUM(ISNULL(WC.DirectCost, 0)) AS DirectCost,
 						SUM(ISNULL(WC.Margin, 0)) AS Margin,
 						CASE WHEN SUM(ISNULL(WC.Revenue, 0)) > 0 THEN CONVERT(DECIMAL(18,2),(SUM(ISNULL(WC.Margin, 0)) * 100 ) / SUM(ISNULL(WC.Revenue, 0))) ELSE 0 END AS RevenuePercentage,
-						SUM(ISNULL(WOP.TATDaysCurrent, 0)) As TATDays,
+						--SUM(ISNULL(WOP.TATDaysCurrent, 0)) As TATDays,
+						sum(dbo.FN_GetTatCurrentDays(WOP.Id)) As TATDays,
 						COUNT(WO.WorkOrderId)
 					FROM dbo.WorkOrderCostDetails WC WITH(NOLOCK) 
 						JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WC.WOPartNoId = WOP.ID
+						LEFT JOIN dbo.WorkOrderTurnArroundTime WTT WITH(NOLOCK) ON WTT.WorkOrderPartNoId = WOP.ID AND WOP.WorkOrderStageId = WTT.CurrentStageId
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON WOP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = WO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 					WHERE WOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WC.createdDate, GETDATE()) < @Month
-					GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId ,C.Code
+					GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId
 
 					IF((SELECT COUNT(1) FROM #tmpWorkOrderCostDetails) > 0)
 					BEGIN
@@ -94,9 +96,9 @@ BEGIN
 									SUM(ISNULL(WOC.DirectCost, 0))/ WOCount AS CalDirectCost,
 									WOC.WorkScopeId,
 									WOC.ItemMasterId, 
-									WOC.CurrencyName
+									Max(WOC.CurrencyName) as CurrencyName
 							FROM #tmpWorkOrderCostDetails WOC 
-							GROUP BY WOC.WorkScopeId, WOC.WOCount, WOC.ItemMasterId, WOC.CurrencyName
+							GROUP BY WOC.WorkScopeId, WOC.WOCount, WOC.ItemMasterId
 						)UPDATE #tmpWorkOrderCostDetails 
 						SET AvgRevenue = CTE.CalAvgRevenue, DirectCost = CalDirectCost FROM CTE 
 						WHERE #tmpWorkOrderCostDetails.WorkScopeId = CTE.WorkScopeId 

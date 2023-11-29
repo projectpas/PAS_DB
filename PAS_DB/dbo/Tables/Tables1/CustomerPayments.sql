@@ -27,10 +27,15 @@
     [LEVEL2]                VARCHAR (256)   NULL,
     [LEVEL3]                VARCHAR (256)   NULL,
     [LEVEL4]                VARCHAR (256)   NULL,
+    [GLAccountId]           BIGINT          NULL,
+    [LegalEntityId]         BIGINT          NULL,
+    [BankType]              VARCHAR (50)    NULL,
     CONSTRAINT [PK_CustomerPayments] PRIMARY KEY CLUSTERED ([ReceiptId] ASC),
     CONSTRAINT [FK_CustomerPayments_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CustomerPayments_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

@@ -10,11 +10,14 @@
     [UpdatedDate]       DATETIME2 (7) CONSTRAINT [DF_CustomerContact_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
     [IsActive]          BIT           CONSTRAINT [CustomerContact_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]         BIT           DEFAULT ((0)) NOT NULL,
+    [IsRestrictedParty] BIT           NULL,
     CONSTRAINT [PK_CustomerContact] PRIMARY KEY CLUSTERED ([CustomerContactId] ASC),
     CONSTRAINT [FK_CustomerContact_Contact] FOREIGN KEY ([ContactId]) REFERENCES [dbo].[Contact] ([ContactId]),
     CONSTRAINT [FK_CustomerContact_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerContact_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

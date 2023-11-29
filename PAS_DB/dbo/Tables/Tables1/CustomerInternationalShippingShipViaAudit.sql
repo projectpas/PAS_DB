@@ -3,7 +3,7 @@
     [CustomerInternationalShippingShipViaId]      BIGINT         NOT NULL,
     [CustomerInternationalShippingId]             BIGINT         NOT NULL,
     [CustomerId]                                  BIGINT         NOT NULL,
-    [ShipVia]                                     NVARCHAR (100) NULL,
+    [ShipVia]                                     VARCHAR (400)  NULL,
     [ShippingAccountInfo]                         VARCHAR (200)  NULL,
     [Memo]                                        NVARCHAR (MAX) NULL,
     [MasterCompanyId]                             INT            NOT NULL,
@@ -17,4 +17,6 @@
     [ShipViaId]                                   BIGINT         NULL,
     CONSTRAINT [PK_ShippingViaDetailsAudit] PRIMARY KEY CLUSTERED ([CustomerInternationalShippingShipViaAuditId] ASC)
 );
+
+
 

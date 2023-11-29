@@ -21,6 +21,11 @@
     [ApprovedByName]             VARCHAR (256)  NULL,
     [RejectedByName]             VARCHAR (256)  NULL,
     [StatusName]                 VARCHAR (50)   NULL,
+    [InternalSentToId]           BIGINT         NULL,
+    [InternalSentToName]         VARCHAR (100)  NULL,
+    [InternalSentById]           BIGINT         NULL,
     CONSTRAINT [PK_RepairOrderApprovalAudit] PRIMARY KEY CLUSTERED ([RepairOrderApprovalAuditId] ASC)
 );
+
+
 

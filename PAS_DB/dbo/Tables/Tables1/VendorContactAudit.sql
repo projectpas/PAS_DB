@@ -14,7 +14,10 @@
     [IsDeleted]            BIT           NOT NULL,
     [ContactTagId]         BIGINT        NULL,
     [Attention]            VARCHAR (250) NULL,
+    [IsRestrictedParty]    BIT           NULL,
     CONSTRAINT [PK_VendorContactAudit] PRIMARY KEY CLUSTERED ([AuditVendorContactId] ASC),
     CONSTRAINT [FK_VendorContactAudit_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 

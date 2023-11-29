@@ -40,10 +40,15 @@ BEGIN
 
 		IF(@ManagementStructureId > 0)
 		BEGIN
-			    SELECT DISTINCT top 50 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
-				FROM dbo.Employee E WITH(NOLOCK) INNER JOIN dbo.EmployeeManagementStructure EMS WITH(NOLOCK) 
-				ON E.EmployeeId = EMS.EmployeeId 
-				WHERE E.MasterCompanyId = @MasterCompanyId AND (E.IsActive = 1 AND E.EmployeeExpertiseId in  (SELECT Item FROM DBO.SPLITSTRING(@Parameter4, ',')) AND ISNULL(E.IsDeleted, 0) = 0 AND (EMS.ManagementStructureId = @ManagementStructureId OR E.ManagementStructureId = @ManagementStructureId) AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
+				SELECT DISTINCT top 50 E.EmployeeId AS Value, FirstName + ' ' + LastName AS Label
+				FROM dbo.Employee E WITH(NOLOCK) 
+				INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH(NOLOCK) ON RMS.RoleId = EUR.RoleId AND ISNULL(RMS.IsDeleted,0)=0
+				LEFT JOIN dbo.EmployeeExpertiseMapping EEMP WITH(NOLOCK) ON E.EmployeeId = EEMP.EmployeeId
+				WHERE E.MasterCompanyId = @MasterCompanyId 
+				AND (E.IsActive = 1 AND EEMP.EmployeeExpertiseIds in  (SELECT Item FROM DBO.SPLITSTRING(@Parameter4, ',')) 
+				AND ISNULL(E.IsDeleted, 0) = 0 AND (RMS.EntityStructureId = @ManagementStructureId OR E.ManagementStructureId = @ManagementStructureId) 
+				AND (FirstName LIKE @Parameter3 + '%' OR LastName  LIKE '%' + @Parameter3 + '%'))
 				UNION 
 				SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
 				FROM dbo.Employee  WITH(NOLOCK)
@@ -52,9 +57,6 @@ BEGIN
 		END
 	  END TRY 
 	  BEGIN CATCH      
-			    --IF @@trancount > 0
-				--PRINT 'ROLLBACK'
-				--ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

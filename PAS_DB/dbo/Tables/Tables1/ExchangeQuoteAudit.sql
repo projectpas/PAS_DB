@@ -61,6 +61,10 @@
     [ContractReference]        VARCHAR (100)   NULL,
     [EnforceEffectiveDate]     DATETIME2 (7)   NULL,
     [IsEnforceApproval]        BIT             NULL,
+    [IsNewVersionCreated]      BIT             DEFAULT ((0)) NOT NULL,
+    [QuoteParentId]            BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
+
+
 

@@ -9,9 +9,13 @@
     [UpdatedDate]     DATETIME2 (7) CONSTRAINT [DF_Teardowntype_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]        BIT           CONSTRAINT [TeardownType_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT           CONSTRAINT [TeardownType_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [TearDownCode]    VARCHAR (200) NULL,
+    [Sequence]        INT           NULL,
     CONSTRAINT [PK_TeardownType] PRIMARY KEY CLUSTERED ([TeardownTypeId] ASC),
     CONSTRAINT [Unique_Teardowntype] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

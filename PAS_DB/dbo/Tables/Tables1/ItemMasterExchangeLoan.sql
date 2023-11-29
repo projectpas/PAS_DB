@@ -21,9 +21,15 @@
     [IsActive]              BIT             CONSTRAINT [DF_ItemMasterExchangeLoan1_IsActive] DEFAULT ((1)) NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_ItemMasterExchangeLoan1_IsDeleted] DEFAULT ((0)) NULL,
     [ExchangeOverhaulCost]  DECIMAL (18, 2) NULL,
+    [EFcogs]                INT             DEFAULT ((0)) NOT NULL,
+    [OPcogs]                INT             DEFAULT ((0)) NOT NULL,
+    [EFcogsamount]          DECIMAL (18, 2) NULL,
+    [OPcogsamount]          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ItemMasterExchangeLoan1] PRIMARY KEY CLUSTERED ([ItemMasterLoanExchId] ASC),
     CONSTRAINT [FK_ItemMasterExchangeLoan_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId])
 );
+
+
 
 
 GO

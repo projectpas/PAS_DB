@@ -14,27 +14,28 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
-	2    07/22/2021   Hemant Saliya Update WO & Sub WO Field Mapping to Get it from Stockline
-	3    01/03/2021   Hemant Saliya Update for Performance Improvement
-    3    02/03/2023   Rajesh Gami   Update for Figure & Item Changes(Getting Figure and Item from the WorkOrderMaterial Table)  
-	4    03/17/2023   Amit Ghediya  Added for get AlterPartNumber from WorkOrderMaterialStockLine.
-	5    03/23/2023   Vishal Suthar Modified query to handle KITs added in the material
-	6    05/05/2023   Vishal Suthar Added column for Stockline Condition
-	7    05/09/2023   Vishal Suthar Added filter for showing only qty remaining
-	8    05/18/2023   Hemant Saliya Updated PO Next Delivery Date Condition
-	9    06/08/2023   Vishal Suthar Fixed the EmployeeName in the WO Material
-	10   06/27/2023   Vishal Suthar Fixed the PO Next Delivery Date issue
-	11   06/30/2023   Vishal Suthar Fixed the RO Next Delivery Date issue
-	12   07/19/2023   Hemant Saliya Fixed the RO Next Delivery Date issue
-	13   10/16/2023   Hemant Saliya Update UOM changes
-	14   10/19/2023   Hemant Saliya Update Stockline Condition
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/22/2021   Hemant Saliya		Created
+	2    07/22/2021   Hemant Saliya		Update WO & Sub WO Field Mapping to Get it from Stockline
+	3    01/03/2021   Hemant Saliya		Update for Performance Improvement
+    3    02/03/2023   Rajesh Gami		Update for Figure & Item Changes(Getting Figure and Item from the WorkOrderMaterial Table)  
+	4    03/17/2023   Amit Ghediya		Added for get AlterPartNumber from WorkOrderMaterialStockLine.
+	5    03/23/2023   Vishal Suthar		Modified query to handle KITs added in the material
+	6    05/05/2023   Vishal Suthar		Added column for Stockline Condition
+	7    05/09/2023   Vishal Suthar		Added filter for showing only qty remaining
+	8    05/18/2023   Hemant Saliya		Updated PO Next Delivery Date Condition
+	9    06/08/2023   Vishal Suthar		Fixed the EmployeeName in the WO Material
+	10   06/27/2023   Vishal Suthar		Fixed the PO Next Delivery Date issue
+	11   06/30/2023   Vishal Suthar		Fixed the RO Next Delivery Date issue
+	12   07/19/2023   Hemant Saliya		Fixed the RO Next Delivery Date issue
+	13   10/16/2023   Hemant Saliya		Update UOM changes
+	14   10/19/2023   Hemant Saliya		Update Stockline Condition
+	15   11/29/2023   Devendra Shekh	qty issue for qtyremaining resolved
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3651,3119, 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
 (    
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,
@@ -299,8 +300,13 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
 						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
+						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + 
+											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
+											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
+											)),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),
 						
@@ -508,8 +514,13 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
 						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
+						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + 
+											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLineKit womsl WITH (NOLOCK)
+											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+											Where womsl.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND womsl.ConditionId = WOM.ConditionCodeId
+											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
+											)),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND wopt.WorkorderId = WOM.WorkOrderId),
 						
@@ -720,8 +731,13 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
 						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
+						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + 
+											(SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+											JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
+											AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
+											)),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND wopt.WorkorderId = WOM.WorkOrderId),
 						
@@ -925,8 +941,13 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
 						QuantityReserved = (SELECT SUM(ISNULL(womsl.QtyReserved, 0 )) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),
-						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
-											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),
+						QunatityRemaining = (WOM.Quantity + WOM.QtyToTurnIn) - (ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
+											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0) + 
+											(SELECT SUM(ISNULL(sl.QuantityOnOrder,0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK)
+											JOIN #tmpStocklineKit sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+											Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.ConditionId = WOM.ConditionCodeId
+											AND womsl.isActive = 1 AND womsl.isDeleted = 0
+											)),
 						QunatityPicked = (SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 											WHERE wopt.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND wopt.WorkorderId = WOM.WorkOrderId),
 						

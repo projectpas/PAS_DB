@@ -16,6 +16,7 @@
     1    07/08/2023   Moin Bloch    Created
 	2    09/08/2023   Moin Bloch    Added Billing Batch Entry and Core Return Batch Entry
 	3    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
+	4    01/12/2023   Moin Bloch    Modify(Added LotId And Lot Number in CommonBatchDetails)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -102,6 +103,8 @@ BEGIN
 		DECLARE @ValidDistribution BIT = 1;
 		DECLARE @EXSOHeaderMSModuleId BIGINT;
 		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @LotId BIGINT=0;
+		DECLARE @LotNumber VARCHAR(50);
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE [ID] = @DistributionMasterId;
@@ -196,8 +199,7 @@ BEGIN
 			END
 
 			IF(UPPER(@DistributionCode) = UPPER('EX-SHIPMENT'))
-	        BEGIN
-				
+	        BEGIN				
 				SELECT @InvoiceNo = [SOShippingNum] FROM [dbo].[ExchangeSalesOrderShipping] WITH(NOLOCK) WHERE [ExchangeSalesOrderShippingId] = @InvoiceId;
 				
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
@@ -412,12 +414,17 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON ESOP.StockLineId = STL.StockLineId
 						WHERE ESOI.[ExchangeSalesOrderShippingId] = @InvoiceId AND STL.GLAccountId= @PartGLAccountId;
 
-						SELECT TOP 1 @STKGlAccountId = SL.[GLAccountId],
-						             @STKGlAccountNumber = GL.[AccountCode],
-									 @STKGlAccountName = GL.[AccountName] 
-								FROM [dbo].[Stockline] SL WITH(NOLOCK)
-						INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-						WHERE SL.[StockLineId] = @STKId;
+						SELECT  @STKGlAccountId = SL.[GLAccountId],
+						        @STKGlAccountNumber = GL.[AccountCode],
+								@STKGlAccountName = GL.[AccountName], 
+								@LotId = SL.LotId,
+								@LotNumber = LO.[LotNumber],
+								@StocklineId = SL.[StockLineId],
+								@StocklineNumber = SL.[StockLineNumber]
+						   FROM [dbo].[Stockline] SL WITH(NOLOCK)
+						  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+						   LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
+						    WHERE SL.[StockLineId] = @STKId;
 
 						--------------------------------------------------- Inventory on Exchange Agreeement Start ---------------------------------------------------
 						IF(@PartUnitSalesPrices > 0)
@@ -462,7 +469,10 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber]
+										)
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -491,7 +501,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber);
 
 							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -578,7 +590,9 @@ BEGIN
 									    [CreatedDate],
 									    [UpdatedDate],
 									    [IsActive],
-									    [IsDeleted])
+									    [IsDeleted],
+										[LotId],
+										[LotNumber])
 				    		     VALUES
 				    			       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -607,7 +621,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber);
 				    
 							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -708,7 +724,6 @@ BEGIN
 				END
 				IF(@ValidDistribution = 1)
 				BEGIN
-					
 					DECLARE @TotalBillingAmount DECIMAL(18,2) = 0;
 					DECLARE @TotalCogsAmount DECIMAL(18,2) = 0;
 					DECLARE @MiscChargesCost DECIMAL(18,2) = 0;
@@ -734,7 +749,20 @@ BEGIN
 					FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOB WITH(NOLOCK) 
 					INNER JOIN [dbo].[ExchangeSalesOrderScheduleBilling] ESOS  WITH(NOLOCK) ON ESOB.ExchangeSalesOrderId = ESOS.ExchangeSalesOrderId 					
 					WHERE [SOBillingInvoicingId] = @InvoiceId AND [BillingTypeId] = @EXCHBillingTypeId AND [StatusId] = @ExchangeBillingStatusId;
-
+					
+					SELECT  @StocklineId = esop.[StockLineId],
+					        @partId = esop.[ItemMasterId],
+							@MPNName = itm.[partnumber]
+					FROM [dbo].[ExchangeSalesOrderPart] esop WITH(NOLOCK) 
+					 LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = esop.[ItemMasterId]					
+					WHERE esop.ExchangeSalesOrderPartId = @ReferencePartId ;
+										
+					SELECT @LotId = SL.[LotId],
+						   @LotNumber = LO.[LotNumber],						  
+						   @StocklineNumber = SL.[StockLineNumber]
+					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
+					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON LO.LotId = SL.LotId  
+					  WHERE SL.[StockLineId] = @StocklineId;
 					------------------------------------------Total Cogs Amount------------------------------------------							
 
 					SELECT @TotalCogsAmount = (ISNULL(ESOB.[CogsAmount],0)),					       
@@ -989,7 +1017,10 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber]
+										)
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1018,7 +1049,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1097,7 +1130,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1126,7 +1161,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1209,7 +1246,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1238,7 +1277,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1322,7 +1363,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1351,7 +1394,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1435,7 +1480,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1464,7 +1511,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1543,7 +1592,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1572,7 +1623,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1655,7 +1708,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1684,7 +1739,10 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
+
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1768,7 +1826,9 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted],
+										[LotId],
+										[LotNumber])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1797,7 +1857,9 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0,
+										@LotId,
+										@LotNumber)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 

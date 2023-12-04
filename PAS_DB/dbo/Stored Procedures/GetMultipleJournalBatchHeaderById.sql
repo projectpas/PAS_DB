@@ -28,7 +28,7 @@ GO
          
 -- EXEC GetMultipleJournalBatchHeaderById '321'    
 ************************************************************************/    
-CREATE OR ALTER   PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]  
+CREATE OR ALTER   PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
 @JournalBatchHeaderId varchar(MAX)  = null  
 AS    
 BEGIN    

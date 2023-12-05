@@ -10,10 +10,11 @@
  ** --   --------     -------				--------------------------------          
     1     
 	2    07/25/2023   Devendra Shekh		changed NVARCHAR(10) to NVARCHAR(20)
+	3    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
+CREATE OR ALTER   PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -37,7 +38,11 @@ CREATE   PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @EmployeeId bigint=0,
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
-@ConditionId VARCHAR(250) = NULL
+@ConditionId VARCHAR(250) = NULL,
+@TraceableTo VARCHAR(250) = NULL,
+@TagType VARCHAR(250) = NULL,
+@TaggedBy VARCHAR(250) = NULL,
+@TaggedDate datetime = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -86,14 +91,19 @@ BEGIN
 				    PO.CreatedBy,					
 				    PO.IsActive,					
 					PO.StatusId,
-					ISNULL(IM.ManufacturerName,'')ManufacturerName
+					ISNULL(IM.ManufacturerName,'')ManufacturerName,
+					POP.TraceableToName AS 'TraceableTo',
+					TAT.[Name] AS 'TagType',
+					POP.TaggedByName AS 'TaggedBy',
+					POP.TagDate AS 'taggedDate'
 			  FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)
 			  INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
 			  INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 			  INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			  INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId 
-			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 	
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 	
+			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON POP.TagTypeId = TAT.TagTypeId
 		 	  WHERE PO.IsDeleted = 0
 				  AND PO.IsActive = 1	 
 				  AND PO.MasterCompanyId = @MasterCompanyId	
@@ -111,7 +121,10 @@ BEGIN
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
-					(VendorName LIKE '%' +@GlobalFilter+'%'))
+					(taggedDate LIKE '%' +@GlobalFilter+'%') OR
+					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
+					(TagType LIKE '%' +@GlobalFilter+'%') OR
+					(TaggedBy LIKE '%' +@GlobalFilter+'%'))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -124,7 +137,12 @@ BEGIN
 					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(20)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
-					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%'))))
+					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
+					(ISNULL(@TraceableTo,'') ='' OR TraceableTo LIKE '%' + @TraceableTo + '%') AND
+					(ISNULL(@TagType,'') ='' OR TagType LIKE '%' + @TagType + '%') AND
+					(ISNULL(@TaggedBy,'') ='' OR TaggedBy LIKE '%' + @TaggedBy + '%') AND
+					(ISNULL(@taggedDate,'') ='' OR CAST(taggedDate AS DATE) = CAST(@ReceivedDate AS DATE))
+					)))
 
 			SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult			
 
@@ -153,7 +171,15 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TraceableTo')  THEN TraceableTo END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TraceableTo')  THEN TraceableTo END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TagType')  THEN TagType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TagType')  THEN TagType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TaggedBy')  THEN TaggedBy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TaggedBy')  THEN TaggedBy END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='taggedDate')  THEN taggedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='taggedDate')  THEN taggedDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		

@@ -1,6 +1,4 @@
-﻿    
-    
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [PROCConvertVendorRFQPOToPurchaseOrder]               
  ** Author:  Moin Bloch    
  ** Description: This stored procedure is used to convert vendor RFQ PO to Purchase Order      
@@ -13,15 +11,16 @@
  **************************************************************               
  ** Change History               
  **************************************************************               
- ** PR   Date         Author  Change Description                
- ** --   --------     -------  --------------------------------              
-    1    04/01/2022  Moin Bloch     Created    
- 2    05/22/2023  Satish Gohil   Remove Automatic (-)  
+ ** PR   Date         Author		 Change Description                
+ ** --   --------     -------		 --------------------------------              
+    1    04/01/2022  Moin Bloch        Created    
+    2    05/22/2023  Satish Gohil	   Remove Automatic (-)  
+	3    01/12/2023  Amit Ghediya      Modify(Added Traceable & Tagged fields)
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
-CREATE    PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
+CREATE OR ALTER    PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
 @VendorRFQPurchaseOrderId bigint,    
 @VendorRFQPOPartRecordId bigint,    
 @PurchaseOrderId bigint,    
@@ -108,7 +107,8 @@ BEGIN
          [POPartSplitUserTypeId],[POPartSplitUserType],[POPartSplitUserId],[POPartSplitUser],[POPartSplitSiteId],[POPartSplitSiteName],    
          [POPartSplitAddressId],[POPartSplitAddress1],[POPartSplitAddress2],[POPartSplitAddress3],[POPartSplitCity],[POPartSplitState],    
          [POPartSplitPostalCode],[POPartSplitCountryId],[POPartSplitCountryName],[MasterCompanyId],[CreatedBy],[UpdatedBy],    
-         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId])    
+         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId],
+		 [TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TaggedByTypeName],[TagDate])    
         SELECT IDENT_CURRENT('PurchaseOrder'),VRFQP.[ItemMasterId],VRFQP.[PartNumber],VRFQP.[PartDescription],NULL,NULL,    
          NULL,VRFQP.[StockType],VRFQP.[ManufacturerId],VRFQP.[Manufacturer],VRFQP.[PriorityId],VRFQP.[Priority],VRFQP.[NeedByDate],VRFQP.[ConditionId],    
          VRFQP.[Condition],VRFQP.[QuantityOrdered],VRFQP.[QuantityOrdered],0,    
@@ -160,7 +160,8 @@ BEGIN
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
-         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId    
+         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
+		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
                             FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId;  
 							
 
@@ -297,7 +298,8 @@ BEGIN
          [POPartSplitUserTypeId],[POPartSplitUserType],[POPartSplitUserId],[POPartSplitUser],[POPartSplitSiteId],[POPartSplitSiteName],    
          [POPartSplitAddressId],[POPartSplitAddress1],[POPartSplitAddress2],[POPartSplitAddress3],[POPartSplitCity],[POPartSplitState],    
          [POPartSplitPostalCode],[POPartSplitCountryId],[POPartSplitCountryName],[MasterCompanyId],[CreatedBy],[UpdatedBy],    
-         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId])    
+         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId],
+		 [TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TaggedByTypeName],[TagDate])    
         SELECT IDENT_CURRENT('PurchaseOrder'),VRFQP.[ItemMasterId],VRFQP.[PartNumber],VRFQP.[PartDescription],NULL,NULL,    
          NULL,VRFQP.[StockType],VRFQP.[ManufacturerId],VRFQP.[Manufacturer],VRFQP.[PriorityId],VRFQP.[Priority],VRFQP.[NeedByDate],VRFQP.[ConditionId],    
          VRFQP.[Condition],VRFQP.[QuantityOrdered],VRFQP.[QuantityOrdered],0,    
@@ -349,7 +351,8 @@ BEGIN
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
-         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId    
+         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
+		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
                             FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId;     
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;             
@@ -451,7 +454,8 @@ BEGIN
          [POPartSplitUserTypeId],[POPartSplitUserType],[POPartSplitUserId],[POPartSplitUser],[POPartSplitSiteId],[POPartSplitSiteName],    
          [POPartSplitAddressId],[POPartSplitAddress1],[POPartSplitAddress2],[POPartSplitAddress3],[POPartSplitCity],[POPartSplitState],    
          [POPartSplitPostalCode],[POPartSplitCountryId],[POPartSplitCountryName],[MasterCompanyId],[CreatedBy],[UpdatedBy],    
-         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId])    
+         [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[DiscountPercentValue],[EstDeliveryDate],[VendorRFQPOPartRecordId],
+		 [TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TaggedByTypeName],[TagDate])    
         SELECT @PurchaseOrderId,VRFQP.[ItemMasterId],VRFQP.[PartNumber],VRFQP.[PartDescription],NULL,NULL,    
          NULL,VRFQP.[StockType],VRFQP.[ManufacturerId],VRFQP.[Manufacturer],VRFQP.[PriorityId],VRFQP.[Priority],VRFQP.[NeedByDate],VRFQP.[ConditionId],    
          VRFQP.[Condition],VRFQP.[QuantityOrdered],VRFQP.[QuantityOrdered],0,    
@@ -502,7 +506,8 @@ BEGIN
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
-         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.[VendorRFQPOPartRecordId] 
+         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.[VendorRFQPOPartRecordId],
+		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
                             FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId;     
     
     UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = @PurchaseOrderId,[PurchaseOrderNumber] = @PONumber     
@@ -612,4 +617,4 @@ BEGIN
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
               RETURN(1);    
  END CATCH    
-END
+END 

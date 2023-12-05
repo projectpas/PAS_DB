@@ -1,6 +1,4 @@
-﻿      
-      
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:  [GetVendorRFQPurchaseOrderParts]                 
  ** Author:  Moin Bloch      
  ** Description: This stored procedure is used to Get vendor RFQ PO Part List      
@@ -16,11 +14,12 @@
  ** PR   Date         Author  Change Description                  
  ** --   --------     -------  --------------------------------                
     1    04/01/2022  Moin Bloch     Created      
+	2    04/12/2023  Moin Bloch     UPdated (Added Traceable & Tagged fields)  
            
 -- EXEC [GetVendorRFQPurchaseOrderParts] 33     
 ************************************************************************/      
       
-CREATE     PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
+CREATE OR ALTER  PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
 @VendorRFQPurchaseOrderId bigint      
 AS      
 BEGIN      
@@ -71,7 +70,16 @@ BEGIN
      ,PP.[PurchaseOrderId]      
      ,PP.[PurchaseOrderNumber]      
      ,PP.[UOMId]      
-     ,PP.[UnitOfMeasure]      
+     ,PP.[UnitOfMeasure]
+	 ,PP.[TraceableTo]
+	 ,PP.[TraceableToName]
+	 ,PP.[TraceableToType]
+	 ,PP.[TagTypeId]
+	 ,PP.[TaggedBy]
+	 ,PP.[TaggedByType]
+	 ,PP.[TaggedByName]
+	 ,PP.[TaggedByTypeName]
+	 ,PP.[TagDate]
      ,PO.[CreatedDate] AS POCreatedDate      
      ,PO.[Status] AS POStatus      
      ,POMSD.[EntityMSID] AS EntityStructureId      
@@ -99,7 +107,9 @@ for xml path(''),TYPE).value('.','varchar(max)') , 1,1,'') as newdata   from Ve
     WHERE PP.[VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND PP.IsDeleted = 0      
   
  GROUP BY PP.VendorRFQPOPartRecordId,PP.VendorRFQPurchaseOrderId,PP.ItemMasterId,PP.PartNumber,PP.PartDescription,PP.StockType,PP.ManufacturerId,PP.Manufacturer,PP.PriorityId,PP.Priority,PP.NeedByDate,PP.PromisedDate,PP.ConditionId,PP.Condition,PP.QuantityOrdered,PP.UnitCost,PP.ExtendedCost,PP.WorkOrderId,PP.SubWorkOrderId,PP.SalesOrderId,PP.ManagementStructureId,PP.Level1,PP.Level2,PP.Level3,PP.Level4,PP.Memo,PP.MasterCompanyId,PP.CreatedBy,PP.CreatedDate,PP.UpdatedBy,PP.UpdatedDate,PP.IsActive,
- PP.IsDeleted,PP.PurchaseOrderId,PP.PurchaseOrderNumber,PP.UOMId,PP.UnitOfMeasure,PO.CreatedDate,PO.Status,POMSD.EntityMSID,POMSD.LastMSLevel,POMSD.AllMSlevels  
+ PP.IsDeleted,PP.PurchaseOrderId,PP.PurchaseOrderNumber,PP.UOMId,PP.UnitOfMeasure,
+ [TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName] ,[TagDate],
+ PO.CreatedDate,PO.Status,POMSD.EntityMSID,POMSD.LastMSLevel,POMSD.AllMSlevels  
    
  END      
  END TRY          
@@ -119,4 +129,4 @@ for xml path(''),TYPE).value('.','varchar(max)') , 1,1,'') as newdata   from Ve
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)      
             RETURN(1);      
  END CATCH      
-END
+END 

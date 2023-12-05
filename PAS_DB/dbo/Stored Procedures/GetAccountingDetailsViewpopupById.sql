@@ -17,11 +17,13 @@
     2	 09/12/2023  Devendra Shekh			added case condition for ExpertiseName,EmployeeName
 	3    03/10/2023  Bhargav Saliya         Employee duplicate Records issue Resolved
 	4    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case
+	5    30/11/2023  Moin Bloch             Added Lot Number 
+
 --EXEC [GetAccountingDetailsViewpopupById] 3577,3047
 
 ************************************************************************/
 
-CREATE     PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
+CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
 @WorkOrderPartNumberId bigint    
 AS    
@@ -100,7 +102,8 @@ BEGIN
 			     UPPER(MSD.Level7Name) AS level7,     
 			     UPPER(MSD.Level8Name) AS level8,     
 			     UPPER(MSD.Level9Name) AS level9,     
-			     UPPER(MSD.Level10Name) AS level10     
+			     UPPER(MSD.Level10Name) AS level10,     
+				 JBD.[LotNumber]  
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
      INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
      INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      

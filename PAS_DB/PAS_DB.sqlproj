@@ -2678,6 +2678,7 @@
     <Build Include="dbo\User Defined Types\BulkStockLineAdjustmentDetailsType.sql" />
     <Build Include="dbo\User Defined Types\BulkPODetailType.sql" />
     <Build Include="dbo\User Defined Types\AccountPeriodType.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorPaymentAccountingBatchDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\MigrateKitItemMasterRecords.sql" />
   </ItemGroup>
   <ItemGroup>

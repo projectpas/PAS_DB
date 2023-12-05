@@ -2678,6 +2678,7 @@
     <Build Include="dbo\User Defined Types\BulkStockLineAdjustmentDetailsType.sql" />
     <Build Include="dbo\User Defined Types\BulkPODetailType.sql" />
     <Build Include="dbo\User Defined Types\AccountPeriodType.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateKitItemMasterRecords.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

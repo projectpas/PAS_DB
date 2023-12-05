@@ -1335,6 +1335,267 @@ BEGIN
 				FETCH NEXT @PageSize ROWS ONLY
 			END
 		END
+		ELSE IF (@ModuleName = 'Kit')
+		BEGIN
+			IF (@TypeId = 1)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT
+					kitm.Migrated_Id KitId,
+					km.KitNumber KitNumber,
+					kitm.MainItemMasterId ItemMasterId,
+					im.partnumber PartNumber,
+					im.PartDescription PartDescription,
+					km.Manufacturer,
+					km.CustomerId,
+					km.CustomerName AS customerName,
+					wos.WorkScopeCode AS WorkScopeName,
+					km.KitCost,
+					kitm.UnitCost AS UnitCost,
+					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
+					0 AS StocklineUnitCost,
+					1 AS IsActive,
+					km.CreatedDate,
+					0 AS IsDeleted,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
+				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
+				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
+		 		  WHERE kitm.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultKM1 FROM  Result
+
+				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultKM1			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultKM1 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 2)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT IMs.ItemMasterId,
+					IMs.PartNumber,
+					IMs.PartDescription,
+					(ISNULL(mf.Name,'')) 'Manufacturerdesc',
+					ic.Description 'Classificationdesc',
+					(ISNULL(ig.ItemGroupCode,'')) 'ItemGroup',
+					'' AS NationalStockNumber,	
+					CASE WHEN IMs.IsSerialized = 'T' THEN 'Yes' ELSE 'No' END AS IsSerialized,
+					CASE WHEN IMs.IsTimeLife = 'T' THEN 'Yes' ELSE 'No' END AS IsTimeLife,
+					CASE WHEN IMs.IsActive = 'T' THEN 1 ELSE 0 END AS IsActive,
+					'Stock' AS ItemType,					   
+					CASE WHEN IMs.Hazard_Material = 'T' THEN 'Yes' ELSE 'No' END AS 'IsHazardousMaterial',
+					StockType = (CASE WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'T' THEN 'PMA&DER'
+										WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'F' THEN 'PMA' 
+										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
+										ELSE 'OEM'
+								END),                       
+					IMs.Date_Created AS CreatedDate,
+					'' AS CreatedBy,
+					'' AS UpdatedBy,	
+					0 AS IsDeleted,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
+				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
+				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+		 		  WHERE IMs.Migrated_Id IS NOT NULL AND IMs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultKM2 FROM  Result
+
+				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultKM2			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultKM2 ORDER BY  
+				CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PartNumber')  THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Classificationdesc')  THEN Classificationdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Classificationdesc')  THEN Classificationdesc END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemGroup')  THEN ItemGroup END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemGroup')  THEN ItemGroup END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END DESC, 			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsSerialized')  THEN IsSerialized END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSerialized')  THEN IsSerialized END DESC, 
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemType')  THEN ItemType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemType')  THEN ItemType END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='StockType')  THEN StockType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='StockType')  THEN StockType END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC		
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 3)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT IMs.ItemMasterId,
+					IMs.PartNumber,
+					IMs.PartDescription,
+					(ISNULL(mf.Name,'')) 'Manufacturerdesc',
+					ic.Description 'Classificationdesc',
+					(ISNULL(ig.ItemGroupCode,'')) 'ItemGroup',
+					'' AS NationalStockNumber,	
+					CASE WHEN IMs.IsSerialized = 'T' THEN 'Yes' ELSE 'No' END AS IsSerialized,
+					CASE WHEN IMs.IsTimeLife = 'T' THEN 'Yes' ELSE 'No' END AS IsTimeLife,
+					CASE WHEN IMs.IsActive = 'T' THEN 1 ELSE 0 END AS IsActive,
+					'Stock' AS ItemType,					   
+					CASE WHEN IMs.Hazard_Material = 'T' THEN 'Yes' ELSE 'No' END AS 'IsHazardousMaterial',
+					StockType = (CASE WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'T' THEN 'PMA&DER'
+										WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'F' THEN 'PMA' 
+										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
+										ELSE 'OEM'
+								END),                       
+					IMs.Date_Created AS CreatedDate,
+					'' AS CreatedBy,
+					'' AS UpdatedBy,	
+					0 AS IsDeleted,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
+				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
+				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg NOT like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultKM3 FROM  Result
+
+				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultKM3			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultKM3 ORDER BY  
+				CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PartNumber')  THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Classificationdesc')  THEN Classificationdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Classificationdesc')  THEN Classificationdesc END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemGroup')  THEN ItemGroup END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemGroup')  THEN ItemGroup END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END DESC, 			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsSerialized')  THEN IsSerialized END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSerialized')  THEN IsSerialized END DESC, 
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemType')  THEN ItemType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemType')  THEN ItemType END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='StockType')  THEN StockType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='StockType')  THEN StockType END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC		
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT IMs.ItemMasterId,
+					IMs.PartNumber,
+					IMs.PartDescription,
+					(ISNULL(mf.Name,'')) 'Manufacturerdesc',
+					ic.Description 'Classificationdesc',
+					(ISNULL(ig.ItemGroupCode,'')) 'ItemGroup',
+					'' AS NationalStockNumber,	
+					CASE WHEN IMs.IsSerialized = 'T' THEN 'Yes' ELSE 'No' END AS IsSerialized,
+					CASE WHEN IMs.IsTimeLife = 'T' THEN 'Yes' ELSE 'No' END AS IsTimeLife,
+					CASE WHEN IMs.IsActive = 'T' THEN 1 ELSE 0 END AS IsActive,
+					'Stock' AS ItemType,					   
+					CASE WHEN IMs.Hazard_Material = 'T' THEN 'Yes' ELSE 'No' END AS 'IsHazardousMaterial',
+					StockType = (CASE WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'T' THEN 'PMA&DER'
+										WHEN IMs.PMA_Flag = 'T' AND IMs.DER_Flag = 'F' THEN 'PMA' 
+										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
+										ELSE 'OEM'
+								END),                       
+					IMs.Date_Created AS CreatedDate,
+					'' AS CreatedBy,
+					'' AS UpdatedBy,	
+					0 AS IsDeleted,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
+				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
+				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultKM4 FROM  Result
+
+				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultKM4			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultKM4 ORDER BY  
+				CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PartNumber')  THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+				CASE WHEN (@SortOrder = 1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturerdesc')  THEN Manufacturerdesc END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Classificationdesc')  THEN Classificationdesc END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Classificationdesc')  THEN Classificationdesc END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemGroup')  THEN ItemGroup END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemGroup')  THEN ItemGroup END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='NationalStockNumber')  THEN NationalStockNumber END DESC, 			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsSerialized')  THEN IsSerialized END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsSerialized')  THEN IsSerialized END DESC, 
+				CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ItemType')  THEN ItemType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemType')  THEN ItemType END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='StockType')  THEN StockType END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='StockType')  THEN StockType END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC		
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+		END
 		END TRY
 	BEGIN CATCH	
 		     DECLARE @ErrorLogID INT

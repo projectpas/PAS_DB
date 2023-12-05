@@ -27,11 +27,12 @@
 	10   04/08/2023   Satish Gohil	    Seprate Accounting Entry WO Type Wise
 	11   18/08/2023   Vishal Suthar	    Added history for old stockline
 	12   16/10/2023   Devendra Shekh	timelife issue resolved
+	13   30/11/2023   Moin Bloch        Modify(Added LotId in New Stockline)
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
-	@WorkOrderPartNumberId BIGINT  
+@WorkOrderPartNumberId BIGINT  
 AS
 BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -48,7 +49,8 @@ BEGIN
     DECLARE @MasterCompanyId BIGINT;  
     DECLARE @SLCurrentNumber BIGINT;  
     DECLARE @StockLineNumber VARCHAR(50);  
-    DECLARE @PreviousStockLineNumber VARCHAR(50);  
+    DECLARE @PreviousStockLineNumber VARCHAR(50); 
+	DECLARE @LotId BIGINT;  
     DECLARE @PreviousPartNumber VARCHAR(50);  
     DECLARE @RevisedPartNumber VARCHAR(50);  
     DECLARE @CNCurrentNumber BIGINT;   
@@ -108,7 +110,10 @@ BEGIN
     FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)  
      LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9  
      LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId  
-    WHERE WOP.ID = @WorkOrderPartNumberId  
+    WHERE WOP.ID = @WorkOrderPartNumberId
+	
+	
+				    
   
     SELECT @WorkOrderNumber = WorkOrderNum, @CustomerId = CustomerId, @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId  
     SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @WorkOrderPartNumberId  
@@ -172,8 +177,12 @@ BEGIN
     DECLARE @ItemMasterId AS BIGINT;  
     DECLARE @ManufacturerId AS BIGINT;  
   
-    SELECT @ItemMasterId = CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN @RevisedPartNoId ELSE ItemMasterId END, @ManufacturerId = ManufacturerId, @PreviousStockLineNumber = StockLineNumber FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
-    SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId  
+    SELECT @ItemMasterId = CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN @RevisedPartNoId ELSE ItemMasterId END, 
+	       @ManufacturerId = ManufacturerId, 
+		   @PreviousStockLineNumber = StockLineNumber		 
+	 FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
+    
+	SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId  
   
     IF (@currentNo <> 0)  
     BEGIN  
@@ -242,7 +251,8 @@ BEGIN
        ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
-       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife])  
+       ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
+	   ,[LotId],[IsLotAssigned])  
     SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,  
      @StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -268,9 +278,10 @@ BEGIN
        ,CASE WHEN @IsExchangeWO = 1 THEN NULL ELSE [CustomerName] END,CASE WHEN @IsExchangeWO = 1 THEN 0 ELSE [isCustomerstockType] END   
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  
        CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN [UnitCost] + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
-       [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife]
-   FROM dbo.Stockline WITH(NOLOCK)  
-   WHERE StockLineId = @StocklineId  
+       [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
+	   [LotId],[IsLotAssigned]
+   FROM [dbo].[Stockline] WITH(NOLOCK)  
+   WHERE [StockLineId] = @StocklineId  
   
     SELECT @NewStocklineId = SCOPE_IDENTITY()  
   

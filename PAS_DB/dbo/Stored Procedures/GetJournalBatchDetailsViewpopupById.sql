@@ -34,7 +34,9 @@
  19   19/10/2023  Devendra Shekh		 Added new Module 'RFD'
  20   16/10/2023  AMIT GHEDIYA			 added new Bulk StockLine Adjustment INTERCOTRANS LE (Bulk Stockline Adj Accounting) 
  21   30/10/2023  Devendra Shekh	     added currency for NPO and RFD
- 22   28/11/2023  Moin Bloch	         added Lot Number in WOP-PartsIssued
+ 22   28/11/2023  Moin Bloch	         added Lot Number in WO , WOP-PartsIssued,SOI
+ 22   30/11/2023  Moin Bloch	         added Lot Number SOI
+ 23   01/12/2023  Moin Bloch	         added Lot Number EXPS
    
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -54,8 +56,7 @@ BEGIN
 			BEGIN  
 				DECLARE @WOModuleID INT = 12;
 				DECLARE @STKLModuleID INT = 2; 
-				--PRINT 'WO'
-  
+			  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -142,8 +143,7 @@ BEGIN
 			BEGIN  
 				DECLARE @WOModuleIDM INT = 12;  
 				DECLARE @WOPSTKLModuleID INT = 2; 
-				--PRINT 'WOP-DIRECTLABOR'
-  
+				  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -235,8 +235,7 @@ BEGIN
 				DECLARE @NONStockModuleID INT = 11;  
 				DECLARE @ModuleID INT = 2;  
 				DECLARE @AssetModuleID varchar(500) ='42,43'  
-				--PRINT 'RPO'
-  
+				  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -341,8 +340,7 @@ BEGIN
 			IF((UPPER(@Module) = UPPER('VRMACS')) OR (UPPER(@Module) = UPPER('VRMAPR')) OR (UPPER(@Module) = UPPER('VRMACA')))  
 			BEGIN  
 				DECLARE @STKModuleID INT = 2;  
-				--PRINT 'VRMACS'
-  
+			  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -425,8 +423,7 @@ BEGIN
 			IF(UPPER(@Module) = UPPER('SOI'))  
 			BEGIN  
 				DECLARE @SOModuleID INT = 17;  
-				--PRINT 'SOI'
-  
+			  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -480,7 +477,8 @@ BEGIN
 					   UPPER(MSD.Level7Name) AS level7,   
 					   UPPER(MSD.Level8Name) AS level8,   
 					   UPPER(MSD.Level9Name) AS level9,   
-					   UPPER(MSD.Level10Name) AS level10   
+					   UPPER(MSD.Level10Name) AS level10,   
+					   JBD.[LotNumber]
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
@@ -499,8 +497,7 @@ BEGIN
 			IF(UPPER(@Module) = UPPER('CRS'))  
 			BEGIN  
 				DECLARE @CPModuleID INT = 59;  
-				--PRINT 'CRS'
-  
+				  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -574,8 +571,7 @@ BEGIN
 			IF(UPPER(@Module) = UPPER('CKS')  OR UPPER(@Module) = UPPER('WRT') OR UPPER(@Module) = UPPER('ACHT') OR UPPER(@Module) = UPPER('CCP'))  
 			BEGIN  
 				SET @CPModuleID = 63 
-				--PRINT 'CKS'
-  
+			  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -642,8 +638,7 @@ BEGIN
 			BEGIN  
 				DECLARE @EXSOHeaderMSModuleId BIGINT;  
 				SELECT @EXSOHeaderMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WHERE [ModuleName] = 'ExchangeSOHeader';  
-				--PRINT 'EXPS'
-      
+			      
 				SELECT JBD.CommonJournalBatchDetailId  
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -698,7 +693,8 @@ BEGIN
 					  ,UPPER(MSD.[Level7Name]) AS level7   
 					  ,UPPER(MSD.[Level8Name]) AS level8   
 					  ,UPPER(MSD.[Level9Name]) AS level9   
-					  ,UPPER(MSD.[Level10Name]) AS level10   
+					  ,UPPER(MSD.[Level10Name]) AS level10 
+					  ,JBD.[LotNumber]
 				FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.[DistributionSetupId] = DS.[ID]  
 					 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    

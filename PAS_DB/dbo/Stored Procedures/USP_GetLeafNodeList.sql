@@ -11,10 +11,11 @@
 ** --   --------     -------		--------------------------------            
 	1   21/07/2023   Satish Gohil		Created
 	2   29/11/2023   Devendra Shekh		added order by AccountCode
+	3   30/11/2023   Devendra Shekh		order by AccountCode issue resolved
 
     USP_GetLeafNodeList 8,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetLeafNodeList](   
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetLeafNodeList](   
 	@ReportingStructureId BIGINT,
 	@masterCompanyId INT
 )
@@ -47,7 +48,8 @@ BEGIN
 				AND GLM.IsDeleted = 0
 				FOR XML PATH('')          
 				), 1, 1, '')  GLAccountId,
-			ISNULL(GL.AccountCode, 0) AS AccountCode
+			ISNULL(GL.AccountCode, 0) AS AccountCode,
+			CASE WHEN ISNULL(GL.AccountCode, 0) LIKE '%[a-zA-Z]%' THEN 1 ELSE 0 END AS IsStringData
 			FROM dbo.LeafNode L WITH(NOLOCK)
 			LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH(NOLOCK) ON L.LeafNodeId = GLM.LeafNodeId AND GLM.IsDeleted = 0
 			LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON GLM.GLAccountId = GL.GLAccountId
@@ -55,7 +57,6 @@ BEGIN
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 
 		)
-
 
 		SELECT
 			L.LeafNodeId,
@@ -82,11 +83,12 @@ BEGIN
 			L.SequenceNumber,
 			L.GlIsPositive,
 			L.GLAccountId,
-			L.AccountCode
+			L.AccountCode,
+			L.IsStringData
 
 		FROM CTE L
-		ORDER BY L.ParentId,L.SequenceNumber,L.AccountCode
-
+		ORDER BY L.ParentId,L.SequenceNumber,
+		CASE WHEN  L.IsStringData = 1 THEN L.AccountCode ELSE CAST(L.AccountCode AS NUMERIC) END
 
 	END
 	END TRY

@@ -1,4 +1,11 @@
-﻿/*************************************************************               
+﻿-- USE [PAS_DEV]
+-- GO
+/****** Object:  StoredProcedure [dbo].[GetMultipleJournalBatchHeaderById]    Script Date: 12/4/2023 7:34:01 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/*************************************************************               
  ** File:   [GetJournalBatchHeaderById]               
  ** Author:  Shrey Chandegara    
  ** Description: This stored procedure is used to GetJournalBatchHeaderById    
@@ -17,22 +24,27 @@
 	2    05/09/2023  Amit Ghediya         Updated for add JE details with Batch detail
 	3	 19/06/2023  Shrey Chandegara	  Updated for add JE Detail view like GLAccount,Credit,....
 	3	 29/08/2023  Devendra Shekh		  added BatchStatus join for journal batchstatus
+	5	 04/12/2023  Ayesha Sultana		  Date Time UTC convert
          
 -- EXEC GetMultipleJournalBatchHeaderById '321'    
 ************************************************************************/    
-CREATE   PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]  
+CREATE OR ALTER   PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
 @JournalBatchHeaderId varchar(MAX)  = null  
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY    
+
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+   SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+
    SELECT   
    JBH.[JournalBatchHeaderId],  
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
-   JBH.[EntryDate],  
-   JBH.[PostDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as Date), -- JBH.[EntryDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as Date), -- JBH.[PostDate],  
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  
    JBH.[StatusName],  
@@ -51,14 +63,14 @@ BEGIN
    JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
-   JBD.[CreatedDate],  
-   JBD.[UpdatedDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as Date), -- JBD.[CreatedDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as Date), -- JBD.[UpdatedDate],  
    JBD.[CreatedBy],  
    JBD.[UpdatedBy] AS DUpdatedBy,
    CD.CreditAmount as Cr,
    CD.DebitAmount as Dr,
    CD.GlAccountNumber + ' - ' + CD.GlAccountName as GLAccount,
-   CD.TransactionDate as TDate,
+   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as Date) as TDate, -- CD.TransactionDate as TDate,
     BS.[Name] AS 'BatchStatus'
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
   LEFT JOIN [dbo].[BatchDetails] JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBD.IsDeleted=0  
@@ -93,4 +105,4 @@ BEGIN
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
             RETURN(1);    
  END CATCH    
-END
+END  

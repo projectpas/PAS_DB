@@ -15,13 +15,14 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    05/13/2022   Vishal Suthar		Created
-    1    05/13/2022   Devendra Shekh	added [IsStkTimeLife] for insert
+    2    05/13/2022   Devendra Shekh	added [IsStkTimeLife] for insert
+	3    12/04/2023   Moin Bloch	    Modified(added [LotId] for insert)
      
  EXEC [SaveReceivingToStocklineDraft] 1981, 'ADMIN User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
-	@PurchaseOrderId bigint = 0,
-	@UserName VARCHAR(100)
+@PurchaseOrderId bigint = 0,
+@UserName VARCHAR(100)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -52,6 +53,7 @@ BEGIN
 				DECLARE @ShippingAccountNo VARCHAR(100);
 				DECLARE @ManagementStructureId BIGINT;
 				DECLARE @IsSerialized BIT = 0;
+				DECLARE @LotId BIGINT = NULL
 
 				IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderParts') IS NOT NULL
 				BEGIN
@@ -97,7 +99,7 @@ BEGIN
 					SELECT @PurchaseOrderPartRecordId = PurchaseOrderPartRecordId FROM #tmpPurchaseOrderParts WHERE ID  = @LoopID;
 
 					SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
-					SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
+					SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId  FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
 					SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;
 					SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;
 
@@ -212,7 +214,7 @@ BEGIN
 						'', NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000', 
 						NULL, NULL, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, 0, NULL, NULL, NULL,
 						NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,
-						NULL, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,
+						@LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,
 						NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife
 						FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;
 

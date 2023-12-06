@@ -1,4 +1,23 @@
-﻿CREATE        PROCEDURE [dbo].[GetPNTileRepairOrderList]
+﻿/*************************************************************           
+ ** File:   [GetPNTileRepairOrderList]          
+ ** Author:  
+ ** Description: This stored procedure is used get list of repair order history date for dashboard
+ ** Purpose:         
+ ** Date:    
+          
+ ** PARAMETERS:           
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
+	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
+
+**************************************************************/
+CREATE OR ALTER PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -22,7 +41,9 @@
 @EmployeeId bigint=0,
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
-@ConditionId VARCHAR(250) = NULL
+@ConditionId VARCHAR(250) = NULL,
+@SerialNumber varchar(50) = NULL
+	
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -64,6 +85,7 @@ BEGIN
 					ISNULL(ROP.ExtendedCost,0) AS ExtendedCost,
 					CAST(STL.ReceivedDate AS Date) as ReceivedDate,
 					STL.ReceiverNumber,
+					STL.SerialNumber,  
 					RO.VendorId,
 					RO.VendorName,
 					RO.VendorCode,
@@ -91,7 +113,8 @@ BEGIN
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
-					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
+					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
 					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
@@ -110,6 +133,7 @@ BEGIN
 					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(10)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
+					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%'))))
 
 			SELECT @Count = COUNT(RepairOrderId) FROM #TempResult			
@@ -141,7 +165,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		

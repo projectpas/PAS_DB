@@ -3,7 +3,7 @@
  ** Author:  
  ** Description: This stored procedure is used get list of sales order history date for dashboard
  ** Purpose:         
- ** Date:      09/11/2023 
+ ** Date:    
           
  ** PARAMETERS:           
  ** RETURN VALUE:           
@@ -14,9 +14,10 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
+	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPNTileSalesOrderList]
+CREATE OR ALTER  PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -41,7 +42,9 @@ CREATE   PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@EmployeeId bigint=0,
 	@ItemMasterId bigint=0,
 	@MasterCompanyId bigint=1,
-	@ConditionId VARCHAR(250) = NULL
+	@ConditionId VARCHAR(250) = NULL,
+	@SerialNumber varchar(50) = NULL
+
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -78,6 +81,7 @@ BEGIN
 		        SO.[SalesOrderNumber],
 				SO.[OpenDate],
 				SO.[CustomerReference],
+				STL.[SerialNumber],  
 				ISNULL(SP.[UnitCost],0) AS [UnitCost],
 				ISNULL(SP.[Qty],0) AS [Qty],
 				ISNULL(SP.[UnitCostExtended],0) AS [UnitCostExtended],
@@ -102,7 +106,9 @@ BEGIN
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
 			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
-			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId								
+			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId	
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId
+
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId
 				AND SO.IsActive = 1
@@ -115,6 +121,7 @@ BEGIN
 				(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 				(SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 				(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
+				(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
 				(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR	
 				(CAST(Qty AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 				(CAST(UnitCostExtended AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
@@ -134,6 +141,7 @@ BEGIN
 				(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
 				(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	
+				(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 				(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))))		
 					
 			SELECT @Count = COUNT(SalesOrderId) FROM #TempResult			
@@ -167,7 +175,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

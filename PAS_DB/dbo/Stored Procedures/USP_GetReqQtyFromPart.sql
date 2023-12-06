@@ -10,29 +10,28 @@
  **************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** PR   Date         Author   Change Description                    
- ** --   --------     -------   --------------------------------                  
+ ** PR   Date         Author			Change Description                    
+ ** --   --------     -------			--------------------------------                  
     1    04/05/2023   Shrey Chandegara  Created        
+    2    12/06/2023   Vishal Suthar		Modified to see qty from material KIT        
              
- EXECUTE USP_GetReqQtyFromPart 2141,3777,3573,1      
+ EXECUTE USP_GetReqQtyFromPart 2141, 3777, 3573, 1      
 **************************************************************/         
-Create     PROCEDURE [dbo].[USP_GetReqQtyFromPart]      
-@PurchaseOrderId BIGINT,      
-@PurchaseOrderPartRecordId BIGINT,      
-@ReferenceId BIGINT,      
-@ModuleId BIGINT      
+CREATE PROCEDURE [dbo].[USP_GetReqQtyFromPart]
+	@PurchaseOrderId BIGINT,      
+	@PurchaseOrderPartRecordId BIGINT,      
+	@ReferenceId BIGINT,      
+	@ModuleId BIGINT      
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
  SET NOCOUNT ON;      
-   DECLARE @ModuleddId BIGINT = NULL;      
-   --SET @ModuleId = (SELECT ModuleId FROM  PurchaseOrderPartReference WHERE PurchaseOrderId = @PurchaseOrderId);      
-  BEGIN TRY      
-  BEGIN TRANSACTION      
-   BEGIN       
-      
-    print @ModuleId  
-   SELECT CASE WHEN @ModuleId = 3      
+	DECLARE @ModuleddId BIGINT = NULL;      
+	BEGIN TRY      
+	BEGIN TRANSACTION      
+	BEGIN       
+	
+	SELECT CASE WHEN @ModuleId = 3      
        THEN (SELECT DISTINCT ISNULL((ISNULL(SOP.QtyRequested ,0)- ISNULL(SUM(SORP.QtyToReserve),0)),0)
                 FROM PurchaseOrderPart POP  WITH (NOLOCK)    
                 LEFT JOIN [DBO].[SalesOrderPart] SOP WITH (NOLOCK) ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId  
@@ -41,10 +40,10 @@ BEGIN
 				Group By SOP.QtyRequested,SORP.QtyToReserve)       
        
      WHEN @ModuleId = 1    
-             THEN (SELECT DISTINCT CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1) ) ELSE 0 END
+             THEN (SELECT DISTINCT CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = POP.ItemMasterId and Sl.ConditionId = POP.ConditionId  AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END
                      FROM PurchaseOrderPart POP    WITH (NOLOCK)  
                      LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId   
-					 LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = POP.ItemMasterId AND WOMK.ConditionCodeId = POP.ConditionId AND WOMK.WorkOrderId = @ReferenceId AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId   
+					 LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = POP.ItemMasterId AND WOMK.ConditionCodeId = POP.ConditionId AND WOMK.WorkOrderId = @ReferenceId --AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId   
                      WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId 
 					 GROUP BY POP.ItemMasterId, POP.ConditionId)
      
@@ -62,25 +61,20 @@ BEGIN
       
        WHEN @ModuleId = 2 THEN 0      
       
-       WHEN @ModuleId = 6 THEN 0 ELSE 0 END AS 'ReqQty'      
-                      
+       WHEN @ModuleId = 6 THEN 0 ELSE 0 END AS 'ReqQty'
    END      
   COMMIT  TRANSACTION      
-      
   END TRY          
   BEGIN CATCH            
    IF @@trancount > 0      
-    --PRINT 'ROLLBACK'      
     ROLLBACK TRAN;     
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()       
-      
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------      
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetReqQtyFromPart'       
-        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PurchaseOrderId, '') + ''      
-              , @ApplicationName VARCHAR(100) = 'PAS'      
+			, @AdhocComments     VARCHAR(150)    = 'USP_GetReqQtyFromPart'       
+			, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PurchaseOrderId, '') + ''      
+            , @ApplicationName VARCHAR(100) = 'PAS'      
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------      
-      
-              exec spLogException       
+			  exec spLogException       
                        @DatabaseName   = @DatabaseName      
                      , @AdhocComments   = @AdhocComments      
              , @ProcedureParameters  = @ProcedureParameters      

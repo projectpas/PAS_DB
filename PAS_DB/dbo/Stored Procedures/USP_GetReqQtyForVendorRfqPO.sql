@@ -16,42 +16,38 @@
          
  EXECUTE USP_GetReqQtyForVendorRfqPO 1839,3431,36,1  
 **************************************************************/     
-Create    PROCEDURE [dbo].[USP_GetReqQtyForVendorRfqPO]  
-
-@VendorRFQPOPartRecordId BIGINT,  
-@ReferenceId BIGINT,  
-@ModuleId BIGINT  
+CREATE PROCEDURE [dbo].[USP_GetReqQtyForVendorRfqPO]  
+	@VendorRFQPOPartRecordId BIGINT,  
+	@ReferenceId BIGINT,  
+	@ModuleId BIGINT  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
-   --DECLARE @ModuleId INT = NULL;  
-   --SET @ModuleId = (SELECT ModuleId FROM  PurchaseOrderPartReference WHERE PurchaseOrderId = @PurchaseOrderId);  
-  BEGIN TRY  
-  BEGIN TRANSACTION  
-   BEGIN   
+	BEGIN TRY  
+	BEGIN TRANSACTION  
+	BEGIN   
+		SELECT CASE 
+			WHEN @ModuleId = 3  
+				THEN (SELECT ISNULL(SOP.QtyRequested ,0)  
+				FROM VendorRFQPurchaseOrderPart POP  
+				LEFT JOIN [DBO].[SalesOrderPart] SOP WITH (NOLOCK) ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId  
+				WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND SOP.SalesOrderId = @ReferenceId)   
   
-  
-   SELECT CASE WHEN @ModuleId = 3  
-       THEN (SELECT ISNULL(SOP.QtyRequested ,0)  
+            WHEN @ModuleId = 1  
+				THEN (SELECT ISNULL(WOMK.Quantity,0)  
                 FROM VendorRFQPurchaseOrderPart POP  
-                LEFT JOIN [DBO].[SalesOrderPart] SOP WITH (NOLOCK) ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId  
-                WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND SOP.SalesOrderId = @ReferenceId)   
+                LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId
+				LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = POP.ItemMasterId AND WOMK.ConditionCodeId = POP.ConditionId AND WOMK.WorkOrderId = @ReferenceId
+                WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId)  
   
-             WHEN @ModuleId = 1  
-             THEN (SELECT ISNULL(WOM.Quantity,0)  
-                     FROM VendorRFQPurchaseOrderPart POP  
-                     LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId  
-                     WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND WOM.WorkOrderId = @ReferenceId)  
+			WHEN @ModuleId = 5  
+				THEN (SELECT ISNULL(SWP.Quantity,0)  
+				FROM VendorRFQPurchaseOrderPart POP  
+				LEFT JOIN [DBO].[SubWorkOrderMaterials] SWP WITH (NOLOCK) ON SWP.ItemMasterId = POP.ItemMasterId AND SWP.ConditionCodeId = POP.ConditionId  
+				WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND SWP.SubWorkOrderId = @ReferenceId)  
   
-       WHEN @ModuleId = 5  
-             THEN (SELECT ISNULL(SWP.Quantity,0)  
-                     FROM VendorRFQPurchaseOrderPart POP  
-                     LEFT JOIN [DBO].[SubWorkOrderMaterials] SWP WITH (NOLOCK) ON SWP.ItemMasterId = POP.ItemMasterId AND SWP.ConditionCodeId = POP.ConditionId  
-                     WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND SWP.SubWorkOrderId = @ReferenceId)  
-  
-        ELSE 0 END AS 'ReqQty'  
-                  
+			ELSE 0 END AS 'ReqQty'  
    END  
   COMMIT  TRANSACTION  
   

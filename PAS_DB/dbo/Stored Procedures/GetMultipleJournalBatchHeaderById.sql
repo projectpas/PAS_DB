@@ -43,8 +43,8 @@ BEGIN
    JBH.[JournalBatchHeaderId],  
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
-   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as Date), -- JBH.[EntryDate],  
-   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as Date), -- JBH.[PostDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBH.[EntryDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBH.[PostDate],  
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  
    JBH.[StatusName],  
@@ -63,14 +63,14 @@ BEGIN
    JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as Date), -- JBD.[CreatedDate],  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as Date), -- JBD.[UpdatedDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBD.[CreatedDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBD.[UpdatedDate],  
    JBD.[CreatedBy],  
    JBD.[UpdatedBy] AS DUpdatedBy,
    CD.CreditAmount as Cr,
    CD.DebitAmount as Dr,
    CD.GlAccountNumber + ' - ' + CD.GlAccountName as GLAccount,
-   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as Date) as TDate, -- CD.TransactionDate as TDate,
+   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, -- CD.TransactionDate as TDate,
     BS.[Name] AS 'BatchStatus'
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
   LEFT JOIN [dbo].[BatchDetails] JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBD.IsDeleted=0  

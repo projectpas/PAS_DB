@@ -2680,6 +2680,26 @@
     <Build Include="dbo\User Defined Types\AccountPeriodType.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorPaymentAccountingBatchDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\MigrateKitItemMasterRecords.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateNonStockForReceivingPO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchBulkStockData_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsList_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderMaterialsList_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLeafNodeList_1.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateStocklineDraftDetail_1.sql" />
+    <Build Include="dbo\Stored Procedures\SearchCustomerInvoicesByCustId_1.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetManagementStructureDetailsForExchSoReportsHeader_1.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetExchangeSOCoreMonitoringList_1.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPurchaseOrderPart_1.sql" />
+    <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQPOToPurchaseOrder_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPurchaseOrderParts_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTileSalesOrderList_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTileRepairOrderList_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTilePurchaseOrderQuoteList_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetPNTilePurchaseOrderList_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetMultipleJournalBatchHeaderById_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetBulkStockLineAccountingDetailsViewById_1.sql" />
+    <Build Include="dbo\User Defined Types\UpdateNonStocklineReceivingPOType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

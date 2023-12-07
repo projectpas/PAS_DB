@@ -1,7 +1,19 @@
-﻿
+﻿/*************************************************************             
+ ** File:   [PROCInsertVendorRFQPurchaseOrderPart]             
+ ** Author:   
+ ** Description: This stored procedure is used to PROCInsertVendorRFQPurchaseOrderPart
+ ** Purpose:           
+ ** Date:  
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+	1    01/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 
-
-CREATE PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
+**************************************************************/ 
+CREATE OR ALTER PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -36,7 +48,16 @@ BEGIN
 						TARGET.[UpdatedDate] = SOURCE.UpdatedDate,
 						TARGET.[IsActive] = SOURCE.IsActive,
 						TARGET.[IsDeleted] = SOURCE.IsDeleted,
-						TARGET.[UOMId] = SOURCE.UOMId
+						TARGET.[UOMId] = SOURCE.UOMId,
+						TARGET.[TraceableTo] = SOURCE.TraceableTo,
+						TARGET.[TraceableToName] = SOURCE.TraceableToName,
+						TARGET.[TraceableToType] = SOURCE.TraceableToType,
+						TARGET.[TagTypeId] = SOURCE.TagTypeId,
+						TARGET.[TaggedByType] = SOURCE.TaggedByType,
+						TARGET.[TaggedBy] = SOURCE.TaggedBy,
+						TARGET.[TaggedByName] = SOURCE.TaggedByName,
+						TARGET.[TaggedByTypeName] = SOURCE.TaggedByTypeName,
+						TARGET.[TagDate] = SOURCE.TagDate
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -45,13 +66,27 @@ BEGIN
 								   [ConditionId],[Condition],[QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],
 								   [WorkOrderNo],[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],[SalesOrderNo],
 								   [ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],
-								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[UOMId])
+								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[UOMId],
+								   [TraceableTo],[TraceableToName],[TraceableToType],
+								   [TagTypeId]
+								   ,[TaggedByType]
+								   ,[TaggedBy]
+								   ,[TaggedByName]
+								   ,[TaggedByTypeName],[TagDate]
+								   )
 							VALUES(SOURCE.VendorRFQPurchaseOrderId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.PartDescription,SOURCE.StockType,
 								   SOURCE.ManufacturerId,SOURCE.Manufacturer,SOURCE.PriorityId,SOURCE.Priority,SOURCE.NeedByDate,SOURCE.PromisedDate,
 								   SOURCE.ConditionId,SOURCE.Condition,SOURCE.QuantityOrdered,SOURCE.UnitCost,SOURCE.ExtendedCost,SOURCE.WorkOrderId,
 								   SOURCE.WorkOrderNo,SOURCE.SubWorkOrderId,SOURCE.SubWorkOrderNo,SOURCE.SalesOrderId,SOURCE.SalesOrderNo,
 								   SOURCE.ManagementStructureId,SOURCE.Level1,SOURCE.Level2,SOURCE.Level3,SOURCE.Level4,SOURCE.Memo,SOURCE.MasterCompanyId,
-								   SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.UOMId);
+								   SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.UOMId,
+								   SOURCE.TraceableTo,SOURCE.TraceableToName,SOURCE.TraceableToType,
+								   SOURCE.TagTypeId
+								   ,SOURCE.TaggedByType
+								   ,SOURCE.TaggedBy
+								   ,SOURCE.TaggedByName
+								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate
+								   );
 					
 					  													     
 					 

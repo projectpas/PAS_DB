@@ -37,6 +37,7 @@
  22   28/11/2023  Moin Bloch	         added Lot Number in WO , WOP-PartsIssued,SOI
  22   30/11/2023  Moin Bloch	         added Lot Number SOI
  23   01/12/2023  Moin Bloch	         added Lot Number EXPS
+ 24   06/12/2023  Moin Bloch	         added Lot Number in RPO,RRO 
    
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -230,7 +231,7 @@ BEGIN
 						LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 				WHERE JBD.JournalBatchDetailId =@JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 			END  
-			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST') OR UPPER(@Module) = UPPER('MSTK'))        
+			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST'))        
 			BEGIN  
 				DECLARE @NONStockModuleID INT = 11;  
 				DECLARE @ModuleID INT = 2;  
@@ -317,6 +318,7 @@ BEGIN
 					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name)   
 							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name)   
 							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10  
+					  ,JBD.[LotNumber]
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -328,6 +330,111 @@ BEGIN
 						--LEFT JOIN [dbo].[EntityStructureSetup] NES ON NES.EntityStructureId=NMSD.EntityMSID  
 						LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'  
 						--LEFT JOIN [dbo].[EntityStructureSetup] AES ON AES.EntityStructureId=AMSD.EntityMSID  
+						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
+						LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
+						LEFT JOIN [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId  
+						LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
+						LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
+						LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
+				 ORDER BY DS.DisplayNumber ASC;  
+			END  			
+			IF(UPPER(@Module) = UPPER('MSTK'))        
+			BEGIN  
+				DECLARE @NONStockModuleIDs INT = 11;  
+				DECLARE @ModuleIDs INT = 2;  
+				DECLARE @AssetModuleIDs varchar(500) ='42,43'  
+				  
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName] 
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.AllowManualJE  
+					  ,JBD.LastMSLevel  
+					  ,JBD.AllMSlevels  
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,le.CompanyName AS LegalEntityName  
+					  ,stbd.VendorName  
+					  ,stbd.PONum  
+					  ,stbd.RONum  
+					  ,stbd.StocklineNumber  
+					  ,stbd.[Description]  
+					  ,stbd.Consignment  
+					  ,JBH.[Module]  
+					  ,MPNPartId = stbd.PartId  
+					  ,MPNName = stbd.PartNumber  
+					  ,'' AS [DocumentNumber]  
+					  ,stbd.[SIte]  
+					  ,stbd.[Warehouse]  
+					  ,stbd.[Location]  
+					  ,stbd.[Bin]  
+					  ,stbd.[Shelf]  
+					  ,BD.JournalTypeNumber
+					  ,BD.CurrentNumber  
+					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
+					  ,BS.Name AS 'Status'
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level1Name)   
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level1Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level1Name) ELSE '' END AS level1  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level2Name)   	
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level2Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level2Name) ELSE '' END  AS level2  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level3Name)   	 
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level3Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level3Name) ELSE '' END  AS level3  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level4Name)   	 
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level4Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level4Name) ELSE '' END  AS level4  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level5Name)   	 
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level5Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level5Name) ELSE '' END  AS level5  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level6Name)   	 
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level6Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level6Name) ELSE '' END  AS level6  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level7Name)   	 
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level7Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level7Name) ELSE '' END  AS level7  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level8Name)   
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level8Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level8Name) ELSE '' END  AS level8  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level9Name)   
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level9Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level9Name) ELSE'' END  AS level9  
+					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name)   
+							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name)   
+							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10  
+					  
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
+						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
+						INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
+						LEFT JOIN [dbo].[StocklineBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId  
+						LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleIDs AND MSD.ReferenceID = stbd.StockLineId AND UPPER(stbd.StockType)= 'STOCK'  
+						LEFT JOIN [dbo].[NonStocklineManagementStructureDetails] NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NONStockModuleIDs AND NMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'NONSTOCK'  
+						LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleIDs,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'  
 						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
 						LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
 						LEFT JOIN [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId  

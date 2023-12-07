@@ -12,11 +12,12 @@
  ** PR   Date            Author                 Change Description              
  ** --   --------       -----------				--------------------------------            
     1    12/10/2023     AMIT GHEDIYA			Created
+	2    06/12/2023     AMIT GHEDIYA			Modify(Added Adjustment Type column)
        
 -- EXEC USP_SearchBulkStockData
   
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE OR ALTER  PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,
@@ -29,7 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@UpdatedBy  varchar(50) = NULL,
 	@UpdatedDate  datetime = NULL,
 	@IsDeleted bit = NULL,
-	@MasterCompanyId bigint = NULL
+	@MasterCompanyId bigint = NULL,
+	@AdjustmentType varchar(150) = NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -58,7 +60,8 @@ BEGIN
     END   
 
 		;WITH Result AS(  
-		SELECT bsadj.BulkStkLineAdjId,
+		SELECT stadt.[Name] AS 'AdjustmentType',
+					   bsadj.BulkStkLineAdjId,
 					   bsadj.BulkStkLineAdjNumber,                    
 					   bsadj.CreatedDate,
                        bsadj.UpdatedDate,
@@ -66,37 +69,42 @@ BEGIN
                        bsadj.UpdatedBy,	
 					   bsadj.IsDeleted,
 					   bsadj.StatusId
-			   FROM dbo.BulkStockLineAdjustment bsadj WITH (NOLOCK)		                 
+			   FROM dbo.BulkStockLineAdjustment bsadj WITH (NOLOCK)	
+			   INNER JOIN dbo.StockLineAdjustmentType stadt ON bsadj.StockLineAdjustmentTypeId = stadt.StockLineAdjustmentTypeId
 		 	  WHERE (bsadj.IsActive = 1)			     
 					AND bsadj.MasterCompanyId=@MasterCompanyId AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
 		),
 		FinalResult AS (  
-		SELECT BulkStkLineAdjId, BulkStkLineAdjNumber, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsDeleted, StatusId FROM Result  
+		SELECT AdjustmentType,BulkStkLineAdjId, BulkStkLineAdjNumber, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsDeleted, StatusId FROM Result  
 		WHERE  (  
 		 (@GlobalFilter <>'' AND ((BulkStkLineAdjNumber LIKE '%' +@GlobalFilter+'%' ) OR   
 		   (CreatedBy LIKE '%' +@GlobalFilter+'%') OR 
 		   (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR 
 		   (CreatedDate LIKE '%' +@GlobalFilter+'%') OR  
-		   (UpdatedDate LIKE '%' +@GlobalFilter+'%') 
+		   (UpdatedDate LIKE '%' +@GlobalFilter+'%') OR
+		   (AdjustmentType LIKE '%' +@GlobalFilter+'%') 
 		   ))  
 		   OR     
 		   (@GlobalFilter='' AND (ISNULL(@BulkStkLineAdjNumber,'') ='' OR BulkStkLineAdjNumber LIKE  '%'+ @BulkStkLineAdjNumber+'%') AND   
 		   (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
 		   (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
 		   (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
-		   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))
+		   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+		   (ISNULL(@AdjustmentType,'') ='' OR AdjustmentType LIKE '%'+ @AdjustmentType +'%')
 		   )  
 		   )),  
       ResultCount AS (Select COUNT(BulkStkLineAdjId) AS NumberOfItems FROM FinalResult)  
-      SELECT BulkStkLineAdjId, BulkStkLineAdjNumber, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsDeleted, StatusId, NumberOfItems FROM FinalResult, ResultCount  
+      SELECT AdjustmentType,BulkStkLineAdjId, BulkStkLineAdjNumber, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsDeleted, StatusId, NumberOfItems FROM FinalResult, ResultCount  
   
       ORDER BY    
+	  CASE WHEN (@SortOrder=1 AND @SortColumn='AdjustmentType')  THEN AdjustmentType END ASC,
       CASE WHEN (@SortOrder=1 AND @SortColumn='BulkStkLineAdjId')  THEN BulkStkLineAdjId END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='BulkStkLineAdjNumber')  THEN BulkStkLineAdjNumber END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
       CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,   
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='AdjustmentType')  THEN AdjustmentType END DESC, 
 	  CASE WHEN (@SortOrder=-1 AND @SortColumn='BulkStkLineAdjId')  THEN BulkStkLineAdjId END DESC,  
 	  CASE WHEN (@SortOrder=-1 AND @SortColumn='BulkStkLineAdjNumber')  THEN BulkStkLineAdjNumber END DESC,  
       CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  

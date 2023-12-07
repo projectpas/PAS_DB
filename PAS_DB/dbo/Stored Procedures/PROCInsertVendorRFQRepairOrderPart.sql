@@ -1,6 +1,19 @@
-﻿--------------------------------------------------------------------------------------------------------------
+﻿/*************************************************************             
+ ** File:   [PROCInsertVendorRFQRepairOrderPart]             
+ ** Author:   
+ ** Description: This stored procedure is used to PROCInsertVendorRFQRepairOrderPart
+ ** Purpose:           
+ ** Date:  
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+	1    06/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 
-CREATE PROCEDURE [dbo].[PROCInsertVendorRFQRepairOrderPart](@TableVendorRFQRepairOrderPart VendorRFQRepairOrderPartType READONLY)  
+**************************************************************/ 
+CREATE OR ALTER PROCEDURE [dbo].[PROCInsertVendorRFQRepairOrderPart](@TableVendorRFQRepairOrderPart VendorRFQRepairOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -39,7 +52,16 @@ BEGIN
 						TARGET.[UpdatedBy] = SOURCE.UpdatedBy,
 						TARGET.[UpdatedDate] = SOURCE.UpdatedDate,
 						TARGET.[IsActive] = SOURCE.IsActive,
-						TARGET.[IsDeleted] = SOURCE.IsDeleted
+						TARGET.[IsDeleted] = SOURCE.IsDeleted,
+						TARGET.[TraceableTo] = SOURCE.TraceableTo,
+						TARGET.[TraceableToName] = SOURCE.TraceableToName,
+						TARGET.[TraceableToType] = SOURCE.TraceableToType,
+						TARGET.[TagTypeId] = SOURCE.TagTypeId,
+						TARGET.[TaggedByType] = SOURCE.TaggedByType,
+						TARGET.[TaggedBy] = SOURCE.TaggedBy,
+						TARGET.[TaggedByName] = SOURCE.TaggedByName,
+						TARGET.[TaggedByTypeName] = SOURCE.TaggedByTypeName,
+						TARGET.[TagDate] = SOURCE.TagDate
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -47,14 +69,18 @@ BEGIN
                                ,[RevisedPartId],[RevisedPartNumber],[StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[PromisedDate]
                                ,[ConditionId],[Condition],[WorkPerformedId],[WorkPerformed],[QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],[WorkOrderNo]
                                ,[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],[SalesOrderNo],[ItemTypeId],[ItemType],[UOMId],[UnitOfMeasure],[ManagementStructureId]
-                               ,[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+                               ,[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+							   ,[TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId]
+							   ,[TaggedByType],[TaggedBy],[TaggedByName],[TaggedByTypeName],[TagDate])
 						VALUES (SOURCE.VendorRFQRepairOrderId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.PartDescription,SOURCE.AltEquiPartNumberId,SOURCE.AltEquiPartNumber
                                ,SOURCE.AltEquiPartDescription,SOURCE.RevisedPartId,SOURCE.RevisedPartNumber,SOURCE.StockType,SOURCE.ManufacturerId,SOURCE.Manufacturer
                                ,SOURCE.PriorityId,SOURCE.Priority,SOURCE.NeedByDate,SOURCE.PromisedDate,SOURCE.ConditionId,SOURCE.Condition,SOURCE.WorkPerformedId
                                ,SOURCE.WorkPerformed,SOURCE.QuantityOrdered,SOURCE.UnitCost,SOURCE.ExtendedCost,SOURCE.WorkOrderId,SOURCE.WorkOrderNo,SOURCE.SubWorkOrderId
                                ,SOURCE.SubWorkOrderNo,SOURCE.SalesOrderId,SOURCE.SalesOrderNo,SOURCE.ItemTypeId,SOURCE.ItemType,SOURCE.UOMId,SOURCE.UnitOfMeasure
                                ,SOURCE.ManagementStructureId,SOURCE.Level1,SOURCE.Level2,SOURCE.Level3,SOURCE.Level4,SOURCE.Memo,SOURCE.MasterCompanyId
-                               ,SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted);
+                               ,SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted
+							   ,SOURCE.TraceableTo,SOURCE.TraceableToName,SOURCE.TraceableToType,SOURCE.TagTypeId
+							   ,SOURCE.TaggedByType,SOURCE.TaggedBy,SOURCE.TaggedByName,SOURCE.TaggedByTypeName,SOURCE.TagDate);
 							   
 				   	     EXEC UpdateVendorRFQRepairOrderDetail @VendorRFQROId;									    
 					END

@@ -61,6 +61,10 @@
     [Figure]                            NVARCHAR (50)   NULL,
     [Item]                              NVARCHAR (50)   NULL,
     [EquPartMasterPartId]               BIGINT          NULL,
+    [UnReservedQty]                     INT             NULL,
+    [UnIssuedQty]                       INT             NULL,
+    [TotalUnIssued]                     INT             NULL,
+    [TotalUnReserved]                   INT             NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialsKit] PRIMARY KEY CLUSTERED ([SubWorkOrderMaterialsKitId] ASC),
     CONSTRAINT [FK_SubWorkOrderMaterialsKit_Condition] FOREIGN KEY ([ConditionCodeId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderMaterialsKit_ItemClassification] FOREIGN KEY ([ItemClassificationId]) REFERENCES [dbo].[ItemClassification] ([ItemClassificationId]),
@@ -73,6 +77,8 @@
     CONSTRAINT [FK_SubWorkOrderMaterialsKit_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_SubWorkOrderMaterialsKit_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

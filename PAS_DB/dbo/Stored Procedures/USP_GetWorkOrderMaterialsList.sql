@@ -37,7 +37,7 @@
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3651,3119, 0
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
+CREATE PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
 (    
 	@WorkOrderId BIGINT = NULL,   
 	@WFWOId BIGINT  = NULL,

@@ -1,11 +1,4 @@
-﻿-- USE [PAS_DEV]
--- GO
-/****** Object:  StoredProcedure [dbo].[GetMultipleJournalBatchHeaderById]    Script Date: 12/4/2023 7:34:01 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [GetJournalBatchHeaderById]               
  ** Author:  Shrey Chandegara    
  ** Description: This stored procedure is used to GetJournalBatchHeaderById    

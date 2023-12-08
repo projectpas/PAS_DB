@@ -84,6 +84,15 @@
     [LotId]                     BIGINT          NULL,
     [WorkOrderMaterialsId]      BIGINT          NULL,
     [VendorRFQPOPartRecordId]   BIGINT          NULL,
+    [TraceableTo]               BIGINT          NULL,
+    [TraceableToName]           VARCHAR (250)   NULL,
+    [TraceableToType]           INT             NULL,
+    [TagTypeId]                 BIGINT          NULL,
+    [TaggedBy]                  BIGINT          NULL,
+    [TaggedByType]              INT             NULL,
+    [TaggedByName]              VARCHAR (250)   NULL,
+    [TaggedByTypeName]          VARCHAR (250)   NULL,
+    [TagDate]                   DATETIME2 (7)   NULL,
     CONSTRAINT [PK_PurchaseOrderPart] PRIMARY KEY CLUSTERED ([PurchaseOrderPartRecordId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrder_PurchaseOrderPart] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_Currency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -99,6 +108,8 @@
     CONSTRAINT [FK_PurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

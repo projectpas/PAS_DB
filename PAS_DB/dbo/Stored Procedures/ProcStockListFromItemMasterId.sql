@@ -114,6 +114,8 @@ BEGIN
 			   CAST(stl.QuantityReserved AS varchar) 'QuantityReserved'
 			   ,stl.SalesPriceExpiryDate
 			   ,stl.UnitSalesPrice
+			   ,stl.ControlNumber
+			   ,stl.IdNumber
 			   ,ISNULL((SELECT TOP 1 ISNULL(SP_CalSPByPP_UnitSalePrice,0) FROM dbo.ItemMasterPurchaseSale imp WITH(NOLOCK) WHERE im.ItemMasterId =imp.ItemmasterId AND imp.ConditionId = c.ConditionId),0) AS BaseSalePrice
 				FROM  [dbo].[ItemMaster] im WITH (NOLOCK) 					
 					LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionId,','))

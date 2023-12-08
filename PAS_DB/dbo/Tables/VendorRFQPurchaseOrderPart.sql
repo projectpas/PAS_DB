@@ -39,6 +39,15 @@
     [PurchaseOrderNumber]      VARCHAR (50)    NULL,
     [UOMId]                    BIGINT          NULL,
     [UnitOfMeasure]            VARCHAR (50)    NULL,
+    [TraceableTo]              BIGINT          NULL,
+    [TraceableToName]          VARCHAR (250)   NULL,
+    [TraceableToType]          INT             NULL,
+    [TagTypeId]                BIGINT          NULL,
+    [TaggedBy]                 BIGINT          NULL,
+    [TaggedByType]             INT             NULL,
+    [TaggedByName]             VARCHAR (250)   NULL,
+    [TaggedByTypeName]         VARCHAR (250)   NULL,
+    [TagDate]                  DATETIME2 (7)   NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -50,6 +59,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

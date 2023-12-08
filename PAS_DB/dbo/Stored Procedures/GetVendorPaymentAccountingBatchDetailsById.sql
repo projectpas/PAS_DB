@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/************************************************************             
  ** File:   [GetVendorPaymentAccountingBatchDetailsById]             
  ** Author:  Seema Mansuri  
  ** Description: This stored procedure is used VendorPaymentAccountingBatchDetailsById  
@@ -10,7 +10,7 @@
 
  ************************/
 
-CREATE     PROCEDURE [dbo].[GetVendorPaymentAccountingBatchDetailsById]  
+CREATE      PROCEDURE [dbo].[GetVendorPaymentAccountingBatchDetailsById]  
 @ReadyToPayId bigint
 AS  
 BEGIN 

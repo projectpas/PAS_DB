@@ -95,7 +95,8 @@ BEGIN
 			ELSE IF (@TypeId = 2)
 			BEGIN
 				;WITH Result AS (
-				SELECT DISTINCT Cs.CustomerId, 
+				SELECT DISTINCT Cs.Migrated_Id CustomerId, 
+					1 ModuleId,
 					Cs.Company_Name [Name],
 					Cs.Company_Code CustomerCode,
 					Cs.Email_Address Email,
@@ -310,7 +311,8 @@ BEGIN
 			ELSE IF (@TypeId = 2)
 			BEGIN
 				;WITH Result AS (
-				SELECT DISTINCT Vs.VendorId,
+				SELECT DISTINCT Vs.Migrated_Id VendorId,
+					2 ModuleId,
                     Vs.Company_Name VendorName,
                     Vs.Company_Code VendorCode,                   
 					'Internal' [Description],  
@@ -521,7 +523,8 @@ BEGIN
 			ELSE IF (@TypeId = 2)
 			BEGIN
 				;WITH Result AS (
-				SELECT DISTINCT IMs.ItemMasterId,
+				SELECT DISTINCT IMs.Migrated_Id ItemMasterId,
+					20 ModuleId,
 					IMs.PartNumber,
 					IMs.PartDescription,
 					(ISNULL(mf.Name,'')) 'Manufacturerdesc',
@@ -878,7 +881,8 @@ BEGIN
 			ELSE IF (@TypeId = 2)
 			BEGIN
 				;WITH Result AS (
-				SELECT DISTINCT Stks.StockLineId,            
+				SELECT DISTINCT Stks.Migrated_Id StockLineId,
+					22 ModuleId,
 					(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
 					(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
 					(ISNULL(im.PartDescription,'')) 'PartDescription',        
@@ -1397,7 +1401,8 @@ BEGIN
 			ELSE IF (@TypeId = 2)
 			BEGIN
 				;WITH Result AS (
-				SELECT DISTINCT IMs.ItemMasterId,
+				SELECT DISTINCT IMs.Migrated_Id ItemMasterId,
+					12 ModuleId,
 					IMs.PartNumber,
 					IMs.PartDescription,
 					(ISNULL(mf.Name,'')) 'Manufacturerdesc',

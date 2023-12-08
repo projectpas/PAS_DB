@@ -12,10 +12,12 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/01/2022  Moin Bloch     Created
+    1    05/01/2022   Moin Bloch     Created
+	2    06/12/2023   Amit Ghediya   Modify(Added Traceable & Tagged fields)
+
 -- EXEC [GetVendorRFQRepairOrderParts] 1
 ************************************************************************/
-CREATE PROCEDURE [dbo].[GetVendorRFQRepairOrderParts]
+CREATE OR ALTER PROCEDURE [dbo].[GetVendorRFQRepairOrderParts]
 @VendorRFQRepairOrderId bigint
 AS
 BEGIN
@@ -77,6 +79,15 @@ BEGIN
 			  ,POMSD.[EntityMSID] AS EntityStructureId
 			  ,POMSD.[LastMSLevel] AS LastMSLevel
 			  ,POMSD.[AllMSlevels] AS AllMSlevels
+			  ,PP.[TraceableTo]
+			  ,PP.[TraceableToName]
+			  ,PP.[TraceableToType]
+			  ,PP.[TagTypeId]
+			  ,PP.[TaggedBy]
+			  ,PP.[TaggedByType]
+			  ,PP.[TaggedByName]
+			  ,PP.[TaggedByTypeName]
+			  ,PP.[TagDate]
 		 FROM [dbo].[VendorRFQRepairOrderPart] PP WITH (NOLOCK)
 		 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON PP.RepairOrderId = RO.RepairOrderId					
 		 JOIN [dbo].[RepairOrderManagementStructureDetails] POMSD ON PP.VendorRFQROPartRecordId = POMSD.ReferenceID AND POMSD.ModuleID = 23

@@ -17,9 +17,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    08/02/2023   Vishal Suthar Created
-
+    2    12/06/202    Jevik Raiyani added @statusValue
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
+CREATE     PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -31,6 +31,7 @@ CREATE   PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
 	@PartDescription varchar(max) = NULL,
 	@Condition varchar(max) = NULL,
 	@KitNumber varchar(50) = NULL,
+	@StatusValue varchar(50) = NULL,
 	@WorkOrderNum varchar(50) = NULL,
 	@MPN varchar(50) = NULL,	
 	@MPNDescription varchar(max) = NULL,
@@ -92,7 +93,8 @@ BEGIN
 				    WO.[IsActive],
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					IMP.[PartNumber] AS MPN,
-					IMP.[PartDescription] AS MPNDescription
+					IMP.[PartDescription] AS MPNDescription,
+					WOS.[Description] as StatusValue
 			   FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK)
 			   LEFT JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
 			   LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOKM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitMappingId = WOKM.WorkOrderMaterialsKitMappingId
@@ -102,6 +104,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   INNER JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
+			   LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH (NOLOCK) ON WOS.Id = WO.WorkOrderStatusId
 			WHERE WO.MasterCompanyId = @MasterCompanyId	
 			      AND WO.IsDeleted = 0
 				  AND WO.IsActive = 1				  
@@ -115,6 +118,7 @@ BEGIN
 					(Condition LIKE '%' + @GlobalFilter +'%') OR
 					(KitNumber LIKE '%' + @GlobalFilter +'%') OR
 					(WorkOrderNum LIKE '%' + @GlobalFilter +'%') OR
+					(StatusValue LIKE '%' + @GlobalFilter +'%') OR
 					(MPN LIKE '%' + @GlobalFilter +'%') OR
 					(MPNDescription LIKE '%' + @GlobalFilter +'%') OR
 					(WorkScope LIKE '%' + @GlobalFilter +'%') OR
@@ -125,6 +129,7 @@ BEGIN
 					(ControlID LIKE '%' + @GlobalFilter +'%'))
 					OR 
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE '%' + @WorkOrderNum + '%') AND
@@ -145,6 +150,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,

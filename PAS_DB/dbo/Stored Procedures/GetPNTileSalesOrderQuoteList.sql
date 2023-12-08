@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿/****** Object:  StoredProcedure [dbo].[GetPNTileSalesOrderQuoteList]    Script Date: 12/6/2023 3:30:21 PM ******/
+/*************************************************************           
  ** File:   [GetPNTileSalesOrderQuoteList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order quote history date for dashboard
@@ -14,9 +15,9 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
-
+	2    06/12/2023   Jevik Raiyani         Added @StatusValue
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
+CREATE     PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -42,6 +43,7 @@ CREATE   PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@EmployeeId bigint=0,
 	@ItemMasterId bigint=0,
 	@MasterCompanyId bigint=1,
+	@StatusValue varchar(50) = NULL,
 	@ConditionId VARCHAR(250) = NULL
 AS
 BEGIN
@@ -90,7 +92,8 @@ BEGIN
 					SOQ.[CreatedDate],
 				    SOQ.[CreatedBy],					
 				    SOQ.[IsActive],					
-					SOQ.[StatusId],
+					SOQ.[StatusId],				
+					SOQ.[StatusName] AS StatusValue,
 					ISNULL(IM.ManufacturerName,'')ManufacturerName
 			   FROM [dbo].[SalesOrderQuote] SOQ WITH (NOLOCK)	
 			   INNER JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = SOQ.CustomerId
@@ -112,6 +115,7 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -125,6 +129,7 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@SalesOrderQuoteNumber,'') ='' OR SalesOrderQuoteNumber LIKE '%' + @SalesOrderQuoteNumber + '%') AND
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
@@ -146,6 +151,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SalesOrderQuoteNumber')  THEN SalesOrderQuoteNumber END ASC,

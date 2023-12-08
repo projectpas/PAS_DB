@@ -1,4 +1,4 @@
-﻿CREATE         PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
+﻿CREATE   PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -23,7 +23,8 @@
 @EmployeeId bigint=0,
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
-@ConditionId VARCHAR(250) = NULL
+@ConditionId VARCHAR(250) = NULL,
+@StatusValue varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -72,7 +73,8 @@ BEGIN
 					ROQ.CreatedDate,
 				    ROQ.CreatedBy,					
 				    ROQ.IsActive,					
-					ROQ.StatusId,
+					ROQ.StatusId,				
+					ROQ.[Status] AS StatusValue,
 					ISNULL(IM.ManufacturerName,'')ManufacturerName
 			   FROM [dbo].[VendorRFQRepairOrder] ROQ WITH (NOLOCK)	
 			   INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = ROQ.VendorRFQRepairOrderId
@@ -91,6 +93,7 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -103,6 +106,7 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 				    (ISNULL(@VendorRFQRepairOrderNumber,'') ='' OR VendorRFQRepairOrderNumber LIKE '%' + @VendorRFQRepairOrderNumber + '%') AND
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber + '%') AND
@@ -123,6 +127,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQRepairOrderNumber')  THEN VendorRFQRepairOrderNumber END ASC,

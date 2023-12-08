@@ -2703,6 +2703,9 @@
     <Build Include="dbo\User Defined Types\UpdateNonStocklineReceivingPOType.sql" />
     <Build Include="dbo\Tables\AppSettings.sql" />
     <Build Include="Data Scripts\01_Temp_Script.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQRepairOrderPart_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQRORepairOrderPart_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQRepairOrderParts_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

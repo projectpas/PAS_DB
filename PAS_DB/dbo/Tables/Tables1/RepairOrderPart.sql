@@ -93,6 +93,15 @@
     [AssetClass]                 VARCHAR (50)    NULL,
     [IsLotAssigned]              BIT             NULL,
     [LotId]                      BIGINT          NULL,
+    [TraceableTo]                BIGINT          NULL,
+    [TraceableToName]            VARCHAR (250)   NULL,
+    [TraceableToType]            INT             NULL,
+    [TagTypeId]                  BIGINT          NULL,
+    [TaggedBy]                   BIGINT          NULL,
+    [TaggedByType]               INT             NULL,
+    [TaggedByName]               VARCHAR (250)   NULL,
+    [TaggedByTypeName]           VARCHAR (250)   NULL,
+    [TagDate]                    DATETIME2 (7)   NULL,
     CONSTRAINT [PK_RepairOrderpart] PRIMARY KEY CLUSTERED ([RepairOrderPartRecordId] ASC),
     CONSTRAINT [FK_RepairOrderPart_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_RepairOrderPart_GlAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -104,6 +113,8 @@
     CONSTRAINT [FK_RepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_RepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

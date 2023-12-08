@@ -94,8 +94,19 @@
     [AssetClass]                 VARCHAR (50)    NULL,
     [IsLotAssigned]              BIT             NULL,
     [LotId]                      BIGINT          NULL,
+    [TraceableTo]                BIGINT          NULL,
+    [TraceableToName]            VARCHAR (250)   NULL,
+    [TraceableToType]            INT             NULL,
+    [TagTypeId]                  BIGINT          NULL,
+    [TaggedBy]                   BIGINT          NULL,
+    [TaggedByType]               INT             NULL,
+    [TaggedByName]               VARCHAR (250)   NULL,
+    [TaggedByTypeName]           VARCHAR (250)   NULL,
+    [TagDate]                    DATETIME2 (7)   NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 
 
 

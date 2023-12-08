@@ -49,8 +49,19 @@
     [IsDeleted]                    BIT             CONSTRAINT [DF_VendorRFQRepairOrderPartAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [RepairOrderId]                BIGINT          NULL,
     [RepairOrderNumber]            VARCHAR (50)    NULL,
+    [TraceableTo]                  BIGINT          NULL,
+    [TraceableToName]              VARCHAR (250)   NULL,
+    [TraceableToType]              INT             NULL,
+    [TagTypeId]                    BIGINT          NULL,
+    [TaggedBy]                     BIGINT          NULL,
+    [TaggedByType]                 INT             NULL,
+    [TaggedByName]                 VARCHAR (250)   NULL,
+    [TaggedByTypeName]             VARCHAR (250)   NULL,
+    [TagDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordAuditId] ASC)
 );
+
+
 
 
 

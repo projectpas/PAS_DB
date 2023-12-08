@@ -45,5 +45,16 @@
     [CreatedDate]             DATETIME2 (7)   NULL,
     [UpdatedDate]             DATETIME2 (7)   NULL,
     [IsActive]                BIT             NULL,
-    [IsDeleted]               BIT             NULL);
+    [IsDeleted]               BIT             NULL,
+    [TraceableTo]             BIGINT          NULL,
+    [TraceableToName]         VARCHAR (250)   NULL,
+    [TraceableToType]         INT             NULL,
+    [TagTypeId]               BIGINT          NULL,
+    [TaggedByType]            INT             NULL,
+    [TaggedBy]                BIGINT          NULL,
+    [TaggedByName]            VARCHAR (250)   NULL,
+    [TaggedByTypeName]        VARCHAR (250)   NULL,
+    [TagDate]                 DATETIME2 (7)   NULL);
+
+
 

@@ -17,10 +17,11 @@
 	2    09/08/2023   Moin Bloch    Added Billing Batch Entry and Core Return Batch Entry
 	3    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	4    01/12/2023   Moin Bloch    Modify(Added LotId And Lot Number in CommonBatchDetails)
+	5    11/12/2023   Moin Bloch    Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
+CREATE OR ALTER PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,
@@ -715,7 +716,10 @@ BEGIN
 			END			
 
 			IF(UPPER(@DistributionCode) = UPPER('EX-FEEBILLING'))
-			BEGIN
+			BEGIN				
+				IF NOT EXISTS(SELECT 1 FROM [dbo].[ExchangeBatchDetails] EBD WITH(NOLOCK) WHERE EBD.[ExchangeSalesOrderId] = @ReferenceId AND EBD.[CustomerId] = @CustomerId AND EBD.[InvoiceId] = @InvoiceId)
+				BEGIN
+
 				SELECT @InvoiceNo = [InvoiceNo] FROM [dbo].[ExchangeSalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @InvoiceId;
 
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
@@ -748,7 +752,9 @@ BEGIN
 						   @BillInvoiceNo = ESOB.[InvoiceNo]
 					FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOB WITH(NOLOCK) 
 					INNER JOIN [dbo].[ExchangeSalesOrderScheduleBilling] ESOS  WITH(NOLOCK) ON ESOB.ExchangeSalesOrderId = ESOS.ExchangeSalesOrderId 					
-					WHERE [SOBillingInvoicingId] = @InvoiceId AND [BillingTypeId] = @EXCHBillingTypeId AND [StatusId] = @ExchangeBillingStatusId;
+					WHERE [SOBillingInvoicingId] = @InvoiceId 
+					AND [BillingTypeId] = @EXCHBillingTypeId 
+					AND [StatusId] = @ExchangeBillingStatusId;
 					
 					SELECT  @StocklineId = esop.[StockLineId],
 					        @partId = esop.[ItemMasterId],
@@ -1938,6 +1944,8 @@ BEGIN
 						   [UpdatedDate] = GETUTCDATE(),
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+				END
 
 				END
 			END			

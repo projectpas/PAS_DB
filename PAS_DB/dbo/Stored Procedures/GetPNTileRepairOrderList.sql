@@ -15,9 +15,11 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
+	4    08/12/2023   Jevik Raiyani		    add @statusValue
+	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetPNTileRepairOrderList]
+CREATE OR ALTER     PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -42,7 +44,12 @@ CREATE OR ALTER PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
 @ConditionId VARCHAR(250) = NULL,
-@SerialNumber varchar(50) = NULL
+@SerialNumber varchar(50) = NULL,
+@TraceableTo VARCHAR(250) = NULL,
+@TagType VARCHAR(250) = NULL,
+@TaggedBy VARCHAR(250) = NULL,
+@TaggedDate datetime = NULL,
+@StatusValue varchar(50)= NULL
 	
 AS
 BEGIN
@@ -94,7 +101,12 @@ BEGIN
 				    RO.CreatedBy,					
 				    RO.IsActive,					
 					RO.StatusId,
-					ISNULL(IM.ManufacturerName,'')ManufacturerName
+					ISNULL(IM.ManufacturerName,'')ManufacturerName,
+					ROP.TraceableToName AS 'TraceableTo',
+					TAT.[Name] AS 'TagType',
+					ROP.TaggedByName AS 'TaggedBy',
+					ROP.TagDate AS 'taggedDate',
+					RO.[Status] AS StatusValue
 			   FROM [dbo].[RepairOrder] RO WITH (NOLOCK)			          			  
 			 INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
@@ -102,6 +114,7 @@ BEGIN
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
 			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1
 				  AND RO.MasterCompanyId = @MasterCompanyId	
@@ -114,16 +127,22 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
 					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
+					(taggedDate LIKE '%' +@GlobalFilter+'%') OR
+					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
+					(TagType LIKE '%' +@GlobalFilter+'%') OR
+					(TaggedBy LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%'))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
@@ -134,6 +153,10 @@ BEGIN
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
+					(ISNULL(@TraceableTo,'') ='' OR TraceableTo LIKE '%' + @TraceableTo + '%') AND
+					(ISNULL(@TagType,'') ='' OR TagType LIKE '%' + @TagType + '%') AND
+					(ISNULL(@TaggedBy,'') ='' OR TaggedBy LIKE '%' + @TaggedBy + '%') AND
+					(ISNULL(@taggedDate,'') ='' OR CAST(taggedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%'))))
 
 			SELECT @Count = COUNT(RepairOrderId) FROM #TempResult			
@@ -166,6 +189,16 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TraceableTo')  THEN TraceableTo END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TraceableTo')  THEN TraceableTo END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TagType')  THEN TagType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TagType')  THEN TagType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TaggedBy')  THEN TaggedBy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TaggedBy')  THEN TaggedBy END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='taggedDate')  THEN taggedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='taggedDate')  THEN taggedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
 			OFFSET @RecordFrom ROWS 

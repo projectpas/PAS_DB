@@ -7,10 +7,10 @@
   ** Change History           
  **************************************************************           
  ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-    1     
+ ** --   --------     -------				-------------------------------- 
 	2    07/25/2023   Devendra Shekh		changed NVARCHAR(10) to NVARCHAR(20)
 	3    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+	4    12/04/2023   Jevik Raiyani		 add @statusValue
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
@@ -42,7 +42,8 @@ CREATE     PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @TraceableTo VARCHAR(250) = NULL,
 @TagType VARCHAR(250) = NULL,
 @TaggedBy VARCHAR(250) = NULL,
-@TaggedDate datetime = NULL
+@TaggedDate datetime = NULL,
+@StatusValue varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -95,7 +96,8 @@ BEGIN
 					POP.TraceableToName AS 'TraceableTo',
 					TAT.[Name] AS 'TagType',
 					POP.TaggedByName AS 'TaggedBy',
-					POP.TagDate AS 'taggedDate'
+					POP.TagDate AS 'taggedDate',
+					PO.[Status] AS StatusValue
 			  FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)
 			  INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId
 			  INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
@@ -117,6 +119,7 @@ BEGIN
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
@@ -131,6 +134,7 @@ BEGIN
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
 					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(20)) LIKE '%'+ @UnitCost+'%') AND 
 					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(20)) LIKE '%'+ @QuantityOrdered+'%') AND 
@@ -173,7 +177,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TraceableTo')  THEN TraceableTo END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='TraceableTo')  THEN TraceableTo END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TraceableTo')  THEN TraceableTo END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TagType')  THEN TagType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TagType')  THEN TagType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TaggedBy')  THEN TaggedBy END ASC,

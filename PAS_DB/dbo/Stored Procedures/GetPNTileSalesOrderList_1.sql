@@ -15,9 +15,10 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
+	3    08/12/2023   Jevik Raiyani		 add @statusValue
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetPNTileSalesOrderList]
+CREATE   PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -43,6 +44,7 @@ CREATE    PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@ItemMasterId bigint=0,
 	@MasterCompanyId bigint=1,
 	@ConditionId VARCHAR(250) = NULL,
+	@StatusValue varchar(50) = NULL,
 	@SerialNumber varchar(50) = NULL
 
 AS
@@ -96,7 +98,8 @@ BEGIN
 				SO.[CreatedBy],					
 				SO.[IsActive],					
 				SO.[StatusId],
-				ISNULL(IM.ManufacturerName,'')ManufacturerName
+				ISNULL(IM.ManufacturerName,'')ManufacturerName,			
+				MSOS.[Name] AS StatusValue
 			   FROM [dbo].[SalesOrder] SO WITH (NOLOCK)	
 			   INNER JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = SO.CustomerId
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId
@@ -107,7 +110,8 @@ BEGIN
 			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId	
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	
+			   LEFT JOIN [dbo].[MasterSalesOrderStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.Id
 
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId
@@ -119,6 +123,7 @@ BEGIN
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 				(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 				(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
+				(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 				(SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 				(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
 				(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -131,6 +136,7 @@ BEGIN
 				OR   
 				(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 				(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+				(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 				(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 				(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 				(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
@@ -176,6 +182,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
 			

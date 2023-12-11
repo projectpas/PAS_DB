@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPNTileWOMaterialHistoryList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get list of work orders where the given part is consumed in materials
@@ -20,9 +19,9 @@
 	1    05/26/2023   Vishal Suthar Created
 	2    06/01/2023   Amit Ghediya  Added MPN & MPN desc.
 	3    07/27/2023   Vishal Suthar Showing both issued and reserved qty WOM stockline
-
+	4    12/06/2023   Jevik Raiyani add @statusValue 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
+CREATE     PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -37,6 +36,7 @@ CREATE   PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@MPN varchar(50) = NULL,	
 	@MPNDescription varchar(max) = NULL,
 	@WorkScope varchar(50) = NULL,
+	@StatusValue varchar(50) = NULL,
 	@RequestedQty int = NULL,
 	@ResQty int = NULL,
 	@IssueQty int = NULL,
@@ -95,7 +95,8 @@ BEGIN
 				    WO.[IsActive],
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					IMP.[PartNumber] AS MPN,
-					IMP.[PartDescription] AS MPNDescription
+					IMP.[PartDescription] AS MPNDescription,
+					WS.[Description] AS StatusValue
 			   FROM [dbo].[WorkOrderMaterials] WOM  WITH (NOLOCK)
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
@@ -105,6 +106,7 @@ BEGIN
 			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
+			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
 			WHERE WO.MasterCompanyId = @MasterCompanyId	
 			      AND WO.IsDeleted = 0
 				  AND WO.IsActive = 1				  
@@ -137,7 +139,8 @@ BEGIN
 				    WO.[IsActive],
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					IMP.[PartNumber] AS MPN,
-					IMP.[PartDescription] AS MPNDescription
+					IMP.[PartDescription] AS MPNDescription,
+					WS.[Description] AS StatusValue
 			   FROM  [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
@@ -147,6 +150,7 @@ BEGIN
 			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
+			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
 
 			WHERE WO.MasterCompanyId = @MasterCompanyId	
 			      AND WO.IsDeleted = 0
@@ -158,6 +162,7 @@ BEGIN
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' + @GlobalFilter +'%') OR
 					(PartDescription LIKE '%' + @GlobalFilter +'%') OR
+					(StatusValue LIKE '%' + @GlobalFilter +'%') OR
 					(Condition LIKE '%' + @GlobalFilter +'%') OR
 					(WorkOrderNum LIKE '%' + @GlobalFilter +'%') OR
 					(MPN LIKE '%' + @GlobalFilter +'%') OR
@@ -172,6 +177,7 @@ BEGIN
 					OR 
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@WorkOrderNum,'') ='' OR WorkOrderNum LIKE '%' + @WorkOrderNum + '%') AND
 					(ISNULL(@MPN,'') ='' OR MPN LIKE '%' + @MPN + '%') AND
@@ -191,6 +197,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,

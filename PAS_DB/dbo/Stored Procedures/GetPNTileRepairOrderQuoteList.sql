@@ -12,7 +12,7 @@
 
 --   EXEC [GetPNTileRepairOrderQuoteList]
 **************************************************************/ 
-CREATE OR ALTER   PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
+CREATE PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

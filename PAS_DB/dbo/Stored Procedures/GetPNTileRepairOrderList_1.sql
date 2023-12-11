@@ -15,8 +15,9 @@
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
 	3    11/12/2023   Ekta Chandegra		Apply Join on stocklineId instead of ROPartRecordId
+	4    08/12/2023   Jevik Raiyani		    add @statusValue
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPNTileRepairOrderList]
+CREATE     PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -41,7 +42,8 @@ CREATE   PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
 @ConditionId VARCHAR(250) = NULL,
-@SerialNumber varchar(50) = NULL
+@SerialNumber varchar(50) = NULL,
+@StatusValue varchar(50)= NULL
 	
 AS
 BEGIN
@@ -93,7 +95,8 @@ BEGIN
 				    RO.CreatedBy,					
 				    RO.IsActive,					
 					RO.StatusId,
-					ISNULL(IM.ManufacturerName,'')ManufacturerName
+					ISNULL(IM.ManufacturerName,'')ManufacturerName,
+					RO.[Status] AS StatusValue
 			   FROM [dbo].[RepairOrder] RO WITH (NOLOCK)			          			  
 			 INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
@@ -113,7 +116,8 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
 					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
-					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
 					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
@@ -123,6 +127,7 @@ BEGIN
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
@@ -165,6 +170,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
 			OFFSET @RecordFrom ROWS 

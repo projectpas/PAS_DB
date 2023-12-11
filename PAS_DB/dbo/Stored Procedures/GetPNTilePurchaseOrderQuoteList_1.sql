@@ -9,10 +9,11 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+	2    08/12/2023   Jevik Raiyani          added @statusValue
 
 --   EXEC [GetPNTilePurchaseOrderQuoteList]
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]
+CREATE   PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -41,7 +42,8 @@ CREATE    PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]
 @TraceableTo VARCHAR(250) = NULL,
 @TagType VARCHAR(250) = NULL,
 @TaggedBy VARCHAR(250) = NULL,
-@TaggedDate datetime = NULL
+@TaggedDate datetime = NULL,
+@StatusValue varchar(50)= NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -89,7 +91,8 @@ BEGIN
 					POQ.CreatedDate,
 				    POQ.CreatedBy,					
 				    POQ.IsActive,					
-					POQ.StatusId,
+					POQ.StatusId,	
+					POQ.[Status] AS StatusValue,
 					ISNULL(IM.ManufacturerName,'')ManufacturerName,
 					POP.TraceableToName AS 'TraceableTo',
 					TAT.[Name] AS 'TagType',
@@ -114,6 +117,7 @@ BEGIN
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(ManufacturerName LIKE '%' +@GlobalFilter+'%') OR
+					(StatusValue LIKE '%' +@GlobalFilter+'%') OR
 					(VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
@@ -129,6 +133,7 @@ BEGIN
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
+					(ISNULL(@StatusValue,'') ='' OR StatusValue LIKE '%' + @StatusValue + '%') AND
 					(ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber + '%') AND
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
@@ -154,6 +159,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,

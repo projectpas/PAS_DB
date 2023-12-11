@@ -11,7 +11,7 @@ BEGIN
 		select DISTINCT RCT.ReceivingCustomerWorkId,IM.PartNumber,IM.PartDescription,MN.[Name],'' as 'RevisedPart',RCT.ExpDate,RCT.ItemMasterId,RCT.ManagementStructureId,IM.ManufacturerId,EXCHSO.MasterCompanyId,
 		RCT.PartCertificationNumber,RCT.Quantity,RCT.ReceivingNumber,RCT.Reference,IM.RevisedPartId as 'RevisePartId',RCT.SerialNumber,RCT.StockLineId,RCT.TimeLifeCyclesId,CASE WHEN RCT.ReceivedDate is not null THEN RCT.ReceivedDate ELSE EXCHSOP.ReceivedDate END as ReceivedDate,RCT.CustReqDate,
 		RCT.EmployeeName as 'ReceivedBy','' as 'StockLineNumber',EXCHSOP.CoreStatusId,EXCHSOP.CoreDueDate,EXCHSOP.ExchangeCorePrice as 'CorePrice',EXCHSOP.ExchangeSalesOrderPartId,EXCHSOP.ExchangeSalesOrderId,
-		EXCHSOP.LetterSentDate,EXCHSOP.LetterTypeId,EXCHSOP.Memo,1 as 'isEditPart',EXCHSOP.ExpectedCoreSN as 'ExpectedSN',EXCHSOP.ExpecedCoreCond,EXCHSO.CoreAccepted from DBO.ExchangeSalesOrder EXCHSO
+		EXCHSOP.LetterSentDate,EXCHSOP.LetterTypeId,EXCHSOP.Memo,1 as 'isEditPart',RCT.SerialNumber as 'ExpectedSN',EXCHSOP.ExpecedCoreCond,EXCHSO.CoreAccepted from DBO.ExchangeSalesOrder EXCHSO
 		INNER JOIN DBO.ExchangeSalesOrderPart EXCHSOP ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId
 		LEFT JOIN DBO.ReceivingCustomerWork RCT ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
 		LEFT JOIN DBO.ItemMaster IM ON EXCHSOP.ItemMasterId = IM.ItemMasterId

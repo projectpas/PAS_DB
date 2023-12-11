@@ -1160,6 +1160,255 @@ BEGIN
 				END
 			END
 
+
+			ELSE IF (@ItemTypeId = 2)
+			BEGIN
+				
+				DECLARE @ParentNonStockId BIGINT = 0;
+				DECLARE @NewNonStockInventoryId BIGINT = 0;
+				DECLARE @CurrentIdNumber_NonStock  BIGINT;
+				DECLARE @IdCodeTypeId_NonStock  BIGINT;
+				--DECLARE @ControlNumberCodeTypeId_NonStock  BIGINT;
+				DECLARE @NonStockTotalRec  [BIGINT] = 0;
+				DECLARE @ReceiverNumber_NonStock  VARCHAR(250);
+				DECLARE @TempNonStockId [BIGINT] = 0;
+				DECLARE @NonStockCintrolNum VARCHAR(250);
+				DECLARE @StartNonStock [BIGINT] = 1;
+				DECLARE @NonStockCurrentNo BIGINT = 0;
+				SELECT @CurrentIdNumber_NonStock = ISNULL(CP.CurrentNummber, 0) FROM dbo.CodePrefixes CP WITH(NOLOCK) WHERE CP.CodeTypeId = 66 AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+				SELECT @IdCodeTypeId_NonStock = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'NonStockline';
+				--SELECT @ControlNumberCodeTypeId_NonStock = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'NonStockControlNumber';
+				IF OBJECT_ID(N'tempdb..#tmpNonStockInventoryDraft') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpNonStockInventoryDraft
+				END
+
+				CREATE TABLE #tmpNonStockInventoryDraft (
+					ID BIGINT NOT NULL IDENTITY,
+				   [NonStockInventoryDraftId] [bigint] NOT NULL,
+					[NonStockDraftNumber] [varchar](50) NULL,
+					[PurchaseOrderId] [bigint] NOT NULL,
+					[PurchaseOrderPartRecordId] [bigint] NOT NULL,
+					[PurchaseOrderNumber] [varchar](50) NOT NULL,
+					[IsParent] [bit] NULL,
+					[ParentId] [bigint] NULL,
+					[MasterPartId] [bigint] NOT NULL,
+					[PartNumber] [varchar](50) NULL,
+					[PartDescription] [nvarchar](max) NULL,
+					[NonStockInventoryId] [bigint] NULL,
+					[NonStockInventoryNumber] [varchar](50) NULL,
+					[ControlNumber] [varchar](50) NULL,
+					[ControlID] [varchar](50) NULL,
+					[IdNumber] [varchar](50) NULL,
+					[ReceiverNumber] [varchar](50) NULL,
+					[ReceivedDate] [datetime2](7) NULL,
+					[IsSerialized] [bit] NOT NULL,
+					[SerialNumber] [varchar](50) NULL,
+					[Quantity] [int] NOT NULL,
+					[QuantityRejected] [int] NULL,
+					[QuantityOnHand] [int] NULL,
+					[CurrencyId] [bigint] NULL,
+					[Currency] [varchar](50) NULL,
+					[ConditionId] [bigint] NULL,
+					[Condition] [varchar](50) NULL,
+					[GLAccountId] [bigint] NULL,
+					[GLAccount] [varchar](50) NULL,
+					[UnitOfMeasureId] [bigint] NULL,
+					[UnitOfMeasure] [varchar](50) NULL,
+					[ManufacturerId] [bigint] NULL,
+					[Manufacturer] [varchar](50) NULL,
+					[MfgExpirationDate] [datetime2](7) NULL,
+					[UnitCost] [decimal](18, 2) NULL,
+					[ExtendedCost] [decimal](18, 2) NULL,
+					[Acquired] [int] NULL,
+					[IsHazardousMaterial] [bit] NULL,
+					[ItemNonStockClassificationId] [bigint] NULL,
+					[NonStockClassification] [varchar](50) NULL,
+					[SiteId] [bigint] NOT NULL,
+					[Site] [varchar](50) NULL,
+					[WarehouseId] [bigint] NULL,
+					[Warehouse] [varchar](50) NULL,
+					[LocationId] [bigint] NULL,
+					[Location] [varchar](50) NULL,
+					[ShelfId] [bigint] NULL,
+					[Shelf] [varchar](50) NULL,
+					[BinId] [bigint] NULL,
+					[Bin] [varchar](50) NULL,
+					[ShippingViaId] [bigint] NULL,
+					[ShippingVia] [varchar](50) NULL,
+					[ShippingAccount] [nvarchar](200) NULL,
+					[ShippingReference] [nvarchar](200) NULL,
+					[IsSameDetailsForAllParts] [bit] NULL,
+					[VendorId] [bigint] NULL,
+					[VendorName] [varchar](50) NULL,
+					[RequisitionerId] [bigint] NULL,
+					[Requisitioner] [varchar](50) NULL,
+					[OrderDate] [datetime2](7) NULL,
+					[EntryDate] [datetime2](7) NULL,
+					[ManagementStructureId] [bigint] NOT NULL,
+					[Level1] [varchar](100) NULL,
+					[Level2] [varchar](100) NULL,
+					[Level3] [varchar](100) NULL,
+					[Level4] [varchar](100) NULL,
+					[Memo] [nvarchar](max) NULL,
+					[MasterCompanyId] [int] NOT NULL,
+					[CreatedBy] [varchar](256) NOT NULL,
+					[UpdatedBy] [varchar](256) NOT NULL,
+					[CreatedDate] [datetime2](7) NOT NULL,
+					[UpdatedDate] [datetime2](7) NOT NULL,
+					[IsActive] [bit] NOT NULL,
+					[IsDeleted] [bit] NOT NULL,
+				)
+
+				
+				INSERT INTO #tmpNonStockInventoryDraft SELECT * FROM DBO.NonStockInventoryDraft NonStockDraft WITH(NOLOCK) WHERE NonStockDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND ISNULL(NonStockDraft.NonStockInventoryId,0) = 0 ORDER BY NonStockInventoryDraftId;
+				SET @NonStockTotalRec = (SELECT ISNULL(MAX(ID),0) FROM #tmpNonStockInventoryDraft);
+
+				IF(@NonStockTotalRec > 0)
+					BEGIN
+						IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_NonStock') IS NOT NULL  
+						BEGIN  
+							DROP TABLE #tmpCodePrefixes_NonStock  
+						END  
+      
+						CREATE TABLE #tmpCodePrefixes_NonStock  
+						(  
+							ID BIGINT NOT NULL IDENTITY,   
+							CodePrefixId BIGINT NULL,  
+							CodeTypeId BIGINT NULL,  
+							CurrentNumber BIGINT NULL,  
+							CodePrefix VARCHAR(50) NULL,  
+							CodeSufix VARCHAR(50) NULL,  
+							StartsFrom BIGINT NULL,  
+						)
+
+						INSERT INTO #tmpCodePrefixes_NonStock (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)
+						SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom
+						FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+						WHERE CT.CodeTypeId IN(66) AND CP.MasterCompanyId = @MasterCompanyId;
+
+						INSERT INTO #tmpCodePrefixes_NonStock (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)
+						SELECT TOP 1 CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom
+						FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+						WHERE CT.CodeTypeId IN(68) AND CP.MasterCompanyId = @MasterCompanyId;
+
+						SET @ReceiverNumber_NonStock = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber_NonStock, 'RecNo', ''))
+						
+						WHILE(@StartNonStock <= @NonStockTotalRec)
+						BEGIN
+							
+							DECLARE @MSId BIGINT = 0; 
+							DECLARE @ManagementStructureID_NonStock BIGINT = 0;
+							DECLARE @MSModuleId_NonStock BIGINT = 0;
+							DECLARE @NonStockMasterPartId BIGINT = 0;
+							DECLARE @NonStockManufacturerId BIGINT = 0;
+							DECLARE @CurrentStlNumber BIGINT = 0;
+							DECLARE @NonStockInventoryNumber VARCHAR(250);
+							DECLARE @NonStockControlNumber VARCHAR(250);
+							DECLARE @CodePrefix_NonStock VARCHAR(100);
+							DECLARE @CodeSuffix_NonStock VARCHAR(100);
+							DECLARE @NonStockCurrentNumber BIGINT = 0;
+							SET @ParentNonStockId = 0;
+							SET @TempNonStockId = (SELECT NonStockInventoryDraftId FROM #tmpNonStockInventoryDraft WHERE ID = @StartNonStock);
+							SET @MSModuleId_NonStock = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName='NonStockStockline')
+
+
+							;WITH tempNonStockInventory  ([PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber],[RepairOrderId],[IsParent],[ParentId],[MasterPartId],[PartNumber],[PartDescription]
+							 ,[NonStockInventoryNumber] ,[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand]
+							 ,[CurrencyId] ,[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost]
+							 ,[ExtendedCost],[Acquired],[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification] ,[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location]
+							 ,[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId]
+							 ,[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],[Level1] ,[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
+							 ,[IsActive],[IsDeleted],[RRQty])
+
+							 AS (SELECT [PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber],0,[IsParent],[ParentId],[MasterPartId],[PartNumber],[PartDescription]
+							 ,[NonStockInventoryNumber] ,[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand]
+							 ,[CurrencyId] ,[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost]
+							 ,[ExtendedCost],[Acquired],[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification] ,[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location]
+							 ,[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId]
+							 ,[Requisitioner],[OrderDate],GETUTCDATE(),[ManagementStructureId],[Level1] ,[Level2],[Level3],[Level4],'',[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE()
+							 ,[IsActive],[IsDeleted],0 FROM #tmpNonStockInventoryDraft WHERE NonStockInventoryDraftId = @TempNonStockId)
+							 --SELECT @MSId = MasterCompanyId,@NonStockMasterPartId = MasterPartId,@NonStockManufacturerId = ManufacturerId FROM tempNonStockInventory;
+
+							 INSERT INTO dbo.NonStockInventory([PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber],[RepairOrderId],[IsParent],[ParentId],[MasterPartId],[PartNumber],[PartDescription]
+							 ,[NonStockInventoryNumber] ,[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand]
+							 ,[CurrencyId] ,[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost]
+							 ,[ExtendedCost],[Acquired],[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification] ,[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location]
+							 ,[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId]
+							 ,[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],[Level1] ,[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
+							 ,[IsActive],[IsDeleted],[RRQty])
+
+							 SELECT [PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber],[RepairOrderId],[IsParent],[ParentId],[MasterPartId],[PartNumber],[PartDescription]
+							 ,[NonStockInventoryNumber] ,[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand]
+							 ,[CurrencyId] ,[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost]
+							 ,[ExtendedCost],[Acquired],[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification] ,[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location]
+							 ,[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId]
+							 ,[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],[Level1] ,[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate]
+							 ,[IsActive],[IsDeleted],[RRQty] FROM tempNonStockInventory 
+
+							 SET @NewNonStockInventoryId = SCOPE_IDENTITY();
+
+							 SELECT @MSId = MasterCompanyId,@NonStockMasterPartId = MasterPartId,@NonStockManufacturerId = ManufacturerId,@ManagementStructureID_NonStock = ManagementStructureId FROM NonStockInventory WHERE NonStockInventoryId = @NewNonStockInventoryId;
+							 IF(ISNULL(@CurrentIdNumber_NonStock,0) <> 0)
+								BEGIN
+									DECLARE @temp table
+									(
+										ItemMasterId bigint null,
+										ManufacturerId bigint null,
+										StockLineNumber varchar(255) null,
+										CurrentStlNo bigint null,
+										isSerialized bit null
+									);
+									INSERT @temp exec GetNonStockPNManufacturerCombinationCreated	@MSId;
+									select * from @temp;
+
+									;WITH tempItemMasterNonStock (ItemMasterId,ManufacturerId,StockLineNumber,CurrentStlNo,isSerialized)
+
+									 AS (SELECT ItemMasterId,ManufacturerId,StockLineNumber,CurrentStlNo,isSerialized FROM @temp WHERE ItemMasterId = @NonStockMasterPartId AND ManufacturerId = @NonStockManufacturerId)
+									 SELECT @CurrentStlNumber = CurrentStlNo FROM tempItemMasterNonStock
+
+									 SET @NonStockCurrentNo = CASE WHEN ISNULL(@CurrentStlNumber,0) = 0 THEN 1 ELSE @CurrentStlNumber + 1 END;
+
+									 UPDATE #tmpCodePrefixes_NonStock SET CurrentNumber = @NonStockCurrentNo WHERE CodeTypeId = 66
+									 SELECT @CodePrefix_NonStock = CodePrefix,@CodeSuffix_NonStock = CodeSufix FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = 66
+									 SET @NonStockInventoryNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@NonStockCurrentNo, @CodePrefix_NonStock, @CodeSuffix_NonStock))
+
+									 UPDATE ItemMasterNonStock
+									 SET CurrentStlNo = @NonStockCurrentNo,UpdatedDate = GETUTCDATE(),UpdatedBy = @UpdatedBy WHERE MasterPartId = @NonStockMasterPartId AND ManufacturerId = @NonStockManufacturerId
+
+								END
+							SELECT @NonStockCurrentNumber = CurrentNumber , @CodeSuffix_NonStock = CodeSufix , @CodePrefix_NonStock = CodePrefix  FROM #tmpCodePrefixes_NonStock WHERE CodeTypeId = 68
+							IF(ISNULL(@NonStockCurrentNumber,0) <> 0)
+								BEGIN
+									UPDATE CodePrefixes
+									SET CurrentNummber = @NonStockCurrentNumber + 1
+									WHERE CodeTypeId = 68 AND MasterCompanyId = @MSId
+									SET @NonStockCurrentNumber = @NonStockCurrentNumber + 1;
+									SET @NonStockControlNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@NonStockCurrentNumber, @CodePrefix_NonStock, @CodeSuffix_NonStock))
+								END
+
+								UPDATE NonStockInventory
+								SET NonStockInventoryNumber =  @NonStockInventoryNumber, ReceiverNumber = @ReceiverNumber_NonStock, ControlNumber = @NonStockControlNumber,RRQty = Quantity , 
+								CreatedBy = CASE WHEN ISNULL(CreatedBy,'') = '' THEN @UpdatedBy ELSE CreatedBy END,UpdatedBy = CASE WHEN ISNULL(UpdatedBy,'') = '' THEN @UpdatedBy ELSE UpdatedBy END,
+								ParentId = @ParentNonStockId WHERE NonStockInventoryId = @NewNonStockInventoryId;
+
+								EXEC dbo.[USP_SaveNonSLMSDetails] @MSModuleId_NonStock, @NewNonStockInventoryId, @ManagementStructureID_NonStock, @MSId, @UpdatedBy
+
+								UPDATE NonStockInventoryDraft
+								SET NonStockInventoryNumber =  @NonStockInventoryNumber, ReceiverNumber = @ReceiverNumber_NonStock, ControlNumber = @NonStockControlNumber, 
+								ParentId = @ParentNonStockId ,NonStockInventoryId = @NewNonStockInventoryId WHERE NonStockInventoryDraftId = @TempNonStockId;
+
+								
+
+							SET @StartNonStock = @StartNonStock + 1;
+
+						END
+
+
+					END
+					END
+
+
 			DECLARE @StocklineDraftToUpdateLoopID INT = 0;
 			IF OBJECT_ID(N'tempdb..#StocklineDraftToUpdate') IS NOT NULL
 			BEGIN

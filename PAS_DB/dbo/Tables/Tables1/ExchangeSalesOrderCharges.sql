@@ -26,12 +26,14 @@
     [VendorName]                  NVARCHAR (100)  NULL,
     [ChargeName]                  NVARCHAR (100)  NULL,
     [MarkupName]                  NVARCHAR (100)  NULL,
-    [IsInsert]                    BIT             DEFAULT ((0)) NOT NULL,
+    [IsInsert]                    BIT             CONSTRAINT [DF__ExchangeS__IsIns__440BE8B8] DEFAULT ((0)) NOT NULL,
     [UomId]                       BIGINT          NULL,
     [UomName]                     NVARCHAR (200)  NULL,
     CONSTRAINT [PK_ExchangeSalesOrderCharges] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderChargesId] ASC),
     CONSTRAINT [FK_EExchangeSalesOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

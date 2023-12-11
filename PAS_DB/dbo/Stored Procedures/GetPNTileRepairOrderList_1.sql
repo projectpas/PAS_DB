@@ -4,7 +4,6 @@
  ** Description: This stored procedure is used get list of repair order history date for dashboard
  ** Purpose:         
  ** Date:    
-          
  ** PARAMETERS:           
  ** RETURN VALUE:           
   
@@ -15,8 +14,8 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
+	3    11/12/2023   Ekta Chandegra		Apply Join on stocklineId instead of ROPartRecordId
 	4    08/12/2023   Jevik Raiyani		    add @statusValue
-
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
@@ -104,7 +103,7 @@ BEGIN
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			 LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1
 				  AND RO.MasterCompanyId = @MasterCompanyId	

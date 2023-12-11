@@ -16,8 +16,9 @@
  ** --   --------     -------			--------------------------------            
     1    09/11/2023   Vishal Suthar		Created
     2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
+    3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2067,@SelectedPartsToReserve=N'817',@UpdatedBy=N'ADMIN User'
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2233,@SelectedPartsToReserve=N'880',@UpdatedBy=N'ADMIN User'
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
@@ -1014,7 +1015,7 @@ BEGIN
 					BEGIN
 						UPDATE Stk
 						SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
-						Stk.WorkOrderId = @ReferenceId
+						Stk.WorkOrderId = @SelectedWorkOrderId_ForSWO --@ReferenceId
 						FROM DBO.Stockline Stk 
 						WHERE Stk.StockLineId = @StkStocklineId;
 					END

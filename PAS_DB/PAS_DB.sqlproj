@@ -2685,7 +2685,6 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateNonStockForReceivingPO.sql" />
     <Build Include="dbo\Stored Procedures\USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_SearchBulkStockData_1.sql" />
-    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsList_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderMaterialsList_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeafNodeList_1.sql" />
     <Build Include="dbo\Stored Procedures\UpdateStocklineDraftDetail_1.sql" />
@@ -2709,6 +2708,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorRFQRepairOrderParts_1.sql" />
     <Build Include="Data Scripts\08-12-2023\Amit_08-12-2023.sql" />
     <Build Include="dbo\Stored Procedures\UpdateStocklineDraftDetailRo_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonSOInvoiceNew_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

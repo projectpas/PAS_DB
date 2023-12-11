@@ -15,7 +15,7 @@
 	3    20/09/2023   Hemant Saliya  Updated LE Accounting Period Changes
 	4    30/10/2023   Hemant Saliya  Updated Suppress Zero Changes
 	5    08/11/2023   Hemant Saliya  Resolved Balance MissMatch Issue
-
+	6    12/08/2023   Moin Bloch     Resolved Balance MissMatch Issue
 ************************************************************************
 EXEC [RPT_GetIncomeStatementTrendReportsExportData] 137,137,8,1,1,64, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
 ************************************************************************/
@@ -209,9 +209,7 @@ BEGIN
 			OrderNum INT NULL
 		  )
 
-		  --Select * from #GLBalance
-
-		  INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum])
+	      INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum])
 		  SELECT DISTINCT REPLACE(PeriodName,' - ',''), [FiscalYear],[Period]
 		  FROM dbo.AccountingCalendar WITH(NOLOCK)
 		  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
@@ -449,15 +447,24 @@ BEGIN
 			 --SELECT * FROM #ReportingStructureExportData
 			 --SELECT * FROM  #GLBalance
 			 --UPDATE GL ACCOUNT SUM AND ASSIGN TO EACH ACCONTING CALENDER MONTH
-			 UPDATE #ReportingStructureExportData 
-				SET Amount = ISNULL(GL.Amount, 0), --CASE WHEN T1.IsPositive = 1 THEN ISNULL(GL.Amount, 0) ELSE ISNULL(GL.Amount, 0) * -1 END, 
-				--ISNULL(GL.Amount, 0),
-					ChildCount = ISNULL((SELECT COUNT(ISNULL(T.Amount, 0))
-                                           FROM #ReportingStructureExportData T
-                                                WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth), 0)
-			 FROM #ReportingStructureExportData T1 
-			 JOIN #GLBalance GL ON T1.LeafNodeId = GL.LeafNodeId AND T1.AccountcalMonth = GL.AccountcalMonth AND T1.AccountcalMonth = @AccountcalMonth
 
+			 --UPDATE #ReportingStructureExportData 
+				--SET Amount = ISNULL(GL.Amount, 0), --CASE WHEN T1.IsPositive = 1 THEN ISNULL(GL.Amount, 0) ELSE ISNULL(GL.Amount, 0) * -1 END, 
+				----ISNULL(GL.Amount, 0),
+				--	ChildCount = ISNULL((SELECT COUNT(ISNULL(T.Amount, 0))
+    --                                       FROM #ReportingStructureExportData T
+    --                                            WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth), 0)
+			 --FROM #ReportingStructureExportData T1 
+			 --JOIN #GLBalance GL ON T1.LeafNodeId = GL.LeafNodeId AND T1.AccountcalMonth = GL.AccountcalMonth AND T1.AccountcalMonth = @AccountcalMonth
+
+			 UPDATE #ReportingStructureExportData 
+				SET Amount = tmpCal.Amount
+				FROM(SELECT SUM(ISNULL(GL.Amount, 0)) AS Amount, T.LeafNodeId, T.AccountcalMonth
+				FROM #ReportingStructureExportData T 
+			JOIN #GLBalance GL ON T.AccountcalMonth = @AccountcalMonth AND T.LeafNodeId = GL.LeafNodeId AND T.AccountcalMonth = GL.AccountcalMonth 
+			GROUP BY T.LeafNodeId, T.AccountcalMonth)tmpCal
+			WHERE tmpCal.AccountcalMonth = #ReportingStructureExportData.AccountcalMonth AND tmpCal.LeafNodeId = #ReportingStructureExportData.LeafNodeId AND tmpCal.AccountcalMonth = @AccountcalMonth 
+					   					
 			 --SELECT * FROM #ReportingStructureExportData
 			 SET @LCOUNT = @LCOUNT - 1
 

@@ -22,7 +22,7 @@
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
-CREATE OR ALTER  PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE OR ALTER    PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      
@@ -288,7 +288,7 @@ BEGIN
 			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN ISNULL(ESOBI.RemainingAmount,0) ELSE 0.00 END AS 'AmountPastDue',        
 			  CASE WHEN DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			  --CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CASE WHEN ISNULL(CT.NetDays,0) > 0 THEN CAST((ESOBI.GrandTotal * ISNULL(CT.[Percentage],0) / 100) AS DECIMAL(10,2)) ELSE 0 END ELSE 0 END AS DiscountAvailable,
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CASE WHEN ISNULL(CT.NetDays,0) > 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END ELSE 0 END AS DiscountAvailable,
 			  C.CustomerId,      
 			  C.[Name] AS 'CustName',      
 			  C.CustomerCode,       
@@ -310,7 +310,7 @@ BEGIN
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON ESOBI.CustomerId = CF.CustomerId      
 			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON ES.CreditTermId = CT.CreditTermsId  AND CT.Percentage > 0 
 			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON ESOBI.CurrencyId = Curr.CurrencyId      
-			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = p.PercentId 
+			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.[Percentage] as INT) = p.PercentId 
 	          INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ExSOMSModuleID AND MSD.ReferenceID = ESOBI.ExchangeSalesOrderId
 			  INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = ES.MasterCompanyId
@@ -323,7 +323,7 @@ BEGIN
 			  AND ES.IsVendor = 0
 			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
 		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, CT.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
-			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, CT.[Percentage],       
+			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId   
     
  END TRY          

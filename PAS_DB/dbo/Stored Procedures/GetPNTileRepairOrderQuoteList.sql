@@ -1,4 +1,18 @@
-﻿CREATE   PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
+﻿/*************************************************************           
+ ** File:   [dbo].[GetPNTileRepairOrderQuoteList]      
+ ** Author:    
+ ** Description: Get PNTile RepairOrderQuoteList
+ ** Date:   
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+	1    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+
+--   EXEC [GetPNTileRepairOrderQuoteList]
+**************************************************************/ 
+CREATE PROCEDURE [dbo].[GetPNTileRepairOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -24,6 +38,10 @@
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
 @ConditionId VARCHAR(250) = NULL,
+@TraceableTo VARCHAR(250) = NULL,
+@TagType VARCHAR(250) = NULL,
+@TaggedBy VARCHAR(250) = NULL,
+@TaggedDate datetime = NULL,
 @StatusValue varchar(50) = NULL
 AS
 BEGIN
@@ -75,7 +93,11 @@ BEGIN
 				    ROQ.IsActive,					
 					ROQ.StatusId,				
 					ROQ.[Status] AS StatusValue,
-					ISNULL(IM.ManufacturerName,'')ManufacturerName
+					ISNULL(IM.ManufacturerName,'')ManufacturerName,
+					ROP.TraceableToName AS 'TraceableTo',
+					TAT.[Name] AS 'TagType',
+					ROP.TaggedByName AS 'TaggedBy',
+					ROP.TagDate AS 'taggedDate'
 			   FROM [dbo].[VendorRFQRepairOrder] ROQ WITH (NOLOCK)	
 			   INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = ROQ.VendorRFQRepairOrderId
 			   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON ROQ.ManagementStructureId = RMS.EntityStructureId
@@ -85,6 +107,7 @@ BEGIN
 			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1
 			   LEFT OUTER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
 			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0					 
+			    LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE ROQ.IsDeleted = @IsDeleted 			     
 				  AND ROQ.MasterCompanyId = @MasterCompanyId	
 				  AND ROP.ItemMasterId = @ItemMasterId	
@@ -102,7 +125,10 @@ BEGIN
 					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
-					(VendorName LIKE '%' +@GlobalFilter+'%'))
+					(VendorName LIKE '%' +@GlobalFilter+'%') OR
+					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
+					(TagType LIKE '%' +@GlobalFilter+'%') OR
+					(TaggedBy LIKE '%' +@GlobalFilter+'%'))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -117,7 +143,11 @@ BEGIN
 					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(10)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
-					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%'))))
+					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
+					(ISNULL(@TraceableTo,'') ='' OR TraceableTo LIKE '%' + @TraceableTo + '%') AND
+					(ISNULL(@TagType,'') ='' OR TagType LIKE '%' + @TagType + '%') AND
+					(ISNULL(@TaggedBy,'') ='' OR TaggedBy LIKE '%' + @TaggedBy + '%') AND
+					(ISNULL(@taggedDate,'') ='' OR CAST(taggedDate AS DATE) = CAST(@ReceivedDate AS DATE)))))
 
 			SELECT @Count = COUNT(VendorRFQRepairOrderId) FROM #TempResult			
 
@@ -152,7 +182,15 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TraceableTo')  THEN TraceableTo END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TraceableTo')  THEN TraceableTo END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TagType')  THEN TagType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TagType')  THEN TagType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TaggedBy')  THEN TaggedBy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TaggedBy')  THEN TaggedBy END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='taggedDate')  THEN taggedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='taggedDate')  THEN taggedDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		

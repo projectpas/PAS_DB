@@ -16,8 +16,9 @@
  ** --   --------     -------			--------------------------------            
     1    09/11/2023   Vishal Suthar		Created
     2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
+    3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2067,@SelectedPartsToReserve=N'817',@UpdatedBy=N'ADMIN User'
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2233,@SelectedPartsToReserve=N'880',@UpdatedBy=N'ADMIN User'
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
@@ -258,18 +259,9 @@ BEGIN
 								SET @Quantity = @MainPOReferenceQty;
 							END
 
-							PRINT '@SelectedPurchaseOrderPartReferenceId'
-							PRINT @SelectedPurchaseOrderPartReferenceId
-							PRINT 'WOM @Quantity'
-							PRINT @Quantity;
-							PRINT (@OriginalQuantity - (@QuantityReserved + @QuantityIssued))
-
-							PRINT '@OriginalQuantity'
-							PRINT @OriginalQuantity
-
 							--IF (@Quantity > (@QuantityReserved + @QuantityIssued))
 							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0 AND (@Quantity >= (@OriginalQuantity - (@QuantityReserved + @QuantityIssued))))
-							IF (@Quantity > 0)
+							IF ((@Quantity - (@QuantityReserved + @QuantityIssued)) > 0)
 							BEGIN
 								PRINT 'INSIDE WOM @Quantity'
 								IF (@SelectedWorkOrderMaterialsId > 0)
@@ -298,8 +290,7 @@ BEGIN
 									IF (@Quantity > 0 AND @stkQty > 0)
 									BEGIN
 										IF (@stkQuantityAvailable > = @Quantity)
-											--SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
-											SET @Qty = @Quantity;	-- - (@QuantityReserved + @QuantityIssued);
+											SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
 										ELSE
 											SET @Qty = @stkQuantityAvailable;
 									END
@@ -1014,12 +1005,51 @@ BEGIN
 					BEGIN
 						UPDATE Stk
 						SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
-						Stk.WorkOrderId = @ReferenceId
+						Stk.WorkOrderId = @SelectedWorkOrderId_ForSWO --@ReferenceId
 						FROM DBO.Stockline Stk 
 						WHERE Stk.StockLineId = @StkStocklineId;
 					END
 				END
+				IF(@ModulId = 6) /** LOT MODULE **/
+				BEGIN
+					PRINT 'LOT'
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
 
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					SET @Qty = 0;
+						SET @stkQty = 0;
+						SET @stkMasterCompanyId = 0;
+						SET @stkQuantityAvailable = 0;
+						SET @stkQuantityReserved = 0;
+						SET @stkQuantityOnOrder = 0;
+						SET @stkItemMasterId = 0;
+						SET @stkConditionId = 0;
+						SET @stkConditionId = 0;
+						SET @stkPurchaseOrderUnitCost = 0;
+
+						/******* DO NOT DELETE BELOW CODE *********/
+
+						--SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+						--@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+						--@stkPurchaseOrderUnitCost = Stk.UnitCost
+						--FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+						--	UPDATE Stk
+						--			SET Stk.Quantity = @stkQty,
+						--			Stk.QuantityAvailable = CASE WHEN @stkQuantityAvailable - @POReferenceQty >= 0 THEN @stkQuantityAvailable - @POReferenceQty ELSE 0 END,
+						--			Stk.QuantityReserved = @stkQuantityReserved + @POReferenceQty,
+						--			Stk.QuantityOnOrder = @stkQuantityOnOrder
+						--			FROM DBO.Stockline Stk 
+						--			WHERE Stk.StockLineId = @StkStocklineId;
+
+						--  EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+				END /*** LOT MODULE END ***/
 				IF (@ModulId = 3) -- Sales Order
 				BEGIN
 					PRINT 'SALES ORDER'
@@ -1630,4 +1660,4 @@ BEGIN
 	  RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)  
 	  RETURN (1);  
 	 END CATCH  
-END
+END  

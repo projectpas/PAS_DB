@@ -14,6 +14,7 @@
 	2    31/10/2023   HEMANT SALIYA  Updated For Correct GL Balance
 	3    24/11/2023   Moin Bloch     Renamed ReferenceModule VENDOR RMA To VENDOR CREDIT MEMO AND SO TO CUSTOMER CREDIT MEMO
 	4    28/11/2023   Moin Bloch     Added ReferenceId For WIRETRANSFER,ACHTRANSFER,CREDITCARDPAYMENT
+	5    08/12/2023   Moin Bloch     Removed REPLACE(BD.AccountingPeriod,' - ','') and Added @periodNameDistinct Line No 258
 **************************************************************/  
 
 /*************************************************************             
@@ -252,7 +253,10 @@ BEGIN
 								(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END) -
 								(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END)
 							END AS AMONUT,
-							CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120), REPLACE(BD.AccountingPeriod,' - ',''), 0
+							CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120),				
+							--REPLACE(BD.AccountingPeriod,' - ','')
+							@periodNameDistinct
+							,0
 			FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
 				INNER JOIN dbo.BatchDetails BD WITH (NOLOCK) ON CMD.JournalBatchDetailId = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.BatchHeader B WITH (NOLOCK) ON BD.JournalBatchHeaderId = B.JournalBatchHeaderId 
@@ -320,8 +324,7 @@ BEGIN
 		BEGIN
 			SELECT * FROm #GLBalance
 		END
-
-		 -- SELECT * FROm #GLBalance
+				 
 		  DECLARE @LID AS int = 0;
 		  DECLARE @IsFristRow AS bit = 1;
 		  DECLARE @LCOUNT AS int = 0;

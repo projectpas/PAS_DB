@@ -14,11 +14,12 @@
  ** --   --------     -------		--------------------------------            
     1    11/16/2023   AMIT GHEDIYA  Created  
 	2    11/17/2023   AMIT GHEDIYA  Updated only Display part which is added in Lot. 
+	2    12/07/2023   Rajesh Gami   LOT condition change
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerIsLot] '',1,100,'',1  
 **************************************************************/  
   
-CREATE         PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
 	@StartWith VARCHAR(50),  
 	@IsActive bit = true,  
 	@Count VARCHAR(10) = '0',  
@@ -69,7 +70,7 @@ BEGIN
 	  Ic.ItemClassificationCode as ItemClassification 
        
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND stl.IsLotAssigned=1 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
+	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
@@ -99,7 +100,7 @@ BEGIN
       ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND stl.IsLotAssigned=1 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
+	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
@@ -131,7 +132,7 @@ BEGIN
       ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND stl.IsLotAssigned=1 AND stl.RepairOrderId = @RoId
+	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @RoId
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
@@ -160,7 +161,7 @@ BEGIN
       ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)    
-	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND stl.IsLotAssigned=1 AND stl.RepairOrderId = @RoId
+	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @RoId
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  

@@ -69,6 +69,7 @@
     <Folder Include="dbo\User Defined Types\" />
     <Folder Include="Snapshots" />
     <Folder Include="Data Scripts" />
+    <Folder Include="Data Scripts\08-12-2023" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -2706,6 +2707,7 @@
     <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQRepairOrderPart_1.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorRFQRORepairOrderPart_1.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorRFQRepairOrderParts_1.sql" />
+    <Build Include="Data Scripts\08-12-2023\Amit_08-12-2023.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20211221_08-21-15.dacpac" />

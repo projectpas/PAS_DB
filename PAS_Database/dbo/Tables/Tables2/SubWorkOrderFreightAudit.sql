@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[SubWorkOrderFreightAudit] (
+    [SubWorkOrderFreightAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [SubWorkOrderFreightId]      BIGINT          NOT NULL,
+    [WorkOrderId]                BIGINT          NOT NULL,
+    [SubWorkOrderId]             BIGINT          NOT NULL,
+    [SubWOPartNoId]              BIGINT          NOT NULL,
+    [ShipViaId]                  BIGINT          NOT NULL,
+    [Weight]                     VARCHAR (50)    NULL,
+    [Memo]                       NVARCHAR (MAX)  NULL,
+    [Amount]                     DECIMAL (20, 3) NOT NULL,
+    [TaskId]                     BIGINT          NOT NULL,
+    [Length]                     DECIMAL (10, 2) NULL,
+    [Width]                      DECIMAL (10, 2) NULL,
+    [Height]                     DECIMAL (10, 2) NULL,
+    [UOMId]                      BIGINT          NULL,
+    [DimensionUOMId]             BIGINT          NULL,
+    [CurrencyId]                 INT             NULL,
+    [MasterCompanyId]            INT             NOT NULL,
+    [CreatedBy]                  VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                  VARCHAR (256)   NOT NULL,
+    [CreatedDate]                DATETIME2 (7)   NOT NULL,
+    [UpdatedDate]                DATETIME2 (7)   NOT NULL,
+    [IsActive]                   BIT             NOT NULL,
+    [IsDeleted]                  BIT             NOT NULL,
+    CONSTRAINT [PK_SubWorkOrderFreightAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderFreightAuditId] ASC)
+);
+

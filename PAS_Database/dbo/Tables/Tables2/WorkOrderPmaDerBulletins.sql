@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[WorkOrderPmaDerBulletins] (
+    [WorkOrderPmaDerBulletinsId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [WorkOrderTeardownId]        BIGINT         NULL,
+    [AirworthinessDirecetives]   VARCHAR (MAX)  NULL,
+    [MandatoryService]           VARCHAR (MAX)  NULL,
+    [RequestedService]           VARCHAR (MAX)  NULL,
+    [ServiceLetters]             VARCHAR (MAX)  NULL,
+    [PMAParts]                   VARCHAR (MAX)  NULL,
+    [DERRepairs]                 VARCHAR (MAX)  NULL,
+    [ReasonId]                   BIGINT         NULL,
+    [SubWorkOrderTeardownId]     BIGINT         NULL,
+    [ReasonName]                 NVARCHAR (MAX) NULL,
+    [CreatedBy]                  VARCHAR (256)  NOT NULL,
+    [UpdatedBy]                  VARCHAR (256)  NOT NULL,
+    [CreatedDate]                DATETIME2 (7)  DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]                DATETIME2 (7)  DEFAULT (getdate()) NOT NULL,
+    [IsActive]                   BIT            DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                  BIT            DEFAULT ((0)) NOT NULL,
+    [MasterCompanyId]            INT            DEFAULT ((1)) NOT NULL,
+    CONSTRAINT [PK_WorkOrderPmaDerBulletins] PRIMARY KEY CLUSTERED ([WorkOrderPmaDerBulletinsId] ASC),
+    CONSTRAINT [FK_WorkOrderPmaDerBulletins_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_WorkOrderPmaDerBulletins_Reason] FOREIGN KEY ([ReasonId]) REFERENCES [dbo].[TeardownReason] ([TeardownReasonId]),
+    CONSTRAINT [FK_WorkOrderPmaDerBulletins_SubWorkOrderTeardown] FOREIGN KEY ([SubWorkOrderTeardownId]) REFERENCES [dbo].[SubWorkOrderTeardown] ([SubWorkOrderTeardownId]),
+    CONSTRAINT [FK_WorkOrderPmaDerBulletins_WorkOrderTeardown] FOREIGN KEY ([WorkOrderTeardownId]) REFERENCES [dbo].[WorkOrderTeardown] ([WorkOrderTeardownId])
+);
+

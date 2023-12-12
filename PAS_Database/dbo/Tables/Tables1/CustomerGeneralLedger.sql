@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[CustomerGeneralLedger] (
+    [CustomerGeneralLedgerId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [CustomerId]              BIGINT          NOT NULL,
+    [ModuleId]                INT             NOT NULL,
+    [ReferenceId]             BIGINT          NOT NULL,
+    [DocumentNumber]          VARCHAR (50)    NULL,
+    [CreditAmount]            DECIMAL (18, 2) NULL,
+    [DebitAmount]             DECIMAL (18, 2) NULL,
+    [Amount]                  DECIMAL (18, 2) NULL,
+    [ModuleName]              VARCHAR (50)    NULL,
+    [AccountingPeriodId]      INT             NULL,
+    [AccountingPeriod]        VARCHAR (50)    NULL,
+    [MasterCompanyId]         INT             NOT NULL,
+    [CreatedBy]               VARCHAR (256)   NOT NULL,
+    [UpdatedBy]               VARCHAR (256)   NOT NULL,
+    [CreatedDate]             DATETIME2 (7)   CONSTRAINT [DF_CustomerGeneralLedger_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_CustomerGeneralLedger_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]                BIT             CONSTRAINT [DF_CustomerGeneralLedger_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]               BIT             NOT NULL,
+    [SubModuleId]             INT             NULL,
+    [SubRefernceId]           BIGINT          NULL,
+    CONSTRAINT [PK_CustomerGeneralLedger] PRIMARY KEY CLUSTERED ([CustomerGeneralLedgerId] ASC),
+    CONSTRAINT [FK_CustomerGeneralLedger_MasterCompnay] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+);
+

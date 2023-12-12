@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[ExchangeSalesOrderUnReservedStockAudit] (
+    [SOUnReservedStockAuditId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [SOUnReservedStockId]      BIGINT        NOT NULL,
+    [ExchangeSalesOrderId]     BIGINT        NOT NULL,
+    [ExchangeSalesOrderPartId] BIGINT        NOT NULL,
+    [StockLIneId]              BIGINT        NOT NULL,
+    [ConditionId]              BIGINT        NOT NULL,
+    [ItemMasterId]             BIGINT        NOT NULL,
+    [Quantity]                 INT           NOT NULL,
+    [AltPartMasterPartId]      BIGINT        NULL,
+    [EquPartMasterPartId]      BIGINT        NULL,
+    [IsAltPart]                BIT           NULL,
+    [IsEquPart]                BIT           NULL,
+    [UnReservedById]           BIGINT        NOT NULL,
+    [UnReservedDate]           DATETIME2 (7) NOT NULL,
+    [MasterCompanyId]          INT           NOT NULL,
+    [CreatedBy]                VARCHAR (256) NOT NULL,
+    [UpdatedBy]                VARCHAR (256) NOT NULL,
+    [CreatedDate]              DATETIME2 (7) NOT NULL,
+    [UpdatedDate]              DATETIME2 (7) NOT NULL,
+    [IsActive]                 BIT           NOT NULL,
+    [IsDeleted]                BIT           NOT NULL,
+    CONSTRAINT [PK_ExchangeSalesOrderUnReservedStockAudit] PRIMARY KEY CLUSTERED ([SOUnReservedStockAuditId] ASC)
+);
+

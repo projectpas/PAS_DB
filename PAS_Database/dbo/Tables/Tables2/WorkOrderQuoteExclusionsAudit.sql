@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[WorkOrderQuoteExclusionsAudit] (
+    [WorkOrderQuoteExclusionsAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [WorkOrderQuoteExclusionsId]      BIGINT          NOT NULL,
+    [WorkOrderQuoteDetailsId]         BIGINT          NOT NULL,
+    [ItemMasterId]                    BIGINT          NULL,
+    [ExstimtPercentOccuranceId]       INT             NULL,
+    [Memo]                            NVARCHAR (MAX)  NULL,
+    [Quantity]                        INT             NULL,
+    [UnitCost]                        DECIMAL (20, 3) NULL,
+    [ExtendedCost]                    DECIMAL (20, 3) NULL,
+    [MarkUpPercentageId]              BIGINT          NULL,
+    [MasterCompanyId]                 INT             NOT NULL,
+    [CreatedBy]                       VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                       VARCHAR (256)   NOT NULL,
+    [CreatedDate]                     DATETIME2 (7)   NOT NULL,
+    [UpdatedDate]                     DATETIME2 (7)   NOT NULL,
+    [IsActive]                        BIT             NOT NULL,
+    [IsDeleted]                       BIT             NOT NULL,
+    [TaskId]                          BIGINT          NULL,
+    [MarkupFixedPrice]                VARCHAR (15)    NULL,
+    [HeaderMarkupId]                  BIGINT          NULL,
+    [BillingMethodId]                 INT             NULL,
+    [BillingRate]                     DECIMAL (20, 2) NULL,
+    [BillingAmount]                   DECIMAL (20, 2) NULL,
+    [ConditionId]                     BIGINT          NULL,
+    CONSTRAINT [PK_WorkOrderQuoteExclusionsAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteExclusionsAuditId] ASC)
+);
+

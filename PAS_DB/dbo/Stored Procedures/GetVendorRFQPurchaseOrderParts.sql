@@ -19,7 +19,7 @@
 -- EXEC [GetVendorRFQPurchaseOrderParts] 33     
 ************************************************************************/      
       
-CREATE  PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
+CREATE    PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
 @VendorRFQPurchaseOrderId bigint      
 AS      
 BEGIN      
@@ -129,4 +129,4 @@ for xml path(''),TYPE).value('.','varchar(max)') , 1,1,'') as newdata   from Ve
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)      
             RETURN(1);      
  END CATCH      
-END 
+END

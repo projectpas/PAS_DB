@@ -22,7 +22,7 @@
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
-CREATE    PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE      PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      

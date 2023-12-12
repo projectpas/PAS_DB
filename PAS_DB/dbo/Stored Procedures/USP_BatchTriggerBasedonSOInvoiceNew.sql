@@ -19,7 +19,6 @@
 	4    18/08/2023  Moin Bloch     Modify(Added Accounting MS Entry)
 	5    18/08/2023  Hemant Saliya  Corrected For MS entry not Saved.
 	7    30/11/2023  Moin Bloch     Modify(Added LotId And Lot Number in CommonBatchDetails)
-	8    11/12/2023  Moin Bloch     Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,
@@ -34,7 +33,7 @@ EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @MasterCompanyId=1,
 @UpdateBy=N'ADMIN User'
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,
@@ -220,10 +219,7 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('SOINVOICE'))
 			BEGIN
-				IF NOT EXISTS (SELECT 1 FROM [dbo].[SalesOrderBatchDetails] SOD WITH(NOLOCK) WHERE SOD.[SalesOrderId] = @ReferenceId AND SOD.[DocumentId] = @InvoiceId)
-				BEGIN
-
-				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0)
+				IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
 				END
@@ -625,7 +621,6 @@ BEGIN
 					UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 				END
 
-				END
 			END
 
 			IF(UPPER(@DistributionCode) = UPPER('SO_SHIPMENT'))

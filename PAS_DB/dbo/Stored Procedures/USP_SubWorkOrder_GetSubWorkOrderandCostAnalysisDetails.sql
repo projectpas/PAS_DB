@@ -19,7 +19,7 @@
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 3123, 3652     
 **************************************************************/
-CREATE OR ALTER   PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
+CREATE     PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT

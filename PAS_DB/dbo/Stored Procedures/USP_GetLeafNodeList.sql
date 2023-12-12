@@ -15,7 +15,7 @@
 
     USP_GetLeafNodeList 8,1
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[USP_GetLeafNodeList](   
+CREATE   PROCEDURE [dbo].[USP_GetLeafNodeList](   
 	@ReportingStructureId BIGINT,
 	@masterCompanyId INT
 )

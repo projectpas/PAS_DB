@@ -16,7 +16,7 @@
 
  EXECUTE RPT_GetExchangeSOCoreMonitoringList 210
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetExchangeSOCoreMonitoringList]
+CREATE   PROCEDURE [dbo].[RPT_GetExchangeSOCoreMonitoringList]
 	@ExchangeSalesOrderId BIGINT = NULL
 AS
 BEGIN
@@ -59,4 +59,3 @@ BEGIN
             RETURN(1);
 	END CATCH
 END
-

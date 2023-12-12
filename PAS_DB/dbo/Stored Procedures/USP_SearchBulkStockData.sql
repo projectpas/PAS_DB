@@ -17,7 +17,7 @@
 -- EXEC USP_SearchBulkStockData
   
 ************************************************************************/  
-CREATE  PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,

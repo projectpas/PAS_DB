@@ -27,7 +27,7 @@
   
 **************************************************************/   
       
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsList]      
 (@subWOPartNoId BIGINT = NULL , @ShowPendingToIssue BIT NULL = 0)      
 AS      
 BEGIN      

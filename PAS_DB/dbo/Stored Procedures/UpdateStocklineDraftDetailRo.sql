@@ -22,7 +22,7 @@
  exec UpdateStocklineDraftDetailRo  132
 **************************************************************/  
 
-CREATE   Procedure [dbo].[UpdateStocklineDraftDetailRo]
+CREATE     Procedure [dbo].[UpdateStocklineDraftDetailRo]
 @RepairOrderId  bigint
 AS
 BEGIN

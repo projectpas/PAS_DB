@@ -16,7 +16,7 @@
 
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,210
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForExchSoReportsHeader]
+CREATE   PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForExchSoReportsHeader]
 	@ManagementStructId  BIGINT  = NULL,
 	@MasterCompanyId BIGINT  = NULL,
 	@ExchangeSalesOrderId BIGINT = NULL
@@ -88,4 +88,3 @@ SET NOCOUNT ON
               RETURN(1);
 		END CATCH
 END
-

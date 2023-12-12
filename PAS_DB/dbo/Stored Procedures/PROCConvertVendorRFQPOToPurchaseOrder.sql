@@ -20,7 +20,7 @@
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
-CREATE    PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
+CREATE      PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
 @VendorRFQPurchaseOrderId bigint,    
 @VendorRFQPOPartRecordId bigint,    
 @PurchaseOrderId bigint,    
@@ -617,4 +617,4 @@ BEGIN
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
               RETURN(1);    
  END CATCH    
-END 
+END

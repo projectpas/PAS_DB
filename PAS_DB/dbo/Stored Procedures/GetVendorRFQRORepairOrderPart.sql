@@ -17,7 +17,7 @@
            
 -- EXEC [GetVendorRFQRORepairOrderPart] 33,23     
 ************************************************************************/ 
-CREATE PROCEDURE [dbo].[GetVendorRFQRORepairOrderPart]
+CREATE   PROCEDURE [dbo].[GetVendorRFQRORepairOrderPart]
 @VendorRFQRepairOrderId bigint,
 @VendorRFQROPartRecordId bigint
 AS

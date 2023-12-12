@@ -14,7 +14,7 @@
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
-CREATE OR ALTER   PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
+CREATE   PROCEDURE [dbo].[GetPNTilePurchaseOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

@@ -19,7 +19,7 @@
 	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 
 **************************************************************/
-CREATE OR ALTER     PROCEDURE [dbo].[GetPNTileRepairOrderList]
+CREATE     PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

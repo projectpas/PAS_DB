@@ -13,7 +13,7 @@
 	1    01/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
+CREATE PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;

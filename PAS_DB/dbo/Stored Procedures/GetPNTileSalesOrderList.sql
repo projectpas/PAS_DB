@@ -17,7 +17,7 @@
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
 
 **************************************************************/
-CREATE OR ALTER  PROCEDURE [dbo].[GetPNTileSalesOrderList]
+CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

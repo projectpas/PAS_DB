@@ -34,7 +34,7 @@ EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew
 @MasterCompanyId=1,
 @UpdateBy=N'ADMIN User'
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
+CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,

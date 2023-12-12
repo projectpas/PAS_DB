@@ -12,7 +12,7 @@
 
 --   EXEC [GetPNTilePurchaseOrderQuoteList]
 **************************************************************/ 
-CREATE OR ALTER  PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]
+CREATE  PROCEDURE [dbo].[GetPNTilePurchaseOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

@@ -13,7 +13,7 @@
 	1    06/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 
 **************************************************************/ 
-CREATE OR ALTER PROCEDURE [dbo].[PROCInsertVendorRFQRepairOrderPart](@TableVendorRFQRepairOrderPart VendorRFQRepairOrderPartType READONLY)  
+CREATE PROCEDURE [dbo].[PROCInsertVendorRFQRepairOrderPart](@TableVendorRFQRepairOrderPart VendorRFQRepairOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;

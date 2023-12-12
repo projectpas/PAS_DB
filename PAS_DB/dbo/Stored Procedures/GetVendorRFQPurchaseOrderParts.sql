@@ -19,7 +19,7 @@
 -- EXEC [GetVendorRFQPurchaseOrderParts] 33     
 ************************************************************************/      
       
-CREATE OR ALTER  PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
+CREATE  PROCEDURE [dbo].[GetVendorRFQPurchaseOrderParts]      
 @VendorRFQPurchaseOrderId bigint      
 AS      
 BEGIN      

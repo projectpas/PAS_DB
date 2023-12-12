@@ -20,7 +20,7 @@
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
-CREATE OR ALTER    PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
+CREATE    PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
 @VendorRFQPurchaseOrderId bigint,    
 @VendorRFQPOPartRecordId bigint,    
 @PurchaseOrderId bigint,    

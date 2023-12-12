@@ -21,7 +21,7 @@
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
+CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,

@@ -19,7 +19,7 @@
 
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
-CREATE OR ALTER   Procedure [dbo].[UpdateStocklineDraftDetail]
+CREATE   Procedure [dbo].[UpdateStocklineDraftDetail]
 	@PurchaseOrderId  bigint
 AS
 BEGIN

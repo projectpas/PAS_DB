@@ -17,7 +17,7 @@
 
 -- EXEC [GetVendorRFQRepairOrderParts] 1
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[GetVendorRFQRepairOrderParts]
+CREATE PROCEDURE [dbo].[GetVendorRFQRepairOrderParts]
 @VendorRFQRepairOrderId bigint
 AS
 BEGIN

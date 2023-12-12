@@ -1,2 +1,2 @@
-# PAS_DB
+# PAS_Database
 PAS DB Project

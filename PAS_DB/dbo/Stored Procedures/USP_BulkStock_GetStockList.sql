@@ -13,9 +13,10 @@
     1    02/10/2023			AMIT GHEDIYA			Created
 	2    25/10/2023			AMIT GHEDIYA			Add Management Structure wise filter list.
 	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
+	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
 *******************************************************************************
 *******************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
+CREATE  PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
 	@PageNumber INT = 1,
 	@PageSize INT = 10,
 	@SortColumn VARCHAR(50)=NULL,
@@ -34,7 +35,10 @@ CREATE       PROCEDURE [dbo].[USP_BulkStock_GetStockList]
 	@StockLineNumber VARCHAR(50) = NULL,
 	@MasterCompanyId BIGINT = NULL,
 	@Status VARCHAR(50) = NULL,
-	@ManagementStructureId BIGINT = NULL
+	@ManagementStructureId BIGINT = NULL,
+	@CustomerId BIGINT = NULL,
+	@UnitOfMeasure VARCHAR(50) = NULL,
+	@QuantityOnHand INT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -292,6 +296,92 @@ BEGIN
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END
+
+
+		ELSE IF(@Status = 'Transfer Customer Stock')
+		BEGIN
+			;WITH Result AS (	
+				SELECT SL.[partnumber] AS 'PartNumber',
+					   SL.PNDescription AS [PartDescription],
+					   SL.[ItemMasterId],
+					   --MF.[Name] AS 'Manufacturer',
+					   sl.Manufacturer AS 'Manufacturer',
+					   SL.[SerialNumber],
+					   SL.[StockLineNumber],
+					   SL.[Condition],
+					   SL.[UnitOfMeasure],
+					   SL.[QuantityOnHand],
+					   SL.[QuantityAvailable],
+					   SL.[UnitCost],
+					   SL.[ManagementStructureId],
+					   SL.[StockLineId],
+					   SL.[IsCustomerStock],
+					   0 AS [IsSelected]
+					FROM [dbo].[Stockline] SL WITH (NOLOCK)
+						--INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
+						--LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
+						--LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SL.[CustomerId] = C.[CustomerId]
+					WHERE 
+					 SL.[MasterCompanyId] = @MasterCompanyId
+					AND SL.[IsCustomerStock] = 1
+					AND SL.CustomerId  = @CustomerId
+					AND SL.[ManagementStructureId] = @ManagementStructureId
+			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+		
+			SELECT * INTO #TempCustStockResult FROM  Result 
+				WHERE 
+				 ((@GlobalFilter <>'' AND (([PartNumber] LIKE '%' + @GlobalFilter + '%') OR
+						([PartDescription] LIKE '%' + @GlobalFilter + '%') OR
+						([Manufacturer] LIKE '%' + @GlobalFilter + '%') OR
+						([Condition] LIKE '%' + @GlobalFilter + '%') OR
+						([UnitOfMeasure] LIKE '%' + @GlobalFilter + '%') OR
+						(CAST([QuantityOnHand] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
+						(CAST([QuantityAvailable] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
+						(CAST([UnitCost] AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
+						([SerialNumber] LIKE '%' + @GlobalFilter + '%') OR
+						([StockLineNumber] LIKE '%' + @GlobalFilter + '%')))					
+						OR
+						(@GlobalFilter = '' AND (ISNULL(@PartNumber, '') = '' OR [PartNumber] LIKE '%' + @PartNumber + '%') AND
+						(ISNULL(@PartDescription, '') = '' OR [PartDescription] LIKE '%' + @PartDescription + '%') AND
+						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
+						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
+						(ISNULL(@UnitOfMeasure, '') = '' OR [UnitOfMeasure] LIKE '%' + @UnitOfMeasure + '%') AND
+						(ISNULL(CAST(@QuantityOnHand AS VARCHAR(200)),'') = '' OR CAST([QuantityOnHand] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityOnHand AS VARCHAR(200)),'') +'%') AND  
+						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
+						(ISNULL(CAST(@UnitCost AS VARCHAR(200)),'') = '' OR CAST([UnitCost] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@UnitCost AS VARCHAR(200)),'') +'%') AND  
+						(ISNULL(@SerialNumber, '') = '' OR [SerialNumber] LIKE '%' + @SerialNumber + '%') AND
+						(ISNULL(@StockLineNumber, '') = '' OR [StockLineNumber] LIKE '%' + @StockLineNumber + '%'))   
+					  )
+
+			SELECT @Count = COUNT([StockLineId]) FROM #TempCustStockResult
+
+			SELECT @Count AS NumberOfItems, [StockLineId],[IsCustomerStock],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[UnitOfMeasure],[QuantityOnHand],[IsSelected], @Count AS NumberOfItems FROM #TempCustStockResult
+			ORDER BY  
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartDescription') THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartDescription') THEN PartDescription END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='Manufacturer') THEN Manufacturer END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='Manufacturer') THEN Manufacturer END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='Condition') THEN Condition END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='Condition') THEN Condition END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='UnitOfMeasure') THEN UnitOfMeasure END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitOfMeasure') THEN UnitOfMeasure END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='QuantityOnHand') THEN QuantityOnHand END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='QuantityOnHand') THEN QuantityOnHand END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='QuantityAvailable') THEN QuantityAvailable END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='QuantityAvailable') THEN QuantityAvailable END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='UnitCost') THEN UnitCost END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+			OFFSET @RecordFrom ROWS 
+			FETCH NEXT @PageSize ROWS ONLY	
+		END
+
+
 		ELSE
 		BEGIN
 			;WITH Result AS (	

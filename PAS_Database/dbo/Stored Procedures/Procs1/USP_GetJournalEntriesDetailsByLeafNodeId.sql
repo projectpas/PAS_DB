@@ -15,6 +15,7 @@
 	3    03/11/2023   Hemant Saliya  Added View JE Details
 	4    24/11/2023   Moin Bloch     Renamed ReferenceModule VENDOR RMA To VENDOR CREDIT MEMO AND SO TO CUSTOMER CREDIT MEMO 
 	5    28/11/2023   Moin Bloch     Added ReferenceId For WIRETRANSFER,ACHTRANSFER,CREDITCARDPAYMENT
+	6    12/12/2023   Moin Bloch     Added CreditMemoHeaderId and IsStandAloneCM For 'CRFD' 
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -55,6 +56,7 @@ BEGIN
 		  DECLARE @ManualBatchMSModuleId BIGINT; 
 		  DECLARE @RevenueGLAccountTypeId AS BIGINT;
 		  DECLARE @ExpenseGLAccountTypeId AS BIGINT;
+		  DECLARE @CustomerRefundModuleId BIGINT = 0;
 
 		  DECLARE   
 		  @level1 VARCHAR(MAX) = NULL,  
@@ -76,6 +78,7 @@ BEGIN
 		  SELECT @ExpenseGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Expense' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
 		  SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
+		  SELECT @CustomerRefundModuleId = [ModuleId] FROM [dbo].[Module] WHERE [ModuleName] = 'CustomerRefund';
 
 		  SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		  WHERE LE.LegalEntityId = @LegalEntityId;
@@ -398,6 +401,7 @@ BEGIN
 			AllMSlevels VARCHAR(MAX) null,
 			OrderNum INT NULL,
 			IsManualJournal BIT NULL,
+			IsStandAloneCM BIT NULL,
 		  )
 
 		  DECLARE @COUNT AS INT;
@@ -408,8 +412,8 @@ BEGIN
 
 			  SELECT @AccountcalMonth = PeriodName FROM #AccPeriodTable where ID = @COUNT
 
-			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriod, PeriodName, EntryDate, IsManualJournal) --, ReferenceId, DistributionSetupCode)
-			  SELECT T.LeafNodeId, T.[Name] , AP.OrderNum, GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, GL.IsManualJournal  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
+			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriod, PeriodName, EntryDate, IsManualJournal,IsStandAloneCM) --, ReferenceId, DistributionSetupCode)
+			  SELECT T.LeafNodeId, T.[Name] , AP.OrderNum, GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, GL.IsManualJournal,NULL  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
 			  FROM #TempTable T  
 				  JOIN #GLBalance GL ON T.LeafNodeId = GL.LeafNodeId AND T.AccountcalMonth = REPLACE(GL.AccountingPeriod ,' - ','') 
 				  JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = GL.GLAccountId 
@@ -504,7 +508,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
-											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN RFCM.CreditMemoHeaderId
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 													OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN BSAD.ReferenceId
 											ELSE '' END,
@@ -513,7 +517,8 @@ BEGIN
 													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN ExchC.CustomerId
 							     ELSE '' END,
 					LastMSLevel = CB.LastMSLevel,
-					AllMSlevels = CB.AllMSlevels
+					AllMSlevels = CB.AllMSlevels,
+					IsStandAloneCM = CM.IsStandAloneCM
 		  FROM #AccTrendTable tmp 
 			  JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId
 			  JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = cb.DistributionSetupId
@@ -526,10 +531,16 @@ BEGIN
 			  LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON tmp.JournalBatchDetailId = BSAD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CMBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
+			  (
+				 SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) 
+				 WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
+			  ) AND CMBD.ModuleId = @CustomerRefundModuleId	
 			  LEFT JOIN [dbo].[ExchangeBatchDetails] EXBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = EXBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = NPOBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
 			  LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
+			  LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
 
 			--SELECT * FROM #AccTrendTable
 
@@ -549,23 +560,23 @@ BEGIN
 			(
 			   SELECT LeafNodeId, NodeName, OrderNum,  GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel, AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount, IsManualJournal 
+				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount, IsManualJournal,IsStandAloneCM 
 			   FROM #AccTrendTable
 			   GROUP BY LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal
+				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM
 
 			), cteRanked AS
 			(
 			   SELECT Amount, LeafNodeId, OrderNum, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
 				CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 				ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal
+				CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal,IsStandAloneCM
 			   FROM cte
 			) 
 			SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount, 0 AS AccountingPeriodId, OrderNum,
 			  c1.LeafNodeId, UPPER(c1.NodeName) AS NodeName, c1.GLAccountId, (UPPER(c1.GLAccountCode) + '-' + UPPER(c1.GLAccountName)) AS GLAccount, UPPER(c1.JournalNumber) AS JournalNumber, c1.JournalBatchDetailId, c1.LastMSLevel,  c1.AllMSlevels,
 				c1.CreditAmount, c1.DebitAmount, UPPER(c1.AccountingPeriod) AS AccountingPeriod, UPPER(c1.PeriodName) AS PeriodName, c1.ReferenceModule, c1.ReferenceName, c1.ReferenceId, c1.CustomerId, c1.DistributionSetupCode, 
-				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal				
+				Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM			
 			FROM cteRanked c1 
 			WHERE c1.GLAccountId IS NOT NULL
 			ORDER BY OrderNum, JournalNumber;

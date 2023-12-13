@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    26-10-2023   Ayesha Sultana		Created
     2    17-11-2023   Devendra SHekh		changes for status update
+    3    13-12-2023   Devendra SHekh		changes for status update
 
 	EXEC [UpdateAssetCalibrationStatusActiveList]
 
@@ -28,9 +29,7 @@ BEGIN
 			BEGIN  
 			
 				DECLARE @TotalRec BIGINT = 0, @StartCount BIGINT = 1, @DepreciationId BIGINT = 0, @InventoryId BIGINT = 0,
-				@DepreciationName VARCHAR(150), @lastCalibrationDate DateTime2, @DueDate DateTime2, @FrequencyDays BIGINT = 0,
-				@MonthDepreciation VARCHAR(150), @QuaterlyDepreciation VARCHAR(150), @YearlyDepreciation VARCHAR(150),
-				@MTHLYDepreciation VARCHAR(150), @QTLYDepreciation VARCHAR(150), @YRLYDepreciation VARCHAR(150);
+				@NextCalibrationDate DateTime2, @lastCalibrationDate DateTime2, @CalibrationFrequencyDays BIGINT = 0, @DayTillNextCal BIGINT = 0;
 
 				IF OBJECT_ID(N'tempdb..#tmpAssetInventory') IS NOT NULL  
 				BEGIN  
@@ -40,9 +39,12 @@ BEGIN
 				CREATE TABLE #tmpAssetInventory(
 					[Id] [BIGINT] IDENTITY(1,1) NOT NULL,
 					[AssetInventoryId] [BIGINT] NULL,
+					[CalibrationId] [BIGINT] NULL,
 					[InventoryStatusId] [BIGINT] NULL,
+					[DayTillNextCal] [BIGINT] NULL,
 					[CalibrationDate] [dateTime2] NULL,
 					[CalibrationFrequencyDays] [BIGINT] NULL,
+					[CalibrationFrequencyMonths] [INT] NULL,
 					[NextCalibrationDate] [dateTime2] NULL,
 					[LastCalibrationDate] [dateTime2] NULL,
 					[DepreciationFrequencyName] [varchar](150) NULL,
@@ -50,73 +52,38 @@ BEGIN
 					[CreatedDate] [dateTime2] NULL,
 					[EntryDate] [dateTime2] NULL,
 				)  
-		
-				SET @MonthDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'MONTHLY')
-				SET @QuaterlyDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'QUATERLY')
-				SET @YearlyDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'YEARLY')
 
-				SET @MTHLYDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'MTHLY')
-				SET @QTLYDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'QTLY')
-				SET @YRLYDepreciation = (SELECT TOP 1 UPPER([Name]) FROM [dbo].[AssetDepreciationFrequency] WITH(NOLOCK) WHERE UPPER([Name]) = 'YRLY')
-
-
-				INSERT INTO #tmpAssetInventory( [AssetInventoryId], [InventoryStatusId], [CalibrationDate], [NextCalibrationDate], [LastCalibrationDate],[DepreciationFrequencyName], 
+				INSERT INTO #tmpAssetInventory( [AssetInventoryId], [CalibrationId], [InventoryStatusId], 
+							[DayTillNextCal],
+							[CalibrationDate], [CalibrationFrequencyDays], [CalibrationFrequencyMonths], [NextCalibrationDate], [LastCalibrationDate],[DepreciationFrequencyName], 
 							[DepreciationFrequencyId], [CreatedDate], [EntryDate])
-				SELECT DISTINCT  AIN.AssetInventoryId, AIN.InventoryStatusId, CalibrationDate, NextCalibrationDate, LastCalibrationDate, AIN.[DepreciationFrequencyName], 
-								 AIN.[DepreciationFrequencyId], AIN.[CreatedDate], AIN.[EntryDate]
+				SELECT DISTINCT	AIN.AssetInventoryId, [CalibrationId], AIN.InventoryStatusId, 
+								DATEDIFF(day, getDate(), CASE WHEN ISNULL(NextCalibrationDate, '') != '' THEN NextCalibrationDate  ELSE DATEADD(DAY, ISNULL(CalibrationFrequencyDays, 0), DATEADD(MONTH, ISNULL(CalibrationFrequencyMonths,0),
+								(CASE WHEN ISNULL(LastCalibrationDate, '') != '' THEN LastCalibrationDate ELSE CalibrationDate END))) END) AS DayTillNextCal,
+								CalibrationDate, [CalibrationFrequencyDays], [CalibrationFrequencyMonths], NextCalibrationDate, LastCalibrationDate, AIN.[DepreciationFrequencyName], 
+								AIN.[DepreciationFrequencyId], AIN.[CreatedDate], AIN.[EntryDate]
 				FROM dbo.AssetInventory AIN WITH(NOLOCK)
 					JOIN dbo.CalibrationManagment CM WITH(NOLOCK) ON AIN.AssetInventoryId = CM.AssetInventoryId
-					--JOIN dbo.Asset AC WITH(NOLOCK) ON AIN.AssetRecordId = AIN.AssetRecordId AND AIN.CalibrationRequired=1
 					WHERE AIN.InventoryStatusId = (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'Available') AND AIN.CalibrationRequired=1
 
-				SELECT * FROM #tmpAssetInventory
+				--select * from #tmpAssetInventory
+
 				SET @TotalRec = (SELECT COUNT(Id) FROM #tmpAssetInventory)
 
 				WHILE(@StartCount <= @TotalRec)
 				BEGIN
 
-					SELECT @DepreciationId = [DepreciationFrequencyId], @DepreciationName = [DepreciationFrequencyName], @InventoryId = [AssetInventoryId],
-						   @lastCalibrationDate = ISNULL([LastCalibrationDate], [EntryDate]) FROM #tmpAssetInventory WHERE Id = @StartCount
+					SELECT @DepreciationId = [DepreciationFrequencyId], @InventoryId = [AssetInventoryId], @CalibrationFrequencyDays = [CalibrationFrequencyDays],
+						   @lastCalibrationDate = ISNULL([LastCalibrationDate], [EntryDate]), @NextCalibrationDate = CONVERT(date, ISNULL([NextCalibrationDate], [EntryDate])),
+						   @DayTillNextCal = DayTillNextCal
+						   FROM #tmpAssetInventory WHERE Id = @StartCount
 
-					IF(UPPER(@DepreciationName) = @YearlyDepreciation OR UPPER(@DepreciationName) = @YRLYDepreciation)
-					BEGIN
+					UPDATE AIN
+					SET StatusNote = 'Calibration Due', InventoryStatusId = (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'UnAvailable')
+					FROM dbo.AssetInventory AIN WITH(NOLOCK)
+					WHERE @DayTillNextCal < 0 AND AIN.AssetInventoryId = @InventoryId
 
-						SET @DueDate = DATEADD(YEAR, 1, @lastCalibrationDate)
-						SET @FrequencyDays = DATEDIFF(DAY, @lastCalibrationDate, @DueDate)
-
-						UPDATE AIN
-						SET StatusNote = 'Calibration Due', InventoryStatusId =  (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'UnAvailable')
-						FROM dbo.AssetInventory AIN WITH(NOLOCK)
-							--JOIN dbo.CalibrationManagment CM WITH(NOLOCK) ON AIN.AssetInventoryId = CM.AssetInventoryId
-							--JOIN dbo.AssetInventory AIN WITH(NOLOCK) ON AIN.AssetRecordId = CM.AssetRecordId
-						WHERE DATEDIFF(DAY, @lastCalibrationDate, GETDATE()) >= @FrequencyDays AND AIN.AssetInventoryId = @InventoryId
-
-					END
-					ELSE IF(UPPER(@DepreciationName) = @QuaterlyDepreciation OR UPPER(@DepreciationName) = @QTLYDepreciation)
-					BEGIN
-						
-						SET @DueDate = DATEADD(MONTH, 4, @lastCalibrationDate)
-						SET @FrequencyDays = DATEDIFF(DAY, @lastCalibrationDate, @DueDate)
-
-						UPDATE AIN
-						SET StatusNote = 'Calibration Due', InventoryStatusId =  (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'UnAvailable')
-						FROM dbo.AssetInventory AIN WITH(NOLOCK)
-						WHERE DATEDIFF(DAY, @lastCalibrationDate, GETDATE()) >= @FrequencyDays AND AIN.AssetInventoryId = @InventoryId
-
-					END
-					ELSE IF(UPPER(@DepreciationName) = @MonthDepreciation OR UPPER(@DepreciationName) = @MTHLYDepreciation )
-					BEGIN
-						
-						SET @DueDate = DATEADD(MONTH, 1, @lastCalibrationDate)
-						SET @FrequencyDays = DATEDIFF(DAY, @lastCalibrationDate, @DueDate)
-
-						UPDATE AIN
-						SET StatusNote = 'Calibration Due', InventoryStatusId =  (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'UnAvailable')
-						FROM dbo.AssetInventory AIN WITH(NOLOCK)
-						WHERE DATEDIFF(DAY, @lastCalibrationDate, GETDATE()) >= @FrequencyDays AND AIN.AssetInventoryId = @InventoryId
-
-					END
-					
+					PRINT @InventoryId
 					SET @StartCount = @StartCount + 1
 				END
 

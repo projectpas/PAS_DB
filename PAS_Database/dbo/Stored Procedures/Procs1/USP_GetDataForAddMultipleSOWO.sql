@@ -10,11 +10,12 @@
  **************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** PR   Date         Author   Change Description                    
- ** --   --------     -------   --------------------------------                  
-    1    13-10-2023   Shrey Chandegara  Created
-	2    24-11-2023   Shrey Chandegara  update for requested qty.
-	3    12/06/2023   Vishal Suthar		Modified to see work order from material KIT
+ ** PR   Date         Author				Change Description                    
+ ** --   --------     -------			--------------------------------                  
+    1    13-10-2023   Shrey Chandegara		Created
+	2    24-11-2023   Shrey Chandegara		update for requested qty.
+	3    12/06/2023   Vishal Suthar			Modified to see work order from material KIT
+	3    13/12/2023   Devendra Shekh		added kit details for subwo
              
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadeso',459,111,2167,3802     
 **************************************************************/         
@@ -167,17 +168,21 @@ BEGIN
 				C.Code AS 'Condition',      
 				SWO.SubWorkOrderNo AS 'ReferenceNum',      
 				SWO.SubWorkOrderId As 'ReferenceId',      
-				ISNULL(SWM.Quantity,0)  as RequestedQty, -- ISNULL(SOP.qty ,0)  - ISNULL(SOP.QtyRequested ,0)) as RequestedQty,      
+				--ISNULL(SWM.Quantity,0)  as RequestedQty, -- ISNULL(SOP.qty ,0)  - ISNULL(SOP.QtyRequested ,0)) as RequestedQty,    
+				CASE WHEN  ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) ) > 0 THEN ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END as RequestedQty,      
 				NULL AS 'PromisedDate',      
 				NULL AS 'EstimatedCompletionDate',      
 				NULL 'EstimatedShipDate',      
 				@viewType AS 'ViewType'      
-            FROM [SubWorkOrderMaterials] SWM  WITH(NOLOCK)      
-            LEFT JOIN [DBO]. [SubWorkOrder] SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId      
+            FROM [SubWorkOrder] SWO  WITH(NOLOCK)      
+            LEFT JOIN [DBO]. [SubWorkOrderMaterials] SWM WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId      
+            LEFT JOIN [DBO]. [SubWorkOrderMaterialsKit] SWMK WITH (NOLOCK) ON SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId AND SWO.SubWorkOrderId = SWMK.SubWorkOrderId      
             --LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = LT.StockLineId       
             LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
             LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
-            WHERE SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId      
+            WHERE ((SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId) OR (SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId))
+			GROUP BY SWO.SubWorkOrderNo, IM.partnumber,C.code,SWO.SubWorkOrderId
+			ORDER BY SWO.SubWorkOrderId DESC;
 		END
 		ELSE       
 		BEGIN      

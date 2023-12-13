@@ -113,8 +113,8 @@ BEGIN
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
-			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
+			 LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			 LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1
 				  AND RO.MasterCompanyId = @MasterCompanyId	

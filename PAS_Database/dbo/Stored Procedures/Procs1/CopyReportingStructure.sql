@@ -44,11 +44,12 @@ BEGIN
 		INSERT INTO [dbo].[LeafNode]([Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId],[IsPositive],[SequenceNumber])
 		SELECT [Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId]=@updatedReportingStructureId,[IsPositive],[SequenceNumber]
 		FROM [dbo].[LeafNode] WHERE ReportingStructureId=@ReportingStructureId;
+
 		WITH corresponding AS (
-		  SELECT tp.[LeafNodeId]  AS LeafNodeId_p, tn.[LeafNodeId] AS LeafNodeId_n
+		  SELECT tp.[LeafNodeId]  AS LeafNodeId_p, tn.[LeafNodeId] AS LeafNodeId_n --, tp.SequenceNumber as SequenceNumber_p, tn.SequenceNumber as SequenceNumber_n
 		  FROM [dbo].[LeafNode] tp JOIN
 			   [dbo].[LeafNode] tn
-			   ON tp.[Name] = tn.[Name]
+			   ON tp.[Name] = tn.[Name] AND tp.SequenceNumber = tn.SequenceNumber
 		  WHERE tp.ReportingStructureId = @ReportingStructureId AND tn.ReportingStructureId = @updatedReportingStructureId)
 
 		UPDATE t

@@ -16,10 +16,11 @@
  ** --   --------     -------   --------------------------------                
     1    08/21/2023   Vishal Suthar  Created 
 	2    29-11-2023   Shrey Chandegara Updated For Add Non stock changes
+	3    12-12-2023   Jevik Raiyani    Case 1 changes for AssetAcquisitionTypeId
       
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2174  
 **************************************************************/      
-CREATE     PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]  
+CREATE   PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]  
 (  
  @PurchaseOrderId BIGINT = NULL  
 )   
@@ -183,7 +184,7 @@ BEGIN
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.SerialNumber ELSE StkD_NonSer.SerialNumber END   
  END AS SerialNumber,  
   CASE WHEN part.ItemTypeId = 1 THEN  
-  0   
+    itm.itemMasterAssetTypeId 
    WHEN part.ItemTypeId = 11 THEN  
   CASE WHEN asi.isSerialized = 1 THEN StkD_Ser_Asset.AssetAcquisitionTypeId ELSE StkD_NonSer_Asset.AssetAcquisitionTypeId END  
   WHEN part.ItemTypeId = 2 THEN  
@@ -384,7 +385,7 @@ BEGIN
   SL.CertifiedType,    
   SL.CertTypeId,    
   SL.CertType,    
-  0 AS AssetAcquisitionTypeId,    
+  CASE WHEN part.ItemTypeId = 1 THEN itm.itemMasterAssetTypeId ELSE 0 END  AS AssetAcquisitionTypeId,    
   0 AS IsIntangible,    
   CASE WHEN SL.LotId IS NOT NULL THEN SL.LotId ELSE 0 END LotId,    
   CASE WHEN SL.LotId IS NOT NULL AND SL.LotId > 0 THEN (SELECT TOP 1 LotNumber FROM DBO.Lot WITH (NOLOCK) WHERE LotId = SL.LotId) ELSE '' END LotNumber,    

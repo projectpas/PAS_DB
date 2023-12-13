@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetPNTileRepairOrderList]          
  ** Author:  
  ** Description: This stored procedure is used get list of repair order history date for dashboard
@@ -19,7 +20,7 @@
 	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 
 **************************************************************/
-CREATE       PROCEDURE [dbo].[GetPNTileRepairOrderList]
+CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -113,7 +114,7 @@ BEGIN
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1

@@ -18,6 +18,7 @@
     2    10/12/2023   Vishal Suthar		Fixed after shrey added 2 columns SerialNumberNotProvided, ShippingReferenceNumberNotProvided
     3    10/13/2023   Devendra Shekh	timelife issue resolved
     4    11/09/2023   Vishal Suthar		auto reserve stockline based on PO settings
+	5    13-12-2023   Shrey Chandegara  update for stockline history
   
 declare @p2 dbo.POPartsToReceive
 insert into @p2 values(2097,3744,10)
@@ -509,6 +510,7 @@ BEGIN
 					DECLARE @ReceivingPurchaseOrderModule AS BIGINT = 28;
 
 					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @ReceivingPurchaseOrderModule, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded, @UpdatedBy;
+					EXEC USP_CreateStocklinePartHistory @NewStocklineId,1,0,0,0;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 
@@ -1071,6 +1073,7 @@ BEGIN
 					DECLARE @ReceivingPurchaseOrderModule_Asset AS BIGINT = 28;
 
 					EXEC USP_AddUpdateStocklineHistory @NewStocklineId_Asset, @ReceivingPurchaseOrderModule_Asset, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded_Asset, @UpdatedBy;
+					EXEC USP_CreateStocklinePartHistory @NewStocklineId_Asset,1,0,0,0;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber_Asset WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 
@@ -1347,6 +1350,7 @@ BEGIN
 							 ,[IsActive],[IsDeleted],[RRQty] FROM tempNonStockInventory 
 
 							 SET @NewNonStockInventoryId = SCOPE_IDENTITY();
+							 EXEC USP_CreateStocklinePartHistory @NewNonStockInventoryId,1,0,0,0
 
 							 SELECT @MSId = MasterCompanyId,@NonStockMasterPartId = MasterPartId,@NonStockManufacturerId = ManufacturerId,@ManagementStructureID_NonStock = ManagementStructureId FROM NonStockInventory WHERE NonStockInventoryId = @NewNonStockInventoryId;
 							 IF(ISNULL(@CurrentIdNumber_NonStock,0) <> 0)

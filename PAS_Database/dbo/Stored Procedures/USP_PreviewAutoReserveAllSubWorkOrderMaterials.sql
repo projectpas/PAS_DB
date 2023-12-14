@@ -11,7 +11,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** --   --------    -------         --------------------------------
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 
-EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 148,0,0,2,0
+EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 155,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllSubWorkOrderMaterials]
 	@SubWOPartNoId BIGINT,
@@ -2029,6 +2029,8 @@ BEGIN
 								 [QtyOH] [int] NULL,	
 								 [Location] [nvarchar](50) NULL,
 								 [Wherehouse] [nvarchar](50) NULL,
+								 [Shelf] [nvarchar](50) NULL,
+								 [Bin] [nvarchar](50) NULL,
 								 [IsMaterials] [bit] NULL,
 							)
 
@@ -2067,12 +2069,12 @@ BEGIN
 						[StkAltPartMasterPartId] ,[StkEquPartMasterPartId] ,[StkIsAltPart] ,[StkIsEquPart] ,[StkUnitCost] ,[StkExtendedCost] ,
 						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem],[PartNumber], [PartDesc], [StkPartNumber], [StkPartDesc],[stkCondition], [UOM], [Priority],
 						[WorkOrderId],[SubWorkOrderId],[SubWOPartNoId], [ItemMasterId], [ConditionId] , [Quantity], [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued],
-						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse], [IsMaterials]) 
+						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse],[Shelf], [Bin], [IsMaterials]) 
 					SELECT [WOMStockLineId], WOMS.[SubWorkOrderMaterialsId] ,WOMS.[StockLineId] ,WOMS.[ItemMasterId] ,WOMS.[ConditionId] ,WOMS.[Quantity] ,WOMS.[QtyReserved] ,WOMS.[QtyIssued] ,		
 						WOMS.[AltPartMasterPartId] ,WOMS.[EquPartMasterPartId] ,WOMS.[IsAltPart] ,WOMS.[IsEquPart] ,WOMS.[UnitCost] ,WOMS.[ExtendedCost] ,
 						WOMS.[ProvisionId] ,WOMS.[QuantityTurnIn] ,WOMS.[Figure] ,WOMS.[Item], IMM.[PartNumber], IMM.[PartDescription], IMS.[PartNumber], IMS.[PartDescription],CO.[Description], IMS.[PurchaseUnitOfMeasure], IMS.[Priority],
 						WOM.[WorkOrderId],WOM.[SubWorkOrderId],WOM.[SubWOPartNoId], WOM.[ItemMasterId], WOM.[ConditionId] , WOM.[Quantity], WOM.[UnitCost] , WOM.[ExtendedCost] , WOM.[QuantityReserved] , WOM.[QuantityIssued],
-						SL.[SerialNumber], SL.[StockLineNumber] , SL.[ControlNumber], SL.[IdNumber], SL.[QuantityAvailable], SL.[QuantityOnHand], [Location], [Warehouse], 0
+						SL.[SerialNumber], SL.[StockLineNumber] , SL.[ControlNumber], SL.[IdNumber], SL.[QuantityAvailable], SL.[QuantityOnHand], [Location], [Warehouse], SL.[Shelf], SL.[Bin], 0
 					FROM #tmpSubWorkOrderMaterialStockline WOMS WITH (NOLOCK) 
 						JOIN dbo.ItemMaster IMS ON IMS.ItemMasterId = WOMS.ItemMasterId
 						JOIN #Stockline SL ON SL.StockLineId = WOMS.StockLineId
@@ -2087,12 +2089,12 @@ BEGIN
 						[StkAltPartMasterPartId] ,[StkEquPartMasterPartId] ,[StkIsAltPart] ,[StkIsEquPart] ,[StkUnitCost] ,[StkExtendedCost] ,
 						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem], [PartNumber], [PartDesc],[StkPartNumber], [StkPartDesc], [stkCondition], [UOM], [Priority],
 						[WorkOrderId],[SubWorkOrderId],[SubWOPartNoId], [ItemMasterId], [ConditionId] , [Quantity], [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued],
-						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse], [IsMaterials])  --, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+						[SerialNo], [StocklineNo], [ControlNo], [ControlId], [QtyAvail], [QtyOH], [Location], [Wherehouse], [Shelf], [Bin], [IsMaterials])  --, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT [SubWorkOrderMaterialStockLineKitId] ,NULL,WOMS.[SubWorkOrderMaterialsKITId],WOMS.[StockLineId] ,WOMS.[ItemMasterId] ,WOMS.[ConditionId] ,WOMS.[Quantity] ,WOMS.[QtyReserved] ,WOMS.[QtyIssued] ,		
 						WOMS.[AltPartMasterPartId] ,WOMS.[EquPartMasterPartId] ,WOMS.[IsAltPart] ,WOMS.[IsEquPart] ,WOMS.[UnitCost] ,WOMS.[ExtendedCost] ,
 						WOMS.[ProvisionId] ,WOMS.[QuantityTurnIn] ,WOMS.[Figure] ,WOMS.[Item], IMM.[PartNumber], IMM.[PartDescription], IMS.[PartNumber], IMS.[PartDescription], CO.[Description], IMS.[PurchaseUnitOfMeasure], IMS.[Priority],
 						WOM.[WorkOrderId],WOM.[SubWorkOrderId],WOM.[SubWOPartNoId], WOM.[ItemMasterId], WOM.[ConditionId] , WOM.[Quantity], WOM.[UnitCost] , WOM.[ExtendedCost] , WOM.[QuantityReserved] , WOM.[QuantityIssued],
-						SL.[SerialNumber], SL.[StockLineNumber] , SL.[ControlNumber], SL.[IdNumber], SL.[QuantityAvailable], SL.[QuantityOnHand], [Location], [Warehouse], 0--, WOMS.[MasterCompanyId], WOMS.[CreatedBy], WOMS.[UpdatedBy], WOMS.[CreatedDate], WOMS.[UpdatedDate], WOMS.[IsActive], WOMS.[IsDeleted]
+						SL.[SerialNumber], SL.[StockLineNumber] , SL.[ControlNumber], SL.[IdNumber], SL.[QuantityAvailable], SL.[QuantityOnHand], [Location], [Warehouse], [Shelf], [Bin], 0--, WOMS.[MasterCompanyId], WOMS.[CreatedBy], WOMS.[UpdatedBy], WOMS.[CreatedDate], WOMS.[UpdatedDate], WOMS.[IsActive], WOMS.[IsDeleted]
 					FROM #tmpSubWorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) 
 						JOIN dbo.ItemMaster IMS ON IMS.ItemMasterId = WOMS.ItemMasterId
 						JOIN #Stockline SL ON SL.StockLineId = WOMS.StockLineId
@@ -2121,7 +2123,7 @@ BEGIN
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
 						UPPER([Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
-						UPPER([ControlId]) AS [ControlId],UPPER([UOM]) AS [UOM],UPPER([Priority]) AS [Priority],[QtyAvail],[QtyOH],	UPPER([Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse],[IsMaterials]
+						UPPER([ControlId]) AS [ControlId],UPPER([UOM]) AS [UOM],UPPER([Priority]) AS [Priority],[QtyAvail],[QtyOH],	UPPER([Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER([Shelf]) AS [Shelf], UPPER([Bin]) AS [Bin],[IsMaterials]
 					FROM #SubWorkOrderMaterials 
 					ORDER BY ISNULL(StockLineId,0) DESC
 					

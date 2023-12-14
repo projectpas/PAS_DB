@@ -190,6 +190,9 @@
     [TaxAdjustment]                       DECIMAL (18, 2) CONSTRAINT [DF_StocklineAudit_TaxAdjustment] DEFAULT ((0)) NULL,
     [IsStkTimeLife]                       BIT             NULL,
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
+    [SubWorkOrderMaterialsId]             BIGINT          NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 

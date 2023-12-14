@@ -189,6 +189,7 @@
     [TaxAdjustment]                       DECIMAL (18, 2) CONSTRAINT [DF_Stockline_TaxAdjustment] DEFAULT ((0)) NULL,
     [IsStkTimeLife]                       BIT             NULL,
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
+    [SubWorkOrderMaterialsId]             BIGINT          NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -206,6 +207,8 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_Stockline_WorkOrderMaterialsId] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 GO

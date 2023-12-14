@@ -54,6 +54,7 @@ BEGIN
 						JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 						JOIN dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK) on SWOP.SubWorkOrderId = SWO.WorkOrderId 
 					WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
+
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
 					IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
@@ -394,15 +395,15 @@ BEGIN
 						DECLARE @slcount INT;
 						DECLARE @TotalCounts INT;
 						DECLARE @StocklineId BIGINT; 
-						DECLARE @ModuleId INT;
-						DECLARE @ReferenceId BIGINT;
+						--DECLARE @ModuleId INT;
+						--DECLARE @ReferenceId BIGINT;
 						DECLARE @IsAddUpdate BIT; 
 						DECLARE @ExecuteParentChild BIT; 
 						DECLARE @UpdateQuantities BIT;
 						DECLARE @IsOHUpdated BIT; 
 						DECLARE @AddHistoryForNonSerialized BIT; 
-						DECLARE @SubModuleId INT;
-						DECLARE @SubReferenceId BIGINT;
+						--DECLARE @SubModuleId INT;
+						--DECLARE @SubReferenceId BIGINT;
 						DECLARE @ReservePartStatus INT;
 						DECLARE @SubWorkOrderMaterialsId BIGINT;
 						DECLARE @IsSerialised BIT;
@@ -410,8 +411,8 @@ BEGIN
 						DECLARE @stockLineQtyAvailable INT;
 
 						SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
-						SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
-						SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
+						--SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
+						--SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 50; -- For SUB WORK ORDER Materials Module
 						SET @ReservePartStatus = 1; -- FOR RESERTVE
 						SET @IsAddUpdate = 0;
 						SET @ExecuteParentChild = 1;

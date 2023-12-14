@@ -2688,5 +2688,7 @@
     <Build Include="dbo\User Defined Types\AccountPeriodType.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderMaterialKit.sql" />
     <Build Include="dbo\Stored Procedures\USP_PreviewAutoReserveAllSubWorkOrderMaterials.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetOldWorkOrderForBillingInvoicedData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckWorkOrderForSerialNumber.sql" />
   </ItemGroup>
 </Project>

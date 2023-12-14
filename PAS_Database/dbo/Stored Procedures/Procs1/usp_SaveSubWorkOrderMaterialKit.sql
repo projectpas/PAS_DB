@@ -16,6 +16,11 @@
  ** --   --------     -------				--------------------------------     
 	1    11/27/2023   Hemant Saliya			Created
 
+declare @p1 dbo.WorkOrderMaterialKitType
+insert into @p1 values(0,3718,124,148,124,124,3380,N'JD-KIT',20748,5,15280,1,N'ADMIN User',N'ADMIN User','2023-09-05 05:42:00','2023-11-06 02:25:00',1,0)
+
+exec dbo.usp_SaveSubWorkOrderMaterialKit @tbl_WorkOrderMaterialKitType=@p1
+
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveSubWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY

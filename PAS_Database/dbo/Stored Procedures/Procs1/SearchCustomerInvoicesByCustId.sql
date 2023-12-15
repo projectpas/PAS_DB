@@ -18,11 +18,12 @@
 	6    10/11/2023   Amit Ghediya     Modify(Added Exchange Invoice)
 	7    27/11/2023   Amit Ghediya     Modify(Exchange Invoice Disc Amount/Date)
 	8    06/12/2023   Amit Ghediya     Modify(Exchange Invoice Disc Amount/Date)
+	9    14/12/2023   Amit Ghediya     Modify(NetDays to Days for calculation)
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
-CREATE      PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE       PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      
@@ -59,7 +60,7 @@ BEGIN
 			  'Open' AS 'Status',      
 			  DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',        
 			  (CT.NetDays - DATEDIFF(DAY, CASt(SOBI.InvoiceDate AS DATE), GETUTCDATE())) AS 'DSO',      
-			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
+			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
 			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(SOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN SOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',        
 			  CASE WHEN DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
@@ -117,7 +118,7 @@ BEGIN
 			 'Open' AS 'Status',      
 			 DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',                    
 			 (CT.NetDays - DATEDIFF(DAY, CASt(WOBI.InvoiceDate AS DATE), GETUTCDATE())) AS 'DSO',      
-			 CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
+			 CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
 			 CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(WOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN WOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',           
 			 CASE WHEN DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			 CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
@@ -284,7 +285,7 @@ BEGIN
 			  DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',        
 			  (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) AS 'DSO',      
 			  --CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
-			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN CASE WHEN ISNULL(CT.NetDays,0) > 0 THEN DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE NULL END ELSE DATEADD(DAY, ISNULL(CT.NetDays,0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,   
+			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN CASE WHEN ISNULL(CT.[Days],0) > 0 THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE NULL END ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,   
 			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN ISNULL(ESOBI.RemainingAmount,0) ELSE 0.00 END AS 'AmountPastDue',        
 			  CASE WHEN DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			  --CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      

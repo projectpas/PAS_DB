@@ -27,7 +27,7 @@ BEGIN
 	SET NOCOUNT ON;	
 	BEGIN TRY
 	
-		SELECT WO.[WorkOrderNum],
+		SELECT TOP 1 WO.[WorkOrderNum],
 			   WO.[WorkOrderId]
 		FROM [dbo].[WorkOrder] WO WITH(NOLOCK) 
 		LEFT JOIN [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) ON WO.WorkOrderId = WP.WorkOrderId

@@ -191,8 +191,11 @@
     [IsStkTimeLife]                       BIT             NULL,
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     [SubWorkOrderMaterialsId]             BIGINT          NULL,
+    [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

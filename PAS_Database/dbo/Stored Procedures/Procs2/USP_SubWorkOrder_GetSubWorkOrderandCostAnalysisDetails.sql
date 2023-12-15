@@ -19,7 +19,7 @@
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 3123, 3652     
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
+CREATE       PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT
@@ -106,7 +106,7 @@ BEGIN
 				SET @SubReservedCost = @SubReservedCost + (@SubQtyReserved * @SubUnitCost);
 			END
 
-			IF(@SubQtyOnBkOrder > 0)
+			IF(@QtyOnBkOrder > 0)
 			BEGIN
 				SET @BkOrderCost = ISNULL(@BkOrderCost, 0) + (ISNULL(@QtyOnBkOrder, 0) * ISNULL(@bkUnitCost, 0));
 			END
@@ -235,7 +235,7 @@ BEGIN
 			@SubReservedCost AS 'SubReservedCost',
 			@SubpartsCost AS 'SubIssuedCost',
 			@SubQtyToTurnCost AS 'SubTenderCost',
-			@SubBkOrderCost AS 'SubBackorderCost',
+			@BkOrderCost AS 'SubBackorderCost',
 			@SubRowMaterialTotalCost AS 'SubRowMaterialTotalCost',
 			@SubOutSideServiceCost AS 'SubOutsideCost',
 			@OverheadCost AS 'SubLaborCost',

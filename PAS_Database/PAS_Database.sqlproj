@@ -2693,5 +2693,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrdMaterialsStocklineListForManualReserve.sql" />
     <Build Include="dbo\Stored Procedures\MigratePOPartsRecords.sql" />
     <Build Include="dbo\Stored Procedures\MigratePOHeaderRecords.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AutoReserveAllSubWorkOrderMaterials.sql" />
   </ItemGroup>
 </Project>

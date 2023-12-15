@@ -14,6 +14,7 @@
 	2    25/10/2023			AMIT GHEDIYA			Add Management Structure wise filter list.
 	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
 	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
+	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
 *******************************************************************************
 *******************************************************************************/
 CREATE       PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -324,6 +325,7 @@ BEGIN
 					WHERE 
 					 SL.[MasterCompanyId] = @MasterCompanyId
 					AND SL.[IsCustomerStock] = 1
+					AND SL.[QuantityAvailable] > 0
 					AND SL.CustomerId  = @CustomerId
 					AND SL.[ManagementStructureId] = @ManagementStructureId
 			), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 

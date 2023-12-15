@@ -272,6 +272,18 @@ BEGIN
 					'</p><p> Division :   ' + (SELECT (ISNULL(Code, '') + ' - ' + ISNULL(Description, '')) FROM dbo.[ManagementStructureLevel] WHERE ID = (SELECT Level2Id FROM dbo.[EntityStructureSetup] WHERE EntityStructureId = @EntityStructureId)) + '</p>' +
 					'</p><p> Department :   ' + (SELECT (ISNULL(Code, '') + ' - ' + ISNULL(Description, '')) FROM dbo.[ManagementStructureLevel] WHERE ID = (SELECT Level3Id FROM dbo.[EntityStructureSetup] WHERE EntityStructureId = @EntityStructureId)) + '</p>'
 
+					DECLARE @QtyCreated INT = 0;
+
+					SELECT @QtyCreated = ISNULL(ST.QTY_AVAILABLE, 0) FROM #TempStockline AS ST WHERE ID = @LoopID;
+
+					EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @InsertedStocklineId, @ActionId = 1, @QtyOnAction = @QtyCreated, @ModuleName = 'Migration', @ReferenceNumber = NULL, @SubModuleName = NULL, @SubReferenceNumber = NULL, @UpdatedBy = @UserName;
+
+					INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
+						[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)
+					SELECT STL.StockLineId, 22, STL.StockLineId, STL.StockLineNumber, NULL, NULL, NULL, 1, 'Create', 
+						STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, STL.QuantityAvailable, STL.StockLineNumber + ' has been added through Migration', @UserName, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate
+					FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @InsertedStocklineId;
+
 					UPDATE Stk
 					SET Stk.Migrated_Id = @InsertedStocklineId,
 					Stk.SuccessMsg = 'Record migrated successfully'

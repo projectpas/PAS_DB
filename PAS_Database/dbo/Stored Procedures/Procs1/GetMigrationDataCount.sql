@@ -1,5 +1,5 @@
 ﻿/*************************************************************
-EXEC [dbo].[GetMigrationDataCount] 2, 1
+EXEC [dbo].[GetMigrationDataCount] 12, 12
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetMigrationDataCount]
 	@MasterCompanyId BIGINT = NULL,
@@ -73,6 +73,36 @@ BEGIN
 
 			SELECT @ExistsCnts = COUNT(Stk.StocklineId) FROM Quantum_Staging.DBO.Stocklines Stk WITH (NOLOCK)
 			WHERE Stk.ErrorMsg like '%Stockline record already exists%' AND Stk.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
+		ELSE IF (@ModuleId = 12) -- Kit Master
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(Kit.KitMasterId) FROM Quantum_Staging.DBO.KitMasters Kit WITH (NOLOCK) WHERE Kit.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(Kit.KitMasterId) FROM Quantum_Staging.DBO.KitMasters Kit WITH (NOLOCK)
+			WHERE Kit.Migrated_Id IS NOT NULL AND Kit.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(Kit.KitMasterId) FROM Quantum_Staging.DBO.KitMasters Kit WITH (NOLOCK)
+			WHERE Kit.Migrated_Id IS NULL AND (Kit.ErrorMsg IS NOT NULL AND Kit.ErrorMsg NOT like '%KIT Master record already exists%') AND Kit.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(Kit.KitMasterId) FROM Quantum_Staging.DBO.KitMasters Kit WITH (NOLOCK)
+			WHERE Kit.ErrorMsg like '%KIT Master record already exists%' AND Kit.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
+		IF (@ModuleId = 13) -- Purchase Order
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK) WHERE PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.Migrated_Id IS NOT NULL AND PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.Migrated_Id IS NULL AND (PO.ErrorMsg IS NOT NULL AND PO.ErrorMsg NOT like '%Customer already exists%') AND PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.ErrorMsg like '%Customer already exists%' AND PO.MasterCompanyId = @MasterCompanyId;
 			
 			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
 		END

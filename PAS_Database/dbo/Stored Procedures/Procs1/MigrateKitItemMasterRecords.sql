@@ -70,6 +70,7 @@ BEGIN
 		INSERT INTO #TempKitItemMaster ([KitMasterId],[MainItemMasterId],[KitItemMasterId],[Qty],[UnitCost],[ConditionId],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg])
 		SELECT [KitMasterId],[MainItemMasterId],[KitItemMasterId],[Qty],[UnitCost],[ConditionId],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
 		FROM [Quantum_Staging].dbo.[KitMasters] KIM WITH (NOLOCK) WHERE KIM.Migrated_Id IS NULL;
+		--KIM.MainItemMasterId = 1369;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -89,7 +90,7 @@ BEGIN
 			DECLARE @UNIT_COST DECIMAL(18,2) = 0;
 			DECLARE @PART_NUMBER VARCHAR(50);
 			DECLARE @PART_DESC NVARCHAR(MAX);
-			DECLARE @ITEMMASTER_ID BIGINT;
+			DECLARE @ITEMMASTER_ID BIGINT = 0;
 			DECLARE @CONDITIONCODE VARCHAR(50);
 			DECLARE @PN VARCHAR(50);
 			DECLARE @PN_DESC NVARCHAR(MAX);
@@ -114,7 +115,7 @@ BEGIN
 			FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;		
 	   
 			SELECT @ITEMMASTER_ID = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) 
-			WHERE UPPER(IM.partnumber) = UPPER(@PART_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_DESC);
+			WHERE UPPER(IM.partnumber) = UPPER(@PART_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_DESC) AND IM.MasterCompanyId = @FromMasterComanyID;
 		 		
 			SELECT @PN = IM.[partnumber], 
 		       @PN_DESC = IM.[PartDescription], 
@@ -134,16 +135,17 @@ BEGIN
 				SET @FoundError = 1;
 				SET @ErrorMsg = @ErrorMsg + '<p>Kit Item Master Id is missing</p>'
 			END
-			IF (ISNULL(@UNIT_COST, 0) = 0)
+			IF (ISNULL(@ITEMMASTER_ID, 0) = 0)
 			BEGIN
 				SET @FoundError = 1;
-				SET @ErrorMsg = @ErrorMsg + '<p>Unit cost is missing</p>'
+				SET @ErrorMsg = @ErrorMsg + '<p>Item Master Record not found</p>'
+				PRINT 'CAME HERE';
 			END
 			
 			IF (@FoundError = 1)
 			BEGIN
 				UPDATE KITs
-				SET KITs.ErrorMsg = ErrorMsg
+				SET KITs.ErrorMsg = @ErrorMsg
 				FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.KitMasterId = @CurrentKitItemMasterId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
@@ -171,12 +173,12 @@ BEGIN
 
 					SET @KitNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));
 		
-					INSERT INTO [dbo].[KitMaster]([KitNumber],[ItemMasterId],[ManufacturerId],[PartNumber],[PartDescription],[Manufacturer]
+					INSERT INTO [dbo].[KitMaster] ([KitNumber],[ItemMasterId],[ManufacturerId],[PartNumber],[PartDescription],[Manufacturer]
 						   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[CustomerId]
 						   ,[CustomerName],[KitCost])
-					 VALUES (@KitNumber,@ITEMMASTER_ID,@ManufacturerId,@PN,@PN_DESC,@ManufacturerName,
+					 VALUES (@KitNumber,@ITEMMASTER_ID,@ManufacturerId,@PN,@PN_DESC,ISNULL(@ManufacturerName, ''),
 						   @FromMasterComanyID,@UserName,@UserName,GETDATE(),GETDATE(),1,0,@CustomerId,
-						   @CustomerName,@UNIT_COST);
+						   @CustomerName, ISNULL(@UNIT_COST, 0));
 
 					SELECT @KitId = SCOPE_IDENTITY();
 
@@ -186,14 +188,13 @@ BEGIN
 					SELECT [KitMasterId],[MainItemMasterId],[KitItemMasterId],[Qty],[UnitCost],[ConditionId]
 					FROM #TempKitItemMaster WHERE [MainItemMasterId] = @PNM_AUTO_KEY;
 
-					DECLARE @LoopMapID AS INT;
-					DECLARE @TotMapCount AS INT;
+					DECLARE @LoopMapID AS INT = 0;
+					DECLARE @TotMapCount AS INT = 0;
 
 					SELECT  @TotMapCount = COUNT(*), @LoopMapID = MIN(ID) FROM #KitMapData;
 
 					WHILE (@LoopMapID <= @TotMapCount)
 					BEGIN
-						DECLARE @InsertedKitItemMasterMappingId BIGINT = 0;
 						DECLARE @PART_MAP_NUMBER VARCHAR(50)='';
 						DECLARE @PART_MAP_DESC NVARCHAR(MAX)='';
 						DECLARE @ITEMMASTER_MAP_ID BIGINT = 0;
@@ -232,26 +233,26 @@ BEGIN
 							,@FromMasterComanyID,@UserName,@UserName,GETDATE(),GETDATE(),1,0
 						FROM #KitMapData AS KT WHERE ID = @LoopMapID; 
 	   		       
-						SET @InsertedKitItemMasterMappingId = SCOPE_IDENTITY();
-
-						SET @LoopMapID = @LoopMapID + 1;
-
 						UPDATE KITs
-						SET KITs.Migrated_Id = @InsertedKitItemMasterMappingId,
+						SET KITs.Migrated_Id = @KitId,
 						KITs.SuccessMsg = 'Record migrated successfully'
-						FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.KitMasterId = @CurrentKitItemMasterId;
+						FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.MainItemMasterId = @PNM_AUTO_KEY;
+						--FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.KitMasterId = @CurrentKitItemMasterId;
 
 						SET @MigratedRecords = @MigratedRecords + 1;
+
+						--ELSE
+						--BEGIN
+						--	UPDATE KITs
+						--	SET KITs.ErrorMsg = '<p>KIT Master record already exists</p>'
+						--	FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.KitItemMasterId = @KIT_PNM_AUTO_KEY;
+
+						--	SET @RecordExits = @RecordExits + 1;
+						--END
+
+						SET @LoopMapID = @LoopMapID + 1;
 					END
 				END
-				--ELSE
-				--BEGIN
-				--	UPDATE KITs
-				--	SET KITs.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>KIT Master record already exists</p>'
-				--	FROM [Quantum_Staging].DBO.[KitMasters] KITs WHERE KITs.KitMasterId = @CurrentKitItemMasterId;
-
-				--	SET @RecordExits = @RecordExits + 1;
-				--END
 			END
 
 			SET @LoopID = @LoopID + 1;

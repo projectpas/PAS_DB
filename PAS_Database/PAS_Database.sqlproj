@@ -2691,5 +2691,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetOldWorkOrderForBillingInvoicedData.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckWorkOrderForSerialNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrdMaterialsStocklineListForManualReserve.sql" />
+    <Build Include="dbo\Stored Procedures\MigratePOPartsRecords.sql" />
+    <Build Include="dbo\Stored Procedures\MigratePOHeaderRecords.sql" />
   </ItemGroup>
 </Project>

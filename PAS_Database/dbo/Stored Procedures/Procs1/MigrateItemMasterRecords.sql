@@ -227,7 +227,7 @@ BEGIN
 
 					SET @InsertedItemMasterId = SCOPE_IDENTITY();
 
-					EXEC dbo.UpdateItemMasterDetail @InsertedItemMasterId;
+					--EXEC dbo.UpdateItemMasterDetail @InsertedItemMasterId;
 
 					UPDATE IMs
 					SET IMs.Migrated_Id = @InsertedPartId,

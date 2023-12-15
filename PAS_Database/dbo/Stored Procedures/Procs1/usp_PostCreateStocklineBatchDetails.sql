@@ -16,6 +16,7 @@
 	4    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	5    23/11/2023   Moin Bloch    Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
 	6    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
+	7    14/12/2023   Moin Bloch    Modify(Skip Record If Sockline Exists)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -157,7 +158,7 @@ BEGIN
 		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 		SELECT @CurrentManagementStructureId =ManagementStructureId FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
 					  
-		SELECT @Amount =SUM(Amount) FROM #StocklinePostType
+		SELECT @Amount = SUM(Amount) FROM #StocklinePostType
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 			   		 
 		IF(ISNULL(@Amount,0) > 0)
@@ -279,6 +280,7 @@ BEGIN
 					BEGIN
 						IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline') AND UPPER(@StockType) = 'STOCK')
 						BEGIN
+						
 							SELECT @VendorId=ST.VendorId
 							      ,@ReferenceId=ST.StockLineId
 								  ,@PurchaseOrderId=ST.PurchaseOrderId
@@ -304,6 +306,9 @@ BEGIN
 							FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 							     LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
 							WHERE ST.[StockLineId] = @StocklineId;
+
+							IF NOT EXISTS(SELECT 1 FROM [dbo].[StocklineBatchDetails] SLBD WITH(NOLOCK) WHERE SLBD.[PoId] = @PurchaseOrderId AND SLBD.[StocklineId] = @StocklineId)
+							BEGIN
 
 							SELECT @VendorName = VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 
@@ -335,10 +340,16 @@ BEGIN
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-							@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType =CRDRType 
-							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV') 
-							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
+							SELECT TOP 1 @DistributionSetupId=ID,
+							             @DistributionName=Name,
+										 @JournalTypeId =JournalTypeId,
+										 @GlAccountId=GlAccountId,
+							             @GlAccountNumber=GlAccountNumber,
+										 @GlAccountName=GlAccountName,
+										 @CrDrType =CRDRType 
+							        FROM dbo.DistributionSetup WITH(NOLOCK)  
+									WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV') 
+							        AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
@@ -401,6 +412,7 @@ BEGIN
 								EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
 							END
 
+							END
 
 						END
 							

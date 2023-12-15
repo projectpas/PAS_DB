@@ -12,13 +12,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date				Author			Change Description            
- ** --   --------			-------			-------------------          
-    1    12-Oct-2023		HEMANT SALIYA	Created
+ ** PR   Date				Author				Change Description            
+ ** --   --------			-------				-------------------          
+    1    12-Oct-2023		HEMANT SALIYA		Created
+	2    15-DEC-2023		Ayesha Sultana		BugFix - View Inventory in add/edit work order
      
  EXECUTE [SearchItemMasterByCustomerRestrictionFromWO] 3, 12, 2461,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
+CREATE     PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
 @ItemMasterIdlist VARCHAR(max) = '0', 
 @ConditionIds VARCHAR(100) = NULL,
 @CustomerId BIGINT = NULL,
@@ -65,7 +66,7 @@ BEGIN
 				JOIN #ConditionGroupCode CG WITH (NOLOCK) ON C.GroupCode = CG.ConditionGroup
 				WHERE C.MasterCompanyId = CG.MasterCompanyId
 
-				Select * from #ConditionGroup
+				-- Select * from #ConditionGroup
 
 				SELECT DISTINCT
 					im.PartNumber

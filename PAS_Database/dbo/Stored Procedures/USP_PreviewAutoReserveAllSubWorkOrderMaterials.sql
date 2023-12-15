@@ -11,7 +11,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** --   --------    -------         --------------------------------
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 
-EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 155,0,0,2,0
+EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllSubWorkOrderMaterials]
 	@SubWOPartNoId BIGINT,
@@ -49,10 +49,11 @@ BEGIN
 
 					SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
-					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId 
-					FROM dbo.WorkOrder WO WITH(NOLOCK) 
-						JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
-						JOIN dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK) on SWOP.SubWorkOrderId = SWO.WorkOrderId 
+
+					SELECT  @CustomerID = WO.CustomerId,  @MasterCompanyId = WO.MasterCompanyId 
+					FROM dbo.SubWorkOrderPartNumber SWOP WITH(NOLOCK)
+						JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on SWOP.SubWorkOrderId = SWO.SubWorkOrderId 
+						JOIN dbo.WorkOrder WO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 					WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
 
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
@@ -301,6 +302,9 @@ BEGIN
 					JOIN  dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.SubWorkOrderMaterialsKitId =  WOMS.SubWorkOrderMaterialsKitId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 					AND WOMS.ProvisionId = @ProvisionId
+
+					--SELECT * FROM #tmpSubWorkOrderMaterials
+					--SELECT * FROM #ConditionGroup
 					
 					SELECT SL.* 					
 					INTO #Stockline

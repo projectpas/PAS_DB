@@ -37,7 +37,7 @@ BEGIN
 				@bkUnitCost DECIMAL(18,2),@SubUnitCost DECIMAL(18,2),@QtyToTurnIn INT,@SubQtyToTurnIn INT,@QtyToTurnCost DECIMAL(18,2) = 0.0,@SubQtyToTurnCost DECIMAL(18,2) = 0.0,
 				@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18,2) = 0.0, @BurdenRateAmount DECIMAL(18,2) = 0.0,@DirectLaborCost DECIMAL(18,2) = 0.0,
 				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
-				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2);
+				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2),@ChargesCost DECIMAL(18,2),@IsSubWO BIT = 0;
 		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
 		
 		SET @count = 1;
@@ -443,6 +443,16 @@ BEGIN
 
 			SET @count = @count + 1;
 		END
+
+
+		-------Checking is WO has SubWO or not
+
+	   IF EXISTS(SELECT 1 FROM [DBO].[SubWorkOrder] SWO WITH(NOLOCK) INNER JOIN [DBO].[WorkOrderWorkFlow] WF ON SWO.WorkOrderId = WF.WorkOrderId 
+																				AND WF.WorkOrderPartNoId = SWO.WorkOrderPartNumberId
+				WHERE SWO.WorkOrderId = @WorkOrderId AND WF.WorkFlowWorkOrderId = @WorkOrderWorkflowId)
+	   BEGIN
+			SET @IsSubWO = 1;
+	   END
 		
 	-------------------------------------------------------------------------------------------------------------------------------
 		SET @SubReservedCost = 0.0;
@@ -471,7 +481,8 @@ BEGIN
 			@SubRowMaterialTotalCost AS 'SubRowMaterialTotalCost',
 			@SubOutSideServiceCost AS 'SubOutsideCost',
 			@SubDirectLaborCost AS 'SubLaborCost',
-			@SubOverheadCost AS 'SubOverheadCost';
+			@SubOverheadCost AS 'SubOverheadCost',
+			@IsSubWO As 'IsSubWO';
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

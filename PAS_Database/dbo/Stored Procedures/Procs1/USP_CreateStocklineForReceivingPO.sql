@@ -843,7 +843,14 @@ BEGIN
     END  
     ELSE  
     BEGIN  
-     INSERT INTO #tmpAssetInventoryDraft SELECT * FROM DBO.AssetInventoryDraft AssetDraft WITH(NOLOCK) WHERE AssetDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 0 AND StklineNumber IS NULL ORDER BY CreatedDate;  
+     IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetInventoryDraft AssetDraft WITH(NOLOCK) WHERE AssetDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 0 AND IsSameDetailsForAllParts = 0 AND StklineNumber IS NULL)
+		BEGIN
+			INSERT INTO #tmpAssetInventoryDraft SELECT * FROM DBO.AssetInventoryDraft AssetDraft WITH(NOLOCK) WHERE AssetDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND StklineNumber IS NULL ORDER BY CreatedDate;
+		END
+		ELSE
+		BEGIN
+			INSERT INTO #tmpAssetInventoryDraft SELECT * FROM DBO.AssetInventoryDraft AssetDraft WITH(NOLOCK) WHERE AssetDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 0 AND StklineNumber IS NULL ORDER BY CreatedDate;
+		END
     END  
   
     SET @CurrentIndex = 0;  
@@ -853,24 +860,9 @@ BEGIN
      SET @LoopID = @QtyToReceive;  
     END  
     ELSE  
-    BEGIN  
-     --DECLARE @IsSameDetailsForAllParts_Asset BIT = 1;  
-     --SELECT TOP 1 @IsSameDetailsForAllParts_Asset = AssetDraft.IsSameDetailsForAllParts FROM DBO.AssetInventoryDraft AssetDraft WITH(NOLOCK) WHERE IsParent = 1 AND AssetDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;  
-  
-     --IF (@IsSameDetailsForAllParts_Asset = 0)  
-     --BEGIN  
-     -- SET @LoopID = @QtyToReceive;  
-     --END  
-     --ELSE  
-     --BEGIN  
-     -- SELECT @LoopID = MAX(ID) FROM #tmpAssetInventoryDraft;  
-     --END  
-  
+    BEGIN
      SET @LoopID = @QtyToReceive;  
     END  
-  
-    PRINT 'Final @LoopID';  
-    PRINT @LoopID;  
   
     WHILE (@LoopID > 0)  
     BEGIN  
@@ -964,17 +956,14 @@ BEGIN
      END  
      ELSE  
      BEGIN  
-      PRINT 'Not Increment'  
       SET @stockLineCurrentNo_Asset = 1;  
      END  
   
      IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 37))  
      BEGIN  
-      PRINT 'Inside'  
       SELECT * FROM #tmpCodePrefixes_Asset;  
       SELECT @InventoryNumberCurrentNo_Asset = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) + 1 END FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 37;  
-      SET @InventoryNumber_Asset = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@InventoryNumberCurrentNo_Asset,(SELECT CodePrefix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 37), (SELECT CodeSufix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 
-37)))    
+      SET @InventoryNumber_Asset = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@InventoryNumberCurrentNo_Asset,(SELECT CodePrefix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 37), (SELECT CodeSufix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 37)))
   
       UPDATE DBO.CodePrefixes  
       SET CurrentNummber = @InventoryNumberCurrentNo_Asset  
@@ -1120,8 +1109,8 @@ BEGIN
   
         SELECT @CurrentStocklineDraftId_Asset = AssetInventoryDraftId FROM #StocklineDraftForQtyToReceive_Asset WHERE ID = @LoopID_QtyToReceive_Asset;  
   
-        UPDATE StocklineDraft SET StockLineId = @NewStocklineId_Asset, StockLineNumber = @StockLineNumber_Asset, ForStockQty = @QtyToReceive  
-        WHERE StockLineDraftId = @CurrentStocklineDraftId_Asset;  
+        UPDATE AssetInventoryDraft SET AssetInventoryId = @NewStocklineId_Asset, StklineNumber = @StockLineNumber_Asset
+		WHERE AssetInventoryDraftId = @CurrentStocklineDraftId_Asset;  
   
         SET @TotalQtyToTraverse_Asset = @TotalQtyToTraverse_Asset - 1;  
        END  

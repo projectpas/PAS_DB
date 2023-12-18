@@ -18,7 +18,7 @@
     2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
     3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2233,@SelectedPartsToReserve=N'880',@UpdatedBy=N'ADMIN User'
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2309,@SelectedPartsToReserve=N'905',@UpdatedBy=N'ADMIN User'
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
@@ -197,13 +197,21 @@ BEGIN
 					BEGIN
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
 						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId; 
+
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId; 
 					END
 					ELSE
 					BEGIN
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
-						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO; 
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO;
+						
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsIdExchPO;
 					END
 					DECLARE @LoopIDWFWO INT = 0;
+
+					SELECT * FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
 					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
@@ -548,7 +556,7 @@ BEGIN
 
 							--IF (@Quantity > (@QuantityReserved + @QuantityIssued))-- AND @RemainingStkQty > 0)
 							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0 AND (@Quantity >= (@OriginalQuantity - (@QuantityReserved + @QuantityIssued))))
-							IF (@Quantity > 0)
+							IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
 							BEGIN
 								PRINT 'INSIDE WOMK @Quantity'
 								IF (@SelectedWorkOrderMaterialsKitId > 0)
@@ -582,7 +590,7 @@ BEGIN
 									BEGIN
 										IF (@stkQuantityAvailable > = @Quantity)
 											--SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
-											SET @Qty = @Quantity;	-- - (@QuantityReserved + @QuantityIssued);
+											SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);	-- - (@QuantityReserved + @QuantityIssued);
 										ELSE
 											SET @Qty = @stkQuantityAvailable;
 									END

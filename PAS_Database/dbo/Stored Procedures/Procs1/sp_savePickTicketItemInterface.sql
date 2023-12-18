@@ -1,4 +1,5 @@
-﻿/********************************************************************************   
+﻿
+/********************************************************************************   
 ** Author:     Bhargav Saliya
 ** Create date:  
 ** Description: This SP is Used to save pick ticket details   
@@ -14,11 +15,11 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 3    21-07-2023      Devendra Shekh            added qtyremaing for insert AND UPDATE
 ** 4    25-09-2023      Devendra Shekh            pick ticket issue resolved
 ** 5    08-11-2023      Amit Ghediya              pick ticket issue for multipele part resolved
- 
+** 6    18-12-2023		Rajesh Gami				  Remove SalesOrderPart Status from here, As per new requirement we are using only Open, Fulfilled, Order, Shipped and Billed Status. 
 
 EXEC Usp_savePickTicketItemInterface
 ********************************************************************************/
-CREATE     PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
+CREATE PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
 (      
   @SOPickTicketId bigint = 0,  
   @SOPickTicketNumber varchar(100)='',  
@@ -116,18 +117,19 @@ BEGIN
 
    UPDATE [dbo].[SOPickTicket] SET QtyToShip = @QtyToShip,UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = @QtyRemaining  WHERE SOPickTicketId = @SOPickTicketId; 
   
-   Update [dbo].[SalesOrderPart] SET StatusId = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Picked')   
-   WHERE SalesOrderPartId = @SalesOrderPartId  
+  /***** Commented By Rajesh : DO NOT DELETE *****/
+   --Update [dbo].[SalesOrderPart] SET StatusId = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Picked')   
+   --WHERE SalesOrderPartId = @SalesOrderPartId  
   END  
   ELSE IF(@SOPickTicketId > 0 AND @IsConfirmed = 1)  
   BEGIN  
    UPDATE [dbo].[SOPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE SOPickTicketId = @SOPickTicketId;  
   
-     
-   SELECT @SOPartId = SalesOrderPartId FROM [dbo].[SOPickTicket] WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;  
+   /***** Commented By Rajesh : DO NOT DELETE *****/ 
+   --SELECT @SOPartId = SalesOrderPartId FROM [dbo].[SOPickTicket] WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;  
   
-   Update [dbo].[SalesOrderPart] SET StatusId = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'ReadyForShip')   
-   WHERE SalesOrderPartId = @SOPartId  
+   --Update [dbo].[SalesOrderPart] SET StatusId = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'ReadyForShip')   
+   --WHERE SalesOrderPartId = @SOPartId  
   END  
  END  
  COMMIT  TRANSACTION  

@@ -12,10 +12,11 @@
 	1                 unknown       Created 
 	2    31/10/2023   Moin Bloch    Added FreightAdjustment,TaxAdjustment Fields
 	3    08/11/2023   Moin Bloch    Added ControlNumber Field
+	4    18/12/2023   Moin Bloch    Added Order By
             
---EXEC GetReceivingReconciliationDetailsById 182
+--  EXEC GetReceivingReconciliationDetailsById 220
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
+CREATE     PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
 @ReceivingReconciliationId bigint
 AS
 BEGIN
@@ -104,7 +105,7 @@ BEGIN
 					  LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,',')) AND AMSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'ASSET'
 					  LEFT JOIN [dbo].[EntityStructureSetup] AES WITH (NOLOCK) ON AES.EntityStructureId=AMSD.EntityMSID
 								
-				WHERE JBD.[ReceivingReconciliationId] =@ReceivingReconciliationId
+				WHERE JBD.[ReceivingReconciliationId] =@ReceivingReconciliationId ORDER BY JBD.[ReceivingReconciliationDetailId]
     END TRY
 	BEGIN CATCH      
 		IF @@trancount > 0

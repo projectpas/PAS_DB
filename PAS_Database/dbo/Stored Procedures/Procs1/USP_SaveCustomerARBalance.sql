@@ -1,5 +1,20 @@
-﻿--EXEC USP_SaveCustomerARBalance 1,10079,10079,100,150,'deep',1,'deep','deep',-1;  
-CREATE   PROCEDURE [dbo].[USP_SaveCustomerARBalance]  
+﻿/*************************************************************             
+ ** File:   [USP_SaveCustomerARBalance]             
+ ** Author: Moin Bloch
+ ** Description: This stored procedure is used to calculate Customer AR Balance
+ ** Purpose:           
+ ** Date:18/12/2023
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date          Author  			Change Description             
+ 1				       Unknown			Created 
+ 2		18/12/2023     Moin Bloch		Modified(Calculate CreditLimit in CustomerFinancial Table when SO INVOICE,WO INVOICE Generate)
+
+ --EXEC USP_SaveCustomerARBalance 1,10079,10079,100,150,'deep',1,'deep','deep',-1; 
+**************************************************************/ 
+CREATE     PROCEDURE [dbo].[USP_SaveCustomerARBalance]  
 (  
 --@CustomerCreditTermsHistoryId BIGINT,  
 @AppModuleId INT,  
@@ -34,7 +49,8 @@ SET NOCOUNT ON
      --BEGIN  
      --DROP TABLE #TempTable  
      --END  
-  
+	DECLARE @ModuleName VARCHAR(50);
+	SELECT @ModuleName = [CodeType] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeTypeId] = @AppModuleId;
      --CREATE TABLE #TempTable(LastMSName VARCHAR(MAX))  
      DECLARE @CreditLimit DECIMAL=0;  
      DECLARE @AmountDiff DECIMAL=0;  
@@ -112,7 +128,7 @@ SET NOCOUNT ON
      BEGIN  
       SET @LastAmount = (SELECT TOP 1 ARBalance FROM CustomerCreditTermsHistory WHERE CustomerId=@CustomerId order by CustomerCreditTermsHistoryId desc)  
   
-      IF NOT EXISTS(SELECT * FROM CustomerCreditTermsHistory WHERE [AppModuleId]=@AppModuleId and ReffranceId =@ReffranceId)  
+      IF NOT EXISTS(SELECT * FROM CustomerCreditTermsHistory WHERE [AppModuleId]=@AppModuleId AND ReffranceId =@ReffranceId)  
       BEGIN  
        INSERT INTO [dbo].[CustomerCreditTermsHistory]  
          ([AppModuleId],[ReffranceId],[CustomerId],  
@@ -129,6 +145,16 @@ SET NOCOUNT ON
                0,1)  
       END  
      END  
+
+	 IF(UPPER(@ModuleName) = 'SOINVOICE' OR UPPER(@ModuleName) = 'WOINVOICE'  OR UPPER(@ModuleName) = 'EXCHANGESOINVOICE')
+	 BEGIN	
+		IF EXISTS(SELECT [CreditLimit] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId)
+		BEGIN
+			UPDATE [dbo].[CustomerFinancial] 
+			   SET [CreditLimit] = [CreditLimit] - (ISNULL(@Amount,0)) 
+			 WHERE [CustomerId] = @CustomerId;
+		END
+	 END
         
      SELECT @CustomerCreditTermsHistoryId = IDENT_CURRENT('CustomerCreditTermsHistory');  
   
@@ -149,7 +175,7 @@ SET NOCOUNT ON
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'USP_SaveCustomerARBalance'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@MasterCompanyId, '') + ''  
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

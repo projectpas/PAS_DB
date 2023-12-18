@@ -2088,7 +2088,7 @@ BEGIN
 						[ConditionId],[Quantity],[UnitCost],[ExtendedCost],[QuantityReserved],[QuantityIssued],[QuantityShort],[IsAltPart],[AltPartMasterPartId],
 						[PartStatusId],[UnReservedQty],[UnIssuedQty],[IssuedById],[ReservedById],[IsEquPart],[ItemMappingId],[TotalReserved],[TotalIssued],
 						[TotalUnReserved],[TotalUnIssued],[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],
-						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],[UnitOfMeasureId],[TaskId],[WOMStockLineId],[StockLineId],[StkItemMasterId],
+						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],[UnitOfMeasureId],[TaskId],[WOMStockLineId], ISNULL(StockLineId,0) AS [StockLineId],[StkItemMasterId],
 						[StkConditionId],[StkQuantity],[QtyReserved],[QtyIssued],[StkQuantityShort],[StkAltPartMasterPartId],[StkEquPartMasterPartId],[StkIsAltPart],
 						[StkIsEquPart],[StkUnitCost],[StkExtendedCost],[stkProvisionId],[QuantityTurnIn],UPPER([stkFigure]) AS [stkFigure],UPPER([stkItem]) AS [stkItem],UPPER([PartNumber]) AS [PartNumber],
 						CASE WHEN ISNULL(StkIsAltPart, 0) > 0 THEN UPPER([StkPartNumber]) + ' (ALT)' 

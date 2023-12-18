@@ -11,7 +11,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** --   --------    -------         --------------------------------
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 
-EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,0,0,2,0
+EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllSubWorkOrderMaterials]
 	@SubWOPartNoId BIGINT,
@@ -388,7 +388,6 @@ BEGIN
 					--Select * from #tmpSubWorkOrderMaterialStockline
 					--Select * from #tmpSubWorkOrderMaterialStocklineKit
 					--Select * from #Stockline
-
 
 					--#STEP : 1.1 RESERVE EXISTING STOCKLINE
 					IF((SELECT COUNT(1) FROM #tmpReserveIssueSubWOMaterialsStockline) > 0)
@@ -818,7 +817,7 @@ BEGIN
 							[AltItemMasterId] [bigint] NULL
 						)
 
-						--Select * from #tmpWorkOrderMaterials
+						--Select * from #tmpSubWorkOrderMaterials
 
 						INSERT INTO #MaterialsAltPartList 
 						(WOM.[ItemMasterId], [AltItemMasterId])
@@ -826,7 +825,7 @@ BEGIN
 						FROM #tmpSubWorkOrderMaterials WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						WHERE WOM.SubWorkOrderId = @SubWOPartNoId
+						WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 
 						--Select * from #MaterialsAltPartList
 

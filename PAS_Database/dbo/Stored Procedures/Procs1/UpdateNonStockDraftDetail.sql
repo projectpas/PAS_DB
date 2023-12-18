@@ -93,7 +93,7 @@ BEGIN
 		GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')), 
 		UnitOfMeasure = UM.ShortName,	
 		Manufacturer = MF.[NAME],
-		Acquired = IMNS.IsAcquiredMethodBuy, 
+		--Acquired = IMNS.IsAcquiredMethodBuy, 
 		IsHazardousMaterial = IMNS.IsHazardousMaterial,
 		ItemNonStockClassificationId = IMNS.ItemNonStockClassificationId,
 		NonStockClassification = ICLF.ItemClassificationCode,
@@ -109,11 +109,8 @@ BEGIN
 		Requisitioner = PO.Requisitioner,
 		OrderDate = PO.OpenDate,
 		EntryDate =  PO.OpenDate
-	    -- CoreUnitCost = IMPS.PP_UnitPurchasePrice,
-
 	    FROM dbo.NonStockInventoryDraft SD WITH (NOLOCK)
 	    INNER JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
-	    --LEFT JOIN #NonStockDraftMSDATA PMS WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureId	    
 		LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId =  SD.PurchaseOrderID
 		LEFT JOIN dbo.ItemMasterNonStock IMNS WITH (NOLOCK) ON IMNS.MasterPartId =  SD.MasterPartId
 		LEFT JOIN dbo.ItemClassification ICLF WITH (NOLOCK) ON ICLF.ItemClassificationId =  SD.ItemNonStockClassificationId
@@ -133,13 +130,6 @@ BEGIN
 	    UPDATE dbo.PurchaseOrderPart  SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) from dbo.NonStockInventory WITH (NOLOCK)
 	    where PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND isParent = 1)) FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 	    where POP.PurchaseOrderID = @PurchaseOrderId AND pop.ItemTypeId = @StockType; 
-	    
-	    --UPDATE dbo.PurchaseOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.PurchaseOrderPart WITH (NOLOCK)
-	    --where ParentId = POP.PurchaseOrderPartRecordId )) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
-	    --where POP.PurchaseOrderID = @PurchaseOrderId AND POP.isParent = 1 AND POP.ItemTypeId = @StockType
-	    --AND ISNULL((SELECT COUNT(PurchaseOrderPartRecordId)
-	    --			from dbo.PurchaseOrderPart WITH (NOLOCK)
-	    --			where ParentId = POP.PurchaseOrderPartRecordId),0) > 0;
 
 		UPDATE dbo.PurchaseOrderPart SET  QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityOrdered) - SUM(QuantityBackOrdered),0) from dbo.PurchaseOrderPart WITH (NOLOCK)
 	    where ParentId = POP.PurchaseOrderPartRecordId AND QuantityOrdered != QuantityBackOrdered)) FROM dbo.PurchaseOrderPart POP  WITH (NOLOCK)
@@ -155,15 +145,6 @@ BEGIN
     BEGIN CATCH  
 	   IF @@trancount > 0	  
        ROLLBACK TRANSACTION;
-	  -- IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
-	  -- BEGIN
-	  --  DROP TABLE #NonStockDraftMSDATA
-	  -- END
-	  -- IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	  -- BEGIN
-			--DROP TABLE #MSDATA 
-	  -- END
-	   -- temp table drop
 	   DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
 	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
@@ -177,21 +158,8 @@ BEGIN
 			,@ApplicationName = @ApplicationName
 			,@ErrorLogID = @ErrorLogID OUTPUT;
 
-		RAISERROR (
-				'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'
-				,16
-				,1
-				,@ErrorLogID
-				)
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
 
 		RETURN (1);           
 	END CATCH
-	--IF OBJECT_ID(N'tempdb..#NonStockDraftMSDATA') IS NOT NULL
-	--BEGIN
-	--   DROP TABLE #NonStockDraftMSDATA
-	--END
-	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	--BEGIN
-	--	DROP TABLE #MSDATA 
-	--END
 END

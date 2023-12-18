@@ -604,9 +604,7 @@ BEGIN
    FROM DBO.NonStockInventoryDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-  WHERE SL.PurchaseOrderId = @PurchaseOrderId --AND SL.IsParent = 1      
-  --AND SL.StockLineNumber IS NULL;      
-  --AND SL.StockLineNumber IS NULL;      
+  WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL;
       
   END TRY        
   BEGIN CATCH        

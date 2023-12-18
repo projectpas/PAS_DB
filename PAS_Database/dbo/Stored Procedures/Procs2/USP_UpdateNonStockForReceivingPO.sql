@@ -17,10 +17,15 @@
     1    09/22/2023   Vishal Suthar  Created    
     2    10/05/2023   Vishal Suthar  Modified to get parent stockline draft details to bind as parent record    
       
-declare @p2 dbo.POPartsToReceive    
-insert into @p2 values(1821,3412,5)    
-    
-exec dbo.USP_UpdateStocklineForReceivingPO @PurchaseOrderId=1821,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1    
+declare @p4 dbo.UpdateNonStocklineReceivingPOType
+insert into @p4 values(307,NULL,2319,3968,NULL,1,NULL,0,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',0,0,NULL,0,NULL,7,NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,2,NULL,0,NULL,0,NULL,0,NULL,0,NULL,5,NULL,N'DHFL-78978',N'sadad',1,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-18 18:35:38.5446619','2023-12-18 13:05:38.1860000',1,0,0,0,0)
+insert into @p4 values(308,NULL,2319,3968,NULL,0,NULL,0,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',0,0,NULL,0,NULL,7,NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,2,NULL,0,NULL,0,NULL,0,NULL,0,NULL,5,NULL,N'DHFL-78978',N'sadad',1,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-18 18:35:38.5451734','2023-12-18 13:05:38.1860000',1,0,0,0,0)
+insert into @p4 values(309,NULL,2319,3968,NULL,0,NULL,0,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',0,0,NULL,0,NULL,7,NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,2,NULL,0,NULL,0,NULL,0,NULL,0,NULL,5,NULL,N'DHFL-78978',N'sadad',1,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-18 18:35:38.5456305','2023-12-18 13:05:38.1860000',1,0,0,0,0)
+
+declare @p5 dbo.UpdateTimeLifeReceivingPOType
+
+exec dbo.USP_UpdateNonStockForReceivingPO @PurchaseOrderId=2319,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1,@tbl_UpdateNonStocklineReceivingPOType=@p4,@tbl_UpdateTimeLifeReceivingPOType=@p5  
+
 **************************************************************/      
 CREATE     PROCEDURE [dbo].[USP_UpdateNonStockForReceivingPO]    
 (      
@@ -140,6 +145,9 @@ BEGIN
   [ManagementStructureEntityId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isActive],[isDeleted],[ShippingReferenceNumberNotProvided],
   [SerialNumberNotProvided],[TimeLifeDetailsNotProvided] FROM @tbl_UpdateNonStocklineReceivingPOType;    
     
+
+	--SELECT * FROM #UpdateNonStocklineReceivingPOType;
+
   DECLARE @QuantityBackOrdered INT = 0;    
     
   SELECT @LoopID = MAX(ID) FROM #UpdateNonStocklineReceivingPOType;    
@@ -166,14 +174,14 @@ BEGIN
     SELECT * FROM #UpdateNonStocklineReceivingPOType WHERE NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId; 
     
    UPDATE StkDraft    
-   SET StkDraft.ManagementStructureId = TmpStkDraft.ManagementStructureEntityId,    
+   SET StkDraft.ManagementStructureId = TmpStkDraft.ManagementStructureEntityId,
    StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,    
    StkDraft.WarehouseId = CASE WHEN TmpStkDraft.WarehouseId > 0 THEN TmpStkDraft.WarehouseId ELSE NULL END,    
    StkDraft.LocationId = CASE WHEN TmpStkDraft.LocationId > 0 THEN TmpStkDraft.LocationId ELSE NULL END,    
    StkDraft.ShelfId = CASE WHEN TmpStkDraft.ShelfId > 0 THEN TmpStkDraft.ShelfId ELSE NULL END,    
    StkDraft.BinId = CASE WHEN TmpStkDraft.BinId > 0 THEN TmpStkDraft.BinId ELSE NULL END,    
-   StkDraft.UnitCost = TmpStkDraft.UnitCost,    
-   StkDraft.ExtendedCost = TmpStkDraft.ExtendedCost,    
+   StkDraft.UnitCost = ISNULL(TmpStkDraft.UnitCost, 0),    
+   StkDraft.ExtendedCost = ISNULL(TmpStkDraft.ExtendedCost, 0),    
    StkDraft.ConditionId = TmpStkDraft.ConditionId,    
    StkDraft.ShippingViaId = CASE WHEN TmpStkDraft.ShippingViaId > 0 THEN TmpStkDraft.ShippingViaId ELSE NULL END,    
    StkDraft.ShippingReference = TmpStkDraft.ShippingReference,    
@@ -185,7 +193,8 @@ BEGIN
    StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,  
    StkDraft.UpdatedBy = TmpStkDraft.UpdatedBy,    
    StkDraft.UnitOfMeasureId = TmpStkDraft.UnitOfMeasureId,    
-   StkDraft.UpdatedDate = GETUTCDATE()    
+   StkDraft.UpdatedDate = GETUTCDATE(),  
+   StkDraft.Acquired = TmpStkDraft.Acquired
    FROM DBO.NonStockInventoryDraft StkDraft    
    INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.NonStockInventoryDraftId    
    WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    
@@ -283,8 +292,6 @@ BEGIN
    END      
       
    SET @LoopID = @LoopID - 1;      
-    
-  
     
   EXEC DBO.UpdateNonStockDraftDetail @PurchaseOrderId;    
  END      

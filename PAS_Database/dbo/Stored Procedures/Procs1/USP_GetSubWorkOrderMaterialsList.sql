@@ -22,6 +22,7 @@
 	4    11/23/2023   Hemant Saliya		Sub WO Add PN Changes
 	5    11/27/2023   Hemant Saliya		Add Kit in Sub WOM 
 	6    12/07/2023   Devendra Shekh	Added filter for showing only qty remaining
+	7    12/19/2023   Devendra Shekh	Added changes to select for alter,eqp parts 
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 123  
   
@@ -323,6 +324,30 @@ SET NOCOUNT ON
 					,MSTL.Item StockLineItem
 					,0 AS IsKitType
 					,0 AS KitQty
+					,(CASE 
+							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
+							THEN 0
+							ELSE MSTL.IsAltPart 
+							END
+						) AS IsWOMSAltPart,
+						(CASE 
+							WHEN ISNULL(MSTL.IsEquPart, 0) = 0 
+							THEN 0 
+							ELSE MSTL.IsEquPart
+							END
+						) AS IsWOMSEquPart,
+						(SELECT partnumber FROM itemmaster IM WHERE IM.ItemMasterId = 
+						(CASE 
+							WHEN ISNULL(MSTL.AltPartMasterPartId, 0) = 0 
+							THEN 
+								CASE 
+								WHEN ISNULL(MSTL.EquPartMasterPartId, 0) = 0 
+								THEN 0
+								ELSE MSTL.EquPartMasterPartId
+								END
+							ELSE MSTL.AltPartMasterPartId
+							END)
+						) AS AlterPartNumber
 				FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -488,6 +513,30 @@ SET NOCOUNT ON
 					,MSTL.Item StockLineItem
 					,1 AS IsKitType
 					,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.SubWorkOrderMaterialsKitMappingId = WOMKM.SubWorkOrderMaterialsKitMappingId) AS KitQty
+					,(CASE 
+							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
+							THEN 0
+							ELSE MSTL.IsAltPart 
+							END
+						) AS IsWOMSAltPart,
+						(CASE 
+							WHEN ISNULL(MSTL.IsEquPart, 0) = 0 
+							THEN 0 
+							ELSE MSTL.IsEquPart
+							END
+						) AS IsWOMSEquPart,
+						(SELECT partnumber FROM itemmaster IM WHERE IM.ItemMasterId = 
+						(CASE 
+							WHEN ISNULL(MSTL.AltPartMasterPartId, 0) = 0 
+							THEN 
+								CASE 
+								WHEN ISNULL(MSTL.EquPartMasterPartId, 0) = 0 
+								THEN 0
+								ELSE MSTL.EquPartMasterPartId
+								END
+							ELSE MSTL.AltPartMasterPartId
+							END)
+						) AS AlterPartNumber
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -656,6 +705,30 @@ SET NOCOUNT ON
 				  ,MSTL.Item StockLineItem
 				  ,0 AS IsKitType
 				  ,0 AS KitQty
+				  ,(CASE 
+						WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
+						THEN 0
+						ELSE MSTL.IsAltPart 
+						END
+					) AS IsWOMSAltPart,
+					(CASE 
+						WHEN ISNULL(MSTL.IsEquPart, 0) = 0 
+						THEN 0 
+						ELSE MSTL.IsEquPart
+						END
+					) AS IsWOMSEquPart,
+					(SELECT partnumber FROM itemmaster IM WHERE IM.ItemMasterId = 
+					(CASE 
+						WHEN ISNULL(MSTL.AltPartMasterPartId, 0) = 0 
+						THEN 
+							CASE 
+							WHEN ISNULL(MSTL.EquPartMasterPartId, 0) = 0 
+							THEN 0
+							ELSE MSTL.EquPartMasterPartId
+							END
+						ELSE MSTL.AltPartMasterPartId
+						END)
+					) AS AlterPartNumber
 			 FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -820,6 +893,30 @@ SET NOCOUNT ON
 				  ,MSTL.Item StockLineItem
 				  ,1 AS IsKitType
 				  ,(SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.SubWorkOrderMaterialsKitMappingId = WOMKM.SubWorkOrderMaterialsKitMappingId) AS KitQty
+				  ,(CASE 
+						WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
+						THEN 0
+						ELSE MSTL.IsAltPart 
+						END
+					) AS IsWOMSAltPart,
+					(CASE 
+						WHEN ISNULL(MSTL.IsEquPart, 0) = 0 
+						THEN 0 
+						ELSE MSTL.IsEquPart
+						END
+					) AS IsWOMSEquPart,
+					(SELECT partnumber FROM itemmaster IM WHERE IM.ItemMasterId = 
+					(CASE 
+						WHEN ISNULL(MSTL.AltPartMasterPartId, 0) = 0 
+						THEN 
+							CASE 
+							WHEN ISNULL(MSTL.EquPartMasterPartId, 0) = 0 
+							THEN 0
+							ELSE MSTL.EquPartMasterPartId
+							END
+						ELSE MSTL.AltPartMasterPartId
+						END)
+					) AS AlterPartNumber
 			 FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  

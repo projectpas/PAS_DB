@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    31/08/2023   Rajesh Gami  Created
+	2    19/12/2023   Moin Bloch   Updated (Added Calander Period Name When we getting 0 Month)
 **************************************************************/  
 
 /*************************************************************             
@@ -115,12 +116,27 @@ BEGIN
 			  )CBD  
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
+
+		 -- select * from #TempTable
 		  
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)
 		  VALUES(0, 'name', '', 0, 0)
 
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  
 		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1 FROM #TempTable 
+		  		
+		  DECLARE @PeriodId BIGINT;
+		  SELECT TOP 1 @PeriodId = [PeriodId] FROM #AccPeriodTempTable WHERE [PeriodId] > 0
+		  IF(@PeriodId IS NULL)
+		  BEGIN					
+			  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  	
+			  SELECT DISTINCT AccountingCalendarId,  REPLACE(AC.PeriodName,' - ',' ') , '', 1, 1 
+			  FROM dbo.AccountingCalendar AC WITH(NOLOCK)
+			  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
+		  		 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+				 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
+			   ORDER BY AccountingCalendarId 
+		  END		 
 
 		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1 WHERE PeriodName = 'Other'
 

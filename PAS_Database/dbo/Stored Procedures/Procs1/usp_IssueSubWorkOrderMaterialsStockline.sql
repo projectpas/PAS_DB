@@ -125,7 +125,8 @@ BEGIN
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
 						[UnitCost] DECIMAL(18,2),
-						[IsSerialized] BIT
+						[IsSerialized] BIT,
+						[KitId] BIGINT NULL
 					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueSWOMaterialsStocklineWithoutKit') IS NOT NULL
@@ -163,6 +164,7 @@ BEGIN
 						[UnitCost] DECIMAL(18,2),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL
+						
 					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueSWOMaterialsStocklineKit') IS NOT NULL
@@ -217,12 +219,14 @@ BEGIN
 						[StockLineNumber] VARCHAR(500) NULL,
 					)
 
+					--Select * from @tbl_MaterialsStocklineType
+
 					INSERT INTO #tmpIssueSWOMaterialsStockline ([WorkOrderId],[SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 						[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-						[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized])
+						[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId])
 					SELECT tblMS.[WorkOrderId],tblMS.[SubWorkOrderId], tblMS.[SubWOPartNoId], tblMS.[SubWorkOrderMaterialsId], tblMS.[StockLineId], tblMS.[ItemMasterId], tblMS.[ConditionId], [ProvisionId], 
 						[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-						tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized
+						tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized, tblMS.[KitId]
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
 					WHERE SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActIssued
 
@@ -246,7 +250,7 @@ BEGIN
 					WHERE SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActIssued
 					AND ISNULL(tblMS.KitId, 0) > 0
 
-					SELECT @TotalCounts = COUNT(ID) FROM #tmpIssueSWOMaterialsStockline;
+					SELECT @TotalCounts = COUNT(ID) FROM #tmpIssueSWOMaterialsStocklineWithoutKit;
 					SELECT @TotalCountsKIT = COUNT(ID) FROM #tmpIssueSWOMaterialsStocklineKit;
 					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpIssueSWOMaterialsStockline;
 
@@ -254,10 +258,13 @@ BEGIN
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
 					WHERE tblMS.StockLineId NOT IN (SELECT StockLineId FROM #tmpIssueSWOMaterialsStockline)
 
+					--Select * from #tmpIssueSWOMaterialsStockline
+					--Select * from #tmpIssueSWOMaterialsStocklineKit
 
 					--UPDATE SUB WORK ORDER MATERIALS KIT DETAILS
-					WHILE @countKIT<= @TotalCountsBoth
+					WHILE @countKIT <= @TotalCountsBoth
 					BEGIN
+						PRINT '1'				
 						UPDATE SubWorkOrderMaterialsKit 
 							SET QuantityIssued = ISNULL(WOM.QuantityIssued,0) + ISNULL(tmpWOM.QuantityActIssued,0),
 								QuantityReserved = ISNULL(WOM.QuantityReserved,0) - ISNULL(tmpWOM.QuantityActIssued,0),
@@ -267,13 +274,16 @@ BEGIN
 								IssuedDate = GETDATE(), 
 								UpdatedDate = GETDATE(),
 								PartStatusId = @PartStatus
-						FROM dbo.SubWorkOrderMaterialsKit WOM JOIN #tmpIssueSWOMaterialsStockline tmpWOM ON tmpWOM.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND tmpWOM.ID = @countKIT
+						FROM dbo.SubWorkOrderMaterialsKit WOM JOIN #tmpIssueSWOMaterialsStocklineKit tmpWOM ON tmpWOM.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND tmpWOM.ID = @countKIT
 						SET @countKIT = @countKIT + 1;
+
+						PRINT '1.1'
 					END;
 
 					--UPDATE/INSERT SUB WORK ORDER MATERIALS STOCKLINE KIT DETAILS
 					IF (@TotalCountsBoth > 0)
 					BEGIN
+						PRINT '2'
 						MERGE dbo.SubWorkOrderMaterialStockLineKit AS TARGET
 						USING #tmpIssueSWOMaterialsStocklineKit AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.SubWorkOrderMaterialsKitId = TARGET.SubWorkOrderMaterialsKitId) 
 						--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -290,13 +300,14 @@ BEGIN
 							VALUES (SOURCE.StocklineId, SOURCE.SubWorkOrderMaterialsKitId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0);
 					END
 
-					
+					PRINT '3'
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.SubWorkOrderMaterialStockLineKit 
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
 					FROM dbo.SubWorkOrderMaterialStockLineKit WOMS JOIN #tmpIssueSWOMaterialsStocklineKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsKitId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
+					PRINT '4'
 					--FOR UPDATED STOCKLINE QTY
 					UPDATE dbo.Stockline
 					SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActIssued,0),
@@ -305,7 +316,7 @@ BEGIN
 						SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsKitId
 					FROM dbo.Stockline SL JOIN #tmpIssueSWOMaterialsStocklineKit tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 
-		
+					PRINT '5'
 					--UPDATE SUB WORK ORDER MATERIALS DETAILS
 					WHILE @count<= @TotalCountsBoth
 					BEGIN
@@ -322,6 +333,7 @@ BEGIN
 						SET @count = @count + 1;
 					END;
 					
+					PRINT '6'
 					--UPDATE/INSERT SUB WORK ORDER MATERIALS STOCKLINE DETAILS
 					IF(@TotalCountsBoth > 0 )
 					BEGIN
@@ -341,12 +353,14 @@ BEGIN
 							VALUES (SOURCE.StocklineId, SOURCE.SubWorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0);
 					END
 
+					PRINT '7'
 					--FOR UPDATED SUB WORK ORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.SubWorkOrderMaterialStockLine 
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
 					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpIssueSWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 					
+					PRINT '8'
 					--FOR UPDATED STOCKLINE QTY
 					UPDATE dbo.Stockline
 					SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActIssued,0),
@@ -354,6 +368,7 @@ BEGIN
                         QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActIssued,0)						
 					FROM dbo.Stockline SL JOIN #tmpIssueSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 					
+					PRINT '9'
 					DECLARE @countBoth INT = 1;
 					--FOR UPDATE TOTAL SUB WORK ORDER COST
 					WHILE @countBoth<= @TotalCountsBoth
@@ -367,6 +382,7 @@ BEGIN
 						SET @countBoth = @countBoth + 1;
 					END;
 
+					PRINT '10'
 					--FOR STOCK LINE HISTORY	
 					WHILE @slcount<= @TotalCountsBoth
 					BEGIN

@@ -27,9 +27,12 @@ BEGIN
 		RCT.PartCertificationNumber,RCT.Quantity,RCT.ReceivingNumber,RCT.Reference,IM.RevisedPartId as 'RevisePartId',RCT.SerialNumber,RCT.StockLineId,RCT.TimeLifeCyclesId,CASE WHEN RCT.ReceivedDate is not null THEN RCT.ReceivedDate ELSE EXCHSOP.ReceivedDate END as ReceivedDate,RCT.CustReqDate,
 		RCT.EmployeeName as 'ReceivedBy','' as 'StockLineNumber',EXCHSOP.CoreStatusId,EXCHSOP.CoreDueDate,EXCHSOP.ExchangeCorePrice as 'CorePrice',EXCHSOP.ExchangeSalesOrderPartId,EXCHSOP.ExchangeSalesOrderId,
 		EXCHSOP.LetterSentDate,EXCHSOP.LetterTypeId,EXCHSOP.Memo,1 as 'isEditPart',EXCHSOP.ExpectedCoreSN as 'ExpectedSN',
-		EXCHSOP.ExpecedCoreCond,EXCHSO.CoreAccepted,UPPER(EXCHSO.ExchangeSalesOrderNumber) as 'ExchangeSalesOrderNumber',
-		UPPER(EXCHCT.[Name]) as 'CoreLetterName',UPPER(EXCHSO.CustomerName) as 'CustomerName', 
+		EXCHSOP.ExpecedCoreCond,EXCHSO.CoreAccepted
+		--,UPPER(EXCHSO.ExchangeSalesOrderNumber) as 'ExchangeSalesOrderNumber'
+		,UPPER(EXCHCT.[Name]) as 'CoreLetterName',UPPER(EXCHSO.CustomerName) as 'CustomerName', 
 		 CASE WHEN ISNULL(EXCHSOP.POId,0) != 0 THEN 'PO Num - ' + CAST(EXCHSOP.PONumber AS varchar) + ' ,' ELSE '' END as 'PO Num'
+		 , 'Exchange Sales Order Number - ' + UPPER(EXCHSO.ExchangeSalesOrderNumber) + CASE WHEN ISNULL(EXCHSOP.POId,0) != 0 THEN ', PO Num - ' + CAST(EXCHSOP.PONumber AS varchar) ELSE '' END + (CASE WHEN ISNULL(IM.PartNumber,'') != '' THEN ', PN - ' + IM.PartNumber ELSE '' END) AS 'ExchangeSalesOrderNumber'
+
 
 		from DBO.ExchangeSalesOrder EXCHSO
 		INNER JOIN DBO.ExchangeSalesOrderPart EXCHSOP ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId

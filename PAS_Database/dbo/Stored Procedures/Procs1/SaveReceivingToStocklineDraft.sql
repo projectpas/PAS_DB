@@ -687,7 +687,7 @@ BEGIN
     
        
      
-   SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,0,'',NULL,NULL,@IdNumber,NULL,NULL,  
+   SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,NULL,  
    ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId  
    ,'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),  
    NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,  

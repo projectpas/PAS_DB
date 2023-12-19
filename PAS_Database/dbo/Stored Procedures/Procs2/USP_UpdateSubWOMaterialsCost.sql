@@ -18,8 +18,9 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Hemant Saliya Created
 	2    10/04/2021   Hemant Saliya Update Sub WO Pick Ticket Deletion based On Reservation 
+	3    12/18/2023   Hemant Saliya Added Kit Part for Sub WO Cost Calc
      
- EXECUTE USP_UpdateSubWOMaterialsCost 92
+ EXECUTE USP_UpdateSubWOMaterialsCost 161
 **************************************************************/ 
     
 CREATE PROCEDURE [dbo].[USP_UpdateSubWOMaterialsCost]    
@@ -49,35 +50,62 @@ SET NOCOUNT ON
 					 UnitCost DECIMAL(18,2) NULL,
 					 ExtendedCost DECIMAL(18,2) NULL,
 					 StlCount INT NULL,
-					 StlReqQty INT NULL
+					 StlReqQty INT NULL,
+					 IsKit BIT NULL
 				)
 
-				INSERT INTO #tmpWOMaterials (WorkOrderId, SubWorkOrderMaterialsId, UnitCost, ExtendedCost, StlCount, StlReqQty ) 
+				INSERT INTO #tmpWOMaterials (WorkOrderId, SubWorkOrderMaterialsId, UnitCost, ExtendedCost, StlCount, StlReqQty, IsKit ) 
 					SELECT WOM.WorkOrderId, WOM.SubWorkOrderMaterialsId, 
 					(SELECT SUM(WOMSL.UnitCost)  FROM  dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
 					(SELECT SUM(WOMSL.ExtendedCost)  FROM  dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
 					(SELECT COUNT(1)  FROM  dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
-					(SELECT SUM(WOMSL.Quantity)  FROM  dbo.SubWorkOrderMaterialStockLine WOMSL WHERE WOMSL.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty
+					(SELECT SUM(WOMSL.Quantity)  FROM  dbo.SubWorkOrderMaterialStockLine WOMSL WHERE WOMSL.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					0
 				FROM dbo.SubWorkOrderMaterials WOM WITH(NOLOCK)
 				WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId 
-				
+				UNION ALL
+				SELECT WOM.WorkOrderId, WOM.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId, 
+					(SELECT SUM(WOMSL.UnitCost)  FROM  dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
+					(SELECT SUM(WOMSL.ExtendedCost)  FROM  dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
+					(SELECT COUNT(1)  FROM  dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
+					(SELECT SUM(WOMSL.Quantity)  FROM  dbo.SubWorkOrderMaterialStockLineKit WOMSL WHERE WOMSL.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					1
+				FROM dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK)
+				WHERE WOM.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId 				
 
 				UPDATE SubWorkOrderMaterials SET  
-					UnitCost = tmp.UnitCost, 
+					--UnitCost = tmp.UnitCost, 
 					ExtendedCost= tmp.ExtendedCost,
 					TotalStocklineQtyReq = tmp.StlReqQty
 				FROM dbo.SubWorkOrderMaterials WOM WITH(NOLOCK)
 					JOIN #tmpWOMaterials tmp ON WOM.SubWorkOrderMaterialsId = tmp.SubWorkOrderMaterialsId
 				WHERE tmp.StlCount > 0
+
+				UPDATE SubWorkOrderMaterialsKit SET  
+					--UnitCost = tmp.UnitCost, 
+					ExtendedCost= tmp.ExtendedCost,
+					TotalStocklineQtyReq = tmp.StlReqQty
+				FROM dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK)
+					JOIN #tmpWOMaterials tmp ON WOM.SubWorkOrderMaterialsKitId = tmp.SubWorkOrderMaterialsId
+				WHERE tmp.StlCount > 0 AND tmp.IsKit = 1
 		
 				UPDATE SubWorkOrderMaterials SET  
-					UnitCost = ISNULL(IMPS.PP_UnitPurchasePrice, 0),
-					ExtendedCost= ISNULL(IMPS.PP_UnitPurchasePrice, 0) * WOM.Quantity,
+					UnitCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost ELSE ISNULL(IMPS.PP_UnitPurchasePrice, 0) END,
+					ExtendedCost= CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost * WOM.Quantity ELSE ISNULL(IMPS.PP_UnitPurchasePrice, 0) * WOM.Quantity END,
 					TotalStocklineQtyReq = 0
 				FROM dbo.SubWorkOrderMaterials WOM WITH(NOLOCK)
 					JOIN #tmpWOMaterials tmp ON WOM.SubWorkOrderMaterialsId = tmp.SubWorkOrderMaterialsId
 					LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId
 				WHERE tmp.StlCount = 0
+
+				UPDATE SubWorkOrderMaterialsKit SET  
+					UnitCost = CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost ELSE ISNULL(IMPS.PP_UnitPurchasePrice, 0) END,
+					ExtendedCost= CASE WHEN ISNULL(WOM.UnitCost, 0) > 0 THEN WOM.UnitCost * WOM.Quantity ELSE ISNULL(IMPS.PP_UnitPurchasePrice, 0) * WOM.Quantity END,
+					TotalStocklineQtyReq = 0
+				FROM dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK)
+					JOIN #tmpWOMaterials tmp ON WOM.SubWorkOrderMaterialsKitId = tmp.SubWorkOrderMaterialsId
+					LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId
+				WHERE tmp.StlCount = 0 AND tmp.IsKit = 1
 
 				UPDATE SubWorkOrderMaterialStockLine SET  
 					Quantity = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued,0)) > Quantity THEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued,0)) ELSE Quantity END

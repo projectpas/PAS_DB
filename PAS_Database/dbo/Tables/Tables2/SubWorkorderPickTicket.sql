@@ -24,6 +24,9 @@
     [StocklineId]             BIGINT         NULL,
     [PDFPath]                 NVARCHAR (MAX) NULL,
     [QtyRemaining]            INT            NULL,
+    [IsKitType]               BIT            NULL,
     CONSTRAINT [PK_SubWorkorderPickTicket] PRIMARY KEY CLUSTERED ([PickTicketId] ASC)
 );
+
+
 

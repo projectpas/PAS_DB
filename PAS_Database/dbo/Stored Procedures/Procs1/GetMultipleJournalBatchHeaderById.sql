@@ -18,6 +18,7 @@
 	3	 19/06/2023  Shrey Chandegara	  Updated for add JE Detail view like GLAccount,Credit,....
 	3	 29/08/2023  Devendra Shekh		  added BatchStatus join for journal batchstatus
 	5	 04/12/2023  Ayesha Sultana		  Date Time UTC convert
+	5	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
          
 -- EXEC GetMultipleJournalBatchHeaderById '321'    
 ************************************************************************/    

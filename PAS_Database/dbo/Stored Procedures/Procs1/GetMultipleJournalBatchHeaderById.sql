@@ -34,8 +34,12 @@ BEGIN
 
    -- SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 
-   SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId AND LE.LegalEntityId = @ManagementStructureId
-			
+   SELECT @CurrntEmpTimeZoneDesc = TZ.[Description]    
+   FROM DBO.LegalEntity LE WITH (NOLOCK) 
+		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId -- AND LE.LegalEntityId = @ManagementStructureId
+		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
+		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
+   WHERE ESS.EntityStructureId = @ManagementStructureId
    print @CurrntEmpTimeZoneDesc
 
    SELECT   

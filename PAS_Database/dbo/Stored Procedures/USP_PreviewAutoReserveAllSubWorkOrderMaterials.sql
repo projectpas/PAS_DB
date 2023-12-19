@@ -12,6 +12,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
+exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=162,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=2,@IncludeCustomerStock=0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllSubWorkOrderMaterials]
 	@SubWOPartNoId BIGINT,
@@ -47,6 +48,7 @@ BEGIN
 					DECLARE @Autoslcount INT;
 					DECLARE @AutoTotalCounts INT;
 
+
 					SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
 
@@ -58,6 +60,7 @@ BEGIN
 
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
+					PRINT '1'
 					IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
 					BEGIN
 						DROP TABLE #ConditionGroup 
@@ -257,6 +260,8 @@ BEGIN
 						[IsDeleted] [bit] NOT NULL,
 					)
 
+					PRINT '2'
+
 					INSERT INTO #tmpSubWorkOrderMaterials
 						   ([SubWorkOrderMaterialsId],[WorkOrderId],[SubWorkOrderId], [ItemMasterId], [ConditionId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
@@ -280,16 +285,20 @@ BEGIN
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 					AND WOMS.ProvisionId = @ProvisionId
 
+					PRINT '3'
+
 					INSERT INTO #tmpSubWorkOrderMaterialsKit
-						   ([SubWorkOrderMaterialsKitId],[SubWorkOrderMaterialsKitMappingId],[WorkOrderId], [ItemMasterId], [ConditionId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
+						   ([SubWorkOrderMaterialsKitId],[SubWorkOrderMaterialsKitMappingId],[WorkOrderId], [SubWorkOrderId], [SubWOPartNoId] ,[ItemMasterId], [ConditionId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [SubWOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ConditionGroupCode]) 
-					SELECT [SubWorkOrderMaterialsKitId], [SubWorkOrderMaterialsKitMappingId],[WorkOrderId], [ItemMasterId], [ConditionCodeId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , [EquPartMasterPartId], [ReservedDate], [UnitOfMeasureId], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ConditionGroupCode]) 
+					SELECT [SubWorkOrderMaterialsKitId], [SubWorkOrderMaterialsKitMappingId],[WorkOrderId], [SubWorkOrderId], [SubWOPartNoId] , [ItemMasterId], [ConditionCodeId] , [Quantity] , [UnitCost] , [ExtendedCost] , [QuantityReserved] , [QuantityIssued] , [IsAltPart] ,[AltPartMasterPartId] ,
 						   [PartStatusId] , [UnReservedQty] ,  [UnIssuedQty] ,  [IssuedById] , [ReservedById] , [IsEquPart] , [ItemMappingId] ,  [TotalReserved] , [TotalIssued] ,[TotalUnReserved] ,
-						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [SubWOPartNoId] , [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , NULL, [ReservedDate], [UnitOfMeasureId], [TaskId], WOM.[MasterCompanyId], WOM.[CreatedBy], WOM.[UpdatedBy], WOM.[CreatedDate], WOM.[UpdatedDate], WOM.[IsActive], WOM.[IsDeleted], C.GroupCode 
+						   [TotalUnIssued] , [ProvisionId], [MaterialMandatoriesId], [TotalStocklineQtyReq],  [QtyOnOrder] , [QtyOnBkOrder] , [QtyToTurnIn] , [Figure] , [Item] , NULL, [ReservedDate], [UnitOfMeasureId], [TaskId], WOM.[MasterCompanyId], WOM.[CreatedBy], WOM.[UpdatedBy], WOM.[CreatedDate], WOM.[UpdatedDate], WOM.[IsActive], WOM.[IsDeleted], C.GroupCode 
 					FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) 
 					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
+
+					PRINT '4'
 
 					INSERT INTO #tmpSubWorkOrderMaterialStockLineKit
 						([SubWorkOrderMaterialStockLineKitId] ,[SubWorkOrderMaterialsKITId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
@@ -303,7 +312,8 @@ BEGIN
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId
 					AND WOMS.ProvisionId = @ProvisionId
 
-					--SELECT * FROM #tmpSubWorkOrderMaterials
+					--SELECT * FROM #tmpSubWorkOrderMaterialsKit
+					--SELECT * FROM #tmpSubWorkOrderMaterialStockLineKit
 					--SELECT * FROM #ConditionGroup
 					
 					SELECT SL.* 					

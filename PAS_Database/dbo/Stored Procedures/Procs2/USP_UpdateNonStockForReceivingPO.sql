@@ -173,6 +173,29 @@ BEGIN
    SELECT @PrevIsSameDetailsForAllParts = IsSameDetailsForAllParts, @PrevIsSerialized = IsSerialized, @PrevIsParent = IsParent FROM DBO.NonStockInventoryDraft StkDraft WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    
     SELECT * FROM #UpdateNonStocklineReceivingPOType WHERE NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId; 
     
+   IF (@PrevIsSerialized = 1 AND @IsSerialized = 0)
+	BEGIN
+		IF (@PrevIsParent = 1 AND @IsSameDetailsForAllParts = 0)
+			SET @PrevIsParent = 0;
+		ELSE IF (@PrevIsParent = 0 AND @IsSameDetailsForAllParts = 0)
+			SET @PrevIsParent = 1;
+	END
+
+	IF (@IsSerialized = 0)
+	BEGIN
+		IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)
+		BEGIN
+			IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
+				SET @PrevIsParent = 0;
+			ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
+				SET @PrevIsParent = 1;
+			ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
+				SET @PrevIsParent = 1;
+			ELSE IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
+				SET @PrevIsParent = 0;
+		END
+	END
+
    UPDATE StkDraft    
    SET StkDraft.ManagementStructureId = TmpStkDraft.ManagementStructureEntityId,
    StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,    
@@ -194,7 +217,8 @@ BEGIN
    StkDraft.UpdatedBy = TmpStkDraft.UpdatedBy,    
    StkDraft.UnitOfMeasureId = TmpStkDraft.UnitOfMeasureId,    
    StkDraft.UpdatedDate = GETUTCDATE(),  
-   StkDraft.Acquired = TmpStkDraft.Acquired
+   StkDraft.Acquired = TmpStkDraft.Acquired,
+   StkDraft.IsParent = @PrevIsParent
    FROM DBO.NonStockInventoryDraft StkDraft    
    INNER JOIN #UpdateNonStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.NonStockInventoryDraftId = StkDraft.NonStockInventoryDraftId    
    WHERE StkDraft.NonStockInventoryDraftId = @SelectedNonStockInventoryDraftId;    

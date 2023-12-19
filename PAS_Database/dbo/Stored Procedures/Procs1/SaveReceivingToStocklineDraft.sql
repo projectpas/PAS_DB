@@ -618,86 +618,22 @@ BEGIN
       --FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
   
    INSERT INTO [dbo].[NonStockInventoryDraft]  
-           ([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId]  
-           ,[NonStockInventoryNumber]  
-           ,[ControlNumber]  
-           ,[ControlID]  
-           ,[IdNumber]  
-           ,[ReceiverNumber]  
-           ,[ReceivedDate]  
-           ,[IsSerialized]  
-           ,[SerialNumber]  
-           ,[Quantity]  
-           ,[QuantityRejected]  
-           ,[QuantityOnHand]  
-           ,[CurrencyId]  
-           ,[Currency]  
-           ,[ConditionId]  
-           ,[Condition]  
-           ,[GLAccountId]  
-           ,[GLAccount]  
-           ,[UnitOfMeasureId]  
-           ,[UnitOfMeasure]  
-           ,[ManufacturerId]  
-           ,[Manufacturer]  
-           ,[MfgExpirationDate]  
-           ,[UnitCost]  
-           ,[ExtendedCost]  
-           ,[Acquired]  
-           ,[IsHazardousMaterial]  
-           ,[ItemNonStockClassificationId]  
-           ,[NonStockClassification]  
-           ,[SiteId]  
-           ,[Site]  
-           ,[WarehouseId]  
-           ,[Warehouse]  
-           ,[LocationId]  
-           ,[Location]  
-           ,[ShelfId]  
-           ,[Shelf]  
-           ,[BinId]  
-           ,[Bin]  
-           ,[ShippingViaId]  
-           ,[ShippingVia]  
-           ,[ShippingAccount]  
-           ,[ShippingReference]  
-           ,[IsSameDetailsForAllParts]  
-           ,[VendorId]  
-           ,[VendorName]  
-           ,[RequisitionerId]  
-           ,[Requisitioner]  
-           ,[OrderDate]  
-           ,[EntryDate]  
-           ,[ManagementStructureId]  
-           ,[Level1]  
-           ,[Level2]  
-           ,[Level3]  
-           ,[Level4]  
-           ,[Memo]  
-           ,[MasterCompanyId]  
-           ,[CreatedBy]  
-           ,[UpdatedBy]  
-           ,[CreatedDate]  
-           ,[UpdatedDate]  
-           ,[IsActive]  
-           ,[IsDeleted]
-		   ,[ShippingReferenceNumberNotProvided]
-		   ,[SerialNumberNotProvided]
-		   ,[TimeLifeDetailsNotProvided])  
-    
-       
-     
-   SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,NULL,  
-   ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId  
-   ,'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),  
-   NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,  
-    CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName,@ShippingAccountNo,NULL,1,NULL,NULL,NULL,NULL,NULL,NUll,@ManagementStructureId,NULL,NUll,NULL,NULL,NULL,@MasterCompanyId,  
-     @UserName, @UserName, GETUTCDATE(), GETUTCDATE(),1,0,0,0,0  
-   FROM DBO.ItemMasterNonStock IMN WITH (NOLOCK) WHERE IMN.MasterPartId = @ItemMasterId;  
-  
-        
-    
-      SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
+    ([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId],
+	[NonStockInventoryNumber],[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand],[CurrencyId],
+	[Currency],[ConditionId],[Condition],[GLAccountId],[GLAccount],[UnitOfMeasureId],[UnitOfMeasure],[ManufacturerId],[Manufacturer],[MfgExpirationDate],[UnitCost],[ExtendedCost],[Acquired],
+	[IsHazardousMaterial],[ItemNonStockClassificationId],[NonStockClassification],[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ShippingViaId],
+	[ShippingVia],[ShippingAccount],[ShippingReference],[IsSameDetailsForAllParts],[VendorId],[VendorName],[RequisitionerId],[Requisitioner],[OrderDate],[EntryDate],[ManagementStructureId],
+	[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ShippingReferenceNumberNotProvided],
+	[SerialNumberNotProvided],[TimeLifeDetailsNotProvided])
+	SELECT NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId, @PONumber,@IsParent_NonStock,0,IMN.MasterPartId,IMN.PartNumber,IMN.PartDescription,NULL,NULL,NULL,NULL,@IdNumber,NULL,GETUTCDATE(),
+	ISNULL(IMN.IsSerialized,0),'',@Quantity,0,@QuantityOnHand,IMN.CurrencyId,IMN.Currency,@ConditionId,@ConditionName, @POPartGLAccountId, @POPartGLAccountName,IMN.PurchaseUnitOfMeasureId,
+	'',IMN.ManufacturerId,IMN.Manufacturer,IMN.MfgExpirationDate,CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END,((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),
+	NULL,IMN.IsHazardousMaterial,IMN.ItemNonStockClassificationId,IMN.ItemNonStockClassification,IMN.SiteId,IMN.Site,IMN.WarehouseId,IMN.Warehouse,IMN.LocationId,IMN.Location,IMN.ShelfId,IMN.Shelf,IMN.BinId,IMN.Bin,
+	CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName,@ShippingAccountNo,NULL,1,NULL,NULL,NULL,NULL,NULL,NUll,@ManagementStructureId,NULL,NUll,NULL,NULL,NULL,@MasterCompanyId,
+	@UserName, @UserName, GETUTCDATE(), GETUTCDATE(),1,0,0,0,0
+	FROM DBO.ItemMasterNonStock IMN WITH (NOLOCK) WHERE IMN.MasterPartId = @ItemMasterId;  
+      
+	  SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
     
       --EXEC [PROCAddStockLineDraftMSData] @@NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
       EXEC dbo.[PROCAddStockLineDraftMSData] @NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 55, 1;    
@@ -708,8 +644,6 @@ BEGIN
     
      SET @LoopID_Nonstock = @LoopID_Nonstock - 1;    
     END    
-     
-  
     
    EXEC UpdateStocklineDraftDetail @PurchaseOrderId;    
    EXEC UpdateAssetInventoryDraftPoDetails @PurchaseOrderId;    
@@ -723,17 +657,17 @@ BEGIN
     ROLLBACK TRAN;    
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
-              , @AdhocComments     VARCHAR(150)    = 'SaveReceivingToStocklineDraft'     
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@PurchaseOrderId AS varchar(10)) ,'') +''    
-              , @ApplicationName VARCHAR(100) = 'PAS'    
+        , @AdhocComments     VARCHAR(150)    = 'SaveReceivingToStocklineDraft'     
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@PurchaseOrderId AS varchar(10)) ,'') +''    
+        , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
-              exec spLogException     
-                       @DatabaseName           =  @DatabaseName    
-                     , @AdhocComments          =  @AdhocComments    
-                     , @ProcedureParameters    =  @ProcedureParameters    
-                     , @ApplicationName        =  @ApplicationName    
-                     , @ErrorLogID             =  @ErrorLogID OUTPUT ;    
-              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
-              RETURN(1);    
+        exec spLogException     
+                @DatabaseName           =  @DatabaseName    
+                , @AdhocComments          =  @AdhocComments    
+                , @ProcedureParameters    =  @ProcedureParameters    
+                , @ApplicationName        =  @ApplicationName    
+                , @ErrorLogID             =  @ErrorLogID OUTPUT ;    
+        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
+        RETURN(1);    
   END CATCH    
 END

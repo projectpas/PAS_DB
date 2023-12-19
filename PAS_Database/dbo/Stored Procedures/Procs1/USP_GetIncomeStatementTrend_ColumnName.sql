@@ -11,7 +11,8 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    23/06/2023   Hemant Saliya  Created
-	1    23/06/2023   Hemant Saliya  Updated for Supress Zero
+	2    23/06/2023   Hemant Saliya  Updated for Supress Zero
+	3    19/12/2023   Moin Bloch     Updated (Added Calander Period Name When we getting 0 Month)
 **************************************************************/  
 
 /*************************************************************             
@@ -122,23 +123,19 @@ BEGIN
 				   B.AccountingPeriodId,   
 				   REPLACE(B.AccountingPeriod,' - ',' ')  'PeriodName'  
 			   FROM dbo.CommonBatchDetails cb WITH(NOLOCK)   
-				   INNER JOIN BatchHeader B WITH(NOLOCK) ON  CB.JournalBatchHeaderId = B.JournalBatchHeaderId AND B.AccountingPeriodId IN (SELECT * FROM SplitString(@AccountPeriodIds,',')) AND B.MasterCompanyId = @MasterCompanyId  
+				   INNER JOIN dbo.BatchHeader B WITH(NOLOCK) ON  CB.JournalBatchHeaderId = B.JournalBatchHeaderId AND B.AccountingPeriodId IN (SELECT * FROM SplitString(@AccountPeriodIds,',')) AND B.MasterCompanyId = @MasterCompanyId  
 			   WHERE GLM.GLAccountId = cb.GlAccountId AND CAST(cb.TransactionDate AS date) BETWEEN CAST(@FromDate AS date) AND CAST(@Todate AS date) AND CB.ManagementStructureId = @ManagementStructureId  
 			   GROUP BY cb.GlAccountId,B.AccountingPeriod,B.AccountingPeriodId  
 			  )CBD  
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
-		  
+
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)
 		  VALUES(0, 'name', '', 0, 0)
 
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  
 		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1 FROM #TempTable 
-
-		  --SELECT @FROMDATE
-		  --SELECT @TODATE
-		  --SELECT * FROM #AccPeriodTempTable
-
+		  		 
 		  IF(@IsSupressZero = 0)
 		  BEGIN
 			  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign, [FiscalYear], [Period])  
@@ -148,6 +145,21 @@ BEGIN
 		  		 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
 				 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
 			  ORDER BY AC.[FiscalYear],AC.[Period]
+		  END
+		  ELSE
+		  BEGIN	
+				DECLARE @PeriodId BIGINT;
+				SELECT TOP 1 @PeriodId = [PeriodId] FROM #AccPeriodTempTable WHERE [PeriodId] > 0
+				IF(@PeriodId IS NULL)
+				BEGIN					
+				  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign, [FiscalYear], [Period])  	
+				  SELECT DISTINCT AccountingCalendarId,  REPLACE(AC.PeriodName,' - ',' ') , '', 1, 1, AC.[FiscalYear], AC.[Period]
+				  FROM dbo.AccountingCalendar AC WITH(NOLOCK)
+				  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
+		  			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+					 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
+				  ORDER BY AC.[FiscalYear],AC.[Period]
+				END
 		  END
 
 		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1 WHERE PeriodName = 'Other'

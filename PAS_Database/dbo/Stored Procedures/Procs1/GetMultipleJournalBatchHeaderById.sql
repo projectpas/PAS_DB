@@ -22,7 +22,8 @@
 -- EXEC GetMultipleJournalBatchHeaderById '321'    
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
-@JournalBatchHeaderId varchar(MAX)  = null  
+@JournalBatchHeaderId varchar(MAX)  = null ,
+@ManagementStructureId varchar(max) = null
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -30,7 +31,16 @@ BEGIN
  BEGIN TRY    
 
    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-   SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+
+   -- SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+
+   SELECT @CurrntEmpTimeZoneDesc = TZ.[Description]    
+   FROM DBO.LegalEntity LE WITH (NOLOCK) 
+		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId -- AND LE.LegalEntityId = @ManagementStructureId
+		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
+		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
+   WHERE ESS.EntityStructureId = @ManagementStructureId
+   print @CurrntEmpTimeZoneDesc
 
    SELECT   
    JBH.[JournalBatchHeaderId],  

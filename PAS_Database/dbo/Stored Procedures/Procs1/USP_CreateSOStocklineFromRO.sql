@@ -22,7 +22,7 @@
  EXECUTE USP_CreateSOStocklineFromRO 1228
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
+CREATE    PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
 (
 	@RepairOrderId bigint = NULL
 )
@@ -48,7 +48,7 @@ BEGIN
 		DECLARE @MasterLoopID AS INT;
 		DECLARE @RepairOrderPartId BIGINT;
 		DECLARE @StlQuantity BIGINT;
-
+		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
         IF OBJECT_ID(N'tempdb..#ROStockLineSamePart') IS NOT NULL
         BEGIN
           DROP TABLE #ROStockLineSamePart
@@ -232,7 +232,7 @@ BEGIN
                       SOP.PromisedDate,
                       SOP.EstimatedShipDate,
                       SOP.PriorityId,
-                      SOP.StatusId,
+                      @soPartFulfilledStatusId,
                       'Created from RO',
                       @Quantity,
                       NULL,
@@ -357,6 +357,7 @@ BEGIN
                 UPDATE [dbo].[SalesOrderPart]
                 SET UnitCostExtended = ISNULL(UnitCost, 0) * ISNULL(Qty, 0), SalesPriceExtended = ISNULL(UnitSalePrice, 0) * ISNULL(Qty, 0),
 				SalesBeforeDiscount = ISNULL(UnitSalePrice, 0) * ISNULL(Qty, 0)
+				, StatusId = @soPartFulfilledStatusId
                 WHERE [SalesOrderPartId] = @SalesOrderPartId
 
                 SELECT @QtyFulfilled SET @QtyFulfilled = @QtyFulfilled - (SELECT SUM(ISNULL(Qty,0)) FROM [dbo].[SalesOrderPart] WITH (NOLOCK) 
@@ -471,7 +472,7 @@ BEGIN
 						  SOP.PromisedDate,
 						  SOP.EstimatedShipDate,
 						  SOP.PriorityId,
-						  SOP.StatusId,
+						  @soPartFulfilledStatusId,
 						  'Created from RO',
 						  SOP.QtyRequested,
 						  NULL,
@@ -598,7 +599,7 @@ BEGIN
 				      FROM [dbo].[StocklineDraft] SD LEFT JOIN [dbo].[Stockline] SL ON SD.StockLineId = SL.StockLineId WHERE SL.StockLineId = @StocklineId;
 
 					  UPDATE [dbo].[SalesOrderPart] SET UnitCostExtended = ISNULL(UnitCost, 0) * ISNULL(Qty, 0), SalesPriceExtended = ISNULL(UnitSalePrice, 0) * ISNULL(Qty, 0),
-					  SalesBeforeDiscount = ISNULL(UnitSalePrice, 0) * ISNULL(Qty, 0)
+					  SalesBeforeDiscount = ISNULL(UnitSalePrice, 0) * ISNULL(Qty, 0),StatusId = @soPartFulfilledStatusId
 					  WHERE SalesOrderPartId = @SalesOrderPartId
 
 					  SELECT @QtyFulfilled SET @QtyFulfilled = @QtyFulfilled - (SELECT SUM(ISNULL(Qty,0)) FROM [dbo].[SalesOrderPart] WITH (NOLOCK) 
@@ -690,7 +691,7 @@ BEGIN
 									UpdatedDate = GETDATE()
 									WHERE SalesOrderPartId = @SalesOrderPartId;
 
-									UPDATE [dbo].[SalesOrderPart] SET QtyRequested = Qty WHERE [SalesOrderId] = @SoId;
+									UPDATE [dbo].[SalesOrderPart] SET QtyRequested = Qty,StatusId =@soPartFulfilledStatusId WHERE [SalesOrderId] = @SoId;
 								END
 							END
 

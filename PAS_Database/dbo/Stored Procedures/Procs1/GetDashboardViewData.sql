@@ -1,7 +1,7 @@
 ﻿/*************************************************************
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetDashboardViewData]
+CREATE   PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
 	@DashboardType INT = NULL,
@@ -63,24 +63,30 @@ BEGIN
 			END
 			ELSE IF (@DashboardType = 3)
 			BEGIN
-				SELECT DISTINCT
-				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
-				INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId
-				LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
-				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-				LEFT JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
-				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
-				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				WHERE sobi.IsActive = 1
-				AND sobi.IsDeleted = 0
-				AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
-				AND sobi.MasterCompanyId = @MasterCompanyId
+				;WITH Result AS (	
+					SELECT DISTINCT
+					item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
+					sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+					FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
+					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId
+					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
+					LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
+					LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
+					LEFT JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
+					LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
+					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					WHERE sobi.IsActive = 1
+					AND sobi.IsDeleted = 0
+					AND ISNULL(sop.StockLineId,0) > 0
+					AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
+					AND sobi.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(PartNumber) AS totalItems FROM Result) 
+
+				Select * from Result
+					
 			END
 			ELSE IF (@DashboardType = 4)
 			BEGIN
@@ -183,7 +189,7 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SOQM.NetSales AS GrandTotal, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				SOQM.NetSales AS GrandTotal,SOQP.NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
 				INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 				INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId

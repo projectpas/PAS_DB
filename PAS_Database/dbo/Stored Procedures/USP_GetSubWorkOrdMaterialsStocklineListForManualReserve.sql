@@ -16,6 +16,7 @@
  ** PR   Date			 Author					Change Description            
  ** --   --------		-------				--------------------------------          
     1    12/14/2023		 Devendra Shekh				Created
+    2    12/19/2023		 Devendra Shekh				changes for customerid select
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForManualReserve 3118,0,0,3375,0
 **************************************************************/ 
@@ -47,7 +48,12 @@ SET NOCOUNT ON
 
 				SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 				SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
-				SELECT @MasterCompanyId = WO.MasterCompanyId FROM dbo.SubWorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrderPartNumber WOWF WITH(NOLOCK) on WO.SubWorkOrderId = WOWF.SubWorkOrderId WHERE WOWF.SubWOPartNoId = @SubWOPartNoId;
+				--SELECT @MasterCompanyId = WO.MasterCompanyId FROM dbo.SubWorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrderPartNumber WOWF WITH(NOLOCK) on WO.SubWorkOrderId = WOWF.SubWorkOrderId WHERE WOWF.SubWOPartNoId = @SubWOPartNoId;
+				
+				SELECT DISTINCT TOP 1 @CustomerID = WO.CustomerId, @MasterCompanyId = SWO.MasterCompanyId 
+				FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.SubWorkOrder SWO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
+					JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) on SWOPN.SubWorkOrderId = SWO.SubWorkOrderId WHERE SWOPN.SubWOPartNoId = @subWOPartNoId;
+
 				SELECT @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId;
 
 				IF(@ItemMasterId = 0)

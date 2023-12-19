@@ -13,14 +13,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/20/2021   Hemant Saliya Created
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    09/20/2021   Hemant Saliya			Created
+	2    12/19/2023   Devendra Shekh        changes for kit part added
      
 --EXEC [GetSubWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetSubWOMaterialsPickTicketChildList]
+CREATE   PROCEDURE [dbo].[GetSubWOMaterialsPickTicketChildList]
 @WorkOrderId  BIGINT,
 @SubWorkOrderId  BIGINT,
 @OrderPartId  BIGINT
@@ -47,13 +48,42 @@ BEGIN
 					sl.IdNumber,
 					wopt.ConfirmedDate,
 					sl.StockLineId,
-					wopt.IsConfirmed 
+					wopt.IsConfirmed,
+					0 AS IsKitType 
 			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND wop.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0 
+
+			UNION ALL
+
+			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
+					wopt.QtyToShip,
+					sl.SerialNumber,
+					sl.StockLineNumber,
+					wopt.CreatedDate as PickedDate,
+					CONCAT(emp.FirstName ,' ', emp.LastName) as PickedBy,
+					wopt.PickTicketId as PickTicketId,
+					wopt.WorkorderId as referenceId,
+					wopt.SubWorkorderId,
+					wopt.SubWorkorderPartNoId,
+					wopt.SubWorkOrderMaterialsId as OrderPartId,
+					CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy,
+					sl.ControlNumber,
+					sl.IdNumber,
+					wopt.ConfirmedDate,
+					sl.StockLineId,
+					wopt.IsConfirmed,
+					1 AS IsKitType 
+			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
+				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
+				INNER JOIN dbo.SubWorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND  wop.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
+			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
+
 		COMMIT  TRANSACTION
 		END TRY
 		BEGIN CATCH      

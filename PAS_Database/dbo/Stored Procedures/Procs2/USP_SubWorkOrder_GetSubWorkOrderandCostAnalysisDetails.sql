@@ -132,7 +132,7 @@ BEGIN
 					WHERE SWOM.SubWorkOrderId = @MainSubWorkOrderId AND SWOM.IsDeleted = 0;
 
 				--SubOutside Cost
-				SELECT @SubOutSideServiceCost = @SubOutSideServiceCost + SUM(ISNULL(ROP.ExtendedCost,0)) 
+				SELECT @SubOutSideServiceCost = @SubOutSideServiceCost + ISNULL(SUM(ISNULL(ROP.ExtendedCost,0)),0)
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 				WHERE ROP.SubWorkOrderId = @MainSubWorkOrderId;
 
@@ -149,12 +149,12 @@ BEGIN
 				WHERE WOL.SubWorkOrderLaborHeaderId IN(SELECT Item FROM dbo.SplitString(@WorkOrderLaborHeaderIds, ','));
 
 				--Freight Cost
-				SELECT @FreightCost = ISNULL(@FreightCost,0) + SUM(ISNULL(WOC.Amount,0)) 
+				SELECT @FreightCost = ISNULL(@FreightCost,0) + ISNULL(SUM(ISNULL(WOC.Amount,0)),0)
 					FROM [DBO].[SubWorkOrderFreight] WOC WITH(NOLOCK) 
 				WHERE WOC.SubWorkOrderId = @MainSubWorkOrderId AND WOC.IsDeleted = 0;
-
+				
 				--Charges Cost
-				SELECT @ChargesCost = ISNULL(@ChargesCost,0) + SUM(ISNULL(WOC.ExtendedCost,0)) 
+				SELECT @ChargesCost = ISNULL(@ChargesCost,0) + ISNULL(SUM(ISNULL(WOC.ExtendedCost,0)),0) 
 					FROM [DBO].[SubWorkOrderCharges] WOC WITH(NOLOCK) 
 				WHERE WOC.SubWorkOrderId = @MainSubWorkOrderId AND WOC.IsDeleted = 0;
 
@@ -163,7 +163,7 @@ BEGIN
 			END
 		END
 		ELSE
-		BEGIN
+		BEGIN 
 			INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 				SELECT SWOMS.SubWorkOrderMaterialsId,
 					SWOMS.UnitCost,
@@ -183,7 +183,7 @@ BEGIN
 				WHERE SWOM.SubWorkOrderId = @WorkOrderId AND SWOM.IsDeleted = 0;
 
 				--SubOutside Cost
-				SELECT @SubOutSideServiceCost = @SubOutSideServiceCost + SUM(ISNULL(ROP.ExtendedCost,0)) 
+				SELECT @SubOutSideServiceCost = @SubOutSideServiceCost + ISNULL(SUM(ISNULL(ROP.ExtendedCost,0)),0) 
 					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
 				WHERE ROP.SubWorkOrderId = @WorkOrderId;
 
@@ -200,16 +200,16 @@ BEGIN
 				WHERE WOL.SubWorkOrderLaborHeaderId = @WorkOrderLaborHeaderId;
 
 				--Freight Cost
-				SELECT @FreightCost = SUM(ISNULL(WOC.Amount,0)) 
+				SELECT @FreightCost = ISNULL(SUM(ISNULL(WOC.Amount,0)),0)
 					FROM [DBO].[SubWorkOrderFreight] WOC WITH(NOLOCK) 
 				WHERE WOC.SubWorkOrderId = @WorkOrderId AND WOC.IsDeleted = 0;
 
 				--Charges Cost
-				SELECT @ChargesCost = SUM(ISNULL(WOC.ExtendedCost,0)) 
+				SELECT @ChargesCost = ISNULL(SUM(ISNULL(WOC.ExtendedCost,0)),0) 
 					FROM [DBO].[SubWorkOrderCharges] WOC WITH(NOLOCK) 
 				WHERE WOC.SubWorkOrderId = @WorkOrderId AND WOC.IsDeleted = 0;
 		END
-
+		
 		--Reset counts.
 		SET @TotalCounts  = 0;
 		SET @count = 1;
@@ -282,7 +282,7 @@ BEGIN
 			SET @tmpBurdonLaborCost = @tmpBurdonLaborCost + (@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2));
 			SET @tmpDirectLaborCost = @tmpDirectLaborCost + (@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2));
 
-			SET @tmpAdjustedHoursdata1 = cast((cast(@tmpAdjustedHoursdata as decimal(18,2))/ 100 )as decimal(18,2));
+			SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18,2))/ 100 )AS DECIMAL(18,2));
 
 			IF(@tmpAdjustedHoursdata > 0)
 			BEGIN

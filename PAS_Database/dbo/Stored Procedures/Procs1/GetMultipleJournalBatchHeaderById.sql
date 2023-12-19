@@ -31,23 +31,19 @@ BEGIN
  BEGIN TRY    
 
    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-
-   -- SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-
    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description]    
    FROM DBO.LegalEntity LE WITH (NOLOCK) 
-		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId -- AND LE.LegalEntityId = @ManagementStructureId
+		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
 		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
    WHERE ESS.EntityStructureId = @ManagementStructureId
-   print @CurrntEmpTimeZoneDesc
 
    SELECT   
    JBH.[JournalBatchHeaderId],  
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
-   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBH.[EntryDate],  
-   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBH.[PostDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime), 
+   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as datetime), 
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  
    JBH.[StatusName],  
@@ -66,14 +62,14 @@ BEGIN
    JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBD.[CreatedDate],  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime), -- JBD.[UpdatedDate],  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime),
+   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime), 
    JBD.[CreatedBy],  
    JBD.[UpdatedBy] AS DUpdatedBy,
    CD.CreditAmount as Cr,
    CD.DebitAmount as Dr,
    CD.GlAccountNumber + ' - ' + CD.GlAccountName as GLAccount,
-   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, -- CD.TransactionDate as TDate,
+   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, 
     BS.[Name] AS 'BatchStatus'
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
   LEFT JOIN [dbo].[BatchDetails] JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBD.IsDeleted=0  

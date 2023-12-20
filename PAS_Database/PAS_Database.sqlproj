@@ -2695,5 +2695,6 @@
     <Build Include="dbo\Stored Procedures\MigratePOHeaderRecords.sql" />
     <Build Include="dbo\Stored Procedures\USP_AutoReserveAllSubWorkOrderMaterials.sql" />
     <Build Include="dbo\Stored Procedures\SP_SaveSOPartStatusByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\OEMCrossReferenceList.sql" />
   </ItemGroup>
 </Project>

@@ -60,7 +60,7 @@ BEGIN
    ISNULL(JBD.[DebitAmount],0) AS DebitAmount,  
    ISNULL(JBD.[CreditAmount],0) AS CreditAmount,  
    JBD.[JournalTypeNumber] AS DJournalTypeNumber,  
-   JBD.[EntryDate] AS DEntryDate,  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime) as DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
    Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime) as CreatedDate,

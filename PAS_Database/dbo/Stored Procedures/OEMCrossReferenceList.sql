@@ -89,15 +89,13 @@ AS
 	   mapping.UpdatedBy as UpdatedBy,
 	   mapping.UpdatedDate as UpdatedDate
 
-FROM  Nha_Tla_Alt_Equ_ItemMapping   mapping  WITH (NOLOCK)
-LEFT JOIN [dbo].ItemMaster itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
-LEFT JOIN [dbo].ItemMaster alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
-LEFT JOIN [dbo].ItemMaster nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
-LEFT JOIN [dbo].ItemMaster equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
-LEFT JOIN [dbo].ItemMaster tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-WHERE 
- mapping.MasterCompanyId = @MasterCompanyId AND
-((mapping.IsDeleted =0) AND (@IsActive IS NULL OR mapping.IsActive = 1))
+FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
+LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
+LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
+LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
+LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
+LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
+WHERE  mapping.MasterCompanyId = @MasterCompanyId AND ((mapping.IsDeleted =0) AND (@IsActive IS NULL OR mapping.IsActive = 1))
 --AND (@ItemMasterId = 0 OR mapping.ItemMasterId = @ItemMasterId) 
 )	
 SELECT   * INTO #TempResult FROM ORMLIST_CTE			
@@ -131,8 +129,7 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 					(ISNULL(@EquivalentPartDescription,'') ='' OR EquivalentPartDescription LIKE '%' + @EquivalentPartDescription + '%')AND
 					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') AND
 					(ISNULL(@AlternatePartDescription,'') ='' OR AlternatePartDescription LIKE '%' + @AlternatePartDescription + '%') 
-					)
-			
+					)			
 			)
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult
 			SELECT *, @Count AS NumberOfItems FROM #TempResult 

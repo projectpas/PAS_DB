@@ -12,7 +12,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 1    12/13/2023		 HEMANT SALIYA			Save Work Order Sub Materials reserve Stockline Details
 
 
-EXEC USP_AutoReserveAllSubWorkOrderMaterials 160,0,0,2,0
+EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
 @SubWOPartNoId BIGINT,
@@ -835,7 +835,7 @@ BEGIN
 							--UPDATE WORK ORDER MATERIALS DETAILS
 							WHILE @Autocount<= @AutoTotalCounts
 							BEGIN
-								UPDATE WorkOrderMaterials 
+								UPDATE SubWorkOrderMaterials 
 									SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										ReservedById = tmpWOM.ReservedById, 
@@ -1368,7 +1368,7 @@ BEGIN
 							--UPDATE WORK ORDER MATERIALS DETAILS
 							WHILE @Autocount<= @AutoTotalCounts
 							BEGIN
-								UPDATE WorkOrderMaterials 
+								UPDATE SubWorkOrderMaterials 
 									SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										ReservedById = tmpWOM.ReservedById, 
@@ -1634,7 +1634,7 @@ BEGIN
 						--UPDATE WORK ORDER MATERIALS DETAILS
 						WHILE @Autocount<= @AutoTotalCounts
 						BEGIN
-							UPDATE WorkOrderMaterials 
+							UPDATE SubWorkOrderMaterials 
 								SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									ReservedById = tmpWOM.ReservedById, 

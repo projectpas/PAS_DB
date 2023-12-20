@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31911.196
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "PAS_DB", "PAS_DB\PAS_DB.sqlproj", "{DBF88E02-D329-46C3-8753-0208F0A46AFE}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "PAS_Database", "PAS_Database\PAS_Database.sqlproj", "{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,12 +11,12 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DBF88E02-D329-46C3-8753-0208F0A46AFE}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD11E405-7D5A-4823-B9AA-8419FE2F8B0A}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

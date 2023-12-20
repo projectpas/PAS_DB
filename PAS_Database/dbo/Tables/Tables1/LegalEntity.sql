@@ -36,6 +36,7 @@
     [TCCALicense]             VARCHAR (100) NULL,
     [TimeZoneId]              BIGINT        NULL,
     [IsPrintCheckNumber]      BIT           NULL,
+    [IsTurnOffMgmt]           BIT           NULL,
     CONSTRAINT [PK_LegalEntity] PRIMARY KEY CLUSTERED ([LegalEntityId] ASC),
     CONSTRAINT [FK_LegalEntity_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_LegalEntity_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -45,6 +46,8 @@
     CONSTRAINT [Unique_LegalEntity] UNIQUE NONCLUSTERED ([CompanyCode] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_LegalEntity_Name] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

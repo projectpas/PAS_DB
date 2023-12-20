@@ -355,6 +355,10 @@ BEGIN
        END    
       END    
     
+	  DECLARE @CalibrationDays INT = 0;
+
+	  SELECT @CalibrationDays = ISNULL(AC.CalibrationFrequencyDays, 0) FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
+
       INSERT INTO DBO.AssetInventoryDraft ([AssetInventoryId],[AssetRecordId],[AssetId],[AlternateAssetRecordId],[Name],[Description],[ManagementStructureId],    
       [CalibrationRequired],[CertificationRequired],[InspectionRequired],[VerificationRequired],[IsTangible],[IsIntangible],[AssetAcquisitionTypeId],[ManufacturerId],    
       [ManufacturedDate],[Model],[IsSerialized],[UnitOfMeasureId],[CurrencyId],[UnitCost],[ExpirationDate],[Memo],[AssetParentRecordId],[TangibleClassId],[AssetIntangibleTypeId],    
@@ -389,7 +393,7 @@ BEGIN
       NULL, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
       A.SiteId, A.WarehouseId, NULL, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
-      NULL, NULL, NULL, NULL, NULL, NULL    
+      NULL, NULL, NULL, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END
       FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
     
       SELECT @NewAssetStocklineDraftId = SCOPE_IDENTITY();    

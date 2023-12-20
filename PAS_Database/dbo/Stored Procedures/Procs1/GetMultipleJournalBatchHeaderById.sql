@@ -24,7 +24,7 @@
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
 @JournalBatchHeaderId varchar(MAX)  = null ,
-@ManagementStructureId varchar(max) = null
+@ManagementStructId varchar(max) = null
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -37,7 +37,7 @@ BEGIN
 		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
 		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
-   WHERE ESS.EntityStructureId = @ManagementStructureId
+   WHERE ESS.EntityStructureId = @ManagementStructId
 
    SELECT   
    JBH.[JournalBatchHeaderId],  

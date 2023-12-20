@@ -29,7 +29,19 @@ BEGIN
 	BEGIN 
 		IF(@SalesOrderPartId > 0 AND @StatusId >0)
 		BEGIN
-			UPDATE dbo.SalesOrderPart set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
+			DECLARE @SOID BIGINT = (SELECT TOP 1 SalesOrderId FROM DBO.SalesOrderPart WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId);
+			DECLARE @ClosedStatusId INT =(SELECT TOP 1 id FROM Dbo.MasterSalesOrderStatus  WITH(NOLOCK) WHERE Description = 'Closed')
+			DECLARE @IsSOClosed BIT = (CASE WHEN ISNULL((SELECT TOP 1 SalesOrderId FROM dbo.SalesOrder  WITH(NOLOCK) WHERE SalesOrderId = @SOID AND StatusId = @ClosedStatusId),0) > 0 THEN 1 ELSE 0 END)
+
+			IF(@ClosedStatusId = 1)
+			BEGIN
+				DECLARE @partCloseStatusId int = (SELECT SOPartStatusId FROM DBO.SOPartStatus  WITH(NOLOCK) WHERE Description = 'Closed')
+				UPDATE dbo.SalesOrderPart set StatusId = @partCloseStatusId WHERE SalesOrderId = @SOID;
+			END
+			ELSE
+			BEGIN
+				UPDATE dbo.SalesOrderPart set StatusId = @StatusId WHERE SalesOrderPartId = @SalesOrderPartId;
+			END
 		END
 	END	
 	COMMIT  TRANSACTION

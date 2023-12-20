@@ -17,7 +17,7 @@
     1    09/11/2023   Vishal Suthar		Created
     2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
     3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
-
+	4    19 DEC 2023  Rajesh Gami		Change the SOPart status(Fulfilled) when PO reserve where SO mapped with same PO
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2309,@SelectedPartsToReserve=N'905',@UpdatedBy=N'ADMIN User'
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -38,7 +38,7 @@ BEGIN
 		DECLARE @StkLoopID AS INT;
 		DECLARE @LoopID AS INT;
 		DECLARE @ReplaceProvisionId AS BIGINT = 0;
-
+		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		SELECT @ReplaceProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 
 		IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartReference') IS NOT NULL
@@ -1153,6 +1153,7 @@ BEGIN
 									SOP.MarginPercentage = CASE WHEN SOP.UnitSalePrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,
 									SOP.UnitSalesPricePerUnit = SOP.GrossSalePricePerUnit - SOP.DiscountAmount,
 									SOP.NetSales = ISNULL(SOP.UnitSalesPricePerUnit, 0) * SOP.Qty
+									,SOP.StatusId = @soPartFulfilledStatusId
 									FROM DBO.SalesOrderPart SOP
 									WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
 
@@ -1260,7 +1261,7 @@ BEGIN
 											SELECT TOP 1 [SalesOrderId],[ItemMasterId],@StkStocklineId,[FxRate],@Qty,[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
 											[Discount],[DiscountAmount],(ISNULL((SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount), 0) * @Qty),[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsDeleted],@stkPurchaseOrderUnitCost,[MethodType],[SalesPriceExtended],
 											[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],(@stkPurchaseOrderUnitCost * @Qty),(SOP.UnitSalePrice - @stkPurchaseOrderUnitCost),((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty),CASE WHEN SOP.UnitSalePrice > 0 THEN (((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,[ConditionId],[SalesOrderQuoteId],
-											[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
+											[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],@soPartFulfilledStatusId,[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
 											[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
 											[PONextDlvrDate], (SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount),[LotId],[IsLotAssigned]
 											FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;

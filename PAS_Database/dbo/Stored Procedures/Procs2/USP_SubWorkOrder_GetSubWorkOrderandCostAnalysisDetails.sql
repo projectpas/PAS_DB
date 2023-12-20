@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    11/30/2023    Amit Ghediya		Created	
 	2    12/18/2023    Amit Ghediya		Updated (Get Multiple Sub WO Data based on Main WO)
-	
+	3    12/19/2023    Amit Ghediya		Updated (SubWOPartNoId added as param)	
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 3123, 3652     
 **************************************************************/
@@ -24,7 +24,8 @@ CREATE       PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDet
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT,
-	@IsSubWOFromWo BIT = 0
+	@IsSubWOFromWo BIT = 0,
+	@SubWOPartNoId BIGINT
 )
 AS
 BEGIN 
@@ -62,10 +63,19 @@ BEGIN
 			SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ','));
 		END
 		ELSE
-		BEGIN
+		BEGIN 
 			SET @woNumber = (SELECT [SubWorkOrderNo] FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId);
-			SET @subItemMasterId = (SELECT [ItemMasterId] FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId);
-			SELECT @subPartNumber = [partnumber], @subPartNumberDesc = [PartDescription] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @subItemMasterId;
+			IF(ISNULL(@SubWOPartNoId,0) = 0)
+			BEGIN 
+				SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId);
+				SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ','));
+			END
+			ELSE
+			BEGIN
+				SET @subItemMasterId = (SELECT [ItemMasterId] FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId);
+				SELECT @subPartNumber = [partnumber], @subPartNumberDesc = [PartDescription] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @subItemMasterId;
+			END
+			
 		END
 		
 		--Sub-WorkOrder Start
@@ -106,7 +116,7 @@ BEGIN
 		);
 
 		IF(@IsSubWOFromWo = 1) -- Check is subWO for WO
-		BEGIN
+		BEGIN 
 			SELECT @SubWoTotalCounts = COUNT(ID) FROM #tmpSubWorkOrder; --Get All SubWo From Wo
 			WHILE @SubWoCount <= @SubWoTotalCounts
 			BEGIN
@@ -164,7 +174,9 @@ BEGIN
 		END
 		ELSE
 		BEGIN 
-			INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
+			IF(ISNULL(@SubWOPartNoId,0) = 0)
+			BEGIN
+				INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
 				SELECT SWOMS.SubWorkOrderMaterialsId,
 					SWOMS.UnitCost,
 					SWOMS.ExtendedCost,
@@ -208,6 +220,55 @@ BEGIN
 				SELECT @ChargesCost = ISNULL(SUM(ISNULL(WOC.ExtendedCost,0)),0) 
 					FROM [DBO].[SubWorkOrderCharges] WOC WITH(NOLOCK) 
 				WHERE WOC.SubWorkOrderId = @WorkOrderId AND WOC.IsDeleted = 0;
+			END
+			ELSE
+			BEGIN
+				INSERT INTO #tmpSubWorkOrderMaterials (SubWorkOrderMaterialsId,UnitCost,ExtendedCost, QtyIssued, QtyReserved, QtyOnBkOrder, MUnitCost, POId, QtyToTurnIn) 
+				SELECT SWOMS.SubWorkOrderMaterialsId,
+					SWOMS.UnitCost,
+					SWOMS.ExtendedCost,
+					SWOMS.QtyIssued,
+					SWOMS.QtyReserved,
+					CASE WHEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) < ISNULL(POPartReferece.Qty, 0) 
+							THEN (ISNULL(SWOM.Quantity, 0) - (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0))) 
+							ELSE ISNULL(POPartReferece.Qty, 0) END,
+					CASE WHEN ISNULL(SWOM.UnitCost,0) = 0 THEN POP.UnitCost ELSE SWOM.UnitCost END,
+					SWOM.POId,
+					SWOM.QtyToTurnIn
+				FROM [DBO].[SubWorkOrderMaterials] SWOM WITH(NOLOCK) 
+					LEFT JOIN [DBO].[SubWorkOrderMaterialStockLine] SWOMS WITH(NOLOCK) ON SWOM.SubWorkOrderMaterialsId = SWOMS.SubWorkOrderMaterialsId
+					LEFT JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) ON POP.PurchaseOrderId = SWOM.POId AND POP.ItemMasterId = SWOM.ItemMasterId AND (POP.ConditionId = SWOM.ConditionCodeId OR (pop.WorkOrderMaterialsId = SWOM.SubWorkOrderMaterialsId AND SWOM.ProvisionId = @exchangeProvisionId))
+					LEFT JOIN dbo.PurchaseOrderPartReference POPartReferece WITH(NOLOCK) ON POPartReferece.ReferenceId = SWOM.SubWorkOrderId AND POPartReferece.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
+				WHERE SWOM.SubWorkOrderId = @WorkOrderId AND SWOM.IsDeleted = 0 AND SWOM.SubWOPartNoId = @SubWOPartNoId;
+
+				--SubOutside Cost
+				SELECT @SubOutSideServiceCost = @SubOutSideServiceCost + ISNULL(SUM(ISNULL(ROP.ExtendedCost,0)),0) 
+					FROM [DBO].[RepairOrderPart] ROP WITH(NOLOCK)
+				WHERE ROP.SubWorkOrderId = @WorkOrderId;
+
+				--Labor Cost
+				SELECT @WorkOrderLaborHeaderId = WOLH.SubWorkOrderLaborHeaderId , @TotalWorkHours = TotalWorkHours
+					FROM [DBO].[SubWorkOrderLaborHeader] WOLH WITH(NOLOCK) 
+				WHERE WOLH.SubWorkOrderId = @WorkOrderId AND WOLH.SubWOPartNoId = @SubWOPartNoId;
+		
+				INSERT INTO #tmpWorkOrderLabor (DirectLaborOHCost,BurdenRateAmount,AdjustedHours) 
+					SELECT WOL.DirectLaborOHCost,
+						   WOL.BurdenRateAmount,
+						   WOL.AdjustedHours
+				FROM [DBO].[SubWorkOrderLabor] WOL WITH(NOLOCK)
+				WHERE WOL.SubWorkOrderLaborHeaderId = @WorkOrderLaborHeaderId;
+
+				--Freight Cost
+				SELECT @FreightCost = ISNULL(SUM(ISNULL(WOC.Amount,0)),0)
+					FROM [DBO].[SubWorkOrderFreight] WOC WITH(NOLOCK) 
+				WHERE WOC.SubWorkOrderId = @WorkOrderId AND WOC.IsDeleted = 0 AND WOC.SubWOPartNoId = @SubWOPartNoId;
+
+				--Charges Cost
+				SELECT @ChargesCost = ISNULL(SUM(ISNULL(WOC.ExtendedCost,0)),0) 
+					FROM [DBO].[SubWorkOrderCharges] WOC WITH(NOLOCK) 
+				WHERE WOC.SubWorkOrderId = @WorkOrderId AND WOC.IsDeleted = 0 AND WOC.SubWOPartNoId = @SubWOPartNoId;
+			END
+				
 		END
 		
 		--Reset counts.

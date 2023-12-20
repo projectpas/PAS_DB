@@ -12,11 +12,12 @@
  **************************************************************               
   ** Change History               
  **************************************************************               
- ** PR   Date         Author   Change Description                
- ** --   --------     -------   --------------------------------              
-    1    05/13/2022   Vishal Suthar  Created    
-    2    05/13/2022   Devendra Shekh added [IsStkTimeLife] for insert  
- 3    04-12-2023   Shrey Chandegara Updated For Insert into NonStockInventoryDraft  
+ ** PR   Date         Author			Change Description                
+ ** --   --------     -------			--------------------------------              
+    1    05/13/2022   Vishal Suthar		Created    
+    2    05/13/2022   Devendra Shekh	added [IsStkTimeLife] for insert  
+	3    12/04/2023   Shrey Chandegara	Updated For Insert into NonStockInventoryDraft  
+	4    12/20/2023   Vishal Suthar		Fixed non stock issues
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -53,7 +54,7 @@ BEGIN
     DECLARE @ShippingAccountNo VARCHAR(100);    
     DECLARE @ManagementStructureId BIGINT;    
     DECLARE @IsSerialized BIT = 0;    
- DECLARE @LotId BIGINT = NULL  
+	DECLARE @LotId BIGINT = NULL  
     
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderParts') IS NOT NULL    
     BEGIN    
@@ -67,13 +68,9 @@ BEGIN
     )    
     
     INSERT INTO #tmpPurchaseOrderParts (PurchaseOrderPartRecordId)     
-    --SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE POP.PurchaseOrderId = @PurchaseOrderId;    
     SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND POP.ItemTypeId = 1    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT POPI.ParentId FROM dbo.PurchaseOrderPart POPI WITH(NOLOCK) WHERE POPI.PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL))    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT StkDraft.PurchaseOrderPartRecordId FROM dbo.StocklineDraft StkDraft WITH(NOLOCK) WHERE StkDraft.PurchaseOrderId = @PurchaseOrderId AND StkDraft.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId))  
-  
-    
-    SELECT * FROM #tmpPurchaseOrderParts;    
     
     SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderParts;    
     
@@ -104,17 +101,12 @@ BEGIN
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
     
-     PRINT '@POUnitCost'    
-     PRINT @POUnitCost    
-     PRINT '@POPartUnitCost'    
-     PRINT @POPartUnitCost    
-    
      INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)    
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom    
      FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId    
      WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;    
     
-     SELECT @IsSerialized = IM.isSerialized  FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
+     SELECT @IsSerialized = ISNULL(IM.isSerialized, 0) FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
      SET @CurrentIndex = 0;    
      SET @LoopID_Qty = @QtyToTraverse;    
@@ -179,11 +171,6 @@ BEGIN
        END    
       END    
     
-      PRINT '@IsParent'    
-      PRINT @IsParent    
-      PRINT '@Quantity'    
-      PRINT @Quantity    
-    
       INSERT INTO DBO.StocklineDraft (    
       [PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],    
       [LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],    
@@ -209,7 +196,7 @@ BEGIN
       IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
       NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
       NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
-   NULL, 0, NULL, NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
+	  NULL, 0, NULL, NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
       NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
       IM.WarehouseName, IM.LocationName, '', '', '', IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
       '', NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000',     
@@ -230,8 +217,7 @@ BEGIN
      SET @LoopID = @LoopID - 1;    
     END    
     
-    
-    /* Start: Asset changes */    
+    /* Start: Asset changes */
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartsAsset') IS NOT NULL    
     BEGIN    
      DROP TABLE #tmpPurchaseOrderPartsAsset    
@@ -244,12 +230,9 @@ BEGIN
     )    
     
     INSERT INTO #tmpPurchaseOrderPartsAsset (PurchaseOrderPartRecordId)     
-    --SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE POP.PurchaseOrderId = @PurchaseOrderId;    
     SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND POP.ItemTypeId = 11    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT POPI.ParentId FROM dbo.PurchaseOrderPart POPI WITH(NOLOCK) WHERE POPI.PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL))    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT StkDraft.PurchaseOrderPartRecordId FROM dbo.AssetInventoryDraft StkDraft WITH(NOLOCK) WHERE StkDraft.PurchaseOrderId = @PurchaseOrderId AND StkDraft.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId))    
-    
-    SELECT * FROM #tmpPurchaseOrderPartsAsset;    
     
     DECLARE @LoopID_Asset AS int;    
     
@@ -296,9 +279,8 @@ BEGIN
      SELECT @PurchaseOrderPartRecordId = PurchaseOrderPartRecordId FROM #tmpPurchaseOrderPartsAsset WHERE ID  = @LoopID_Asset;    
     
      SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost, 
-  
    
-      @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
+     @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM DBO.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
@@ -308,7 +290,7 @@ BEGIN
      FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId    
      WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;    
     
-     SELECT @IsSerialized = Asst.isSerialized  FROM DBO.Asset Asst WITH (NOLOCK) WHERE Asst.AssetRecordId = @ItemMasterId;    
+     SELECT @IsSerialized = ISNULL(Asst.isSerialized, 0) FROM DBO.Asset Asst WITH (NOLOCK) WHERE Asst.AssetRecordId = @ItemMasterId;    
     
      SET @CurrentIndex = 0;    
      SET @LoopID_Qty = @QtyToTraverse;    
@@ -373,30 +355,6 @@ BEGIN
        END    
       END    
     
-      PRINT '@IsParent_Asset'    
-      PRINT @IsParent_Asset    
-      PRINT '@Quantity'    
-      PRINT @Quantity    
-    
-      SELECT 0, @ItemMasterId, '', NULL, '', NULL, @ManagementStructureId,    
-      0, 0, 0, 0, 0, 0, A.AssetAcquisitionTypeId, A.ManufacturerId,    
-      A.ManufacturedDate, A.Model, A.IsSerialized, A.UnitOfMeasureId, A.CurrencyId, A.UnitCost, A.ExpirationDate, A.Memo, 0, A.TangibleClassId, A.AssetIntangibleTypeId,    
-      NULL, NULL, NULL, NULL, NULL, NULL,     
-      NULL, 0, A.AssetMaintenanceIsContract, NULL, 0, 0, NULL,    
-      NULL, NULL, 0, NULL, NULL, NULL, 0, 0, @MasterCompanyId,    
-      A.[AssetLocationId], 0, 0, 1, NULL, NULL, NULL, NULL,    
-      0, 0, 0, NULL, NULL, NULL, NULL,    
-      0, 0, 0, 0, 0, 0, NULL,    
-      0, NULL, NULL, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
-      NULL, A.[MasterPartId], A.[EntryDate], 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
-      A.[IsAmortizable], A.[IsNonAmortizable], '', 0, 0, 0, NULL, 0, NULL, 0,    
-      NULL, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, @IsParent, 0, 1,    
-      NULL, NULL, NULL, NULL, NULL, NULL    
-      FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
-    
       INSERT INTO DBO.AssetInventoryDraft ([AssetInventoryId],[AssetRecordId],[AssetId],[AlternateAssetRecordId],[Name],[Description],[ManagementStructureId],    
       [CalibrationRequired],[CertificationRequired],[InspectionRequired],[VerificationRequired],[IsTangible],[IsIntangible],[AssetAcquisitionTypeId],[ManufacturerId],    
       [ManufacturedDate],[Model],[IsSerialized],[UnitOfMeasureId],[CurrencyId],[UnitCost],[ExpirationDate],[Memo],[AssetParentRecordId],[TangibleClassId],[AssetIntangibleTypeId],    
@@ -436,7 +394,6 @@ BEGIN
     
       SELECT @NewAssetStocklineDraftId = SCOPE_IDENTITY();    
     
-      --EXEC [PROCAddStockLineDraftMSData] @NewAssetStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
       EXEC dbo.[PROCAddStockLineDraftMSData] @NewAssetStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 56, 1;    
     
       SET @LoopID_Qty = @LoopID_Qty - 1;    
@@ -446,7 +403,6 @@ BEGIN
      SET @LoopID_Asset = @LoopID_Asset - 1;    
     END    
    END    
-  
   
     /* Start: Non Stock changes */    
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartsNonStock') IS NOT NULL    
@@ -461,12 +417,9 @@ BEGIN
     )    
     
     INSERT INTO #tmpPurchaseOrderPartsNonStock (PurchaseOrderPartRecordId)     
-    --SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE POP.PurchaseOrderId = @PurchaseOrderId;    
     SELECT POP.PurchaseOrderPartRecordId FROM dbo.PurchaseOrderPart POP WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND POP.ItemTypeId = 2    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT POPI.ParentId FROM dbo.PurchaseOrderPart POPI WITH(NOLOCK) WHERE POPI.PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL))    
     AND (PurchaseOrderPartRecordId NOT IN (SELECT StkDraft.PurchaseOrderPartRecordId FROM dbo.NonStockInventoryDraft StkDraft WITH(NOLOCK) WHERE StkDraft.PurchaseOrderId = @PurchaseOrderId AND StkDraft.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId))    
-    
-    SELECT * FROM #tmpPurchaseOrderPartsNonStock;    
     
     DECLARE @LoopID_Nonstock AS int;    
     
@@ -475,10 +428,10 @@ BEGIN
     WHILE (@LoopID_Nonstock > 0)    
     BEGIN    
         
-  DECLARE @PONumber VARCHAR(100) = NULL;  
+	DECLARE @PONumber VARCHAR(100) = NULL;  
     
      SET @PurchaseOrderPartRecordId = 0;   
-  SET @PONumber = (SELECT PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WHERE PO.PurchaseOrderId=@PurchaseOrderId);  
+	 SET @PONumber = (SELECT PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WHERE PO.PurchaseOrderId=@PurchaseOrderId);  
      SET @QtyToTraverse = 0;    
      SET @QtyOrdered = 0;    
      SET @ItemMasterId = 0;    
@@ -500,16 +453,16 @@ BEGIN
       DROP TABLE #tmpCodePrefixes_NonStock      
      END      
           
-		CREATE TABLE #tmpCodePrefixes_NonStock      
-		(      
-			ID BIGINT NOT NULL IDENTITY,       
-			CodePrefixId BIGINT NULL,      
-			CodeTypeId BIGINT NULL,      
-			CurrentNumber BIGINT NULL,      
-			CodePrefix VARCHAR(50) NULL,      
-			CodeSufix VARCHAR(50) NULL,      
-			StartsFrom BIGINT NULL,      
-		)      
+	CREATE TABLE #tmpCodePrefixes_NonStock      
+	(      
+		ID BIGINT NOT NULL IDENTITY,       
+		CodePrefixId BIGINT NULL,      
+		CodeTypeId BIGINT NULL,      
+		CurrentNumber BIGINT NULL,      
+		CodePrefix VARCHAR(50) NULL,      
+		CodeSufix VARCHAR(50) NULL,      
+		StartsFrom BIGINT NULL,      
+	)
       
      SELECT @PurchaseOrderPartRecordId = PurchaseOrderPartRecordId FROM #tmpPurchaseOrderPartsNonStock WHERE ID  = @LoopID_Nonstock;    
     
@@ -526,7 +479,7 @@ BEGIN
      FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId    
      WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;    
       
-     SELECT @IsSerialized = Asst.IsSerialized  FROM DBO.ItemMasterNonStock Asst WITH (NOLOCK) WHERE Asst.MasterPartId = @ItemMasterId;    
+     SELECT @IsSerialized = ISNULL(Asst.IsSerialized, 0) FROM DBO.ItemMasterNonStock Asst WITH (NOLOCK) WHERE Asst.MasterPartId = @ItemMasterId;    
 
      SET @CurrentIndex = 0;    
      SET @LoopID_Qty = @QtyToTraverse;    
@@ -560,14 +513,8 @@ BEGIN
       SET @QuantityAvailable = 1;    
       SET @QuantityOnHand = 1;    
           
-	  PRINT '@CurrentIndex';
-	  PRINT @CurrentIndex;
-
       IF (@CurrentIndex = 0)    
       BEGIN    
-	   PRINT '@IsSerialized';
-	   PRINT @IsSerialized;
-
        IF (@IsSerialized = 0)    
        BEGIN    
         SET @Quantity = @QtyOrdered;    
@@ -597,32 +544,6 @@ BEGIN
        END    
       END    
     
-      PRINT '@IsParent_NonStock'    
-      PRINT @IsParent_NonStock    
-      PRINT '@Quantity'    
-      PRINT @Quantity    
-   
-       
-      
-      --SELECT 0, @ItemMasterId, '', NULL, '', NULL, @ManagementStructureId,    
-      --0, 0, 0, 0, 0, 0, A.AssetAcquisitionTypeId, A.ManufacturerId,    
-      --A.ManufacturedDate, A.Model, A.IsSerialized, A.UnitOfMeasureId, A.CurrencyId, A.UnitCost, A.ExpirationDate, A.Memo, 0, A.TangibleClassId, A.AssetIntangibleTypeId,    
-      --NULL, NULL, NULL, NULL, NULL, NULL,     
-      --NULL, 0, A.AssetMaintenanceIsContract, NULL, 0, 0, NULL,    
-      --NULL, NULL, 0, NULL, NULL, NULL, 0, 0, @MasterCompanyId,    
-      --A.[AssetLocationId], 0, 0, 1, NULL, NULL, NULL, NULL,    
-      --0, 0, 0, NULL, NULL, NULL, NULL,    
-      --0, 0, 0, 0, 0, 0, NULL,    
-      --0, NULL, NULL, NULL, NULL, NULL, NULL,    
-      --NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
-      --NULL, A.[MasterPartId], A.[EntryDate], 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
-      --A.[IsAmortizable], A.[IsNonAmortizable], '', 0, 0, 0, NULL, 0, NULL, 0,    
-      --NULL, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
-      --NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
-      --NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, @IsParent, 0, 1,    
-      --NULL, NULL, NULL, NULL, NULL, NULL    
-      --FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
-  
 	   INSERT INTO [dbo].[NonStockInventoryDraft]  
 		([NonStockDraftNumber],[PurchaseOrderId],[PurchaseOrderPartRecordId],[PurchaseOrderNumber] ,[IsParent] ,[ParentId],[MasterPartId],[PartNumber],[PartDescription],[NonStockInventoryId],
 		[NonStockInventoryNumber],[ControlNumber],[ControlID],[IdNumber],[ReceiverNumber],[ReceivedDate],[IsSerialized],[SerialNumber],[Quantity],[QuantityRejected],[QuantityOnHand],[CurrencyId],
@@ -641,7 +562,6 @@ BEGIN
       
 	  SELECT @NewNonStocklineDraftId = SCOPE_IDENTITY();    
     
-      --EXEC [PROCAddStockLineDraftMSData] @@NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 31, 1;    
       EXEC dbo.[PROCAddStockLineDraftMSData] @NewNonStocklineDraftId, @ManagementStructureId, @MasterCompanyId, @UserName, @UserName, 55, 1;    
     
       SET @LoopID_Qty = @LoopID_Qty - 1;    

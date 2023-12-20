@@ -12,13 +12,14 @@
  **************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** PR   Date         Author   Change Description                    
- ** --   --------     -------   --------------------------------                  
-    1    08/21/2023   Vishal Suthar  Created   
- 2    29-11-2023   Shrey Chandegara Updated For Add Non stock changes  
- 3    12-12-2023   Jevik Raiyani    Case 1 changes for AssetAcquisitionTypeId  
+ ** PR   Date         Author			Change Description                    
+ ** --   --------     -------			--------------------------------                  
+    1    08/21/2023   Vishal Suthar		Created   
+	2    11/29/2023   Shrey Chandegara	Updated For Add Non stock changes  
+	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
+	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
         
-EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2281    
+EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2330    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
 (    
@@ -409,10 +410,9 @@ BEGIN
   0 AS CalibrationFrequencyDays,    
   '' AS CalibrationMemo    
   FROM DBO.StockLineDraft SL WITH (NOLOCK)       
-  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId      
+  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-  WHERE SL.PurchaseOrderId = @PurchaseOrderId --AND SL.IsParent = 1      
-  --AND SL.StockLineNumber IS NULL;      
+  WHERE SL.PurchaseOrderId = @PurchaseOrderId
   AND SL.StockLineNumber IS NULL;      
     
   SELECT DISTINCT SL.PurchaseOrderId,      
@@ -420,7 +420,7 @@ BEGIN
  SL.AssetInventoryDraftId StockLineDraftId,      
  SL.StklineNumber StockLineNumber,      
  SL.AssetInventoryId AS StockLineId,      
- 11 AS ItemTypeId, --ItemTypeEnum.Asset,      
+ 11 AS ItemTypeId,
   (SELECT LastMSLevel FROM DBO.StockLineDraftManagementStructureDetails P WITH (NOLOCK) WHERE P.ReferenceID = SL.AssetInventoryDraftId AND p.ModuleID = 56) AS LastMSLevel,      
   (SELECT AllMSlevels FROM DBO.StockLineDraftManagementStructureDetails P WITH (NOLOCK) WHERE P.ReferenceID = SL.AssetInventoryDraftId AND p.ModuleID = 56) AS AllMSlevels,      
         SL.ControlNumber,      
@@ -505,10 +505,9 @@ BEGIN
   SL.CalibrationFrequencyDays,    
   SL.CalibrationMemo    
   FROM DBO.AssetInventoryDraft SL WITH (NOLOCK)       
-  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId      
+  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-  WHERE SL.PurchaseOrderId = @PurchaseOrderId --AND SL.IsParent = 1      
-  --AND SL.StockLineNumber IS NULL;      
+  WHERE SL.PurchaseOrderId = @PurchaseOrderId    
   AND SL.StklineNumber IS NULL;      
   
   SELECT DISTINCT  
@@ -517,7 +516,7 @@ BEGIN
  SL.NonStockInventoryDraftId StockLineDraftId,      
  SL.NonStockInventoryNumber StockLineNumber,      
  SL.NonStockInventoryId AS StockLineId,      
- 2 AS ItemTypeId, --ItemTypeEnum.Asset,      
+ 2 AS ItemTypeId,
   (SELECT LastMSLevel FROM DBO.StockLineDraftManagementStructureDetails P WITH (NOLOCK) WHERE P.ReferenceID = SL.NonStockInventoryDraftId AND p.ModuleID = 55) AS LastMSLevel,      
   (SELECT AllMSlevels FROM DBO.StockLineDraftManagementStructureDetails P WITH (NOLOCK) WHERE P.ReferenceID = SL.NonStockInventoryDraftId AND p.ModuleID = 55) AS AllMSlevels,      
         SL.ControlNumber,      
@@ -602,7 +601,7 @@ BEGIN
   0 AS CalibrationFrequencyDays,    
   '' AS CalibrationMemo    
    FROM DBO.NonStockInventoryDraft SL WITH (NOLOCK)       
-  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId      
+  LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
   WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL;
       

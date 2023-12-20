@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/12/2023  Rajesh Gami     Created
+    1    19/12/2023  Rajesh Gami     changes by rajesh
      
 ************************************************************************/
 
@@ -32,8 +33,9 @@ BEGIN
 			DECLARE @SOID BIGINT = (SELECT TOP 1 SalesOrderId FROM DBO.SalesOrderPart WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId);
 			DECLARE @ClosedStatusId INT =(SELECT TOP 1 id FROM Dbo.MasterSalesOrderStatus  WITH(NOLOCK) WHERE Description = 'Closed')
 			DECLARE @IsSOClosed BIT = (CASE WHEN ISNULL((SELECT TOP 1 SalesOrderId FROM dbo.SalesOrder  WITH(NOLOCK) WHERE SalesOrderId = @SOID AND StatusId = @ClosedStatusId),0) > 0 THEN 1 ELSE 0 END)
-
-			IF(@ClosedStatusId = 1)
+			print '@ClosedStatusId'
+			print @IsSOClosed
+			IF(@IsSOClosed = 1)
 			BEGIN
 				DECLARE @partCloseStatusId int = (SELECT SOPartStatusId FROM DBO.SOPartStatus  WITH(NOLOCK) WHERE Description = 'Closed')
 				UPDATE dbo.SalesOrderPart set StatusId = @partCloseStatusId WHERE SalesOrderId = @SOID;

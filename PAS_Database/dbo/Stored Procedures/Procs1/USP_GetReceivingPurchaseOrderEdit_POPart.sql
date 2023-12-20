@@ -19,7 +19,7 @@
 	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
         
-EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2330    
+EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2332    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
 (    
@@ -292,6 +292,27 @@ BEGIN
    ELSE    
   ''    
  END AS BinText,      
+  
+  CASE WHEN part.ItemTypeId = 1 THEN    
+  NULL     
+   WHEN part.ItemTypeId = 11 THEN    
+  CASE WHEN asi.isSerialized = 1 THEN CASE WHEN StkD_Ser_Asset.LastCalibrationDate IS NOT NULL THEN StkD_Ser_Asset.LastCalibrationDate ELSE NULL END ELSE 
+  CASE WHEN StkD_NonSer_Asset.LastCalibrationDate IS NOT NULL THEN StkD_NonSer_Asset.LastCalibrationDate ELSE NULL END END   
+   WHEN part.ItemTypeId = 2 THEN    
+  NULL   
+   ELSE    
+  ''    
+ END AS LastCalibrationDate,
+ CASE WHEN part.ItemTypeId = 1 THEN    
+  NULL     
+   WHEN part.ItemTypeId = 11 THEN    
+  CASE WHEN asi.isSerialized = 1 THEN CASE WHEN StkD_Ser_Asset.NextCalibrationDate IS NOT NULL THEN StkD_Ser_Asset.NextCalibrationDate ELSE NULL END ELSE 
+  CASE WHEN StkD_NonSer_Asset.NextCalibrationDate IS NOT NULL THEN StkD_NonSer_Asset.NextCalibrationDate ELSE NULL END END   
+   WHEN part.ItemTypeId = 2 THEN    
+  NULL   
+   ELSE    
+  ''    
+ END AS NextCalibrationDate,
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.ManufacturingTrace ELSE StkD_NonSer.ManufacturingTrace END AS ManufacturingTrace,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.ManufacturerLotNumber ELSE StkD_NonSer.ManufacturerLotNumber END AS ManufacturerLotNumber,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.ManufacturingDate ELSE StkD_NonSer.ManufacturingDate END AS ManufacturingDate,      

@@ -77,6 +77,7 @@ BEGIN
 					SET @slcount = 1;
 					SET @count = 1;
 					SET @mcount = 1;
+					SET @countKIT = 1;
 
 					IF OBJECT_ID(N'tempdb..#tmpUnReserveSWOMaterialsStockline') IS NOT NULL
 					BEGIN

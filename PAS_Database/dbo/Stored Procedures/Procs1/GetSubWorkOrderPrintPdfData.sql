@@ -10,6 +10,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
+** 2    12/21/2023  Devendra Shekh   sub print form issue resolved
 
 EXEC GetSubWorkOrderPrintPdfData 181,155
 
@@ -46,7 +47,8 @@ AS
 				wo.CustomerId,              
 				UPPER(wo.CustomerName) as CustomerName,              
 				wop.Quantity,              
-				woq.QuoteNumber,              
+				--woq.QuoteNumber,   
+				SWO.SubWorkOrderNo as 'QuoteNumber',
 				woq.OpenDate as qouteDate,              
 				'1' as NoofItem,              
 				wo.CreatedBy as Preparedby,              
@@ -138,7 +140,7 @@ AS
 				LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
 				LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
-			WHERE Swo.WorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
+			WHERE SWO.SubWorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
 	   END              
 	  COMMIT  TRANSACTION              
              

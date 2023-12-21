@@ -1105,7 +1105,7 @@ BEGIN
 							--UPDATE WORK ORDER MATERIALS DETAILS
 							WHILE @Autocount<= @AutoTotalCounts
 							BEGIN
-								UPDATE WorkOrderMaterialsKIT 
+								UPDATE SubWorkOrderMaterialsKit 
 									SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										ReservedById = tmpWOM.ReservedById, 
@@ -1910,7 +1910,7 @@ BEGIN
 						WHILE @Autocount<= @AutoTotalCounts
 						BEGIN
 						
-							UPDATE WorkOrderMaterialsKIT 
+							UPDATE SubWorkOrderMaterialsKit 
 								SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									ReservedById = tmpWOM.ReservedById, 

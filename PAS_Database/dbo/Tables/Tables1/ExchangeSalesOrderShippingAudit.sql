@@ -67,7 +67,10 @@
     [QtyUOM]                             BIGINT          NULL,
     [UnitPrice]                          DECIMAL (20, 2) NULL,
     [UnitPriceCurrencyId]                INT             NULL,
+    [PackagingSlipNotes]                 NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_ExchangeSalesOrderShippingAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderShippingId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderShippingAudit_ExchangeSalesOrderShipping] FOREIGN KEY ([ExchangeSalesOrderShippingId]) REFERENCES [dbo].[ExchangeSalesOrderShipping] ([ExchangeSalesOrderShippingId])
 );
+
+
 

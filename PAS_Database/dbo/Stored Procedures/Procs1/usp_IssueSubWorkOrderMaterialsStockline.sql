@@ -275,6 +275,7 @@ BEGIN
 								UpdatedDate = GETDATE(),
 								PartStatusId = @PartStatus
 						FROM dbo.SubWorkOrderMaterialsKit WOM JOIN #tmpIssueSWOMaterialsStocklineKit tmpWOM ON tmpWOM.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND tmpWOM.ID = @countKIT
+						WHERE ISNULL(tmpWOM.KitId, 0) > 0
 						SET @countKIT = @countKIT + 1;
 
 						PRINT '1.1'
@@ -285,7 +286,7 @@ BEGIN
 					BEGIN
 						PRINT '2'
 						MERGE dbo.SubWorkOrderMaterialStockLineKit AS TARGET
-						USING #tmpIssueSWOMaterialsStocklineKit AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.SubWorkOrderMaterialsKitId = TARGET.SubWorkOrderMaterialsKitId) 
+						USING #tmpIssueSWOMaterialsStocklineKit AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.SubWorkOrderMaterialsKitId = TARGET.SubWorkOrderMaterialsKitId AND ISNULL(SOURCE.KitId, 0) > 0) 
 						--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
 						WHEN MATCHED 				
 							THEN UPDATE 						
@@ -329,7 +330,7 @@ BEGIN
 								IssuedDate = GETDATE(), 
 								UpdatedDate = GETDATE(),
 								PartStatusId = @PartStatus
-						FROM dbo.SubWorkOrderMaterials WOM JOIN #tmpIssueSWOMaterialsStockline tmpWOM ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND tmpWOM.ID = @count
+						FROM dbo.SubWorkOrderMaterials WOM JOIN #tmpIssueSWOMaterialsStocklineWithoutKit tmpWOM ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND tmpWOM.ID = @count AND ISNULL(tmpWOM.KitId, 0) = 0
 						SET @count = @count + 1;
 					END;
 					
@@ -337,8 +338,11 @@ BEGIN
 					--UPDATE/INSERT SUB WORK ORDER MATERIALS STOCKLINE DETAILS
 					IF(@TotalCountsBoth > 0 )
 					BEGIN
+						PRINT '6.1'
+						--SELECT * FROM #tmpIssueSWOMaterialsStockline
+						--SELECT * FROM dbo.SubWorkOrderMaterialStockLine WHERE SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #tmpIssueSWOMaterialsStockline)
 						MERGE dbo.SubWorkOrderMaterialStockLine AS TARGET
-						USING #tmpIssueSWOMaterialsStockline AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.SubWorkOrderMaterialsId = TARGET.SubWorkOrderMaterialsId) 
+						USING #tmpIssueSWOMaterialsStocklineWithoutKit AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.SubWorkOrderMaterialsId = TARGET.SubWorkOrderMaterialsId AND ISNULL(SOURCE.KitId, 0) = 0) 
 						--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
 						WHEN MATCHED 				
 							THEN UPDATE 						
@@ -351,14 +355,15 @@ BEGIN
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (StocklineId, SubWorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted) 
 							VALUES (SOURCE.StocklineId, SOURCE.SubWorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0);
+						PRINT '6.2'
 					END
 
 					PRINT '7'
 					--FOR UPDATED SUB WORK ORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.SubWorkOrderMaterialStockLine 
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
-					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpIssueSWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
-					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
+					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpIssueSWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
+					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0
 					
 					PRINT '8'
 					--FOR UPDATED STOCKLINE QTY
@@ -366,7 +371,7 @@ BEGIN
 					SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActIssued,0),
 						QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(tmpRSL.QuantityActIssued,0),
                         QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActIssued,0)						
-					FROM dbo.Stockline SL JOIN #tmpIssueSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+					FROM dbo.Stockline SL JOIN #tmpIssueSWOMaterialsStocklineWithoutKit tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 					
 					PRINT '9'
 					DECLARE @countBoth INT = 1;

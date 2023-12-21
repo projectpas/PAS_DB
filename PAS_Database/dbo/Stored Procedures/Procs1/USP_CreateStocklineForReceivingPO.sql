@@ -21,9 +21,9 @@
 	5    13-12-2023   Shrey Chandegara  update for stockline history  
     
 declare @p2 dbo.POPartsToReceive  
-insert into @p2 values(2097,3744,10)  
+insert into @p2 values(2336,4004,2)  
   
-exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2097,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
+exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2336,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
@@ -73,13 +73,9 @@ BEGIN
                 [PurchaseOrderPartRecordId],
                 [QtyToReceive]
             )
-            SELECT [PurchaseOrderId],
-                   [PurchaseOrderPartRecordId],
-                   [QtyToReceive]
-            FROM @tbl_POPartsToReceive;
+            SELECT [PurchaseOrderId], [PurchaseOrderPartRecordId], [QtyToReceive] FROM @tbl_POPartsToReceive;
 
-            SELECT @MainPartLoopID = MAX(ID)
-            FROM #POPartsToReceive;
+            SELECT @MainPartLoopID = MAX(ID) FROM #POPartsToReceive;
 
             WHILE (@MainPartLoopID > 0)
             BEGIN
@@ -1161,15 +1157,11 @@ BEGIN
                         DECLARE @PreviousStockLineNumber_Asset VARCHAR(50);
                         DECLARE @IsTangible BIT = 0;
 
-                        SELECT @SelectedStockLineDraftId_Asset = AssetInventoryDraftId, @IsTangible = IsTangible
-                        FROM #tmpAssetInventoryDraft WHERE ID = @LoopID;
+                        SELECT @SelectedStockLineDraftId_Asset = AssetInventoryDraftId, @IsTangible = IsTangible FROM #tmpAssetInventoryDraft WHERE ID = @LoopID;
 
-                        SELECT @PORequestorId_Asset = RequestedBy, @POVendorId_Asset = VendorId
-                        FROM DBO.PurchaseOrder WHERE PurchaseOrderId = @PurchaseOrderId;
+                        SELECT @PORequestorId_Asset = RequestedBy, @POVendorId_Asset = VendorId FROM DBO.PurchaseOrder WHERE PurchaseOrderId = @PurchaseOrderId;
 
-                        SELECT @IdCodeTypeId_Asset = CodeTypeId
-                        FROM DBO.CodeTypes WITH (NOLOCK)
-                        Where CodeType = 'Inventory Stkline Number';
+                        SELECT @IdCodeTypeId_Asset = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Inventory Stkline Number';
 
                         IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_Asset') IS NOT NULL
                         BEGIN
@@ -1188,68 +1180,51 @@ BEGIN
                         )
 
                         INSERT INTO #tmpCodePrefixes_Asset
-                        (
-                            CodePrefixId,
-                            CodeTypeId,
-                            CurrentNumber,
-                            CodePrefix,
-                            CodeSufix,
-                            StartsFrom
-                        )
-                        SELECT CodePrefixId,
-                               CP.CodeTypeId,
-                               CurrentNummber,
-                               CodePrefix,
-                               CodeSufix,
-                               StartsFrom
+                        (CodePrefixId, CodeTypeId, CurrentNumber, CodePrefix, CodeSufix, StartsFrom)
+                        SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom
                         FROM dbo.CodePrefixes CP WITH (NOLOCK) 
 						JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
                         WHERE CT.CodeTypeId = @IdCodeTypeId_Asset
                               AND CP.MasterCompanyId = @MasterCompanyId
                               AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-
                         SET @ReceiverNumber_Asset = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber_Asset, 'RecNo', 
 						(SELECT CodeSufix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = @IdCodeTypeId_Asset)))
 
                         DELETE FROM #tmpCodePrefixes_Asset;
 
-                        INSERT INTO #tmpCodePrefixes_Asset
-                        (
-                            CodePrefixId,
-                            CodeTypeId,
-                            CurrentNumber,
-                            CodePrefix,
-                            CodeSufix,
-                            StartsFrom
-                        )
-                        SELECT CodePrefixId,
-                               CP.CodeTypeId,
-                               CurrentNummber,
-                               CodePrefix,
-                               CodeSufix,
-                               StartsFrom
+                        INSERT INTO #tmpCodePrefixes_Asset (CodePrefixId, CodeTypeId, CurrentNumber, CodePrefix, CodeSufix, StartsFrom)
+                        SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom
                         FROM dbo.CodePrefixes CP WITH (NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-                        WHERE CT.CodeTypeId IN (63, 64, 37)
-                              AND CP.MasterCompanyId = @MasterCompanyId
-                              AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+                        WHERE CT.CodeTypeId IN (63, 64, 37) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
                         DECLARE @PartNumber_Asset VARCHAR(100) = '';
                         DECLARE @AssetId_Asset VARCHAR(100) = '';
+                        DECLARE @CalibrationVendorId BIGINT = 0;
+						DECLARE @PerformedById BIGINT = 0;
+						DECLARE @DraftCreatedBy VARCHAR(100) = '';
+						DECLARE @CalibrationMemo VARCHAR(MAX) = '';
+						DECLARE @LastCalibrationDate Datetime;
+						DECLARE @NextCalibrationDate Datetime;
 
                         SELECT @ItemMasterId_Asset = AssetRecordId,
                                @AssetId_Asset = AssetId,
                                @StkPurchaseOrderUnitCost_Asset = UnitCost,
                                @ManufacturerId_Asset = ManufacturerId,
                                @PreviousStockLineNumber_Asset = StklineNumber,
-                               @PartNumber_Asset = PartNumber
+                               @PartNumber_Asset = PartNumber,
+							   @CalibrationVendorId = CalibrationVendorId,
+							   @PerformedById = PerformedById,
+							   @CalibrationMemo = CalibrationMemo,
+							   @DraftCreatedBy = CreatedBy,
+							   @LastCalibrationDate = LastCalibrationDate,
+							   @NextCalibrationDate = NextCalibrationDate
                         FROM dbo.AssetInventoryDraft WITH (NOLOCK)
                         WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
 
                         --IF (@currentNo_Asset <> 0)  
                         IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetInventory AI WITH (NOLOCK) WHERE AI.AssetId = @AssetId_Asset AND AI.PartNumber = @PartNumber_Asset AND AI.MasterCompanyId = @MasterCompanyId)
                         BEGIN
-                            PRINT 'Increment'
                             DECLARE @CntrlNumber INT = 0;
 
                             SELECT @CntrlNumber = ASST.CntrlNumber
@@ -1292,7 +1267,6 @@ BEGIN
 
                         IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63))
                         BEGIN
-                            PRINT 'Inside'
                             SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(   @stockLineCurrentNo_Asset,
                                      (SELECT CodePrefix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63),
                                      (SELECT CodeSufix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63)))
@@ -1317,347 +1291,41 @@ BEGIN
                         END
 
                         INSERT INTO DBO.AssetInventory
-                        (
-                            [AssetRecordId],
-                            [AssetId],
-                            [AlternateAssetRecordId],
-                            [Name],
-                            [Description],
-                            [ManagementStructureId],
-                            [CalibrationRequired],
-                            [CertificationRequired],
-                            [InspectionRequired],
-                            [VerificationRequired],
-                            [IsTangible],
-                            [IsIntangible],
-                            [AssetAcquisitionTypeId],
-                            [ManufacturerId],
-                            [ManufacturedDate],
-                            [Model],
-                            [IsSerialized],
-                            [UnitOfMeasureId],
-                            [CurrencyId],
-                            [UnitCost],
-                            [ExpirationDate],
-                            [Memo],
-                            [AssetParentRecordId],
-                            [TangibleClassId],
-                            [AssetIntangibleTypeId],
-                            [AssetCalibrationMin],
-                            [AssetCalibrationMinTolerance],
-                            [AssetCalibratonMax],
-                            [AssetCalibrationMaxTolerance],
-                            [AssetCalibrationExpected],
-                            [AssetCalibrationExpectedTolerance],
-                            [AssetCalibrationMemo],
-                            [AssetIsMaintenanceReqd],
-                            [AssetMaintenanceIsContract],
-                            [AssetMaintenanceContractFile],
-                            [MaintenanceFrequencyMonths],
-                            [MaintenanceFrequencyDays],
-                            [MaintenanceDefaultVendorId],
-                            [MaintenanceGLAccountId],
-                            [MaintenanceMemo],
-                            [IsWarrantyRequired],
-                            [WarrantyCompany],
-                            [WarrantyStartDate],
-                            [WarrantyEndDate],
-                            [WarrantyStatusId],
-                            [UnexpiredTime],
-                            [MasterCompanyId],
-                            [AssetLocationId],
-                            [IsDeleted],
-                            [Warranty],
-                            [IsActive],
-                            [CalibrationDefaultVendorId],
-                            [CertificationDefaultVendorId],
-                            [InspectionDefaultVendorId],
-                            [VerificationDefaultVendorId],
-                            [CertificationFrequencyMonths],
-                            [CertificationFrequencyDays],
-                            [CertificationDefaultCost],
-                            [CertificationGlAccountId],
-                            [CertificationMemo],
-                            [InspectionMemo],
-                            [InspectionGlaAccountId],
-                            [InspectionDefaultCost],
-                            [InspectionFrequencyMonths],
-                            [InspectionFrequencyDays],
-                            [VerificationFrequencyDays],
-                            [VerificationFrequencyMonths],
-                            [VerificationDefaultCost],
-                            [CalibrationDefaultCost],
-                            [CalibrationFrequencyMonths],
-                            [CalibrationFrequencyDays],
-                            [CalibrationGlAccountId],
-                            [CalibrationMemo],
-                            [VerificationMemo],
-                            [VerificationGlAccountId],
-                            [CalibrationCurrencyId],
-                            [CertificationCurrencyId],
-                            [InspectionCurrencyId],
-                            [VerificationCurrencyId],
-                            [CreatedBy],
-                            [UpdatedBy],
-                            [CreatedDate],
-                            [UpdatedDate],
-                            [AssetMaintenanceContractFileExt],
-                            [WarrantyFile],
-                            [WarrantyFileExt],
-                            [MasterPartId],
-                            [EntryDate],
-                            [InstallationCost],
-                            [Freight],
-                            [Insurance],
-                            [Taxes],
-                            [TotalCost],
-                            [WarrantyDefaultVendorId],
-                            [WarrantyGLAccountId],
-                            [IsDepreciable],
-                            [IsNonDepreciable],
-                            [IsAmortizable],
-                            [IsNonAmortizable],
-                            [SerialNo],
-                            [IsInsurance],
-                            [AssetLife],
-                            [WarrantyCompanyId],
-                            [WarrantyCompanyName],
-                            [WarrantyCompanySelectId],
-                            [WarrantyMemo],
-                            [IsQtyReserved],
-                            [InventoryStatusId],
-                            [InventoryNumber],
-                            [AssetStatusId],
-                            [Level1],
-                            [Level2],
-                            [Level3],
-                            [Level4],
-                            [ManufactureName],
-                            [LocationName],
-                            [Qty],
-                            [StklineNumber],
-                            [AvailStatus],
-                            [PartNumber],
-                            [ControlNumber],
-                            [RepairOrderId],
-                            [RepairOrderPartRecordId],
-                            [PurchaseOrderId],
-                            [PurchaseOrderPartRecordId],
-                            [ReceiverNumber],
-                            [ReceivedDate],
-                            [SiteId],
-                            [SiteName],
-                            [WarehouseId],
-                            [Warehouse],
-                            [LocationId],
-                            [Location],
-                            [ShelfId],
-                            [ShelfName],
-                            [BinId],
-                            [BinName],
-                            [StatusNote],
-                            [RRQty],
-                            [DepreciationMethodId],
-                            [DepreciationMethodName],
-                            [ResidualPercentageId],
-                            [ResidualPercentage],
-                            [DepreciationFrequencyId],
-                            [DepreciationFrequencyName],
-                            [AcquiredGLAccountId],
-                            [AcquiredGLAccountName],
-                            [DeprExpenseGLAccountId],
-                            [DeprExpenseGLAccountName],
-                            [AdDepsGLAccountId],
-                            [AdDepsGLAccountName],
-                            [AssetSaleGLAccountId],
-                            [AssetSaleGLAccountName],
-                            [AssetWriteOffGLAccountId],
-                            [AssetWriteOffGLAccountName],
-                            [AssetWriteDownGLAccountId],
-                            [AssetWriteDownGLAccountName],
-                            [IntangibleGLAccountId],
-                            [IntangibleGLAccountName],
-                            [AmortExpenseGLAccountId],
-                            [AmortExpenseGLAccountName],
-                            [AccAmortDeprGLAccountId],
-                            [AccAmortDeprGLAccountName],
-                            [IntangibleWriteDownGLAccountId],
-                            [IntangibleWriteDownGLAccountName],
-                            [IntangibleWriteOffGLAccountId],
-                            [IntangibleWriteOffGLAccountName],
-                            [AssetAttributeTypeId],
-                            [ReceivablesAmount]
-                        )
-                        SELECT [AssetRecordId],
-                               [AssetId],
-                               [AlternateAssetRecordId],
-                               [Name],
-                               [Description],
-                               [ManagementStructureId],
-                               [CalibrationRequired],
-                               [CertificationRequired],
-                               [InspectionRequired],
-                               [VerificationRequired],
-                               [IsTangible],
-                               [IsIntangible],
-                               [AssetAcquisitionTypeId],
-                               [ManufacturerId],
-                               [ManufacturedDate],
-                               [Model],
-                               [IsSerialized],
-                               [UnitOfMeasureId],
-                               [CurrencyId],
-                               [UnitCost],
-                               [ExpirationDate],
-                               [Memo],
-                               [AssetParentRecordId],
-                               [TangibleClassId],
-                               [AssetIntangibleTypeId],
-                               [AssetCalibrationMin],
-                               [AssetCalibrationMinTolerance],
-                               [AssetCalibratonMax],
-                               [AssetCalibrationMaxTolerance],
-                               [AssetCalibrationExpected],
-                               [AssetCalibrationExpectedTolerance],
-                               [AssetCalibrationMemo],
-                               [AssetIsMaintenanceReqd],
-                               [AssetMaintenanceIsContract],
-                               [AssetMaintenanceContractFile],
-                               [MaintenanceFrequencyMonths],
-                               [MaintenanceFrequencyDays],
-                               [MaintenanceDefaultVendorId],
-                               [MaintenanceGLAccountId],
-                               [MaintenanceMemo],
-                               [IsWarrantyRequired],
-                               [WarrantyCompany],
-                               [WarrantyStartDate],
-                               [WarrantyEndDate],
-                               [WarrantyStatusId],
-                               [UnexpiredTime],
-                               [MasterCompanyId],
-                               [AssetLocationId],
-                               [IsDeleted],
-                               [Warranty],
-                               [IsActive],
-                               [CalibrationDefaultVendorId],
-                               [CertificationDefaultVendorId],
-                               [InspectionDefaultVendorId],
-                               [VerificationDefaultVendorId],
-                               [CertificationFrequencyMonths],
-                               [CertificationFrequencyDays],
-                               [CertificationDefaultCost],
-                               [CertificationGlAccountId],
-                               [CertificationMemo],
-                               [InspectionMemo],
-                               [InspectionGlaAccountId],
-                               [InspectionDefaultCost],
-                               [InspectionFrequencyMonths],
-                               [InspectionFrequencyDays],
-                               [VerificationFrequencyDays],
-                               [VerificationFrequencyMonths],
-                               [VerificationDefaultCost],
-                               [CalibrationDefaultCost],
-                               [CalibrationFrequencyMonths],
-                               [CalibrationFrequencyDays],
-                               [CalibrationGlAccountId],
-                               [CalibrationMemo],
-                               [VerificationMemo],
-                               [VerificationGlAccountId],
-                               [CalibrationCurrencyId],
-                               [CertificationCurrencyId],
-                               [InspectionCurrencyId],
-                               [VerificationCurrencyId],
-                               [CreatedBy],
-                               [UpdatedBy],
-                               [CreatedDate],
-                               [UpdatedDate],
-                               [AssetMaintenanceContractFileExt],
-                               [WarrantyFile],
-                               [WarrantyFileExt],
-                               [MasterPartId],
-                               [EntryDate],
-                               [InstallationCost],
-                               [Freight],
-                               [Insurance],
-                               [Taxes],
-                               [TotalCost],
-                               [WarrantyDefaultVendorId],
-                               [WarrantyGLAccountId],
-                               [IsDepreciable],
-                               [IsNonDepreciable],
-                               [IsAmortizable],
-                               [IsNonAmortizable],
-                               [SerialNo],
-                               [IsInsurance],
-                               [AssetLife],
-                               [WarrantyCompanyId],
-                               [WarrantyCompanyName],
-                               [WarrantyCompanySelectId],
-                               [WarrantyMemo],
-                               [IsQtyReserved],
-                               1,
-                               @InventoryNumber_Asset,
-                               [AssetStatusId],
-                               [Level1],
-                               [Level2],
-                               [Level3],
-                               [Level4],
-                               [ManufactureName],
-                               [LocationName],
-                               [Qty],
-                               @StockLineNumber,
-                               [AvailStatus],
-                               [PartNumber],
-                               @ControlNumber_Asset,
-                               [RepairOrderId],
-                               [RepairOrderPartRecordId],
-                               [PurchaseOrderId],
-                               [PurchaseOrderPartRecordId],
-                               @ReceiverNumber_Asset,
-                               GETUTCDATE(),
-                               [SiteId],
-                               [SiteName],
-                               [WarehouseId],
-                               [Warehouse],
-                               [LocationId],
-                               [Location],
-                               [ShelfId],
-                               [ShelfName],
-                               [BinId],
-                               [BinName],
-                               '',
-                               0,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL
-                        FROM #tmpAssetInventoryDraft
+                        ([AssetRecordId],[AssetId],[AlternateAssetRecordId],[Name],[Description],[ManagementStructureId],[CalibrationRequired],[CertificationRequired],[InspectionRequired],
+						[VerificationRequired],[IsTangible],[IsIntangible],[AssetAcquisitionTypeId],[ManufacturerId],[ManufacturedDate],[Model],[IsSerialized],[UnitOfMeasureId],[CurrencyId],
+						[UnitCost],[ExpirationDate],[Memo],[AssetParentRecordId],[TangibleClassId],[AssetIntangibleTypeId],[AssetCalibrationMin],[AssetCalibrationMinTolerance],[AssetCalibratonMax],
+						[AssetCalibrationMaxTolerance],[AssetCalibrationExpected],[AssetCalibrationExpectedTolerance],[AssetCalibrationMemo],[AssetIsMaintenanceReqd],[AssetMaintenanceIsContract],
+						[AssetMaintenanceContractFile],[MaintenanceFrequencyMonths],[MaintenanceFrequencyDays],[MaintenanceDefaultVendorId],[MaintenanceGLAccountId],[MaintenanceMemo],[IsWarrantyRequired],
+						[WarrantyCompany],[WarrantyStartDate],[WarrantyEndDate],[WarrantyStatusId],[UnexpiredTime],[MasterCompanyId],[AssetLocationId],[IsDeleted],[Warranty],[IsActive],[CalibrationDefaultVendorId],
+						[CertificationDefaultVendorId],[InspectionDefaultVendorId],[VerificationDefaultVendorId],[CertificationFrequencyMonths],[CertificationFrequencyDays],[CertificationDefaultCost],
+						[CertificationGlAccountId],[CertificationMemo],[InspectionMemo],[InspectionGlaAccountId],[InspectionDefaultCost],[InspectionFrequencyMonths],[InspectionFrequencyDays],[VerificationFrequencyDays],
+						[VerificationFrequencyMonths],[VerificationDefaultCost],[CalibrationDefaultCost],[CalibrationFrequencyMonths],[CalibrationFrequencyDays],[CalibrationGlAccountId],[CalibrationMemo],
+						[VerificationMemo],[VerificationGlAccountId],[CalibrationCurrencyId],[CertificationCurrencyId],[InspectionCurrencyId],[VerificationCurrencyId],[CreatedBy],[UpdatedBy],[CreatedDate],
+						[UpdatedDate],[AssetMaintenanceContractFileExt],[WarrantyFile],[WarrantyFileExt],[MasterPartId],[EntryDate],[InstallationCost],[Freight],[Insurance],[Taxes],[TotalCost],[WarrantyDefaultVendorId],
+						[WarrantyGLAccountId],[IsDepreciable],[IsNonDepreciable],[IsAmortizable],[IsNonAmortizable],[SerialNo],[IsInsurance],[AssetLife],[WarrantyCompanyId],[WarrantyCompanyName],[WarrantyCompanySelectId],
+						[WarrantyMemo],[IsQtyReserved],[InventoryStatusId],[InventoryNumber],[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],[StklineNumber],[AvailStatus],
+						[PartNumber],[ControlNumber],[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],[ReceiverNumber],[ReceivedDate],[SiteId],[SiteName],[WarehouseId],
+						[Warehouse],[LocationId],[Location],[ShelfId],[ShelfName],[BinId],[BinName],[StatusNote],[RRQty],[DepreciationMethodId],[DepreciationMethodName],[ResidualPercentageId],[ResidualPercentage],
+						[DepreciationFrequencyId],[DepreciationFrequencyName],[AcquiredGLAccountId],[AcquiredGLAccountName],[DeprExpenseGLAccountId],[DeprExpenseGLAccountName],[AdDepsGLAccountId],[AdDepsGLAccountName],
+						[AssetSaleGLAccountId],[AssetSaleGLAccountName],[AssetWriteOffGLAccountId],[AssetWriteOffGLAccountName],[AssetWriteDownGLAccountId],[AssetWriteDownGLAccountName],[IntangibleGLAccountId],
+						[IntangibleGLAccountName],[AmortExpenseGLAccountId],[AmortExpenseGLAccountName],[AccAmortDeprGLAccountId],[AccAmortDeprGLAccountName],[IntangibleWriteDownGLAccountId],[IntangibleWriteDownGLAccountName],
+						[IntangibleWriteOffGLAccountId],[IntangibleWriteOffGLAccountName],[AssetAttributeTypeId],[ReceivablesAmount])
+                        SELECT [AssetRecordId],[AssetId],[AlternateAssetRecordId],[Name],[Description],[ManagementStructureId],[CalibrationRequired],[CertificationRequired],[InspectionRequired],
+						[VerificationRequired],[IsTangible],[IsIntangible],[AssetAcquisitionTypeId],[ManufacturerId],[ManufacturedDate],[Model],[IsSerialized],[UnitOfMeasureId],[CurrencyId],[UnitCost],
+						[ExpirationDate],[Memo],[AssetParentRecordId],[TangibleClassId],[AssetIntangibleTypeId],[AssetCalibrationMin],[AssetCalibrationMinTolerance],[AssetCalibratonMax],[AssetCalibrationMaxTolerance],
+						[AssetCalibrationExpected],[AssetCalibrationExpectedTolerance],[AssetCalibrationMemo],[AssetIsMaintenanceReqd],[AssetMaintenanceIsContract],[AssetMaintenanceContractFile],[MaintenanceFrequencyMonths],
+						[MaintenanceFrequencyDays],[MaintenanceDefaultVendorId],[MaintenanceGLAccountId],[MaintenanceMemo],[IsWarrantyRequired],[WarrantyCompany],[WarrantyStartDate],[WarrantyEndDate],[WarrantyStatusId],
+						[UnexpiredTime],[MasterCompanyId],[AssetLocationId],[IsDeleted],[Warranty],[IsActive],[CalibrationDefaultVendorId],[CertificationDefaultVendorId],[InspectionDefaultVendorId],[VerificationDefaultVendorId],
+						[CertificationFrequencyMonths],[CertificationFrequencyDays],[CertificationDefaultCost],[CertificationGlAccountId],[CertificationMemo],[InspectionMemo],[InspectionGlaAccountId],[InspectionDefaultCost],
+						[InspectionFrequencyMonths],[InspectionFrequencyDays],[VerificationFrequencyDays],[VerificationFrequencyMonths],[VerificationDefaultCost],[CalibrationDefaultCost],[CalibrationFrequencyMonths],
+						[CalibrationFrequencyDays],[CalibrationGlAccountId],[CalibrationMemo],[VerificationMemo],[VerificationGlAccountId],[CalibrationCurrencyId],[CertificationCurrencyId],[InspectionCurrencyId],[VerificationCurrencyId],
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[AssetMaintenanceContractFileExt],[WarrantyFile],[WarrantyFileExt],[MasterPartId],[EntryDate],[InstallationCost],[Freight],[Insurance],[Taxes],
+						[TotalCost],[WarrantyDefaultVendorId],[WarrantyGLAccountId],[IsDepreciable],[IsNonDepreciable],[IsAmortizable],[IsNonAmortizable],[SerialNo],[IsInsurance],[AssetLife],[WarrantyCompanyId],[WarrantyCompanyName],
+						[WarrantyCompanySelectId],[WarrantyMemo],[IsQtyReserved],1,@InventoryNumber_Asset,[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],@StockLineNumber,[AvailStatus],
+						[PartNumber],@ControlNumber_Asset,[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],@ReceiverNumber_Asset,GETUTCDATE(),[SiteId],[SiteName],[WarehouseId],[Warehouse],
+						[LocationId],[Location],[ShelfId],[ShelfName],[BinId],[BinName],'',0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+						NULL,NULL,NULL,NULL,NULL,NULL
+						FROM #tmpAssetInventoryDraft
                         WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
 
                         DECLARE @QtyAdded_Asset INT = 0;
@@ -1672,32 +1340,27 @@ BEGIN
 
                         SELECT @NewStocklineId_Asset = SCOPE_IDENTITY();
 
-                        --IF(@IsTimeLIfe_Asset = 1)  
-                        --BEGIN  
-                        -- INSERT INTO DBO.TimeLife ([CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],  
-                        -- [TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],  
-                        -- [UpdatedDate],[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],[StockLineId],[DetailsNotProvided],[RepairOrderId],[RepairOrderPartRecordId],  
-                        -- [VendorRMAId],[VendorRMADetailId])  
-                        -- SELECT [CyclesRemaining], [CyclesSinceNew], [CyclesSinceOVH], [CyclesSinceInspection], [CyclesSinceRepair], [TimeRemaining], [TimeSinceNew],  
-                        -- [TimeSinceOVH], [TimeSinceInspection], [TimeSinceRepair], [LastSinceNew], [LastSinceOVH], [LastSinceInspection], @MasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),  
-                        -- GETUTCDATE(), 1, @PurchaseOrderId, @SelectedPurchaseOrderPartRecordId, @NewStocklineId_Asset, [DetailsNotProvided], NULL, NULL,  
-                        -- NULL, NULL  
-                        -- FROM DBO.TimeLifeDraft WHERE StockLineDraftId = @SelectedStockLineDraftId_Asset;  
-                        --END  
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AC.AssetRecordId = @ItemMasterId_Asset)
+						BEGIN
+							DECLARE @CalibrationRequired BIT = 0;
+							DECLARE @EmployeeId BIGINT = 0;
+
+							SELECT @EmployeeId = EmployeeId FROM DBO.Employee EMP WITH (NOLOCK) WHERE EMP.FirstName + '' + EMP.LastName = @UpdatedBy AND EMP.MasterCompanyId = @MasterCompanyId;
+
+							SELECT @CalibrationRequired = AC.CalibrationRequired FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AC.AssetRecordId = @ItemMasterId_Asset;
+
+							IF (@CalibrationRequired = 1)
+							BEGIN
+								DECLARE @CalibrationType INT = 1; -- Calibration
+								EXEC dbo.USP_UpsertAssetCalibration @NewStocklineId_Asset, 1, @CalibrationVendorId, @EmployeeId, @PerformedById , @CalibrationMemo, @DraftCreatedBy, @CalibrationType, @LastCalibrationDate, @NextCalibrationDate;
+							END
+						END 
 
                         /* Accounting Entry */
                         DECLARE @p3 dbo.PostStocklineBatchType;
 
                         INSERT INTO @p3
-                        VALUES
-                        (@NewStocklineId_Asset,
-                         @QtyAdded_Asset,
-                         @PurchaseOrderUnitCostAdded_Asset,
-                         'ReceivingPO',
-                         @UpdatedBy,
-                         @MasterCompanyId,
-                         'STOCK'
-                        )
+                        VALUES (@NewStocklineId_Asset, @QtyAdded_Asset, @PurchaseOrderUnitCostAdded_Asset, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'STOCK')
 
                         EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p3, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
 

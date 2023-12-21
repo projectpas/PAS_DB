@@ -53,10 +53,10 @@ BEGIN
 					DECLARE @historyWorkOrderPartNoId  BIGINT;
 					DECLARE @historyItemMasterId BIGINT;
 					DECLARE @HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT,
-									@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
-									@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
-									@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-									@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
+							@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
+							@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
+							@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
+							@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
 
 					SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
@@ -66,8 +66,43 @@ BEGIN
 						JOIN dbo.WorkOrder WO WITH(NOLOCK) on WO.WorkOrderId = SWO.WorkOrderId 
 					WHERE SWOP.SubWOPartNoId = @SubWOPartNoId;
 
-
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
+					DECLARE @count INT;
+					DECLARE @count1 INT;
+					DECLARE @slcount INT;
+					DECLARE @TotalCounts INT;
+					DECLARE @StocklineId BIGINT; 
+					DECLARE @ModuleId INT;
+					DECLARE @ReferenceId BIGINT;
+					DECLARE @IsAddUpdate BIT; 
+					DECLARE @ExecuteParentChild BIT; 
+					DECLARE @UpdateQuantities BIT;
+					DECLARE @IsOHUpdated BIT; 
+					DECLARE @AddHistoryForNonSerialized BIT; 
+					DECLARE @SubModuleId INT;
+					DECLARE @SubReferenceId BIGINT;
+					DECLARE @ReservePartStatus INT;
+					DECLARE @SubWorkOrderMaterialsId BIGINT;
+					DECLARE @IsSerialised BIT;
+					DECLARE @stockLineQty INT;
+					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @UpdateBy varchar(200);
+
+					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
+					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 50; -- For SUB WORK ORDER Materials Module
+
+					SET @ReservePartStatus = 1; -- FOR RESERTVE
+					SET @IsAddUpdate = 0;
+					SET @ExecuteParentChild = 1;
+					SET @UpdateQuantities = 1;
+					SET @IsOHUpdated = 0;
+					SET @AddHistoryForNonSerialized = 0;					
+					SET @slcount = 1;
+					SET @count = 1;
+					SET @count1 = 1;
+
 
 					IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
 					BEGIN
@@ -153,40 +188,7 @@ BEGIN
 					BEGIN
 						--CASE 1 UPDATE WORK ORDER MATERILS
 						PRINT '#STEP : 1.1 RESERVE EXISTING STOCKLINE'
-						DECLARE @count INT;
-						DECLARE @count1 INT;
-						DECLARE @slcount INT;
-						DECLARE @TotalCounts INT;
-						DECLARE @StocklineId BIGINT; 
-						DECLARE @ModuleId INT;
-						DECLARE @ReferenceId BIGINT;
-						DECLARE @IsAddUpdate BIT; 
-						DECLARE @ExecuteParentChild BIT; 
-						DECLARE @UpdateQuantities BIT;
-						DECLARE @IsOHUpdated BIT; 
-						DECLARE @AddHistoryForNonSerialized BIT; 
-						DECLARE @SubModuleId INT;
-						DECLARE @SubReferenceId BIGINT;
-						DECLARE @ReservePartStatus INT;
-						DECLARE @SubWorkOrderMaterialsId BIGINT;
-						DECLARE @IsSerialised BIT;
-						DECLARE @stockLineQty INT;
-						DECLARE @stockLineQtyAvailable INT;
-						DECLARE @UpdateBy varchar(200);
-
-						SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
-						SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
-						SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 50; -- For SUB WORK ORDER Materials Module
-
-						SET @ReservePartStatus = 1; -- FOR RESERTVE
-						SET @IsAddUpdate = 0;
-						SET @ExecuteParentChild = 1;
-						SET @UpdateQuantities = 1;
-						SET @IsOHUpdated = 0;
-						SET @AddHistoryForNonSerialized = 0;					
-						SET @slcount = 1;
-						SET @count = 1;
-						SET @count1 = 1;
+						
 
 						IF OBJECT_ID(N'tempdb..#tmpReserveWOMaterialsStockline') IS NOT NULL
 						BEGIN
@@ -1105,7 +1107,7 @@ BEGIN
 							--UPDATE WORK ORDER MATERIALS DETAILS
 							WHILE @Autocount<= @AutoTotalCounts
 							BEGIN
-								UPDATE WorkOrderMaterialsKIT 
+								UPDATE SubWorkOrderMaterialsKit 
 									SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 										ReservedById = tmpWOM.ReservedById, 
@@ -1910,7 +1912,7 @@ BEGIN
 						WHILE @Autocount<= @AutoTotalCounts
 						BEGIN
 						
-							UPDATE WorkOrderMaterialsKIT 
+							UPDATE SubWorkOrderMaterialsKit 
 								SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.ActQuantity,0),
 									ReservedById = tmpWOM.ReservedById, 

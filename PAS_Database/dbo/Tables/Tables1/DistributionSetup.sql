@@ -22,3 +22,28 @@
     CONSTRAINT [PK_DistributionSetup] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
 
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_DistributionSetupAudit]
+
+   ON  [dbo].[DistributionSetup]
+
+   AFTER INSERT,UPDATE
+
+AS 
+
+BEGIN
+
+
+
+	INSERT INTO [dbo].[DistributionSetupAudit]
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+
+
+END

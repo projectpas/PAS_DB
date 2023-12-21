@@ -87,6 +87,7 @@ BEGIN
 					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
+					SET @countKIT = 1;
 
 					IF OBJECT_ID(N'tempdb..#tmpUnIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN

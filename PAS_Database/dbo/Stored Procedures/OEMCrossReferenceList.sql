@@ -21,24 +21,18 @@ CREATE   PROCEDURE [dbo].[OEMCrossReferenceList]
 @SortColumn varchar(50)=NULL,
 @SortOrder int = NULL,
 @GlobalFilter varchar(50) = NULL,
-@ItemMasterId bigint = NULL,
+
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL,
 @listtype varchar(50) = NULL,
-@CreatedBy  varchar(50) = NULL,
-@CreatedDate datetime = NULL,
-@UpdatedBy  varchar(50) = NULL,
-@UpdatedDate  datetime = NULL,
 @PartNumber varchar(50) = NULL,
 @PartDescription varchar(50) = NULL,
 @NhaPart varchar(50) = NULL,
-@NhaPartDescription varchar(50) = NULL,
 @TlaPart varchar(50) = NULL,
-@TlaPartDescription varchar(50) = NULL,
-@EquivalentPartDescription varchar(50) = NULL,
 @AlternatePart varchar(50) = NULL,
-@AlternatePartDescription varchar(50) = NULL,
-@EquivalentPart varchar(50) = NULL
+@EquivalentPart varchar(50) = NULL,
+@Oemtype int = NULL
+
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -56,38 +50,23 @@ BEGIN
 		IF @IsDeleted IS NULL
 		BEGIN
 			SET @IsDeleted=0
-		END
-
-		IF @SortColumn IS NULL
-		BEGIN
-			SET @SortColumn=UPPER('CreatedDate')
-		END 
+		END	
 		ELSE
 		BEGIN 
 			Set @SortColumn=UPPER(@SortColumn)
-		END	
-
-		IF(@listtype='all')
-		BEGIN
-			SET @ItemMasterId=0
-		END 
+		END
+	
 
 ;WITH  ORMLIST_CTE
 AS 
 (
   SELECT itm.partnumber,itm.PartDescription,itm.ItemMasterId,
-		alternate.partnumber as AlternatePart ,
-		alternate.PartDescription as AlternatePartDescription ,
+		alternate.partnumber as AlternatePart,	
 		nha.partnumber as NhaPart,
 		nha.PartDescription as NhaPartDescription,
-		equivalent.partnumber as EquivalentPart,
-		equivalent.PartDescription as EquivalentPartDescription,
-		tla.partnumber as TlaPart,
-		tla.PartDescription as TlaPartDescription,	  
-	   mapping.CreatedBy as CreatedBy,
-	   mapping.CreatedDate as CreatedDate,
-	   mapping.UpdatedBy as UpdatedBy,
-	   mapping.UpdatedDate as UpdatedDate
+		equivalent.partnumber as EquivalentPart,	
+		tla.partnumber as TlaPart,	
+	    mapping.MappingType as MappingType
 
 FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
 LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
@@ -95,8 +74,9 @@ LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId
 LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
 LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
 LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-WHERE  mapping.MasterCompanyId = @MasterCompanyId AND ((mapping.IsDeleted =0) AND (@IsActive IS NULL OR mapping.IsActive = 1))
---AND (@ItemMasterId = 0 OR mapping.ItemMasterId = @ItemMasterId) 
+WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND ((mapping.IsDeleted =0) AND (@IsActive IS NULL OR mapping.IsActive = 1))
+
+AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 )	
 SELECT   * INTO #TempResult FROM ORMLIST_CTE			
 			 WHERE (	
@@ -107,13 +87,12 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 					OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(AlternatePart LIKE '%' +@GlobalFilter+'%') OR
-					(AlternatePartDescription LIKE '%' +@GlobalFilter+'%') OR
+				
 					(NhaPart LIKE '%' +@GlobalFilter+'%') OR
 					(NhaPartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(EquivalentPart LIKE '%' +@GlobalFilter+'%') OR
-					(EquivalentPartDescription LIKE '%' +@GlobalFilter+'%') OR
-					(TlaPart LIKE '%' +@GlobalFilter+'%') OR
-					(TlaPartDescription LIKE '%' +@GlobalFilter+'%') 					
+				
+					(TlaPart LIKE '%' +@GlobalFilter+'%') 
 					)
 					)
 					OR   
@@ -122,13 +101,12 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@NhaPart,'') ='' OR NhaPart LIKE '%' + @NhaPart + '%') AND
-					(ISNULL(@NhaPartDescription,'') ='' OR NhaPartDescription LIKE '%' + @NhaPartDescription + '%') AND
+				
 					(ISNULL(@TlaPart,'') ='' OR TlaPart LIKE '%' + @TlaPart + '%') AND
-					(ISNULL(@TlaPartDescription,'') ='' OR TlaPartDescription LIKE '%' + @TlaPartDescription + '%') AND
+					
 					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%') AND
-					(ISNULL(@EquivalentPartDescription,'') ='' OR EquivalentPartDescription LIKE '%' + @EquivalentPartDescription + '%')AND
-					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') AND
-					(ISNULL(@AlternatePartDescription,'') ='' OR AlternatePartDescription LIKE '%' + @AlternatePartDescription + '%') 
+				
+					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') 				
 					)			
 			)
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult
@@ -140,20 +118,16 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='AlternatePart')  THEN AlternatePart END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='AlternatePart')  THEN AlternatePart END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='AlternatePartDescription')  THEN AlternatePartDescription END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='AlternatePartDescription')  THEN AlternatePartDescription END DESC,
+		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NhaPart')  THEN NhaPart END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NhaPart')  THEN NhaPart END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='NhaPartDescription')  THEN NhaPartDescription END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='NhaPartDescription')  THEN NhaPartDescription END DESC,
+		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='EquivalentPart')  THEN EquivalentPart END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EquivalentPart')  THEN EquivalentPart END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='EquivalentPartDescription')  THEN EquivalentPartDescription END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='EquivalentPartDescription')  THEN EquivalentPartDescription END DESC,
+		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TlaPart')  THEN TlaPart END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='TlaPart')  THEN TlaPart END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='TlaPartDescription')  THEN TlaPartDescription END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='TlaPartDescription')  THEN TlaPartDescription END DESC					
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TlaPart')  THEN TlaPart END DESC
+						
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY
@@ -170,11 +144,6 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 				 + ' @Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') as Varchar(100))
 				 + ' @Parameter8 = ''' + CAST(ISNULL(@PartNumber , '') as Varchar(100))
 				 + ' @Parameter9 = ''' + CAST(ISNULL(@PartDescription, '') as Varchar(100))
-			
-				 + ' @Parameter17 = ''' + CAST(ISNULL(@CreatedBy, '') as Varchar(100))
-				 + ' @Parameter18 = ''' + CAST(ISNULL(@CreatedDate, '') as Varchar(100))
-				 + ' @Parameter19 = ''' + CAST(ISNULL(@UpdatedBy, '') as Varchar(100))
-				 + ' @Parameter20 = ''' + CAST(ISNULL(@UpdatedDate, '') as Varchar(100))
 				 + ' @Parameter21 = ''' + CAST(ISNULL(@IsDeleted, '') as Varchar(100))
 				 + ' @Parameter22 = ''' + CAST(ISNULL(@MasterCompanyId, '') as Varchar(100))
 				,@ApplicationName VARCHAR(100) = 'PAS'

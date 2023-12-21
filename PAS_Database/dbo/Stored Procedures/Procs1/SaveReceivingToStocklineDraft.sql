@@ -390,7 +390,7 @@ BEGIN
       NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
       NULL, A.[MasterPartId], A.[EntryDate], 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
       A.[IsAmortizable], A.[IsNonAmortizable], '', 0, 0, 0, NULL, 0, NULL, 0,    
-      NULL, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
+      1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
       A.SiteId, A.WarehouseId, NULL, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
       NULL, NULL, NULL, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END

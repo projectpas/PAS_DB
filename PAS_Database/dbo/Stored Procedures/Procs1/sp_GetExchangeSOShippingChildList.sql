@@ -16,7 +16,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   '' as ItemNo,  
   sos.ExchangeSalesOrderId, (CASE WHEN sosi.ExchangeSalesOrderPartId IS NOT NULL THEN sosi.ExchangeSalesOrderPartId ELSE sop.ExchangeSalesOrderPartId END) ExchangeSalesOrderPartId  
   ,sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,
-  sosi.FedexPdfPath
+  sosi.FedexPdfPath,sos.PackagingSlipNotes as 'PackagingSlipNotes'
   from DBO.ExchangeSOPickTicket sopt WITH (NOLOCK)   
   INNER JOIN DBO.ExchangeSalesOrderPart sop WITH (NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId   
   AND sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId  

@@ -11,30 +11,39 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    08/08/2023   Hemant Saliya  Created
+	2    20/12/2023   Moin Bloch     Added IsAdjustPeriod,isacpStatusName Field
 
 ************************************************************************
 EXEC [GetAccountingPeriodsByLegalEntity] 1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetAccountingPeriodsByLegalEntity]
+CREATE     PROCEDURE [dbo].[GetAccountingPeriodsByLegalEntity]
 @LegalEntityId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			SELECT DISTINCT AC.AccountingCalendarId, AC.PeriodName, AC.FromDate, AC.ToDate,AC.FiscalName, AC.FiscalYear,  AC.[Period],
-						LEAD(AC.AccountingCalendarId) OVER (ORDER BY AC.FromDate) As AccountingCalendarIdNext ,
-						LEAD(AC.PeriodName) OVER (ORDER BY AC.FromDate) As PeriodNameNext,
-						LEAD(AC.FromDate) OVER (ORDER BY AC.FromDate) As FromDateNext ,
-						LEAD(AC.ToDate) OVER (ORDER BY AC.FromDate) as ToDateNext,
-						LEAD(AC.FiscalName) OVER (ORDER BY AC.FromDate) as FiscalNameNext,
-						LEAD(AC.FiscalYear) OVER (ORDER BY AC.FromDate) as FiscalYearNext 
-			FROM dbo.EntityStructureSetup ESS WITH(NOLOCK)
-				JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
-				JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON MSL.LegalEntityId = AC.LegalEntityId
-			WHERE AC.LegalEntityId = @LegalEntityId AND AC.IsDeleted = 0 --AND AC.FiscalYear >= YEAR(GETDATE()) 
-			GROUP BY  AC.AccountingCalendarId, AC.PeriodName, AC.FromDate, AC.ToDate, AC.FiscalName, AC.FiscalYear, AC.[Period]
-			ORDER BY AC.FiscalYear DESC, AC.[Period] ASC;
+			SELECT DISTINCT AC.[AccountingCalendarId], 
+			                AC.[PeriodName], 
+							AC.[FromDate], 
+							AC.[ToDate],
+							AC.[FiscalName], 
+							AC.[FiscalYear],  
+							AC.[Period],
+							AC.[IsAdjustPeriod],
+							ISNULL(AC.[isacpStatusName],0) AS [isacpStatusName],
+						LEAD(AC.[AccountingCalendarId]) OVER (ORDER BY AC.[FromDate]) AS [AccountingCalendarIdNext],
+						LEAD(AC.[PeriodName]) OVER (ORDER BY AC.[FromDate]) AS [PeriodNameNext],
+						LEAD(AC.[FromDate]) OVER (ORDER BY AC.[FromDate]) AS [FromDateNext],
+						LEAD(AC.[ToDate]) OVER (ORDER BY AC.[FromDate]) AS [ToDateNext],
+						LEAD(AC.[FiscalName]) OVER (ORDER BY AC.[FromDate]) AS [FiscalNameNext],
+						LEAD(AC.[FiscalYear]) OVER (ORDER BY AC.[FromDate]) AS [FiscalYearNext]
+			FROM [dbo].[EntityStructureSetup] ESS WITH(NOLOCK)
+				JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
+				JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON MSL.[LegalEntityId] = AC.[LegalEntityId]
+			WHERE AC.[LegalEntityId] = @LegalEntityId AND AC.[IsDeleted] = 0 --AND AC.FiscalYear >= YEAR(GETDATE()) 
+			GROUP BY  AC.[AccountingCalendarId], AC.[PeriodName], AC.[FromDate], AC.[ToDate], AC.[FiscalName], AC.[FiscalYear], AC.[Period],AC.[IsAdjustPeriod],AC.[isacpStatusName]
+			ORDER BY AC.[FiscalYear] DESC, AC.[Period] ASC;
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

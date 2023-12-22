@@ -16,6 +16,7 @@
  ** --   --------     -------				--------------------------------  
 	1										
 	2    09/20/2023   Devendra Shekh        pick ticket qty issue resovled 
+	3    09/20/2023   Devendra Shekh        changes for partwise data
 
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@ConditionId=10,@WorkOrderId=3555,@SubWorkOrderId=222,@IsMultiplePickTicket=0,@SubWOPartNoId=231
 **************************************************************/ 
@@ -25,7 +26,8 @@ CREATE   PROCEDURE [dbo].[SearchSubWOStockLinePickTicketPop_WO]
 	@WorkOrderId BIGINT,
 	@SubWorkOrderId BIGINT,
 	@IsMultiplePickTicket bit = 0,
-	@SubWOPartNoId BIGINT
+	@SubWOPartNoId BIGINT,
+	@SubWorkOrderMaterialsId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -208,7 +210,7 @@ BEGIN
 						,ig.Description AS ItemGroup
 						,mf.Name AS Manufacturer
 						,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
-						,c.ConditionId
+						,wmsl.ConditionId
 						,'' AlternateFor
 						,CASE 
 							WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
@@ -249,7 +251,7 @@ BEGIN
 					LEFT JOIN DBO.SubWorkOrderMaterialStockLine wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 					LEFT JOIN DBO.SubWorkOrderMaterials wom WITH (NOLOCK) on wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId
 					LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
-					LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = sl.ConditionId
+					--LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId = sl.ConditionId
 					LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 					LEFT JOIN DBO.Customer cusTraceble WITH (NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
@@ -264,6 +266,7 @@ BEGIN
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) > 0)
 							AND wom.SubWOPartNoId = @SubWOPartNoId
+							AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 							AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 				
 				UNION ALL
@@ -334,6 +337,7 @@ BEGIN
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) > 0)
 							AND wom.SubWOPartNoId = @SubWOPartNoId
+							AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
 				END

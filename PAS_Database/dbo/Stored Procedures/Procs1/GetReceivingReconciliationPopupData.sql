@@ -6,10 +6,11 @@
     1    10/10/2023		 Ayesha Sultana		Implementing Searching, Sorting & Paging Functionality
 	2    18/10/2023      Moin Bloch         Revert SP Changes For Implementing Searching, Sorting & Paging Functionality
 	3    07/11/2023		 Moin Bloch  		Implementing Searching, Sorting & Paging Functionality
-
+	4    21/12/2023		 Moin Bloch  		Added ReferenceNumber
+	
 	EXEC GetReceivingReconciliationPopupData 1,10,NULL,-1,'',NULL,NULL,NULL,NULL,1,59
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[GetReceivingReconciliationPopupData]	
+CREATE   PROCEDURE [dbo].[GetReceivingReconciliationPopupData]	
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50) = NULL,
@@ -20,7 +21,8 @@ CREATE     PROCEDURE [dbo].[GetReceivingReconciliationPopupData]
 @PORONum varchar(50) = NULL,
 @CreatedDate datetime = NULL,
 @MasterCompanyId int = NULL,
-@VendorId bigint = NULL
+@VendorId bigint = NULL,
+@ReferenceNumber VARCHAR(MAX) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -47,6 +49,27 @@ BEGIN
 		BEGIN 
 			SET @SortColumn = UPPER(@SortColumn)
 		END
+
+		IF(@ReferenceNumber IS NULL OR @ReferenceNumber = '')
+		BEGIN
+			SET @ReferenceNumber = NULL
+		END
+
+		IF OBJECT_ID(N'tempdb..#UpdatedTempTable') IS NOT NULL      
+		BEGIN      
+		  DROP TABLE #UpdatedTempTable      
+		END 
+
+		CREATE TABLE #UpdatedTempTable (       			   
+		   [PurchaseOrderId] BIGINT NULL,    
+		   [PurchaseOrderNumber] VARCHAR(50) NULL,  
+		   [PartNumber] VARCHAR(250) NULL,  
+		   [PartDescription] NVARCHAR(MAX) NULL,
+		   [PurchaseOrderPartRecordId] BIGINT NULL,   
+		   [CreatedDate] DATETIME2(7) NULL, 
+		   [Type] INT NULL,
+		   [IsSelected] BIT NULL,			
+		)
 		
 	;WITH Result AS(		
 		SELECT DISTINCT po.[PurchaseOrderId],
@@ -138,9 +161,17 @@ BEGIN
 		INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
 		INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
 		WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
-	), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)
-			
-	SELECT * INTO #TempResult FROM Result
+	), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)		
+	    
+	INSERT INTO #UpdatedTempTable SELECT * FROM Result;
+
+	UPDATE tmp
+	SET tmp.[IsSelected] = 1
+	FROM #UpdatedTempTable tmp 
+	WHERE [PurchaseOrderNumber] IN (SELECT Item FROM DBO.SPLITSTRING(@ReferenceNumber,','))
+	
+	;WITH Newresult AS (
+		SELECT * FROM #UpdatedTempTable
 		WHERE ((@GlobalFilter <>'' AND (([PurchaseOrderNumber] LIKE '%' +@GlobalFilter+'%' ) 
 			OR ([PartNumber] LIKE '%' +@GlobalFilter+'%')
 			OR ([PartDescription] LIKE '%' +@GlobalFilter+'%')))
@@ -148,12 +179,12 @@ BEGIN
 			OR (@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') 
 			AND (ISNULL(@PartDescription,'') ='' OR [PartDescription] LIKE '%' + @PartDescription+'%') 
 			AND	(ISNULL(@PORONum,'') ='' OR [PurchaseOrderNumber] LIKE '%' + @PORONum+'%') 
-			AND	(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE)=CAST(@CreatedDate AS DATE))))
+			AND	(ISNULL(@CreatedDate,'') ='' OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE))))
+	),FinalResult (CNT) AS (SELECT COUNT([PurchaseOrderId]) FROM Newresult)
 
-	 SELECT @Count = COUNT([PurchaseOrderId]) FROM #TempResult	
-	
-	 SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
+	 SELECT *, (SELECT CNT FROM FinalResult) AS NumberOfItems FROM Newresult ORDER BY  
 			
+			CASE WHEN (@ReferenceNumber IS NOT NULL) THEN [IsSelected] END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='PURCHASEORDERNUMBER')  THEN PurchaseOrderNumber END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,			
 			CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,

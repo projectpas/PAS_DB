@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Sub WorkOrder Labor Analysis Details    
@@ -14,16 +15,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-    1    02/22/2021   Hemant Saliya			Created
-	2    12/22/2021   Devendra Shekh		added SubWorkOrderNo to select
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    02/22/2021   Hemant Saliya Created
      
  EXECUTE USP_GetSubWorkOrderLaborAnalysisDetails 331,122, 0
 
 **************************************************************/ 
     
-CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisDetails]    
+CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisDetails]    
 (       
 @WorkOrderId BIGINT = NULL, 
 @SubWorkOrderPartNoId BIGINT  = NULL,
@@ -49,7 +49,6 @@ SET NOCOUNT ON
 						CASE WHEN wl.BillableId = 1 THEN 'Billable' ELSE 'Non-Billable' END AS BillableOrNonBillable,
 						c.Name AS Customer,
 						wo.WorkOrderNum,
-						swo.SubWorkOrderNo,
 						ws.Stage,
 						st.[Description] As [Status],
 						t.[Description] As [Action],
@@ -70,7 +69,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wlh.SubWOPartNoId = @SubWorkOrderPartNoId AND wo.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1 
 					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.Name ,wo.WorkOrderNum,ws.Stage,BillableId,
-						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,swo.SubWorkOrderNo
+						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId
 			END
 		COMMIT  TRANSACTION
 		END TRY    

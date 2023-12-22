@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSubWorkOrderLaborAnalysisSummary]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve sub Work Order Labor Analysis Summary    
@@ -15,15 +14,16 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/18/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/18/2021   Hemant Saliya		Created
+    2    12/22/2021   Devendra Shekh	added SubWorkOrderNo to select
      
  EXECUTE USP_GetSubWorkOrderLaborAnalysisSummary 331,122, 0
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisSummary]    
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisSummary]    
 (    
 @WorkOrderId BIGINT = NULL, 
 @SubWorkOrderPartNoId BIGINT  = NULL,
@@ -50,6 +50,7 @@ SET NOCOUNT ON
 					SUM(wl.BurdenRateAmount) AS BurdenRateAmount,
 					c.Name AS Customer,
 					wo.WorkOrderNum,
+					swo.SubWorkOrderNo,
 					ws.Stage,
 					st.[Description] As [Status]
 				FROM dbo.SubWorkOrderLaborHeader wlh WITH (NOLOCK)
@@ -63,7 +64,7 @@ SET NOCOUNT ON
 				JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.SubWorkOrderStatusId
 				WHERE wlh.SubWOPartNoId = @SubWorkOrderPartNoId AND wo.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 				GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId, wop.SubWOPartNoId,
-					c.Name,wo.WorkOrderNum,ws.Stage,st.[Description]		
+					c.Name,wo.WorkOrderNum,ws.Stage,st.[Description],swo.SubWorkOrderNo		
 			END
 		COMMIT  TRANSACTION
 

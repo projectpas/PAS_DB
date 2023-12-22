@@ -2697,5 +2697,7 @@
     <Build Include="dbo\Stored Procedures\SP_SaveSOPartStatusByPartId.sql" />
     <Build Include="dbo\Stored Procedures\OEMCrossReferenceList.sql" />
     <Build Include="dbo\Tables\DistributionSetupAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateStockline_For_CustStockTransfer.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails.sql" />
   </ItemGroup>
 </Project>

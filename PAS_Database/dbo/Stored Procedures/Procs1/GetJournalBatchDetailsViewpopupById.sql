@@ -38,13 +38,13 @@
  22   30/11/2023  Moin Bloch	         added Lot Number SOI
  23   01/12/2023  Moin Bloch	         added Lot Number EXPS
  24   06/12/2023  Moin Bloch	         added Lot Number in RPO,RRO 
-   
+ 25	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
  EXEC GetJournalBatchDetailsViewpopupById 2534,0,'WOP-DirectLabor'  
   
 ************************************************************************/  
-CREATE    PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
+CREATE      PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
 @JournalBatchDetailId BIGINT,  
 @IsDeleted bit,  
 @Module varchar(50) 
@@ -1356,6 +1356,105 @@ BEGIN
 					WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
 					ORDER BY DS.DisplayNumber ASC;  
 		  END
+
+		  IF(UPPER(@Module) = UPPER('SADJ-CUST-STK'))  
+			BEGIN  
+				--DECLARE @blkSTKLEModuleID INT = 2; 
+				--DECLARE @ManagementStructureModuleLEId BIGINT = 0;   
+				--PRINT 'SADJ-QTY'
+
+				--SELECT @ManagementStructureModuleLEId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='EmployeeGeneralInfo';
+  PRINT 'TEST'
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName]  
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]           
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]           
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]           
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.AllowManualJE  
+					  ,JBD.LastMSLevel  
+					  ,JBD.AllMSlevels  
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,le.CompanyName AS LegalEntityName          
+					  ,STKL.PartNumber
+					  ,STKL.StockLineNumber
+					  ,'' AS PONum  
+					  ,'' AS RONum  
+					  ,'' AS StocklineNumber  
+					  ,'' AS [Description]  
+					  ,'' AS Consignment  
+					  ,JBH.[Module]  
+					  ,0 AS PartId               
+					  ,'' AS PartNumber         
+					  ,'' AS [DocumentNumber]  
+					  ,'' AS [SIte]  
+					  ,'' AS [Warehouse]  
+					  ,'' AS [Location]  
+					  ,'' AS [Bin]  
+					  ,'' AS [Shelf]  
+					  ,BD.JournalTypeNumber
+					  ,BD.CurrentNumber  
+					  ,STKL.[CustomerId] AS [CustomerId],CST.[Name] AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
+					  ,BS.Name AS 'Status'
+					  ,ESS.Level1Id,UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS Level1,
+					ESS.Level2Id,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS Level2,
+					ESS.Level3Id,UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS Level3,
+					ESS.Level4Id,UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS Level4,
+					ESS.Level5Id,UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS Level5,
+					ESS.Level6Id,UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS Level6,
+					ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
+					ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
+					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
+					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
+					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
+					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
+					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 	 
+					 LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON stbd.ManagementStructureId = ESS.[EntityStructureId]
+					 LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON ESS.Level3Id = MSL3.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON ESS.Level2Id = MSL2.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON ESS.Level4Id = MSL4.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON ESS.Level5Id = MSL5.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON ESS.Level6Id = MSL6.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON ESS.Level7Id = MSL7.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON ESS.Level8Id = MSL8.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON ESS.Level9Id = MSL9.ID
+					 LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON ESS.Level10Id = MSL10.ID
+					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
+					 LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
+					 LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]
+					 LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
+					 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
+					 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+					 LEFT JOIN [dbo].[Customer] CST WITH(NOLOCK) ON STKL.CustomerId = CST.CustomerId 
+				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
+				 ORDER BY DS.DisplayNumber ASC;  
+			END 
+
 
     END TRY  
  BEGIN CATCH        

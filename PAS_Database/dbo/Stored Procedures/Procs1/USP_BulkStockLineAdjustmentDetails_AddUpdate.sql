@@ -13,9 +13,11 @@
     1    10/10/2023   AMIT GHEDIYA     Created
 	2    16/10/2023   AMIT GHEDIYA     added UnitCost adjustment.
 	3    24/10/2023   AMIT GHEDIYA     added Intra Company adjustment.
+	4    20/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
+	5    22/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
 
 *******************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
+Create      PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -47,7 +49,10 @@ BEGIN
 				@LastMSLevel VARCHAR(256),
 				@AllMSlevels VARCHAR(256),
 				@ModuleId INT,
-				@StockLineAdjustmentTypeId INT;
+				@StockLineAdjustmentTypeId INT,
+				@NewUnitCostTotransfer DECIMAL(18,2),
+				@QuantityOnHand DECIMAL(18,2),
+				@UnitOfMeasure VARCHAR(100);
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='BulkStocklineAdjustmnet';
 
@@ -77,13 +82,16 @@ BEGIN
 			[ToManagementStructureId] [bigint] NULL,
 			[LastMSLevel] [varchar](200) NULL,
 			[AllMSlevels] [varchar](MAX) NULL,
-			[IsDeleted] [bit] NOT NULL
+			[IsDeleted] [bit] NOT NULL,
+			[NewUnitCostTotransfer] [decimal](18, 2) NULL,
+			[QuantityOnHand] [decimal](18, 2) NULL,
+			[UnitOfMeasure] [varchar](100) NULL
 		)
 
 		INSERT INTO #tmpBulkStockLineAdjustmentDetails ([BulkStockLineAdjustmentDetailsId],[BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[NewUnitCost],[UnitCostAdjustment],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],[IsDeleted],
-													 [ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels])
+													 [ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels],[NewUnitCostTotransfer],[QuantityOnHand],[UnitOfMeasure])
 		SELECT [BulkStockLineAdjustmentDetailsId],[BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[NewUnitCost],[UnitCostAdjustment],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],[IsDeleted],
-													 [ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels] FROM @BulkStockLineAdjustmentDetails;
+													 [ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels],[NewUnitCostTotransfer],[QuantityOnHand],[UnitOfMeasure] FROM @BulkStockLineAdjustmentDetails;
 
 		SELECT  @MasterLoopID = MAX(ID) FROM #tmpBulkStockLineAdjustmentDetails
 
@@ -104,7 +112,11 @@ BEGIN
 				   @LastMSLevel = LastMSLevel,
 				   @AllMSlevels = AllMSlevels,
 				   @IsDeleted = IsDeleted,
-				   @StockLineAdjustmentTypeId = StockLineAdjustmentTypeId
+				   @StockLineAdjustmentTypeId = StockLineAdjustmentTypeId,
+				   @NewUnitCostTotransfer = NewUnitCostTotransfer,
+				   @QuantityOnHand = QuantityOnHand,
+				   @UnitOfMeasure = UnitOfMeasure
+
 			FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 			
 			IF(@BulkStockLineAdjustmentDetailsId = 0)
@@ -129,6 +141,19 @@ BEGIN
 											[ManagementStructureId],[LastMSLevel],[AllMSlevels]
 									FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 				END
+
+
+				ELSE IF(@StockLineAdjustmentTypeId = 5) -- For Customer Stock
+				BEGIN
+					INSERT INTO [dbo].[BulkStockLineAdjustmentDetails]([BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[NewUnitCost],[UnitCostAdjustment],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],
+															[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+															[ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels],[NewUnitCostTotransfer],[QuantityOnHand],[UnitOfMeasure])
+							        SELECT [BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],NULL,[UnitCost],NULL,NULL,[AdjustmentAmount],NULL,NULL,[StockLineAdjustmentTypeId],
+											@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
+											[ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels],[NewUnitCostTotransfer],[QuantityOnHand],[UnitOfMeasure]
+									FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
+				END
+
 
 				SELECT @BulkStockLineAdjustmentDetailsId = SCOPE_IDENTITY();
 
@@ -167,6 +192,21 @@ BEGIN
 						[AllMSlevels] = @AllMSlevels
 					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 				END
+
+
+				ELSE IF(@StockLineAdjustmentTypeId = 5)-- For CustomerStock
+				BEGIN
+					UPDATE [dbo].[BulkStockLineAdjustmentDetails] 
+					SET [NewQty] = @NewQty,
+						[NewUnitCostTotransfer] = @NewUnitCostTotransfer,
+						[UpdatedBy] = @UpdatedBy,
+						[UpdatedDate] = GETUTCDATE(),
+						[ManagementStructureId] = @ManagementStructureId,
+						[LastMSLevel] = @LastMSLevel,
+						[AllMSlevels] = @AllMSlevels
+					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+				END
+
 
 				--Update Existing PROCAddUpdateCustomerRMAMSData
 				EXEC PROCAddUpdateCustomerRMAMSData @BulkStockLineAdjustmentDetailsId,@ManagementStructureId,@MasterCompanyId,@CreatedBy,@UpdatedBy,@ModuleId,2,0

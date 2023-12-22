@@ -17,5 +17,10 @@
     [ToManagementStructureId]          BIGINT          NULL,
     [LastMSLevel]                      VARCHAR (200)   NULL,
     [AllMSlevels]                      VARCHAR (MAX)   NULL,
-    [IsDeleted]                        BIT             NOT NULL);
+    [IsDeleted]                        BIT             NOT NULL,
+    [NewUnitCostTotransfer]            DECIMAL (18, 2) NULL,
+    [QuantityOnHand]                   DECIMAL (18, 2) NULL,
+    [UnitOfMeasure]                    VARCHAR (100)   NULL);
+
+
 

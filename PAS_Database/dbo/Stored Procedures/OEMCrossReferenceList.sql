@@ -42,9 +42,11 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		DECLARE @AlternateType int =1;
-		DECLARE @NHAType int =2;
+		DECLARE @EquilentType int =2;
+		DECLARE @NHAType int =3;	
 		DECLARE @TLAType int =4;
-		DECLARE @EquilentType int =3;
+		DECLARE @OtherType int =5
+		
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 		IF @IsDeleted IS NULL
@@ -62,8 +64,7 @@ AS
 (
   SELECT itm.partnumber,itm.PartDescription,itm.ItemMasterId,
 		alternate.partnumber as AlternatePart,	
-		nha.partnumber as NhaPart,
-		nha.PartDescription as NhaPartDescription,
+		nha.partnumber as NhaPart,		
 		equivalent.partnumber as EquivalentPart,	
 		tla.partnumber as TlaPart,	
 	    mapping.MappingType as MappingType
@@ -74,7 +75,7 @@ LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId
 LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
 LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
 LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
+WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
 
 AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 )	
@@ -89,7 +90,7 @@ SELECT   * INTO #TempResult FROM ORMLIST_CTE
 					(AlternatePart LIKE '%' +@GlobalFilter+'%') OR
 				
 					(NhaPart LIKE '%' +@GlobalFilter+'%') OR
-					(NhaPartDescription LIKE '%' +@GlobalFilter+'%') OR
+				
 					(EquivalentPart LIKE '%' +@GlobalFilter+'%') OR
 				
 					(TlaPart LIKE '%' +@GlobalFilter+'%') 

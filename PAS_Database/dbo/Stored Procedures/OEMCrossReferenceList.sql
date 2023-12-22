@@ -74,7 +74,7 @@ LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId
 LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
 LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
 LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND ((mapping.IsDeleted =0) AND (@IsActive IS NULL OR mapping.IsActive = 1))
+WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
 
 AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 )	

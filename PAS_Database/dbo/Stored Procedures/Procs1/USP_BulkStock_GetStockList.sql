@@ -1,13 +1,13 @@
-﻿/*************************************************************           
+﻿/*******           
  ** File:   [USP_BulkStock_GetStockList]           
  ** Author: AMIT GHEDIYA
  ** Description: This stored procedure is used to Get Stock Listing 
  ** Date:   02/10/2023
  ** PARAMETERS:           
  ** RETURN VALUE:
- ******************************************************************************           
+ **********           
   ** Change History           
- ******************************************************************************           
+ **********           
  ** PR   Date					Author  			Change Description            
  ** --   --------			-------					---------------------------     
     1    02/10/2023			AMIT GHEDIYA			Created
@@ -15,9 +15,9 @@
 	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
 	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
 	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
-*******************************************************************************
-*******************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
+*********
+*********/
+CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
 	@PageNumber INT = 1,
 	@PageSize INT = 10,
 	@SortColumn VARCHAR(50)=NULL,
@@ -348,7 +348,7 @@ BEGIN
 						(ISNULL(@Manufacturer, '') = '' OR [Manufacturer] LIKE '%' + @Manufacturer + '%') AND
 						(ISNULL(@Condition, '') = '' OR [Condition] LIKE '%' + @Condition + '%') AND
 						(ISNULL(@UnitOfMeasure, '') = '' OR [UnitOfMeasure] LIKE '%' + @UnitOfMeasure + '%') AND
-						(ISNULL(CAST(@QuantityOnHand AS VARCHAR(200)),'') = '' OR CAST([QuantityOnHand] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityOnHand AS VARCHAR(200)),'') +'%') AND  
+						--(CAST(ISNULL(@QuantityOnHand,'') AS VARCHAR(200)) = '' OR CAST([QuantityOnHand] AS VARCHAR(200)) Like '%' +  CAST(ISNULL(@QuantityOnHand,'') AS VARCHAR(200)) +'%') AND  
 						(ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') = '' OR CAST([QuantityAvailable] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@QuantityAvailable AS VARCHAR(200)),'') +'%') AND  
 						(ISNULL(CAST(@UnitCost AS VARCHAR(200)),'') = '' OR CAST([UnitCost] AS VARCHAR(200)) Like '%' +  ISNULL(CAST(@UnitCost AS VARCHAR(200)),'') +'%') AND  
 						(ISNULL(@SerialNumber, '') = '' OR [SerialNumber] LIKE '%' + @SerialNumber + '%') AND

@@ -37,6 +37,9 @@
     [TCCALicense]             VARCHAR (100) NULL,
     [TimeZoneId]              BIGINT        NULL,
     [IsPrintCheckNumber]      BIT           NULL,
+    [IsTurnOffMgmt]           BIT           NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
 

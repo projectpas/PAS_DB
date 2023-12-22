@@ -20,6 +20,7 @@
 	3    08/18/2023   Devendra 				Added QtyRemaining for wopickticket insert and update   
 	4    09/20/2023   Devendra Shekh        pick ticket qty issue resovled 
 	5    12/19/2023   Devendra Shekh        changes for kit part added
+	6    12/21/2023   Devendra Shekh        QTY issue resolved
 
 -- EXEC [sp_saveSubWOPickTicketItemInterface_WO] 46, 23, 343, 0  
   
@@ -77,6 +78,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
+		print 'kit type'
 		SELECT @TotalWMSTK = Count(wmsl.SubWorkOrderMaterialsKitId) 
 		FROM [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) 
 		INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId      
@@ -93,14 +95,17 @@ BEGIN
 	END
 	ELSE
 	BEGIN
+		print 'kit type'
+		print @TotalWMSTK
 		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
 		FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 		INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 		LEFT JOIN [dbo].[SubWorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 		WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 	END	   
    
+   print @TotalWMSTK
 	IF (@TotalWMSTK > 1)
 	BEGIN
 		IF(@IsKitType = 0)
@@ -116,10 +121,11 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			print 'kit type'
 			;WITH RESULT(QtyRemaining)AS (
 			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId )--GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
@@ -144,14 +150,14 @@ BEGIN
 			;WITH RESULT(QtyRemaining)AS (
 			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
 			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
 		END				
 	END
-
+	print @QtyRemaining
    INSERT INTO [dbo].[SubWorkorderPickTicket]  
       ([PickTicketNumber], [WorkorderId], [SubWorkorderId], [SubWorkorderPartNoId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[SubWorkOrderMaterialsId],[OrderPartId],  
        [Qty],[QtyToShip],[MasterCompanyId],[Status], [StocklineId]  
@@ -179,7 +185,7 @@ BEGIN
 	ELSE
 	BEGIN
 		SELECT @TotalWMSTK = Count(wmsl.SubWorkOrderMaterialsKitId) FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 		INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 		WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId GROUP BY wmsl.SubWorkOrderMaterialsKitId;
 	END
@@ -188,7 +194,7 @@ BEGIN
 	BEGIN
 		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
 		FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+		INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 		INNER JOIN [dbo].[SubWorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId   
 		LEFT JOIN [dbo].[SubWorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 		WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
@@ -197,7 +203,7 @@ BEGIN
 	BEGIN
 		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
 		FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+		INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 		INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 		LEFT JOIN [dbo].[SubWorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 		WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
@@ -210,7 +216,7 @@ BEGIN
 			;WITH RESULT(QtyRemaining) AS(
 			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId   
 			--LEFT JOIN [dbo].[SubWorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
@@ -222,7 +228,7 @@ BEGIN
 			;WITH RESULT(QtyRemaining) AS(
 			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
@@ -236,7 +242,7 @@ BEGIN
 			;WITH RESULT(QtyRemaining) AS(
 			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId   
 			--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
@@ -248,7 +254,7 @@ BEGIN
 			;WITH RESULT(QtyRemaining) AS(
 			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
 			FROM SubWorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
+			INNER JOIN [dbo].[SubWorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId AND wop.SubWOPartNoId = wom.SubWOPartNoId 
 			INNER JOIN [dbo].[SubWorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.SubWorkOrderMaterialsKitId = wmsl.SubWorkOrderMaterialsKitId   
 			WHERE wom.WorkOrderId = @WorkOrderId AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 

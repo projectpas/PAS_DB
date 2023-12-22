@@ -32,12 +32,16 @@ BEGIN
  BEGIN TRY    
 
    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+   DECLARE @CurrentDateTime DATETIME='';
+
    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description]    
    FROM DBO.LegalEntity LE WITH (NOLOCK) 
 		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
 		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
    WHERE ESS.EntityStructureId = @ManagementStructId
+
+   SELECT @CurrentDateTime = GETDATE();
 
    SELECT   
    JBH.[JournalBatchHeaderId],  
@@ -60,7 +64,7 @@ BEGIN
    ISNULL(JBD.[DebitAmount],0) AS DebitAmount,  
    ISNULL(JBD.[CreditAmount],0) AS CreditAmount,  
    JBD.[JournalTypeNumber] AS DJournalTypeNumber,  
-   JBD.[EntryDate] AS DEntryDate,  
+   Cast(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime) as DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
    Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime) as CreatedDate,
@@ -71,7 +75,9 @@ BEGIN
    CD.DebitAmount as Dr,
    CD.GlAccountNumber + ' - ' + CD.GlAccountName as GLAccount,
    Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, 
-    BS.[Name] AS 'BatchStatus'
+   BS.[Name] AS 'BatchStatus',
+   @CurrentDateTime as PrintedDate
+
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
   LEFT JOIN [dbo].[BatchDetails] JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBD.IsDeleted=0  
   LEFT JOIN [dbo].[JournalType] JT WITH(NOLOCK) ON JBD.JournalTypeId = JT.ID  

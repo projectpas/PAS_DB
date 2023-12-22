@@ -16,9 +16,36 @@
     [IsActive]              BIT           CONSTRAINT [DistributionSetup_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [DistributionSetup_DC_IsDeleted] DEFAULT ((0)) NOT NULL,
     [CRDRType]              INT           NULL,
-    [DistributionSetupCode] VARCHAR (100) NULL,
+    [DistributionSetupCode] VARCHAR (100) NOT NULL,
     [IsManualText]          BIT           DEFAULT ((0)) NULL,
     [ManualText]            VARCHAR (100) NULL,
     CONSTRAINT [PK_DistributionSetup] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
 
+
+
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_DistributionSetupAudit]
+
+   ON  [dbo].[DistributionSetup]
+
+   AFTER INSERT,UPDATE
+
+AS 
+
+BEGIN
+
+
+
+	INSERT INTO [dbo].[DistributionSetupAudit]
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+
+
+END

@@ -15,6 +15,7 @@
  ** --   --------       -----------				--------------------------------            
     1    08/10/2023     AMIT GHEDIYA			Created
 	2    31/10/2023     AMIT GHEDIYA			Added Isseralized for Qty check.
+	3    22/12/2023     Bhargav Salya			Added NewUnitCostTotransfer Field
        
 -- EXEC USP_GetbulkstocklineadjustmentById 8,2  
   

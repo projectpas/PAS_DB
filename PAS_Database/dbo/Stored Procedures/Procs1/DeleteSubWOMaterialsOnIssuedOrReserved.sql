@@ -12,6 +12,9 @@
 ** PR   Date			Author				Change Description  
 ** --   --------		-------				--------------------------------
 ** 1    07-11-2023		Ayesha Sultana		Created - Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
+** 2    07-11-2023		Hemnat Saliya		Updated - Added Kit Delete option
+
+EXEC DeleteSubWOMaterialsOnIssuedOrReserved 91
 
 **************************************************************/ 
 
@@ -30,19 +33,24 @@ BEGIN
 					DROP TABLE #TempSubWOtbl
 				END
 
-			CREATE TABLE #TempSubWOtbl(SubWorkOrderMaterialsId BIGINT)
+			CREATE TABLE #TempSubWOtbl(SubWorkOrderMaterialsId BIGINT, IsKit BIT)
 
-			INSERT INTO #TempSubWOtbl (SubWorkOrderMaterialsId)
-
-			SELECT DISTINCT SWOM.SubWorkOrderMaterialsId
-
+			INSERT INTO #TempSubWOtbl (SubWorkOrderMaterialsId, IsKit)
+			SELECT DISTINCT SWOM.SubWorkOrderMaterialsId, 0
 			FROM dbo.SubWorkOrderMaterials SWOM WITH(NOLOCK)
+			WHERE SWOM.SubWOPartNoId = @SubWOPartNoId AND (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0)) = 0 
 
-			WHERE SWOM.SubWOPartNoId = @SubWOPartNoId 
-					AND (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0)) = 0 
+			INSERT INTO #TempSubWOtbl (SubWorkOrderMaterialsId, IsKit)
+			SELECT DISTINCT SWOM.SubWorkOrderMaterialsKitId, 1
+			FROM dbo.SubWorkOrderMaterialsKit SWOM WITH(NOLOCK)
+			WHERE SWOM.SubWOPartNoId = @SubWOPartNoId AND (ISNULL(SWOM.QuantityReserved, 0) + ISNULL(SWOM.QuantityIssued, 0)) = 0 
 
-			DELETE SWOMS FROM dbo.SubWorkOrderMaterialStockLine SWOMS JOIN #TempSubWOtbl tmpWOM ON SWOMS.SubWorkOrderMaterialsId = tmpWOM.SubWorkOrderMaterialsId
-			DELETE SWOM FROM dbo.SubWorkOrderMaterials SWOM JOIN #TempSubWOtbl tmpWOM ON SWOM.SubWorkOrderMaterialsId = tmpWOM.SubWorkOrderMaterialsId;
+
+			DELETE SWOMS FROM dbo.SubWorkOrderMaterialStockLine SWOMS JOIN #TempSubWOtbl tmpWOM ON SWOMS.SubWorkOrderMaterialsId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 0
+			DELETE SWOM FROM dbo.SubWorkOrderMaterials SWOM JOIN #TempSubWOtbl tmpWOM ON SWOM.SubWorkOrderMaterialsId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 0;
+
+			DELETE SWOMS FROM dbo.SubWorkOrderMaterialStockLineKit SWOMS JOIN #TempSubWOtbl tmpWOM ON SWOMS.SubWorkOrderMaterialsKitId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 1
+			DELETE SWOM FROM dbo.SubWorkOrderMaterialsKit SWOM JOIN #TempSubWOtbl tmpWOM ON SWOM.SubWorkOrderMaterialsKitId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 1;
 
 			IF OBJECT_ID(N'tempdb..##TempSubWOtbl') IS NOT NULL
 				BEGIN

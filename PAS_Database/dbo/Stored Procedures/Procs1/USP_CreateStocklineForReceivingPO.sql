@@ -21,9 +21,9 @@
 	5    13-12-2023   Shrey Chandegara  update for stockline history  
     
 declare @p2 dbo.POPartsToReceive  
-insert into @p2 values(2336,4004,2)  
+insert into @p2 values(2371,4051,2)  
   
-exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2336,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
+exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
@@ -919,6 +919,10 @@ BEGIN
 
                         SET @LoopID = @LoopID - 1;
                     END
+
+					UPDATE Stk
+					SET Stk.IsParent = 0
+					FROM DBO.StocklineDraft Stk WHERE Stk.IsParent = 1 AND Stk.StockLineNumber IS NOT NULL AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                 END
                 ELSE IF (@ItemTypeId = 11)
                 BEGIN
@@ -1267,7 +1271,7 @@ BEGIN
 
                         IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63))
                         BEGIN
-                            SET @StockLineNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(   @stockLineCurrentNo_Asset,
+                            SET @StockLineNumber_Asset = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(   @stockLineCurrentNo_Asset,
                                      (SELECT CodePrefix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63),
                                      (SELECT CodeSufix FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 63)))
 
@@ -1276,7 +1280,6 @@ BEGIN
                             WHERE CodeTypeId = 63 AND MasterCompanyId = @MasterCompanyId;
                         END
 
-                        PRINT @StockLineNumber
 
                         IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes_Asset WHERE CodeTypeId = 64))
                         BEGIN
@@ -1321,7 +1324,7 @@ BEGIN
 						[CalibrationFrequencyDays],[CalibrationGlAccountId],[CalibrationMemo],[VerificationMemo],[VerificationGlAccountId],[CalibrationCurrencyId],[CertificationCurrencyId],[InspectionCurrencyId],[VerificationCurrencyId],
 						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[AssetMaintenanceContractFileExt],[WarrantyFile],[WarrantyFileExt],[MasterPartId],[EntryDate],[InstallationCost],[Freight],[Insurance],[Taxes],
 						[TotalCost],[WarrantyDefaultVendorId],[WarrantyGLAccountId],[IsDepreciable],[IsNonDepreciable],[IsAmortizable],[IsNonAmortizable],[SerialNo],[IsInsurance],[AssetLife],[WarrantyCompanyId],[WarrantyCompanyName],
-						[WarrantyCompanySelectId],[WarrantyMemo],[IsQtyReserved],1,@InventoryNumber_Asset,[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],@StockLineNumber,[AvailStatus],
+						[WarrantyCompanySelectId],[WarrantyMemo],[IsQtyReserved],1,@InventoryNumber_Asset,[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],@StockLineNumber_Asset,[AvailStatus],
 						[PartNumber],@ControlNumber_Asset,[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],@ReceiverNumber_Asset,GETUTCDATE(),[SiteId],[SiteName],[WarehouseId],[Warehouse],
 						[LocationId],[Location],[ShelfId],[ShelfName],[BinId],[BinName],'',0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 						NULL,NULL,NULL,NULL,NULL,NULL
@@ -1476,12 +1479,14 @@ BEGIN
 
                         SET @LoopID = @LoopID - 1;
                     END
+
+					UPDATE Stk
+					SET Stk.IsParent = CASE WHEN Stk.IsParent = 1 THEN 0 ELSE 1 END
+					FROM DBO.AssetInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                 END
                 ELSE IF (@ItemTypeId = 2)
                 BEGIN
-                    SELECT @IsSerializedPart = ISNULL(IM.isSerialized, 0)
-                    FROM DBO.ItemMasterNonStock IM WITH (NOLOCK)
-                    WHERE IM.MasterPartId = @ItemMasterId_Part;
+                    SELECT @IsSerializedPart = ISNULL(IM.isSerialized, 0) FROM DBO.ItemMasterNonStock IM WITH (NOLOCK) WHERE IM.MasterPartId = @ItemMasterId_Part;
 
                     DECLARE @ParentNonStockId BIGINT = 0;
                     DECLARE @NewNonStockInventoryId BIGINT = 0;
@@ -1766,16 +1771,12 @@ BEGIN
 
                             EXEC dbo.[USP_SaveNonSLMSDetails] @MSModuleId_NonStock, @NewNonStockInventoryId, @ManagementStructureID_NonStock, @MSId, @UpdatedBy;
 
-                            --UPDATE NonStockInventoryDraft
-                            --SET NonStockInventoryNumber = @NonStockInventoryNumber,
-                            --    ReceiverNumber = @ReceiverNumber_NonStock,
-                            --    ControlNumber = @NonStockControlNumber,
-                            --    ParentId = @ParentNonStockId,
-                            --    NonStockInventoryId = @NewNonStockInventoryId
-                            --WHERE NonStockInventoryDraftId = @TempNonStockId;
+							SELECT @SelectedIsSameDetailsForAllParts = IsSameDetailsForAllParts FROM #tmpNonStockInventoryDraft WHERE NonStockInventoryDraftId = @TempNonStockId;
 
-							SELECT @SelectedIsSameDetailsForAllParts = IsSameDetailsForAllParts
-							FROM #tmpNonStockInventoryDraft WHERE NonStockInventoryDraftId = @TempNonStockId;
+							PRINT '@IsSerializedPart';
+							PRINT @IsSerializedPart;
+							PRINT '@SelectedIsSameDetailsForAllParts';
+							PRINT @SelectedIsSameDetailsForAllParts;
 
 							IF (@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts = 1)
 							BEGIN
@@ -1835,38 +1836,47 @@ BEGIN
 
 								IF ((@MainPOPartBackOrderQty - @QtyToReceive) > 0)
 								BEGIN
-									SET @StockLineNumber = NULL;
-									SET @NewStocklineId = NULL;
+									SET @NonStockInventoryNumber = NULL;
+									SET @NewNonStockInventoryId = NULL;
 								END
 
 								UPDATE dstl
-								SET dstl.NonStockInventoryId = @NewStocklineId,
-									dstl.NonStockInventoryNumber = @StockLineNumber,
+								SET dstl.NonStockInventoryId = @NewNonStockInventoryId,
+									dstl.NonStockInventoryNumber = @NonStockInventoryNumber,
 									dstl.ControlNumber = @ControlNumber,
 									dstl.ReceiverNumber = @ReceiverNumber
 								FROM DBO.NonStockInventoryDraft dstl
-								WHERE NonStockInventoryDraftId = @SelectedStockLineDraftId;
+								WHERE NonStockInventoryDraftId = @TempNonStockId;
 
 								UPDATE DBO.NonStockInventoryDraft
 								SET NonStockInventoryId = 0
-								WHERE NonStockInventoryDraftId = @SelectedStockLineDraftId
+								WHERE NonStockInventoryDraftId = @TempNonStockId
 										AND isSerialized = 0
 										AND IsSameDetailsForAllParts = 1
 										AND IsParent = 1;
 							END
 							ELSE
 							BEGIN
+								PRINT 'NonStock Update ELSE'
+								PRINT @NonStockInventoryNumber;
+								PRINT '@TempNonStockId';
+								PRINT @TempNonStockId;
+
 								UPDATE dstl
-								SET dstl.NonStockInventoryId = @NewStocklineId,
-									dstl.NonStockInventoryNumber = @StockLineNumber,
+								SET dstl.NonStockInventoryId = @NewNonStockInventoryId,
+									dstl.NonStockInventoryNumber = @NonStockInventoryNumber,
 									dstl.ControlNumber = @ControlNumber,
 									dstl.ReceiverNumber = @ReceiverNumber
 								FROM DBO.NonStockInventoryDraft dstl
-								WHERE NonStockInventoryDraftId = @SelectedStockLineDraftId;
+								WHERE NonStockInventoryDraftId = @TempNonStockId;
 							END
 
                             SET @StartNonStock = @StartNonStock + 1;
                         END
+
+						UPDATE Stk
+						SET Stk.IsParent = CASE WHEN Stk.IsParent = 1 THEN 0 ELSE 1 END
+						FROM DBO.NonStockInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                     END
                 END
 

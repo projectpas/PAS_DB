@@ -24,6 +24,11 @@
     [TaxAdjustment]             DECIMAL (18, 2) NULL,
     [FromManagementStructureId] BIGINT          NULL,
     [ToManagementStructureId]   BIGINT          NULL,
+    [NewUnitCostTotransfer]     DECIMAL (18, 2) NULL,
+    [QuantityOnHand]            DECIMAL (18, 2) NULL,
+    [UnitOfMeasure]             VARCHAR (100)   NULL,
     CONSTRAINT [PK_BulkStockLineAdjustmentDetails] PRIMARY KEY CLUSTERED ([BulkStkLineAdjDetailsId] ASC)
 );
+
+
 

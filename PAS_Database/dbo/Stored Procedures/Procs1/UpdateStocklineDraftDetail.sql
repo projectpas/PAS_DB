@@ -143,12 +143,12 @@ BEGIN
 		--TraceableTo = POP.TraceableTo,
 		TraceableToName = POP.TraceableToName,
 		--TraceableToType = POP.TraceableToType,
-		TagTypeId = POP.TagTypeId,
-		TaggedByType = POP.TaggedByType,
-		TaggedBy = POP.TaggedBy,
+		--TagTypeId = POP.TagTypeId,
+		--TaggedByType = POP.TaggedByType,
+		--TaggedBy = POP.TaggedBy,
 		TaggedByName = POP.TaggedByName,
-		TaggedByTypeName = POP.TaggedByTypeName,
-		TagDate = POP.TagDate
+		TaggedByTypeName = POP.TaggedByTypeName
+		--TagDate = POP.TagDate
 	    FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)
 	    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId

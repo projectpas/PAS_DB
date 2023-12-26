@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateStocklineDraftDetail]           
  ** Author: 
  ** Description: This stored procedure is update into stockline draft
@@ -16,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    12/05/2023   AMIT GHEDIYA	    Modify(Added Traceable & Tagged fields) 
+    2    12/26/2023   Vishal Suthar	    Undo Amit's changes to update from PO Part
 
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
@@ -140,15 +140,6 @@ BEGIN
 		ExchangeSalesOrderId = POP.ExchangeSalesOrderId,
 	    UnitOfMeasure = UM.shortname,
 		TagType = TT.[Name]
-		--TraceableTo = POP.TraceableTo,
-		--TraceableToName = POP.TraceableToName,
-		--TraceableToType = POP.TraceableToType,
-		--TagTypeId = POP.TagTypeId,
-		--TaggedByType = POP.TaggedByType,
-		--TaggedBy = POP.TaggedBy,
-		--TaggedByName = POP.TaggedByName,
-		--TaggedByTypeName = POP.TaggedByTypeName
-		--TagDate = POP.TagDate
 	    FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)
 	    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId

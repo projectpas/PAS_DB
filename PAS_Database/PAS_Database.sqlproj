@@ -2699,5 +2699,6 @@
     <Build Include="dbo\Tables\DistributionSetupAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockline_For_CustStockTransfer.sql" />
     <Build Include="dbo\Stored Procedures\USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateROHeaderRecords.sql" />
   </ItemGroup>
 </Project>

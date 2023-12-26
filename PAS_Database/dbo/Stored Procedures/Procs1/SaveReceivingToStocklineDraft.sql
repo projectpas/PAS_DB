@@ -18,6 +18,7 @@
     2    05/13/2022   Devendra Shekh	added [IsStkTimeLife] for insert  
 	3    12/04/2023   Shrey Chandegara	Updated For Insert into NonStockInventoryDraft  
 	4    12/20/2023   Vishal Suthar		Fixed non stock issues
+	5    12/26/2023   Vishal Suthar		Modified the SP to set traceableTo and taggedBy field from PO Part into Stockline Draft
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -54,7 +55,13 @@ BEGIN
     DECLARE @ShippingAccountNo VARCHAR(100);    
     DECLARE @ManagementStructureId BIGINT;    
     DECLARE @IsSerialized BIT = 0;    
-	DECLARE @LotId BIGINT = NULL  
+	DECLARE @LotId BIGINT = NULL;
+	DECLARE @TraceableTo BIGINT = NULL;
+	DECLARE @TraceableToType INT = NULL;
+	DECLARE @TagTypeId BIGINT = NULL;
+	DECLARE @TaggedByType INT = NULL;
+	DECLARE @TaggedBy BIGINT = NULL;
+	DECLARE @TagDate DATETIME;    
     
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderParts') IS NOT NULL    
     BEGIN    
@@ -96,8 +103,12 @@ BEGIN
       
      SELECT @PurchaseOrderPartRecordId = PurchaseOrderPartRecordId FROM #tmpPurchaseOrderParts WHERE ID  = @LoopID;    
     
-     SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+     SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, 
+	 @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost, @TraceableTo = POP.TraceableTo, @TraceableToType = POP.TraceableToType, @TagTypeId = POP.TagTypeId, 
+	 @TaggedByType = POP.TaggedByType, @TaggedBy = POP.TaggedBy, @TagDate = POP.TagDate
+	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
+     
+	 SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
     
@@ -188,19 +199,19 @@ BEGIN
       [CertifiedType],[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],    
       [LotId],[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],    
       [VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife])    
-    
+      
       SELECT IM.partnumber, NULL, NULL, NULL, @ItemMasterId, @Quantity, @ConditionId, '', 0, NULL, IM.WarehouseId,     
-      IM.LocationId, NULL, NULL, NULL, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
+      IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
+      NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
       NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
       IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
-      NULL, NULL, NULL, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
+      NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
       NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 	  NULL, 0, NULL, NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
       NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
       IM.WarehouseName, IM.LocationName, '', '', '', IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
-      '', NULL, NULL, @ShipViaName, NULL, NULL, 0, 'STL_DRFT-000000',     
-      NULL, NULL, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, 0, NULL, NULL, NULL,    
+      '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
+      NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
       @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife    

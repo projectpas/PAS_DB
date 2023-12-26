@@ -922,7 +922,7 @@ BEGIN
 
 					UPDATE Stk
 					SET Stk.IsParent = 0
-					FROM DBO.StocklineDraft Stk WHERE Stk.IsParent = 1 AND Stk.StockLineNumber IS NOT NULL AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
+					FROM DBO.StocklineDraft Stk WHERE Stk.IsParent = 1 AND Stk.isSerialized = 0 AND Stk.StockLineNumber IS NOT NULL AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                 END
                 ELSE IF (@ItemTypeId = 11)
                 BEGIN
@@ -1482,7 +1482,7 @@ BEGIN
 
 					UPDATE Stk
 					SET Stk.IsParent = CASE WHEN Stk.IsParent = 1 THEN 0 ELSE 1 END
-					FROM DBO.AssetInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
+					FROM DBO.AssetInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.isSerialized = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                 END
                 ELSE IF (@ItemTypeId = 2)
                 BEGIN
@@ -1876,7 +1876,7 @@ BEGIN
 
 						UPDATE Stk
 						SET Stk.IsParent = CASE WHEN Stk.IsParent = 1 THEN 0 ELSE 1 END
-						FROM DBO.NonStockInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
+						FROM DBO.NonStockInventoryDraft Stk WHERE Stk.IsSameDetailsForAllParts = 0 AND Stk.isSerialized = 0 AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
                     END
                 END
 

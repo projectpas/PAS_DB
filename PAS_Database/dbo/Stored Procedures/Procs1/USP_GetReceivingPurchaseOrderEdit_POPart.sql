@@ -19,7 +19,7 @@
 	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
         
-EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2380    
+EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2376    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
 (    
@@ -347,7 +347,7 @@ BEGIN
   WHERE part.PurchaseOrderId = @PurchaseOrderId      
   AND (part.PurchaseOrderPartRecordId NOT IN (SELECT ParentId FROM PurchaseOrderPart WHERE PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL));      
       
-  SELECT DISTINCT SL.PurchaseOrderId,      
+  ;WITH StockCTE AS (SELECT DISTINCT SL.PurchaseOrderId,      
         SL.PurchaseOrderPartRecordId,      
         SL.StockLineDraftId,      
         SL.StockLineNumber,      
@@ -437,10 +437,13 @@ BEGIN
   FROM DBO.StockLineDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-  WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.StockLineNumber IS NULL
-  ORDER BY IsParent DESC;
+  WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.StockLineNumber IS NULL)
+  
+  SELECT * FROM StockCTE ORDER BY 
+  CASE WHEN IsSerialized = 0 THEN IsParent END DESC,
+  CASE WHEN IsSerialized = 1 THEN IsParent END ASC;
     
-  SELECT DISTINCT SL.PurchaseOrderId,      
+  ;WITH AssetCTE AS (SELECT DISTINCT SL.PurchaseOrderId,      
  SL.PurchaseOrderPartRecordId,      
  SL.AssetInventoryDraftId StockLineDraftId,      
  SL.StklineNumber StockLineNumber,      
@@ -533,10 +536,13 @@ BEGIN
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
   WHERE SL.PurchaseOrderId = @PurchaseOrderId    
-  AND SL.StklineNumber IS NULL
-  ORDER BY IsParent DESC;      
+  AND SL.StklineNumber IS NULL)
+
+  SELECT * FROM AssetCTE ORDER BY 
+  CASE WHEN IsSerialized = 0 THEN IsParent END DESC,
+  CASE WHEN IsSerialized = 1 THEN IsParent END ASC;
   
-  SELECT DISTINCT  
+  ;WITH NonStockCTE AS (SELECT DISTINCT  
   SL.PurchaseOrderId,      
  SL.PurchaseOrderPartRecordId,      
  SL.NonStockInventoryDraftId StockLineDraftId,      
@@ -629,8 +635,11 @@ BEGIN
    FROM DBO.NonStockInventoryDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-  WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL
-  ORDER BY IsParent DESC;
+  WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL)
+
+  SELECT * FROM NonStockCTE ORDER BY 
+  CASE WHEN IsSerialized = 0 THEN IsParent END DESC,
+  CASE WHEN IsSerialized = 1 THEN IsParent END ASC;;
       
   END TRY        
   BEGIN CATCH        

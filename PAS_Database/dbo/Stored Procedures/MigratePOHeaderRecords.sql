@@ -1,7 +1,7 @@
 ﻿/*************************************************************             
  ** File:   [MigratePOHeaderRecords]
  ** Author:   Vishal Suthar
- ** Description: This stored procedure is used to Migrate KIT Item Master Records
+ ** Description: This stored procedure is used to Migrate Purchase Order Header Records
  ** Purpose:           
  ** Date:   12/12/2023
 
@@ -134,7 +134,8 @@ BEGIN
 			DECLARE @VendorContactPhone VARCHAR(200) = '';
 			DECLARE @CreditTermsId BIGINT = 0;
 			DECLARE @TemrsName VARCHAR(200) = '';
-			DECLARE @StatusId BIGINT = 0;
+			DECLARE @OpenStatusId BIGINT = 0;
+			DECLARE @ClosedStatusId BIGINT = 0;
 			DECLARE @ManagementStructureId BIGINT = 0;
 			DECLARE @ManagementStructureTypeId BIGINT = 0;
 			DECLARE @DefaultUserId AS BIGINT = 0;
@@ -182,7 +183,7 @@ BEGIN
 			IF (@FoundError = 1)
 			BEGIN
 				UPDATE POH
-				SET POH.ErrorMsg = ErrorMsg
+				SET POH.ErrorMsg = @ErrorMsg
 				FROM [Quantum_Staging].DBO.PurchaseOrderHeaders POH WHERE POH.POHeaderId = @CurrentPurchaseOrderHeaderId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
@@ -195,8 +196,7 @@ BEGIN
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[PurchaseOrder] WITH(NOLOCK) WHERE PurchaseOrderNumber = (SELECT PO.PONumber FROM #TempPOHeader PO WHERE PO.ID = @LoopID) AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
 					SELECT @CreditTermsId = CreditTermsId, @TemrsName = [Name] FROM DBO.CreditTerms CT WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TERM_CODE) FROM [Quantum].QCTL_NEW_3.TERM_CODES T Where T.TMC_AUTO_KEY = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
-					SELECT @StatusId = PS.POStatusId FROM DBO.POStatus PS WHERE UPPER(PS.Status) = 'Open';
-					SELECT @ManagementStructureId = 30;
+					SELECT @OpenStatusId = PS.POStatusId FROM DBO.POStatus PS WHERE UPPER(PS.Status) = 'Open';
 
 					INSERT INTO DBO.PurchaseOrder
 					([PurchaseOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],
@@ -204,7 +204,7 @@ BEGIN
 					[POMemo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsEnforce],
 					[PDFPath],[VendorRFQPurchaseOrderId],[FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges])
 					SELECT PO.PONumber, CASE WHEN PO.EntryDate IS NOT NULL THEN CAST(PO.EntryDate AS datetime2) ELSE NULL END, NULL, CASE WHEN PO.PoShipDate IS NOT NULL THEN CAST(PO.PoShipDate AS datetime2) ELSE GETDATE() END, CASE WHEN PO.[PRIORITY] = 0 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'ROUTINE') WHEN PO.[PRIORITY] = 1 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'HIGH') END, CASE WHEN PO.[PRIORITY] = 1 THEN 'ROUTINE' WHEN PO.[PRIORITY] = 1 THEN 'HIGH' ELSE '' END, @VendorId, @VendorName, @VendorCode, @VendorContactId, @VendorContactName, @VendorContactPhone,
-					@CreditTermsId, @TemrsName, @CreditLimit, @DefaultUserId, @UserName, @StatusId, 'Open', CASE WHEN PO.DATE_CREATED IS NOT NULL THEN CAST(PO.DATE_CREATED AS datetime2) ELSE NULL END, (CASE WHEN ISNULL(PO.ResaleFlag, 'F') = 'T' THEN 1 ELSE 0 END), (CASE WHEN ISNULL(PO.DeferredRec, 'F') = 'T' THEN 1 ELSE 0 END), NULL, NULL, NULL,
+					@CreditTermsId, @TemrsName, @CreditLimit, @DefaultUserId, @UserName, CASE WHEN PO.OpenFlag = 'T' THEN @OpenStatusId ELSE @ClosedStatusId END, CASE WHEN PO.OpenFlag = 'T' THEN 'Open' ELSE 'Closed' END, CASE WHEN PO.DATE_CREATED IS NOT NULL THEN CAST(PO.DATE_CREATED AS datetime2) ELSE NULL END, (CASE WHEN ISNULL(PO.ResaleFlag, 'F') = 'T' THEN 1 ELSE 0 END), (CASE WHEN ISNULL(PO.DeferredRec, 'F') = 'T' THEN 1 ELSE 0 END), NULL, NULL, NULL,
 					NULL, PO.NOTES, @ManagementStructureId, @Level1, NULL, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0, 0,
 					NULL, NULL, NULL, NULL, NULL, NULL
 					FROM #TempPOHeader AS PO WHERE ID = @LoopID;
@@ -458,7 +458,7 @@ BEGIN
 	  DECLARE @ErrorLogID int
 	  ,@DatabaseName varchar(100) = DB_NAME()
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-	  ,@AdhocComments varchar(150) = 'MigrateKitItemMasterRecords'
+	  ,@AdhocComments varchar(150) = 'MigratePOHeaderRecords'
 	  ,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(CAST(@FromMasterComanyID AS VARCHAR(10)), '') + ''
 	  ,@ApplicationName varchar(100) = 'PAS'
 	  -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

@@ -28,7 +28,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateAssetInventoryForReceivingPO]
 	@UpdatedBy VARCHAR(100) = NULL,  
 	@MasterCompanyId BIGINT = NULL,  
 	@tbl_UpdateStocklineReceivingPOType UpdateStocklineReceivingPOType READONLY,  
-	@tbl_UpdateTimeLifeReceivingPOType UpdateTimeLifeReceivingPOType READONLY  
+	@tbl_UpdateTimeLifeReceivingPOType UpdateTimeLifeReceivingPOType READONLY,
+	@IsCreate BIT
 )    
 AS
 BEGIN
@@ -289,20 +290,23 @@ BEGIN
      SET @PrevIsParent = 1;  
    END  
   
-   IF (@IsSerialized = 0)  
-   BEGIN  
-    IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)  
-    BEGIN  
-     IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))  
-      SET @PrevIsParent = 0;  
-     ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))  
-      SET @PrevIsParent = 1;  
-     ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))  
-      SET @PrevIsParent = 1;  
-     ELSE IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))  
-      SET @PrevIsParent = 0;  
-    END  
-   END  
+   IF (@IsCreate = 1)
+   BEGIN
+		IF (@IsSerialized = 0)  
+		BEGIN  
+			IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)  
+			BEGIN  
+				IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))  
+					SET @PrevIsParent = 0;  
+				ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))  
+					SET @PrevIsParent = 1;  
+				ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))  
+					SET @PrevIsParent = 1;  
+				ELSE IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))  
+					SET @PrevIsParent = 0;  
+			END  
+		END  
+	END
   
    UPDATE StkDraft  
    SET StkDraft.SiteId = CASE WHEN TmpStkDraft.SiteId > 0 THEN TmpStkDraft.SiteId ELSE NULL END,  
@@ -335,6 +339,18 @@ BEGIN
    INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.StockLineDraftId = StkDraft.AssetInventoryDraftId
    WHERE StkDraft.AssetInventoryDraftId = @SelectedStockLineDraftId;  
   
+   IF(@IsCreate = 0)
+   BEGIN
+		IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)
+		BEGIN
+			UPDATE StkDraft
+			SET StkDraft.IsSameDetailsForAllParts = CASE WHEN TmpStkDraft.IsSameDetailsForAllParts = 1 THEN 0 ELSE 1 END
+			FROM DBO.AssetInventoryDraft StkDraft
+			INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.StockLineDraftId = StkDraft.AssetInventoryDraftId
+			WHERE StkDraft.AssetInventoryDraftId = @SelectedStockLineDraftId;
+		END
+	END
+
    SELECT @ManagementStructureEntityId = ManagementStructureEntityId, @CreatedBy = CreatedBy FROM DBO.StockLineDraft StkDraft WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;  
   
    SET @StockLineDraftMSDetailsOpr = 2;  

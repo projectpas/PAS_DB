@@ -17,10 +17,24 @@
     1    09/22/2023   Vishal Suthar		Created
     2    10/05/2023   Vishal Suthar		Modified to get parent stockline draft details to bind as parent record
   
-declare @p2 dbo.POPartsToReceive
-insert into @p2 values(1821,3412,5)
+declare @p4 dbo.UpdateStocklineReceivingPOType
+insert into @p4 values(27764,NULL,N'',NULL,NULL,NULL,0,7,N'00',NULL,NULL,0,0,0,0,14,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,140.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3437125','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,140.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897800',N'00',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,0,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',6,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
+insert into @p4 values(27765,NULL,N'',NULL,NULL,NULL,0,7,N'11',NULL,NULL,0,0,0,0,44,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,150.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3442870','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,150.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897811',N'11',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',1,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
+insert into @p4 values(27766,NULL,N'',NULL,NULL,NULL,0,7,N'22',NULL,NULL,0,0,0,0,19,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,160.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3447756','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,160.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897822',N'22',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',3,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
+insert into @p4 values(27767,NULL,N'',NULL,NULL,NULL,0,7,N'33',NULL,NULL,0,0,0,0,74,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,170.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3452356','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,170.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897833',N'33',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',4,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
+insert into @p4 values(27768,NULL,N'',NULL,NULL,NULL,0,7,N'44',NULL,NULL,0,0,0,0,7,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,180.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3456792','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,180.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897844',N'44',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',42,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
+insert into @p4 values(27769,NULL,N'',NULL,NULL,NULL,0,2,N'55',NULL,NULL,0,0,0,0,34,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2379,190.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,307,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2023-12-26 15:12:16.3461333','2023-12-26 09:42:16.2360000',1,0,0,19,0,0,1,NULL,NULL,NULL,0,190.00,N'',NULL,NULL,5,N'',0,4073,N'DHFL-7897855',N'55',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',69,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
 
-exec dbo.USP_UpdateStocklineForReceivingPO @PurchaseOrderId=1821,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1
+declare @p5 dbo.UpdateTimeLifeReceivingPOType
+insert into @p5 values(3933,27764,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+insert into @p5 values(3932,27765,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+insert into @p5 values(3931,27766,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+insert into @p5 values(3930,27767,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+insert into @p5 values(3929,27768,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+insert into @p5 values(3928,27769,N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',N'00:00',0)
+
+exec dbo.USP_UpdateStocklineForReceivingPO @PurchaseOrderId=2379,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1,@tbl_UpdateStocklineReceivingPOType=@p4,@tbl_UpdateTimeLifeReceivingPOType=@p5,@IsCreate=0
+
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_UpdateStocklineForReceivingPO]
 (  
@@ -28,7 +42,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateStocklineForReceivingPO]
 	@UpdatedBy VARCHAR(100) = NULL,
 	@MasterCompanyId BIGINT = NULL,
 	@tbl_UpdateStocklineReceivingPOType UpdateStocklineReceivingPOType READONLY,
-	@tbl_UpdateTimeLifeReceivingPOType UpdateTimeLifeReceivingPOType READONLY
+	@tbl_UpdateTimeLifeReceivingPOType UpdateTimeLifeReceivingPOType READONLY,
+	@IsCreate BIT
 )  
 AS  
 BEGIN  
@@ -287,19 +302,22 @@ BEGIN
 					SET @PrevIsParent = 1;
 			END
 
-			IF (@IsSerialized = 0)
+			IF(@IsCreate = 1)
 			BEGIN
-				IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)
-				BEGIN
-					IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
-						SET @PrevIsParent = 0;
-					ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
-						SET @PrevIsParent = 1;
-					ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
-						SET @PrevIsParent = 1;
-					ELSE IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
-						SET @PrevIsParent = 0;
-				END
+					IF (@IsSerialized = 0)
+					BEGIN
+						IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)
+						BEGIN
+							IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
+								SET @PrevIsParent = 0;
+							ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 1 AND @IsSameDetailsForAllParts = 0))
+								SET @PrevIsParent = 1;
+							ELSE IF (@PrevIsParent = 0 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
+								SET @PrevIsParent = 1;
+							ELSE IF (@PrevIsParent = 1 AND (@PrevIsSameDetailsForAllParts = 0 AND @IsSameDetailsForAllParts = 1))
+								SET @PrevIsParent = 0;
+						END
+					END
 			END
 
 			UPDATE StkDraft
@@ -334,9 +352,6 @@ BEGIN
 			StkDraft.ObtainFromType = TmpStkDraft.ObtainFromType,
 			StkDraft.ObtainFrom = TmpStkDraft.ObtainFrom,
 			StkDraft.ObtainFromName = TmpStkDraft.ObtainFromName,
-			StkDraft.TraceableToType = TmpStkDraft.TraceableToType,
-			StkDraft.TraceableTo = TmpStkDraft.TraceableTo,
-			StkDraft.TraceableToName = TmpStkDraft.TraceableToName,
 			StkDraft.TaggedBy = TmpStkDraft.TaggedBy,
 			StkDraft.TaggedByType = TmpStkDraft.TaggedByType,
 			StkDraft.TaggedByName = TmpStkDraft.TaggedByName,
@@ -348,6 +363,9 @@ BEGIN
 			StkDraft.CertType = TmpStkDraft.CertType,
 			StkDraft.CertTypeId = TmpStkDraft.CertTypeId,
 			StkDraft.GLAccountId = TmpStkDraft.GLAccountId,
+			StkDraft.TraceableToType = TmpStkDraft.TraceableToType,
+			StkDraft.TraceableTo = TmpStkDraft.TraceableTo,
+			StkDraft.TraceableToName = TmpStkDraft.TraceableToName,
 			StkDraft.UpdatedDate = GETUTCDATE(),
 			StkDraft.LotId = TmpStkDraft.LotId,
 			StkDraft.IsSameDetailsForAllParts = TmpStkDraft.IsSameDetailsForAllParts,
@@ -357,8 +375,20 @@ BEGIN
 			StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,
 			StkDraft.IsParent = @PrevIsParent
 			FROM DBO.StockLineDraft StkDraft
-			INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.StockLineDraftId = StkDraft.StockLineDraftId
+			INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON StkDraft.StockLineDraftId = TmpStkDraft.StockLineDraftId
 			WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;
+
+			IF(@IsCreate = 0)
+			BEGIN
+				IF (@PrevIsSameDetailsForAllParts <> @IsSameDetailsForAllParts)
+				BEGIN
+					UPDATE StkDraft
+					SET StkDraft.IsSameDetailsForAllParts = CASE WHEN TmpStkDraft.IsSameDetailsForAllParts = 1 THEN 0 ELSE 1 END
+					FROM DBO.StockLineDraft StkDraft
+					INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON TmpStkDraft.StockLineDraftId = StkDraft.StockLineDraftId
+					WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;
+				END
+			END
 
 			SELECT @ManagementStructureEntityId = ManagementStructureEntityId, @CreatedBy = CreatedBy FROM DBO.StockLineDraft StkDraft WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;
 

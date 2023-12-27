@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/18/2022   Subhash Saliya 		Created
     2	 19/06/2023   Ayesha Sultana  		Altered - Added ReceiverNum to the DB and SP
+	3	 25/12/2023   AMIT GHEDIYA 		    Altered - Added ReturnDate when create from WO.
 	
  -- exec CreateUpdateCustomerRMAHeader 92,1    
 **************************************************************/ 
@@ -73,12 +74,12 @@ BEGIN
 											   [CustomerId],[CustomerName],[CustomerCode],[CustomerContactId],ContactInfo,
 											   [IsWarranty],RequestedId,Requestedby,ApprovedbyId,[ApprovedBy],ValidDate,ApprovedDate,OpenDate,
 											   [WorkOrderId],WorkOrderNum,[ReceiverNum],[Memo],[Notes],[ManagementStructureId],[MasterCompanyId],
-                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[isWorkOrder],ReferenceId)
+                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[isWorkOrder],ReferenceId,[ReturnDate])
 										VALUES (@RMANumber,@InvoiceId,@InvoiceNo,@InvoiceDate,@RMAStatusId,@RMAStatus,
 												@CustomerId,@CustomerName,@CustomerCode,@CustomerContactId,@ContactInfo,  
 												@IsWarranty,@RequestedId,@RequestedBy,@ApprovedbyId,@ApprovedBy,@ValidDate,@ApprovedDate,@OpenDate, 
 												@WorkOrderId,@WorkOrderNum,@ReceiverNum,@Memo,@Notes,@ManagementStructureId,@MasterCompanyId,
-												@CreatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),@IsActive,@IsDeleted,@isWorkOrder,@ReferenceId);
+												@CreatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),@IsActive,@IsDeleted,@isWorkOrder,@ReferenceId,@ReturnDate);
 
 				SELECT	@Result = IDENT_CURRENT('CustomerRMAHeader');
 			    SELECT @Result as RMAHeaderId

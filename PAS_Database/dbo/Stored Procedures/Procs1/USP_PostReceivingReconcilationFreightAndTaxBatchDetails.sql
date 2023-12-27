@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_PostReceivingReconcilationFreightAndTaxBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -12,6 +13,8 @@
  ** --   --------     -------		-------------------------------            
 	1    11/02/2023   Moin Bloch    Created
 	2    11/23/2023   Moin Bloch    Added AccountMSModuleId For Accounting Batch Management Structure Details 
+	3    12/22/2023   Moin Bloch    Modified GLAccounts From Distribution Setup To  ReceivingReconciliationDetails
+	4    12/26/2023   Moin Bloch    Change the logic of Batch Entry
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -35,19 +38,17 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-			DECLARE @TotalRecord int = 0;   
+			DECLARE @TotalRecord INT = 0; 
+			DECLARE @TotalStocklineRecord INT = 0; 
 			DECLARE @MinId BIGINT = 1;  
 			DECLARE @TotalInvQty INT = 0;  
 			DECLARE @TotalStkAvlQty INT = 0;  
-
 			DECLARE @TotalFreight DECIMAL(18,2) = 0
 			DECLARE @TotalTax DECIMAL(18,2) = 0 
-			DECLARE @TotalMisc DECIMAL(18,2) = 0 
-			
+			DECLARE @TotalMisc DECIMAL(18,2) = 0 			
 			DECLARE @Freight INT  = 1
 			DECLARE @Misc INT  = 2
 			DECLARE @Tax INT  = 3
-
 			DECLARE @DistributionMasterId BIGINT;			
 			DECLARE @JournalBatchDetailId BIGINT=0;
 			DECLARE @EMPMSModuleID BIGINT = 47;
@@ -58,25 +59,38 @@ BEGIN
 			DECLARE @VendorName VARCHAR(50);
 			DECLARE @FreightInvCost DECIMAL(18,2) = 0;
 			DECLARE @FreightInvCogs DECIMAL(18,2) = 0;
-
 			DECLARE @TaxInvCost DECIMAL(18,2) = 0;
 			DECLARE @TaxInvCogs DECIMAL(18,2) = 0;
-
 			DECLARE @TotalDebit decimal(18, 2) = 0;
 			DECLARE @TotalCredit decimal(18, 2) = 0;
 			DECLARE @TransactionDate DATETIME2(7)
 			DECLARE @currentNo AS BIGINT = 0;
 			DECLARE @JournalTypeNumber VARCHAR(50)
 			DECLARE @CodeTypeId AS BIGINT = 74;
-
 			DECLARE @StlQtyAvailGlobal INT  = 0
 			DECLARE @StlQtyUsedGlobal INT  = 0
 			DECLARE @TotalFreightsAmt DECIMAL(18,2) = 0;
 			DECLARE @TotalVarCOGS DECIMAL(18,2) = 0;
 			DECLARE @ReceivingReconciliationNumber VARCHAR(50)=''
 			DECLARE @MiscGLId BIGINT = 0;
-			DECLARE @MiscGlAccountNumber VARCHAR(50)=''
-		    DECLARE @MISCGlAccountName VARCHAR(50)=''
+			DECLARE @MiscGlAccountNumber VARCHAR(50)='';
+		    DECLARE @MISCGlAccountName VARCHAR(50)='';
+			DECLARE @FreightGLId BIGINT = 0;
+			DECLARE @FreightGlAccountNumber VARCHAR(50)='';
+		    DECLARE @FreightGlAccountName VARCHAR(50)='';
+			DECLARE @TaxGLId BIGINT = 0;
+			DECLARE @TaxGlAccountNumber VARCHAR(50)='';
+		    DECLARE @TaxGlAccountName VARCHAR(50)='';
+			DECLARE @FreightCogs INT  = 1;
+			DECLARE @FreightAllCogs INT  = 2;
+			DECLARE @TaxCogs INT  = 1;
+			DECLARE @TaxAllCogs INT  = 2;
+			DECLARE @StkGlAccountId BIGINT = 0;
+			DECLARE @StkMatchGlAccountId BIGINT = 0;
+			DECLARE @StkGlAccountNumber VARCHAR(50)='';
+			DECLARE @StkGlAccountName VARCHAR(250)='';			
+			DECLARE @Flag INT = 0;
+			DECLARE @StkFlag INT = 0;
 
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 					
@@ -128,11 +142,18 @@ BEGIN
 			   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
 			  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 
-		    SELECT TOP 1 @MiscGLId = [GlAccountId], 
+			SELECT TOP 1 @FreightGLId = [GlAccountId], 
+					@FreightGlAccountNumber = [GlAccountNumber], 
+					@FreightGlAccountName = [GlAccountName] FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  @Freight;
+
+			SELECT TOP 1 @TaxGLId = [GlAccountId], 
+					@TaxGlAccountNumber = [GlAccountNumber], 
+					@TaxGlAccountName = [GlAccountName] FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  @Tax;
+
+			SELECT TOP 1 @MiscGLId = [GlAccountId], 
 					@MiscGlAccountNumber = [GlAccountNumber], 
 					@MISCGlAccountName = [GlAccountName] FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  @Misc;
-
-
+										
 			----- Total Freight -----
 			SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM #RRFreightAndTaxPostType WHERE [IsManual] = 1 AND [PackagingId] = @Freight;			
 			----- Total Tax -----
@@ -140,7 +161,9 @@ BEGIN
 		    ----- Total Misc -----
 		    SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  @Misc;
 
-			SELECT @TotalRecord = COUNT(*), @MinId = MIN([ID]) FROM #RRFreightAndTaxPostType
+			SELECT @TotalRecord = COUNT(*), @MinId = MIN([ID]) FROM #RRFreightAndTaxPostType;
+
+			SELECT @TotalStocklineRecord = COUNT(*) FROM #RRFreightAndTaxPostType WHERE [IsManual] = 0;
 
 			SELECT @DistributionMasterId =  [ID]			      
 		      FROM [dbo].[DistributionMaster] WITH(NOLOCK)
@@ -184,21 +207,81 @@ BEGIN
  					   @FreightAdjustmentPerUnit = ISNULL([FreightAdjustmentPerUnit],0),
 					   @TaxAdjustment = ISNULL([TaxAdjustment],0),
 					   @TaxAdjustmentPerUnit = ISNULL([TaxAdjustmentPerUnit],0)
-				  FROM #RRFreightAndTaxPostType WHERE [ID] = @MinId;
-
+				  FROM #RRFreightAndTaxPostType WHERE [ID] = @MinId;				  
+											
 				IF(@Packagingid = 0)
-				BEGIN
+				BEGIN					   
 					IF(UPPER(@StockType) = 'STOCK')
 					BEGIN
-						SELECT @StocklineQtyAvail = ISNULL(SL.[QuantityAvailable],0) FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE [StockLineId] = @StocklineId;							
+						IF(@Flag = 0)
+						BEGIN
+							SELECT @StocklineQtyAvail = ISNULL(SL.[QuantityAvailable],0), 
+								   @StkGlAccountId = SL.[GLAccountId],
+								   @StkMatchGlAccountId = SL.[GLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 
+							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
+							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+							  WHERE SL.StockLineId = @StocklineId;	
+						END
+						ELSE
+						BEGIN
+							SELECT @StocklineQtyAvail = ISNULL(SL.[QuantityAvailable],0), 
+								   @StkGlAccountId = SL.[GLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 
+							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
+							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+							  WHERE SL.StockLineId = @StocklineId;	
+						END
 					END
 					IF(UPPER(@StockType) = 'NONSTOCK')
 					BEGIN
-						SELECT @StocklineQtyAvail = ISNULL([QuantityOnHand],0) FROM [dbo].[NonStockInventory] WITH(NOLOCK) WHERE [NonStockInventoryId]=@StocklineId;												  
+						IF(@Flag = 0)
+						BEGIN
+							SELECT @StocklineQtyAvail = ISNULL(SL.[QuantityOnHand],0),
+								   @StkGlAccountId = SL.[GLAccountId],
+								   @StkMatchGlAccountId = SL.[GLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 						
+							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+							WHERE [NonStockInventoryId]=@StocklineId;
+						END
+						ELSE
+						BEGIN
+							SELECT @StocklineQtyAvail = ISNULL(SL.[QuantityOnHand],0),
+								   @StkGlAccountId = SL.[GLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 						
+							FROM [dbo].[NonStockInventory] SL WITH(NOLOCK) 
+							 INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
+							WHERE [NonStockInventoryId]=@StocklineId;
+						END
   					END
 					IF(UPPER(@StockType) = 'ASSET')
 					BEGIN
-						SELECT @StocklineQtyAvail = 1 FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
+						IF(@Flag = 0)
+						BEGIN
+							SELECT @StocklineQtyAvail = 1,
+								   @StkGlAccountId = SL.[AcquiredGLAccountId],
+								   @StkMatchGlAccountId = SL.[AcquiredGLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 	
+							FROM [dbo].[AssetInventory] SL WITH(NOLOCK) 
+							INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.[AcquiredGLAccountId] = GL.GLAccountId 
+							WHERE AssetInventoryId=@StocklineId;
+						END
+						ELSE
+						BEGIN
+							SELECT @StocklineQtyAvail = 1,
+								   @StkGlAccountId = SL.[AcquiredGLAccountId],
+								   @StkGlAccountNumber = GL.[AccountCode],
+								   @StkGlAccountName = GL.[AccountName] 	
+							FROM [dbo].[AssetInventory] SL WITH(NOLOCK) 
+							INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.[AcquiredGLAccountId] = GL.GLAccountId 
+							WHERE AssetInventoryId=@StocklineId;
+						END
 					END
 												
 					IF(@StocklineQtyAvail >= @ReceivedQty)
@@ -216,10 +299,18 @@ BEGIN
 					
 					SET @TaxInvCost += (ISNULL(@StlQtyAvail, 0) * ISNULL(@TaxAdjustmentPerUnit, 0))
 					SET @TaxInvCogs += @TaxAdjustment - (ISNULL(@StlQtyAvail, 0) * ISNULL(@TaxAdjustmentPerUnit, 0))
+
+					
+					IF(@StkMatchGlAccountId = @StkGlAccountId)
+					BEGIN
+						SET @StkFlag = @StkFlag + 1;
+					END
+
+					SET @Flag = @Flag + 1;
 				END
 
 				SET @MinId = @MinId + 1;
-			END
+			END			
 						
 			IF(UPPER(@ModuleName) = UPPER('ReconciliationPO') AND (@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0))
 			BEGIN
@@ -258,8 +349,13 @@ BEGIN
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
+					 								
+			    SELECT @FreightCogs = [FreightCOGSRefrenceId],
+				       @TaxCogs = [TaxCOGSRefrenceId] 
+			      FROM [dbo].[PurchaseOrderSettingMaster] WITH(NOLOCK)
+					   WHERE [MasterCompanyId] = @MasterCompanyId;
 					 
-				IF(@TotalFreight > 0)
+				IF(@TotalFreight > 0 AND @FreightCogs <> @FreightAllCogs)
 				BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
@@ -292,22 +388,19 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION PO FREIGHT INV  -----							
+					-----  RECONCILIATION PO STOCK INVENTORY  -----							
 					
 					IF(@FreightInvCost > 0)
-					BEGIN
+					BEGIN						
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
-									 @JournalTypeId = [JournalTypeId],
-									 @GlAccountId = [GlAccountId], 
-									 @GlAccountNumber = [GlAccountNumber], 
-									 @GlAccountName = [GlAccountName],
+									 @JournalTypeId = [JournalTypeId],									
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOFREIGHTINV') 
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
-
+								 															 														 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -315,7 +408,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
@@ -338,21 +431,18 @@ BEGIN
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					
 					END
-					-------  RECONCILIATION VARIABLE COGS  --------
+					-------  COGS - FREIGHT - INVENTORY  --------
 
 					IF(@FreightInvCogs > 0)
 					BEGIN
-						SELECT TOP 1 @DistributionSetupId=[ID], 
-									 @DistributionName=[Name], 
-									 @JournalTypeId=[JournalTypeId], 
-									 @GlAccountId=[GlAccountId], 
-									 @GlAccountNumber=[GlAccountNumber], 
-									 @GlAccountName=[GlAccountName],
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],									
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER([DistributionSetupCode])=UPPER('RECPOVARCOGS') 
-								AND  [DistributionMasterId] = @DistributionMasterId 
-								AND  [MasterCompanyId] = @MasterCompanyId;
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOFREIGHTINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
@@ -361,11 +451,11 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE 1 END,
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE  ROUND((@FreightInvCogs),2) END,
-									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2) ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 													
@@ -385,10 +475,86 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END			
-				END		
+				END
+				-------  All COGS  --------
+				IF(@TotalFreight > 0 AND @FreightCogs = @FreightAllCogs)
+				BEGIN
+					INSERT INTO [dbo].[CommonBatchDetails]
+					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
+								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
+								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
+								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 
-				IF(@TotalTax > 0)
+					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
+
+					-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+									
+				    INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+
+					-------  COGS - FREIGHT - INVENTORY  --------	
+
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],									 
+									 @CrDrType = [CRDRType]
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOFREIGHTINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
+								 
+						INSERT INTO [dbo].[CommonBatchDetails]
+								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
+									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalFreight),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalFreight),2) END,
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+
+						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+									
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+						
+						INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+				END
+				
+				IF(@TotalTax > 0 AND @TaxCogs <> @TaxAllCogs)
 				BEGIN 
+					----- RECONCILIATION PO ACCPAYABLE -----			
+
 					SELECT TOP 1 @DistributionSetupId = [ID], 
 							 @DistributionName = [Name], 
 							 @JournalTypeId = [JournalTypeId], 
@@ -432,22 +598,19 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION PO TAX INV  -----	
+					-----  RECONCILIATION PO STOCK - INVENTORY  -----		
 					
 					IF(@TaxInvCost > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
-									 @JournalTypeId = [JournalTypeId],
-									 @GlAccountId = [GlAccountId], 
-									 @GlAccountNumber = [GlAccountNumber], 
-									 @GlAccountName = [GlAccountName],
+									 @JournalTypeId = [JournalTypeId],									
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOTAXINV') 
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
-
+								 														 								 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -455,7 +618,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
@@ -476,23 +639,20 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
-					END
+					END		
 					
-					-------  RECONCILIATION VARIABLE COGS  --------
+					-------  RECONCILIATION PO COGS - TAX - INVENTORY  --------
 
 					IF(@TaxInvCogs > 0)
 					BEGIN
-						SELECT TOP 1 @DistributionSetupId=[ID], 
-									 @DistributionName=[Name], 
-									 @JournalTypeId=[JournalTypeId], 
-									 @GlAccountId=[GlAccountId], 
-									 @GlAccountNumber=[GlAccountNumber], 
-									 @GlAccountName=[GlAccountName],
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],									 
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER([DistributionSetupCode])=UPPER('RECPOVARCOGS') 
-								AND  [DistributionMasterId] = @DistributionMasterId 
-								AND  [MasterCompanyId] = @MasterCompanyId;
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOTAXINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
@@ -501,11 +661,11 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
-									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE 1 END,
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE  ROUND((@TaxInvCogs),2) END,
-									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2) ELSE 0 END,
+									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,																	
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 													
@@ -525,7 +685,95 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END	
-				END							   
+				END		
+				-------  All COGS  --------
+				IF(@TotalTax > 0 AND @TaxCogs = @TaxAllCogs)
+				BEGIN
+					----- RECONCILIATION PO ACCPAYABLE -----		
+
+					SELECT TOP 1 @DistributionSetupId = [ID], 
+							 @DistributionName = [Name], 
+							 @JournalTypeId = [JournalTypeId], 
+							 @GlAccountId = [GlAccountId], 
+							 @GlAccountNumber = [GlAccountNumber], 
+							 @GlAccountName = [GlAccountName],
+							 @CrDrType = [CRDRType]
+					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECPOACCPAYABLE') 
+					 AND [DistributionMasterId] = @DistributionMasterId 
+					 AND [MasterCompanyId] = @MasterCompanyId;
+					 
+					INSERT INTO [dbo].[CommonBatchDetails]
+					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
+								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
+								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
+								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+
+					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
+
+					-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					
+					INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+
+					-----  RECONCILIATION PO COGS - TAX - INVENTORY  -----	
+										
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],									
+									 @CrDrType = [CRDRType]
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECPOTAXINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
+								 														 								 
+						INSERT INTO [dbo].[CommonBatchDetails]
+								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
+									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalTax),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalTax),2) END,
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+
+						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+									
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					
+						INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);															
+				END							   				 
 
 				IF(@TotalMisc > 0) 
 				BEGIN
@@ -675,8 +923,14 @@ BEGIN
 					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
 					 AND [DistributionMasterId] = @DistributionMasterId 
 					 AND [MasterCompanyId] = @MasterCompanyId;
+
+				 SELECT @FreightCogs = [FreightCOGSRefrenceId],
+				        @TaxCogs = [TaxCOGSRefrenceId] 
+				   FROM [dbo].[RepairOrderSettingMaster] WITH(NOLOCK)
+				  WHERE [MasterCompanyId] = @MasterCompanyId;
+
 					 
-				IF(@TotalFreight > 0)
+				IF(@TotalFreight > 0 AND @FreightCogs <> @FreightAllCogs)
 				BEGIN
 					INSERT INTO [dbo].[CommonBatchDetails]
 					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
@@ -709,21 +963,18 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 							
-					-----  RECONCILIATION PO FREIGHT INV  -----							
+					-----  RECONCILIATION RO STOCK - INVENTORY  -----							
 					
 					IF(@FreightInvCost > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
-									 @JournalTypeId = [JournalTypeId],
-									 @GlAccountId = [GlAccountId], 
-									 @GlAccountNumber = [GlAccountNumber], 
-									 @GlAccountName = [GlAccountName],
+									 @JournalTypeId = [JournalTypeId],									 
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROFREIGHTINV') 
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
-								 AND [MasterCompanyId] = @MasterCompanyId;
+								 AND [MasterCompanyId] = @MasterCompanyId;								 						
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
@@ -732,7 +983,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
@@ -754,19 +1005,17 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END
-					-------  RECONCILIATION VARIABLE COGS  --------
+
+					-------  RECONCILIATION RO COGS - FREIGHT - INVENTORY --------
 
 					IF(@FreightInvCogs > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId=[ID], 
 									 @DistributionName=[Name], 
-									 @JournalTypeId=[JournalTypeId], 
-									 @GlAccountId=[GlAccountId], 
-									 @GlAccountNumber=[GlAccountNumber], 
-									 @GlAccountName=[GlAccountName],
+									 @JournalTypeId=[JournalTypeId], 									
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROVARCOGS') 
+							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROFREIGHTINV') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
@@ -777,11 +1026,11 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
-									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE 1 END,
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE  ROUND((@FreightInvCogs),2) END,
-									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2) ELSE 0 END,
+									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 													
@@ -801,10 +1050,86 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END			
-				END		
+				END	
+				-------  All COGS  --------
+				IF(@TotalFreight > 0 AND @FreightCogs = @FreightAllCogs)
+				BEGIN
+					----- RECONCILIATION RO ACCPAYABLE -----				
+					INSERT INTO [dbo].[CommonBatchDetails]
+					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
+								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
+								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
+								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 
-				IF(@TotalTax > 0)
+					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
+
+					-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					
+					INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+							
+					-------  RECONCILIATION RO COGS - FREIGHT - INVENTORY --------		
+					
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],
+									 @CrDrType = [CRDRType]
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROFREIGHTINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
+					
+						INSERT INTO [dbo].[CommonBatchDetails]
+								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
+									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalFreight),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalFreight),2) END,
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+
+						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+									
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+						
+						INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);									
+				END				
+
+				IF(@TotalTax > 0 AND @TaxCogs <> @TaxAllCogs)
 				BEGIN 
+				    ----- RECONCILIATION RO ACCPAYABLE -----			
 					SELECT TOP 1 @DistributionSetupId = [ID], 
 							 @DistributionName = [Name], 
 							 @JournalTypeId = [JournalTypeId], 
@@ -848,22 +1173,19 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION RO TAX INV  -----		
+					-----  RECONCILIATION RO STOCK - INVENTORY  -----		
 
 					IF(@TaxInvCost > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID],
 									 @DistributionName = [Name],
-									 @JournalTypeId = [JournalTypeId],
-									 @GlAccountId = [GlAccountId], 
-									 @GlAccountNumber = [GlAccountNumber], 
-									 @GlAccountName = [GlAccountName],
+									 @JournalTypeId = [JournalTypeId],									 
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROTAXINV') 
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROSTKINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
-
+								 						
 						INSERT INTO [dbo].[CommonBatchDetails]
 								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
@@ -871,7 +1193,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
@@ -894,19 +1216,16 @@ BEGIN
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END
 					
-					-------  RECONCILIATION VARIABLE COGS  --------
+					-------  RECONCILIATION RO COGS - TAX - INVENTORY  --------
 
 					IF(@TaxInvCogs > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId=[ID], 
 									 @DistributionName=[Name], 
-									 @JournalTypeId=[JournalTypeId], 
-									 @GlAccountId=[GlAccountId], 
-									 @GlAccountNumber=[GlAccountNumber], 
-									 @GlAccountName=[GlAccountName],
+									 @JournalTypeId=[JournalTypeId], 									 
 									 @CrDrType = [CRDRType]
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROVARCOGS') 
+							   WHERE UPPER([DistributionSetupCode])=UPPER('RECROTAXINV') 
 								AND  [DistributionMasterId] = @DistributionMasterId 
 								AND  [MasterCompanyId] = @MasterCompanyId;
 
@@ -917,11 +1236,11 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@GlAccountId,@GlAccountNumber,@GlAccountName,@TransactionDate,										
-									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE 1 END,
-									CASE WHEN @CrDrType = 1 THEN 0 ELSE  ROUND((@TaxInvCogs),2) END,
-									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2) ELSE 0 END,
+									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 													
@@ -941,6 +1260,94 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 					END	
+				END
+				-------  All COGS  --------
+				IF(@TotalTax > 0 AND @TaxCogs = @TaxAllCogs)
+				BEGIN 
+					 ----- RECONCILIATION RO ACCPAYABLE -----		
+
+					SELECT TOP 1 @DistributionSetupId = [ID], 
+							 @DistributionName = [Name], 
+							 @JournalTypeId = [JournalTypeId], 
+							 @GlAccountId = [GlAccountId], 
+							 @GlAccountNumber = [GlAccountNumber], 
+							 @GlAccountName = [GlAccountName],
+							 @CrDrType = [CRDRType]
+					   FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+					 WHERE UPPER([DistributionSetupCode]) = UPPER('RECROACCPAYABLE') 
+					 AND [DistributionMasterId] = @DistributionMasterId 
+					 AND [MasterCompanyId] = @MasterCompanyId;
+
+					 INSERT INTO [dbo].[CommonBatchDetails]
+					           ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
+								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
+								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
+								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
+								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+
+					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
+
+					-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					
+					INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
+
+					-------  RECONCILIATION RO COGS - TAX - INVENTORY  --------
+										
+						SELECT TOP 1 @DistributionSetupId = [ID],
+									 @DistributionName = [Name],
+									 @JournalTypeId = [JournalTypeId],									 
+									 @CrDrType = [CRDRType]
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+							   WHERE UPPER(DistributionSetupCode) = UPPER('RECROTAXINV') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
+								 					
+						INSERT INTO [dbo].[CommonBatchDetails]
+								   ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],
+									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
+									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
+									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
+									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
+									GETUTCDATE(),@JournalTypeId,@JournalTypename,
+									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalTax),2)  ELSE 0 END,
+									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalTax),2) END,
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+
+						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+									
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+					
+						INSERT INTO [dbo].[StocklineBatchDetails]
+					           ([JournalBatchDetailId],[JournalBatchHeaderId],[VendorId],[VendorName],[ItemMasterId],[PartId],[PartNumber]
+							   ,[PoId],[PONum],[RoId],[RONum],[StocklineId],[StocklineNumber],[Consignment],[Description],[SiteId]
+							   ,[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType]
+							   ,[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
+					     VALUES(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,NULL,NULL,NULL,
+						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
+								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);															
 				END
 
 				IF(@TotalMisc > 0)

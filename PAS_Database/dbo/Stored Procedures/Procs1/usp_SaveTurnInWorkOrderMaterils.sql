@@ -1,5 +1,4 @@
-﻿
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:  <Hemant Saliya>    
 ** Create date: <07/30/2021>    
 ** Description: <This Proc Is used to Same Turn In Materials Stockline>    
@@ -504,6 +503,8 @@ BEGIN
      BEGIN  
       DROP TABLE #tmpPNManufacturer   
      END  
+
+	 SELECT @StockLineId as StockLineId
     END  
    COMMIT  TRANSACTION  
 END

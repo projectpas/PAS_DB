@@ -2703,5 +2703,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReleaseFromDataByStockLineId.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteSubWorkOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateROPartsRecords.sql" />
   </ItemGroup>
 </Project>

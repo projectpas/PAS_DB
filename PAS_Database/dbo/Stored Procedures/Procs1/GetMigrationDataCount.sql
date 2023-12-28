@@ -99,10 +99,25 @@ BEGIN
 			WHERE PO.Migrated_Id IS NOT NULL AND PO.MasterCompanyId = @MasterCompanyId;
 
 			SELECT @FailedCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK)
-			WHERE PO.Migrated_Id IS NULL AND (PO.ErrorMsg IS NOT NULL AND PO.ErrorMsg NOT like '%Customer already exists%') AND PO.MasterCompanyId = @MasterCompanyId;
+			WHERE PO.Migrated_Id IS NULL AND (PO.ErrorMsg IS NOT NULL AND PO.ErrorMsg NOT like '%Purchase Order Header record already exists%') AND PO.MasterCompanyId = @MasterCompanyId;
 
 			SELECT @ExistsCnts = COUNT(PO.POHeaderId) FROM Quantum_Staging.DBO.PurchaseOrderHeaders PO WITH (NOLOCK)
-			WHERE PO.ErrorMsg like '%Customer already exists%' AND PO.MasterCompanyId = @MasterCompanyId;
+			WHERE PO.ErrorMsg like '%Purchase Order Header record already exists%' AND PO.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
+		IF (@ModuleId = 14) -- Repair Order
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(PO.ROHeaderId) FROM Quantum_Staging.DBO.RepairOrderHeaders PO WITH (NOLOCK) WHERE PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(PO.ROHeaderId) FROM Quantum_Staging.DBO.RepairOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.Migrated_Id IS NOT NULL AND PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(PO.ROHeaderId) FROM Quantum_Staging.DBO.RepairOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.Migrated_Id IS NULL AND (PO.ErrorMsg IS NOT NULL AND PO.ErrorMsg NOT like '%Repair Order Header record already exists%') AND PO.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(PO.ROHeaderId) FROM Quantum_Staging.DBO.RepairOrderHeaders PO WITH (NOLOCK)
+			WHERE PO.ErrorMsg like '%Repair Order Header record already exists%' AND PO.MasterCompanyId = @MasterCompanyId;
 			
 			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
 		END

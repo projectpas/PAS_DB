@@ -24,7 +24,7 @@
 	12   08/11/2023	  Moin Bloch          Modify(Added ReferenceId)
 	13   17/11/2023	  Moin Bloch          Modify(Added Charges Accounting Entry)
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
+CREATE     PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
 @MasterCompanyId int
 AS
@@ -247,9 +247,7 @@ BEGIN
 				[CreatedBy] = @UpdateBy,
 				[Module] = CASE WHEN @DisCode = 'ReconciliationPO' THEN 'ReconciliationPO' ELSE 'ReconciliationRO' END,
 				[JournalBatchHeaderId] = @JournalBatchHeaderId
-				
-				PRINT @UpdateBy
-
+								
 				DECLARE @PostRRBatchCursor AS CURSOR;
 				SET @PostRRBatchCursor = CURSOR FOR	
 
@@ -361,7 +359,8 @@ BEGIN
 								SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@PieceItemmasterId=ItemMasterId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@MasterCompanyId=MasterCompanyId,
 										@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StocklineNumber,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse]
 										,@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf],
-										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(PurchaseOrderUnitCost,0),@ROStocklineUnitPrice=ISNULL(RepairOrderUnitCost,0),@StocklineQtyAvail=ISNULL(QuantityAvailable,0)
+										@VendorId=VendorId,@POStocklineUnitPrice=ISNULL(PurchaseOrderUnitCost,0),@ROStocklineUnitPrice=ISNULL(RepairOrderUnitCost,0),
+										@StocklineQtyAvail=ISNULL(QuantityAvailable,0)
 								FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
 												  
 								--SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK)  WHERE StockLineId=@StocklineId
@@ -404,7 +403,7 @@ BEGIN
 								-- @StocklineQtyAvail = QuantityAvailable  IN STOCKLINE
 
 							IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice=ISNULL(@RRUnitPrice, 0))
-							BEGIN 
+							BEGIN 							
 									------- Goods Received Not Invoiced (GRNI)-------
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -414,7 +413,9 @@ BEGIN
 												 @GlAccountName=GlAccountName,
 												 @CrDrType = CRDRType
 									FROM dbo.DistributionSetup WITH(NOLOCK)
-									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') 
+									AND DistributionMasterId=@DistributionMasterId 
+									AND MasterCompanyId = @MasterCompanyId
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
@@ -478,9 +479,9 @@ BEGIN
 									END
 									------- Accounts Payable --------
 
-								END
-							ELSE IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
-							BEGIN
+							END
+							ELSE IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice <> ISNULL(@RRUnitPrice, 0))
+							BEGIN							
 									------- Stock - Inventory -----
 									SET @Amount = ISNULL(((@RRUnitPrice - @POROUnitPrice) * ISNULL(@StocklineQtyAvail, 0)), 0);
 									SET @APTotalPrice = @APTotalPrice + @Amount
@@ -681,12 +682,12 @@ BEGIN
 									END
 									------- Accounts Payable -------
 							END
-							ELSE IF(ISNULL(@StocklineQtyAvail, 0) != ISNULL(@ReceivedQty, 0))
-							BEGIN
+							ELSE IF(ISNULL(@StocklineQtyAvail, 0) <> ISNULL(@ReceivedQty, 0))
+							BEGIN							
 									------- Stock - Inventory ---
 									SET @Amount = (@RRUnitPrice - @POROUnitPrice) * ISNULL(@StocklineQtyAvail, 0);
 									SET @APTotalPrice = @APTotalPrice + @Amount
-																	
+																										
 									IF(UPPER(@StockType) = 'STOCK')
 									BEGIN
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0) and ISNULL(@StocklineQtyAvail, 0) > 0)
@@ -709,8 +710,12 @@ BEGIN
 										  AND DistributionMasterId=@DistributionMasterId 
 										  AND MasterCompanyId = @MasterCompanyId;
 
-										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+										SELECT TOP 1 @GlAccountId=SL.GLAccountId,
+										             @GlAccountNumber=GL.AccountCode,
+													 @GlAccountName=GL.AccountName 
+											   FROM DBO.Stockline SL WITH(NOLOCK)
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
+										WHERE SL.StockLineId=@StocklineId
 
 									END
 									IF(UPPER(@StockType) = 'NONSTOCK')
@@ -723,16 +728,24 @@ BEGIN
 											WHERE NonStockInventoryId=@StocklineId
 										END
 										
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType=CRDRType
-										FROM dbo.DistributionSetup WITH(NOLOCK)
-										WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
+										SELECT TOP 1 @DistributionSetupId=ID, 
+										             @DistributionName=Name, 
+													 @JournalTypeId=JournalTypeId,
+													 @CrDrType=CRDRType
+										        FROM dbo.DistributionSetup WITH(NOLOCK)
+										       WHERE UPPER(DistributionSetupCode)=UPPER('RECPONONSTKINV') 
+											   AND DistributionMasterId=@DistributionMasterId 
+											   AND MasterCompanyId = @MasterCompanyId;
 
-										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+										SELECT TOP 1 @GlAccountId=SL.GLAccountId,
+										             @GlAccountNumber=GL.AccountCode,
+													 @GlAccountName=GL.AccountName 
+												FROM DBO.NonStockInventory SL WITH(NOLOCK)
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
+										WHERE SL.NonStockInventoryId=@StocklineId
 									END
 									IF(UPPER(@StockType) = 'ASSET')
 									BEGIN
-
 										IF(@POROUnitPrice !=ISNULL(@RRUnitPrice, 0))
 										BEGIN
 											SET @StocklineUnitPrice=@RRUnitPrice
@@ -741,11 +754,18 @@ BEGIN
 											WHERE AssetInventoryId=@StocklineId
 										END
 														     
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType = CRDRType
-										FROM dbo.DistributionSetup WITH(NOLOCK)
-										WHERE UPPER(DistributionSetupCode)=UPPER('RECPOASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
+										SELECT TOP 1 @DistributionSetupId=ID, 
+										             @DistributionName=Name, 
+													 @JournalTypeId=JournalTypeId,
+													 @CrDrType = CRDRType
+										        FROM dbo.DistributionSetup WITH(NOLOCK)
+										        WHERE UPPER(DistributionSetupCode)=UPPER('RECPOASSETINV') 
+												AND DistributionMasterId=@DistributionMasterId 
+												AND MasterCompanyId = @MasterCompanyId;
 										
-										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
+										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,
+										             @GlAccountNumber=GL.AccountCode,
+													 @GlAccountName=GL.AccountName 
 										FROM DBO.AssetInventory SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
 										WHERE AssetInventoryId=@StocklineId;
@@ -801,10 +821,10 @@ BEGIN
 
 									------- Stock - Inventory -------
 									------- VAR - Cost/Qty - COGS ------
-
+																		
 									SET @Amount= ISNULL(((@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)) * (@RRUnitPrice - @POROUnitPrice)), 0);
-									SET @APTotalPrice = @APTotalPrice + @Amount
-
+									SET @APTotalPrice = (@APTotalPrice + @Amount);
+																								
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
 												 @JournalTypeId=JournalTypeId, 
@@ -861,8 +881,8 @@ BEGIN
 									------- VAR - Cost/Qty - COGS -------
 
 									------- Goods Received Not Invoiced (GRNI)-------
-									SET @Amount=(@ReceivedQty * @POROUnitPrice);
-									SET @APTotalPrice=@APTotalPrice+@Amount
+									SET @Amount = (@ReceivedQty * @POROUnitPrice);
+									SET @APTotalPrice = @APTotalPrice+@Amount
 
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -1072,7 +1092,7 @@ BEGIN
 									------- Accounts Payable -------
 
 							END
-							ELSE IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice != ISNULL(@RRUnitPrice, 0))
+							ELSE IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice <> ISNULL(@RRUnitPrice, 0))
 							BEGIN
 									------- Stock - Inventory ---
 									SET @Amount = ISNULL(((@RRUnitPrice - @POROUnitPrice) * ISNULL(@StocklineQtyAvail, 0)), 0);
@@ -1096,8 +1116,12 @@ BEGIN
 												AND DistributionMasterId=@DistributionMasterId 
 												AND MasterCompanyId = @MasterCompanyId
 
-										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+										SELECT TOP 1 @GlAccountId=SL.GLAccountId,
+										            @GlAccountNumber=GL.AccountCode,
+													@GlAccountName=GL.AccountName 
+											   FROM DBO.Stockline SL WITH(NOLOCK)
+										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
+										WHERE SL.StockLineId=@StocklineId
 									END
 									IF(UPPER(@StockType) = 'ASSET')
 									BEGIN
@@ -1109,9 +1133,12 @@ BEGIN
 											WHERE AssetInventoryId=@StocklineId
 										END
 														     
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType=CRDRType
-										FROM DistributionSetup WITH(NOLOCK)
-										WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+										SELECT TOP 1 @DistributionSetupId=ID, 
+										             @DistributionName=Name, 
+													 @JournalTypeId=JournalTypeId,
+													 @CrDrType=CRDRType
+										        FROM dbo.DistributionSetup WITH(NOLOCK)
+										       WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
 										FROM DBO.AssetInventory SL WITH(NOLOCK)
@@ -1247,7 +1274,7 @@ BEGIN
 									END
 									------- Accounts Payable ------
 							END
-							ELSE IF(ISNULL(@StocklineQtyAvail, 0) != ISNULL(@ReceivedQty, 0))
+							ELSE IF(ISNULL(@StocklineQtyAvail, 0) <> ISNULL(@ReceivedQty, 0))
 							BEGIN
 									------- Stock - Inventory -----
 									SET @Amount = ((@RRUnitPrice - @POROUnitPrice)* ISNULL(@StocklineQtyAvail, 0));
@@ -1271,7 +1298,6 @@ BEGIN
 										        WHERE UPPER(DistributionSetupCode)=UPPER('RECROSTKINV') 
 												AND DistributionMasterId=@DistributionMasterId 
 												AND MasterCompanyId = @MasterCompanyId
-
 										SELECT TOP 1 @GlAccountId=SL.GLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
 
@@ -1287,11 +1313,18 @@ BEGIN
 											WHERE AssetInventoryId=@StocklineId
 										END
 														     
-										SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId,@CrDrType=CRDRType
+										SELECT TOP 1 @DistributionSetupId=ID, 
+										             @DistributionName=Name, 
+													 @JournalTypeId=JournalTypeId,
+													 @CrDrType=CRDRType
 										FROM dbo.DistributionSetup WITH(NOLOCK)
-										WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+										WHERE UPPER(DistributionSetupCode)=UPPER('RECROASSETINV') 
+										AND DistributionMasterId=@DistributionMasterId 
+										AND MasterCompanyId = @MasterCompanyId
 
-										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
+										SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,
+										             @GlAccountNumber=GL.AccountCode
+													 ,@GlAccountName=GL.AccountName 
 										FROM DBO.AssetInventory SL WITH(NOLOCK)
 										INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
 										WHERE AssetInventoryId=@StocklineId;
@@ -1348,10 +1381,9 @@ BEGIN
 									------- Stock - Inventory -----
 
 									------- VAR - Cost/Qty - COGS ------
-									SET @Amount=((@RRUnitPrice - @POROUnitPrice) * (@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)));
-									
+									SET @Amount=((@RRUnitPrice - @POROUnitPrice) * (@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)));									
 									SET @APTotalPrice = @APTotalPrice + @Amount
-
+									
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
 												 @JournalTypeId=JournalTypeId, 

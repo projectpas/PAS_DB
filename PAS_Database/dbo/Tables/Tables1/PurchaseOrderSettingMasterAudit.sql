@@ -20,6 +20,10 @@
     [IsEnforceNonPoApproval]         BIT           NULL,
     [IsAutoReserveReceivedStockline] BIT           NULL,
     [IsCreateStocklineWithoutDraft]  BIT           NULL,
+    [FreightCOGSRefrenceId]          INT           NULL,
+    [TaxCOGSRefrenceId]              INT           NULL,
     CONSTRAINT [PK_PurchaseOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderSettingAuditId] ASC)
 );
+
+
 

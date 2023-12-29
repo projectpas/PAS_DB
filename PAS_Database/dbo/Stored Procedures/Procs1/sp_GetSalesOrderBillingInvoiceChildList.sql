@@ -19,8 +19,9 @@
 	2    06/16/2023   Vishal Suthar Fixed issue with Invoice status
 	3    06/21/2023   Vishal Suthar Fixed issue with qty shipped
 	4    07/19/2023	  Satish Gohil	Fixed issue with wrong showing multiple invoice record 
+	5    12/29/2023	  Vishal Suthar	Fixed issue with Where condition when allow billing before shipping in not enabled
      
--- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 508, 41181, 7  
+ EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 561, 41196, 7  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
@@ -77,7 +78,7 @@ BEGIN
 			LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 			LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 			LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId  
-			WHERE sos.SalesOrderId = @SalesOrderId AND sobii.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId  
+			WHERE sos.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId  
 			GROUP BY sosi.SalesOrderShippingId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
 			sl.SerialNumber, cr.[Name], sop.ItemNo, sop.SalesOrderId, sop.SalesOrderPartId, cond.Description, curr.Code, sop.StockLineId,  
 			sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,sop.UnitSalesPricePerUnit,   

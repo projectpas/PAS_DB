@@ -2707,5 +2707,6 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderTearDownPrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTearDownStockLineList.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWOHeaderRecords.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderTearDownPrintView.sql" />
   </ItemGroup>
 </Project>

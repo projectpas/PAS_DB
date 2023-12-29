@@ -86,7 +86,7 @@ BEGIN
 			   wo.EmployeeId,
 			   0 AS 'ReleaseFromId',
 			   ISNULL(SL.[WorkorderId], 0) AS [WorkorderId],
-			   ISNULL(SL.[workOrderPartNoId], 0) AS [workOrderPartNoId],
+			   ISNULL(wop.ID, 0) AS [workOrderPartNoId],
 			   SL.[MasterCompanyId],
 			   '' AS 'PDFPath',
 			   wop.IsFinishGood

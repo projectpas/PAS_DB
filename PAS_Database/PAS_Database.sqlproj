@@ -2705,5 +2705,6 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteSubWorkOrderById.sql" />
     <Build Include="dbo\Stored Procedures\MigrateROPartsRecords.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderTearDownPrintView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOTearDownStockLineList.sql" />
   </ItemGroup>
 </Project>

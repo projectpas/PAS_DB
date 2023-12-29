@@ -11,11 +11,13 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    12/28/2021   Devendra Shekh			Created
+    1    12/29/2021   Devendra Shekh			changes to get kit stk as well
      
 exec USP_GetWOTearDownStockLineList 
-@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,@Manufacturer=NULL,
-@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=0,@QtyOnHand=0,@QtyAvailable=0,@ExtendedCost=0,@CreatedBy=NULL,
-@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3845,@WorkOrderPartNumberId=3329,@MasterCompanyId=1
+@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,
+@PartDescription=NULL,@Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,
+@UnitCost=NULL,@QtyOnHand=NULL,@QtyAvailable=NULL,@ExtendedCost=NULL,@CreatedBy=NULL,
+@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3854,@WorkOrderPartNumberId=3340,@WorkFlowWorkOrderId=3331,@MasterCompanyId=1
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
@@ -25,7 +27,6 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @SortOrder INT = NULL,
 @GlobalFilter VARCHAR(50) = NULL,
 @StatusId INT = NULL,
-
 @PartNumber VARCHAR(100) = NULL,
 @PartDescription VARCHAR(100) = NULL,
 @Manufacturer VARCHAR(100) = NULL,
@@ -33,10 +34,10 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @SerialNumber VARCHAR(100) = NULL,
 @ControlNumber VARCHAR(100) = NULL,
 @IdNumber VARCHAR(100) = NULL,
-@UnitCost DECIMAL(18,2) = NULL,
-@QtyOnHand BIGINT = NULL,
-@QtyAvailable BIGINT = NULL,
-@ExtendedCost DECIMAL(18,2) = NULL,
+@UnitCost VARCHAR(50) = NULL,
+@QtyOnHand VARCHAR(50) = NULL,
+@QtyAvailable VARCHAR(50) = NULL,
+@ExtendedCost VARCHAR(50) = NULL,
 @CreatedBy  VARCHAR(100) = NULL,
 @CreatedDate DATETIME = NULL,
 @UpdatedBy  VARCHAR(100) = NULL,
@@ -45,6 +46,7 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @IsDeleted BIT = NULL,
 @WorkOrderId BIGINT = NULL,
 @WorkOrderPartNumberId BIGINT = NULL,
+@WorkFlowWorkOrderId BIGINT = NULL,
 @MasterCompanyId BIGINT = NULL
 AS
 BEGIN	
@@ -84,7 +86,7 @@ BEGIN
 		;WITH Result AS(
 				SELECT DISTINCT
 						SL.StockLineId,
-						SL.WorkOrderId,
+						WO.WorkOrderId,
 						WOP.ID AS 'WorkOrderPartNumberId',
 						IM.PartNumber,
 						IM.PartDescription,
@@ -93,23 +95,61 @@ BEGIN
 						ISNULL(SL.SerialNumber, '') AS 'SerialNumber',
 						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
 						ISNULL(SL.IdNumber, '') AS 'IdNumber',
-						ISNULL(SL.UnitCost, 0) AS 'UnitCost',
-						ISNULL(SL.QuantityOnHand, 0) AS 'QtyOnHand',
-						ISNULL(SL.QuantityAvailable, 0) AS 'QtyAvailable',
-						ISNULL(SL.WorkOrderExtendedCost, 0) AS 'ExtendedCost',
+						CAST(ISNULL(SL.UnitCost, 0) AS VARCHAR) AS 'UnitCost',
+						CAST(ISNULL(SL.QuantityOnHand, 0) AS VARCHAR) AS 'QtyOnHand',
+						CAST(ISNULL(SL.QuantityAvailable, 0) AS VARCHAR) AS 'QtyAvailable',
+						CAST((ISNULL(SL.Quantity, 0) * ISNULL(SL.UnitCost, 0)) AS VARCHAR) AS 'ExtendedCost',
 						SL.IsActive,
 						SL.IsDeleted,
 						SL.CreatedDate,
 						SL.UpdatedDate,
 						Upper(SL.CreatedBy) CreatedBy,
 						Upper(SL.UpdatedBy) UpdatedBy
-			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
-				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
+			   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+		 	  WHERE ((WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive))			     
+					AND WO.MasterCompanyId=@MasterCompanyId AND WO.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
+					AND WOP.ID = @WorkOrderPartNumberId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 
-		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
-					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId	
+			UNION ALL
+
+			SELECT DISTINCT
+						SL.StockLineId,
+						WO.WorkOrderId,
+						WOP.ID AS 'WorkOrderPartNumberId',
+						IM.PartNumber,
+						IM.PartDescription,
+						IM.ManufacturerName AS 'Manufacturer',
+						SL.StockLineNumber,
+						ISNULL(SL.SerialNumber, '') AS 'SerialNumber',
+						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
+						ISNULL(SL.IdNumber, '') AS 'IdNumber',
+						CAST(ISNULL(SL.UnitCost, 0) AS VARCHAR) AS 'UnitCost',
+						CAST(ISNULL(SL.QuantityOnHand, 0) AS VARCHAR) AS 'QtyOnHand',
+						CAST(ISNULL(SL.QuantityAvailable, 0) AS VARCHAR) AS 'QtyAvailable',
+						CAST((ISNULL(SL.Quantity, 0) * ISNULL(SL.UnitCost, 0)) AS VARCHAR) AS 'ExtendedCost',
+						SL.IsActive,
+						SL.IsDeleted,
+						SL.CreatedDate,
+						SL.UpdatedDate,
+						Upper(SL.CreatedBy) CreatedBy,
+						Upper(SL.UpdatedBy) UpdatedBy
+			   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
+				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+		 	  WHERE ((WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive))			     
+					AND WO.MasterCompanyId=@MasterCompanyId AND WO.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
+					AND WOP.ID = @WorkOrderPartNumberId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -119,10 +159,10 @@ BEGIN
 					(SerialNumber LIKE '%' + @GlobalFilter+'%') OR
 					(ControlNumber LIKE '%' + @GlobalFilter+'%') OR
 					(IdNumber LIKE '%' + @GlobalFilter+'%') OR
-					(CAST(UnitCost AS VARCHAR) LIKE '%' + @GlobalFilter+'%') OR
-					(CAST(QtyOnHand AS VARCHAR) LIKE '%' + @GlobalFilter+'%') OR
-					(CAST(QtyAvailable AS VARCHAR) LIKE '%' + @GlobalFilter+'%') OR
-					(CAST(ExtendedCost AS VARCHAR) LIKE '%' + @GlobalFilter+'%') OR
+					(UnitCost LIKE '%' + @GlobalFilter+'%') OR
+					(QtyOnHand LIKE '%' + @GlobalFilter+'%') OR
+					(QtyAvailable  LIKE '%' + @GlobalFilter+'%') OR
+					(ExtendedCost LIKE '%' + @GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' + @GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' + @GlobalFilter+'%'))) OR   
 					(@GlobalFilter ='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
@@ -132,10 +172,10 @@ BEGIN
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND	
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND	
 					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND	
-					--(ISNULL(CAST(@UnitCost AS VARCHAR),'') ='' OR CAST(UnitCost AS VARCHAR) LIKE '%' + CAST(@UnitCost AS VARCHAR)+ '%') AND	
-					--(ISNULL(CAST(@QtyOnHand AS VARCHAR),'') ='' OR CAST(QtyOnHand AS VARCHAR) LIKE '%' + CAST(@SerialNumber AS VARCHAR) + '%') AND	
-					--(ISNULL(CAST(@QtyAvailable AS VARCHAR),'') ='' OR CAST(QtyAvailable AS VARCHAR) LIKE '%' + CAST(@SerialNumber AS VARCHAR) + '%') AND	
-					--(ISNULL(CAST(@ExtendedCost AS VARCHAR),'') ='' OR CAST(ExtendedCost AS VARCHAR) LIKE '%' + CAST(@SerialNumber AS VARCHAR) + '%') AND	
+					(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost+ '%') AND	
+					(ISNULL(@QtyOnHand,'') ='' OR QtyOnHand LIKE '%' + @QtyOnHand + '%') AND	
+					(ISNULL(@QtyAvailable,'') ='' OR QtyAvailable LIKE '%' + @QtyAvailable + '%') AND	
+					(ISNULL(@ExtendedCost,'') ='' OR ExtendedCost LIKE '%' + @ExtendedCost + '%') AND	
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
@@ -167,6 +207,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QtyAvailable')  THEN QtyAvailable END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ExtendedCost')  THEN ExtendedCost END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ExtendedCost')  THEN ExtendedCost END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
@@ -207,7 +249,8 @@ BEGIN
 			   + '@Parameter23 = ''' + CAST(ISNULL(@IsDeleted , '') AS VARCHAR(100))
 			   + '@Parameter24 = ''' + CAST(ISNULL(@WorkOrderId , '') AS VARCHAR(100))
 			   + '@Parameter25 = ''' + CAST(ISNULL(@WorkOrderPartNumberId , '') AS VARCHAR(100))
-			   + '@Parameter26 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))  			                                           
+			   + '@Parameter26 = ''' + CAST(ISNULL(@WorkFlowWorkOrderId , '') AS VARCHAR(100))
+			   + '@Parameter27 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

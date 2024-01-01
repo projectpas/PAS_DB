@@ -25,6 +25,15 @@ BEGIN
 
 	BEGIN TRY
 
+	DECLARE @StockModuleId [BIGINT];
+	DECLARE @NonStockModuleId [BIGINT];
+	DECLARE @AssetModuleId [BIGINT];
+
+	SET @StockModuleId = (SELECT ManagementStructureModuleId FROM  ManagementStructureModule WHERE ModuleName = 'ReceivingPODraft');
+	SET @NonStockModuleId = (SELECT ManagementStructureModuleId FROM  ManagementStructureModule WHERE ModuleName = 'ReceivingNonStockDraft');
+	SET @AssetModuleId = (SELECT ManagementStructureModuleId FROM  ManagementStructureModule WHERE ModuleName = 'ReceivingAssetDraft');
+
+
 		SELECT
 			POP.PurchaseOrderId,
 			P.PurchaseOrderNumber,
@@ -70,8 +79,6 @@ BEGIN
 			
 		FROM DBO.[PurchaseOrderPart] POP WITH (NOLOCK)
 		LEFT JOIN  [dbo].[PurchaseOrder] P WITH(NOLOCK) ON P.PurchaseOrderId = @PurchaseOrderId 
-		--LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON  SL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND SL.isDeleted=0 AND (SL.IsParent = 1 AND SL.IsSameDetailsForAllParts = 1 OR SL.IsSameDetailsForAllParts = 0)
-		--LEFT JOIN  [dbo].[StocklineDraft] SLD WITH(NOLOCK) ON SLD.PurchaseOrderId = @PurchaseOrderId AND SLD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND SLD.isDeleted=0 AND (SLD.IsParent = 1 AND SLD.IsSameDetailsForAllParts = 1 OR SLD.IsSameDetailsForAllParts = 0) AND (SLD.StockLineId = 0 OR SLD.StockLineId IS  NULL)
 		
 		WHERE POP.PurchaseOrderId=@PurchaseOrderId
 		group by POP.PurchaseOrderId,POP.PurchaseOrderPartRecordId,POP.UOMId,POP.ConditionId,POP.isParent,POP.ManagementStructureId,POP.QuantityOrdered,POP.QuantityBackOrdered,POP.DiscountPerUnit,POP.ExtendedCost
@@ -152,7 +159,7 @@ BEGIN
 		SLD.CertTypeId,
 		SLD.CertType
 		FROM DBO.[StocklineDraft] SLD WITH (NOLOCK)
-		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.StockLineDraftId AND ModuleID = 31
+		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.StockLineDraftId AND ModuleID = @StockModuleId
 		LEFT JOIN  [dbo].[ShippingVia] SV WITH(NOLOCK) ON SV.ShippingViaId = SLD.ShippingViaId
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SLD.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SLD.ConditionId
@@ -236,7 +243,7 @@ BEGIN
 		'' AS 'CertTypeId',
 		'' AS 'CertType'
 		FROM DBO.[NonStockInventoryDraft] SLD WITH (NOLOCK)
-		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.NonStockInventoryDraftId AND ModuleID = 55
+		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.NonStockInventoryDraftId AND ModuleID = @NonStockModuleId
 		WHERE SLD.PurchaseOrderId = @PurchaseOrderId
 
 
@@ -312,7 +319,7 @@ BEGIN
 		'' AS 'CertTypeId',
 		'' AS 'CertType'
 		FROM DBO.[AssetInventoryDraft] SLD WITH (NOLOCK)
-		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.AssetInventoryDraftId AND ModuleID = 56
+		LEFT JOIN  [dbo].[StockLineDraftManagementStructureDetails] SLDM WITH(NOLOCK) ON SLDM.ReferenceID = SLD.AssetInventoryDraftId AND ModuleID = @AssetModuleId
 		WHERE SLD.PurchaseOrderId = @PurchaseOrderId
 
 

@@ -156,7 +156,7 @@ BEGIN
 			IF (@FoundError = 1)
 			BEGIN
 				UPDATE IMs
-				SET IMs.ErrorMsg = ErrorMsg
+				SET IMs.ErrorMsg = @ErrorMsg
 				FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
@@ -184,7 +184,7 @@ BEGIN
 				DECLARE @DefaultSiteId BIGINT;
 				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('MIG') AND MasterCompanyId = @FromMasterComanyID;
 
-				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
 					INSERT INTO [MasterParts]
 					([PartNumber], [Description], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [ManufacturerId], [PartType])
@@ -230,7 +230,7 @@ BEGIN
 					--EXEC dbo.UpdateItemMasterDetail @InsertedItemMasterId;
 
 					UPDATE IMs
-					SET IMs.Migrated_Id = @InsertedPartId,
+					SET IMs.Migrated_Id = @InsertedItemMasterId,
 					IMs.SuccessMsg = 'Record migrated successfully'
 					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
 
@@ -239,7 +239,7 @@ BEGIN
 				ELSE
 				BEGIN
 					UPDATE IMs
-					SET IMs.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Item Master record already exists</p>'
+					SET IMs.ErrorMsg = ISNULL(@ErrorMsg, '') + '<p>Item Master record already exists</p>'
 					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
 
 					SET @RecordExits = @RecordExits + 1;

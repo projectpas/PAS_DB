@@ -1,4 +1,25 @@
-﻿CREATE   Procedure [dbo].[sp_GetWOShippingChildList]  
+﻿/*************************************************************           
+ ** File:   [sp_GetWOShippingChildList]           
+ ** Author:   
+ ** Description: This SP is Used to GetWOShippingChildList
+ ** Purpose:         
+ ** Date:     
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------  
+	1    
+	2    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
+
+EXEC DBO.sp_GetWOShippingChildList @ItemMasterIdlist=20751,@WorkOrderId =618 ,@WorkOrderPartId=10
+**************************************************************/ 
+CREATE Procedure [dbo].[sp_GetWOShippingChildList]  
 @WorkOrderId bigint,  
 @WorkOrderPartId bigint  
 AS  
@@ -21,7 +42,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
       CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',  
                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',   
       sl.StockLineNumber,  
-      sl.SerialNumber,cr.[Name] as CustomerName,  
+      CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber',cr.[Name] as CustomerName,  
       woc.CustomsValue,woc.CommodityCode,  
       ISNULL(wosi.QtyShipped,0) as QtyShipped,  
       1 ItemNo,  

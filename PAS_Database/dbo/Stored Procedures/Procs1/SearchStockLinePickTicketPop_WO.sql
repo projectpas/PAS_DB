@@ -17,6 +17,7 @@
 	1    03/29/2023   Vishal Suthar		Modified SP for WO Materials KIT Changes
 	2    10/04/2023   Hemant Saliya		Condition Group Changes
 	3    11/23/2023   Moin Bloch		Changed QtyReserved + QtyIssued - SUM(QtyToShip) IN IsMPNPickTicket = 0
+	4    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
 
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
@@ -215,7 +216,8 @@ BEGIN
 									ELSE 'OEM'
 									END AS StockType
 								,sl.StockLineNumber 
-								,sl.SerialNumber
+								,CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber'
+								--,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
 								,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
@@ -424,7 +426,8 @@ BEGIN
 									ELSE 'OEM'
 									END AS StockType
 								,sl.StockLineNumber 
-								,sl.SerialNumber
+								,CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber'
+								--,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
 								,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable

@@ -11,6 +11,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** --   --------    -------         --------------------------------
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    09/29/2023  HEMANT SALIYA    Updated For Notes in Remarks
+** 3    01/01/2024  Devendra Shekh   updated for SerialNumber(Batchnumber)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1
 **************************************************************/ 
@@ -46,11 +47,12 @@ BEGIN
 			  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
 			  wo.WorkOrderNum AS InvoiceNo,  
 			  '1' AS ItemName,  
-			  CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
-			  CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
+			  CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
+			  CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
 			  wop.CustomerReference AS Reference,  
 			  wop.Quantity AS Quantity,  
-			  UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber end) AS Batchnumber,  
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber end)
+			  ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
 			  wosc.conditionName AS [status],  
 			  '' as Certifies,   
 			  0 AS approved ,  

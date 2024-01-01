@@ -75,6 +75,9 @@
     [CurrentSerialNumber]        BIGINT          NULL,
     [StocklineCost]              DECIMAL (18, 2) NULL,
     [TendorStocklineCost]        DECIMAL (18, 2) NULL,
+    [RevisedSerialNumber]        VARCHAR (50)    NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 

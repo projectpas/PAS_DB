@@ -11,9 +11,10 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
     1    19/05/2023   Satish Gohil  Created       
+	2    01/01/2024   Moin Bloch    Changed Error Msg As Per Client Requirements PN-6428
 **************************************************************/  
 
-CREATE   PROCEDURE dbo.USP_GetNextAccountingPeriodById  
+CREATE     PROCEDURE [dbo].[USP_GetNextAccountingPeriodById]  
 (    
  @AccountingPeriodId BIGINT    
 )    
@@ -57,8 +58,8 @@ BEGIN
     
     IF(ISNULL(@ClosePeriodName,'') <> '' AND ISNULL(@NextOpenPeriodName,'') <> '')    
     BEGIN    
-     SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + ' Do You Want to Proceed ??'    
-    
+     --SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + ' Do You Want to Proceed ??'    
+       SET @MSG = 'Accounting Period : ' + @ClosePeriodName + ' is closed.'
      IF NOT EXISTS(SELECT * FROM #ErrorMsg WHERE Msg = @MSG)    
      BEGIN     
       INSERT INTO #ErrorMsg (Msg,isValid,NextPeriodid) Values(@MSG,1,@NextOpenPeriodId);    
@@ -66,17 +67,16 @@ BEGIN
     END    
     IF(ISNULL(@ClosePeriodName,'') <> '' AND ISNULL(@NextOpenPeriodName,'') = '')    
     BEGIN    
-     SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed.Does not found Any Open Period.'    
+     --SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed.Does not found Any Open Period.'    
+	   SET @MSG = 'Accounting Period : ' + @ClosePeriodName + ' is closed.'
     
      IF NOT EXISTS(SELECT * FROM #ErrorMsg WHERE Msg = @MSG)    
      BEGIN     
       INSERT INTO #ErrorMsg (Msg,isValid,NextPeriodid) Values(@MSG,0,@NextOpenPeriodId);    
      END    
-    END    
-    
-   END    
-     
-    
+    END 
+   END  
+   
    SELECT * FROM #ErrorMsg    
     
    IF OBJECT_ID(N'tempdb..#ErrorMsg') IS NOT NULL      

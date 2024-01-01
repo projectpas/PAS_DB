@@ -19,8 +19,9 @@
     2    03/29/2023   Vishal Suthar		Modified to handle KIT material cost
 	3    05/17/2023   Hemant Saliya		Corrected Cost Calculation
 	4    08/17/2023   Moin Bloch		Comment Updating Unit Cost Values 
+	3    12/29/2023   Hemant Saliya		Added Is null for Extended Cost
      
- EXECUTE USP_UpdateWOMaterialsCost 768
+ EXECUTE USP_UpdateWOMaterialsCost 7351
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
 (
@@ -55,26 +56,28 @@ SET NOCOUNT ON
 
 				INSERT INTO #tmpWOMaterials (WorkOrderId,WorkFlowWorkOrderId,WorkOrderMaterialsId, UnitCost, ExtendedCost, StlCount, StlReqQty, IsKit) 
 				SELECT WOM.WorkOrderId, WOM.WorkFlowWorkOrderId, WOM.WorkOrderMaterialsId, 
-					(SELECT SUM(WOMSL.UnitCost)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
-					(SELECT SUM(WOMSL.ExtendedCost)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
+					(SELECT ISNULL(SUM(WOMSL.UnitCost), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
+					(SELECT ISNULL(SUM(WOMSL.ExtendedCost), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
 					(SELECT COUNT(1)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
-					(SELECT SUM(WOMSL.Quantity)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLine WOMSL WHERE WOMSL.WorkOrderMaterialsId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
 					0
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId 
 				UNION ALL
 				SELECT WOM.WorkOrderId, WOM.WorkFlowWorkOrderId, WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId, 
-					(SELECT SUM(WOMSL.UnitCost)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
-					(SELECT SUM(WOMSL.ExtendedCost)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
+					(SELECT ISNULL(SUM(WOMSL.UnitCost), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As UnitCost,
+					(SELECT ISNULL(SUM(WOMSL.ExtendedCost), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As ExtendedCost,
 					(SELECT COUNT(1)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlCount,
-					(SELECT SUM(WOMSL.Quantity)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
+					(SELECT ISNULL(SUM(WOMSL.Quantity), 0)  FROM  dbo.WorkOrderMaterialStockLineKit WOMSL WHERE WOMSL.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND WOMSL.IsActive = 1 AND WOMSL.IsDeleted = 0)  As StlReqQty,
 					1
 				FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
 				WHERE WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId 
 
+				--Select * from #tmpWOMaterials
+
 				UPDATE WorkOrderMaterials SET  
 					--UnitCost = tmp.UnitCost, 
-					ExtendedCost= tmp.ExtendedCost,
+					ExtendedCost= ISNULL(tmp.ExtendedCost, 0),
 					TotalStocklineQtyReq = tmp.StlReqQty
 				FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
 					JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsId = tmp.WorkOrderMaterialsId
@@ -82,7 +85,7 @@ SET NOCOUNT ON
 		
 				UPDATE WorkOrderMaterialsKit SET  
 					--UnitCost = tmp.UnitCost, 
-					ExtendedCost= tmp.ExtendedCost,
+					ExtendedCost= ISNULL(tmp.ExtendedCost, 0),
 					TotalStocklineQtyReq = tmp.StlReqQty
 				FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)
 					JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsKitId = tmp.WorkOrderMaterialsId
@@ -105,6 +108,8 @@ SET NOCOUNT ON
 					JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsKitId = tmp.WorkOrderMaterialsId
 					LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId
 				WHERE tmp.StlCount = 0 AND tmp.IsKit = 1
+
+				PRINT 'H-1'
 
 				IF OBJECT_ID(N'tempdb..#tmpMaterilasPickTicket') IS NOT NULL
 				BEGIN
@@ -214,6 +219,14 @@ SET NOCOUNT ON
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				ROLLBACK TRAN;
+					
+				SELECT
+					ERROR_NUMBER() AS ErrorNumber,
+					ERROR_STATE() AS ErrorState,
+					ERROR_SEVERITY() AS ErrorSeverity,
+					ERROR_PROCEDURE() AS ErrorProcedure,
+					ERROR_LINE() AS ErrorLine,
+					ERROR_MESSAGE() AS ErrorMessage;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateWOMaterialsCost' 

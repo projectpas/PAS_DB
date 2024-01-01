@@ -30,11 +30,12 @@ BEGIN
 			sl.PartNumber, sl.PNDescription,sl.Manufacturer,
 			con.Description  As 'Condition',sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber ,
 			sl.IdNumber,sl.SerialNumber 
-		FROM StockLine sl WITH (NOLOCK)
+		FROM [dbo].[StockLine] sl WITH (NOLOCK)
 		INNER JOIN ItemMaster im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN Condition con WITH (NOLOCK) ON sl.conditionId = con.conditionId
 		WHERE sl.isActive = 1 AND sl.isDeleted = 0
-		AND (sl.QuantityOnHand + sl.QuantityIssued) != (sl.QuantityReserved + sl.QuantityAvailable + sl.QuantityIssued)
+		AND (sl.QuantityOnHand + sl.QuantityIssued) <> (sl.QuantityReserved + sl.QuantityAvailable + sl.QuantityIssued)
+
 	END
 	COMMIT  TRANSACTION
 	END TRY    

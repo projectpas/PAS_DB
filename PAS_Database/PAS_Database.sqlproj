@@ -2707,5 +2707,11 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderTearDownPrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOTearDownStockLineList.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWOHeaderRecords.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingPurchaseOrderViewById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderTearDownPrintView.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostManualAssetInventoryBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\CheckWorkOrderPartShippedOrNot.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderPrintPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetSubWorkOrderPrintPdfData.sql" />
   </ItemGroup>
 </Project>

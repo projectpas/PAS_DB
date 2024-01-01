@@ -17,7 +17,8 @@
     1    08/25/2021   Vishal Suthar		Created
     2    12/09/2021   Vishal Suthar		Added a condition such that it will execute only if Sales Order Number is selected in the part
 	3    06/12/2023   Amit Ghediya		Select a conditionId from STK for REVISED PART & Add into SOStk from RO.
-	3    08/18/2023   Devendra Shekh	added UnitSalesPricePerUnit for salesorder part insert
+	4    08/18/2023   Devendra Shekh	added UnitSalesPricePerUnit for salesorder part insert
+	5    12/29/2023   Vishal Suthar		Fixed and issue with PN-6393 Requested Qty not increasing when RO stockline added into same part with condition
      
  EXECUTE USP_CreateSOStocklineFromRO 1228
 
@@ -409,16 +410,16 @@ BEGIN
                   JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RP.ItemMasterId = IM.ItemMasterId --AND RP.ConditionId = SL.ConditionId
                   JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
                   WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
-				
-				SELECT * FROM #StockLine
-				SELECT * FROM #ROStockLineSamePart
 
                 IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
 					DECLARE @OldConditionId BIGINT = 0;
 					DECLARE @NewConditionId BIGINT = 0;
+					DECLARE @OldItemMasterId BIGINT = 0;
+					DECLARE @NewItemMasterId BIGINT = 0;
 					DECLARE @NewSalesOrderPartId BIGINT = 0;
 					DECLARE @UnitCost DECIMAL(20, 2) = 0;
+					DECLARE @NewQtyRequested INT = 0;
 
 					SELECT @ExSalesOrderPartId = SOP.SalesOrderPartId FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
 					JOIN [dbo].[RepairOrderPart] RP WITH (NOLOCK) ON RP.StockLineId = SOP.StocklineId
@@ -587,12 +588,13 @@ BEGIN
 					SOP.CreatedBy, SOP.UpdatedBy, GETDATE(), GETDATE(), 1, 0
 					FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId
 
-					  SELECT @OldConditionId = ConditionId FROM [dbo].[SalesOrderPart] WITH (NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId;
-					  SELECT @NewConditionId = ConditionId FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StockLineId;
+					  SELECT @OldConditionId = ConditionId, @OldItemMasterId = ItemMasterId FROM [dbo].[SalesOrderPart] WITH (NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId;
+					  SELECT @NewConditionId = ConditionId, @NewItemMasterId = ItemMasterId FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
 					  SELECT @SalesOrderStockLineId = SCOPE_IDENTITY()
 
-					  SELECT @StlQuantity = SOP.Qty FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId
+					  SELECT @StlQuantity = SOP.Qty, @NewQtyRequested = QtyRequested FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId
+
 					  UPDATE [dbo].[Stockline] SET [QuantityAvailable] = QuantityAvailable - @StlQuantity, [QuantityReserved] = @StlQuantity WHERE StockLineId = @StocklineId
 
 					  UPDATE SD SET SOQty = @StlQuantity,ForStockQty =  SL.Quantity - @StlQuantity
@@ -620,6 +622,11 @@ BEGIN
 							UPDATE [dbo].[SalesOrderPart] SET ConditionId = @NewConditionId, 
 							UpdatedDate = GETDATE()
 							WHERE SalesOrderPartId = @SalesOrderPartId;
+
+							-- Increase Qty Requested if the stockline is added in the existing part with same condition
+							UPDATE [dbo].[SalesOrderPart]
+							SET QtyRequested = (QtyRequested + @NewQtyRequested)
+							WHERE [SalesOrderId] = @SalesOrderId AND ItemMasterId = @NewItemMasterId AND ConditionId = @NewConditionId;
 						END
 					  END
 					  ELSE
@@ -687,15 +694,13 @@ BEGIN
 
 								IF (@OldConditionId <> @NewConditionId)
 								BEGIN
-									UPDATE [dbo].[SalesOrderPart] SET ConditionId = @NewConditionId, 
+									UPDATE [dbo].[SalesOrderPart] SET ConditionId = @NewConditionId,
 									UpdatedDate = GETDATE()
 									WHERE SalesOrderPartId = @SalesOrderPartId;
 
-									UPDATE [dbo].[SalesOrderPart] SET QtyRequested = Qty,StatusId =@soPartFulfilledStatusId WHERE [SalesOrderId] = @SoId;
+									UPDATE [dbo].[SalesOrderPart] SET QtyRequested = Qty, StatusId = @soPartFulfilledStatusId WHERE [SalesOrderId] = @SoId;
 								END
 							END
-
-
 						END
 					  END
 					END

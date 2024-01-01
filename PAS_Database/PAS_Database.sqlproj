@@ -2710,5 +2710,7 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonSubWorkOrderTearDownPrintView.sql" />
     <Build Include="dbo\Stored Procedures\USP_PostManualAssetInventoryBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\CheckWorkOrderPartShippedOrNot.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderPrintPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetSubWorkOrderPrintPdfData.sql" />
   </ItemGroup>
 </Project>

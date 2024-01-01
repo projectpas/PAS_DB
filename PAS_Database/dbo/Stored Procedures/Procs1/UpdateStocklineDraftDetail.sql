@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateStocklineDraftDetail]           
  ** Author: 
  ** Description: This stored procedure is update into stockline draft
@@ -16,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    12/05/2023   AMIT GHEDIYA	    Modify(Added Traceable & Tagged fields) 
+    2    12/26/2023   Vishal Suthar	    Undo Amit's changes to update from PO Part
 
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
@@ -99,16 +99,16 @@ BEGIN
 	    						  WHEN SD.OwnerType = 9 THEN COMON.[Name]	
 	    						  ELSE SD.OwnerName
 	    			 END,
-	    --TraceableToName = CASE WHEN SD.TraceableToType = 1 THEN CUSTTTN.[Name] 
-	    --                          WHEN SD.TraceableToType = 2 THEN VENTTN.VendorName
-	    --						  WHEN SD.TraceableToType = 9 THEN COMTTN.[Name]	
-	    --						  ELSE SD.TraceableToName
-	    --			 END,
-	    --TaggedByName = CASE WHEN SD.TaggedByType = 1 THEN TAGCUST.[Name] 
-	    --                          WHEN SD.TaggedByType = 2 THEN TAGVEN.VendorName
-	    --						  WHEN SD.TaggedByType = 9 THEN TAGCOM.[Name]	
-	    --						  ELSE SD.TaggedByName
-	    --				END,
+	    TraceableToName = CASE WHEN SD.TraceableToType = 1 THEN CUSTTTN.[Name] 
+	                              WHEN SD.TraceableToType = 2 THEN VENTTN.VendorName
+	    						  WHEN SD.TraceableToType = 9 THEN COMTTN.[Name]	
+	    						  ELSE SD.TraceableToName
+	    			 END,
+	    TaggedByName = CASE WHEN SD.TaggedByType = 1 THEN TAGCUST.[Name] 
+	                              WHEN SD.TaggedByType = 2 THEN TAGVEN.VendorName
+	    						  WHEN SD.TaggedByType = 9 THEN TAGCOM.[Name]	
+	    						  ELSE SD.TaggedByName
+	    				END,
 	    CertifiedBy = CASE WHEN SD.CertifiedTypeId = 1 THEN CERCUST.[Name] 
 	                              WHEN SD.CertifiedTypeId = 2 THEN CERVEN.VendorName
 	    						  WHEN SD.CertifiedTypeId = 9 THEN CERCOM.[Name]	
@@ -123,7 +123,7 @@ BEGIN
 	    ObtainFromTypeName = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE Moduleid = SD.ObtainFromType),
 	    OwnerTypeName =  (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) Where Moduleid = SD.OwnerType),
 	    TraceableToTypeName =  (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE Moduleid = SD.TraceableToType),
-	    --TaggedByTypeName =  (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE Moduleid = SD.TaggedByType),
+	    TaggedByTypeName =  (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE Moduleid = SD.TaggedByType),
 	    CertifiedType =  (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE Moduleid = SD.CertifiedTypeId),	    
 	    ShippingVia = SV.[Name],
 	    WorkOrder = WO.WorkOrderNum,
@@ -139,16 +139,7 @@ BEGIN
 		SalesOrderId = POP.SalesOrderId,
 		ExchangeSalesOrderId = POP.ExchangeSalesOrderId,
 	    UnitOfMeasure = UM.shortname,
-		TagType = TT.[Name],
-		TraceableTo = POP.TraceableTo,
-		TraceableToName = POP.TraceableToName,
-		TraceableToType = POP.TraceableToType,
-		TagTypeId = POP.TagTypeId,
-		TaggedByType = POP.TaggedByType,
-		TaggedBy = POP.TaggedBy,
-		TaggedByName = POP.TaggedByName,
-		TaggedByTypeName = POP.TaggedByTypeName,
-		TagDate = POP.TagDate
+		TagType = TT.[Name]
 	    FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)
 	    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId AND POP.ItemTypeId = @StockType
 	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId

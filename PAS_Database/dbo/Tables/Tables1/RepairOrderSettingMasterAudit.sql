@@ -15,6 +15,10 @@
     [PriorityId]                BIGINT        NULL,
     [Priority]                  VARCHAR (100) NULL,
     [IsRequestor]               BIT           NULL,
+    [FreightCOGSRefrenceId]     INT           NULL,
+    [TaxCOGSRefrenceId]         INT           NULL,
     CONSTRAINT [PK_RepairOrderSettingMasterAudit] PRIMARY KEY CLUSTERED ([RepairOrderSettingAuditId] ASC)
 );
+
+
 

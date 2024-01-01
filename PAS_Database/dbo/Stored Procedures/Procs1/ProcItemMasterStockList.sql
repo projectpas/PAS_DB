@@ -91,7 +91,7 @@ BEGIN
 					   CASE WHEN im.IsTimeLife = 1 THEN 'Yes' ELSE 'No' END AS IsTimeLife,
 					   --CAST(im.IsSerialized AS varchar) 'IsSerialized',	
 					   --CAST(im.IsTimeLife AS varchar) 'IsTimeLife',
-					   CASE WHEN AP.PopulateWoMaterialList = 1 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
+					   CASE WHEN ISNULL((SELECT COUNT(AssemplyId) from [DBO].[Assemply] AP WITH (NOLOCK)WHERE AP.ItemMasterId = im.ItemMasterId AND AP.PopulateWoMaterialList = 1),0) >0 THEN 'Yes' ELSE 'No' END AS HasSubAssy,
 					   im.IsActive,
 					   ItemType = CASE WHEN im.ItemTypeId = 1 THEN 'Stock' ELSE 'NonStock' END,					   
 					   CAST(im.IsHazardousMaterial AS varchar) 'IsHazardousMaterial',
@@ -106,7 +106,6 @@ BEGIN
                        im.UpdatedBy,	
 					   im.IsDeleted
 			   FROM dbo.ItemMaster im WITH (NOLOCK)		
-			   LEFT JOIN [DBO].[Assemply] AP WITH (NOLOCK) ON AP.ItemMasterId = im.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
 					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	
 			), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)

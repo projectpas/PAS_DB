@@ -10,12 +10,13 @@
 ** PR   Date         Author				Change Description                
 ** --   --------     -------			--------------------------------              
  1   19/12/2023		Seema Mansuri		Created  
+ 2   25/12/2023		AMIT GHEDIYA		Updated (Get AlterItemMasterId,EquiItemMasterId for viewInventory display).
  
 **************************************************************/  
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
 */
-CREATE   PROCEDURE [dbo].[OEMCrossReferenceList]
+CREATE    PROCEDURE [dbo].[OEMCrossReferenceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -59,27 +60,28 @@ BEGIN
 		END
 	
 
-;WITH  ORMLIST_CTE
-AS 
-(
-  SELECT itm.partnumber,itm.PartDescription,itm.ItemMasterId,
-		alternate.partnumber as AlternatePart,	
-		nha.partnumber as NhaPart,		
-		equivalent.partnumber as EquivalentPart,	
-		tla.partnumber as TlaPart,	
-	    mapping.MappingType as MappingType
+		;WITH  ORMLIST_CTE
+		AS 
+		(
+		  SELECT itm.partnumber,itm.PartDescription,itm.ItemMasterId,
+				alternate.partnumber as AlternatePart,
+				alternate.ItemMasterId As AlterItemMasterId,
+				nha.partnumber as NhaPart,		
+				equivalent.partnumber as EquivalentPart,
+				equivalent.ItemMasterId As EquiItemMasterId,
+				tla.partnumber as TlaPart,	
+				mapping.MappingType as MappingType
+		FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
+		LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
+		LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
+		LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
+		LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
+		LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
+		WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
 
-FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
-LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
-LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
-LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
-LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
-LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
-
-AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
-)	
-SELECT   * INTO #TempResult FROM ORMLIST_CTE			
+		AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
+		)	
+		SELECT   * INTO #TempResult FROM ORMLIST_CTE			
 			 WHERE (	
 			 (
 			 @GlobalFilter <>'' AND 

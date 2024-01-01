@@ -16,7 +16,7 @@
 
 **************************************************************/
 
-CREATE PROC [dbo].[GetStocklineInventoryMismatch]
+CREATE   PROC [dbo].[GetStocklineInventoryMismatch]
 
 AS
 BEGIN
@@ -35,7 +35,6 @@ BEGIN
 		INNER JOIN Condition con WITH (NOLOCK) ON sl.conditionId = con.conditionId
 		WHERE sl.isActive = 1 AND sl.isDeleted = 0
 		AND (sl.QuantityOnHand + sl.QuantityIssued) <> (sl.QuantityReserved + sl.QuantityAvailable + sl.QuantityIssued)
-
 	END
 	COMMIT  TRANSACTION
 	END TRY    

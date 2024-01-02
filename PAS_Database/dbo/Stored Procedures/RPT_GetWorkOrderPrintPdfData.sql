@@ -48,7 +48,7 @@ BEGIN
 		woq.QuoteNumber,              
 		woq.OpenDate as qouteDate,              
 		'1' as NoofItem,              
-		wo.CreatedBy as Preparedby,              
+		UPPER(wo.CreatedBy) as Preparedby,              
 		UPPER(wop.CustomerReference) as ronum,            
 		getdate() as DatePrinted,              
 		wo.CreatedDate as workreqDate,      

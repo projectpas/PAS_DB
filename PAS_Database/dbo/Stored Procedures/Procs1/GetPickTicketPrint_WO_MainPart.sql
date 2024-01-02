@@ -19,6 +19,7 @@
     1    09/16/2021   Hemant Saliya			Created
     2    08/14/2023   Devendra Shekh		removed comment for ReadyToPick(QtyToPick)
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
+	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
      
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
@@ -44,7 +45,7 @@ BEGIN
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 						wopt.PickTicketNumber,
-						sl.SerialNumber,sl.ControlNumber,sl.IdNumber,co.[Description] as ConditionDescription,
+						CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber',sl.ControlNumber,sl.IdNumber,co.[Description] as ConditionDescription,
 						so.WorkOrderNum,
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN uomR.ShortName ELSE uom.ShortName END as 'UOM',
 						s.[Name] as SiteName,w.[Name] as WarehouseName,l.[Name] as LocationName,sh.[Name] as ShelfName, p.Description as PriorityName,

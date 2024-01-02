@@ -1,4 +1,25 @@
-﻿CREATE Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
+﻿/*************************************************************           
+ ** File:   [SearchStockLinePickTicketPop_WO]           
+ ** Author:   
+ ** Description: This SP is Used to get Stockline list for Pick Ticket childlist data   
+ ** Purpose:         
+ ** Date:     
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------  
+	1										created
+	2    01/01/2024   Devendra Shekh	update for serialnumber
+
+EXEC DBO.sp_GetPickTicketChildList_MainPart @referenceId=20751,@OrderPartId =618
+**************************************************************/ 
+CREATE   Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
 @referenceId  bigint,
 @OrderPartId bigint
 AS
@@ -9,7 +30,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT wopt.PickTicketNumber as PickTicketNumber, wopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber, wopt.CreatedDate as PickedDate,
+		SELECT wopt.PickTicketNumber as PickTicketNumber, wopt.QtyToShip, CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END As 'SerialNumber', sl.StockLineNumber, wopt.CreatedDate as PickedDate,
 		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, wopt.PickTicketId as PickTicketId, wopt.WorkorderId as referenceId,
 		wopt.WorkFlowWorkOrderId as OrderPartId,
 		CONCAT(empy.FirstName ,' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, wopt.ConfirmedDate, sl.StockLineId,

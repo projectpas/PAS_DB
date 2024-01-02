@@ -15,13 +15,13 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    08/23/2023   Amit Ghediya	Modify for restrict entry when amount is 0.	
-
+	2    01/01/2024   BHARGAV SALIYA  CONVERT DATE IN UTC
 **************************************************************/
 -----------------------------------------------------------------------------------------------------
 /*************************************************************
 -- EXEC [TrasnferStocklineAndCreateBatch] 50573,1,1,9,0,0,0,0,0,0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
+CREATE     PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
 --@WorkOrderPartNumberId BIGINT
 	@StocklineId BIGINT,
 	@Qty INT,
@@ -231,7 +231,7 @@ BEGIN
 				   ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]
 				   ,[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber]
 				   ,[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER]
-				   ,[OEM],[Memo],@ManagementStructureIdTo,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE()
+				   ,[OEM],[Memo],@ManagementStructureIdTo,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE()
 				   ,[isSerialized],CASE WHEN ISNULL(@ShelfIdTo, 0) > 0 THEN @ShelfIdTo ELSE NULL END,CASE WHEN ISNULL(@BinIdTo, 0) > 0 THEN @BinIdTo ELSE NULL END,@SiteIdTo,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]
 				   --,[isSerialized],[ShelfId],[BinId],@SiteIdTo,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]
 				   ,[UnitSalePriceAdjustmentReasonTypeId],@IDNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace]
@@ -268,7 +268,7 @@ BEGIN
 					,[RepairOrderId],[RepairOrderPartRecordId])
 				SELECT [CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],[CyclesSinceRepair]
 					,[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew]
-					,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(), GETDATE()
+					,[LastSinceOVH],[LastSinceInspection],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(), GETUTCDATE()
 					,[IsActive],[PurchaseOrderId],[PurchaseOrderPartRecordId],@NewStocklineId,[DetailsNotProvided]
 					,[RepairOrderId],[RepairOrderPartRecordId] 
 				FROM TimeLife TL WITH (NOLOCK) WHERE TL.StockLineId = @StocklineId

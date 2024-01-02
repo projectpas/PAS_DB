@@ -13,9 +13,10 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 2    06/07/2023  VISHAL SUTHAR    Allowing to preview Repair Provision and AR condition parts
 ** 3    07/26/2023	HEMANT SALIYA	 Allow User to reserver & Issue other Customer Stock as well
 ** 4    07/26/2023	HEMANT SALIYA	 Updated For Condition Group Changes
-** 4    07/26/2023	HEMANT SALIYA	 Updated For Shelf and Bin
+** 5    07/26/2023	HEMANT SALIYA	 Updated For Shelf and Bin
+** 6    07/26/2023	HEMANT SALIYA	 Updated For Stockline Condition In Null
 
-EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 3128,1,0,2,0
+EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 4522,0,0,98,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
 	@WorkFlowWorkOrderId BIGINT,
@@ -2088,7 +2089,7 @@ BEGIN
 						[ConditionId],[Quantity],[UnitCost],[ExtendedCost],[QuantityReserved],[QuantityIssued],[QuantityShort],[IsAltPart],[AltPartMasterPartId],
 						[PartStatusId],[UnReservedQty],[UnIssuedQty],[IssuedById],[ReservedById],[IsEquPart],[ItemMappingId],[TotalReserved],[TotalIssued],
 						[TotalUnReserved],[TotalUnIssued],[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],
-						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],[UnitOfMeasureId],[TaskId],[WOMStockLineId], ISNULL(StockLineId,0) AS [StockLineId],[StkItemMasterId],
+						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],[UnitOfMeasureId],[TaskId],[WOMStockLineId], ISNULL(StockLineId,NULL) AS [StockLineId],[StkItemMasterId],
 						[StkConditionId],[StkQuantity],[QtyReserved],[QtyIssued],[StkQuantityShort],[StkAltPartMasterPartId],[StkEquPartMasterPartId],[StkIsAltPart],
 						[StkIsEquPart],[StkUnitCost],[StkExtendedCost],[stkProvisionId],[QuantityTurnIn],UPPER([stkFigure]) AS [stkFigure],UPPER([stkItem]) AS [stkItem],UPPER([PartNumber]) AS [PartNumber],
 						CASE WHEN ISNULL(StkIsAltPart, 0) > 0 THEN UPPER([StkPartNumber]) + ' (ALT)' 

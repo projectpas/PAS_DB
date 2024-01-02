@@ -14,6 +14,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 3    26/07/2023		Satish Gohil	  Glaccount id validation added
 ** 4    04/08/2023      Satish Gohil	  Seprate Accounting Entry WO Type Wise
 ** 5    08/17/2023      AMIT GHEDIYA	  Updated HistoryText.
+** 6    12/30/2021		HEMANT SALIYA	  Updated Error handling And Resolved Error
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -359,6 +360,7 @@ BEGIN
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0)
 
+					PRINT 'Hem-4.1'
 					--FOR UPDATED STOCKLINE QTY
 					UPDATE dbo.Stockline
 					SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActIssued,0),
@@ -367,6 +369,7 @@ BEGIN
 						WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 					FROM dbo.Stockline SL JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 					
+					PRINT 'Hem-4.2'
 					DECLARE @countBoth INT = 1;
 					--FOR UPDATE TOTAL WORK ORDER COST
 					WHILE @countBoth <= @TotalCountsBoth
@@ -500,6 +503,13 @@ BEGIN
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
                     ROLLBACK TRAN;
+					SELECT
+					ERROR_NUMBER() AS ErrorNumber,
+					ERROR_STATE() AS ErrorState,
+					ERROR_SEVERITY() AS ErrorSeverity,
+					ERROR_PROCEDURE() AS ErrorProcedure,
+					ERROR_LINE() AS ErrorLine,
+					ERROR_MESSAGE() AS ErrorMessage;
               DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'usp_IssueWorkOrderMaterialsStockline' 

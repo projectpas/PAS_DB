@@ -18,48 +18,48 @@
      
 -- EXEC CreateUpdateCreditMemoHeader 1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
-@CreditMemoHeaderId bigint=NULL,
-@CreditMemoNumber varchar(50)=NULL,
-@RMAHeaderId bigint=NULL,
-@RMANumber varchar(50)=NULL,
-@InvoiceId  bigint=NULL,
-@InvoiceNumber varchar(50)=NULL,
-@InvoiceDate datetime2(7)=NULL,
-@StatusId int=NULL,
-@Status varchar(50)=NULL,
-@CustomerId bigint=NULL,
-@CustomerName varchar(50)=NULL,
-@CustomerCode varchar(50)=NULL, 
-@CustomerContactId bigint=NULL,
-@CustomerContact varchar(50)=NULL, 
-@CustomerContactPhone varchar(20)=NULL,
-@IsWarranty bit=NULL,
-@IsAccepted bit=NULL,
-@ReasonId bigint=NULL,
-@DeniedMemo nvarchar(max)=NULL, 
-@RequestedById bigint=NULL,
-@RequestedBy varchar(100)=NULL, 
-@ApproverId bigint=NULL,
-@ApprovedBy varchar(100)=NULL,
-@WONum varchar(50)=NULL,
-@WorkOrderId bigint=NULL,
-@Originalwosonum varchar(50)=NULL, 
-@Memo nvarchar(max)=NULL,
-@Notes nvarchar(max)=NULL,
-@ManagementStructureId bigint=NULL,
-@IsEnforce bit=NULL,
-@MasterCompanyId int=NULL,
-@CreatedBy varchar(256)=NULL,
-@UpdatedBy varchar(256)=NULL,
-@CreatedDate datetime2(7)=NULL,
-@UpdatedDate datetime2(7)=NULL,
-@IsActive bit=NULL,
-@IsDeleted bit=NULL,
-@IsWorkOrder bit=NULL,
-@ReferenceId bigint=NULL,
-@ReturnDate datetime2(7)=NULL,
-@Result bigint OUTPUT
+CREATE     PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
+	@CreditMemoHeaderId bigint=NULL,
+	@CreditMemoNumber varchar(50)=NULL,
+	@RMAHeaderId bigint=NULL,
+	@RMANumber varchar(50)=NULL,
+	@InvoiceId  bigint=NULL,
+	@InvoiceNumber varchar(50)=NULL,
+	@InvoiceDate datetime2(7)=NULL,
+	@StatusId int=NULL,
+	@Status varchar(50)=NULL,
+	@CustomerId bigint=NULL,
+	@CustomerName varchar(50)=NULL,
+	@CustomerCode varchar(50)=NULL, 
+	@CustomerContactId bigint=NULL,
+	@CustomerContact varchar(50)=NULL, 
+	@CustomerContactPhone varchar(20)=NULL,
+	@IsWarranty bit=NULL,
+	@IsAccepted bit=NULL,
+	@ReasonId bigint=NULL,
+	@DeniedMemo nvarchar(max)=NULL, 
+	@RequestedById bigint=NULL,
+	@RequestedBy varchar(100)=NULL, 
+	@ApproverId bigint=NULL,
+	@ApprovedBy varchar(100)=NULL,
+	@WONum varchar(50)=NULL,
+	@WorkOrderId bigint=NULL,
+	@Originalwosonum varchar(50)=NULL, 
+	@Memo nvarchar(max)=NULL,
+	@Notes nvarchar(max)=NULL,
+	@ManagementStructureId bigint=NULL,
+	@IsEnforce bit=NULL,
+	@MasterCompanyId int=NULL,
+	@CreatedBy varchar(256)=NULL,
+	@UpdatedBy varchar(256)=NULL,
+	@CreatedDate datetime2(7)=NULL,
+	@UpdatedDate datetime2(7)=NULL,
+	@IsActive bit=NULL,
+	@IsDeleted bit=NULL,
+	@IsWorkOrder bit=NULL,
+	@ReferenceId bigint=NULL,
+	@ReturnDate datetime2(7)=NULL,
+	@Result bigint OUTPUT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -72,8 +72,14 @@ BEGIN
 			DECLARE @rmaNum VARCHAR(100) = null;
 			IF(@ReferenceId IS NOT NULL)
 			BEGIN 
-				SET @rmaId = (SELECT RMAHeaderId FROM CustomerRMAHeader WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
-				SET @rmaNum = (SELECT RMANumber FROM CustomerRMAHeader WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
+				SET @rmaId = (SELECT RMAHeaderId FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
+				SET @rmaNum = (SELECT RMANumber FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
+			END
+
+			IF(@RMANumber IS NOT NULL)
+			BEGIN
+				SET @rmaId = (SELECT RMAHeaderId FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE RMANumber = @RMANumber)
+				SET @rmaNum = @RMANumber;
 			END
 
 			IF (@CreditMemoHeaderId IS NULL OR @CreditMemoHeaderId=0)

@@ -14,10 +14,11 @@
  3		20-11-2023		Ayesha Sultana				 Modified - Reporting straucture name and date update 
  4		23-11-2023		Ayesha Sultana				 Modified - GLACCMAPPING bug fixes
  5		23-11-2023		Moin Bloch				     Modified - Renamed ReportingStructureId To NewReportingStructureId
+ 6		02-01-2023		Moin Bloch				     Modified - Resolved Copy Reporting Structure Issue
   
 ************************************************************************/ 
 
-CREATE    PROCEDURE [dbo].[CopyReportingStructure]
+CREATE      PROCEDURE [dbo].[CopyReportingStructure]
 @ReportingStructureId BIGINT,
 @ReportName VARCHAR(50),  
 @ReportDescription VARCHAR(500),
@@ -32,51 +33,82 @@ BEGIN
 	BEGIN TRY 
 	BEGIN TRANSACTION
 	BEGIN
+
+	    DECLARE @TotalRecord int = 0;   
+	    DECLARE @MinId BIGINT = 1;  
+		DECLARE @LeafNodeId BIGINT = 0; 
+		DECLARE @ParentId BIGINT = 0;
+		DECLARE @NewLeafNodeId BIGINT = 0;
 	
-		INSERT INTO ReportingStructure(ReportName,ReportDescription,[IsVersionIncrease],VersionNumber,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,GlAccountClassId,IsDefault)	
+		INSERT INTO ReportingStructure([ReportName],[ReportDescription],[IsVersionIncrease],[VersionNumber],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[GlAccountClassId],[IsDefault])	
 		SELECT ReportName=@ReportName,ReportDescription=@ReportDescription,IsVersionIncrease, VersionNumber='VER-000001',MasterCompanyId,CreatedBy=@CreatedBy,UpdatedBy=@UpdatedBy,CreatedDate=@CreatedDate,UpdatedDate=@UpdatedDate,IsActive,IsDeleted,GlAccountClassId,IsDefault
 		FROM [dbo].[ReportingStructure] WITH(NOLOCK)
-		WHERE ReportingStructureId=@ReportingStructureId 
+		WHERE [ReportingStructureId] = @ReportingStructureId; 
 
 		DECLARE @updatedReportingStructureId BIGINT;
-		SELECT @updatedReportingStructureId = ReportingStructureId FROM ReportingStructure
+		SELECT @updatedReportingStructureId = [ReportingStructureId] FROM ReportingStructure
 
-		INSERT INTO [dbo].[LeafNode]([Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId],[IsPositive],[SequenceNumber])
-		SELECT [Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId]=@updatedReportingStructureId,[IsPositive],[SequenceNumber]
-		FROM [dbo].[LeafNode] WHERE ReportingStructureId=@ReportingStructureId;
-
-		WITH corresponding AS (
-		  SELECT tp.[LeafNodeId]  AS LeafNodeId_p, tn.[LeafNodeId] AS LeafNodeId_n --, tp.SequenceNumber as SequenceNumber_p, tn.SequenceNumber as SequenceNumber_n
-		  FROM [dbo].[LeafNode] tp JOIN
-			   [dbo].[LeafNode] tn
-			   ON tp.[Name] = tn.[Name] AND tp.SequenceNumber = tn.SequenceNumber
-		  WHERE tp.ReportingStructureId = @ReportingStructureId AND tn.ReportingStructureId = @updatedReportingStructureId)
-
-		UPDATE t
-			SET [ParentId] = c.LeafNodeId_n
-			FROM [dbo].[LeafNode] t JOIN corresponding c
-			ON t.[ParentId] = c.LeafNodeId_p
-			WHERE t.[ReportingStructureId] = @updatedReportingStructureId;
-
-		INSERT INTO GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive,NewReportingStructureId)
-		SELECT G.LeafNodeId,G.GLAccountId,G.MasterCompanyId,G.CreatedBy,G.UpdatedBy,G.CreatedDate,G.UpdatedDate,G.IsActive,G.IsDeleted,G.IsPositive,@updatedReportingStructureId
-		FROM [dbo].[GLAccountLeafNodeMapping] G WITH(NOLOCK)
-			 JOIN [dbo].[LeafNode] L WITH(NOLOCK) ON L.LeafNodeId = G.LeafNodeId
-		WHERE L.ReportingStructureId=@ReportingStructureId AND L.LeafNodeId = G.LeafNodeId;
-
-		;WITH corresponding1 AS (
-			SELECT new.[LeafNodeId] AS NEWLEAFNODES, old.[LeafNodeId] AS OLDLEAFNODES, old.ReportingStructureId AS PRID, new.ReportingStructureId AS NRID
-			FROM [dbo].[LeafNode] old JOIN
-				 [dbo].[LeafNode] new
-				 ON old.[Name] = new.[Name]
-			WHERE old.ReportingStructureId = @ReportingStructureId and new.ReportingStructureId=@updatedReportingStructureId )
-
-		UPDATE [dbo].[GLAccountLeafNodeMapping]
-			SET [LeafNodeId] = c.NEWLEAFNODES
-			FROM [dbo].[GLAccountLeafNodeMapping] G JOIN corresponding1 c ON G.LeafNodeId = c.OLDLEAFNODES
-			WHERE G.LeafNodeId = c.OLDLEAFNODES AND G.NewReportingStructureId = @updatedReportingStructureId;
-	
+		IF OBJECT_ID(N'tempdb..#tempLeafNodeTable') IS NOT NULL
+		BEGIN
+		    DROP TABLE #tempLeafNodeTable
 		END
+		  
+		CREATE TABLE #tempLeafNodeTable 
+		(
+		    [ID] [bigint] NOT NULL IDENTITY (1, 1),
+		    [LeafNodeId] [bigint] NULL,
+			[Name] [varchar](256) NOT NULL,
+			[ParentId] [bigint] NULL,
+			[IsLeafNode] [bit] NULL,
+			[GLAccountId] [varchar](MAX) NULL,
+			[MasterCompanyId] [int] NOT NULL,
+			[CreatedBy] [varchar](256) NOT NULL,
+			[UpdatedBy] [varchar](256) NOT NULL,
+			[CreatedDate] [datetime2](7) NOT NULL,
+			[UpdatedDate] [datetime2](7) NOT NULL,
+			[IsActive] [bit] NOT NULL,
+			[IsDeleted] [bit] NOT NULL,
+			[ReportingStructureId] [bigint] NULL,
+			[IsPositive] [bit] NULL,
+			[SequenceNumber] [bigint] NULL,
+			[TempLeafNodeId] [bigint] NULL
+		)
+
+		INSERT INTO #tempLeafNodeTable ([LeafNodeId],[Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate]
+                                       ,[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId],[IsPositive],[SequenceNumber],[TempLeafNodeId])
+                                 SELECT [LeafNodeId],[Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate]
+								       ,[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId]=@updatedReportingStructureId,[IsPositive],[SequenceNumber],NULL
+		                           FROM [dbo].[LeafNode] WITH(NOLOCK) WHERE [ReportingStructureId] = @ReportingStructureId;
+
+		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tempLeafNodeTable   
+
+		WHILE @MinId <= @TotalRecord
+		BEGIN	
+			SELECT @LeafNodeId = [LeafNodeId],
+			       @ParentId = [ParentId]		    
+			FROM #tempLeafNodeTable WHERE [ID] = @MinId;
+
+			INSERT INTO [dbo].[LeafNode]([Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReportingStructureId],[IsPositive],[SequenceNumber])
+			                        SELECT [Name],[ParentId],[IsLeafNode],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],@updatedReportingStructureId,[IsPositive],[SequenceNumber]
+		    FROM #tempLeafNodeTable WHERE [LeafNodeId] = @LeafNodeId;
+								
+			SET @NewLeafNodeId = SCOPE_IDENTITY();
+				
+			UPDATE #tempLeafNodeTable SET [TempLeafNodeId] = @NewLeafNodeId WHERE [ID] = @MinId;
+
+			IF(@ParentId > 0)
+			BEGIN
+				UPDATE [dbo].[LeafNode] SET [ParentId] = (SELECT [TempLeafNodeId] FROM #tempLeafNodeTable WHERE [LeafNodeId] = @ParentId) WHERE [LeafNodeId] = @NewLeafNodeId;
+			END
+			
+			INSERT INTO GLAccountLeafNodeMapping([LeafNodeId],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPositive],[NewReportingStructureId])
+		    SELECT @NewLeafNodeId,G.[GLAccountId],G.[MasterCompanyId],G.[CreatedBy],G.[UpdatedBy],G.[CreatedDate],G.[UpdatedDate],G.[IsActive],G.[IsDeleted],G.[IsPositive],@updatedReportingStructureId
+		    FROM [dbo].[GLAccountLeafNodeMapping] G WITH(NOLOCK) 
+		    WHERE [LeafNodeId] = @LeafNodeId;
+
+			SET @MinId = @MinId + 1;
+		END	
+	END
 
 	COMMIT  TRANSACTION
 		

@@ -18,7 +18,7 @@
 	1    15/11/2023   Rajesh Saliya		Create    
 	2    20/11/2023   Devendra Shekh	added unitsales price, expirationDate    
 	3    21/11/2023   Devendra Shekh	added conditionids and itemmasterid for filter    
-	
+	4    02/03/2024   Ekta Chandegra    added @ItemClassificationName
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -78,7 +78,8 @@ CREATE   PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
 	@WorkOrderNumber  varchar(50) = NULL,
 	@IsTimeLife varchar(50) = NULL,
 	@SearchItemMasterId bigint = NULL,
-	@ConditionIds VARCHAR(250) = NULL
+	@ConditionIds VARCHAR(250) = NULL,
+	@ItemClassificationName VARCHAR(50) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -139,7 +140,8 @@ BEGIN
 	   SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(im.PartDescription,'')) 'PartDescription',
+		(ISNULL(im.ItemClassificationName,'')) 'ItemClassificationName',      
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
@@ -216,7 +218,8 @@ BEGIN
 	   SELECT * INTO #TempResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
-		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
+		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR
+		  (ItemClassificationName LIKE '%' +@GlobalFilter+'%') OR          
 		  (RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
 		  (ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
 		  (UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR                  
@@ -249,7 +252,8 @@ BEGIN
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
-		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
+		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND
+		   (ISNULL(@ItemClassificationName,'') ='' OR ItemClassificationName LIKE '%' + @ItemClassificationName + '%') AND       
 		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		  (ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
 		  (ISNULL(@UnitOfMeasure,'') ='' OR UnitOfMeasure LIKE '%' + @UnitOfMeasure + '%') AND            
@@ -293,7 +297,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='MainPartNumber')  THEN MainPartNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='MainPartNumber')  THEN MainPartNumber END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC, 
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,           
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='RevisedPN')  THEN RevisedPN END ASC,        
@@ -376,7 +382,8 @@ BEGIN
 	   SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(im.PartDescription,'')) 'PartDescription', 
+		(ISNULL(im.ItemClassificationName,'')) 'ItemClassificationName',      
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
@@ -453,7 +460,8 @@ BEGIN
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT * INTO #TempResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
-		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
+		(PartDescription LIKE '%' +@GlobalFilter+'%') OR 
+		(ItemClassificationName LIKE '%' +@GlobalFilter+'%') OR  
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
 		(RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
 		(ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
@@ -486,7 +494,8 @@ BEGIN
 		(UpdatedBy LIKE '%' +@GlobalFilter+'%')))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
-		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
+		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND   
+		(ISNULL(@ItemClassificationName,'') ='' OR ItemClassificationName LIKE '%' + @ItemClassificationName + '%') AND    
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
@@ -531,7 +540,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN MainPartNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN MainPartNumber END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,     
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END DESC,     
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,           
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='RevisedPN')  THEN RevisedPN END ASC,        
@@ -618,6 +629,7 @@ BEGIN
 		 SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(IMAl.PartNumber,'')) 'MainPartNumber',       
+		(ISNULL(im.ItemClassificationName,'')) 'ItemClassificationName',
 		(ISNULL(im.partnumber,'')) 'PartNumber',    
 		(ISNULL(im.PartDescription,'')) 'PartDescription',        
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
@@ -649,7 +661,8 @@ BEGIN
 		stl.CreatedDate,        
 		stl.CreatedBy,        
 		stl.PartCertificationNumber,        
-		stl.CertifiedBy,          stl.CertifiedDate,        
+		stl.CertifiedBy,          
+		stl.CertifiedDate,        
 		stl.UpdatedDate,                
 		stl.UpdatedBy,        
 		stl.level1 AS CompanyName,        
@@ -699,6 +712,7 @@ BEGIN
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartNumber LIKE '%' +@GlobalFilter+'%') OR         
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
+		  (ItemClassificationName LIKE '%' +@GlobalFilter+'%') OR
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
 		  (RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
 		  (ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
@@ -732,7 +746,8 @@ BEGIN
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
-		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
+		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+		  (ISNULL(@ItemClassificationName,'') ='' OR ItemClassificationName LIKE '%' + @ItemClassificationName + '%') AND	     
 		  (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		  (ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		  (ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
@@ -779,7 +794,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC, 
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END DESC,      
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,           
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='RevisedPN')  THEN RevisedPN END ASC,        
@@ -863,7 +880,8 @@ BEGIN
 		(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
 		(ISNULL(IMAl.PartNumber,'')) 'MainPartNumber',        
 		(ISNULL(im.partnumber,'')) 'PartNumber',    
-		(ISNULL(im.PartDescription,'')) 'PartDescription',        
+		(ISNULL(im.PartDescription,'')) 'PartDescription',     
+		(ISNULL(im.ItemClassificationName,'')) 'ItemClassificationName',
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
@@ -943,7 +961,8 @@ BEGIN
 	  SELECT * INTO #TempALTResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    
-		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
+		(PartDescription LIKE '%' +@GlobalFilter+'%') OR    
+		(ItemClassificationName LIKE '%' +@GlobalFilter+'%') OR
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
 		(RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
 		(ItemGroup LIKE '%' +@GlobalFilter+'%') OR              
@@ -978,6 +997,7 @@ BEGIN
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
+		(ISNULL(@ItemClassificationName,'') ='' OR ItemClassificationName LIKE '%' + @ItemClassificationName + '%') AND
 		(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND        
 		(ISNULL(@RevisedPN,'') ='' OR RevisedPN LIKE '%' + @RevisedPN + '%') AND        
 		(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND        
@@ -1024,7 +1044,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC, 
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ItemClassificationName')  THEN ItemClassificationName END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,           
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='RevisedPN')  THEN RevisedPN END ASC,        

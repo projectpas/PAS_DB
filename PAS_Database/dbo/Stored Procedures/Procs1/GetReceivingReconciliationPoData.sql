@@ -13,6 +13,7 @@
 	1    30/05/2023   Satish Gohil   CREATED
 	2    06/11/2023   Moin Bloch     Modify (Added Control Number)
 	3    08/11/2023   Moin Bloch     Modify (Added Group By)
+	4    03/12/2024   Moin Bloch     Modify (Added isSerialized Field)
 	
 	EXEC GetReceivingReconciliationPoData 2100,3745,1
 **************************************************************/  
@@ -30,6 +31,7 @@ BEGIN
 			SELECT stk.StockLineNumber,
 			       stk.ControlNumber,
 				   stk.StockLineId,
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -54,7 +56,7 @@ BEGIN
 			WHERE po.PurchaseOrderId = @PurchaseOrderId 
 			AND pop.PurchaseOrderPartRecordId=@PurchaseOrderPartRecordId AND POP.isParent  = 1
 			AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId =@PurchaseOrderPartRecordId ),0) = 0
-			GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+			GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId
 					 
 			UNION ALL
@@ -62,6 +64,7 @@ BEGIN
 			SELECT stk.StockLineNumber,
 			       stk.ControlNumber,
 				   stk.StockLineId,
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -86,13 +89,14 @@ BEGIN
 			WHERE po.PurchaseOrderId = @PurchaseOrderId 
 			--AND pop.PurchaseOrderPartRecordId=@PurchaseOrderPartRecordId AND POP.isParent  = 1
 			--AND ISNULL((SELECT count(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = @PurchaseOrderPartRecordId ),0) > 0
-			GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+			GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId
 			UNION
 			
 			SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
 				   stk.ControlNumber,
 				   stk.NonStockInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -118,7 +122,7 @@ BEGIN
 			WHERE po.PurchaseOrderId = @PurchaseOrderId 
 			AND pop.PurchaseOrderPartRecordId=@PurchaseOrderPartRecordId AND POP.isParent  = 1
 			AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId =@PurchaseOrderPartRecordId ),0) = 0			
-			GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+			GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId
 		
 			UNION ALL
@@ -126,6 +130,7 @@ BEGIN
 			SELECT stk.NonStockInventoryNumber AS 'StockLineNumber',
 			       stk.ControlNumber, 
 				   stk.NonStockInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -149,7 +154,7 @@ BEGIN
 			INNER JOIN dbo.NonStockInventory stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 --AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 			INNER JOIN dbo.NonStockInventoryDraft stkdf WITH(NOLOCK) ON stk.NonStockInventoryId = stkdf.NonStockInventoryId
 			WHERE po.PurchaseOrderId = @PurchaseOrderId
-			GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+			GROUP BY stk.NonStockInventoryNumber,stk.ControlNumber,stk.NonStockInventoryId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId
 					
 			UNION
@@ -157,6 +162,7 @@ BEGIN
 			SELECT stk.InventoryNumber AS 'StockLineNumber',
 			       stk.ControlNumber, 
 				   stk.AssetInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -187,6 +193,7 @@ BEGIN
 			SELECT stk.InventoryNumber AS 'StockLineNumber',
 			       stk.ControlNumber, 
 				   stk.AssetInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -226,6 +233,7 @@ BEGIN
 			SELECT stk.StockLineNumber,
 			       stk.ControlNumber,
 				   stk.StockLineId,
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -251,7 +259,7 @@ BEGIN
 				WHERE po.RepairOrderId = @PurchaseOrderId 
 				AND pop.RepairOrderPartRecordId=@PurchaseOrderPartRecordId AND POP.isParent  = 1
 				AND ISNULL((SELECT COUNT(POS.RepairOrderPartRecordId) FROM dbo.RepairOrderPart POS WITH(NOLOCK) WHERE POS.ParentId =@PurchaseOrderPartRecordId ),0) = 0			
-				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
 
 				UNION ALL
@@ -259,6 +267,7 @@ BEGIN
 			SELECT stk.StockLineNumber,
 			       stk.ControlNumber,
 				   stk.StockLineId,
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -282,7 +291,7 @@ BEGIN
 				INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
 				INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.RepairOrderId = @PurchaseOrderId
-				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
+				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
 				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
 					 				
 				UNION
@@ -290,6 +299,7 @@ BEGIN
 			SELECT stk.InventoryNumber AS 'StockLineNumber',
 			       stk.ControlNumber,
 				   stk.AssetInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,
@@ -321,6 +331,7 @@ BEGIN
 			SELECT stk.InventoryNumber AS 'StockLineNumber',
 			       stk.ControlNumber,
 				   stk.AssetInventoryId AS 'StockLineId',
+				   CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
 				   pop.ItemMasterId,
 				   pop.PartNumber,
 				   pop.PartDescription,

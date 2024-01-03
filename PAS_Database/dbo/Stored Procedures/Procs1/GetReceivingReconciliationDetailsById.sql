@@ -14,7 +14,8 @@
 	3    08/11/2023   Moin Bloch    Added ControlNumber Field
 	4    18/12/2023   Moin Bloch    Added Order By
 	5    27/12/2023   Moin Bloch    Modified Remaining RRQty Changed and getting live RRQty From Stockline
-            
+    6    03/01/2024   Moin Bloch    Added IsSerialized Field
+	
 --  EXEC GetReceivingReconciliationDetailsById 220
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetReceivingReconciliationDetailsById]
@@ -60,6 +61,9 @@ BEGIN
 					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN UPPER(SLI.RRQty) 
 						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN UPPER(NSI.RRQty) 
 						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN UPPER(ASI.RRQty) ELSE NULL END AS RemainingRRQty
+					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN SLI.isSerialized 
+						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN NSI.isSerialized 
+						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN ASI.isSerialized ELSE 0 END AS IsSerialized
 					 ,[JBD].[FreightAdjustment]
 					 ,[JBD].[TaxAdjustment]
 					 ,[JBD].[FreightAdjustmentPerUnit]

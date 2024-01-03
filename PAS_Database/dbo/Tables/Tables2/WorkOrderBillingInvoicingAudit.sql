@@ -77,7 +77,10 @@
     [IsCustomerShipping]                 BIT             NULL,
     [CreditMemoUsed]                     DECIMAL (18, 2) NULL,
     [ConditionId]                        BIGINT          NULL,
+    [RevisedSerialNumber]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC),
     FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
 

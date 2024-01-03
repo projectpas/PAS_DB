@@ -212,10 +212,189 @@ BEGIN
 
 					SELECT @InsertedWorkOrderId = SCOPE_IDENTITY();
 
-					UPDATE WOH
-					SET WOH.Migrated_Id = @InsertedWorkOrderId,
-					WOH.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.WorkOrderHeaders WOH WHERE WOH.WorkOrderId = @CurrentWorkOrderId;
+					EXEC [dbo].[UpdateWorkOrderColumnsWithId] @InsertedWorkOrderId;
+
+					DECLARE @WOS_DESCRIPTION VARCHAR(100) = NULL;
+					DECLARE @WorkScopeId BIGINT = NULL, @WorkScopeName VARCHAR(50) = NULL;
+					DECLARE @Part_NUMBER VARCHAR(50) = NULL, @Part_Desc NVARCHAR(MAX) = NULL;
+					DECLARE @ItemMaster_Id BIGINT = NULL, @OverhaulHours INT = 0, @RpHours INT = 0, @TestHours INT = 0, @MfgHours INT = 0, @IsPma BIT,@IsDER BIT;
+					DECLARE @TurnTimeOverhaulHours INT = 0, @TurnTimeRepairHours INT = 0, @turnTimeBenchTest INT = 0;
+					DECLARE @NTE INT = 0, @CMMId BIGINT = NULL, @WorkflowId BIGINT = NULL, @StationId BIGINT = NULL;
+					DECLARE @TATDaysStandard INT = 0;
+					DECLARE @STM_AUTO_KEY BIGINT = NULL, @PCC_AUTO_KEY BIGINT = NULL;
+					DECLARE @STOCK_LINE  VARCHAR(50) = '', @CTRL_ID VARCHAR(50) = '', @CTRL_NUMBER VARCHAR(50) = '';
+					DECLARE @StockLineId BIGINT = NULL;
+					DECLARE @ConditionCode VARCHAR(50), @ConditionId BIGINT = 0;
+					DECLARE @IsTraveler BIT;
+					DECLARE @WorkOrderStageId BIGINT = NULL;
+					DECLARE @WorkOrderStatusId BIGINT = NULL;
+					DECLARE @PriorityId BIGINT = NULL;
+					DECLARE @ManagementStructureId BIGINT = 0, @PartId BIGINT = NULL, @WOPartModuleId INT = NULL;
+
+					SELECT @WOS_DESCRIPTION = [DESCRIPTION] FROM [Quantum].QCTL_NEW_3.WO_STATUS WS WITH(NOLOCK) WHERE [WOS_AUTO_KEY] = @WOS_AUTO_KEY;
+					SELECT @WorkScopeId = [WorkScopeId] FROM [dbo].[WorkScope] WS WITH(NOLOCK) WHERE WS.[WorkScopeCode] = @WOS_DESCRIPTION AND [MasterCompanyId] = @FromMasterComanyID;
+
+					IF (@WorkScopeId IS NULL OR @WorkScopeId = 0)
+					BEGIN
+						SELECT @WorkScopeId = [WorkScopeId] FROM [dbo].[WorkScope] WS WITH(NOLOCK) WHERE UPPER(WS.[WorkScopeCode]) = UPPER('REPAIR') AND [MasterCompanyId] = @FromMasterComanyID;
+					END
+				
+					SELECT @Part_NUMBER = IM.PartNumber, @Part_Desc = IM.PartDescription FROM [Quantum_Staging].dbo.ItemMasters IM WITH(NOLOCK) WHERE IM.ItemMasterId = @PNM_AUTO_KEY;
+
+					SELECT @ItemMaster_Id = IM.[ItemMasterId],@OverhaulHours = IM.[OverhaulHours],@RpHours = [RpHours],
+				       @TestHours = [TestHours],@MfgHours = [MfgHours],@IsPma = [IsPma],@IsDER = [IsDER],
+					   @TurnTimeOverhaulHours = [TurnTimeOverhaulHours],@TurnTimeRepairHours = [TurnTimeRepairHours],@turnTimeBenchTest = turnTimeBenchTest
+					FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc)
+					AND IM.MasterCompanyId = @FromMasterComanyID;
+
+					SELECT @WorkScopeName = [WorkScopeCode] FROM [dbo].[WorkScope] WS WITH(NOLOCK) WHERE [WorkScopeId] = @WorkScopeId AND [MasterCompanyId] = @FromMasterComanyID;
+
+					SELECT @NTE = CASE WHEN @WorkScopeName = 'OH' THEN @OverhaulHours 
+				                   WHEN @WorkScopeName = 'REP' THEN @RpHours 
+								   WHEN @WorkScopeName = 'BENCHCHECK' THEN @TestHours
+								   WHEN @WorkScopeName = 'MFG' THEN @MfgHours
+								   ELSE 0 END;
+
+					SELECT @TATDaysStandard = CASE WHEN @WorkScopeName = 'OH' THEN @OverhaulHours 
+									   WHEN @WorkScopeName = 'REP' THEN @RpHours 
+									   WHEN @WorkScopeName = 'BENCHCHECK' THEN @TestHours								  
+									   ELSE 0 END;
+
+					SELECT @STM_AUTO_KEY = [STM_AUTO_KEY] FROM [Quantum].QCTL_NEW_3.STOCK_RESERVATIONS WITH(NOLOCK) WHERE [WOO_AUTO_KEY] = @CurrentWorkOrderId;
+
+					IF (@STM_AUTO_KEY > 0)
+					BEGIN
+						SELECT @PCC_AUTO_KEY = [PCC_AUTO_KEY], @STOCK_LINE = (CAST(ISNULL(STOCK_LINE, '') AS VARCHAR)), @CTRL_ID = (CAST(ISNULL(CTRL_ID, '') AS VARCHAR)), @CTRL_NUMBER = (CAST(ISNULL(CTRL_NUMBER, '') AS VARCHAR))				
+						FROM [Quantum].QCTL_NEW_3.STOCK WHERE [STM_AUTO_KEY] = @STM_AUTO_KEY;
+
+						SELECT @StockLineId = [StockLineId] FROM [dbo].[Stockline] 
+						WHERE UPPER([StockLineNumber])  = UPPER(@STOCK_LINE) AND UPPER([IdNumber])  = UPPER(@CTRL_ID) 
+						AND UPPER([ControlNumber])  = UPPER(@CTRL_NUMBER) 
+						AND [ItemMasterId] = @ItemMaster_Id;
+
+						SELECT @TearDownTypes = [TearDownTypes], 
+							   @IsTraveler = [IsTraveler], 
+							   @WorkOrderStageId = [DefaultStageCodeId],  
+							   @WorkOrderStatusId = [DefaultStatusId], 
+							   @PriorityId = [DefaultPriorityId]
+						FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID;
+
+						IF (@StockLineId > 0)
+						BEGIN
+							SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
+							
+							SELECT @ConditionId = [ConditionId] FROM [dbo].[Condition] Cond WITH(NOLOCK) WHERE (UPPER(Cond.Code) = UPPER(@ConditionCode)) AND [MasterCompanyId] = @FromMasterComanyID;
+
+							IF (@ConditionId IS NULL OR @ConditionId = 0)
+							BEGIN
+								SELECT @ConditionId = [DefaultConditionId] FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID;
+							END
+
+							SELECT @CMMId = PIM.[PublicationRecordId] 
+							FROM [dbo].[Publication] P WITH(NOLOCK)
+							INNER JOIN [dbo].[PublicationItemMasterMapping] PIM WITH(NOLOCK) ON P.[PublicationRecordId] = PIM.[PublicationRecordId]
+							WHERE P.[MasterCompanyId] = @FromMasterComanyID 
+							AND P.[ExpirationDate] <= GETDATE() AND P.IsDeleted = 0 AND P.IsActive = 1 
+							AND PIM.[ItemMasterId] = @ItemMaster_Id;
+
+							SELECT @WorkflowId =[WorkflowId] FROM [dbo].[Workflow] P WITH(NOLOCK)
+							WHERE P.[MasterCompanyId] = @FromMasterComanyID 
+							AND (P.[CustomerId] IS NULL OR P.CustomerId = @CustomerId) 
+							AND P.[ItemMasterId] = @ItemMaster_Id AND P.WorkScopeId = @WorkScopeId AND P.[IsDeleted] = 0 AND P.[IsActive] = 1 
+							AND (P.[IsVersionIncrease] = 0 OR P.[IsVersionIncrease] IS NULL);
+
+							SELECT @StationId = [StationId] 
+							FROM [dbo].[Employee] E WITH(NOLOCK) 
+							INNER JOIN dbo.[EmployeeStation] ES WITH(NOLOCK) ON E.[StationId] = ES.[EmployeeStationId]
+							WHERE E.[MasterCompanyId] = @FromMasterComanyID AND [EmployeeId] = @DefaultUserId;
+
+							SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
+
+							INSERT INTO [dbo].[WorkOrderPartNumber]([WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate]
+							   ,[EstimatedCompletionDate],[NTE],[Quantity],[StockLineId],[CMMId],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId]
+							   ,[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],[UpdatedBy]
+							   ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent]
+							   ,[RevisedPartId],[ManagementStructureId],[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate]
+							   ,[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1]
+							   ,[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid]
+							   ,[RevisedPartNumber],[RevisedPartDescription],[IsTraveler])
+							SELECT @InsertedWorkOrderId, @WorkScopeId, DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), CAST(WO.EntryDate AS DATETIME2), DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)),
+								DATEADD(DAY, 90, CAST(WO.EntryDate AS DATETIME2)), @NTE, (CAST(ISNULL(WO.KitQty, 0) AS INT)), @StockLineId, @CMMId, @WorkflowId, @WorkOrderStageId, @WorkOrderStatusId,
+								@PriorityId, @IsPma, @IsDER, @StationId, @TATDaysStandard, @FromMasterComanyID, @UserName, @UserName,
+								CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1, 0, @ItemMaster_Id, NULL, @ConditionId, 0,
+								NULL, @ManagementStructureId, 0, NULL, @WorkScopeName, 0, CAST(WO.EntryDate AS DATETIME2),
+								0, WO.TailNumber, NULL, NULL, 0, @ConditionId, WO.CompanyRefNumber, NULL,
+								NULL, NULL, NULL, CAST(WO.EntryDate AS DATETIME2), NULL, NULL, NULL,
+								NULL, NULL, 1
+							FROM #TempWOHeader AS WO WHERE ID = @LoopID;
+
+							SELECT @PartId = IDENT_CURRENT('WorkOrderPartNumber');
+
+							SELECT @WOPartModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
+				 						 				 
+							EXEC [dbo].[USP_SaveWOMSDetails] @WOPartModuleId, @PartId, @ManagementStructureId, @FromMasterComanyID, @UserName, 0;
+
+							--------------------------------------------------WORK ORDER WORK FLOW-----------------------------------
+							DECLARE @WorkFlowWorkOrderId BIGINT
+
+							INSERT INTO [dbo].[WorkOrderWorkFlow] ([WorkOrderId],[WorkflowDescription],[Version],[WorkScopeId],[ItemMasterId]
+                                   ,[CustomerId],[CurrencyId],[WorkflowExpirationDate],[IsCalculatedBERThreshold],[IsFixedAmount]
+								   ,[FixedAmount],[IsPercentageOfNew],[CostOfNew],[PercentageOfNew],[IsPercentageOfReplacement]
+								   ,[CostOfReplacement],[PercentageOfReplacement],[Memo],[BERThresholdAmount],[WorkOrderNumber]
+								   ,[OtherCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive]
+								   ,[IsDeleted],[WorkflowCreateDate],[WorkflowId],[WorkFlowWorkOrderNo],[ChangedPartNumberId]
+								   ,[MaterilaCost],[ExpertiseCost],[ChargesCost],[Total],[PerOfBerThreshold],[WorkOrderPartNoId])
+							 SELECT @CurrentWorkOrderId, NULL, NULL, NULL, @ItemMaster_Id
+							        , NULL, NULL, NULL, NULL, NULL
+									, NULL, NULL, NULL, NULL, NULL
+									, NULL, NULL, NULL, NULL, NULL
+									, NULL, @FromMasterComanyID, @UserName, @UserName, CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1
+									, 0, CAST(WO.EntryDate AS DATETIME2), 0, NULL, NULL
+									, NULL, NULL, NULL, NULL, NULL, @PartId
+							   FROM #TempWOHeader AS WO WHERE [ID] = @LoopID; 
+
+							SELECT @WorkFlowWorkOrderId = IDENT_CURRENT('WorkOrderWorkFlow');
+
+							---------------------------------------------------------Work Order Settlement--------------------------------------------------------------------------
+							
+							INSERT INTO [dbo].[WorkOrderSettlementDetails]([WorkOrderId],[WorkFlowWorkOrderId],[workOrderPartNoId],[WorkOrderSettlementId]
+								   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsMastervalue]
+								   ,[Isvalue_NA],[Memo],[ConditionId],[UserId],[UserName],[sattlement_DateTime],[conditionName],[RevisedPartId])
+     						SELECT @CurrentWorkOrderId, @WorkFlowWorkOrderId, @PartId, [WorkOrderSettlementId],
+							        @FromMasterComanyID, @UserName, @UserName, @ENTRY_DATE, @ENTRY_DATE, 1, 0, 0,
+									0, '', NULL, NULL, NULL, NULL, NULL, NULL	
+							FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [IsDeleted] = 0;
+
+							---------------------------------------------------------Common WorkOrder Teardown-----------------------------------------------------------------------------------------------
+							
+							INSERT INTO [dbo].[CommonWorkOrderTearDown]([CommonTeardownTypeId],[WorkOrderId],[WorkFlowWorkOrderId],[WOPartNoId],[Memo]
+								   ,[ReasonId],[TechnicianId],[TechnicianDate],[InspectorId],[InspectorDate],[IsDocument],[ReasonName],[InspectorName]
+								   ,[TechnicalName],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[MasterCompanyId]
+								   ,[IsSubWorkOrder],[SubWorkOrderId],[SubWOPartNoId])
+							SELECT  Item, @CurrentWorkOrderId, @WorkFlowWorkOrderId, @PartId, '',
+									NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL,
+									NULL, @UserName, @UserName, @ENTRY_DATE, @ENTRY_DATE, 1, 0, @FromMasterComanyID,
+									0, 0, 0 
+							FROM [dbo].SplitString(@TearDownTypes,',');
+
+							----------------------------------------------------------------LABOR----------------------------------------------------------------------------------------
+					
+							EXEC [dbo].[USP_CreateTravelerLabourTask] @CurrentWorkOrderId, @PartId, @WorkFlowWorkOrderId, @FromMasterComanyID, @UserName;
+
+							EXEC [dbo].[UpdateWorkOrderColumnsWithId] @CurrentWorkOrderId;
+
+							UPDATE WOH
+							SET WOH.Migrated_Id = @InsertedWorkOrderId,
+							WOH.SuccessMsg = 'Record migrated successfully'
+							FROM [Quantum_Staging].DBO.WorkOrderHeaders WOH WHERE WOH.WorkOrderId = @CurrentWorkOrderId;
+						END
+					END
+					ELSE
+					BEGIN
+						UPDATE WOH
+						SET WOH.ErrorMsg = WOH.ErrorMsg + '<p>MPN Stockline Not Found</p>'
+						FROM [Quantum_Staging].DBO.WorkOrderHeaders WOH WHERE WOH.WorkOrderId = @CurrentWorkOrderId;
+					END
 
 					SET @MigratedRecords = @MigratedRecords + 1;
 				END

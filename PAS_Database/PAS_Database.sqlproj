@@ -2713,5 +2713,6 @@
     <Build Include="dbo\Stored Procedures\CheckWorkOrderPartShippedOrNot.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderPrintPdfData.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetSubWorkOrderPrintPdfData.sql" />
+    <Build Include="dbo\Stored Procedures\MigrateWOMaterialRecords.sql" />
   </ItemGroup>
 </Project>

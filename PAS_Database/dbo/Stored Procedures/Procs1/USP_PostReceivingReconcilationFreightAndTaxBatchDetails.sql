@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_PostReceivingReconcilationFreightAndTaxBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -291,15 +290,14 @@ BEGIN
 					ELSE
 					BEGIN						
 						SET @StlQtyAvail = @StocklineQtyAvail;	
-					END							
+					END	
 					
 					SET @FreightInvCost += (ISNULL(@StlQtyAvail, 0) * ISNULL(@FreightAdjustmentPerUnit, 0))
 					--SET @FreightInvCogs += ((ISNULL(@ReceivedQty, 0) - ISNULL(@StlQtyAvail, 0) ) * ISNULL(@FreightAdjustmentPerUnit, 0))
 					SET @FreightInvCogs += @FreightAdjustment - (ISNULL(@StlQtyAvail, 0) * ISNULL(@FreightAdjustmentPerUnit, 0))
-					
+										
 					SET @TaxInvCost += (ISNULL(@StlQtyAvail, 0) * ISNULL(@TaxAdjustmentPerUnit, 0))
 					SET @TaxInvCogs += @TaxAdjustment - (ISNULL(@StlQtyAvail, 0) * ISNULL(@TaxAdjustmentPerUnit, 0))
-
 					
 					IF(@StkMatchGlAccountId = @StkGlAccountId)
 					BEGIN
@@ -310,8 +308,8 @@ BEGIN
 				END
 
 				SET @MinId = @MinId + 1;
-			END			
-						
+			END	
+			
 			IF(UPPER(@ModuleName) = UPPER('ReconciliationPO') AND (@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0))
 			BEGIN
 				SELECT @LastMSLevel = [LastMSLevel], 
@@ -388,7 +386,30 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION PO STOCK INVENTORY  -----							
+					-----  RECONCILIATION PO STOCK INVENTORY  -----			
+					
+					IF(@FreightInvCogs <= 0)
+					BEGIN
+						IF(@TotalFreight <> @FreightInvCost)
+						BEGIN
+							IF(ROUND(@TotalFreight,0) = ROUND(@FreightInvCost,0))
+							BEGIN			
+								SET @FreightInvCost = @TotalFreight
+								SET @FreightInvCogs = 0;								
+							END
+						END						
+					END
+					IF(@FreightInvCogs > 0)
+					BEGIN
+						IF(@TotalFreight <> @FreightInvCost)
+						BEGIN
+							IF(ROUND(@TotalFreight,0) = ROUND(@FreightInvCost,0))
+							BEGIN			
+								SET @FreightInvCost = @TotalFreight
+								SET @FreightInvCogs = 0;
+							END
+						END						
+					END
 					
 					IF(@FreightInvCost > 0)
 					BEGIN						
@@ -598,7 +619,30 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION PO STOCK - INVENTORY  -----		
+					-----  RECONCILIATION PO STOCK - INVENTORY  -----	
+					
+					IF(@TaxInvCogs <= 0)
+					BEGIN
+						IF(@TotalTax <> @TaxInvCost)
+						BEGIN
+							IF(ROUND(@TotalTax,0) = ROUND(@TaxInvCost,0))
+							BEGIN			
+								SET @TaxInvCost = @TotalTax
+								SET @TaxInvCogs = 0;								
+							END
+						END						
+					END
+					IF(@TaxInvCogs > 0)
+					BEGIN
+						IF(@TotalTax <> @TaxInvCost)
+						BEGIN
+							IF(ROUND(@TotalTax,0) = ROUND(@TaxInvCost,0))
+							BEGIN			
+								SET @TaxInvCost = @TotalTax
+								SET @TaxInvCogs = 0;
+							END
+						END						
+					END
 					
 					IF(@TaxInvCost > 0)
 					BEGIN
@@ -963,7 +1007,30 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 							
-					-----  RECONCILIATION RO STOCK - INVENTORY  -----							
+					-----  RECONCILIATION RO STOCK - INVENTORY  -----		
+					
+					IF(@FreightInvCogs <= 0)
+					BEGIN
+						IF(@TotalFreight <> @FreightInvCost)
+						BEGIN
+							IF(ROUND(@TotalFreight,0) = ROUND(@FreightInvCost,0))
+							BEGIN			
+								SET @FreightInvCost = @TotalFreight
+								SET @FreightInvCogs = 0;								
+							END
+						END						
+					END
+					IF(@FreightInvCogs > 0)
+					BEGIN
+						IF(@TotalFreight <> @FreightInvCost)
+						BEGIN
+							IF(ROUND(@TotalFreight,0) = ROUND(@FreightInvCost,0))
+							BEGIN			
+								SET @FreightInvCost = @TotalFreight
+								SET @FreightInvCogs = 0;
+							END
+						END						
+					END
 					
 					IF(@FreightInvCost > 0)
 					BEGIN
@@ -1173,7 +1240,30 @@ BEGIN
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
 
-					-----  RECONCILIATION RO STOCK - INVENTORY  -----		
+					-----  RECONCILIATION RO STOCK - INVENTORY  -----	
+					
+					IF(@TaxInvCogs <= 0)
+					BEGIN
+						IF(@TotalTax <> @TaxInvCost)
+						BEGIN
+							IF(ROUND(@TotalTax,0) = ROUND(@TaxInvCost,0))
+							BEGIN			
+								SET @TaxInvCost = @TotalTax
+								SET @TaxInvCogs = 0;								
+							END
+						END						
+					END
+					IF(@TaxInvCogs > 0)
+					BEGIN
+						IF(@TotalTax <> @TaxInvCost)
+						BEGIN
+							IF(ROUND(@TotalTax,0) = ROUND(@TaxInvCost,0))
+							BEGIN			
+								SET @TaxInvCost = @TotalTax
+								SET @TaxInvCogs = 0;
+							END
+						END						
+					END
 
 					IF(@TaxInvCost > 0)
 					BEGIN

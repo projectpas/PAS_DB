@@ -1,4 +1,23 @@
-﻿CREATE PROCEDURE [dbo].[GetRepairOrderHistory]
+﻿/*************************************************************           
+ ** File:   [GetRepairOrderHistory]           
+ ** Author:   Vishal Suthar
+ ** Description: This stored procedure is used to get repair order history   
+ ** Purpose:         
+ ** Date:    01/04/2024
+          
+ ** PARAMETERS:    
+
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
+     
+**************************************************************/
+CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -42,31 +61,33 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
+			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.RepairOrderId, ST.RepairOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1) AS Stk;
+
 			IF(@ViewType = 'roview')
 			BEGIN
-			;WITH Result AS(									
-		   		select PO.RepairOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.RepairOrderNumber,PO.OpenDate as 'PODate',
-				--POP.EstRecordDate as 'ReceivedDate',
-				F.ReceiveDate as 'ReceivedDate',
-				PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',VRFQPO.VendorRFQRepairOrderNumber AS 'QuoteNumber',
-				VRFQPO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
-				DATEDIFF(day, PO.OpenDate, F.ReceiveDate) AS TAT,POP.RepairOrderPartRecordId as RepairOrderPartId,ISNULL(POP.WorkPerformedId,0) as WorkPerformedId from RepairOrderPart POP WITH (NOLOCK)
-				INNER JOIN RepairOrder PO WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId
-				INNER JOIN ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-				INNER JOIN Vendor VN WITH (NOLOCK) ON VN.VendorId = PO.VendorId
-				LEFT JOIN VendorRFQRepairOrder VRFQPO WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = VRFQPO.VendorRFQRepairOrderId
-				INNER JOIN Condition CN WITH (NOLOCK) ON CN.ConditionId = POP.ConditionId
-				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.RepairOrderId
-			    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
-			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				OUTER APPLY
-			    (
-					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from Stockline ST WHERE ST.ItemMasterId = POP.ItemMasterId AND ST.RepairOrderId = POP.RepairOrderId AND ST.RepairOrderPartRecordId = POP.RepairOrderPartRecordId
-					ORDER BY ST.ReceivedDate ASC
-		        ) F
-				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
-				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId
-				  AND PO.MasterCompanyId = @MasterCompanyId
+				;WITH Result AS(									
+		   			select PO.RepairOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.RepairOrderNumber,PO.OpenDate as 'PODate',
+					--POP.EstRecordDate as 'ReceivedDate',
+					F.ReceiveDate as 'ReceivedDate',
+					PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',VRFQPO.VendorRFQRepairOrderNumber AS 'QuoteNumber',
+					VRFQPO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
+					DATEDIFF(day, PO.OpenDate, F.ReceiveDate) AS TAT,POP.RepairOrderPartRecordId as RepairOrderPartId,ISNULL(POP.WorkPerformedId,0) as WorkPerformedId from RepairOrderPart POP WITH (NOLOCK)
+					INNER JOIN RepairOrder PO WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId
+					INNER JOIN ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
+					INNER JOIN Vendor VN WITH (NOLOCK) ON VN.VendorId = PO.VendorId
+					LEFT JOIN VendorRFQRepairOrder VRFQPO WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = VRFQPO.VendorRFQRepairOrderId
+					INNER JOIN Condition CN WITH (NOLOCK) ON CN.ConditionId = POP.ConditionId
+					INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.RepairOrderId
+					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					OUTER APPLY
+					(
+						SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = POP.ItemMasterId AND ST.RepairOrderId = POP.RepairOrderId AND ST.RepairOrderPartRecordId = POP.RepairOrderPartRecordId
+						ORDER BY ST.ReceivedDate ASC
+					) F
+					--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
+					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId
+					AND PO.MasterCompanyId = @MasterCompanyId
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -125,7 +146,7 @@ BEGIN
 			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				OUTER APPLY
 			    (
-					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from Stockline ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.RepairOrderId = VRFQPO.RepairOrderId AND ST.RepairOrderPartRecordId = VRFQPO.RepairOrderPartRecordId
+					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.RepairOrderId = VRFQPO.RepairOrderId AND ST.RepairOrderPartRecordId = VRFQPO.RepairOrderPartRecordId
 					ORDER BY ST.ReceivedDate ASC
 		        ) F
 				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId

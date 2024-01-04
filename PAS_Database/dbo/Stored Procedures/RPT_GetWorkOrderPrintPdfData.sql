@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -75,22 +74,33 @@ BEGIN
 		UPPER(el.EmployeeCode)  as TechNum,              
 		UPPER(ws.Stage) as WOStage,              
 		UPPER(wo.WorkOrderNum) as WorkOrderNum,              
-		billsitename = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  shippingInfo.SoldToSiteName else billToSite.SiteName END,              
-		billAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToAddress1 else billToAddress.Line1 END,              
-		billAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToAddress2 else billToAddress.Line2 END,              
-		billCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToCity else billToAddress.City END,              
-		  billState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToState else billToAddress.StateOrProvince END,              
-		billPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToZip else billToAddress.PostalCode END,              
-		billCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToCountryName else billToCountry.countries_name END,              
-		billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN billToSiteatt.Attention else billToSite.Attention END,              
-		shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToSiteName else shipToSite.SiteName END,              
-		shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shipToSiteatt.Attention else shipToSite.Attention END,              
-		shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToAddress1 else shipToAddress.Line1 END,              
-		shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToAddress2 else shipToAddress.Line2 END,              
-		  shipCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToCity else shipToAddress.City END,              
-		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToState else shipToAddress.StateOrProvince END,              
-		shipPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToZip else shipToAddress.PostalCode END,              
-		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToCountryName else shipToCountry.countries_name END,              
+		billsitename = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.SoldToSiteName) else UPPER(billToSite.SiteName) END,              
+		billAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress1) else UPPER(billToAddress.Line1) END,              
+		billAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress2) else UPPER(billToAddress.Line2) END,              
+		billCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) else UPPER(billToAddress.City) END,              
+		billState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,              
+		billPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
+		
+		billComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) + ', ' else UPPER(billToAddress.City) + ', ' END
+					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END
+					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
+					  
+		billCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,              
+		billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END,              
+		shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
+		shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
+		shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
+		shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END, 
+		
+		shipCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(shipToAddress.City) END,              
+		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(shipToAddress.StateOrProvince) END,              
+		shipPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,              
+
+		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) + ', ' END
+					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(shipToAddress.StateOrProvince) END
+					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(shipToAddress.PostalCode) END,
+
+		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,              
 		wop.ManagementStructureId,              
 		wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,              
 		UPPER(rc.Reference) as Reference,              

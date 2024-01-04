@@ -14,11 +14,12 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    08/10/2022  Subhash Saliya     Created  
-	2	 18/10/2023	  Nainshi Joshi		Add [PostedBy] field
+	2	 18/10/2023	 Nainshi Joshi		Add [PostedBy] field
+	3	 04/01/2024	 Moin Bloch		    Added [AccountingPeriodId] field
        
 -- EXEC GetJournalBatchHeaderById 3  
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[GetJournalBatchHeaderById]  
+CREATE     PROCEDURE [dbo].[GetJournalBatchHeaderById]  
 @JournalBatchHeaderId bigint  
 AS  
 BEGIN  
@@ -26,7 +27,7 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
   
-  SELECT [JournalBatchHeaderId]  
+		SELECT [JournalBatchHeaderId]  
               ,[BatchName]  
               ,[CurrentNumber]  
               ,[EntryDate]  
@@ -48,8 +49,9 @@ BEGIN
               ,[IsDeleted]  
 			  ,[Module] 
 			  ,[PostedBy]
-      FROM [dbo].[BatchHeader] where JournalBatchHeaderId =@JournalBatchHeaderId  
-  
+			  ,[AccountingPeriodId]
+          FROM [dbo].[BatchHeader] WITH(NOLOCK) 
+		 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;    
   
     END TRY      
  BEGIN CATCH        

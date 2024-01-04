@@ -2714,5 +2714,6 @@
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderPrintPdfData.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetSubWorkOrderPrintPdfData.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWOMaterialRecords.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateBatchDetailsById.sql" />
   </ItemGroup>
 </Project>

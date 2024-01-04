@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetPurchaseOrderPartRecordIds]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to get PurchaseOrderPartRecordId from StockLineDraft NonStockInventoryDraft  AssetInventoryDraft Tables
@@ -15,8 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    02/02/2022  Moin Bloch     Created
     2    10/10/2023  Vishal Suthar  Modified to handle New Receiving PO changes
+	3	 02-01-2024  Shrey Chandegara  modified for receiving po view
      
--- EXEC [GetPurchaseOrderPartRecordIds] 171,2
+-- EXEC [GetPurchaseOrderPartRecordIds] 2382,3
 ************************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderPartRecordIds]
@@ -42,10 +44,10 @@ BEGIN
 	END
 	ELSE IF (@Opr = 3)
 	BEGIN
-		SELECT PurchaseOrderPartRecordId FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND StockLineId IS NOT NULL --> 0
+		SELECT PurchaseOrderPartRecordId FROM [dbo].[StockLineDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND ((IsParent = 1 AND isSerialized = 1) OR (IsParent = 0 AND isSerialized = 0)) AND StockLineId IS NOT NULL --> 0
 		UNION
-		SELECT PurchaseOrderPartRecordId FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND NonStockInventoryId > 0
+		SELECT PurchaseOrderPartRecordId FROM [dbo].[NonStockInventoryDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND ((IsParent = 1 AND isSerialized = 1) OR (IsParent = 0 AND isSerialized = 0))  AND NonStockInventoryId > 0
 		UNION
-		SELECT PurchaseOrderPartRecordId FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND IsParent = 1 AND AssetInventoryId > 0
+		SELECT PurchaseOrderPartRecordId FROM [dbo].[AssetInventoryDraft] WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND isDeleted = 0 AND ((IsParent = 1 AND isSerialized = 1) OR (IsParent = 0 AND isSerialized = 0))  AND AssetInventoryId > 0
 	END
 END

@@ -831,8 +831,9 @@ BEGIN
 					END
 
 					DECLARE @OrderModule AS BIGINT = 22;
-
-					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, 11, @qtyonhand, @UpdatedBy;
+					DECLARE @ActionId as BIGINT = 0;
+					SELECT @ActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-To-CustStock'
+					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, @ActionId, @qtyonhand, @UpdatedBy;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 

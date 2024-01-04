@@ -47,6 +47,9 @@ BEGIN
 		DECLARE @SubReferenceNumber VARCHAR(100) = '';
 		DECLARE @ActionType VARCHAR(100) = '';
 
+		DECLARE @CustStockActionId as BIGINT = 0;
+		SELECT @CustStockActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-From-CustStock'
+
 		SELECT @ModuleName = M.ModuleName FROM DBO.Module M WITH (NOLOCK) WHERE M.ModuleId = @ModuleId;
 		SELECT @SubModuleName = M.ModuleName FROM DBO.Module M WITH (NOLOCK) WHERE M.ModuleId = @ModuleId;
 
@@ -69,6 +72,11 @@ BEGIN
 		SELECT @StockLineId, @ModuleId, @ReferenceId, @ReferenceNumber, @SubModuleId, @SubRefferenceId, @SubReferenceNumber, @ActionId, @ActionType, 
 			STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, @Qty, @HistoryNote, @UpdatedBy, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate
 		FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+
+		IF(@CustStockActionId=@ActionId)
+		BEGIN
+			UPDATE DBO.[Stockline] SET [Memo] = @HistoryNote WHERE StockLineId = @StocklineId
+		END
 
 		EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
 	END

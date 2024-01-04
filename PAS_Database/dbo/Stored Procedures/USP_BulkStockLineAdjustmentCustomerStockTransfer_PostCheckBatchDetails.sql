@@ -20,7 +20,7 @@
      
 **************************************************************/
 
-CREATE     PROCEDURE [dbo].[USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails]
 (
 	@BulkStkLineAdjHeaderId BIGINT,
 	@MasterCompanyId INT,
@@ -284,13 +284,16 @@ BEGIN
 					DECLARE @OrderModule AS BIGINT = 22; /**** Stockline ****/
 					DECLARE @remainingQty AS INT;
 					SET @remainingQty = @QuantityOnHand - @newqty;
+					DECLARE @ActionId as BIGINT = 0;
+					SELECT @ActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-From-CustStock'
+					 
 					IF(@remainingQty > 0)
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, @ActionId, @newqty, @UpdateBy;
 					END
 					ELSE
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, @ActionId, @newqty, @UpdateBy;
 					END
 
 				--Update Stockline table 

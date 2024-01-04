@@ -14,14 +14,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/16/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    09/16/2021   Hemant Saliya		Created
+    1    01/01/2024   Devendra Shekh	update for SerialNumber
      
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
-Create   Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
+CREATE   Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
 	@referenceId bigint,
 	@wfwoId bigint
 AS
@@ -39,7 +40,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 				CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 				wop.Quantity as Qty,
-				sl.SerialNumber, 
+				CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber', 
 				sl.QuantityAvailable, 
 				wo.WorkOrderNum as OrderNumber, 
 				''  as OrderQuoteNumber
@@ -62,7 +63,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			WHERE wowf.WorkOrderId = @referenceId AND wop.IsFinishGood = 1 --wowf.WorkFlowWorkOrderId = @wfwoId and wop.isLocked=1 AND 
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
 			GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
-				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription;
+				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.RevisedSerialNumber;
 				
 		END
 	COMMIT  TRANSACTION

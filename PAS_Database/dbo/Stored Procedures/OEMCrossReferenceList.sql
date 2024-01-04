@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
 ** File:   [OEMCrossReferenceList]              
 ** Author:   Seema Mansuri 
 ** Description: This procedre is used to display OEMCrossReferenceList
@@ -11,7 +12,7 @@
 ** --   --------     -------			--------------------------------              
  1   19/12/2023		Seema Mansuri		Created  
  2   25/12/2023		AMIT GHEDIYA		Updated (Get AlterItemMasterId,EquiItemMasterId for viewInventory display).
- 
+ 3   01/01/2024     EKTA CHANDEGRA      Add manufacturer , Alt PN Manufacturer and Equiv PN Manufacturer fields
 **************************************************************/  
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
@@ -32,7 +33,10 @@ CREATE    PROCEDURE [dbo].[OEMCrossReferenceList]
 @TlaPart varchar(50) = NULL,
 @AlternatePart varchar(50) = NULL,
 @EquivalentPart varchar(50) = NULL,
-@Oemtype int = NULL
+@Oemtype int = NULL,
+@Manufacturer varchar(50) = NULL,
+@AltPNManufacturer varchar(50) = NULL,
+@EquivPNManufacturer varchar(50) = NULL
 
 AS
 BEGIN	
@@ -64,11 +68,14 @@ BEGIN
 		AS 
 		(
 		  SELECT itm.partnumber,itm.PartDescription,itm.ItemMasterId,
+				itm.ManufacturerName as Manufacturer,
 				alternate.partnumber as AlternatePart,
 				alternate.ItemMasterId As AlterItemMasterId,
+				alternate.ManufacturerName as AltPNManufacturer,
 				nha.partnumber as NhaPart,		
 				equivalent.partnumber as EquivalentPart,
 				equivalent.ItemMasterId As EquiItemMasterId,
+				equivalent.ManufacturerName as EquivPNManufacturer,
 				tla.partnumber as TlaPart,	
 				mapping.MappingType as MappingType
 		FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
@@ -81,6 +88,7 @@ BEGIN
 
 		AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 		)	
+	
 		SELECT   * INTO #TempResult FROM ORMLIST_CTE			
 			 WHERE (	
 			 (
@@ -95,7 +103,10 @@ BEGIN
 				
 					(EquivalentPart LIKE '%' +@GlobalFilter+'%') OR
 				
-					(TlaPart LIKE '%' +@GlobalFilter+'%') 
+					(TlaPart LIKE '%' +@GlobalFilter+'%') OR
+					(Manufacturer LIKE '%' +@GlobalFilter+'%') OR
+					(AltPNManufacturer LIKE '%' +@GlobalFilter+'%') OR
+					(EquivPNManufacturer LIKE '%' +@GlobalFilter+'%') 
 					)
 					)
 					OR   
@@ -109,7 +120,10 @@ BEGIN
 					
 					(ISNULL(@EquivalentPart,'') ='' OR EquivalentPart LIKE '%' + @EquivalentPart + '%') AND
 				
-					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') 				
+					(ISNULL(@AlternatePart,'') ='' OR AlternatePart LIKE '%' + @AlternatePart + '%') AND 				
+					(ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer+ '%') AND 				
+					(ISNULL(@AltPNManufacturer,'') ='' OR AltPNManufacturer LIKE '%' + @AltPNManufacturer + '%') AND 				
+					(ISNULL(@EquivPNManufacturer,'') ='' OR EquivPNManufacturer LIKE '%' + @EquivPNManufacturer + '%')  				
 					)			
 			)
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult
@@ -129,7 +143,16 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EquivalentPart')  THEN EquivalentPart END DESC,
 		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TlaPart')  THEN TlaPart END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='TlaPart')  THEN TlaPart END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TlaPart')  THEN TlaPart END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='AltPNManufacturer')  THEN AltPNManufacturer END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='AltPNManufacturer')  THEN AltPNManufacturer END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='EquivPNManufacturer')  THEN EquivPNManufacturer END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='EquivPNManufacturer')  THEN EquivPNManufacturer END DESC
 						
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

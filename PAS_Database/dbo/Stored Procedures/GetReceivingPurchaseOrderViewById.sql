@@ -13,7 +13,7 @@
  ** --   --------     -------           --------------------------------            
     1    26/12/2023   Shrey Chandegara     Created 
 
-	exec GetReceivingPurchaseOrderViewById 2348
+	exec GetReceivingPurchaseOrderViewById 4688
 **************************************************************/ 
 
 CREATE   PROCEDURE [DBO].[GetReceivingPurchaseOrderViewById]
@@ -40,6 +40,7 @@ BEGIN
 			POP.PurchaseOrderPartRecordId,
 			POP.ItemMasterId,
 			POP.PartNumber,
+			POP.PartDescription,
 			POP.ManufacturerId,
 			POP.PriorityId,
 			POP.UOMId,
@@ -87,7 +88,7 @@ BEGIN
 			POP.AltEquiPartDescription,
 			POP.ItemType,
 			POP.ItemTypeId,
-			POP.StockType,POP.ItemMasterId,POP.ManufacturerId,POP.PriorityId,POP.DiscountPercent,POP.GlAccountId,P.PurchaseOrderNumber,POP.PartNumber
+			POP.StockType,POP.ItemMasterId,POP.ManufacturerId,POP.PriorityId,POP.DiscountPercent,POP.GlAccountId,P.PurchaseOrderNumber,POP.PartNumber,POP.PartDescription
 
 		/* START SELECT FROM StocklineDrfat */
 		SELECT
@@ -233,7 +234,7 @@ BEGIN
 		SLD.Bin AS 'BinText',
 		'' AS 'ObtainFrom',
 		'' AS 'Owner',
-		'' AS 'TraceableTo',
+		'' AS 'TraceableToName',
 		SLD.Level1,
 		SLD.Level2,
 		SLD.Level3,
@@ -309,7 +310,7 @@ BEGIN
 		SLD.BinName AS 'BinText',
 		'' AS 'ObtainFrom',
 		'' AS 'Owner',
-		'' AS 'TraceableTo',
+		'' AS 'TraceableToName',
 		SLD.Level1,
 		SLD.Level2,
 		SLD.Level3,

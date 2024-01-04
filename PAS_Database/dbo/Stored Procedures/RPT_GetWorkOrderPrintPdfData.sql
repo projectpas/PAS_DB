@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -47,7 +48,7 @@ BEGIN
 		woq.QuoteNumber,              
 		woq.OpenDate as qouteDate,              
 		'1' as NoofItem,              
-		wo.CreatedBy as Preparedby,              
+		UPPER(wo.CreatedBy) as Preparedby,              
 		UPPER(wop.CustomerReference) as ronum,            
 		getdate() as DatePrinted,              
 		wo.CreatedDate as workreqDate,      
@@ -62,7 +63,7 @@ BEGIN
 		CASE WHEN LEN(UPPER(imt.PartDescription)) > 15 then LEFT(UPPER(imt.PartDescription), 15) + '...' else  UPPER(imt.PartDescription) end as PNDesc,              
 		UPPER(sl.SerialNumber) as SerialNum,              
 		CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
-		wop.ACTailNum as ACTailNum,              
+		UPPER(wop.ACTailNum) as ACTailNum,              
 		'' as TSN,              
 		'' as CSN,    
 		FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,

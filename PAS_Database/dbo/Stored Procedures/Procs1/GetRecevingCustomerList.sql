@@ -17,7 +17,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
-	3    04/28/2021   Hemant Saliya Added Content Managment for DB Logs
+	2    04/28/2021   Hemant Saliya Added Content Managment for DB Logs
+	3    01/01/2021   Hemant Saliya Added Delete And IsActive Condition
      
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
@@ -137,7 +138,7 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
 					LEFT JOIN dbo.WorkOrderStatus WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
-				WHERE (RC.MasterCompanyId = @MasterCompanyId 
+				WHERE (RC.MasterCompanyId = @MasterCompanyId AND RC.IsActive = 1 AND RC.IsDeleted = 0
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
 						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
 						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))

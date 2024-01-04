@@ -1,5 +1,5 @@
 ﻿/* 
-[dbo].[ModuleWiseDataForMigrationByType] 1, 10, 'CreatedDate', -1, 'Kit', 2, 12
+[dbo].[ModuleWiseDataForMigrationByType] 1, 10, 'CreatedDate', -1, 'Customer', 2, 12
 */
 CREATE   PROCEDURE [dbo].[ModuleWiseDataForMigrationByType]
 	@PageNumber INT = NULL,
@@ -55,12 +55,14 @@ BEGIN
 					1 IsActive,
 					0 IsDeleted,
 					Cs.CreatedDate,
-					'Internal' AS CustomerType,
+					CA.[Description] AS CustomerType,
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
+				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(CustomerId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultC1 FROM  Result
@@ -112,12 +114,14 @@ BEGIN
 					1 IsActive,
 					0 IsDeleted,
 					Cs.CreatedDate,
-					'Internal' AS CustomerType,
+					CA.[Description] AS CustomerType,
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
+				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NOT NULL AND Cs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(CustomerId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultC2 FROM  Result
@@ -168,12 +172,14 @@ BEGIN
 					1 IsActive,
 					0 IsDeleted,
 					Cs.CreatedDate,
-					'Internal' AS CustomerType,
+					CA.[Description] AS CustomerType,
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
+				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NULL AND (Cs.ErrorMsg IS NOT NULL AND Cs.ErrorMsg NOT like '%Customer already exists%') AND Cs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(CustomerId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultC3 FROM  Result
@@ -224,12 +230,14 @@ BEGIN
 					1 IsActive,
 					0 IsDeleted,
 					Cs.CreatedDate,
-					'Internal' AS CustomerType,
+					CA.[Description] AS CustomerType,
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
+				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NULL AND (Cs.ErrorMsg IS NOT NULL AND Cs.ErrorMsg like '%Customer already exists%') AND Cs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(CustomerId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultC4 FROM  Result
@@ -274,7 +282,7 @@ BEGIN
 					Vs.VendorId,
                     Vs.Company_Name VendorName,
                     Vs.Company_Code VendorCode,                   
-					'Internal' [Description],  
+					VT.[Description] [Description],  
                     Vs.Email_Address VendorEmail,               
 					(ISNULL(Vs.City,'')) 'City',
                     (ISNULL(Vs.State, '')) 'StateOrProvince',
@@ -287,6 +295,8 @@ BEGIN
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
+				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(VendorId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultV1 FROM  Result
@@ -323,7 +333,7 @@ BEGIN
 					2 ModuleId,
                     Vs.Company_Name VendorName,
                     Vs.Company_Code VendorCode,                   
-					'Internal' [Description],  
+					VT.[Description] [Description],  
                     Vs.Email_Address VendorEmail,               
 					(ISNULL(Vs.City,'')) 'City',
                     (ISNULL(Vs.State, '')) 'StateOrProvince',
@@ -336,6 +346,8 @@ BEGIN
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
+				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NOT NULL AND Vs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(VendorId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultV2 FROM  Result
@@ -371,7 +383,7 @@ BEGIN
 					Vs.Migrated_Id,
                     Vs.Company_Name VendorName,
                     Vs.Company_Code VendorCode,                   
-					'Internal' [Description],  
+					VT.[Description] [Description],  
                     Vs.Email_Address VendorEmail,               
 					(ISNULL(Vs.City,'')) 'City',
                     (ISNULL(Vs.State, '')) 'StateOrProvince',
@@ -384,6 +396,8 @@ BEGIN
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
+				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg NOT like '%Vendor already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(VendorId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultV3 FROM  Result
@@ -419,7 +433,7 @@ BEGIN
 					Vs.Migrated_Id,
                     Vs.Company_Name VendorName,
                     Vs.Company_Code VendorCode,                   
-					'Internal' [Description],  
+					VT.[Description] [Description],  
                     Vs.Email_Address VendorEmail,               
 					(ISNULL(Vs.City,'')) 'City',
                     (ISNULL(Vs.State, '')) 'StateOrProvince',
@@ -432,6 +446,8 @@ BEGIN
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
 				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
+				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg like '%Vendor already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(VendorId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultV4 FROM  Result
@@ -492,10 +508,10 @@ BEGIN
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
-				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
@@ -561,10 +577,10 @@ BEGIN
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
-				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NOT NULL AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult1 FROM  Result
@@ -629,10 +645,10 @@ BEGIN
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
-				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg NOT like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult2 FROM  Result
@@ -697,10 +713,10 @@ BEGIN
 					SuccessMsg,
 					ErrorMsg
 				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
-				LEFT JOIN dbo.Manufacturer mf ON IMs.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
+				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult3 FROM  Result

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWOPackagingLabelPrint]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WO packaging Label Print Details    
@@ -14,14 +13,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    05/23/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    05/23/2020   Hemant Saliya		Created
+	2    01/01/2024   Devendra Shekh	updated for serialnumber
      
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
 
-Create   PROCEDURE [dbo].[GetWOPackagingLabelPrint]
+CREATE     PROCEDURE [dbo].[GetWOPackagingLabelPrint]
 	@WorkOrderId bigint,
 	@PackagingSlipId bigint
 AS
@@ -41,7 +41,7 @@ BEGIN
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 			            CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',  
 						sl.StockLineNumber, 
-						sl.SerialNumber, 
+						CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber', 
 						sl.ControlNumber, 
 						sl.IdNumber, 
 						sl.Condition as ConditionDescription,

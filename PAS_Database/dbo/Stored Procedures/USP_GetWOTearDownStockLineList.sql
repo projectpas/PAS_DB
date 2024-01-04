@@ -11,13 +11,14 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    12/28/2021   Devendra Shekh			Created
-    1    12/29/2021   Devendra Shekh			changes to get kit stk as well
+    2    12/29/2021   Devendra Shekh			changes to get kit stk as well
+    3    01/01/2021   Devendra Shekh			changes for stockline joins
      
 exec USP_GetWOTearDownStockLineList 
-@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,
-@PartDescription=NULL,@Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,
-@UnitCost=NULL,@QtyOnHand=NULL,@QtyAvailable=NULL,@ExtendedCost=NULL,@CreatedBy=NULL,
-@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3854,@WorkOrderPartNumberId=3340,@WorkFlowWorkOrderId=3331,@MasterCompanyId=1
+@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
+@Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
+@QtyAvailable=NULL,@ExtendedCost=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@WorkOrderId=3886,
+@WorkOrderPartNumberId=3372,@WorkFlowWorkOrderId=3349,@MasterCompanyId=1
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
@@ -105,51 +106,17 @@ BEGIN
 						SL.UpdatedDate,
 						Upper(SL.CreatedBy) CreatedBy,
 						Upper(SL.UpdatedBy) UpdatedBy
-			   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
+				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
-				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-				INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
-				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
+				--INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+				--INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
+				--INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-		 	  WHERE ((WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive))			     
-					AND WO.MasterCompanyId=@MasterCompanyId AND WO.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
-					AND WOP.ID = @WorkOrderPartNumberId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-
-			UNION ALL
-
-			SELECT DISTINCT
-						SL.StockLineId,
-						WO.WorkOrderId,
-						WOP.ID AS 'WorkOrderPartNumberId',
-						IM.PartNumber,
-						IM.PartDescription,
-						IM.ManufacturerName AS 'Manufacturer',
-						SL.StockLineNumber,
-						ISNULL(SL.SerialNumber, '') AS 'SerialNumber',
-						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
-						ISNULL(SL.IdNumber, '') AS 'IdNumber',
-						CAST(ISNULL(SL.UnitCost, 0) AS VARCHAR) AS 'UnitCost',
-						CAST(ISNULL(SL.QuantityOnHand, 0) AS VARCHAR) AS 'QtyOnHand',
-						CAST(ISNULL(SL.QuantityAvailable, 0) AS VARCHAR) AS 'QtyAvailable',
-						CAST((ISNULL(SL.Quantity, 0) * ISNULL(SL.UnitCost, 0)) AS VARCHAR) AS 'ExtendedCost',
-						SL.IsActive,
-						SL.IsDeleted,
-						SL.CreatedDate,
-						SL.UpdatedDate,
-						Upper(SL.CreatedBy) CreatedBy,
-						Upper(SL.UpdatedBy) UpdatedBy
-			   FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
-				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
-				INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
-				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOMS.StockLineId = SL.StockLineId
-				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-		 	  WHERE ((WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive))			     
-					AND WO.MasterCompanyId=@MasterCompanyId AND WO.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
-					AND WOP.ID = @WorkOrderPartNumberId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-
+		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
+					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
+					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND
+					SL.StockLineId NOT IN(SELECT StocklineId FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartNumberId)
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR

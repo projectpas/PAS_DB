@@ -61,7 +61,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
-			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.PurchaseOrderId, ST.PurchaseOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1) AS Stk;
+			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.PurchaseOrderId, ST.PurchaseOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.PurchaseOrderId, 0) != 0 AND ISNULL(ST.PurchaseOrderPartRecordId, 0) != 0) AS Stk;
 
 			IF(@ViewType = 'poview')
 			BEGIN		

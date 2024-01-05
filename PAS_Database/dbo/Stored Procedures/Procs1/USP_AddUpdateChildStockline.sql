@@ -442,6 +442,16 @@ BEGIN
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END
+					ELSE IF (@ActionId = 12) -- Delete Receving Customer
+					BEGIN
+						IF (@PrevOHQty > 0 AND @PrevAvailableQty > 0)
+						BEGIN
+							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+
+							SET @QtyOnAction = @QtyOnAction - 1;
+						END
+					END
 				END
 
 				SET @MasterLoop_UpdateID = @MasterLoop_UpdateID - 1;

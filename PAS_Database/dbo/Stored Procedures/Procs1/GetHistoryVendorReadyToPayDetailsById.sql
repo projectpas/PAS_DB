@@ -1,7 +1,23 @@
-﻿/*************************************************************             
+﻿/*************************************************************           
+ ** File:  [GetHistoryVendorReadyToPayDetailsById]           
+ ** Author:  Moin Bloch
+ ** Description: This stored procedure is used to get Vendor Ready To PayDetails
+ ** Purpose:         
+ ** Date:   05/01/2024
+          
+ ** PARAMETERS: @ReadyToPayId BIGINT
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    05/01/2024  Moin Bloch     Table Commented Not in Use
+        
 --EXEC GetHistoryVendorReadyToPayDetailsById 29  
 ************************************************************************/  
-create       PROCEDURE [dbo].[GetHistoryVendorReadyToPayDetailsById]  
+CREATE       PROCEDURE [dbo].[GetHistoryVendorReadyToPayDetailsById]  
 @ReadyToPayId bigint  
 AS  
 BEGIN  
@@ -10,7 +26,7 @@ BEGIN
  BEGIN TRY  
     SELECT   VRTPD.[ReadyToPayDetailsId]  
                  ,VRTPD.[ReadyToPayId]  
-     ,VRTPD.[DueDate]  
+                 ,VRTPD.[DueDate]  
                  ,VRTPD.[VendorId]  
                  ,VRTPD.[VendorName]  
                  ,VRTPD.[PaymentMethodId]  
@@ -32,21 +48,21 @@ BEGIN
                  ,VRTPD.[UpdatedDate]  
                  ,VRTPD.[UpdatedBy]
 				 ,VRTPD.[CreatedBy]
-				 ,IsCheckPayment = (SELECT Case when Count(ch.CheckPaymentId) >0 then 1 else 0 end  FROM DBO.VendorCheckPayment VP WITH(NOLOCK) INNER JOIN CheckPayment ch WITH(NOLOCK) on ch.CheckPaymentId=vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId and ch.IsDeleted=0),
-	              IsDomesticWirePayment = (SELECT Case when Count(VP.VendorDomesticWirePaymentId) >0 then 1 else 0 end  FROM DBO.VendorDomesticWirePayment VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId and vp.IsDeleted=0),
-	              IsInternationlWirePayment = (SELECT Case when Count(VP.VendorInternationalWirePaymentId) >0 then 1 else 0 end  FROM DBO.VendorInternationlWirePayment VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId and vp.IsDeleted=0)
+				 ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) >0 then 1 else 0 end  FROM DBO.VendorCheckPayment VP WITH(NOLOCK) INNER JOIN CheckPayment ch WITH(NOLOCK) on ch.CheckPaymentId=vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId and ch.IsDeleted=0),
+	              IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) >0 then 1 else 0 end  FROM DBO.VendorDomesticWirePayment VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId and vp.IsDeleted=0),
+	              IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) >0 then 1 else 0 end  FROM DBO.VendorInternationlWirePayment VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId and vp.IsDeleted=0)
      FROM [dbo].[VendorReadyToPayDetailsAudit] VRTPD WITH(NOLOCK)  
-     INNER JOIN DBO.Vendor V ON VRTPD.VendorId = V.VendorId  
-	  LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
-     LEFT JOIN PaymentMethod PM WITH(NOLOCK) ON PM.PaymentMethodId = VRTPD.PaymentMethodId  
-     LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId  
-     where VRTPD.ReadyToPayId =@ReadyToPayId and VRTPD.IsDeleted=0  
+     INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
+	  --LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
+      LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VRTPD.PaymentMethodId  
+     --LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId  
+     where VRTPD.ReadyToPayId = @ReadyToPayId and VRTPD.IsDeleted=0  
   
     END TRY  
  BEGIN CATCH        
   IF @@trancount > 0  
    PRINT 'ROLLBACK'  
-   ROLLBACK TRAN;  
+   --ROLLBACK TRAN;  
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             , @AdhocComments     VARCHAR(150)    = 'GetVendorReadyToPayDetailsById'   

@@ -1,6 +1,19 @@
-﻿-- =============================================
--- EXEC SearchCustomerInvoices
--- =============================================
+﻿/*************************************************************             
+ ** File: [SearchCustomerInvoices]        
+ ** Author:   Moin Bloch
+ ** Description: This stored procedure is used to display Customer Invoices
+ ** Purpose:           
+ ** Date:   05/01/2024     
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+    1    05/01/2024   Moin Bloch    Format SP
+
+	EXEC [dbo].[SearchCustomerInvoices]
+**************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchCustomerInvoices]
 	
 AS
@@ -28,11 +41,11 @@ BEGIN
 				S.CreditTermName,
 				--SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4, 
 				(Select COUNT(SOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems'
-			FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
-				LEFT JOIN Currency Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId
-				LEFT JOIN SalesOrder S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId
-			Where SOBI.InvoiceStatus = 'Invoiced'
+			FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
+				LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId
+				LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId
+			WHERE SOBI.InvoiceStatus = 'Invoiced'
 				Group By SOBI.InvoiceNo, C.Name, C.CustomerCode, SOBI.InvoiceNo, SOBI.InvoiceDate, S.SalesOrderNumber,
 				S.CustomerReference, Curr.Code, SOBI.GrandTotal, SOBI.InvoiceDate, S.BalanceDue, S.CreditLimit, S.CreditTermName
 				--SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4
@@ -59,11 +72,11 @@ BEGIN
 				WO.CreditTerms AS 'CreditTermName',
 				--WOBI.Level1, WOBI.Level2, WOBI.Level3, WOBI.Level4, 
 				(Select COUNT(WOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems'
-			FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
-				LEFT JOIN Currency Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-			Where WOBI.InvoiceStatus = 'Invoiced'
+			FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
+				LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId
+				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+			WHERE WOBI.InvoiceStatus = 'Invoiced'
 				Group By WOBI.InvoiceNo, C.Name, C.CustomerCode, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.WorkOrderNum,
 				Curr.Code, WOBI.GrandTotal, WOBI.InvoiceDate, WO.CreditLimit, WO.CreditTerms
 				--WOBI.Level1, WOBI.Level2, WOBI.Level3, WOBI.Level4

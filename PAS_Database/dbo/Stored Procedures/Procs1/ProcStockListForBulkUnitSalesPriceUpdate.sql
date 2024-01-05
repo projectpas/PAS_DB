@@ -15,14 +15,14 @@
  **************************************************************               
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
-	1    15/11/2023   Rajesh Saliya		Create    
+	1    15/11/2023   Rajesh Gami		Create    
 	2    20/11/2023   Devendra Shekh	added unitsales price, expirationDate    
 	3    21/11/2023   Devendra Shekh	added conditionids and itemmasterid for filter    
 	4    02/03/2024   Ekta Chandegra    added @ItemClassificationName
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
+CREATE     PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -213,7 +213,7 @@ BEGIN
 		 AND stl.IsParent = 1 
 		 AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
 		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))     
-		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT * INTO #TempResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        

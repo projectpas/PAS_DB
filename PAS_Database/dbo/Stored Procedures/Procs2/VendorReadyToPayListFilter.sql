@@ -11,9 +11,9 @@
   ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** --   --------     -------		--------------------------------     	
 	1    21/09/2023   AMIT GHEDIYA   Added for is vendorcreditmemo or not
-     
+    2    08/01/2024   Moin Bloch     Modified (Renamed Percent to PercentId)
 **************************************************************/
 --EXEC VendorReadyToPayList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73
 --EXEC VendorReadyToPayListFilter 1,73,'12/1/2022','12/31/2022',0
@@ -35,7 +35,8 @@ BEGIN
 				SELECT   VRTPD.[ReadyToPayDetailsId]
                  ,VRTPD.[ReadyToPayId]
 				 --,VRTPD.[DueDate]
-				 ,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DueDate
+				 --,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DueDate
+				 ,DATEADD(DAY, ISNULL(ctm.NetDays,0),VRTPD.DueDate) AS 'DueDate'
                  ,VRTPD.[VendorId]
                  ,VRTPD.[VendorName]
                  ,VRTPD.[PaymentMethodId]
@@ -53,8 +54,9 @@ BEGIN
                  --,VRTPD.[DiscountAvailable]
                  --,VRTPD.[DiscountToken]
 				 ,DATEDIFF(DAY, (CAST(VRTPD.DueDate as datetime)), GETDATE()) DaysPastDue
-				 ,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DiscountDate
-				 ,cast((VRTPD.OriginalAmount * ISNULL(ctm.[Percentage],0) / 100) as decimal(10,2)) as DiscountAvailable,VRTPD.DiscountToken
+				 --,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DiscountDate
+				 ,DATEADD(DAY, ISNULL(ctm.NetDays,0),VRTPD.DueDate) AS 'DiscountDate'
+				 ,cast((VRTPD.OriginalAmount * ISNULL(ctm.[PercentId],0) / 100) as decimal(10,2)) as DiscountAvailable,VRTPD.DiscountToken
 				 ,(VPD.InvoiceTotal - VPD.RemainingAmount) as PaidAmount,
 				 SelectedforPayment = 
 				   (SELECT COUNT(VCMD.VendorCreditMemoId)
@@ -73,8 +75,9 @@ BEGIN
 				 SELECT  
 				 CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayDetailsId ELSE 0 END AS 'ReadyToPayDetailsId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayId ELSE VRTPD.ReadyToPayId END AS 'ReadyToPayId'
-				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN (VPD.DueDate + ISNULL(ctm.NetDays,0)) ELSE (VRTPD.DueDate + ISNULL(ctm.NetDays,0)) END AS 'DueDate'
-				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.VendorId ELSE VRTPD.VendorId END AS 'VendorId'
+				 --,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN (VPD.DueDate + ISNULL(ctm.NetDays,0)) ELSE (VRTPD.DueDate + ISNULL(ctm.NetDays,0)) END AS 'DueDate'
+				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN DATEADD(DAY, ISNULL(ctm.NetDays,0),VPD.DueDate) ELSE DATEADD(DAY, ISNULL(ctm.NetDays,0),VRTPD.DueDate) END AS 'DueDate'				
+				,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.VendorId ELSE VRTPD.VendorId END AS 'VendorId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.VendorName ELSE VRTPD.VendorName END AS 'VendorName'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.PaymentMethodId ELSE VRTPD.PaymentMethodId END AS 'PaymentMethodId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.PaymentMethodName ELSE VRTPD.PaymentMethodName END AS 'PaymentMethodName'
@@ -91,8 +94,9 @@ BEGIN
 				 --,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.DiscountAvailable ELSE VRTPD.DiscountAvailable END AS 'DiscountAvailable'
 				 --,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.DiscountToken ELSE VRTPD.DiscountToken END AS 'DiscountToken'
 				 ,DATEDIFF(DAY, (CAST(VRTPD.DueDate as datetime)), GETDATE()) DaysPastDue
-				 ,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DiscountDate
-				 ,cast((VRTPD.OriginalAmount * ISNULL(ctm.[Percentage],0) / 100) as decimal(10,2)) as DiscountAvailable,VRTPD.DiscountToken
+				 --,(VRTPD.DueDate + ISNULL(ctm.NetDays,0)) as DiscountDate
+				 ,DATEADD(DAY, ISNULL(ctm.NetDays,0),VRTPD.DueDate) AS 'DiscountDate'
+				 ,cast((VRTPD.OriginalAmount * ISNULL(ctm.[PercentId],0) / 100) as decimal(10,2)) as DiscountAvailable,VRTPD.DiscountToken
 				 ,(VRTPD.InvoiceTotal - VRTPD.RemainingAmount) as PaidAmount,
 				 SelectedforPayment = 
 				   (SELECT COUNT(VCMD.VendorCreditMemoId)--(CASE WHEN V.VendorId IS NOT NULL THEN V.IsActive ELSE VE.IsActive END)

@@ -2721,5 +2721,6 @@
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuotePrintPdfData.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuoteHeaderData.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderQuoteApproveData.sql" />
+    <Build Include="dbo\Tables\AssetInventoryLog.sql" />
   </ItemGroup>
 </Project>

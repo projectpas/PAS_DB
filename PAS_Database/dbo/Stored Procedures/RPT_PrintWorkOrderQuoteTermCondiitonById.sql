@@ -17,7 +17,7 @@
      
 -- EXEC RPT_PrintPurchaseOrderTermCondiitonById 1
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[RPT_PrintWorkOrderQuoteTermCondiitonById] 
+CREATE         PROCEDURE [dbo].[RPT_PrintWorkOrderQuoteTermCondiitonById] 
 	@MasterCompanyId BIGINT
 AS
 BEGIN
@@ -27,13 +27,13 @@ BEGIN
 
 	DECLARE @EmailTemplateTypeId BIGINT;
 
-	SELECT @EmailTemplateTypeId = EmailTemplateTypeId from EmailTemplateType WHERE EmailTemplateType='WO Customer Quote';
+	SELECT @EmailTemplateTypeId = EmailTemplateTypeId FROM dbo.EmailTemplateType WITH (NOLOCK) WHERE EmailTemplateType='WO Customer Quote';
 
-	IF EXISTS(SELECT TOP 1 TermsConditionId FROM TermsCondition WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
+	IF EXISTS(SELECT TOP 1 TermsConditionId FROM dbo.TermsCondition WITH (NOLOCK) WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
 	BEGIN 
 		SELECT 
 			TOP 1 ISNULL(description,'') AS description
-		FROM TermsCondition WITH (NOLOCK)
+		FROM dbo.TermsCondition WITH (NOLOCK)
 		WHERE EmailTemplateTypeId = @EmailTemplateTypeId 
 		AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;		
 	END

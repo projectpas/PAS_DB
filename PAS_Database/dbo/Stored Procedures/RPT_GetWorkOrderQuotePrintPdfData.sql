@@ -16,7 +16,7 @@
 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2140,3018  
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
+CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoId bigint  
 AS  
@@ -64,7 +64,7 @@ BEGIN
 			ISNULL(wqd.LaborFlatBillingAmount, 0) + 
 			ISNULL(wqd.ChargesFlatBillingAmount, 0) + ISNULL(wqd.FreightFlatBillingAmount,0))
 		 END AS subtotalfortax
-	FROM dbo.WorkOrder wo   
+	FROM dbo.WorkOrder wo WITH(NOLOCK)
 		 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 		 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
 		 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID  
@@ -72,7 +72,7 @@ BEGIN
 		 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 		 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 		 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
-		 Where woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
+		 WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 		 GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,  

@@ -16,7 +16,7 @@
 
 --EXEC [RPT_GetWorkOrderQuoteHeaderData] 2140
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
+CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 
 AS  
 BEGIN  
@@ -37,11 +37,11 @@ BEGIN
             QuoteStatus = wqs.[Description],
             wo.WorkOrderNum,
             CustomerName = UPPER(cust.[Name]),
-			TAXRates = (select SUM(ISNULL(tr.TaxRate,0)) from CustomerTaxTypeRateMapping custtax 
+			TAXRates = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId and t.Code ='SALES TAX'
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
-			Othertax = (select SUM(ISNULL(tr.TaxRate,0)) from CustomerTaxTypeRateMapping custtax 
+			Othertax = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
 							LEFT JOIN dbo.TaxRate tr WITH(NOLOCK) ON custtax.TaxRateId = tr.TaxRateId 
 						WHERE custtax.CustomerId = cust.[CustomerId] and custtax.IsActive = 1 and custtax.IsDeleted = 0 ),
@@ -82,7 +82,7 @@ BEGIN
             WONotes = woq.Notes,
             WOCustomerRef = wop.CustomerReference,
 			wop.WorkScope
-			 FROM dbo.WorkOrderQuote woq
+			 FROM dbo.WorkOrderQuote woq WITH(NOLOCK)
 			 INNER JOIN dbo.WorkOrder wo WITH(NOLOCK) ON woq.WorkOrderId = wo.WorkOrderId
 			 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK)  ON woq.WorkOrderId = wop.WorkOrderId
 			 INNER JOIN dbo.WorkOrderQuoteStatus wqs WITH(NOLOCK)  ON woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId

@@ -16,7 +16,7 @@
 
 --EXEC [RPT_GetWorkOrderQuoteApproveData] 3018
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderQuoteApproveData]  
+CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuoteApproveData]  
  @workOrderPartNoId bigint 
 AS  
 BEGIN  
@@ -31,7 +31,7 @@ BEGIN
             custapproval = ISNULL(ca.[Name],''),
             custrejected = ISNULL(css.[Name],''),
             QuoteStatusId = woq.ApprovalActionId
-	    FROM dbo.WorkOrderApproval woq
+	    FROM dbo.WorkOrderApproval woq WITH(NOLOCK)
 			LEFT JOIN dbo.CustomerContact ccon WITH(NOLOCK) ON woq.CustomerApprovedById = ccon.ContactId
 			LEFT JOIN dbo.Customer ca WITH(NOLOCK) ON ccon.CustomerId = ca.CustomerId
 			LEFT JOIN dbo.Customer css WITH(NOLOCK) ON ccon.CustomerId = css.CustomerId

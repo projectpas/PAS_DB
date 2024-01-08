@@ -20,7 +20,7 @@
  ** --   --------     -------		--------------------------------          
     1    04-Jan-2024   Hemant Saliya Created
      
- EXECUTE [CreateSubWorkOrderForTenderStockline] 3878, 3363, 'Admin'
+ EXECUTE [CreateSubWorkOrderForTenderStockline] 3996, 3483, 'ADMIN User'
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[CreateSubWorkOrderForTenderStockline]
@@ -50,8 +50,14 @@ BEGIN
 		DECLARE @SubWorkOrderId BIGINT;
 		DECLARE @SubWorkOrderPartNoId BIGINT;
 		DECLARE @SubWorkOrderModuleId INT = 24; -- FOR SUB WO MODULE
+		DECLARE @ModuleId INT;
+		DECLARE @SubModuleId INT ;
+		DECLARE @ReferenceId BIGINT;
+		DECLARE @SubReferenceId BIGINT;
+		DECLARE @ActionId INT ;
 
-		--SET @count = 1;
+		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
+		SELECT @ActionId = ActionId FROM [DBO].[StklineHistory_Action] WHERE [Type] = 'Create-Sub-WorkOrder' -- For SUB WORK ORDER Cretae History
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
         BEGIN  
@@ -103,6 +109,7 @@ BEGIN
 		SELECT @SubWOProvisionID = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER'
 
 		SELECT * INTO #WorkOrderSettings FROM dbo.WorkOrderSettings WITH(NOLOCK) WHERE WorkOrderTypeId = @WorkOrderTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 and IsDeleted = 0
+		PRINT '1'
 		
 		BEGIN TRY
 
@@ -121,6 +128,8 @@ BEGIN
 					WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(QtyToTurnIn, 0) > 0 AND WOMS.ProvisionId = @SubWOProvisionID
 
 					SELECT @TotalCounts = MAX(ID) FROM #tmpWorkOrderMaterials;
+					PRINT '2'
+					--SELECT * FROM #tmpWorkOrderMaterials;
 
 					--LOOP CREATE NO OF SUB WO BASED ON MATERIALS
 					WHILE @count<= @TotalCounts
@@ -133,7 +142,8 @@ BEGIN
 						SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
 						FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId  
 						WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;  
-
+						
+						PRINT '3'
 						SELECT @currentNo = ISNULL(MAX(CurrentNummber), 0) FROM #tmpCodePrefixes
 		
 						IF (@currentNo <> 0)  
@@ -153,19 +163,19 @@ BEGIN
 							ROLLBACK TRAN;  
 						END  
 
+						PRINT '4'
 						--CREATE SUB WORK ORDER
 						INSERT INTO dbo.SubWorkOrder(WorkOrderId, SubWorkOrderNo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted, WorkOrderPartNumberId,OpenDate,WorkOrderMaterialsId,StockLineId,SubWorkOrderStatusId)
 						SELECT WorkOrderId, @SubWorkOrderNo, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(),1,0, @WorkOrderPartNoId, GETUTCDATE(), WorkOrderMaterialsId, StockLineId, @SubWorkOrderStatusId
 						FROM #tmpWorkOrderMaterials WHERE ID = @count
 
-						SET @SubWorkOrderId = @@IDENTITY 
+						SET @SubWorkOrderId = SCOPE_IDENTITY(); 
 
-						--CREATE SUB WORK ORDER PART NUMBER
 						INSERT INTO SubWorkOrderPartNumber(WorkOrderId,SubWorkOrderId,ItemMasterId,SubWorkOrderScopeId,EstimatedShipDate,CustomerRequestDate,PromisedDate,EstimatedCompletionDate,NTE,Quantity,StockLineId,
 								CMMId,WorkflowId,SubWorkOrderStageId,SubWorkOrderStatusId,SubWorkOrderPriorityId,IsPMA,IsDER,TechStationId,TATDaysStandard,TechnicianId,ConditionId,TATDaysCurrent,MasterCompanyId,CreatedBy,UpdatedBy,
 								CreatedDate,UpdatedDate,IsActive,IsDeleted,IsClosed,PDFPath,islocked,IsFinishGood,RevisedConditionId,CustomerReference,RevisedItemmasterid,IsTraveler,IsManualForm,IsTransferredToParentWO)
-						SELECT tmpWOM.WorkOrderId,@SubWorkOrderId,tmpWOM.ItemMasterId,Assy. WorkscopeId,EstimatedShipDate,CustomerRequestDate,PromisedDate,EstimatedCompletionDate,NTE,tmpWOM.Quantity,tmpWOM.StockLineId,
-								CMMId,WorkflowId,WOS.DefaultStageCodeId,WOS.DefaultStatusId,WOP.WorkOrderPriorityId,IsPMA,IsDER,TechStationId,TATDaysStandard,TechnicianId,tmpWOM.ConditionId,TATDaysCurrent,WOP.MasterCompanyId,WOP.CreatedBy,WOP.UpdatedBy,
+						SELECT tmpWOM.WorkOrderId,@SubWorkOrderId, tmpWOM.ItemMasterId, Assy.WorkscopeId, EstimatedShipDate, CustomerRequestDate, PromisedDate, EstimatedCompletionDate, NTE, tmpWOM.Quantity, tmpWOM.StockLineId,
+								CMMId, WorkflowId, WOS.DefaultStageCodeId, WOS.DefaultStatusId, WOP.WorkOrderPriorityId, IsPMA, IsDER, TechStationId, TATDaysStandard, TechnicianId, tmpWOM.ConditionId, TATDaysCurrent, WOP.MasterCompanyId, WOP.CreatedBy, WOP.UpdatedBy,
 								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL 
 						FROM #tmpWorkOrderMaterials tmpWOM 
 							JOIN dbo.WorkOrderPartNumber WOP ON tmpWOM.WorkOrderPartNumberId = WOP.ID
@@ -173,7 +183,9 @@ BEGIN
 							JOIN #WorkOrderSettings WOS ON WOP.MasterCompanyId = WOS.MasterCompanyId AND WOS.WorkOrderTypeId = @WorkOrderTypeId
 						WHERE tmpWOM.ID = @count
 
-						SET @SubWorkOrderPartNoId = @@IDENTITY 
+						SET @SubWorkOrderPartNoId = SCOPE_IDENTITY();
+
+						PRINT '5'
 
 						DECLARE @SubWOPartQty INT = 0;
 
@@ -187,6 +199,7 @@ BEGIN
 						SELECT @WorkOrderId, @SubWorkOrderPartNoId, @SubWorkOrderId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, WOS.WorkOrderSettlementId 
 						FROM WorkOrderSettlement WOS WITH(NOLOCK) 
 						WHERE WOS.WorkOrderSettlementId NOT IN (5,10,11) --FOR EXCLUDE ADD SETTLEMENT DETAILS FOR ACT VS QUOTE, SHIPPING AND BILLING
+						PRINT '6'
 
 						--INSERT DATA IN SUB WORKORDER MATERIAL MAPPING
 						IF((SELECT COUNT(1) FROM dbo.SubWorkOrderMaterialMapping WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId AND SubWorkOrderId = @SubWorkOrderId) = 0 )
@@ -195,25 +208,19 @@ BEGIN
 							SELECT @SubWorkOrderId, @WorkOrderMaterialsId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0
 						END
 
+						PRINT '6.1'
 						--CREATE CREATE TRAVELER LABOUR TASK FOR SUB WORKORDER IF IS TRAVELER TRUE
 						IF((SELECT COUNT(1) FROM dbo.SubWorkOrderPartNumber WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND SubWorkOrderId = @SubWorkOrderId AND IsTraveler = 1) > 0 )
 						BEGIN
+							--SELECT  @WorkOrderId,  @SubWorkOrderId,  @SubWorkOrderPartNoId,  @WorkOrderPartNoId ,  @MasterCompanyId,  @CreatedBy
 							EXEC [dbo].[USP_CreateTravelerLabourTask_SubWorkorder] @WorkOrderId = @WorkOrderId, @SubWorkOrderId = @SubWorkOrderId, @SubWOPartNoId = @SubWorkOrderPartNoId, @WorkOrderPartId = @WorkOrderPartNoId , @MasterCompanyId = @MasterCompanyId, @CreatedBy = @CreatedBy
 						END
+						PRINT '7'
+						
+						---SELECT  @StocklineId,  @ModuleId,  @SubWorkOrderId,  @SubModuleId,  @SubReferenceId,  @ActionId,  0,  @CreatedBy;
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = 0, @UpdatedBy = @CreatedBy;
 
-						DECLARE @IsAddUpdate BIT = 0;
-						DECLARE @ExecuteParentChild BIT = 1;
-						DECLARE @UpdateQuantities BIT = 1;
-						DECLARE @IsOHUpdated BIT = 1; 
-						DECLARE @AddHistoryForNonSerialized BIT = 0; 
-						DECLARE @SubModuleId BIT = 33; 
-						DECLARE @SubReferenceId INT = 0; 
-						DECLARE @MainLotStocklineId INT = 0;
-						DECLARE @IsFromInitialPO BIT = 0; 
-						DECLARE @LotSourceId INT = 0;
-
-						EXEC USP_CreateChildStockline @StocklineId = @StockLineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @SubWorkOrderModuleId, @ReferenceId = @SubWorkOrderId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild= @ExecuteParentChild, @UpdateQuantities= @UpdateQuantities, @IsOHUpdated=@IsOHUpdated, @AddHistoryForNonSerialized=@AddHistoryForNonSerialized, @SubModuleId=@SubModuleId, @SubReferenceId=@SubReferenceId, @MainLotStocklineId=@MainLotStocklineId, @IsFromInitialPO=@IsFromInitialPO, @LotSourceId=@LotSourceId
-
+						PRINT '8'
 						--UPDATE CODE PREFIX FROM SUB WO  
 						UPDATE CodePrefixes SET CurrentNummber = @SubWOcurrentNo
 						FROM dbo.CodePrefixes CP WITH(NOLOCK) 
@@ -221,9 +228,10 @@ BEGIN
 						WHERE CT.CodeTypeId = @CodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
 						SET @count = @count + 1;
+						PRINT '9'
 					END
 				END
-
+				PRINT '10'
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
 				BEGIN  
 					DROP TABLE #tmpCodePrefixes 
@@ -244,10 +252,8 @@ BEGIN
 					--ERROR_MESSAGE() AS ErrorMessage;
 					 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				  , @AdhocComments     VARCHAR(150)    = 'GetRecevingCustomerList' 
-				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + ''', 
-								@Parameter2 = ' + ISNULL(@WorkOrderPartNoId,'') + ', 
-								@Parameter3 = ' + ISNULL(@MasterCompanyId ,'') +''
+				  , @AdhocComments     VARCHAR(150)    = 'CreateSubWorkOrderForTenderStockline' 
+				  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
 				  , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

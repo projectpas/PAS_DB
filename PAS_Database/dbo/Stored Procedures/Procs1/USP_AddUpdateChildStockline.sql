@@ -18,6 +18,7 @@
     2    07/21/2023   Vishal Suthar		Modified to handle adjustment increase-decrease qty
 	3    6 Nov 2023   Rajesh Gami       SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
 	4    5 Jan 2024   Hemant Saliya     Added Rec Customer Delete Hinstory
+	5    8 Jan 2024   Hemant Saliya     Added Create Sub WO Hinstory
   
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -443,11 +444,21 @@ BEGIN
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END
-					ELSE IF (@ActionId = 12) -- Delete Receving Customer
+					ELSE IF (@ActionId = 14) -- Delete Receving Customer
 					BEGIN
 						IF (@PrevOHQty > 0 AND @PrevAvailableQty > 0)
 						BEGIN
 							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+
+							SET @QtyOnAction = @QtyOnAction - 1;
+						END
+					END
+					ELSE IF (@ActionId = 15) -- Create Sub WO
+					BEGIN
+						IF (@PrevOHQty > 0 AND @PrevAvailableQty > 0)
+						BEGIN
+							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 1, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 
 							SET @QtyOnAction = @QtyOnAction - 1;

@@ -85,7 +85,8 @@ BEGIN
 				@ARConditionId BIGINT = 0,
 				@CurrentSerialNumber BIGINT = 0,
 				@MaterialItemMasterId BIGINT = 0,
-				@MaterialIsSerialized BIT = 0;
+				@MaterialIsSerialized BIT = 0,
+				@WorkOrderPartNoId BIGINT;
 
 				IF OBJECT_ID(N'tempdb..#tmpWOMStockline') IS NOT NULL
 				BEGIN
@@ -138,6 +139,8 @@ BEGIN
 				SET @CodeTypeId = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WHERE [CodeType] = 'Receiver Number Tender stockline');
 				SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 				SET @WOPartNoId = (SELECT [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId);
+
+				SELECT @WorkOrderPartNoId = ID FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId WHERE WOWF.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
 
 				SELECT @CustomerId = [CustomerId], @WorkOrderNumber = [WorkOrderNum] , @MasterCompanyId = MasterCompanyId, @WOTypeId = WorkOrderTypeId, @UpdatedBy = UpdatedBy
 				FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
@@ -276,6 +279,8 @@ BEGIN
 		
 				--Updating CodePrefix
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
+
+				EXEC [dbo].[CreateSubWorkOrderForTenderStockline] @WorkOrderId = @WorkOrderId, @WorkOrderPartNoId = @WorkOrderPartNoId, @CreatedBy = @UpdatedBy
 
 			END
 		COMMIT  TRANSACTION

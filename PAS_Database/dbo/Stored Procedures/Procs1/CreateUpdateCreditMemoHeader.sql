@@ -14,7 +14,8 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    18/04/2022  Moin Bloch					Created
-    1    03/07/2023  Devendra Shekh				added new condition for rmaid and rmanum
+    2    03/07/2023  Devendra Shekh				added new condition for rmaid and rmanum
+	3    08/01/2023  AMIT GHEDIYA				Handle Multiple record cash.
      
 -- EXEC CreateUpdateCreditMemoHeader 1
 ************************************************************************/
@@ -70,7 +71,11 @@ BEGIN
 
 			DECLARE @rmaId BIGINT = null;
 			DECLARE @rmaNum VARCHAR(100) = null;
-			IF(@ReferenceId IS NOT NULL)
+			DECLARE @multiRMAId BIGINT = null;
+
+			SET @multiRMAId = (SELECT COUNT(RMAHeaderId) FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder);
+
+			IF(@ReferenceId IS NOT NULL AND @multiRMAId = 1)
 			BEGIN 
 				SET @rmaId = (SELECT RMAHeaderId FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)
 				SET @rmaNum = (SELECT RMANumber FROM dbo.CustomerRMAHeader WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND isWorkOrder = @IsWorkOrder)

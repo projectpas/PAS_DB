@@ -17,6 +17,7 @@
     1    07/12/2023   Vishal Suthar		Created
     2    07/21/2023   Vishal Suthar		Modified to handle adjustment increase-decrease qty
 	3    6 Nov 2023   Rajesh Gami       SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
+	4    5 Jan 2024   Hemant Saliya     Added Rec Customer Delete Hinstory
   
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]

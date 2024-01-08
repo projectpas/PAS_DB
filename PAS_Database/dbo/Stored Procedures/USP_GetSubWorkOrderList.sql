@@ -3,14 +3,15 @@
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve Sub WorkOrder list with filters   
  ** Purpose:         
- ** Date:   12/25/2021      
+ ** Date:   12/25/2023      
           
  **************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
-    1    12/25/2021   Devendra Shekh			Created
+    1    12/25/2023   Devendra Shekh			Created
+    2    01/08/2024   Devendra Shekh			added new columns
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,

@@ -3,14 +3,15 @@
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used TO DELETE Sub WorkOrder BY ID
  ** Purpose:         
- ** Date:   12/26/2021      
+ ** Date:   12/26/2023      
           
  **************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
-    1    12/26/2021   Devendra Shekh			Created
+    1    12/26/2023   Devendra Shekh			Created
+    2    01/05/2024   Devendra Shekh			Created
      
 exec [USP_DeleteSubWorkOrderById] 
 
@@ -27,6 +28,18 @@ BEGIN
 	IF(ISNULL(@SubWorkOrderId, 0) > 0)
 	BEGIN
 		
+		DECLARE @LaborHeaderId BIGINT = 0,
+		@SWOStockLineId BIGINT = 0,
+		@SWOQty BIGINT = 0;
+
+		SET @LaborHeaderId = (SELECT [SubWorkOrderLaborHeaderId] FROM [dbo].[SubWorkOrderLaborHeader] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId);
+		SELECT @SWOStockLineId = [StockLineId] FROM [dbo].[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId;
+		SELECT @SWOQty = SUM(ISNULL(Quantity, 0)) FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId;
+		
+		UPDATE [dbo].[Stockline]
+		SET QuantityAvailable = @SWOQty
+		WHERE [StockLineId] = @SWOStockLineId;
+
 		UPDATE [dbo].[SubWorkOrder]
 		SET [IsDeleted] = 1, [UpdatedBy] = @UserName, [UpdatedDate] = GETUTCDATE()
 		WHERE [SubWorkOrderId] = @SubWorkOrderId

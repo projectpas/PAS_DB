@@ -15,7 +15,9 @@
  ** --   --------     -------  --------------------------------                
     1    05/03/2022   Vishal Suthar Fixed Management Structure binding      
 	2    19/05/2023   Satish Gohil  Show only legal entity releted invoice 
-	3    22/11/2023   AMIT GHEDIYA   Modify(FOR Exchange Invoice)
+	3    22/11/2023   AMIT GHEDIYA  Modify(FOR Exchange Invoice)
+	4    05/01/2024   Moin Bloch    Replaced PercentId at CreditTermsId
+
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 10135,0,2,11      
@@ -135,8 +137,8 @@ BEGIN
       LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
       LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
       LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
-      LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = ps.PercentId        
-      LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(CTW.CreditTermsId as INT) = pw.PercentId        
+      LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(CT.PercentId AS INT) = ps.PercentId        
+      LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(CTW.PercentId AS INT) = pw.PercentId        
       
 	  WHERE [ReceiptId] = @ReceiptId AND PageIndex=@PageIndex AND INV.CustomerId=@CustomerId      
       
@@ -195,7 +197,7 @@ BEGIN
       INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=SO.CustomerId      
       INNER JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId=SO.CreditTermId      
       INNER JOIN [dbo].[Currency] CR WITH (NOLOCK) ON CR.CurrencyId=SOBI.CurrencyId      
-       LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = p.PercentId        
+       LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId as INT) = p.PercentId        
        LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND IPT.InvoiceType=1 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
       INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId AND MSD.Level1Id = @legalEntityId      
       
@@ -258,7 +260,7 @@ BEGIN
      INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=WOBI.CustomerId      
      INNER JOIN [dbo].[Currency] CR WITH (NOLOCK) ON CR.CurrencyId=WOBI.CurrencyId      
      LEFT JOIN  [dbo].[CreditTerms] CT WITH (NOLOCK) ON WO.CreditTermId = CT.CreditTermsId        
-     LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = p.PercentId        
+     LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId as INT) = p.PercentId        
      LEFT JOIN  [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = WOBI.BillingInvoicingId AND IPT.InvoiceType=2 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
      INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId AND MSD.Level1Id = @legalEntityId      
      WHERE WOBI.CustomerId=@CustomerId AND WOBI.InvoiceStatus = 'Invoiced' AND WOBI.RemainingAmount > 0      
@@ -379,7 +381,7 @@ BEGIN
       INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=ESO.CustomerId      
       INNER JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId=ESO.CreditTermId      
       INNER JOIN [dbo].[Currency] CR WITH (NOLOCK) ON CR.CurrencyId=ESOBI.CurrencyId      
-       LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = p.PercentId        
+       LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId as INT) = p.PercentId        
        LEFT JOIN [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = ESOBI.SOBillingInvoicingId AND IPT.InvoiceType=1 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
       INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ESOMSModuleID AND MSD.ReferenceID = ESO.ExchangeSalesOrderId AND MSD.Level1Id = @legalEntityId      
       
@@ -439,8 +441,8 @@ BEGIN
       LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0        
       LEFT JOIN [dbo].[CustomerFinancial] CFW WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId        
       LEFT JOIN [dbo].[CreditTerms] CTW WITH (NOLOCK) ON WO.CreditTermId = CTW.CreditTermsId        
-      LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(CT.CreditTermsId as INT) = ps.PercentId        
-      LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(CTW.CreditTermsId as INT) = pw.PercentId        
+      LEFT JOIN [dbo].[Percent] ps WITH(NOLOCK) ON CAST(CT.PercentId as INT) = ps.PercentId        
+      LEFT JOIN [dbo].[Percent] pw WITH(NOLOCK) ON CAST(CTW.PercentId as INT) = pw.PercentId        
   
       WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex AND INV.CustomerId=@CustomerId      
       

@@ -19,6 +19,7 @@
 	2    20/10/2023   Devendra Shekh	 added union for creditmemo details
 	3    20/10/2023   Devendra Shekh	 added union for nonpo details
 	4    02/11/2023   Devendra Shekh	 added condtion for NonPOInvoiceId
+	5    05/01/2024   Moin Bloch         Renamed CreditTerms.Percentage To PercentId and Replaced PercentId at CreditTermsId
 
 --exec VendorPaymentList @PageSize=20,@PageNumber=1,@SortColumn=N'ReceivingReconciliationId',@SortOrder=-1,@GlobalFilter=N'',@InvoiceNum=NULL,@OriginalTotal=0,@RRTotal=0,@InvoiceTotal=0,@Status=N'PaidinFull',@VendorName=NULL,@InvociedDate=NULL,@EntryDate=NULL,@MasterCompanyId=1,@EmployeeId=2
 
@@ -55,12 +56,13 @@ BEGIN
 				 ,(VPD.InvoiceTotal - VPD.RemainingAmount) as PaidAmount
 				 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
 				 INNER JOIN [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) ON VRTPD.ReceivingReconciliationId = VPD.ReceivingReconciliationId
-				 INNER JOIN DBO.Vendor V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
-				 LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
-				 LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId
-				 WHERE VRTPD.ReadyToPayId =@ReadyToPayId and VRTPD.IsDeleted=0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
+				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
+				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId
+				 WHERE VRTPD.ReadyToPayId =@ReadyToPayId AND VRTPD.IsDeleted=0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
 
 				 UNION
+
 				 SELECT  
 				 CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayDetailsId ELSE 0 END AS 'ReadyToPayDetailsId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayId ELSE VRTPD.ReadyToPayId END AS 'ReadyToPayId'
@@ -88,10 +90,10 @@ BEGIN
 				 ,ISNULL(VRTPD.DiscountToken,0) as DiscountToken
 				 ,(ISNULL(VRTPD.InvoiceTotal,0) - ISNULL(VRTPD.RemainingAmount,0)) as PaidAmount
 				 FROM [dbo].[VendorPaymentDetails] VRTPD WITH(NOLOCK) 
-				 LEFT JOIN VendorReadyToPayDetails VPD WITH (NOLOCK) ON VPD.ReceivingReconciliationId = VRTPD.ReceivingReconciliationId AND VPD.ReadyToPayId != @ReadyToPayId AND ISNULL(VPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
-				 INNER JOIN DBO.Vendor V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
-				 LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
-				 LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId
+				  LEFT JOIN [dbo].[VendorReadyToPayDetails] VPD WITH (NOLOCK) ON VPD.ReceivingReconciliationId = VRTPD.ReceivingReconciliationId AND VPD.ReadyToPayId != @ReadyToPayId AND ISNULL(VPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
+				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
+				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId
 				 where ISNULL(VPD.NonPOInvoiceId, 0) = 0
 				 --where VRTPD.ReadyToPayId =@ReadyToPayId and VRTPD.IsDeleted=0
 				 UNION
@@ -149,14 +151,15 @@ BEGIN
 				 ,(VPD.InvoiceTotal - VPD.RemainingAmount) as PaidAmount
 				 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
 				 INNER JOIN [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) ON VRTPD.ReceivingReconciliationId = VPD.ReceivingReconciliationId
-				 INNER JOIN DBO.Vendor V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
-				 LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
-				 LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId
+				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
+				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
+				 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId
 				 WHERE VRTPD.ReadyToPayId =@ReadyToPayId and VRTPD.IsDeleted=0 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) <> 0
 
 				 UNION
+
 				 SELECT  
-				 CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayDetailsId ELSE 0 END AS 'ReadyToPayDetailsId'
+				  CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayDetailsId ELSE 0 END AS 'ReadyToPayDetailsId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.ReadyToPayId ELSE VRTPD.ReadyToPayId END AS 'ReadyToPayId'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN DATEADD(DAY, ISNULL(ctm.NetDays,0), VPD.DueDate) /*(VPD.DueDate + ISNULL(ctm.NetDays,0))*/ ELSE (VRTPD.DueDate + ISNULL(ctm.NetDays,0)) END AS 'DueDate'
 				 ,CASE WHEN VPD.ReadyToPayId IS NOT NULL THEN VPD.VendorId ELSE VRTPD.VendorId END AS 'VendorId'
@@ -176,11 +179,11 @@ BEGIN
 				 ,ISNULL(VRTPD.DiscountToken,0) as DiscountToken
 				 ,(ISNULL(VRTPD.InvoiceTotal,0) - ISNULL(VRTPD.RemainingAmount,0)) as PaidAmount
 				 FROM [dbo].[VendorPaymentDetails] VRTPD WITH(NOLOCK) 
-				 LEFT JOIN VendorReadyToPayDetails VPD WITH (NOLOCK) ON VPD.ReceivingReconciliationId = VRTPD.ReceivingReconciliationId AND VPD.ReadyToPayId != @ReadyToPayId AND ISNULL(VPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
-				 INNER JOIN DBO.Vendor V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
-				 LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
-				 LEFT JOIN [Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId as INT) = p.PercentId
-				 where ISNULL(VPD.NonPOInvoiceId, 0) <> 0
+				  LEFT JOIN [dbo].[VendorReadyToPayDetails] VPD WITH (NOLOCK) ON VPD.ReceivingReconciliationId = VRTPD.ReceivingReconciliationId AND VPD.ReadyToPayId != @ReadyToPayId AND ISNULL(VPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
+				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId
+				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId
+				 WHERE ISNULL(VPD.NonPOInvoiceId, 0) <> 0
 				 )
 				 SELECT [ReadyToPayDetailsId],[ReadyToPayId],[DueDate],[VendorId],[VendorName],[PaymentMethodId],[PaymentMethodName],[ReceivingReconciliationId],[InvoiceNum]
 								  ,[CurrencyId],[CurrencyName],[FXRate],[OriginalAmount],[PaymentMade],[AmountDue]

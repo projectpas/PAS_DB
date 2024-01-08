@@ -26,7 +26,8 @@
 	9    27/10/2023   Devendra Shekh	Changes for customer creditmemo details
 	10   31/10/2023   Devendra Shekh	added union al for nonpo details
 	11   02/11/2023   Devendra Shekh	changed union for nonpo details
-	12   06/11/2023   AMIT GHEDIYA  Update Status Approved To Posted for VendorCreditMemo.
+	12   06/11/2023   AMIT GHEDIYA      Update Status Approved To Posted for VendorCreditMemo.
+	13   05/01/2024   Moin Bloch        Replaced PercentId at CreditTermsId
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL  
 **************************************************************/
@@ -137,7 +138,7 @@ BEGIN
 			     INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
 				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId AS INT) = p.PercentId  
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
 				  OUTER APPLY (SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken
 							   FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
@@ -198,8 +199,8 @@ BEGIN
 				INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON CMD.CustomerId = C.CustomerId  
 				INNER JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId  
 				INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CF.CurrencyId = CU.CurrencyId  
-				LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = CF.CreditTermsId  
-				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId AS INT) = p.PercentId  
+				 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = CF.CreditTermsId  
+				 LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
 				WHERE CMD.[MasterCompanyId] = @MasterCompanyId AND CMD.[CustomerRefundId] IS NOT NULL AND ISNULL(CMD.IsUsedInVendorPayment,0) <> 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR DATEADD(Day, ISNULL(ctm.NetDays,0), CMD.InvoiceDate) BETWEEN @StartDate AND @EndDate)
 
@@ -254,7 +255,7 @@ BEGIN
 				 INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId	
 				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
 				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.CreditTermsId AS INT) = p.PercentId  
+				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
 				  OUTER APPLY (SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken
 							   FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId

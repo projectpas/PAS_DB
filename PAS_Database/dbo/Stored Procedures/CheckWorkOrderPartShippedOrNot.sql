@@ -13,7 +13,7 @@
  ** --   --------     -------			--------------------------------  	
 	1    29/12/2023   Moin Bloch		Created
 
-EXEC DBO.CheckWorkOrderPartShippedOrNot 3801,3281
+EXEC DBO.CheckWorkOrderPartShippedOrNot 24,28
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[CheckWorkOrderPartShippedOrNot]
 @WorkOrderId BIGINT,
@@ -22,19 +22,62 @@ AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-	BEGIN TRY		
-		   SELECT WOS.[WorkOrderShippingId],
-		          WOS.[AirwayBill]		          
-			 FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
-	         JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
-	         JOIN [dbo].[WorkOrderShipping] WOS WITH (NOLOCK) ON WO.[WorkOrderId] = WOS.[WorkOrderId]
-	         JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId]
-			 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId;	
+	BEGIN TRY	
+		   DECLARE @TotalMPN INT = 0;
+		   SELECT @TotalMPN  = COUNT([WorkOrderId]) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
+		
+		   IF(@TotalMPN = 1)
+		   BEGIN
+			   SELECT WOS.[WorkOrderShippingId],
+					  WOS.[AirwayBill]		          
+				 FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+				 JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
+				 JOIN [dbo].[WorkOrderShipping] WOS WITH (NOLOCK) ON WO.[WorkOrderId] = WOS.[WorkOrderId]
+				 JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId]
+				 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId;
+		    END
+			IF(@TotalMPN > 1)
+		    BEGIN
+				DECLARE @Quantity INT = 0;
+				DECLARE @QtyShipped INT = 0;  
+						
+				SELECT @Quantity = ISNULL(SUM(Quantity),0)
+				  FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) 
+				WHERE [WorkOrderId] = @WorkOrderId AND WOP.[IsActive] = 1 AND WOP.[IsDeleted] = 0;
+
+			    SELECT @QtyShipped = ISNULL(SUM(QtyShipped),0)
+			      FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+			      JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
+			      JOIN [dbo].[WorkOrderShipping] WOS WITH (NOLOCK) ON WO.[WorkOrderId] = WOS.[WorkOrderId]
+			      JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId] AND WOP.ID = WOSI.WorkOrderPartNumId
+		         WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[IsActive] = 1 AND WOP.[IsDeleted] = 0;
+				
+				IF(@Quantity = @QtyShipped)
+				BEGIN
+					SELECT TOP 1 WOS.[WorkOrderShippingId],
+						   WOS.[AirwayBill]		          
+					 FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+					 JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
+					 JOIN [dbo].[WorkOrderShipping] WOS WITH (NOLOCK) ON WO.[WorkOrderId] = WOS.[WorkOrderId]
+					 JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId]
+					 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId AND WOP.[IsActive] = 1 AND WOP.[IsDeleted] = 0;
+				END
+				IF(@Quantity <> @QtyShipped)
+				BEGIN
+					SELECT Top 1 WOS.[WorkOrderShippingId],
+						   NULL AS [AirwayBill] 		          
+					 FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+					 JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.[WorkOrderId] = WOP.[WorkOrderId]
+					 JOIN [dbo].[WorkOrderShipping] WOS WITH (NOLOCK) ON WO.[WorkOrderId] = WOS.[WorkOrderId]
+					 JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId]
+					 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId AND WOP.[IsActive] = 1 AND WOP.[IsDeleted] = 0;
+				END				
+			END
+		
 	END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'CheckWorkOrderPartShippedOrNot' 

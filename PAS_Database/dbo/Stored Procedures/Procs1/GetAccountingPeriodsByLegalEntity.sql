@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	1    08/08/2023   Hemant Saliya  Created
 	2    20/12/2023   Moin Bloch     Added IsAdjustPeriod,isacpStatusName Field
+	3    08/01/2024   Moin Bloch     Added [isaccStatusName],[isacrStatusName],[isassetStatusName],[isinventoryStatusName] Field
 
 ************************************************************************
 EXEC [GetAccountingPeriodsByLegalEntity] 1
@@ -32,6 +33,10 @@ BEGIN
 							AC.[Period],
 							AC.[IsAdjustPeriod],
 							ISNULL(AC.[isacpStatusName],0) AS [isacpStatusName],
+							ISNULL(AC.[isaccStatusName],0) AS [isaccStatusName],
+							ISNULL(AC.[isacrStatusName],0) AS [isacrStatusName],
+							ISNULL(AC.[isassetStatusName],0) AS [isassetStatusName],
+							ISNULL(AC.[isinventoryStatusName],0) AS [isinventoryStatusName],
 						LEAD(AC.[AccountingCalendarId]) OVER (ORDER BY AC.[FromDate]) AS [AccountingCalendarIdNext],
 						LEAD(AC.[PeriodName]) OVER (ORDER BY AC.[FromDate]) AS [PeriodNameNext],
 						LEAD(AC.[FromDate]) OVER (ORDER BY AC.[FromDate]) AS [FromDateNext],
@@ -42,7 +47,7 @@ BEGIN
 				JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
 				JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON MSL.[LegalEntityId] = AC.[LegalEntityId]
 			WHERE AC.[LegalEntityId] = @LegalEntityId AND AC.[IsDeleted] = 0 --AND AC.FiscalYear >= YEAR(GETDATE()) 
-			GROUP BY  AC.[AccountingCalendarId], AC.[PeriodName], AC.[FromDate], AC.[ToDate], AC.[FiscalName], AC.[FiscalYear], AC.[Period],AC.[IsAdjustPeriod],AC.[isacpStatusName]
+			GROUP BY AC.[AccountingCalendarId], AC.[PeriodName], AC.[FromDate], AC.[ToDate], AC.[FiscalName], AC.[FiscalYear], AC.[Period],AC.[IsAdjustPeriod],AC.[isacpStatusName],AC.[isaccStatusName],AC.[isacrStatusName],AC.[isassetStatusName],AC.[isinventoryStatusName]			
 			ORDER BY AC.[FiscalYear] DESC, AC.[Period] ASC;
 	END TRY    
 		BEGIN CATCH

@@ -13,6 +13,7 @@
     1    26-10-2023   Ayesha Sultana		Created
     2    17-11-2023   Devendra SHekh		changes for status update
     3    13-12-2023   Devendra SHekh		changes for status update
+    3    08-01-2024   Devendra SHekh		added [AssetInventoryLog]
 
 	EXEC [UpdateAssetCalibrationStatusActiveList]
 
@@ -29,7 +30,8 @@ BEGIN
 			BEGIN  
 			
 				DECLARE @TotalRec BIGINT = 0, @StartCount BIGINT = 1, @DepreciationId BIGINT = 0, @InventoryId BIGINT = 0,
-				@NextCalibrationDate DateTime2, @lastCalibrationDate DateTime2, @CalibrationFrequencyDays BIGINT = 0, @DayTillNextCal BIGINT = 0;
+				@NextCalibrationDate DateTime2, @lastCalibrationDate DateTime2, @CalibrationFrequencyDays BIGINT = 0, @DayTillNextCal BIGINT = 0,
+				@AssetInventoryLogId BIGINT = 0;
 
 				IF OBJECT_ID(N'tempdb..#tmpAssetInventory') IS NOT NULL  
 				BEGIN  
@@ -67,6 +69,9 @@ BEGIN
 					WHERE AIN.InventoryStatusId = (SELECT [AssetInventoryStatusId] FROM [dbo].[AssetInventoryStatus] WITH(NOLOCK) WHERE [Status] = 'Available') AND AIN.CalibrationRequired=1
 
 				--select * from #tmpAssetInventory
+				INSERT INTO [dbo].[AssetInventoryLog]([Description], [SuccessLog], [CreatedDate], [UpdatedDate])
+				VALUES('Updating Asset Invenotry', '', GETUTCDATE(), GETUTCDATE())
+				SET @AssetInventoryLogId = @@IDENTITY				
 
 				SET @TotalRec = (SELECT COUNT(Id) FROM #tmpAssetInventory)
 
@@ -87,6 +92,12 @@ BEGIN
 					SET @StartCount = @StartCount + 1
 				END
 
+				IF(ISNULL(@AssetInventoryLogId , 0) > 0)
+				BEGIN
+					UPDATE [dbo].[AssetInventoryLog]
+					SET [SuccessLog] = 'Asset Inventory Updated Successfully', [UpdatedDate] = GETUTCDATE()
+					WHERE [AssetInventoryLogId] = @AssetInventoryLogId;
+				END
 				--UPDATE AIN
 				--	SET StatusNote='Calibration Due'
 				--	FROM dbo.AssetCalibration AC WITH(NOLOCK)

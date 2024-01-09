@@ -104,7 +104,7 @@ BEGIN
 		SELECT [WorkOrderId],[WorkOrderNumber],[StocklineId],[ItemMasterId],[CustomerId],[WorkOrderMaterialId],[SystemUserId],[EntryDate],[OpenFlag],[Notes],[KitQty],[WorkOrderStatusId],[OPM_Id],
 		[DueDate],[CompanyRefNumber],[PriorityId],[TailNumber],[EngineNumber],[WarranteeFlag],[PartConditionId],[WoType],[ShipViaCodeId],[IsActive],[Description],[SalesOrderPartId],[WorkOrderParentId],[CurrencyId],
 		[CountryCodeId],[BatchNumber],[EstTotalCost],[UrlLink],[ReleaseDate],[IsTearDown],[WorkOrderLotId],[IntegrationType],[IsAutoInvoice],[DateCreated],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[WorkOrderHeaders] WOH WITH (NOLOCK) WHERE WOH.WorkOrderId = 7892; --WOH.Migrated_Id IS NULL;
+		FROM [Quantum_Staging].dbo.[WorkOrderHeaders] WOH WITH (NOLOCK) WHERE WOH.Migrated_Id IS NULL;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;

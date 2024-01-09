@@ -19,6 +19,7 @@
     1    01/04/2024		Devendra Shekh		Created
      
 --exec USP_TenderStockLineForSubAssembly @WorkOrderId=3932,@WorkFlowWorkOrderId=3398,@WorkOrderMaterialsId=16047
+exec USP_TenderStockLineForSubAssembly @WorkOrderId=4003,@WorkFlowWorkOrderId=3460,@WorkOrderMaterialsId=16129
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_TenderStockLineForSubAssembly]
@@ -280,7 +281,11 @@ BEGIN
 				--Updating CodePrefix
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
-				EXEC [dbo].[CreateSubWorkOrderForTenderStockline] @WorkOrderId = @WorkOrderId, @WorkOrderPartNoId = @WorkOrderPartNoId, @CreatedBy = @UpdatedBy
+				--PRINT 'Sub WorkOrder Start'
+
+				--EXEC [dbo].[CreateSubWorkOrderForTenderStockline] @WorkOrderId = @WorkOrderId, @WorkOrderPartNoId = @WorkOrderPartNoId, @CreatedBy = @UpdatedBy
+
+				--PRINT 'Sub WorkOrder End'
 
 			END
 		COMMIT  TRANSACTION

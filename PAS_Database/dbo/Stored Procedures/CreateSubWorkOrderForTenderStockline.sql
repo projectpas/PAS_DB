@@ -20,7 +20,7 @@
  ** --   --------     -------		--------------------------------          
     1    04-Jan-2024   Hemant Saliya Created
      
- EXECUTE [CreateSubWorkOrderForTenderStockline] 3996, 3483, 'ADMIN User'
+ EXECUTE [CreateSubWorkOrderForTenderStockline] 4007, 3494, 'ADMIN User'
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[CreateSubWorkOrderForTenderStockline]
@@ -50,11 +50,11 @@ BEGIN
 		DECLARE @SubWorkOrderId BIGINT;
 		DECLARE @SubWorkOrderPartNoId BIGINT;
 		DECLARE @SubWorkOrderModuleId INT = 24; -- FOR SUB WO MODULE
-		DECLARE @ModuleId INT;
+		DECLARE @ModuleId BIGINT;
 		DECLARE @SubModuleId INT ;
 		DECLARE @ReferenceId BIGINT;
 		DECLARE @SubReferenceId BIGINT;
-		DECLARE @ActionId INT ;
+		DECLARE @ActionId INT = 0 ;
 
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
 		SELECT @ActionId = ActionId FROM [DBO].[StklineHistory_Action] WHERE [Type] = 'Create-Sub-WorkOrder' -- For SUB WORK ORDER Cretae History
@@ -217,8 +217,8 @@ BEGIN
 						END
 						PRINT '7'
 						
-						---SELECT  @StocklineId,  @ModuleId,  @SubWorkOrderId,  @SubModuleId,  @SubReferenceId,  @ActionId,  0,  @CreatedBy;
-						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = 0, @UpdatedBy = @CreatedBy;
+						--SELECT  @StocklineId,  @ModuleId,  @SubWorkOrderId,  @SubModuleId,  @SubReferenceId,  @ActionId,  0,  @CreatedBy;
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 0, @UpdatedBy = @CreatedBy;
 
 						PRINT '8'
 						--UPDATE CODE PREFIX FROM SUB WO  

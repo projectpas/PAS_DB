@@ -39,6 +39,8 @@
  23   01/12/2023  Moin Bloch	         added Lot Number EXPS
  24   06/12/2023  Moin Bloch	         added Lot Number in RPO,RRO 
  25	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
+ 26	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
+
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
  EXEC GetJournalBatchDetailsViewpopupById 2534,0,'WOP-DirectLabor'  
@@ -1356,15 +1358,14 @@ BEGIN
 					WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId and JBD.IsDeleted = @IsDeleted  
 					ORDER BY DS.DisplayNumber ASC;  
 		  END
-
-		  IF(UPPER(@Module) = UPPER('SADJ-CUST-STK'))  
+		    IF(UPPER(@Module) = UPPER('SADJ-CUST-STK'))  
 			BEGIN  
 				--DECLARE @blkSTKLEModuleID INT = 2; 
 				--DECLARE @ManagementStructureModuleLEId BIGINT = 0;   
 				--PRINT 'SADJ-QTY'
 
 				--SELECT @ManagementStructureModuleLEId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='EmployeeGeneralInfo';
-  PRINT 'TEST'
+  
 				SELECT JBD.CommonJournalBatchDetailId
 					  ,JBD.[JournalBatchDetailId]  
 					  ,JBH.[JournalBatchHeaderId]  
@@ -1453,8 +1454,88 @@ BEGIN
 					 LEFT JOIN [dbo].[Customer] CST WITH(NOLOCK) ON STKL.CustomerId = CST.CustomerId 
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 				 ORDER BY DS.DisplayNumber ASC;  
+			END
+			IF(UPPER(@Module) = UPPER('MAST'))        
+			BEGIN  				
+				DECLARE @AssetInventoryModuleID varchar(500) ='42,43'  
+				  
+				SELECT JBD.CommonJournalBatchDetailId
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName] 
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]  
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GL.[AllowManualJE] 
+					  ,JBD.[LastMSLevel]  
+					  ,JBD.[AllMSlevels] 
+					  ,JBD.IsManualEntry  
+					  ,jbd.DistributionSetupId  
+					  ,jbd.DistributionName  
+					  ,le.CompanyName AS LegalEntityName  
+					  ,stbd.VendorName  
+					  ,stbd.PONum  
+					  ,stbd.RONum  
+					  ,stbd.StocklineNumber  
+					  ,stbd.[Description]  
+					  ,stbd.Consignment  
+					  ,JBH.[Module]  
+					  ,MPNPartId = stbd.PartId  
+					  ,MPNName = stbd.PartNumber  
+					  ,stbd.StocklineNumber AS [DocumentNumber]  
+					  ,stbd.[SIte]  
+					  ,stbd.[Warehouse]  
+					  ,stbd.[Location]  
+					  ,stbd.[Bin]  
+					  ,stbd.[Shelf]  
+					  ,BD.JournalTypeNumber
+					  ,BD.CurrentNumber  
+					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
+					  ,BS.Name AS 'Status'
+					  ,UPPER(AMSD.Level1Name) AS level1 
+					  ,UPPER(AMSD.Level2Name) AS level2  
+					  ,UPPER(AMSD.Level3Name) AS level3  
+					  ,UPPER(AMSD.Level4Name) AS level4  
+					  ,UPPER(AMSD.Level5Name) AS level5  
+					  ,UPPER(AMSD.Level6Name) AS level6  
+					  ,UPPER(AMSD.Level7Name) AS level7  
+					  ,UPPER(AMSD.Level8Name) AS level8  
+					  ,UPPER(AMSD.Level9Name) AS level9  
+					  ,UPPER(AMSD.Level10Name) AS level10  
+					  ,JBD.[LotNumber]
+				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
+						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
+						INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
+						 LEFT JOIN [dbo].[StocklineBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId  
+						 LEFT JOIN [dbo].[AssetManagementStructureDetails] AMSD WITH (NOLOCK) ON AMSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryModuleID,',')) AND AMSD.ReferenceID = stbd.StockLineId and UPPER(stbd.StockType)= 'ASSET'  
+						 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
+						 LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
+						 LEFT JOIN [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.ManagementStructureId = ESP.EntityStructureId  
+						 LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
+						 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
+						 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
+				 ORDER BY DS.DisplayNumber ASC;  
 			END 
-
 
     END TRY  
  BEGIN CATCH        

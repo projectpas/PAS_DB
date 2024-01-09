@@ -97,7 +97,8 @@ BEGIN
 		SELECT [WorkOrderMaterialId],[WorkOrderId],[ItemMasterId],[SystemUserId],[PartConditionCodeId],[QtyNeeded],[QtyReserved],[QtyIssued],[QtyTurn],[CondLevel],[Notes],[WorkOrderTaskId],
 		[UnitPrice],[Requisition],[IsROPartLinked],[IsPOPartLinked],[IsCQDetailLinked],[EstCost],[NeedDate],[QtyScrapped],[QtyServiceable],[Figure],[ConsignmentCodeId],[QtySpare],[QtyPurchase],[Priority],[ItemNumber],
 		[Remarks],[OperationMasterId],[EntryDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[WorkOrderMaterials] WOM WITH (NOLOCK) WHERE WOM.Migrated_Id IS NULL;
+		FROM [Quantum_Staging].dbo.[WorkOrderMaterials] WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = 7892;
+		--WHERE WOM.Migrated_Id IS NULL;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -106,6 +107,8 @@ BEGIN
 
 		DECLARE @TotCount AS INT;
 		SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #TempWOMaterial;
+
+		SELECT * FROM #TempWOMaterial;
 
 		WHILE (@LoopID <= @TotCount)
 		BEGIN
@@ -158,8 +161,12 @@ BEGIN
 			--	SET @ErrorMsg = @ErrorMsg + '<p>Credit Limit is missing OR zero</p>'
 			--END
 			
+			PRINT @FoundError;
+
 			IF (@FoundError = 1)
 			BEGIN
+				PRINT @CurrentWorkOrderMaterialId;
+
 				UPDATE WOM
 				SET WOM.ErrorMsg = @ErrorMsg
 				FROM [Quantum_Staging].DBO.[WorkOrderMaterials] WOM WHERE WOM.WorkOrderMaterialId = @CurrentWorkOrderMaterialId;
@@ -171,6 +178,8 @@ BEGIN
 
 			IF (@FoundError = 0)
 			BEGIN
+				PRINT 'INSIDE';
+
 				IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ItemMasterId = @WOM_PartId AND ConditionCodeId = @ConditionCodeId AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
 					INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],
@@ -188,6 +197,168 @@ BEGIN
 					FROM #TempWOMaterial WOM WHERE WOM.WorkOrderMaterialId = @CurrentWorkOrderMaterialId;
 
 					SELECT @InsertedWorkOrderMaterialId = SCOPE_IDENTITY();
+
+					IF OBJECT_ID(N'tempdb..#TempWOMaterialStockline') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempWOMaterialStockline
+					END
+
+					CREATE TABLE #TempWOMaterialStockline
+					(
+						[ID] [bigint] NOT NULL IDENTITY,
+						[StockReservationId] [bigint] NOT NULL,
+						[SOPartId] [bigint] NULL,
+						[StocklineId] [bigint] NULL,
+						[ROPartId] [bigint] NULL,
+						[ConsignmentCodeId] [bigint] NULL,
+						[WorkOrderId] [bigint] NULL,
+						[WorkOrderMaterialId] [bigint] NULL,
+						[WorkOrderTaskToolId] [bigint] NULL,
+						[SMDetailId] [bigint] NULL,
+						[UnitCost] [decimal](18, 2) NULL,
+						[QtyReserved] [int] NULL,
+						[QtyShip] [int] NULL,
+						[QtyInvoiced] [int] NULL,
+						[QtyRepaired] [int] NULL,
+						[QtyScrapped] [int] NULL,
+						[POPartId] [bigint] NULL,
+						[QtyIssued] [int] NULL,
+						[QtyUndoIssue] [int] NULL,
+						[EntryDate] [datetime2](7) NULL,
+						[MasterCompanyId] [bigint] NULL,
+						[Migrated_Id] [bigint] NULL,
+						[SuccessMsg] [varchar](500) NULL,
+						[ErrorMsg] [varchar](500) NULL
+					)
+
+					INSERT INTO #TempWOMaterialStockline ([StockReservationId],[SOPartId],[StocklineId],[ROPartId],[ConsignmentCodeId],[WorkOrderId],[WorkOrderMaterialId],[WorkOrderTaskToolId],[SMDetailId],[UnitCost],
+					[QtyReserved],[QtyShip],[QtyInvoiced],[QtyRepaired],[QtyScrapped],[POPartId],[QtyIssued],[QtyUndoIssue],[EntryDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg])
+					SELECT [StockReservationId],[SOPartId],[StocklineId],[ROPartId],[ConsignmentCodeId],[WorkOrderId],[WorkOrderMaterialId],[WorkOrderTaskToolId],[SMDetailId],[UnitCost],
+					[QtyReserved],[QtyShip],[QtyInvoiced],[QtyRepaired],[QtyScrapped],[POPartId],[QtyIssued],[QtyUndoIssue],[EntryDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
+					FROM [Quantum_Staging].dbo.[StockReservations] StkRes WITH (NOLOCK) WHERE StkRes.Migrated_Id IS NULL;
+
+					DECLARE @QtyTurnIn INT;
+
+					SELECT @QtyTurnIn = ISNULL(WOM.QtyTurn, 0) FROM #TempWOMaterial WOM WHERE WOM.WorkOrderMaterialId = @CurrentWorkOrderMaterialId;
+
+					DECLARE @WOMSLoopID AS INT;
+					DECLARE @TotWOMSCount AS INT;
+					SELECT @TotWOMSCount = COUNT(*), @WOMSLoopID = MIN(ID) FROM #TempWOMaterialStockline;
+
+					WHILE (@WOMSLoopID <= @TotWOMSCount)
+					BEGIN
+						DECLARE @WOMS_STM_AUTO_KEY BIGINT;
+						DECLARE @StockLineId BIGINT = 0;
+						DECLARE @QTY_RESERVED INT;
+						DECLARE @STOCK_LINE VARCHAR(100) = '';
+
+						SELECT @WOMS_STM_AUTO_KEY = StocklineId, @QTY_RESERVED = QtyReserved FROM #TempWOMaterialStockline WHERE ID = @WOMSLoopID;
+						SELECT @STOCK_LINE = (CAST(ISNULL(StocklineNumber, '') AS VARCHAR)) FROM Quantum_Staging.DBO.Stocklines WHERE StocklineId = @WOMS_STM_AUTO_KEY;
+						SELECT @StockLineId = [StockLineId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE UPPER([StockLineNumber])  = UPPER(@STOCK_LINE);
+							 
+						IF (@QTY_RESERVED > 0)
+						BEGIN
+							INSERT INTO [dbo].[WorkOrderMaterialStockLine] ([WorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],[MasterCompanyId],
+								[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],
+								[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item])
+							SELECT @InsertedWorkOrderMaterialId, @StockLineId, @WOM_PartId, @ConditionCodeId, ISNULL(WOMS.QtyReserved, 0), ISNULL(WOMS.QtyReserved, 0), ISNULL(WOMS.QtyIssued, 0), @FromMasterComanyID,
+								@UserName, @UserName, GETDATE(), GETDATE(), 1, 0, NULL, NULL, NULL, NULL, ISNULL(WOMS.UnitCost, 0), (ISNULL(WOMS.UnitCost, 0) * ISNULL(WOMS.QtyReserved, 0)),
+								ISNULL(WOMS.UnitCost, 0), (ISNULL(WOMS.UnitCost, 0) * ISNULL(WOMS.QtyReserved, 0)), @ProvisionId, NULL, @QtyTurnIn, NULL, NULL
+							FROM #TempWOMaterialStockline WOMS WHERE ID = @WOMSLoopID;
+						END
+
+						SET @WOMSLoopID = @WOMSLoopID + 1;
+					END
+
+					IF OBJECT_ID(N'tempdb..#TempWOMaterialStocklineIssue') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempWOMaterialStocklineIssue
+					END
+
+					CREATE TABLE #TempWOMaterialStocklineIssue
+					(
+						[ID] [bigint] NOT NULL IDENTITY,
+						[StockTransactionId] [bigint] NOT NULL,
+						[StocklineParentId] [bigint] NULL,
+						[StocklineId] [bigint] NULL,
+						[WorkOrderMaterialId] [bigint] NULL,
+						[WorkOrderTaskToolId] [bigint] NULL,
+						[Qty] [int] NULL,
+						[TranDate] [datetime2](7) NULL,
+						[TransactionType] varchar(10) NULL,
+						[ROPartId] [bigint] NULL,
+						[QtyReverse] [int] NULL,
+						[QtyBilled] [int] NULL,
+						[EntryDate] [datetime2](7) NULL,
+						[MasterCompanyId] [bigint] NULL,
+						[Migrated_Id] [bigint] NULL,
+						[SuccessMsg] [varchar](500) NULL,
+						[ErrorMsg] [varchar](500) NULL
+					)
+
+					INSERT INTO #TempWOMaterialStocklineIssue ([StockTransactionId],[StocklineParentId],[StocklineId],[WorkOrderMaterialId],[WorkOrderTaskToolId],[Qty],[TranDate],[TransactionType],[ROPartId],
+					[QtyReverse],[QtyBilled],[EntryDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg])
+					SELECT [StockTransactionId],[StocklineParentId],[StocklineId],[WorkOrderMaterialId],[WorkOrderTaskToolId],[Qty],[TranDate],[TransactionType],[ROPartId],
+					[QtyReverse],[QtyBilled],[EntryDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
+					FROM [Quantum_Staging].dbo.[StockTransactions] StkTrans WITH (NOLOCK) WHERE StkTrans.Migrated_Id IS NULL;
+
+					DECLARE @WOMSIssueLoopID AS INT;
+					DECLARE @TotWOMSIssueCount AS INT;
+					SELECT @TotWOMSIssueCount = COUNT(*), @WOMSIssueLoopID = MIN(ID) FROM #TempWOMaterialStocklineIssue;
+
+					WHILE (@WOMSIssueLoopID <= @TotWOMSIssueCount)
+					BEGIN
+						DECLARE @QTY_ISSUED INT;
+						DECLARE @STOCK_LINE_NUMBER VARCHAR(50) = '';
+						DECLARE @CTRL_ID VARCHAR(50) = '';
+						DECLARE @CTRL_NUMBER VARCHAR(50) = '';
+						DECLARE @STK_UNIT_COST DECIMAL(18,2) = NULL;
+						DECLARE @Repair_ProvisionId BIGINT = NULL;
+
+						SELECT @WOMS_STM_AUTO_KEY = StocklineId, @QTY_ISSUED = QTY FROM #TempWOMaterialStocklineIssue WHERE ID = @WOMSIssueLoopID;
+
+						SELECT @STOCK_LINE_NUMBER = (CAST(ISNULL(StocklineNumber, '') AS VARCHAR)),  @CTRL_ID = (CAST(ISNULL(STK.Ctrl_ID, '') AS VARCHAR)),
+						@CTRL_NUMBER = (CAST(ISNULL(STK.Ctrl_Number, '') AS VARCHAR)) FROM Quantum_Staging.DBO.Stocklines STK WITH (NOLOCK) WHERE StocklineId = @WOMS_STM_AUTO_KEY;
+
+						SELECT @StockLineId = [StockLineId], @STK_UNIT_COST = UnitCost FROM [dbo].[Stockline] WITH(NOLOCK) 
+													WHERE UPPER([StockLineNumber])  = UPPER(@STOCK_LINE)
+													AND UPPER([IdNumber])  = UPPER(@CTRL_ID) 
+													AND UPPER([ControlNumber])  = UPPER(@CTRL_NUMBER)
+													AND [ItemMasterId] = @WOM_PartId
+													AND MasterCompanyId = @FromMasterComanyID;
+
+						SELECT @ProvisionId  = ProvisionId FROM dbo.[Provision] WHERE UPPER([StatusCode]) = UPPER('REPLACE');
+						SELECT @Repair_ProvisionId  = ProvisionId FROM dbo.[Provision] WHERE UPPER([StatusCode]) = UPPER('REPAIR');
+
+						IF (@StockLineId > 0)
+						BEGIN
+							IF NOT EXISTS (SELECT TOP 1 1 FROM [dbo].[WorkOrderMaterialStockLine] WOMS WHERE WOMS.WorkOrderMaterialsId = @InsertedWorkOrderMaterialId AND WOMS.StockLineId = @StockLineId AND WOMS.MasterCompanyId = @FromMasterComanyID)
+							BEGIN
+								DECLARE @TI_Type CHAR(1) = '';
+								SELECT @QtyTurnIn = WOMS.Qty, @TI_Type = WOMS.TransactionType FROM #TempWOMaterialStocklineIssue WOMS WHERE ID = @WOMSIssueLoopID;
+
+								IF (ISNULL(@InsertedWorkOrderMaterialId, 0) != 0)
+								BEGIN
+									INSERT INTO [dbo].[WorkOrderMaterialStockLine] ([WorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],[MasterCompanyId],
+									[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],
+									[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item])
+									SELECT @InsertedWorkOrderMaterialId, @StockLineId, @WOM_PartId, @ConditionCodeId, ISNULL(WOMS.QTY, 0), 0, CASE WHEN @TI_Type = 'I' THEN ISNULL(WOMS.QTY, 0) ELSE 0 END, @FromMasterComanyID,
+									@UserName, @UserName, GETDATE(), GETDATE(), 1, 0, NULL, NULL, NULL, NULL, ISNULL(@STK_UNIT_COST, 0), (ISNULL(@STK_UNIT_COST, 0) * ISNULL(WOMS.QTY, 0)),
+									ISNULL(@STK_UNIT_COST, 0), (ISNULL(@STK_UNIT_COST, 0) * ISNULL(WOMS.QTY, 0)), CASE WHEN @TI_Type = 'I' THEN @ProvisionId ELSE @Repair_ProvisionId END, NULL, CASE WHEN @TI_Type = 'T' THEN ISNULL(WOMS.QTY, 0) ELSE 0 END, NULL, NULL
+									FROM #TempWOMaterialStocklineIssue WOMS WHERE ID = @WOMSIssueLoopID;
+
+									IF (@TI_Type = 'T')
+									BEGIN
+										UPDATE STK
+										SET STK.QuantityTurnIn = @QtyTurnIn, STK.IsTurnIn = 1
+										FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId AND MasterCompanyId = @FromMasterComanyID;
+									END
+								END
+							END
+						END
+
+						SET @WOMSIssueLoopID = @WOMSIssueLoopID + 1;
+					END
 
 					EXEC USP_UpdateWOTotalCostDetails @WorkOrderId, @WorkFlowWorkOrderId, @UserName, @FromMasterComanyID;
 					EXEC USP_UpdateWOCostDetails @WorkOrderId, @WorkFlowWorkOrderId, @UserName, @FromMasterComanyID

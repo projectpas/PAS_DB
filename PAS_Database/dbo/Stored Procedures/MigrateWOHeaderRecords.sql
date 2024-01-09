@@ -104,7 +104,7 @@ BEGIN
 		SELECT [WorkOrderId],[WorkOrderNumber],[StocklineId],[ItemMasterId],[CustomerId],[WorkOrderMaterialId],[SystemUserId],[EntryDate],[OpenFlag],[Notes],[KitQty],[WorkOrderStatusId],[OPM_Id],
 		[DueDate],[CompanyRefNumber],[PriorityId],[TailNumber],[EngineNumber],[WarranteeFlag],[PartConditionId],[WoType],[ShipViaCodeId],[IsActive],[Description],[SalesOrderPartId],[WorkOrderParentId],[CurrencyId],
 		[CountryCodeId],[BatchNumber],[EstTotalCost],[UrlLink],[ReleaseDate],[IsTearDown],[WorkOrderLotId],[IntegrationType],[IsAutoInvoice],[DateCreated],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[WorkOrderHeaders] WOH WITH (NOLOCK) WHERE WOH.Migrated_Id IS NULL;
+		FROM [Quantum_Staging].dbo.[WorkOrderHeaders] WOH WITH (NOLOCK) WHERE WOH.WorkOrderId = 7892; --WOH.Migrated_Id IS NULL;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -260,10 +260,16 @@ BEGIN
 									   WHEN @WorkScopeName = 'BENCHCHECK' THEN @TestHours								  
 									   ELSE 0 END;
 
-					SELECT @STM_AUTO_KEY = [STM_AUTO_KEY] FROM [Quantum].QCTL_NEW_3.STOCK_RESERVATIONS WITH(NOLOCK) WHERE [WOO_AUTO_KEY] = @CurrentWorkOrderId;
+					PRINT '@CurrentWorkOrderId';
+					PRINT @CurrentWorkOrderId;
+
+					SELECT @STM_AUTO_KEY = StocklineId FROM Quantum_Staging.dbo.StockReservations WITH(NOLOCK) WHERE WorkOrderId = @CurrentWorkOrderId;
 
 					IF (@STM_AUTO_KEY > 0)
 					BEGIN
+						PRINT '@STM_AUTO_KEY > 0';
+						PRINT @STM_AUTO_KEY;
+
 						SELECT @PCC_AUTO_KEY = [PCC_AUTO_KEY], @STOCK_LINE = (CAST(ISNULL(STOCK_LINE, '') AS VARCHAR)), @CTRL_ID = (CAST(ISNULL(CTRL_ID, '') AS VARCHAR)), @CTRL_NUMBER = (CAST(ISNULL(CTRL_NUMBER, '') AS VARCHAR))				
 						FROM [Quantum].QCTL_NEW_3.STOCK WHERE [STM_AUTO_KEY] = @STM_AUTO_KEY;
 
@@ -281,6 +287,9 @@ BEGIN
 
 						IF (@StockLineId > 0)
 						BEGIN
+							PRINT '@StockLineId > 0';
+							PRINT @StockLineId;
+
 							SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
 							
 							SELECT @ConditionId = [ConditionId] FROM [dbo].[Condition] Cond WITH(NOLOCK) WHERE (UPPER(Cond.Code) = UPPER(@ConditionCode)) AND [MasterCompanyId] = @FromMasterComanyID;

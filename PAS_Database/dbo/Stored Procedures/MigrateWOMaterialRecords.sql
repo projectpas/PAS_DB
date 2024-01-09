@@ -107,8 +107,6 @@ BEGIN
 		DECLARE @TotCount AS INT;
 		SELECT @TotCount = COUNT(*), @LoopID = MIN(ID) FROM #TempWOMaterial;
 
-		SELECT * FROM #TempWOMaterial;
-
 		WHILE (@LoopID <= @TotCount)
 		BEGIN
 			SET @ProcessedRecords = @ProcessedRecords + 1;
@@ -155,23 +153,9 @@ BEGIN
 				SET @FoundError = 1;
 				SET @ErrorMsg = @ErrorMsg + '<p>WorkFlow Work Order Id not found</p>'
 			END
-			--IF (ISNULL(@DefaultUserId, 0) = 0)
-			--BEGIN
-			--	SET @FoundError = 1;
-			--	SET @ErrorMsg = @ErrorMsg + '<p>Default User Id not found</p>'
-			--END
-			--IF (ISNULL(@CreditLimit, 0) = 0)
-			--BEGIN
-			--	SET @FoundError = 1;
-			--	SET @ErrorMsg = @ErrorMsg + '<p>Credit Limit is missing OR zero</p>'
-			--END
 			
-			PRINT @FoundError;
-
 			IF (@FoundError = 1)
 			BEGIN
-				PRINT @CurrentWorkOrderMaterialId;
-
 				UPDATE WOM
 				SET WOM.ErrorMsg = @ErrorMsg
 				FROM [Quantum_Staging].DBO.[WorkOrderMaterials] WOM WHERE WOM.WorkOrderMaterialId = @CurrentWorkOrderMaterialId;
@@ -184,7 +168,6 @@ BEGIN
 
 			IF (@FoundError = 0)
 			BEGIN
-				PRINT 'INSIDE';
 				DECLARE @WTM_AUTO_KEY BIGINT = NULL;
 				DECLARE @WOT_AUTO_KEY BIGINT = NULL;
 

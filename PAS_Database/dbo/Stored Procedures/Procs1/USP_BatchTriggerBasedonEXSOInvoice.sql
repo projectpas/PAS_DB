@@ -18,6 +18,7 @@
 	3    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	4    01/12/2023   Moin Bloch    Modify(Added LotId And Lot Number in CommonBatchDetails)
 	5    11/12/2023   Moin Bloch    Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
+	6    09/01/2024   Moin Bloch    Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -83,6 +84,7 @@ BEGIN
 		DECLARE @DistributionCode VARCHAR(200)
 		DECLARE @InvoiceTotalCost DECIMAL(18,2)=0
 		DECLARE @InvoiceNo VARCHAR(100)
+		DECLARE @InvoiceDate DATETIME2(7) = NULL
 		DECLARE @CurrentManagementStructureId BIGINT=0
 		DECLARE @JournalBatchDetailId BIGINT=0
 	    DECLARE @currentNo AS BIGINT = 0;
@@ -720,7 +722,7 @@ BEGIN
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[ExchangeBatchDetails] EBD WITH(NOLOCK) WHERE EBD.[ExchangeSalesOrderId] = @ReferenceId AND EBD.[CustomerId] = @CustomerId AND EBD.[InvoiceId] = @InvoiceId)
 				BEGIN
 
-				SELECT @InvoiceNo = [InvoiceNo] FROM [dbo].[ExchangeSalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @InvoiceId;
+				SELECT @InvoiceNo = [InvoiceNo],@InvoiceDate = [InvoiceDate] FROM [dbo].[ExchangeSalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @InvoiceId;
 
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 				BEGIN
@@ -960,7 +962,7 @@ BEGIN
 									0, 
 									NULL, 
 									NULL,
-									GETUTCDATE(), 
+									@InvoiceDate,
 									GETUTCDATE(), 
 									@JournalTypeId, 
 									@JournalTypename, 
@@ -1038,7 +1040,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1150,7 +1152,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1266,7 +1268,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1383,7 +1385,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1500,7 +1502,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1612,7 +1614,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1728,7 +1730,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1846,7 +1848,7 @@ BEGIN
 										@GlAccountId,
 										@GlAccountNumber,
 										@GlAccountName,
-										GETUTCDATE(),
+										@InvoiceDate,
 										GETUTCDATE(),
 										@JournalTypeId,
 										@JournalTypename,
@@ -1944,7 +1946,6 @@ BEGIN
 						   [UpdatedDate] = GETUTCDATE(),
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
-
 				END
 
 				END
@@ -2401,9 +2402,7 @@ BEGIN
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
 				END
-
-			END		
-			
+			END					
 		END
 	END
   COMMIT  TRANSACTION  		

@@ -20,7 +20,7 @@
     4    30-OCT-2023		 Devendra Shekh			added ExtendedPrice for amount
     5    31-OCT-2023		 Devendra Shekh			added posteddate for npoheaderupdate
     6    02-NOV-2023		 Devendra Shekh			added EXEC [USP_AddVendorPaymentDetailsForNonPOById]
-     
+    7    09-JAN-2024         Moin Bloch             Modify(Replace Invocedate instead of GETUTCDATE() in Invoice) 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **************************************************************/
 
@@ -70,6 +70,7 @@ BEGIN
 		DECLARE @TotalCredit decimal(18, 2) =0;
 		DECLARE @TotalBalance decimal(18, 2) =0;
 		DECLARE @VendorName VARCHAR(50);
+		DECLARE @InvoiceDate DATETIME2(7) = NULL;
 
 		DECLARE @BatchDetailCount BIGINT = 0;
 		DECLARE @CRDRType BIGINT = 0;
@@ -100,7 +101,7 @@ BEGIN
 
 		INSERT INTO #tmpNonPOPartDetails
 		SELECT [NonPOInvoicePartDetailsId], [Amount], [GlAccountId], [Memo], [ExtendedPrice]
-		FROM NonPOInvoicePartDetails WHERE NonPOInvoiceId = @NonPOInvoiceId
+		FROM [dbo].[NonPOInvoicePartDetails] WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
 
 		SELECT @PartAmtSum = SUM(ExtendedPrice) FROM #tmpNonPOPartDetails
 
@@ -129,17 +130,17 @@ BEGIN
 
 			IF(ISNULL(@CheckAmount,0) <> 0)
 			BEGIN		
-				SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy FROM dbo.NonPOInvoiceHeader WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
-				SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('NonPOInvoice')	
-				SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-				SELECT top 1 @JournalTypeId =JournalTypeId FROM DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+				SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy,@InvoiceDate = [InvoiceDate]  FROM dbo.NonPOInvoiceHeader WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
+				SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('NonPOInvoice')	
+				SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
+				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
-				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-				SELECT @CurrentManagementStructureId =ManagementStructureId FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
+				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
+				SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
 				SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'NonPOInvoiceHeader'
 
 				SELECT @VendorName = NPH.VendorName, @VendorId = NPH.VendorId, @ManagementStructureId = ManagementStructureId FROM dbo.NonPOInvoiceHeader NPH WITH(NOLOCK) WHERE NPH.NonPOInvoiceId =  @NonPOInvoiceId
-				SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM NonPOInvoiceManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @NonPOInvoiceId
+				SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM dbo.NonPOInvoiceManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @NonPOInvoiceId
 
 				INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFROM) 
 				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFROM 
@@ -147,13 +148,13 @@ BEGIN
 				WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
 				SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-				FROM EntityStructureSetup est WITH(NOLOCK) 
-				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-				INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId AND acc.IsDeleted =0
-				INNER JOIN NonPOInvoiceHeader npd WITH(NOLOCK) on npd.AccountingCalendarId = acc.AccountingCalendarId
+				FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
+				INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+				INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId AND acc.IsDeleted =0
+				INNER JOIN dbo.NonPOInvoiceHeader npd WITH(NOLOCK) on npd.AccountingCalendarId = acc.AccountingCalendarId
 				WHERE NonPOInvoiceId = @NonPOInvoiceId
 
-				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
+				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
@@ -219,11 +220,11 @@ BEGIN
 				BEGIN 
 					SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
 					   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
-							 FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc   
+							 FROM [dbo].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc   
           
 					IF(@CurrentPeriodId =0)  
 					begin  
-					   Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
+					   Update [dbo].[BatchHeader] set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 					END  
 				END
 
@@ -233,7 +234,7 @@ BEGIN
 					INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 					[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
 					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-					VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), 
+					VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), 
 					@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, 'Non PO Invoice', 
 					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
 
@@ -244,7 +245,7 @@ BEGIN
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType
-				 FROM DistributionSetup WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
 				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
@@ -256,7 +257,7 @@ BEGIN
 					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
-					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
@@ -281,7 +282,7 @@ BEGIN
 				BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-						FROM DistributionSetup WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
+						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
 						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
 						INSERT INTO [dbo].[CommonBatchDetails]
@@ -291,7 +292,7 @@ BEGIN
 							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 						VALUES	
 							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
-							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 							CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
 							CASE WHEN @CRDRType = 1 THEN @PartAmtSum ELSE 0 END,
 							CASE WHEN @CRDRType = 1 THEN 0 ELSE @PartAmtSum END,
@@ -312,14 +313,14 @@ BEGIN
 				SET @TotalDebit=0;
 				SET @TotalCredit=0;
 				SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
-				UPDATE BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate = GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
+				UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate = GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
 
-				SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM BatchDetails 
+				SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[BatchDetails]
 				WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted=0 
 				SET @TotalBalance =@TotalDebit-@TotalCredit
 
-				UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-				UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+				UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+				UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 			END
 
 			SET @NonPOPartStart = @NonPOPartStart + 1

@@ -788,7 +788,7 @@ BEGIN
 					'' AS 'TagType',         
 					'' AS 'TraceableToName',                
 					'' AS 'ItemCategory',         
-					im.ItemTypeId,        
+					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
 					Stks.Date_Created AS CreatedDate,        
 					'' AS CreatedBy,        
@@ -816,16 +816,17 @@ BEGIN
 					'' AS WorkOrderStage,        
 					'' as WorkOrderStatus,        
 					0 as rsworkOrderId,
-					SuccessMsg,
-					ErrorMsg
+					Stks.SuccessMsg,
+					Stks.ErrorMsg
 				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId       
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id
 				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
-				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = Stks.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = Stks.LocationId
-				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
+				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId                  
 		 		  WHERE Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS1 FROM  Result
@@ -943,7 +944,7 @@ BEGIN
 					'' AS 'TagType',         
 					'' AS 'TraceableToName',                
 					'' AS 'ItemCategory',         
-					im.ItemTypeId,        
+					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
 					Stks.Date_Created AS CreatedDate,        
 					'' AS CreatedBy,        
@@ -971,16 +972,17 @@ BEGIN
 					'' AS WorkOrderStage,        
 					'' as WorkOrderStatus,        
 					0 as rsworkOrderId,
-					SuccessMsg,
-					ErrorMsg
+					Stks.SuccessMsg,
+					Stks.ErrorMsg
 				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
 				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
-				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = Stks.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = Stks.LocationId
-				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId
+				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
 		 		  WHERE Stks.Migrated_Id IS NOT NULL AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS2 FROM  Result
@@ -1097,7 +1099,7 @@ BEGIN
 					'' AS 'TagType',         
 					'' AS 'TraceableToName',                
 					'' AS 'ItemCategory',         
-					im.ItemTypeId,        
+					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
 					Stks.Date_Created AS CreatedDate,        
 					'' AS CreatedBy,        
@@ -1125,16 +1127,17 @@ BEGIN
 					'' AS WorkOrderStage,        
 					'' as WorkOrderStatus,        
 					0 as rsworkOrderId,
-					SuccessMsg,
-					ErrorMsg
+					Stks.SuccessMsg,
+					Stks.ErrorMsg
 				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
 				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
-				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = Stks.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = Stks.LocationId
-				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId
+				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
 		 		  WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg NOT like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS3 FROM  Result
@@ -1251,7 +1254,7 @@ BEGIN
 					'' AS 'TagType',         
 					'' AS 'TraceableToName',                
 					'' AS 'ItemCategory',         
-					im.ItemTypeId,        
+					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
 					Stks.Date_Created AS CreatedDate,        
 					'' AS CreatedBy,        
@@ -1279,16 +1282,17 @@ BEGIN
 					'' AS WorkOrderStage,        
 					'' as WorkOrderStatus,        
 					0 as rsworkOrderId,
-					SuccessMsg,
-					ErrorMsg
+					Stks.SuccessMsg,
+					Stks.ErrorMsg
 				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
 				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
-				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = Stks.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = Stks.LocationId
-				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId
+				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
 		 		  WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS4 FROM  Result

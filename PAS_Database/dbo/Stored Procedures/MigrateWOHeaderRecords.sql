@@ -260,7 +260,7 @@ BEGIN
 									   WHEN @WorkScopeName = 'BENCHCHECK' THEN @TestHours								  
 									   ELSE 0 END;
 
-					SELECT @STM_AUTO_KEY = [STM_AUTO_KEY] FROM [Quantum].QCTL_NEW_3.STOCK_RESERVATIONS WITH(NOLOCK) WHERE [WOO_AUTO_KEY] = @CurrentWorkOrderId;
+					SELECT @STM_AUTO_KEY = StocklineId FROM Quantum_Staging.dbo.StockReservations WITH(NOLOCK) WHERE WorkOrderId = @CurrentWorkOrderId;
 
 					IF (@STM_AUTO_KEY > 0)
 					BEGIN

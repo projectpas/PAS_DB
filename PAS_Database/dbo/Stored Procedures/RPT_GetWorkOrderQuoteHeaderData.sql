@@ -16,7 +16,7 @@
 
 --EXEC [RPT_GetWorkOrderQuoteHeaderData] 2140
 **************************************************************/  
-CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
+CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 
 AS  
 BEGIN  
@@ -28,14 +28,14 @@ BEGIN
 		SELECT TOP 1  
 			woq.WorkOrderQuoteId,
             wo.WorkOrderId,
-            woq.QuoteNumber,
+            QuoteNumber = UPPER(woq.QuoteNumber),
             woq.OpenDate,
             woq.QuoteDueDate,
             woq.ValidForDays,
             woq.ExpirationDate,
             wo.CustomerContactId,
             QuoteStatus = wqs.[Description],
-            wo.WorkOrderNum,
+            WorkOrderNum = UPPER(wo.WorkOrderNum),
             CustomerName = UPPER(cust.[Name]),
 			TAXRates = (SELECT SUM(ISNULL(tr.TaxRate,0)) FROM dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)
 							LEFT JOIN dbo.TaxType t WITH(NOLOCK) ON custtax.TaxTypeId = t.TaxTypeId
@@ -60,18 +60,18 @@ BEGIN
 			ComboCitystate = UPPER(ISNULL(adr.City,'')) + '' + UPPER(ISNULL(adr.StateOrProvince,'')),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
-            ShipVia = ISNULL(cs.ShipVia,''),
+            ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
             CustomerEmail = cust.Email,
             cust.CustomerPhone,
             CustomerRef = cust.ContractReference,
             ARBalance = woq.AccountsReceivableBalance,
             CreditLimit = ISNULL(cf.CreditLimit,0),
-            CreditTerms = ISNULL(ct.Name,''),
-            SalesPerson = ISNULL(sp.FirstName,'') + ' ' + ISNULL(sp.LastName,''),
+            CreditTerms = UPPER(ISNULL(ct.Name,'')),
+            SalesPerson = UPPER(ISNULL(sp.FirstName,'') + ' ' + ISNULL(sp.LastName,'')),
             CSR = ISNULL(csr.FirstName,'') + ' ' + ISNULL(csr.LastName,''),
             Employee = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),
-            woq.VersionNo,
-            woq.CreatedBy,
+            VersionNo = UPPER(woq.VersionNo),
+            CreatedBy = UPPER(woq.CreatedBy),
             sa.SiteName,
             Currency = cur.Code,
             wop.ManagementStructureId,
@@ -80,8 +80,8 @@ BEGIN
             TaxRate = ISNULL(custtax.TaxRate,0),
             CustomerAttention = sa.Attention,
             WONotes = woq.Notes,
-            WOCustomerRef = wop.CustomerReference,
-			wop.WorkScope
+            WOCustomerRef = UPPER(wop.CustomerReference),
+			WorkScope = UPPER(wop.WorkScope)
 			 FROM dbo.WorkOrderQuote woq WITH(NOLOCK)
 			 INNER JOIN dbo.WorkOrder wo WITH(NOLOCK) ON woq.WorkOrderId = wo.WorkOrderId
 			 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK)  ON woq.WorkOrderId = wop.WorkOrderId

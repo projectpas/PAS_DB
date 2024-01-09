@@ -11,7 +11,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** --   --------    -------         --------------------------------
 ** 1    01/01/2024  AMIT GHEDIYA    Created
 
-EXEC RPT_GetWorkOrderPrintPdfData 4933,'ADMIN ADMIN'
+EXEC RPT_GetWorkOrderPrintPdfData 4933,234
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -33,11 +33,11 @@ BEGIN
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0            
+			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0            
 		END            
 		ELSE IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and IsVersionIncrease=0))            
 		BEGIN            
-		SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
+			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
 		END            
            
 		SELECT  wo.WorkOrderId,              
@@ -92,8 +92,8 @@ BEGIN
 		shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
 		shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END, 
 		
-		shipCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(shipToAddress.City) END,              
-		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(shipToAddress.StateOrProvince) END,              
+		shipCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(ISNULL(shipToAddress.City,'')) END,              
+		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(ISNULL(shipToAddress.StateOrProvince,'')) END,              
 		shipPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,              
 
 		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) + ', ' END

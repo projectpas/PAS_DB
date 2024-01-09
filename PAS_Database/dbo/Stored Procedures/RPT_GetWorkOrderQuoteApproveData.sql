@@ -16,7 +16,7 @@
 
 --EXEC [RPT_GetWorkOrderQuoteApproveData] 3018
 **************************************************************/  
-CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuoteApproveData]  
+CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteApproveData]  
  @workOrderPartNoId bigint 
 AS  
 BEGIN  
@@ -35,7 +35,7 @@ BEGIN
 			LEFT JOIN dbo.CustomerContact ccon WITH(NOLOCK) ON woq.CustomerApprovedById = ccon.ContactId
 			LEFT JOIN dbo.Customer ca WITH(NOLOCK) ON ccon.CustomerId = ca.CustomerId
 			LEFT JOIN dbo.Customer css WITH(NOLOCK) ON ccon.CustomerId = css.CustomerId
-		WHERE woq.IsDeleted = 0 AND woq.WorkOrderPartNoId = 3018
+		WHERE woq.IsDeleted = 0 AND woq.WorkOrderPartNoId = @workOrderPartNoId
 
    END  
   COMMIT  TRANSACTION  

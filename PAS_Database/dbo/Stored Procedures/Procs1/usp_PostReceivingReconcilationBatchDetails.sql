@@ -23,6 +23,7 @@
 	11	 06/11/2023	  Moin Bloch          Modify(Makes Freight and Tax Sepret SP)
 	12   08/11/2023	  Moin Bloch          Modify(Added ReferenceId)
 	13   17/11/2023	  Moin Bloch          Modify(Added Charges Accounting Entry)
+	14   09/01/2024   Moin Bloch          Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -153,7 +154,7 @@ BEGIN
 
 			SELECT TOP 1 @ReceivingReconciliationId = [id],@EmployeeId = EmployeeId FROM #RRPostType
 
-			SELECT @CurrentManagementStructureId =ManagementStructureId, @UpdateBy = CONCAT(TRIM(FirstName),' ',TRIM(LastName)) FROM Employee 
+			SELECT @CurrentManagementStructureId =ManagementStructureId, @UpdateBy = CONCAT(TRIM(FirstName),' ',TRIM(LastName)) FROM dbo.Employee 
 			WITH(NOLOCK)  WHERE EmployeeId = @EmployeeId and MasterCompanyId=@MasterCompanyId
 
 			SET @DisCode = (select top 1 CASE WHEN [Type] =1 THEN 'ReconciliationPO'			    
@@ -164,30 +165,30 @@ BEGIN
 			       @ReceivingReconciliationNumber = [ReceivingReconciliationNumber]
 			FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 
-			SELECT @DistributionMasterId =ID FROM DistributionMaster WITH(NOLOCK)  
+			SELECT @DistributionMasterId =ID FROM dbo.DistributionMaster WITH(NOLOCK)  
 			WHERE UPPER(DistributionCode)= UPPER(@DisCode)
 
 			SET @INPUTMethod = @DisCode
 			
-			SELECT @IsAccountByPass = IsAccountByPass FROM MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
-			SELECT @DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
-			SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-			SELECT TOP 1 @JournalTypeId =JournalTypeId,@jlTypeId = JournalTypeId FROM DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
-			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
-			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName,@jlTypeName = JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
+			SELECT @IsAccountByPass = IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
+			SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
+			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
+			SELECT TOP 1 @JournalTypeId =JournalTypeId,@jlTypeId = JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName,@jlTypeName = JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 			IF(ISNULL(@TotalAmt,0) > 0 AND @IsAccountByPass = 0 AND (@DisCode = 'ReconciliationPO' OR @DisCode = 'ReconciliationRO'))
 			BEGIN
 			
-				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM EntityStructureSetup est WITH(NOLOCK) 
-				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-				INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
+				INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+				INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 				WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
-				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND IsDeleted =0)
+				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId AND IsDeleted =0)
 				BEGIN
-					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK))
+					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 					BEGIN
 						SET @batch ='001'
 						SET @Currentbatch='001'
@@ -196,7 +197,7 @@ BEGIN
 					BEGIN
 						SELECT TOP 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
 								ELSE  1 END 
-						FROM BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
+						FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
 
 						IF(CAST(@Currentbatch AS BIGINT) >99)
 						BEGIN
@@ -227,18 +228,18 @@ BEGIN
             				          
 					SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 					SELECT @JlBatchHeaderId = SCOPE_IDENTITY()
-					UPDATE BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+					UPDATE dbo.BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 				END
 				ELSE
 				BEGIN
 					SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK) 
 					WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 					SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
-						FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
+						FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
 						
 					IF(@CurrentPeriodId =0)
 					BEGIN
-						Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+						Update dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
 				END
 
@@ -348,7 +349,7 @@ BEGIN
 							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
 								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 							    [AccountingPeriodId],[AccountingPeriod])
-							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
+							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL,@TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
 								@JournalTypeId ,@JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
 								@AccountingPeriodId,@AccountingPeriod)
 							SET @JournalBatchDetailId=SCOPE_IDENTITY()
@@ -424,7 +425,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -462,7 +463,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename , 
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename , 
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -559,7 +560,7 @@ BEGIN
 											       ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											        [IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										    VALUES
-											       (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											       (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											        CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											        CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											        CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END
@@ -583,7 +584,7 @@ BEGIN
 											       ([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											        [IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										    VALUES
-											       (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											       (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											        0,
 											        0,
 											        ABS(@Amount),
@@ -625,7 +626,7 @@ BEGIN
 										(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 										[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-										(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+										(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 										CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 										CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 										CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -665,7 +666,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -777,7 +778,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -801,7 +802,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											0,
 											0,
 											ABS(@Amount),
@@ -842,7 +843,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -863,7 +864,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											0,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -902,7 +903,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -940,7 +941,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END
@@ -968,7 +969,7 @@ BEGIN
 							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
 								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 								[AccountingPeriodId],[AccountingPeriod])
-							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
+							VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, @TransactionDate, GETUTCDATE(), @jlTypeId, @jlTypeName, 1, 0, 0, 0, @INPUTMethod,
 								@JournalTypeId, @JournalTypename, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
 								@AccountingPeriodId,@AccountingPeriod)
 
@@ -1032,7 +1033,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1072,7 +1073,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1152,7 +1153,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1176,7 +1177,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											 0,
 											 0,
 											 ABS(@Amount),
@@ -1216,7 +1217,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1257,7 +1258,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1336,7 +1337,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END
@@ -1360,7 +1361,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											 0,
 											 0,
 											 ABS(@Amount),
@@ -1402,7 +1403,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 																  
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -1422,7 +1423,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											1,0,ABS(@Amount),@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 																  
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -1461,7 +1462,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END
@@ -1501,7 +1502,7 @@ BEGIN
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 											[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 										VALUES
-											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+											(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0) ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 											CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 											CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
@@ -1561,11 +1562,11 @@ BEGIN
 				DECLARE @TotalMisc DECIMAL(18,2) = 0;
 				
 				----- Total Freight -----
-				SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] = 1;			
+				SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] = 1;			
 				----- Total Tax -----
-				SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  3;
+				SELECT @TotalTax = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  3;
 		
-				SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  2;
+				SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  2;
 				
 				IF(@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0)
 				BEGIN

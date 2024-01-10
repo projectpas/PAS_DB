@@ -12,6 +12,7 @@
  ** --   --------     -------				--------------------------------          
     1    12/25/2023   Devendra Shekh			Created
     2    01/08/2024   Devendra Shekh			added new columns
+    3    01/09/2024   Devendra Shekh			added new column
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -99,10 +100,11 @@ BEGIN
 			SubWorkOrderId BIGINT NULL,
 			WorkOrderId BIGINT NULL,
 			IsAllowDelete BIT NULL,
+			SubReleaseFromId BIGINT NULL,
 		)
 
-		INSERT INTO #tempSubWO(SubWorkOrderId, WorkOrderId, IsAllowDelete) 
-		SELECT SubWorkOrderId,  WorkOrderId, 0
+		INSERT INTO #tempSubWO(SubWorkOrderId, WorkOrderId, IsAllowDelete, SubReleaseFromId) 
+		SELECT SubWorkOrderId,  WorkOrderId, 0, 0
 		FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 		SET @TotalRec = (SELECT COUNT(ID) FROM #tempSubWO)
@@ -143,6 +145,11 @@ BEGIN
 				WHERE SubWorkOrderId = @TmpSubWOId
 			END
 
+			UPDATE #tempSubWO
+			SET SubReleaseFromId =	CASE WHEN @Is8130 = 1 
+									THEN (SELECT SubReleaseFromId FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId) ELSE 0 END
+			WHERE SubWorkOrderId = @TmpSubWOId
+
 			SET @TotalRec = @TotalRec - 1	
 		END
 
@@ -173,7 +180,8 @@ BEGIN
 						UCD.[Description] AS 'UpdatedCondition',
 						CASE WHEN ISNULL(SWPT.IsTransferredToParentWO, 0) = 0 THEN 'NO' ELSE 'YES' END AS 'IsTransferredToParentWO',
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
-						SL.StockLineNumber AS 'UpdatedStockLineNumber'
+						SL.StockLineNumber AS 'UpdatedStockLineNumber',
+						tmpSub.SubReleaseFromId
 			   FROM [dbo].[SubWorkOrder] SWO WITH (NOLOCK)
 				--INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId
 				--INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId

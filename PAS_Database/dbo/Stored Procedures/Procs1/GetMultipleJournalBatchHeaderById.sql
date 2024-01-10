@@ -18,12 +18,13 @@
 	3	 19/06/2023  Shrey Chandegara	  Updated for add JE Detail view like GLAccount,Credit,....
 	3	 29/08/2023  Devendra Shekh		  added BatchStatus join for journal batchstatus
 	5	 04/12/2023  Ayesha Sultana		  Date Time UTC convert
-	5	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
+	6	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
+	7	 10/01/2024  Moin Bloch		      Set TDate Format to MM-dd-yyy
          
--- EXEC GetMultipleJournalBatchHeaderById '321'    
+-- EXEC GetMultipleJournalBatchHeaderById '1524,1523,1521,1520,1519,1518,1517,1516,1515,1495,1513,1467,1500',1    
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
-@JournalBatchHeaderId varchar(MAX)  = null ,
+@JournalBatchHeaderId varchar(MAX)  = null,
 @ManagementStructId varchar(max) = null
 AS    
 BEGIN    
@@ -35,10 +36,10 @@ BEGIN
    DECLARE @CurrentDateTime DATETIME='';
 
    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description]    
-   FROM DBO.LegalEntity LE WITH (NOLOCK) 
-		INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-		INNER JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
-		INNER JOIN EntityStructureSetup ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
+   FROM [dbo].[LegalEntity] LE WITH (NOLOCK) 
+		INNER JOIN [dbo].[TimeZone] TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+		INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId
+		INNER JOIN [dbo].[EntityStructureSetup] ESS WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
    WHERE ESS.EntityStructureId = @ManagementStructId
 
    SELECT @CurrentDateTime = GETDATE();
@@ -47,8 +48,8 @@ BEGIN
    JBH.[JournalBatchHeaderId],  
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
-   Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime) as EntryDate, 
-   Cast(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) as datetime) as PostDate, 
+   CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS EntryDate, 
+   CAST(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS PostDate, 
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  
    JBH.[StatusName],  
@@ -64,33 +65,43 @@ BEGIN
    ISNULL(JBD.[DebitAmount],0) AS DebitAmount,  
    ISNULL(JBD.[CreditAmount],0) AS CreditAmount,  
    JBD.[JournalTypeNumber] AS DJournalTypeNumber,  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) as datetime) as DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
+   CAST(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
-   Cast(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) as datetime) as CreatedDate,
-   Cast(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) as datetime) as UpdatedDate, 
+   CAST(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS CreatedDate,
+   CAST(DBO.ConvertUTCtoLocal(JBD.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS UpdatedDate, 
    JBD.[CreatedBy],  
    JBD.[UpdatedBy] AS DUpdatedBy,
-   CD.CreditAmount as Cr,
-   CD.DebitAmount as Dr,
-   CD.GlAccountNumber + ' - ' + CD.GlAccountName as GLAccount,
-   Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, 
+   CD.CreditAmount AS Cr,
+   CD.DebitAmount AS Dr,
+   CD.GlAccountNumber + ' - ' + CD.GlAccountName AS GLAccount,
+   --Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, 
+   CASE WHEN UPPER(DM.DistributionCode) = UPPER('WOINVOICINGTAB') OR
+             UPPER(DM.DistributionCode) = UPPER('SOINVOICE') OR
+			 UPPER(DM.DistributionCode) = UPPER('EX-FeeBilling') OR			 
+             UPPER(DM.DistributionCode) = UPPER('NonPOInvoice') OR 
+             UPPER(DM.DistributionCode) = UPPER('ReconciliationRO') OR
+			 UPPER(DM.DistributionCode) = UPPER('ReconciliationPO') 
+        THEN FORMAT(CD.TransactionDate,'MM/dd/yyyy') 
+		ELSE FORMAT(CAST(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss')
+		END	AS TDate,   
    BS.[Name] AS 'BatchStatus',
-   @CurrentDateTime as PrintedDate
-
+   @CurrentDateTime AS PrintedDate
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  
   LEFT JOIN [dbo].[BatchDetails] JBD WITH(NOLOCK) ON JBD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBD.IsDeleted=0  
   LEFT JOIN [dbo].[JournalType] JT WITH(NOLOCK) ON JBD.JournalTypeId = JT.ID  
-  LEFT JOIN [dbo].CommonBatchDetails CD WITH(NOLOCK) ON JBH.JournalBatchHeaderId = CD.JournalBatchHeaderId AND JBD.JournalBatchDetailId = CD.JournalBatchDetailId AND CD.IsDeleted = 0  
+  LEFT JOIN [dbo].[CommonBatchDetails] CD WITH(NOLOCK) ON JBH.JournalBatchHeaderId = CD.JournalBatchHeaderId AND JBD.JournalBatchDetailId = CD.JournalBatchDetailId AND CD.IsDeleted = 0  
   LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON JBD.StatusId = BS.ID  
+  LEFT JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON CD.[DistributionSetupId] = DS.ID
+  LEFT JOIN [dbo].[DistributionMaster] DM WITH(NOLOCK) ON DS.[DistributionMasterId] = DM.ID
 
-  WHERE JBH.JournalBatchHeaderId in(SELECT * FROM STRING_SPLIT(@JournalBatchHeaderId , ','))    
-  GROUP BY JBH.[JournalBatchHeaderId],JBH.[BatchName],JBH.[CurrentNumber],JBH.[EntryDate],JBH.[PostDate], JBH.[AccountingPeriod], JBH.[StatusId],  
-   JBH.[StatusName],JBH.[JournalTypeId],JBH.[JournalTypeName], JBH.[TotalDebit],JBH.[TotalCredit], JBH.[TotalBalance],JBH.[MasterCompanyId],  
-   JBH.[UpdatedBy],JBD.[JournalBatchDetailId],JBH.[Module],JBD.[DebitAmount],JBD.[CreditAmount],  
-   JBD.[JournalTypeNumber],JBD.[EntryDate],JBD.[JournalTypeName],JT.[JournalTypeCode],JBD.[CreatedDate],  
-   JBD.[UpdatedDate],JBD.[CreatedBy],JBD.[UpdatedBy], CD.CreditAmount,CD.DebitAmount,CD.GlAccountName,CD.GlAccountNumber,CD.TransactionDate,BS.[Name]
-  ORDER BY JBH.[EntryDate],JBD.[JournalBatchDetailId] DESC;  
+  WHERE JBH.JournalBatchHeaderId IN (SELECT * FROM STRING_SPLIT(@JournalBatchHeaderId , ','))    
+  --GROUP BY JBH.[JournalBatchHeaderId],JBH.[BatchName],JBH.[CurrentNumber],JBH.[EntryDate],JBH.[PostDate], JBH.[AccountingPeriod], JBH.[StatusId],  
+  -- JBH.[StatusName],JBH.[JournalTypeId],JBH.[JournalTypeName], JBH.[TotalDebit],JBH.[TotalCredit], JBH.[TotalBalance],JBH.[MasterCompanyId],  
+  -- JBH.[UpdatedBy],JBD.[JournalBatchDetailId],JBH.[Module],JBD.[DebitAmount],JBD.[CreditAmount],  
+  -- JBD.[JournalTypeNumber],JBD.[EntryDate],JBD.[JournalTypeName],JT.[JournalTypeCode],JBD.[CreatedDate],  
+  -- JBD.[UpdatedDate],JBD.[CreatedBy],JBD.[UpdatedBy], CD.CreditAmount,CD.DebitAmount,CD.GlAccountName,CD.GlAccountNumber,CD.TransactionDate,BS.[Name],DM.DistributionCode
+     ORDER BY JBH.[EntryDate],JBD.[JournalBatchDetailId] DESC;  
     END TRY        
  BEGIN CATCH          
   IF @@trancount > 0    

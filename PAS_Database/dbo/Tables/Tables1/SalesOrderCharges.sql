@@ -29,11 +29,14 @@
     [MarkupName]               VARCHAR (50)    NULL,
     [ItemMasterId]             BIGINT          NULL,
     [ConditionId]              BIGINT          NULL,
+    [UOMId]                    BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderCharges] PRIMARY KEY CLUSTERED ([SalesOrderChargesId] ASC),
     CONSTRAINT [FK_SalesOrderCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_SalesOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderCharges_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 GO

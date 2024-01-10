@@ -30,6 +30,9 @@
     [MarkupName]               VARCHAR (50)    NULL,
     [ItemMasterId]             BIGINT          NULL,
     [ConditionId]              BIGINT          NULL,
+    [UOMId]                    BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderChargesAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderChargesId] ASC)
 );
+
+
 

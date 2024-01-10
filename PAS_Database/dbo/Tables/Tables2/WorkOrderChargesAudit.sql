@@ -24,6 +24,9 @@
     [ChargeType]              VARCHAR (256)   NOT NULL,
     [GlAccount]               VARCHAR (256)   NULL,
     [Vendor]                  VARCHAR (256)   NULL,
+    [UOMId]                   BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderChargesAudit] PRIMARY KEY CLUSTERED ([WorkOrderChargesAuditId] ASC)
 );
+
+
 

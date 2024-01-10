@@ -53,7 +53,18 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @Model varchar(50) = null,
 @StklineNumber varchar(50) = null,
 @ControlNumber varchar(50) = null,
-@EmployeeId bigint=1
+@EmployeeId bigint=1,
+@InstalledCost decimal,
+@InServiceDate decimal,
+@DepreciableStatus varchar(50) = null,
+@DepreciationAmount decimal,
+@AccumlatedDepr decimal,
+@NetBookValue decimal,
+@NBVAfterDepreciation decimal,
+@DepreciableLife bigint,
+@DepreciationFrequencyName varchar(50) = null,
+@Currency varchar(50) = null,
+@DepreciationMethod varchar(50) = null
 AS
 BEGIN
 
@@ -140,7 +151,22 @@ BEGIN
 								V.VendorName AS VendorName,	
 								MSD.LastMSLevel,	
 								MSD.AllMSlevels,
-								asm.statusNote
+								MSD.EntityMSID,
+								asm.statusNote,
+
+								ASM.TotalCost as InstalledCost,
+								ASM.ReceivedDate as InServiceDate,
+								'Depreciating' as DepreciableStatus,
+								0 as DepreciationAmount,
+								0 as AccumlatedDepr,
+								0 as NetBookValue,
+								0 as NBVAfterDepreciation,
+								ASM.AssetLife as DepreciableLife,
+								ASM.DepreciationFrequencyName,
+								CURR.Code as Currency,
+								ASM.DepreciationMethodName as DepreciationMethod
+
+
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
 								 LEFT JOIN [dbo].[AssetAttributeType] asty WITH(NOLOCK) ON ast.AssetAttributeTypeId = asty.AssetAttributeTypeId
@@ -151,6 +177,8 @@ BEGIN
 								 LEFT JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
 								 LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								 LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								 LEFT JOIN [dbo].Currency CURR WITH (NOLOCK) ON CURR.CurrencyId = ASM.CurrencyId
+
 							WHERE (((asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), GETUTCDATE(), 112) != CONVERT(VARCHAR(6), asm.EntryDate, 112)) ) OR
 							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR
 									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 

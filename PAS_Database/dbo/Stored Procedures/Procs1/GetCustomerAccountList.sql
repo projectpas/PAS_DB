@@ -1,6 +1,22 @@
-﻿
---exec GetCustomerAccountList 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
-Create   PROCEDURE [dbo].[GetCustomerAccountList]
+﻿/*************************************************************                   
+ ** File:   [GetCustomerAccountList]                   
+ ** Author:  unknown   
+ ** Description: Get Data For Customer Account List
+ ** Purpose:                 
+ ** Date: 05-01-2024     
+ ** PARAMETERS:         
+ ** RETURN VALUE:       
+ *************************************************************************************************                   
+  ** Change History                   
+ *************************************************************************************************                   
+ ** S NO   Date            Author          Change Description                    
+ ** --   --------         -------          --------------------------------   
+	1                      unknown         Created            
+	2    05-01-2024        Moin Bloch      Modified (Formated The SP)
+	
+    EXEC [dbo].[GetCustomerAccountList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
+***************************************************************************************************/ 
+CREATE   PROCEDURE [dbo].[GetCustomerAccountList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -68,47 +84,47 @@ BEGIN
 		--BEGIN
 		 DECLARE @SOMSModuleID INT = 17,@WOMSModuleID INT = 12;
 		 ;WITH CTEData AS(
-			select ct.CustomerId,CASt(sobi.InvoiceDate as date) AS InvoiceDate,
+			select ct.CustomerId,CAST(sobi.InvoiceDate as date) AS InvoiceDate,
 			sobi.GrandTotal,
 			sobi.RemainingAmount,
-			DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE()) AS dayDiff,
+			DATEDIFF(DAY, CAST(sobi.PostedDate as date), GETUTCDATE()) AS dayDiff,
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(sobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
 			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(sobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+			DATEDIFF(DAY, CAST(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			from SalesOrderBillingInvoicing sobi
-			INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
+			FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
+			INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
+			INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
+			 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
 			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
-			where sobi.InvoiceStatus = 'Invoiced'
-			group by sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
+			WHERE sobi.InvoiceStatus = 'Invoiced'
+			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
 			
 			UNION ALL
 			
-			select ct.CustomerId,CASt(wobi.InvoiceDate as date) AS InvoiceDate,
+			select ct.CustomerId,CAST(wobi.InvoiceDate as date) AS InvoiceDate,
 			wobi.GrandTotal,
 			wobi.RemainingAmount,
-			DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE()) AS dayDiff,
+			DATEDIFF(DAY, CAST(wobi.PostedDate as date), GETUTCDATE()) AS dayDiff,
 			ctm.NetDays,
 			--(DATEDIFF(DAY, CASt(wobi.InvoiceDate as date), GETDATE()) - ctm.NetDays) AS CreditRemainingDays
 			--(ISNULL(ctm.NetDays,0) - DATEDIFF(DAY, CASt(wobi.PostedDate as date), GETDATE())) AS CreditRemainingDays
 			--DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + ISNULL(ctm.NetDays,0)  as date), GETDATE()) AS CreditRemainingDays
-			DATEDIFF(DAY, CASt(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
+			DATEDIFF(DAY, CAST(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETDATE()) AS CreditRemainingDays
-			from WorkOrderBillingInvoicing wobi
-			INNER JOIN WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
-			INNER JOIN Customer ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
+			from [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
+			INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
+			INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
 			--LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
-			LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
+			LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
 			--where ct.CustomerId=58 AND wobi.InvoiceStatus='Reviewed'
-			where wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
-			group by wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
+			WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0
+			GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
 			
 			), CTECalculation AS(
 			select
@@ -167,13 +183,13 @@ BEGIN
 							WHERE WI.BillingInvoicingId = wobi.BillingInvoicingId
 							FOR XML PATH('')), 1, 1, '') 
 							AS 'Reference'
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
-			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId=WO.WorkOrderId
-		 	   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-			   INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
+			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkOrderId=WO.WorkOrderId
+		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
+			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
 			  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     
 					AND C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId,wop.CustomerReference,wobi.BillingInvoicingId
 UNION ALL
@@ -202,12 +218,12 @@ SELECT DISTINCT C.CustomerId,
 							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference'
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN dbo.[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   INNER JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
-			   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
-			   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
+			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId
+			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
 		 	  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     
 					AND C.MasterCompanyId=@MasterCompanyId AND sobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId
 						), Result AS(
@@ -239,11 +255,11 @@ SELECT DISTINCT C.CustomerId,
 					   MAX(C.CreatedBy) as CreatedBy,
                        MAX(C.UpdatedBy) as UpdatedBy,
 					   max(CTE.ManagementStructureId) as ManagementStructureId
-			   FROM dbo.Customer C WITH (NOLOCK) 
-			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+			   FROM [dbo].[Customer] C WITH (NOLOCK) 
+			   INNER JOIN[dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN CTE as CTE WITH (NOLOCK) ON CTE.CustomerId = C.CustomerId 
 			   INNER JOIN CTECalculation as CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId 
-			   INNER JOIN CustomerFinancial ctf WITH(NOLOCK) ON ctf.CustomerId = C.CustomerId
+			   INNER JOIN [dbo].[CustomerFinancial] ctf WITH(NOLOCK) ON ctf.CustomerId = C.CustomerId
 			   WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive) AND (isnull(@viewType,'') = '' OR ctf.CreditLimit is not null))			     
 					AND C.MasterCompanyId=@MasterCompanyId	GROUP BY C.CustomerId
 

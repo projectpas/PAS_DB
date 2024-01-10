@@ -15,6 +15,7 @@
 	2	 08/12/2023	  Satish Gohil	     Dynamic GlAccount Added for particular distribution
 	3	 08/16/2023	  Amit Ghediya	     Updated Fix entry for ACCUMULATEDDEPRECIATION to DR/CR. 
 	4    21/08/2023   Moin Bloch         Modify(Added Accounting MS Entry)
+	5    1/JAN/2024   AYESHA SULTANA     MODIFY(GETTING @SelectedAccountingPeriodId FROM API)
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -29,7 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateBatch_Asset_inventory]
 	@UpdateBy varchar(200),
 	@MasterCompanyId bigint,
 	@StockType varchar(100),
-	@BatchId BIGINT OUTPUT
+	@BatchId BIGINT OUTPUT,
+	@SelectedAccountingPeriodId bigint=NULL
 )
 AS
 BEGIN
@@ -252,11 +254,21 @@ BEGIN
 
 		IF((@JournalTypeCode ='AST') and @IsAccountByPass=0)
 		BEGIN
-			SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
-			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-			INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(getdate() as date)   >= CAST(FromDate as date) and  CAST(getdate() as date) <= CAST(ToDate as date)
 
+			IF(@SelectedAccountingPeriodId = NULL)
+			BEGIN
+				SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
+				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+				INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+				where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(getdate() as date)   >= CAST(FromDate as date) and  CAST(getdate() as date) <= CAST(ToDate as date)
+			END
+			ELSE
+			BEGIN 
+				SELECT top 1  @AccountingPeriodId=ACC.AccountingCalendarId,@AccountingPeriod=ACC.PeriodName 
+				FROM AccountingCalendar ACC 
+				where ACC.AccountingCalendarId=@SelectedAccountingPeriodId 
+			END
+			
 			IF NOT EXISTS(select JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
             BEGIN
 				IF NOT EXISTS(select JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK))

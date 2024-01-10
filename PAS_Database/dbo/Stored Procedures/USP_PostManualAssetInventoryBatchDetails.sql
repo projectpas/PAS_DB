@@ -14,9 +14,9 @@
  **************************************************************           
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				--------------------------------          
-	1    27/12/2023          Moin Bloch          Created
+	1    09/01/2023          Moin Bloch          Created
      
-	 exec USP_PostManualAssetInventoryBatchDetails 1,1
+    EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
 create    PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
 @AssetInventoryId BIGINT,
@@ -86,7 +86,7 @@ BEGIN
 		DECLARE @MPNName VARCHAR(200);
 		DECLARE @Desc VARCHAR(100);
 		DECLARE @VendorId BIGINT;
-		DECLARE @StockType VARCHAR(50) = 'STOCK';
+		DECLARE @StockType VARCHAR(50) = 'ASSET';
 		DECLARE @StkGlAccountId BIGINT
 		DECLARE @StkGlAccountName VARCHAR(200) 
 		DECLARE @StkGlAccountNumber VARCHAR(200) 
@@ -113,15 +113,16 @@ BEGIN
 		
 		SELECT @TotalAmount = SUM(ISNULL(AI.UnitCost * AI.Qty,0)) FROM [dbo].[AssetInventory] AI WITH(NOLOCK) WHERE AI.[AssetInventoryId] = @AssetInventoryId;
 
+		print @TotalAmount
+
 		IF(ISNULL(@TotalAmount,0) > 0)
 		BEGIN	
-		    SELECT @MasterCompanyId = [MasterCompanyId], @UpdateBy = [CreatedBy] FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId;			
-			SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('AssetInventory');			
+		    SELECT @MasterCompanyId = [MasterCompanyId], @UpdateBy = [CreatedBy],@CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId;			
+			SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('ManualAssetInventory');	
 			SELECT @StatusId = [Id],@StatusName = [name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('Open');
 			SELECT TOP 1 @JournalTypeId = [JournalTypeId] FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId;
 			SELECT @JournalBatchHeaderId = [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [StatusId] = @StatusId;
 			SELECT @JournalTypeCode = [JournalTypeCode],@JournalTypename = [JournalTypeName] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeId;						
-			SELECT @CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND [MasterCompanyId] = @MasterCompanyId;
 		    SELECT @Moduleids = (SELECT STRING_AGG([ManagementStructureModuleId],',') FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] IN ('AssetInventoryTangible','AssetInventoryInTangible'));
 
 			SELECT @WorkOrderNumber = [InventoryNumber], 
@@ -176,6 +177,9 @@ BEGIN
 			  AND CP.[IsActive] = 1 
 			  AND CP.[IsDeleted] = 0;
 
+			print @CurrentManagementStructureId
+			print @MasterCompanyId
+
 			SELECT TOP 1  @AccountingPeriodId = acc.[AccountingCalendarId],
 			              @AccountingPeriod = [PeriodName] 
 			         FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
@@ -189,7 +193,7 @@ BEGIN
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE [CodeTypeId] = @CodeTypeId))
 			BEGIN 
 				SELECT @currentNo = CASE WHEN [CurrentNumber] > 0 THEN CAST([CurrentNumber] AS BIGINT) + 1 ELSE CAST([StartsFrom] AS BIGINT) + 1 END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+				  FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
 					  	  
 				SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 			END
@@ -321,7 +325,9 @@ BEGIN
 						[CreatedDate], 
 						[UpdatedDate], 
 						[IsActive], 
-						[IsDeleted])
+						[IsDeleted],
+						[AccountingPeriodId],
+						[AccountingPeriod])
 			     VALUES(@JournalTypeNumber,
 				        @currentNo,
 						0, 
@@ -340,19 +346,21 @@ BEGIN
 						0, 
 						@ManagementStructureId, 
 						'ManualStockLine', 
-			            NULL, 
-						NULL, 
+			            @LastMSLevel, 
+						@AllMSlevels, 
 						@MasterCompanyId, 
 						@UpdateBy, 
 						@UpdateBy, 
 						GETUTCDATE(), 
 						GETUTCDATE(), 
 						1, 
-						0)
+						0,
+						@AccountingPeriodId,
+						@AccountingPeriod)
 		
 			SET @JournalBatchDetailId = SCOPE_IDENTITY()
 
-			 -----Account Payable || COGS / Inventory Reserve--------
+			 -----GOOD RECEIPT NOT INVOICED (GRNI)--------
 
 			SELECT TOP 1 @DistributionSetupId = [ID],
 			             @DistributionName = [Name],
@@ -361,7 +369,7 @@ BEGIN
 			             @GlAccountId = [GlAccountId],
 						 @GlAccountNumber = [GlAccountNumber],
 						 @GlAccountName = [GlAccountName] 
-			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('COGS / Inventory Reserve') 
+			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('GOOD RECEIPT NOT INVOICED (GRNI)') 
 			         AND [DistributionMasterId] = @DistributionMasterId;
 					 
 			INSERT INTO [dbo].[CommonBatchDetails]
@@ -485,19 +493,17 @@ BEGIN
 				            @StockType,
 							@CommonBatchDetailId)
 
-			 -----Account Payable || COGS / Inventory Reserve--------
-
 			 -----Asset - INVENTORY--------
 			 				
 			 SELECT TOP 1 @DistributionSetupId = [ID],
 			              @DistributionName = [Name],
 						  @JournalTypeId = [JournalTypeId], 
-						  @CRDRType = [CRDRType],
-			              @GlAccountId = [GlAccountId],
-						  @GlAccountNumber = [GlAccountNumber],
-						  @GlAccountName = GlAccountName 
+						  @CRDRType = [CRDRType]
+			              --@GlAccountId = [GlAccountId],
+						  --@GlAccountNumber = [GlAccountNumber],
+						  --@GlAccountName = GlAccountName 
 			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-					WHERE UPPER([Name]) = UPPER('STOCK - INVENTORY') 
+					WHERE UPPER([Name]) = UPPER('ASSET - INVENTORY') 
 			          AND [DistributionMasterId] = @DistributionMasterId;
 
 			 INSERT INTO [dbo].[CommonBatchDetails]

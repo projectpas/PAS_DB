@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/04/2023  Amit Ghediya    Created
+	2    05/01/2024  Moin Bloch      Added dbo in Table With No(LOCK)
      
 -- EXEC GetViewSpeedQuoteById 78
 ************************************************************************/
@@ -116,21 +117,20 @@ BEGIN
 				ISNULL(msd.LastMSLevel,'') AS LastMSLevel,
 				ISNULL(msd.AllMSlevels,'') AS AllMSlevels
 
-			FROM
-				SpeedQuote soq
-				LEFT JOIN Customer cus ON soq.CustomerId = cus.CustomerId
-				LEFT JOIN CustomerDomensticShipping cusshipping ON cus.CustomerId = cusshipping.CustomerId AND cusshipping.IsPrimary = 1
-				LEFT JOIN Address addre ON cusshipping.AddressId = addre.AddressId
-				LEFT JOIN Countries soconty ON addre.CountryId = soconty.countries_id
-				LEFT JOIN CustomerContact cuscon ON cus.CustomerId = cuscon.CustomerId AND cuscon.IsDefaultContact = 1
-				LEFT JOIN Contact con ON cuscon.ContactId = con.ContactId
-				LEFT JOIN Address ad ON cus.AddressId = ad.AddressId
-				LEFT JOIN Countries conty ON ad.CountryId = conty.countries_id
-				JOIN WorkOrderManagementStructureDetails msd ON soq.SpeedQuoteId = msd.ReferenceID AND msd.ModuleID = 27
-				JOIN ManagementStructureLevel msl ON msd.Level1Id = msl.ID
-				JOIN LegalEntity leg ON msl.LegalEntityId = leg.LegalEntityId
-				LEFT JOIN Address adds ON leg.AddressId = adds.AddressId
-				LEFT JOIN Countries ccon ON adds.CountryId = ccon.countries_id
+			FROM [dbo].[SpeedQuote] soq WITH(NOLOCK)
+				LEFT JOIN [dbo].[Customer] cus WITH(NOLOCK) ON soq.CustomerId = cus.CustomerId
+				LEFT JOIN [dbo].[CustomerDomensticShipping] cusshipping WITH(NOLOCK) ON cus.CustomerId = cusshipping.CustomerId AND cusshipping.IsPrimary = 1
+				LEFT JOIN [dbo].[Address] addre WITH(NOLOCK) ON cusshipping.AddressId = addre.AddressId
+				LEFT JOIN [dbo].[Countries] soconty  WITH(NOLOCK) ON addre.CountryId = soconty.countries_id
+				LEFT JOIN [dbo].[CustomerContact] cuscon WITH(NOLOCK) ON cus.CustomerId = cuscon.CustomerId AND cuscon.IsDefaultContact = 1
+				LEFT JOIN [dbo].[Contact] con WITH(NOLOCK) ON cuscon.ContactId = con.ContactId
+				LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON cus.AddressId = ad.AddressId
+				LEFT JOIN [dbo].[Countries] conty WITH(NOLOCK) ON ad.CountryId = conty.countries_id
+				     JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON soq.SpeedQuoteId = msd.ReferenceID AND msd.ModuleID = 27
+				     JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msd.Level1Id = msl.ID
+				     JOIN [dbo].[LegalEntity] leg WITH(NOLOCK) ON msl.LegalEntityId = leg.LegalEntityId
+				LEFT JOIN [dbo].[Address] adds WITH(NOLOCK) ON leg.AddressId = adds.AddressId
+				LEFT JOIN [dbo].[Countries] ccon WITH(NOLOCK) ON adds.CountryId = ccon.countries_id
 			WHERE soq.SpeedQuoteId = @SpeedQuoteId;
 		END
 

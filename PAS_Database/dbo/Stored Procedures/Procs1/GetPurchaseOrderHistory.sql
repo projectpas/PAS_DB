@@ -1,4 +1,23 @@
-﻿CREATE PROCEDURE [dbo].[GetPurchaseOrderHistory]
+﻿/*************************************************************           
+ ** File:   [GetPurchaseOrderHistory]           
+ ** Author:   Vishal Suthar
+ ** Description: This stored procedure is used to get purchase order history   
+ ** Purpose:         
+ ** Date:    01/04/2024
+          
+ ** PARAMETERS:    
+
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
+     
+**************************************************************/
+CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -42,10 +61,13 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
+			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.PurchaseOrderId, ST.PurchaseOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.PurchaseOrderId, 0) != 0 AND ISNULL(ST.PurchaseOrderPartRecordId, 0) != 0) AS Stk;
+
 			IF(@ViewType = 'poview')
-			BEGIN
+			BEGIN		
+
 			;WITH Result AS(									
-		   		select PO.PurchaseOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.PurchaseOrderNumber,PO.OpenDate as 'PODate',
+		   		SELECT PO.PurchaseOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.PurchaseOrderNumber,PO.OpenDate as 'PODate',
 				--POP.EstDeliveryDate as 'ReceivedDate',
 				F.ReceiveDate as 'ReceivedDate',
 				PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',VRFQPO.VendorRFQPurchaseOrderNumber AS 'QuoteNumber',
@@ -62,11 +84,10 @@ BEGIN
 			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				OUTER APPLY
 			    (
-					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from Stockline ST WHERE ST.ItemMasterId = POP.ItemMasterId AND ST.PurchaseOrderId = POP.PurchaseOrderId AND ST.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
+					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WITH (NOLOCK) WHERE ST.ItemMasterId = POP.ItemMasterId AND ST.PurchaseOrderId = POP.PurchaseOrderId AND ST.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId
 					ORDER BY ST.ReceivedDate ASC
 		        ) F
-				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId 
-				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId 
+				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId = @ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent= 1
 				  AND PO.MasterCompanyId = @MasterCompanyId
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
@@ -102,7 +123,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QuoteNumber')  THEN QuoteNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuoteNumber')  THEN QuoteNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN PurchaseOrderId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN PurchaseOrderId END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -110,7 +133,6 @@ BEGIN
 		BEGIN
 			;WITH Result AS(									
 		   		select PO.VendorRFQPurchaseOrderId as 'PurchaseOrderId', POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,P.PurchaseOrderNumber,PO.OpenDate as 'PODate',
-				--NULL as 'ReceivedDate',
 				F.ReceiveDate as 'ReceivedDate',
 				PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',PO.VendorRFQPurchaseOrderNumber AS 'QuoteNumber',
 				PO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
@@ -126,10 +148,9 @@ BEGIN
 			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				OUTER APPLY
 			    (
-					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from Stockline ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.PurchaseOrderId = VRFQPO.PurchaseOrderId AND ST.PurchaseOrderPartRecordId = VRFQPO.PurchaseOrderPartRecordId
+					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.PurchaseOrderId = VRFQPO.PurchaseOrderId AND ST.PurchaseOrderPartRecordId = VRFQPO.PurchaseOrderPartRecordId
 					ORDER BY ST.ReceivedDate ASC
 		        ) F
-				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId 
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
@@ -139,7 +160,6 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
-					--(UnitCost LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND 
@@ -147,7 +167,6 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
-					--(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 
@@ -166,7 +185,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QuoteNumber')  THEN QuoteNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuoteNumber')  THEN QuoteNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN PurchaseOrderId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN PurchaseOrderId END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END

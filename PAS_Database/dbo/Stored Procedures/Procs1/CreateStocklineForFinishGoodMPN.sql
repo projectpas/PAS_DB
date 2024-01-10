@@ -28,6 +28,7 @@
 	11   18/08/2023   Vishal Suthar	    Added history for old stockline
 	12   16/10/2023   Devendra Shekh	timelife issue resolved
 	13   30/11/2023   Moin Bloch        Modify(Added LotId in New Stockline)
+	13   01/05/2024   Devendra Shekh        Modify(Added LotId in New Stockline)
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -83,7 +84,7 @@ BEGIN
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;
-  
+	DECLARE @WOPartSerNumber VARCHAR(200) = '';  
 
     SET @ModuleID = 2; -- Stockline Module ID  
     SET @InternalWorkOrderTypeId = 2 -- Internal WO  
@@ -106,7 +107,8 @@ BEGIN
       @RevisedItemmasterid= ISNULL(WOP.RevisedItemmasterid,0),  
       @WorkOrderId =WOP.WorkOrderId,  
       @RevisedConditionName=WOS.conditionName,  
-      @UpdateBy=WOP.UpdatedBy  
+      @UpdateBy=WOP.UpdatedBy,
+	  @WOPartSerNumber = ISNULL(WOP.RevisedSerialNumber, '')
     FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)  
      LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9  
      LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId  
@@ -320,6 +322,13 @@ BEGIN
      UPDATE [dbo].[Stockline] SET Memo = 'This Stockline has been modified. Previous stockline is: ' + @PreviousStockLineNumber + '. In WO Num:' + @WorkOrderNumber + ' Date: '+ FORMAT (GETUTCDATE(), 'dd/MM/yyyy ')  
      WHERE StockLineId = @NewStocklineId  
     END  
+
+	IF(ISNULL(@WOPartSerNumber, '') != '')
+	BEGIN
+		UPDATE [dbo].[Stockline] 
+		SET [SerialNumber] = @WOPartSerNumber, isSerialized = 1
+		WHERE StockLineId = @NewStocklineId  
+	END
   
 	DECLARE @ActionId INT = 0;
 

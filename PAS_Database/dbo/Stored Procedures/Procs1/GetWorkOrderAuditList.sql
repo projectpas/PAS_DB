@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkFlowAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetWorkFlowAuditList  
@@ -18,9 +16,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/03/2021   Subhash Saliya Created
-
+	2    05/01/2024   Moin Bloch     Removed Transaction Due to Select Statemet
      
- EXECUTE [GetWorkFlowAuditList] 131
+ EXECUTE [GetWorkOrderAuditList] 3544
 **************************************************************/ 
 
 CREATE PROCEDURE [dbo].[GetWorkOrderAuditList]
@@ -32,9 +30,7 @@ BEGIN
 
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON  
-  BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN
+  BEGIN TRY	
 				SELECT	
 					 WorkOrderId,
                      WorkOrderNum,
@@ -60,14 +56,11 @@ BEGIN
                      wo.UpdatedDate
 				FROM dbo.WorkOrderAudit wo WITH(NOLOCK)				
 				WHERE wo.WorkOrderId = @WorkOrderId
-			END
-		COMMIT  TRANSACTION
-
+			
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				PRINT 'ROLLBACK'				
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

@@ -17,7 +17,7 @@
     1    07/10/2023   Vishal Suthar		Created
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
   
- EXEC [dbo].[USP_AddUpdateStocklineHistory] 39974, 15, 6, NULL, NULL, 2, 2
+ EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
 (

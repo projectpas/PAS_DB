@@ -2,7 +2,7 @@
     [CreditTermsAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [CreditTermsId]      INT             NOT NULL,
     [Name]               VARCHAR (30)    NOT NULL,
-    [Percentage]         DECIMAL (18, 2) NOT NULL,
+    [PercentId]          DECIMAL (18, 2) NOT NULL,
     [Days]               TINYINT         NOT NULL,
     [NetDays]            TINYINT         NOT NULL,
     [Memo]               NVARCHAR (MAX)  NULL,
@@ -16,4 +16,6 @@
     [Code]               VARCHAR (50)    NULL,
     CONSTRAINT [PK_CreditTermsAudit] PRIMARY KEY CLUSTERED ([CreditTermsAuditId] ASC)
 );
+
+
 

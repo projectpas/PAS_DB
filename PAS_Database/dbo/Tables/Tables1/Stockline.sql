@@ -137,7 +137,7 @@
     [itemGroup]                           VARCHAR (256)   NULL,
     [TLAPartNumber]                       VARCHAR (100)   NULL,
     [NHAPartNumber]                       VARCHAR (100)   NULL,
-    [TLAPartDescription]                  VARCHAR (100)   NULL,
+    [TLAPartDescription]                  NVARCHAR (MAX)  NULL,
     [NHAPartDescription]                  NVARCHAR (MAX)  NULL,
     [itemType]                            VARCHAR (100)   NULL,
     [CustomerId]                          BIGINT          NULL,
@@ -158,7 +158,7 @@
     [CertTypeId]                          VARCHAR (MAX)   NULL,
     [CertType]                            VARCHAR (MAX)   NULL,
     [TagTypeId]                           BIGINT          NULL,
-    [IsFinishGood]                        BIT             DEFAULT ((0)) NULL,
+    [IsFinishGood]                        BIT             CONSTRAINT [DF__tmp_ms_xx__IsFin__7B35F923] DEFAULT ((0)) NULL,
     [IsTurnIn]                            BIT             CONSTRAINT [Stockline_DC_IsTurnIn] DEFAULT ((0)) NULL,
     [IsCustomerRMA]                       BIT             NULL,
     [RMADeatilsId]                        BIGINT          NULL,
@@ -167,7 +167,7 @@
     [TagDays]                             INT             NULL,
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
-    [RRQty]                               INT             DEFAULT ((0)) NOT NULL,
+    [RRQty]                               INT             CONSTRAINT [DF__tmp_ms_xx__RRQty__7D1E4195] DEFAULT ((0)) NOT NULL,
     [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
     [IsManualEntry]                       BIT             NULL,
     [WorkOrderMaterialsKitId]             BIGINT          NULL,
@@ -208,6 +208,8 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_Stockline_WorkOrderMaterialsId] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 

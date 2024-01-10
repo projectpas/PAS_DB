@@ -19,6 +19,7 @@
     [IsFromWorkFlow]      BIT             DEFAULT ((0)) NULL,
     [ReferenceNo]         VARCHAR (20)    NULL,
     [WOPartNoId]          BIGINT          DEFAULT ((0)) NOT NULL,
+    [UOMId]               BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderCharges] PRIMARY KEY CLUSTERED ([WorkOrderChargesId] ASC),
     CONSTRAINT [FK_WorkOrderCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_WorkOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -27,6 +28,8 @@
     CONSTRAINT [FK_WorkOrderCharges_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderCharges_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

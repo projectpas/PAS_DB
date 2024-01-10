@@ -28,6 +28,7 @@
     [VendorName]              VARCHAR (50)    NULL,
     [BillingName]             VARCHAR (50)    NULL,
     [MarkUp]                  VARCHAR (50)    NULL,
+    [UOMId]                   BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteCharges] PRIMARY KEY CLUSTERED ([WorkOrderQuoteChargesId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_WorkOrderQuoteCharges_MarkupPercentage] FOREIGN KEY ([MarkupPercentageId]) REFERENCES [dbo].[Percent] ([PercentId]),
@@ -36,6 +37,8 @@
     CONSTRAINT [FK_WorkOrderQuoteCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_WorkOrderQuoteCharges_WorkOrderQuoteDetails] FOREIGN KEY ([WorkOrderQuoteDetailsId]) REFERENCES [dbo].[WorkOrderQuoteDetails] ([WorkOrderQuoteDetailsId])
 );
+
+
 
 
 GO

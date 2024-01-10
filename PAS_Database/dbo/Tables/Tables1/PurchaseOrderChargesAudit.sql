@@ -33,6 +33,9 @@
     [LineNum]                     INT             NULL,
     [ManufacturerId]              BIGINT          NULL,
     [Manufacturer]                VARCHAR (100)   NULL,
+    [UOMId]                       BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderChargesAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderChargesAuditId] ASC)
 );
+
+
 

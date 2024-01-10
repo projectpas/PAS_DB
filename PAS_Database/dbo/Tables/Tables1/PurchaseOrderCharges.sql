@@ -32,10 +32,13 @@
     [LineNum]                   INT             NULL,
     [ManufacturerId]            BIGINT          NULL,
     [Manufacturer]              VARCHAR (100)   NULL,
+    [UOMId]                     BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderCharges] PRIMARY KEY CLUSTERED ([PurchaseOrderChargestId] ASC),
     CONSTRAINT [FK_PurchaseOrderCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_PurchaseOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

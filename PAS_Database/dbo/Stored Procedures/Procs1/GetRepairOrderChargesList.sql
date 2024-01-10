@@ -12,9 +12,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12-10-2022  Deep Patel     Created
+	2    09/01/2024  Bhargav Saliya ADD UOM
 -- EXEC GetRepairOrderChargesList 8,0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetRepairOrderChargesList]
+CREATE     PROCEDURE [dbo].[GetRepairOrderChargesList]
 @RepairOrderId BIGINT,
 @IsDeleted bit,
 @Opr int
@@ -26,41 +27,45 @@ BEGIN
 	IF(@Opr=1)
 	BEGIN
 	SELECT 
-	   [RepairOrderChargesId]
-      ,[RepairOrderId]
-      ,[RepairOrderPartRecordId]
-      ,[ChargesTypeId]
-      ,[VendorId]
-      ,[Quantity]
-      ,[MarkupPercentageId]
-      ,[Description]
-      ,[UnitCost]
-      ,[ExtendedCost]
-      ,[MasterCompanyId]
-      ,[MarkupFixedPrice]
-      ,[BillingMethodId]
-      ,[BillingAmount]
-      ,[BillingRate]
-      ,[HeaderMarkupId]
-      ,[RefNum]
-      ,[CreatedBy]
-      ,[UpdatedBy]
-      ,[CreatedDate]
-      ,[UpdatedDate]
-      ,[IsActive]
-      ,[IsDeleted]
-      ,[HeaderMarkupPercentageId]
-      ,[VendorName]
-      ,[ChargeName]
-      ,[MarkupName]
-      ,[ItemMasterId]
-      ,[ConditionId]
-	  ,[PartNumber]
-	  ,[LineNum]
-	  ,CASE WHEN BillingMethodId = 1 THEN 'T&M' ELSE 'Actual' END AS 'BillingMethodName'
-	  ,[ManufacturerId]
-	  ,[Manufacturer]		
-      FROM [dbo].[RepairOrderCharges] WITH (NOLOCK) WHERE RepairOrderId=@RepairOrderId AND IsDeleted=@IsDeleted;
+	   RO.[RepairOrderChargesId]
+      ,RO.[RepairOrderId]
+      ,RO.[RepairOrderPartRecordId]
+      ,RO.[ChargesTypeId]
+      ,RO.[VendorId]
+      ,RO.[Quantity]
+      ,RO.[MarkupPercentageId]
+      ,RO.[Description]
+      ,RO.[UnitCost]
+      ,RO.[ExtendedCost]
+      ,RO.[MasterCompanyId]
+      ,RO.[MarkupFixedPrice]
+      ,RO.[BillingMethodId]
+      ,RO.[BillingAmount]
+      ,RO.[BillingRate]
+      ,RO.[HeaderMarkupId]
+      ,RO.[RefNum]
+      ,RO.[CreatedBy]
+      ,RO.[UpdatedBy]
+      ,RO.[CreatedDate]
+      ,RO.[UpdatedDate]
+      ,RO.[IsActive]
+      ,RO.[IsDeleted]
+      ,RO.[HeaderMarkupPercentageId]
+      ,RO.[VendorName]
+      ,RO.[ChargeName]
+      ,RO.[MarkupName]
+      ,RO.[ItemMasterId]
+      ,RO.[ConditionId]
+	  ,RO.[PartNumber]
+	  ,RO.[LineNum]
+	  ,CASE WHEN RO.[BillingMethodId] = 1 THEN 'T&M' ELSE 'Actual' END AS 'BillingMethodName'
+	  ,RO.[ManufacturerId]
+	  ,RO.[Manufacturer]		
+	  ,uom.[ShortName] AS UOM	
+	  ,RO.[UOMId] 		
+      FROM [dbo].[RepairOrderCharges] RO WITH (NOLOCK) 
+	  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on RO.UOMId = uom.UnitOfMeasureId
+	  WHERE RO.RepairOrderId=@RepairOrderId AND RO.IsDeleted=@IsDeleted;
 	END
 	BEGIN
 	SELECT 

@@ -1,4 +1,25 @@
-﻿CREATE   PROCEDURE [dbo].[GetWorkFlowWorkOrderChargesList]
+﻿/*************************************************************           
+ ** File:   [GetWorkFlowWorkOrderChargesList]           
+ ** Author: 
+ ** Description: This stored procedure is used to get Charge Data List.
+ ** Purpose:         
+ ** Date:   
+
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		  Change Description            
+ ** --   --------     -------		  --------------------------------          
+    
+	2    22/12/2023   Bhargav Salya		  get UOMid
+
+     
+**************************************************************/
+CREATE     PROCEDURE [dbo].[GetWorkFlowWorkOrderChargesList]
 @wfwoId bigint = null,
 @workOrderId bigint = null,
 @IsDeleted bit= null,
@@ -36,12 +57,15 @@ BEGIN
 					woc.ChargesTypeId as WorkflowChargeTypeId,
 					ISNULL(ts.Description,'') as TaskName,
 					woc.ReferenceNo as RefNum,
-					ISNULL(gl.AccountName,'') as GLAccountName
+					ISNULL(gl.AccountName,'') as GLAccountName,
+					woc.UOMId,
+					ISNULL(uom.ShortName,'') as UOM
 				FROM dbo.WorkOrderCharges woc WITH(NOLOCK)				
 					JOIN dbo.Charge ct WITH(NOLOCK) on woc.ChargesTypeId = ct.ChargeId
 					LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId
 					JOIN dbo.Task ts WITH(NOLOCK) on woc.TaskId = ts.TaskId
-					LEFT JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId				
+					LEFT JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId	
+					LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on woc.UOMId = uom.UnitOfMeasureId
 				WHERE woc.IsDeleted = @IsDeleted AND woc.WorkFlowWorkOrderId = @wfwoId and woc.MasterCompanyId=@masterCompanyId
 			END
 			COMMIT  TRANSACTION

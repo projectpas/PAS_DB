@@ -29,6 +29,9 @@
     [VendorName]                   VARCHAR (50)    NULL,
     [BillingName]                  VARCHAR (50)    NULL,
     [MarkUp]                       VARCHAR (50)    NULL,
+    [UOMId]                        BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteChargesAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteChargesAuditId] ASC)
 );
+
+
 

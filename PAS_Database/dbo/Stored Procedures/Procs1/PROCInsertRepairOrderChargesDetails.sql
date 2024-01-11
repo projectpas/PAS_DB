@@ -1,6 +1,4 @@
-﻿
-
-CREATE   PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
+﻿CREATE     PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -42,7 +40,8 @@ BEGIN
 						TARGET.[LineNum] = SOURCE.LineNum,
 						TARGET.[PartNumber] = SOURCE.PartNumber,
 						TARGET.[ManufacturerId] = SOURCE.ManufacturerId,
-                        TARGET.[Manufacturer] = SOURCE.Manufacturer
+                        TARGET.[Manufacturer] = SOURCE.Manufacturer,
+                        TARGET.[UOMId] = SOURCE.UOMId
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -76,6 +75,7 @@ BEGIN
 							,[PartNumber]
 							,[ManufacturerId]
 							,[Manufacturer]					
+							,[UOMId]					
 							)
                      VALUES
 							 (SOURCE.RepairOrderId
@@ -107,6 +107,7 @@ BEGIN
 							 ,SOURCE.PartNumber
 							 ,SOURCE.ManufacturerId
 							 ,SOURCE.Manufacturer							 
+							 ,SOURCE.UOMId							 
 							 );	
 					END
 

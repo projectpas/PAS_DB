@@ -18,6 +18,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/12/2021   Hemant Saliya Created
+	2    08/12/2021   Hemant Saliya Updated for Add Qty Resever in Stockline
      
  EXECUTE USP_Reserve_ReleaseSubWorkOrderStockline 409,73, 624,60,145,1,0,1
 
@@ -54,23 +55,16 @@ SET NOCOUNT ON
 				SET @SubWOPartQty = 1; -- It's Always Single QTY
 
 				SELECT @SubWorkOrderStatusId  = Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE UPPER(StatusCode) = 'CLOSED'
-				--SELECT @ProvisionId  = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE UPPER(StatusCode) = 'REPLACE'
 			    SELECT @SubWorkorderNum  = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @SubWorkOrderId
 
 				IF(@IsCreate = 1)
 				BEGIN
-					UPDATE dbo.Stockline SET QuantityAvailable = QuantityAvailable - @SubWOPartQty,SubWorkOrderNumber=@SubWorkorderNum,SubWorkOrderId=@SubWorkOrderId,SubWOPartNoId=@SubWorkOrderPartNoId WHERE StockLineId = @StocklineId
+					UPDATE dbo.Stockline SET QuantityAvailable = ISNULL(QuantityAvailable, 0) - @SubWOPartQty,
+											QuantityReserved = ISNULL(QuantityReserved, 0) + @SubWOPartQty,
+											 SubWorkOrderNumber = @SubWorkorderNum,SubWorkOrderId=@SubWorkOrderId, 
+											 SubWOPartNoId = @SubWorkOrderPartNoId 
+					WHERE StockLineId = @StocklineId
 				END
-				--ELSE
-				--BEGIN
-				--	--IF((SELECT COUNT(1) FROM dbo.SubWorkOrderPartNumber WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND SubWorkOrderStatusId = @SubWorkOrderStatusId ) > 0)
-				--	--BEGIN
-				--	--	UPDATE dbo.Stockline SET QuantityAvailable = QuantityAvailable  + @SubWOPartQty WHERE StockLineId = @StocklineId
-				--	--END
-
-				--	--EXEC USP_CloseSubWorkOrder @WorkOrderId, @SubWorkOrderId, @WorkOrderMaterialsId, @StocklineId, @UpdatedById;
-				--	EXEC CreateStocklineForFinishGoodSubWOMPN @SubWorkOrderPartNoId, @UpdatedBy, @IsMaterialStocklineCreate
-				--END
 			END
 		COMMIT  TRANSACTION
 

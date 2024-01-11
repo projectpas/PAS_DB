@@ -252,6 +252,11 @@ BEGIN
 			ROLLBACK TRAN;
 		END
 
+		IF(@SelectedAccountingPeriodId = 0)
+		BEGIN
+			SET @SelectedAccountingPeriodId = NULL
+		END
+
 		IF((@JournalTypeCode ='AST') and @IsAccountByPass=0)
 		BEGIN
 

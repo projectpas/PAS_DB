@@ -28,5 +28,8 @@
     [LineNum]                   INT             NULL,
     [PartNumber]                VARCHAR (256)   NULL,
     [ManufacturerId]            BIGINT          NULL,
-    [Manufacturer]              VARCHAR (100)   NULL);
+    [Manufacturer]              VARCHAR (100)   NULL,
+    [UOMId]                     BIGINT          NULL);
+
+
 

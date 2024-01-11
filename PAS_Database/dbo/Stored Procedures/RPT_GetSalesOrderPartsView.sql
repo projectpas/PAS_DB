@@ -11,7 +11,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 ** --   --------    -------         --------------------------------
 ** 1    01/10/2024  AMIT GHEDIYA    Created
 
-EXEC RPT_GetSalesOrderPartsView 758
+EXEC RPT_GetSalesOrderPartsView 567
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -50,7 +50,18 @@ BEGIN
 			sp.UpdatedBy,
 			sp.UpdatedDate,
 			UPPER(im.PartNumber) AS PartNumber,
-			UPPER(im.PartDescription) AS PartDescription,
+			--UPPER(im.PartDescription) AS PartDescription,
+			CASE
+			   WHEN im.[PartDescription] !='' 
+			   THEN 
+					CASE WHEN LEN(ISNULL(im.[PartDescription],'')) < 22
+						THEN ISNULL(im.[PartDescription],'')
+					ELSE
+						LEFT(ISNULL(im.[PartDescription],''),22) + '....'
+					END
+			   ELSE 
+					''
+			 END AS 'PartDescription',
 			CASE WHEN sl.OEM = 1 THEN 1 ELSE 0 END AS IsOEM,
 			CASE WHEN im.IsPma = 1 THEN 1 ELSE 0 END AS IsPMA,
 			CASE WHEN im.IsDER = 1 THEN 1 ELSE 0 END AS IsDER,

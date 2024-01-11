@@ -20,7 +20,7 @@
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE        PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE      PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -832,9 +832,8 @@ BEGIN
 					END
 
 					DECLARE @OrderModule AS BIGINT = 22;
-					DECLARE @ActionId as BIGINT = 0;
-					SELECT @ActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-To-CustStock'
-					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, @ActionId, @qtyonhand, @UpdatedBy;
+
+					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, 11, @qtyonhand, @UpdatedBy;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 

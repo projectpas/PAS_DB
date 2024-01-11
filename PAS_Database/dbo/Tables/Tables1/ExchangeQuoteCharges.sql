@@ -26,10 +26,13 @@
     [VendorName]               NVARCHAR (100)  NULL,
     [ChargeName]               NVARCHAR (100)  NULL,
     [MarkupName]               NVARCHAR (100)  NULL,
+    [UOMId]                    BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuoteCharges] PRIMARY KEY CLUSTERED ([ExchangeQuoteChargesId] ASC),
     CONSTRAINT [FK_ExchangeQuoteCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_ExchangeQuoteCharges_ExchangeQuote] FOREIGN KEY ([ExchangeQuoteId]) REFERENCES [dbo].[ExchangeQuote] ([ExchangeQuoteId])
 );
+
+
 
 
 GO

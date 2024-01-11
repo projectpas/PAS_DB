@@ -2728,5 +2728,12 @@
     <Build Include="dbo\Stored Procedures\SaveAssetDeprciationData.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetDeprHistory.sql" />
     <Build Include="dbo\Tables\AssetDepreciationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_PrintSalesOrderTermCondiitonById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetWireTransferBankingInfo.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetViewSalesOrderById.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetSalesOrderPrintPdfHeaderData.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetSalesOrderPartsView.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetManagementStructureDetailsForSOReportsHeader.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetLockBoxBankingInfo.sql" />
   </ItemGroup>
 </Project>

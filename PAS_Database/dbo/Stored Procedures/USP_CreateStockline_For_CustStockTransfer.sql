@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_CreateStockline_For_CustStockTransfer]            
  ** Author:   Bhargav Saliya  
  ** Description: This stored procedure is used to Crate stocklines for Customer stock transfer
@@ -20,7 +19,7 @@
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE      PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE        PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -832,8 +831,9 @@ BEGIN
 					END
 
 					DECLARE @OrderModule AS BIGINT = 22;
-
-					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, 11, @qtyonhand, @UpdatedBy;
+					DECLARE @ActionId as BIGINT = 0;
+					SELECT @ActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-To-CustStock'
+					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, @ActionId, @qtyonhand, @UpdatedBy;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 

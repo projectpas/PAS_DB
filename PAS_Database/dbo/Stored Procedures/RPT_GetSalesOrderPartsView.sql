@@ -11,7 +11,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 ** --   --------    -------         --------------------------------
 ** 1    01/10/2024  AMIT GHEDIYA    Created
 
-EXEC RPT_GetSalesOrderPartsView 781
+EXEC RPT_GetSalesOrderPartsView 758
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
@@ -171,16 +171,16 @@ BEGIN
    --                                     (this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount == null ? 0 : (decimal)this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount),
 			SubTotal = ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount = NULL THEN 0 ELSE sof.BillingAmount END END,0),
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0),
 			TotalFreight = ISNULL(CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount = NULL THEN 0 ELSE sof.BillingAmount END END,0),
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0),
 			TotalCharges = ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
-							ELSE CASE WHEN soc.BillingAmount = NULL THEN 0 ELSE soc.BillingAmount END END,0),
+							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0),
 
 			SalesTax = ISNULL(
 				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount = NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
 				(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 				INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 				INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
@@ -190,7 +190,7 @@ BEGIN
 			OtherTax = ISNULL(
 				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount = NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
 				(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 				INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 				INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId

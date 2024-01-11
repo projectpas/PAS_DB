@@ -2725,5 +2725,8 @@
     <Build Include="dbo\Tables\UnitSalePriceHistoryAudit.sql" />
     <Build Include="dbo\Stored Procedures\SP_InsertUnitSalesPriceHistory.sql" />
     <Build Include="dbo\Stored Procedures\SP_GetUnitSalePriceHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\SaveAssetDeprciationData.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetDeprHistory.sql" />
+    <Build Include="dbo\Tables\AssetDepreciationHistory.sql" />
   </ItemGroup>
 </Project>

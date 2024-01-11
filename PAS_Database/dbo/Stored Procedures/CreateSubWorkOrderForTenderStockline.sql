@@ -191,7 +191,7 @@ BEGIN
 
 						SELECT @StocklineId = StocklineId, @SubWOPartQty = ISNULL(tmpWOM.Quantity, 0), @WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId FROM #tmpWorkOrderMaterials tmpWOM WHERE tmpWOM.ID = @count
 						--UPDATE STOCKLINE QTY AND OTHER DETAILS
-						UPDATE dbo.Stockline SET QuantityAvailable = QuantityAvailable - @SubWOPartQty, SubWorkOrderNumber = @SubWorkOrderNo, SubWorkOrderId = @SubWorkOrderId, SubWOPartNoId = @SubWorkOrderPartNoId
+						UPDATE dbo.Stockline SET QuantityAvailable = ISNULL(QuantityAvailable, 0) - @SubWOPartQty, QuantityReserved = ISNULL(QuantityReserved, 0) + @SubWOPartQty, SubWorkOrderNumber = @SubWorkOrderNo, SubWorkOrderId = @SubWorkOrderId, SubWOPartNoId = @SubWorkOrderPartNoId
 						WHERE StockLineId = @StocklineId
 
 						--INSERT DATA IN SUB WORKORDER SETTLEMENT DETAILS
@@ -218,7 +218,7 @@ BEGIN
 						PRINT '7'
 						
 						--SELECT  @StocklineId,  @ModuleId,  @SubWorkOrderId,  @SubModuleId,  @SubReferenceId,  @ActionId,  0,  @CreatedBy;
-						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 0, @UpdatedBy = @CreatedBy;
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @CreatedBy;
 
 						PRINT '8'
 						--UPDATE CODE PREFIX FROM SUB WO  

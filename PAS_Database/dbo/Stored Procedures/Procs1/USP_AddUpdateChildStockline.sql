@@ -454,11 +454,12 @@ BEGIN
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END
-					ELSE IF (@ActionId = 15) -- Create Sub WO
+					ELSE IF (@ActionId = 15) -- CREATE SUB WO
 					BEGIN
-						IF (@PrevOHQty > 0 AND @PrevAvailableQty > 0)
+						IF (@PrevReservedQty = 0 AND @PrevAvailableQty > 0 AND @PrevIssuedQty = 0 AND @PrevOHQty > 0)
 						BEGIN
-							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 1, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							PRINT @StocklineToUpdate;
+							Update DBO.ChildStockline SET QuantityReserved = 1, QuantityAvailable = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 
 							SET @QtyOnAction = @QtyOnAction - 1;

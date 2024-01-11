@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetSubWOAssetList]             
  ** Author:   Subhash Saliya  
  ** Description: Get Search Data for GetSubWOAsset List      
@@ -18,11 +19,12 @@
     1    03/23/2020   Subhash Saliya Created  
  2    06/25/2020   Hemant  Saliya Added Transation & Content Management 
  3    04/24/2023   Shrey Chandegara Join Change with table AssetAttributeType
+ 4    11-01-2024   Shrey Chandegara change join for subwork order issue
        
  EXECUTE [GetSubWOAssetList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  
 **************************************************************/   
   
-CREATE     PROCEDURE [dbo].[GetSubWOAssetList]  
+CREATE       PROCEDURE [dbo].[GetSubWOAssetList]  
  -- Add the parameters for the stored procedure here   
  @PageSize int,  
  @PageNumber int,  
@@ -110,7 +112,7 @@ BEGIN
        join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
        LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  
-       JOIN dbo.TangibleClass at WITH (NOLOCK) ON a.TangibleClassId = at.TangibleClassId  
+       LEFT JOIN dbo.TangibleClass at WITH (NOLOCK) ON a.TangibleClassId = at.TangibleClassId  
        LEFT JOIN dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH (NOLOCK) ON WOA.SubWorkOrderAssetId = COCI.SubWorkOrderAssetId AND COCI.IsQtyCheckOut = 1  
        LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) ON COCI.AssetInventoryId =  AI.AssetInventoryId  
        LEFT JOIN dbo.AssetInventoryStatus AIS WITH (NOLOCK) ON AIS.AssetInventoryStatusId =  AI.InventoryStatusId  

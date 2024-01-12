@@ -28,11 +28,13 @@ BEGIN
 	 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
      SET NOCOUNT ON
 	 BEGIN TRY
-		 DECLARE @POModuleId INT = 0,@ROModuleId INT = 0;
+		 DECLARE @POModuleId INT = 0,@ROModuleId INT = 0,@POOpenStatusId INT = 1,@ROOpenStatusId INT = 1;
 
 		 SELECT @POModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'PurchaseOrder';
 		 SELECT @ROModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'RepairOrder';
-		 		 
+		 SELECT @POOpenStatusId = [POStatusId] FROM [dbo].[POStatus] WHERE UPPER([Description]) = UPPER('Open');
+         SELECT @ROOpenStatusId = [ROStatusId] FROM [dbo].[ROStatus] WHERE UPPER([Description]) = UPPER('Open');
+		 		 		 		 
 		 IF(@Count = '0') 
 		 BEGIN
 			SET @Count = '20';	
@@ -44,7 +46,9 @@ BEGIN
 			   @POModuleId AS ModuleId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK) 
         JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.[PurchaseOrderId] = POP.[PurchaseOrderId] 
-	    WHERE PO.[MasterCompanyId] = @MasterCompanyId AND (PO.[IsActive] = 1 AND ISNULL(PO.[IsDeleted],0) = 0 
+	    WHERE PO.[MasterCompanyId] = @MasterCompanyId 
+		  AND PO.[StatusId] = @POOpenStatusId 
+		  AND (PO.[IsActive] = 1 AND ISNULL(PO.[IsDeleted],0) = 0 		 
 		  AND (PO.[PurchaseOrderNumber] LIKE ('%' + @StartWith + '%')))
 		
 		UNION     
@@ -55,7 +59,9 @@ BEGIN
 			   @POModuleId AS ModuleId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK) 
         JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.[PurchaseOrderId] = POP.[PurchaseOrderId] 
-		WHERE PO.[MasterCompanyId] = @MasterCompanyId AND PO.PurchaseOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
+		WHERE PO.[MasterCompanyId] = @MasterCompanyId 
+		  AND PO.[StatusId] = @POOpenStatusId  
+		  AND PO.PurchaseOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 			
 		UNION
 
@@ -65,7 +71,9 @@ BEGIN
 			   @ROModuleId AS ModuleId
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
           JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] 			
-		 WHERE RO.[MasterCompanyId] = @MasterCompanyId AND (RO.[IsActive] = 1 AND ISNULL(RO.[IsDeleted],0) = 0 
+		 WHERE RO.[MasterCompanyId] = @MasterCompanyId 
+		   AND RO.[StatusId] = @ROOpenStatusId   
+		   AND (RO.[IsActive] = 1 AND ISNULL(RO.[IsDeleted],0) = 0 
 		   AND (RO.[RepairOrderNumber] LIKE ('%' + @StartWith + '%')))
 
 		UNION
@@ -76,7 +84,9 @@ BEGIN
 			   @ROModuleId AS ModuleId
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
           JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
-		 WHERE RO.[MasterCompanyId] = @MasterCompanyId AND RO.[RepairOrderId] IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
+		 WHERE RO.[MasterCompanyId] = @MasterCompanyId  
+		   AND RO.[StatusId] = @ROOpenStatusId  
+		   AND RO.[RepairOrderId] IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				
 		ORDER BY [label]
 

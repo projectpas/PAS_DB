@@ -2741,5 +2741,7 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumber.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetStockReportAsOfNow.sql" />
     <Build Include="dbo\Stored Procedures\rpt_GetOrganizationTagType.sql" />
+    <Build Include="dbo\Tables\NonPOSettingMasterAudit.sql" />
+    <Build Include="dbo\Tables\NonPOSettingMaster.sql" />
   </ItemGroup>
 </Project>

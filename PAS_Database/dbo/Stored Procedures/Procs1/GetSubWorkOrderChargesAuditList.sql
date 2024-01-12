@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSubWorkOrderChargesAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for Work order Chagres List    
@@ -11,14 +10,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/23/2021   Subhash Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/23/2021   Subhash Saliya	Created
+    2    01/11/2024   Devendra Shekh	added UOM changes
      
  EXECUTE [GetSubWorkOrderChargesAuditList] 148, null, 0
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetSubWorkOrderChargesAuditList]
+CREATE   PROCEDURE [dbo].[GetSubWorkOrderChargesAuditList]
 	@subWorkOrderChargesId bigint = null
 AS
 BEGIN
@@ -50,12 +50,15 @@ BEGIN
                      woc.WorkOrderId,
 					 ISNULL(ts.Description,'') as TaskName,
 					 woc.ReferenceNo as ReferenceNo,
-					 ISNULL(gl.AccountName,'') as GLAccountName
+					 ISNULL(gl.AccountName,'') as GLAccountName,
+					 woc.UOMId,  
+					 um.ShortName AS 'UOM'
 				FROM dbo.SubWorkOrderChargesAudit woc WITH(NOLOCK)
 					JOIN dbo.Charge ct WITH(NOLOCK) on woc.ChargesTypeId = ct.ChargeId
-					JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId
+					LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId
 					JOIN dbo.Task ts WITH(NOLOCK) on woc.TaskId = ts.TaskId
-					JOIN dbo.GLAccount gl  WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId
+					LEFT JOIN dbo.GLAccount gl  WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId
+					LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) on um.UnitOfMeasureId = woc.UOMId  
 				WHERE woc.subWorkOrderChargesId = @subWorkOrderChargesId
 				END
 			COMMIT  TRANSACTION

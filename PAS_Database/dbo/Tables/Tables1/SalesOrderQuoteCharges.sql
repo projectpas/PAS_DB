@@ -28,13 +28,14 @@
     [MarkupName]               NVARCHAR (100)  NULL,
     [ItemMasterId]             BIGINT          NULL,
     [ConditionId]              BIGINT          NULL,
-    [UnitOfMeasureId]          BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuoteCharges] PRIMARY KEY CLUSTERED ([SalesOrderQuoteChargesId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_SalesOrderQuoteCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuoteId] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

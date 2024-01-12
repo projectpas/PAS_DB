@@ -2736,5 +2736,6 @@
     <Build Include="dbo\Stored Procedures\RPT_GetManagementStructureDetailsForSOReportsHeader.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetLockBoxBankingInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertOrUpdateItemMasterPurchaseSales.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOPartOnReserve.sql" />
   </ItemGroup>
 </Project>

@@ -19,7 +19,7 @@
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE      PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE        PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -797,7 +797,7 @@ BEGIN
 					[NHAItemMasterId],[TLAItemMasterId],NULL,NULL, @PORequestorId, NULL, NULL, NULL, NULL, NULL, NULL, [IsParent],
 					[ParentId],[IsSameDetailsForAllParts],0,[SubWorkOrderId],0,NULL, 0,[ObtainFromName],[OwnerName],[TraceableToName],
 					[Level1],[Level2],[Level3],[Level4],[Condition],NULL,NULL,[Warehouse],[Location],NULL,NULL,[UnitOfMeasure],NULL,NULL,NULL,
-					NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0), '', NULL, NULL, NULL,
+					NULL,NULL,NULL,NULL,0,NULL,ISNULL([isCustomerstockType], 0), '', NULL, NULL, NULL,
 					[TaggedBy],[TaggedByName], (0 + 0 + 0)
 					,[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,
 					0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId], @qtyonhand, NULL, 1, NULL,

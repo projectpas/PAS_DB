@@ -12,9 +12,10 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------			--------------------------------          
     1    06/08/2023  Devendra Shekh			Created
-    1    02/10/2023  Devendra Shekh			Updating npoHeader for approvedby
+    2    02/10/2023  Devendra Shekh			Updating npoHeader for approvedby
+	3    11/01/2024  Moin Bloch			    Modified status from Fulfilling To Approved
      
---exec [dbo].[USP_UpdateNonPOInvoiceDetails] 9, 
+--exec [dbo].[USP_UpdateNonPOInvoiceDetails] 105
 ************************************************************************/
 CREATE   Procedure [dbo].[USP_UpdateNonPOInvoiceDetails]
 	@NonPOInvoiceId  BIGINT
@@ -29,7 +30,7 @@ BEGIN TRY
 		SET @VendorId = (SELECT VendorId FROM NonPOInvoiceHeader WHERE NonPOInvoiceId = @NonPOInvoiceId)
 
 		UPDATE NPO SET
-		NPO.StatusId = (SELECT NonPOInvoiceHeaderStatusId FROM dbo.NonPOInvoiceHeaderStatus Where IsActive = 1 and IsDeleted = 0  and [Description] = 'Fulfilling' ),
+		NPO.StatusId = (SELECT NonPOInvoiceHeaderStatusId FROM dbo.NonPOInvoiceHeaderStatus Where IsActive = 1 and IsDeleted = 0  and [Description] = 'Approved' ),
 		NPO.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.NonPOApproval PA WITH (NOLOCK) INNER JOIN
 							dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
 							WHERE NonPOInvoiceId = @NonPOInvoiceId ORDER BY ApprovedDate DESC),0),

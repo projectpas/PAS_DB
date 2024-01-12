@@ -2739,5 +2739,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateSOPartOnReserve.sql" />
     <Build Include="dbo\Views\View_NonPOInvoiceHeaderStatus.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumber.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetStockReportAsOfNow.sql" />
+    <Build Include="dbo\Stored Procedures\rpt_GetOrganizationTagType.sql" />
   </ItemGroup>
 </Project>

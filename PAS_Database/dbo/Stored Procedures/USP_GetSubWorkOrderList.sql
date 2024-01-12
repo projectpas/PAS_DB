@@ -90,7 +90,13 @@ BEGIN
 		DECLARE @IsFreight BIT = 0;
 		DECLARE @Is8130 BIT = 0;
 		DECLARE @IsSubWOClose BIT = 0;
+		DECLARE @TotalLabor BIGINT = 0;
+		DECLARE @TotalCompleteLabor BIGINT = 0;
+		DECLARE @TotalLaborCost BIGINT = 0;
+		DECLARE @SWOTaskStatusId BIGINT = 0;
 
+		SET @SWOTaskStatusId = (SELECT [TaskStatusId] FROM [dbo].[TaskStatus] WITH(NOLOCK) WHERE UPPER([Description]) = 'COMPLETED' AND MasterCompanyId = @MasterCompanyId)
+		
 		IF OBJECT_ID('tempdb..#tempSubWO') IS NOT NULL
 			DROP TABLE #tempSubWO
 
@@ -126,10 +132,18 @@ BEGIN
 
 			SET @IsMaterial = CASE WHEN ISNULL(@recCount, 0) > 0 THEN 1 ELSE 0 END 
 
-			SET @IsLabor = CASE WHEN (SELECT COUNT(SubWorkOrderLaborHeaderId) FROM [dbo].[SubWorkOrderLaborHeader] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId) > 0 THEN
-						   CASE WHEN (SELECT SUM(ISNULL(TotalCost, 0)) FROM [dbo].[SubWorkOrderLabor] SUBL WITH(NOLOCK)
+			SELECT @TotalLabor = COUNT(SubWorkOrderLaborId), @TotalLaborCost = SUM(ISNULL(TotalCost, 0)) FROM [dbo].[SubWorkOrderLabor] SUBL WITH(NOLOCK)
 						   LEFT JOIN [dbo].[SubWorkOrderLaborHeader] SUBH WITH(NOLOCK) ON SUBL.SubWorkOrderLaborHeaderId = SUBH.SubWorkOrderLaborHeaderId 
-						   WHERE SUBH.SubWorkOrderId = @TmpSubWOId) > 0 THEN 1 ELSE 0 END ELSE 0 END
+						   WHERE SUBH.SubWorkOrderId = @TmpSubWOId
+
+			SELECT @TotalCompleteLabor = COUNT(SubWorkOrderLaborId) FROM [dbo].[SubWorkOrderLabor] SUBL WITH(NOLOCK)
+						   LEFT JOIN [dbo].[SubWorkOrderLaborHeader] SUBH WITH(NOLOCK) ON SUBL.SubWorkOrderLaborHeaderId = SUBH.SubWorkOrderLaborHeaderId 
+						   WHERE SUBH.SubWorkOrderId = @TmpSubWOId AND SUBL.TaskStatusId = @SWOTaskStatusId
+
+			SET @IsLabor = CASE WHEN ISNULL(@TotalLabor, 0) > 0 THEN
+								CASE WHEN @TotalLabor = @TotalCompleteLabor AND @TotalLaborCost = 0 THEN 0 ELSE 1 END 
+								ELSE 0 END
+
 			SET @IsCharges = CASE WHEN (SELECT COUNT(SubWorkOrderChargesId) FROM [dbo].[SubWorkOrderCharges] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId AND IsDeleted = 0) > 0 THEN 1 ELSE 0 END
 			SET @IsFreight = CASE WHEN (SELECT COUNT(SubWorkOrderFreightId) FROM [dbo].[SubWorkOrderFreight] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId AND IsDeleted = 0) > 0 THEN 1 ELSE 0 END
 			SET @Is8130 = CASE WHEN (SELECT COUNT(SubReleaseFromId) FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] WITH(NOLOCK) WHERE SubWorkOrderId = @TmpSubWOId) > 0 THEN 1 ELSE 0 END

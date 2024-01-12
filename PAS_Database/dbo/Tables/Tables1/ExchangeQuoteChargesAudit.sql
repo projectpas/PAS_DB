@@ -27,6 +27,9 @@
     [VendorName]                  NVARCHAR (100)  NULL,
     [ChargeName]                  NVARCHAR (100)  NULL,
     [MarkupName]                  NVARCHAR (100)  NULL,
+    [UOMId]                       BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuoteChargesAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteChargesId] ASC)
 );
+
+
 

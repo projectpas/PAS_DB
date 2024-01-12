@@ -14,7 +14,8 @@
  **************************************************************             
  **	 S NO   Date			 Author			 Change Description              
  **	 --   --------		 -------		--------------------------------            
- 1	 O5-oct-2023			Devendra		created  
+ 1	 O5-Oct-2023			Devendra		created  
+ 2	 11-Dec-2024			Moin Bloch		Modified chaned Status Pending To Open
        
 EXECUTE   [dbo].[USP_UpdateNonPO_HeadserStatus] 37,'admin'  
 *************************************************************/      
@@ -27,17 +28,29 @@ BEGIN
 	SET NOCOUNT ON;
 		BEGIN TRY
 		BEGIN TRANSACTION
-			BEGIN 
-				
+			BEGIN
 				IF(@NonPOInvoiceId > 0)
+				BEGIN
+					DECLARE @IsEnforceNonPoApproval BIT = 0
+					SELECT @IsEnforceNonPoApproval = [IsEnforceNonPoApproval] FROM [dbo].[NonPOInvoiceHeader] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+
+					IF(@IsEnforceNonPoApproval = 1)
 					BEGIN
-						UPDATE NonPOInvoiceHeader
-						SET StatusId = (SELECT NonPOInvoiceHeaderStatusId FROM NonPOInvoiceHeaderStatus WHERE [Description] = 'Pending')
+						UPDATE [dbo].[NonPOInvoiceHeader]
+						SET StatusId = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Open')
 						, [UpdatedBy] = @UpdatedBy 
 						, [UpdatedDate] = GETUTCDATE()
 						WHERE [NonPOInvoiceId] = @NonPOInvoiceId
 					END
-				
+					ELSE
+					BEGIN
+						UPDATE [dbo].[NonPOInvoiceHeader]
+						SET StatusId = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
+						, [UpdatedBy] = @UpdatedBy 
+						, [UpdatedDate] = GETUTCDATE()
+						WHERE [NonPOInvoiceId] = @NonPOInvoiceId
+					END
+				END				
 			END
 		COMMIT  TRANSACTION
 
@@ -49,8 +62,8 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = '[USP_UpdateNonPO_HeadserStatus]' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@NonPOInvoiceId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = '[USP_UpdateNonPO_HeadserStatus]'               
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@NonPOInvoiceId, '') AS VARCHAR(100))
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

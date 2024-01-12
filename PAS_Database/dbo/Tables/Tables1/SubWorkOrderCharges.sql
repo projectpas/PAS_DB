@@ -19,6 +19,7 @@
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_SubWorkOrderCharges_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]              BIT             CONSTRAINT [SubWorkOrderCharges_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [SubWorkOrderCharges_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [UOMId]                 BIGINT          NULL,
     CONSTRAINT [PK_SubWorkOrderCharges] PRIMARY KEY CLUSTERED ([SubWorkOrderChargesId] ASC),
     CONSTRAINT [FK_SubWorkOrderCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_SubWorkOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -28,6 +29,8 @@
     CONSTRAINT [FK_SubWorkOrderCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_SubWorkOrderCharges_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

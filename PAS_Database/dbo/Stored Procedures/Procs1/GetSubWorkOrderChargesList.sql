@@ -1,6 +1,25 @@
-﻿CREATE   PROCEDURE [dbo].[GetSubWorkOrderChargesList]  
+﻿/*************************************************************           
+ ** File:   [GetSubWorkOrderChargesList]           
+ ** Author:   
+ ** Description: This stored procedure is used TO GetSubWorkOrderChargesList
+ ** Purpose:         
+ ** Date:        
+          
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1     
+    2    01/11/2024   Devendra Shekh		added UOM changes
+     
+exec [GetSubWorkOrderChargesList] 
+@subWOPartNoId=0, @IsDeleted=0,@masterCompanyId=1
+
+**************************************************************/ 
+CREATE   PROCEDURE [dbo].[GetSubWorkOrderChargesList]  
  @subWOPartNoId bigint = null,  
-    @IsDeleted bit= null,  
+ @IsDeleted bit= null,  
  @masterCompanyId int= null  
 AS  
 BEGIN  
@@ -29,15 +48,18 @@ BEGIN
                          woc.UpdatedDate,  
                          woc.SubWOPartNoId,  
                          woc.SubWorkOrderChargesId,  
-                         woc.WorkOrderId,  
-      ISNULL(ts.Description,'') as TaskName,  
-      woc.ReferenceNo as ReferenceNo,  
-      ISNULL(gl.AccountName,'') as GLAccountName  
+                         woc.WorkOrderId,                          
+					     ISNULL(ts.Description,'') as TaskName,  
+					     woc.ReferenceNo as ReferenceNo,  
+					     ISNULL(gl.AccountName,'') as GLAccountName,
+						 woc.UOMId,  
+						 um.ShortName AS 'UOM'
      FROM dbo.SubWorkOrderCharges woc WITH(NOLOCK)      
      JOIN dbo.Charge ct  WITH(NOLOCK) on woc.ChargesTypeId = ct.ChargeId  
-     LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId  
+     LEFT JOIN dbo.Vendor v WITH(NOLOCK) on woc.VendorId = v.VendorId       
      JOIN dbo.Task ts WITH(NOLOCK) on woc.TaskId = ts.TaskId  
-     LEFT JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId      
+     LEFT JOIN dbo.GLAccount gl WITH(NOLOCK) on ct.GLAccountId = gl.GLAccountId    
+	 LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) on um.UnitOfMeasureId = woc.UOMId  
      WHERE woc.IsDeleted = @IsDeleted AND woc.SubWOPartNoId = @subWOPartNoId and woc.MasterCompanyId=@masterCompanyId  
     END  
    COMMIT  TRANSACTION  

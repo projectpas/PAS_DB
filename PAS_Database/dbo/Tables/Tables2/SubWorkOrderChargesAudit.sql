@@ -20,6 +20,9 @@
     [UpdatedDate]                DATETIME2 (7)   NOT NULL,
     [IsActive]                   BIT             NOT NULL,
     [IsDeleted]                  BIT             NOT NULL,
+    [UOMId]                      BIGINT          NULL,
     CONSTRAINT [PK_SubWorkOrderChargesAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderChargesAuditId] ASC)
 );
+
+
 

@@ -12,8 +12,9 @@
     1    28-12-2022    Deep Patel    Created
 	2    25-08-2023    Moin Bloch    Added Accounting Batch ManagementStructure Details Entry For Manual Journal
 	3    14-09-2023    Moin Bloch    Added ReferenceId and ReferenceTypeId in ManualJournalDetails 
+	4    12-01-2024    AMIT GHEDIYA  Added IsReferenceChecked in ManualJournalDetails 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_SaveManualJournalBatchDetails]
+CREATE     PROCEDURE [dbo].[usp_SaveManualJournalBatchDetails]
 @tbl_ManualJournalBatchDetails ManualJournalBatchDetailsType READONLY
 AS
 BEGIN
@@ -58,6 +59,7 @@ BEGIN
 								,TARGET.[UpdatedDate] = GETUTCDATE()
 								,TARGET.[ReferenceId] = SOURCE.ReferenceId
 								,TARGET.[ReferenceTypeId] = SOURCE.ReferenceTypeId
+								,TARGET.[IsReferenceChecked] = SOURCE.IsReferenceChecked
 							
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (
@@ -78,6 +80,7 @@ BEGIN
 										,[IsDeleted]
 										,[ReferenceId]
 										,[ReferenceTypeId]
+										,[IsReferenceChecked]
 								   )
 							VALUES (
 										 SOURCE.[ManualJournalHeaderId]
@@ -97,6 +100,7 @@ BEGIN
 										,SOURCE.[IsDeleted]
 										,SOURCE.[ReferenceId]
 										,SOURCE.[ReferenceTypeId]
+										,SOURCE.[IsReferenceChecked]
 										);
 					 END
 

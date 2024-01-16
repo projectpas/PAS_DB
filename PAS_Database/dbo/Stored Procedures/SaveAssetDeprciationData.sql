@@ -35,7 +35,7 @@ BEGIN
 		DECLARE @NetBookValue DECIMAL(18,2);
 		DECLARE @NBVAfterDepreciation DECIMAL(18,2);
 
-		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciation WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciation)
+		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory)
 		SELECT @DepreciationAmount = (ISNULL(ISNULL(@InstalledCost,0) / ISNULL(@DepreciableLife,0),0));		-- @InstalledCost / @DepreciableLife
 		SELECT @AccumlatedDepr = (ISNULL(ISNULL(@AccumlatedDepr,0) + ISNULL(@DepreciationAmount,0),0));		-- @AccumlatedDepr + @DepreciationAmount;
 		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));			-- @InstalledCost - @AccumlatedDepr;

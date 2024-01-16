@@ -2,7 +2,7 @@
     [NonPOSettingId]              BIGINT        IDENTITY (1, 1) NOT NULL,
     [IsEnforceNonPoApproval]      BIT           NOT NULL,
     [Effectivedate]               DATETIME2 (7) NULL,
-    [IsRestrictInvoiceFutureDate] BIT           NULL,
+    [IsRestrictInvoiceFutureDate] BIT           NOT NULL,
     [DefaultGlAccountId]          BIGINT        NULL,
     [MasterCompanyId]             INT           NOT NULL,
     [CreatedBy]                   VARCHAR (256) NOT NULL,
@@ -13,4 +13,6 @@
     [IsDeleted]                   BIT           CONSTRAINT [DF_NonPOSettingMaster_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_NonPOSettingMaster] PRIMARY KEY CLUSTERED ([NonPOSettingId] ASC)
 );
+
+
 

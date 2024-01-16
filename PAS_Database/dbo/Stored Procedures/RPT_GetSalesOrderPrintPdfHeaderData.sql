@@ -60,7 +60,7 @@ BEGIN
 			ISNULL(sop.TaxPercentage, 0) AS TaxRate,
 			0 AS ShippingAndHandling,
 			so.ManagementStructureId,
-			so.CustomerReference
+			UPPER(so.CustomerReference) AS CustomerReference
 		FROM dbo.SalesOrder so WITH(NOLOCK)
 			LEFT JOIN dbo.SalesOrderPart sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId

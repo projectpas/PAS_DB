@@ -94,7 +94,7 @@ BEGIN
         CASE WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN STl.QuantityOnHand - stladj.ChangedTo ELSE 0 END AS 'Qty_Adjusted',
 		ISNULL(stl.purchaseorderUnitCost , 0) 'PO_UnitCost',    
 		ISNULL(stl.PurchaseOrderExtendedCost , 0) 'ExtCost',    
-		ISNULL(ISNULL(stl.PurchaseOrderExtendedCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'POExtCost',
+		ISNULL(ISNULL(stl.purchaseorderUnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'POExtCost',
 		ISNULL(ISNULL(stl.RepairOrderUnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'ROExtCost',
 		UPPER(stl.Obtainfromname) 'ObtainedFrom',    
         UPPER(stl.OwnerName) 'Owner',    

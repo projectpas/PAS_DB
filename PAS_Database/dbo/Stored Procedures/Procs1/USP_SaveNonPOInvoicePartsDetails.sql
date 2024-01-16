@@ -25,8 +25,8 @@ BEGIN
 		BEGIN TRY
 				BEGIN TRANSACTION
 				BEGIN
-					DECLARE @NonPOInvoiceId bigint = 0
-					SELECT TOP 1 @NonPOInvoiceId = [NonPOInvoiceId] FROM @tbl_NonPOInvoicePartDetails
+					DECLARE @NonPOInvoiceId BIGINT = 0,@UpdatedBy VARCHAR(50);
+					SELECT TOP 1 @NonPOInvoiceId = [NonPOInvoiceId],@UpdatedBy = [UpdatedBy] FROM @tbl_NonPOInvoicePartDetails
 
 					IF((SELECT COUNT(NonPOInvoicePartDetailsId) FROM @tbl_NonPOInvoicePartDetails) > 0 )
 					BEGIN
@@ -118,8 +118,10 @@ BEGIN
 						IF(@IsEnforceNonPoApproval = 0)
 						BEGIN
 							UPDATE [dbo].[NonPOInvoiceHeader]
-							   SET [StatusId] = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')							 
-						    WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+							   SET [StatusId] = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
+							      ,[UpdatedDate] = GETUTCDATE()
+								  ,[UpdatedBy] = @UpdatedBy								
+						   WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
 						END						
 					END
 				COMMIT  TRANSACTION

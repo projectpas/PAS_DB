@@ -124,7 +124,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans In(SO)'; DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In(WO)'; DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
 			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out(PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out(RO)';
 			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)'; 
-			DECLARE @LotTransIn VARCHAR(100) = 'Trans In', @LotPO VARCHAR(100) = 'Purchase Order',@LotRO VARCHAR(100) = 'Repair Order',@LotSO VARCHAR(100) = 'Sales Order', @LotWO VARCHAR(100) = 'Work Order';
+			DECLARE @LotTransIn VARCHAR(100) = 'Trans In',@LotTransOut VARCHAR(100) = 'Trans Out', @LotPO VARCHAR(100) = 'Purchase Order',@LotRO VARCHAR(100) = 'Repair Order',@LotSO VARCHAR(100) = 'Sales Order', @LotWO VARCHAR(100) = 'Work Order';
 			DECLARE @AppModuleId INT = 0;
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
 
@@ -191,8 +191,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.ExtSalesUnitPrice ExtPrice
 				,ltCal.MarginAmount MarginAmt
 				,ltCal.Margin Margin
-				,(CASE WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_LOT,' ','') OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','') THEN @LotTransIn 
-					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_PO,' ','')  THEN @LotPO
+				,(CASE WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_LOT,' ','')  THEN @LotTransIn 
+					    WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','')  THEN @LotTransOut
+						WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_PO,' ','')  THEN @LotPO
 					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_RO,' ','')  OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_RO,' ','') THEN @LotRO 
 					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransOut_SO,' ','')  THEN @LotSO 
 					   WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_WO,' ','')  THEN @LotWO 
@@ -530,7 +531,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) UnitCost
-				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) ExtCost
+				--,(ISNULL(sl.UnitCost,0) * ltCal.Qty) ExtCost
+				,(ISNULL(sl.UnitCost,0) * ISNULL(sl.QuantityOnHand,0)) ExtCost
 				,ISNULL(sl.RepairOrderUnitCost,0) RepairCost
 				,ISNULL(sl.UnitCost,0) AS TotalCost
 				--,ro.RepairOrderNumber RoNum

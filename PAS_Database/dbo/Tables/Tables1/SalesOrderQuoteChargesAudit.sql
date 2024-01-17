@@ -29,9 +29,12 @@
     [MarkupName]                    NVARCHAR (100)  NULL,
     [ItemMasterId]                  BIGINT          NULL,
     [ConditionId]                   BIGINT          NULL,
+    [UnitOfMeasureId]               BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuoteChargesAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteChargesId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuoteChargesAudit] FOREIGN KEY ([SalesOrderQuoteChargesId]) REFERENCES [dbo].[SalesOrderQuoteCharges] ([SalesOrderQuoteChargesId])
 );
+
+
 
 
 

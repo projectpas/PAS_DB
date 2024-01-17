@@ -164,7 +164,8 @@ BEGIN
 								ASM.AssetLife as DepreciableLife,
 								ASM.DepreciationFrequencyName,
 								CURR.Code as Currency,
-								ASM.DepreciationMethodName as DepreciationMethod
+								ASM.DepreciationMethodName as DepreciationMethod,
+								asm.ResidualPercentage
 
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)

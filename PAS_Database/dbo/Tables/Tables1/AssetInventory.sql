@@ -169,6 +169,7 @@
     [IntangibleWriteOffGLAccountName]   VARCHAR (250)   NULL,
     [AssetAttributeTypeId]              BIGINT          NULL,
     [ReceivablesAmount]                 DECIMAL (18, 2) NULL,
+    [DepreciationStartDate]             VARCHAR (30)    NULL,
     CONSTRAINT [PK_AssetInventory] PRIMARY KEY CLUSTERED ([AssetInventoryId] ASC),
     CONSTRAINT [FK_AssetInventory_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_AssetInventory_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -177,6 +178,8 @@
     CONSTRAINT [FK_AssetInventory_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [Unique_AssetInventory] UNIQUE NONCLUSTERED ([InventoryNumber] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

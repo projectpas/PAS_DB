@@ -183,7 +183,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,(CASE  WHEN REPLACE(ltCal.Type,' ','') =REPLACE(@LOT_TransOut_SO,' ','') OR REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','') OR  REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_RO,' ','') THEN ltCal.TransferredOutCost ELSE ltCal.TransferredInCost END) TransUnitCost
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) UnitCost
-				,(ISNULL(sl.PurchaseOrderUnitCost,0) * ltCal.Qty) ExtCost
+				--,(ISNULL(sl.PurchaseOrderUnitCost,0) * ltCal.Qty) ExtCost
+				,(ISNULL(sl.UnitCost,0) * ltCal.Qty) ExtCost
 				,ISNULL(sl.RepairOrderUnitCost,0) RepairCost
 				,ISNULL(sl.UnitCost,0) AS TotalCost
 				,ltCal.SalesUnitPrice UnitSalesPrice
@@ -253,7 +254,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,ISNULL(sl.Adjustment,0) Adjustment
 				,im.ManufacturerName
-				,sobi.InvoiceDate InvoiceDate 
+				,sobi.InvoiceDate InvoiceDate,
+				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId

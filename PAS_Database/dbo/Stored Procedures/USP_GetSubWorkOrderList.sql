@@ -14,11 +14,14 @@
     2    01/08/2024   Devendra Shekh			added new columns
     3    01/09/2024   Devendra Shekh			added new column
 	4    01/16/2024   Hemant Saliya				Updated For Reopen Sub WO
+	5    01/16/2024   Devendra Shekh			delete disabled issue resolved
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
-@MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,@CreatedBy=NULL,
-@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=3835,@MasterCompanyId=1
+@MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
+@SubWOStatus=NULL,@OriginalCondition=NULL,@UpdatedCondition=NULL,@IsTransferredToParentWO=NULL,@OriginalStockLineNumber=NULL,
+@UpdatedStockLineNumber=NULL,@CreatedBy=NULL,
+@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=4102,@MasterCompanyId=1
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderList]
@@ -191,7 +194,7 @@ BEGIN
 						SWO.UpdatedDate,
 						Upper(SWO.CreatedBy) CreatedBy,
 						Upper(SWO.UpdatedBy) UpdatedBy,
-						tmpSub.isAllowDelete as '	',
+						tmpSub.isAllowDelete,
 						STS.[Description] AS 'SubWOStatus',
 						OCD.[Description] AS 'OriginalCondition',
 						UCD.[Description] AS 'UpdatedCondition',

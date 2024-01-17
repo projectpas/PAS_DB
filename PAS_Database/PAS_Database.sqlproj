@@ -2743,6 +2743,7 @@
     <Build Include="dbo\Stored Procedures\rpt_GetOrganizationTagType.sql" />
     <Build Include="dbo\Tables\NonPOSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\NonPOSettingMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPNTileExchangeList.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSubWorkOrderByPartId.sql" />
   </ItemGroup>
 </Project>

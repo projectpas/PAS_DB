@@ -14,7 +14,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 EXEC RPT_GetSalesOrderPartsView 567
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
+CREATE       PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -72,7 +72,8 @@ BEGIN
 			ISNULL(sl.SerialNumber, '') AS SerialNumber,
 			ISNULL(sl.ControlNumber, '') AS ControlNumber,
 			sp.UnitCost,
-			sp.Qty * ISNULL(sp.UnitSalesPricePerUnit, 0) AS SalesPriceExtended,
+			--sp.Qty * ISNULL(sp.UnitSalesPricePerUnit, 0) AS SalesPriceExtended,
+			CONVERT(varchar, CAST(ISNULL(ISNULL(sp.Qty,0) * ISNULL(sp.UnitSalesPricePerUnit, 0), 0) AS money), 1) AS SalesPriceExtended,
 			sp.MarkupExtended,
 			sp.SalesDiscountExtended,
 			sp.NetSalePriceExtended,
@@ -170,7 +171,8 @@ BEGIN
 			ISNULL(rop.RepairOrderPartRecordId, 0) AS ROId,
 			ISNULL(ro.RepairOrderNumber, '') AS RONumber,
 			ISNULL(rop.EstRecordDate, NULL) AS EstRecordDate,
-			ISNULL(sp.UnitSalesPricePerUnit, 0) AS UnitSalesPricePerUnit,
+			--ISNULL(sp.UnitSalesPricePerUnit, 0) AS UnitSalesPricePerUnit,
+			CONVERT(varchar, CAST(ISNULL(sp.UnitSalesPricePerUnit, 0) AS money), 1) AS UnitSalesPricePerUnit,
 			ISNULL(im.ItemClassificationName, '') AS ItemClassification,
 			ISNULL(im.ItemGroup, '') AS ItemGroup,
 			ISNULL(rop.EstRecordDate, NULL) AS roNextDlvrDate,
@@ -182,7 +184,11 @@ BEGIN
    --                                     (this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount == null ? 0 : (decimal)this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount),
 			SubTotal = ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0),
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END
+										+ 
+										ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
+							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0)
+										,0),
 			TotalFreight = ISNULL(CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0),
 			TotalCharges = ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
@@ -207,7 +213,30 @@ BEGIN
 				INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
 				WHERE CustomerId=cust.CustomerId AND SiteId=posadd.SiteId AND (TT.Code != 'SALES TAX' OR TT.Code is null) AND CTTR.IsDeleted=0 AND CTTR.IsActive=1) / 100
 			,0),
-			Total =  ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0),0)
+			Total =  --ISNULL((ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0)) 
+						ISNULL(ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END
+										+ 
+										ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
+							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0)
+										,0)
+						+ 
+					 ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+											+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
+											ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+					(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
+					INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
+					INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
+					WHERE CustomerId=cust.CustomerId AND SiteId = posadd.SiteId AND TT.Code='SALES TAX' AND CTTR.IsDeleted=0 AND CTTR.IsActive=1) / 100 ),0) + 
+					ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
+										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+					(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
+					INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
+					INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
+					WHERE CustomerId=cust.CustomerId AND SiteId=posadd.SiteId AND (TT.Code != 'SALES TAX' OR TT.Code is null) AND CTTR.IsDeleted=0 
+					AND CTTR.IsActive=1) / 100),0),0)
 										
 			--StockLineNumber = (SELECT stli.StockLineNumber FROM dbo.StockLine stli
 			--				  WHERE stli.StockLineId = sp.StockLineId),

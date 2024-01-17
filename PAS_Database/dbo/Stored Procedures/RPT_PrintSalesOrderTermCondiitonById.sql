@@ -25,21 +25,34 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY	
 
-	DECLARE @EmailTemplateTypeId BIGINT;
+	DECLARE @EmailTemplateTypeId BIGINT, @FullChar VARCHAR(MAX);
 
 	SELECT @EmailTemplateTypeId = EmailTemplateTypeId from dbo.EmailTemplateType WITH (NOLOCK) WHERE EmailTemplateType='SalesOrderPrintPDF';
 
 	IF EXISTS(SELECT TOP 1 TermsConditionId FROM dbo.TermsCondition WITH (NOLOCK) WHERE EmailTemplateTypeId = @EmailTemplateTypeId AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0)
 	BEGIN 
 		SELECT 
-			TOP 1 ISNULL(description,'') AS description
+			TOP 1 
+		 @FullChar = REPLACE(REPLACE(ISNULL(Description,''), '<p>', ''),'</p>','')
+		--ISNULL(LEFT(Description, 182),'') AS descriptionPart1,
+		--ISNULL(RIGHT(Description, LEN(Description) -182),'') AS descriptionPart2
+		--ISNULL(LEFT(Description, 182),'') AS descriptionPart1,
+		--REPLACE(REPLACE(ISNULL(LEFT(Description, 460),''), '<p>', ''),'</p>','<br />') as descriptionPart1,
+		--REPLACE(REPLACE(ISNULL(RIGHT(Description, LEN(Description) -460),''), '<p>', ''),'</p>','<br />') as descriptionPart2
+		--ISNULL(RIGHT(Description, LEN(Description) -182),'') AS descriptionPart2
 		FROM dbo.TermsCondition WITH (NOLOCK)
 		WHERE EmailTemplateTypeId = @EmailTemplateTypeId 
 		AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;		
+
+		SELECT 
+		ISNULL(LEFT(@FullChar, 180),'') AS descriptionPart1,
+		ISNULL(RIGHT(@FullChar, LEN(@FullChar) -180),'') AS descriptionPart2
+		--REPLACE(REPLACE(ISNULL(LEFT(@FullChar, 400),''), '<p>', ''),'</p>','<br />') as descriptionPart1,
+		--REPLACE(REPLACE(ISNULL(RIGHT(@FullChar, LEN(@FullChar) -400),''), '<p>', ''),'</p>','<br />') as descriptionPart2
 	END
 	ELSE
 	BEGIN 
-		SELECT '' AS description;
+		SELECT '' AS descriptionPart1, '' AS descriptionPart2;
 	END	
 
   END TRY    

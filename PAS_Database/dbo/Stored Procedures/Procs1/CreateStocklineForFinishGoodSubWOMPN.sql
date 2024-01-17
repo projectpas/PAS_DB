@@ -23,6 +23,7 @@
  6    08/28/2023   Moin Bloch      Added SubWorkOrder Labor + Part Cost Reverse Batch Entry 
  7    08/29/2023   Moin Bloch      Added WO Part Issue Batch Entry 
  8    10/16/2023   Devendra Shekh  TIMELIFE issue resolved
+ 9    01/16/2024   Hemant Saliya   Update Revised STL While Close Sub WO  
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=62,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -287,6 +288,8 @@ BEGIN
      SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
      UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @SLCurrentNumber WHERE [CodeTypeId] = 30 AND MasterCompanyId = @MasterCompanyId  
+
+	 UPDATE [dbo].[SubWorkOrderPartNumber] SET RevisedStocklineId = @NewStocklineId WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNumberId
   
      EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
 

@@ -6,12 +6,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			select DISTINCT AC.AccountingCalendarId,AC.PeriodName,AC.FromDate,AC.ToDate,AC.FiscalName,AC.FiscalYear from dbo.EntityStructureSetup ESS WITH(NOLOCK)
-			inner join dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
-			inner join dbo.AccountingCalendar AC WITH(NOLOCK) ON MSL.LegalEntityId = AC.LegalEntityId
+			SELECT DISTINCT AC.AccountingCalendarId,AC.PeriodName,AC.FromDate,AC.ToDate,AC.FiscalName,AC.FiscalYear,AC.IsAdjustPeriod FROM dbo.EntityStructureSetup ESS WITH(NOLOCK)
+			INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
+			INNER JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON MSL.LegalEntityId = AC.LegalEntityId
 			where ESS.EntityStructureId = @EntityStructureId --AND AC.[Status]='Open'
 			--AND (CAST(GETDATE() as date) >= AC.FromDate AND CAST(GETDATE() as date) >= AC.ToDate)
-			AND AC.IsDeleted = 0 AND AC.FiscalYear=YEAR(GETDATE()) order by AC.AccountingCalendarId;
+			AND AC.IsDeleted = 0 AND AC.FiscalYear=YEAR(GETDATE()) ORDER BY AC.AccountingCalendarId;
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -18,8 +18,11 @@
     [ReferenceId]            BIGINT          NULL,
     [ReferenceTypeId]        INT             NULL,
     [IsClosed]               BIT             NULL,
+    [IsReferenceChecked]     BIT             NULL,
     CONSTRAINT [PK_ManualJournalDetails] PRIMARY KEY CLUSTERED ([ManualJournalDetailsId] ASC)
 );
+
+
 
 
 GO

@@ -12,5 +12,8 @@
     [UpdatedBy]              VARCHAR (256)   NOT NULL,
     [IsDeleted]              BIT             NOT NULL,
     [ReferenceId]            BIGINT          NULL,
-    [ReferenceTypeId]        INT             NULL);
+    [ReferenceTypeId]        INT             NULL,
+    [IsReferenceChecked]     BIT             NULL);
+
+
 

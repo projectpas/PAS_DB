@@ -16,7 +16,9 @@
     1    09/13/2023		Devendra Shekh					Created
     2    09/14/2023		Devendra Shekh					added paymentmethodId
     3    10/03/2023		Devendra Shekh					changes for multiple part
-    3    10/03/2023		Devendra Shekh					added filtering by headerstatus(open,posted,etc)
+    4    10/03/2023		Devendra Shekh					added filtering by headerstatus(open,posted,etc)
+	5    01/10/2024		Moin Bloch					    modified AllStatusId For All Records
+	6    01/16/2024		Moin Bloch					    modified InvoiceNumber From Detail Table To Header
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -53,7 +55,7 @@ BEGIN
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
-
+		DECLARE @AllStatusId INT = 8;
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
@@ -82,12 +84,8 @@ BEGIN
 		BEGIN
 			SET @IsActive=NULL;
 		END
-
-		--IF (@StatusID=6 AND @Status='All')      
-		--BEGIN         
-		--	SET @Status = ''      
-		--END      
-		IF (@HeaderStatusId=7 OR @HeaderStatusId=0)      
+		
+		IF (@HeaderStatusId = @AllStatusId OR @HeaderStatusId = 0)      
 		BEGIN      
 			SET @HeaderStatusId = NULL         
 		END  
@@ -116,7 +114,8 @@ BEGIN
 						NPH.NPONumber,
 						(CASE WHEN COUNT(NPD.NonPOInvoicePartDetailsId) > 1 Then 'Multiple' ELse CAST(MAX(NPD.Amount) AS VARCHAR) End) as 'Amount',
 						(CASE WHEN COUNT(NPD.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountName) + '-' + MAX(GL.AccountCode)  End) as 'GLAccount',
-						(CASE WHEN COUNT(NPD.InvoiceNum) > 1 Then 'Multiple' ELse MAX(NPD.InvoiceNum) End) as 'InvoiceNum'
+						--(CASE WHEN COUNT(NPD.InvoiceNum) > 1 Then 'Multiple' ELse MAX(NPD.InvoiceNum) End) as 'InvoiceNum'
+						NPH.InvoiceNumber as 'InvoiceNum'
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
@@ -142,7 +141,8 @@ BEGIN
 					NPH.UpdatedBy,
 					NPH.MasterCompanyId,	
 					NPH.PaymentMethodId,
-					NPH.NPONumber
+					NPH.NPONumber,
+					NPH.InvoiceNumber
 			), ResultCount AS(SELECT COUNT(NonPOInvoiceId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
@@ -223,7 +223,8 @@ BEGIN
 						NPH.NPONumber,
 						NPD.Amount,
 						GL.AccountName + '-' + GL.AccountCode  as 'GLAccount',
-						NPD.InvoiceNum as 'InvoiceNum'
+						--NPD.InvoiceNum as 'InvoiceNum'
+						NPH.InvoiceNumber as 'InvoiceNum'
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId

@@ -29,6 +29,10 @@
     [CurrencyId]                BIGINT        NULL,
     [PostedDate]                DATETIME2 (7) NULL,
     [IsUsedInVendorPayment]     BIT           NULL,
+    [ReferenceId]               BIGINT        NULL,
+    [ReferenceModuleId]         INT           NULL,
     CONSTRAINT [PK_NonPOInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([NonPOInvoiceHeaderAuditId] ASC)
 );
+
+
 

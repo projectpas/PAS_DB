@@ -2737,6 +2737,14 @@
     <Build Include="dbo\Stored Procedures\RPT_GetLockBoxBankingInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertOrUpdateItemMasterPurchaseSales.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateSOPartOnReserve.sql" />
+    <Build Include="dbo\Views\View_NonPOInvoiceHeaderStatus.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsForPOAndRONumber.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetStockReportAsOfNow.sql" />
+    <Build Include="dbo\Stored Procedures\rpt_GetOrganizationTagType.sql" />
+    <Build Include="dbo\Tables\NonPOSettingMasterAudit.sql" />
+    <Build Include="dbo\Tables\NonPOSettingMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPNTileExchangeList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenSubWorkOrderByPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetDocumentDetailsByReferenceId.sql" />
   </ItemGroup>
 </Project>

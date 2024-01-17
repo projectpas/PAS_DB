@@ -11,6 +11,7 @@
  ** --   --------     -------				--------------------------------          
     1    21-09-2023     Devendra Shekh			Created
 	2	 26-10-2023		Devendra				added new columns  
+	3	 11-01-2024		Moin Bloch		        Modified chaned Status Open To Approved
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveNonPOInvoicePartsDetails]
@@ -24,6 +25,8 @@ BEGIN
 		BEGIN TRY
 				BEGIN TRANSACTION
 				BEGIN
+					DECLARE @NonPOInvoiceId BIGINT = 0,@UpdatedBy VARCHAR(50);
+					SELECT TOP 1 @NonPOInvoiceId = [NonPOInvoiceId],@UpdatedBy = [UpdatedBy] FROM @tbl_NonPOInvoicePartDetails
 
 					IF((SELECT COUNT(NonPOInvoicePartDetailsId) FROM @tbl_NonPOInvoicePartDetails) > 0 )
 					BEGIN
@@ -108,9 +111,21 @@ BEGIN
 										);
 					 END
 
+					IF(@NonPOInvoiceId > 0)
+					BEGIN
+						DECLARE @IsEnforceNonPoApproval BIT = 0
+						SELECT @IsEnforceNonPoApproval = [IsEnforceNonPoApproval] FROM [dbo].[NonPOInvoiceHeader] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+						IF(@IsEnforceNonPoApproval = 0)
+						BEGIN
+							UPDATE [dbo].[NonPOInvoiceHeader]
+							   SET [StatusId] = (SELECT [NonPOInvoiceHeaderStatusId] FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Approved')
+							      ,[UpdatedDate] = GETUTCDATE()
+								  ,[UpdatedBy] = @UpdatedBy								
+						   WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+						END						
+					END
 				COMMIT  TRANSACTION
 			END
-
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0

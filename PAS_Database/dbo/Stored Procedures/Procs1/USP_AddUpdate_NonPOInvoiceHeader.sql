@@ -20,6 +20,8 @@
     4    03-OCT-2023	Devendra Shekh			added NPONum for insert
     5    11-OCT-2023	Devendra Shekh			added new columns for insert
     6    26-OCT-2023	Devendra Shekh			added new columns for insert
+	7    11-JAN-2024	Moin Bloch   			added new columns ReferenceId,ReferenceModuleId
+	7    16-JAN-2024	Moin Bloch   			added Updated by on Update Header
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
@@ -42,8 +44,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]
 @InvoiceDate DATETIME2,
 @PONumber VARCHAR(150) = NULL,
 @AccountingCalendarId BIGINT,
-@CurrencyId BIGINT
-
+@CurrencyId BIGINT,
+@ReferenceId BIGINT = NULL,
+@ReferenceModuleId INT NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -58,8 +61,8 @@ BEGIN
 	DECLARE @CurrentNPONumber AS BIGINT;
 	DECLARE @NPONumber AS VARCHAR(50);
 
-	SET @ModuleID = (SELECT ManagementStructureModuleId FROM MANAGEMENTSTRUCTUREMODULE WHERE ModuleName = 'NonPOInvoiceHeader')
-	SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'NonPOInvoice';
+	SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'NonPOInvoiceHeader')
+	SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'NonPOInvoice';
 
 	IF OBJECT_ID(N'tempdb..#tmpReturnNonPOInvoiceId') IS NOT NULL    
      BEGIN    
@@ -110,15 +113,16 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[NonPOInvoiceHeader]([VendorId] ,[VendorName] ,[VendorCode] ,[PaymentTermsId] ,[StatusId] ,[ManagementStructureId], [MasterCompanyId],  
 								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber]
-								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId])  
+								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId] )  
 			VALUES	(@VendorId , @VendorName, @VendorCode, @PaymentTermsId, @StatusId, @ManagementStructureId, @MasterCompanyId,  
-					@CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber
-					, @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId)  
+					 @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber,
+					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId)  
 
 			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPONumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 		END
   
-		SELECT @NonPOInvoiceId = MAX(NonPOInvoiceId) FROM [NonPOInvoiceHeader] WHERE [MasterCompanyId] = @MasterCompanyId
+		--SELECT @NonPOInvoiceId = MAX(NonPOInvoiceId) FROM [NonPOInvoiceHeader] WHERE [MasterCompanyId] = @MasterCompanyId
+		SELECT @NonPOInvoiceId = SCOPE_IDENTITY();  
 		INSERT INTO #tmpReturnNonPOInvoiceId ([NonPOInvoiceId]) VALUES (@NonPOInvoiceId);    
 		SELECT * FROM #tmpReturnNonPOInvoiceId;    
 
@@ -128,22 +132,26 @@ BEGIN
    ELSE  
    BEGIN  
        UPDATE [dbo].[NonPOInvoiceHeader]  
-                SET  [VendorId] = @VendorId
-					,[VendorName] = @VendorName
-					,[VendorCode] =@VendorCode
-					,[PaymentTermsId] = @PaymentTermsId
-					,[StatusId] = @StatusId
-					,[ManagementStructureId] = @ManagementStructureId
-					,[UpdatedBy] = @CreatedBy  
-					,[UpdatedDate] = GETUTCDATE()  
-					,[IsDeleted] = @IsDeleted  
-					,[PaymentMethodId] = @PaymentMethodId
-					,[EntryDate] = @EntryDate
-					,[InvoiceNumber] = @InvoiceNumber
-					,[InvoiceDate] = @InvoiceDate
-					,[AccountingCalendarId] = @AccountingCalendarId
-					,[CurrencyId] = @CurrencyId
-              WHERE NonPOInvoiceId= @NonPOInvoiceId  
+               SET  [VendorId] = @VendorId
+				   ,[VendorName] = @VendorName
+				   ,[VendorCode] =@VendorCode
+				   ,[PaymentTermsId] = @PaymentTermsId
+				   ,[StatusId] = @StatusId
+				   ,[ManagementStructureId] = @ManagementStructureId
+				   ,[UpdatedBy] = @UpdatedBy  
+				   ,[UpdatedDate] = GETUTCDATE()  
+				   ,[IsDeleted] = @IsDeleted  
+				   ,[PaymentMethodId] = @PaymentMethodId
+				   ,[EntryDate] = @EntryDate
+				   ,[InvoiceNumber] = @InvoiceNumber
+				   ,[InvoiceDate] = @InvoiceDate
+				   ,[AccountingCalendarId] = @AccountingCalendarId
+				   ,[CurrencyId] = @CurrencyId
+				   ,[PONumber] = @PONumber
+				   ,[ReferenceId] = @ReferenceId
+				   ,[ReferenceModuleId] = @ReferenceModuleId
+
+              WHERE [NonPOInvoiceId] = @NonPOInvoiceId;  
 
 		INSERT INTO #tmpReturnNonPOInvoiceId ([NonPOInvoiceId]) VALUES (@NonPOInvoiceId);    
 		SELECT * FROM #tmpReturnNonPOInvoiceId; 
@@ -164,7 +172,7 @@ BEGIN
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'USP_AddUpdate_NonPOInvoiceHeader'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@NonPOInvoiceId, '') + ''  
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@NonPOInvoiceId, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

@@ -28,9 +28,13 @@
     [CurrencyId]             BIGINT        NULL,
     [PostedDate]             DATETIME2 (7) NULL,
     [IsUsedInVendorPayment]  BIT           NULL,
+    [ReferenceId]            BIGINT        NULL,
+    [ReferenceModuleId]      INT           NULL,
     CONSTRAINT [PK_NonPOInvoiceHeader] PRIMARY KEY CLUSTERED ([NonPOInvoiceId] ASC),
     CONSTRAINT [FK_NonPOInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 GO

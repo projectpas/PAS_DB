@@ -19,6 +19,9 @@
     [ReferenceId]                 BIGINT          NULL,
     [ReferenceTypeId]             INT             NULL,
     [IsClosed]                    BIT             NULL,
+    [IsReferenceChecked]          BIT             NULL,
     CONSTRAINT [PK_ManualJournalDetailsAudit] PRIMARY KEY CLUSTERED ([AuditManualJournalDetailsId] ASC)
 );
+
+
 

@@ -57,7 +57,8 @@ BEGIN
 		ISNULL(Description , '') AS [Description],
 		ISNULL(UnitOfMeasureId , 0) AS [UnitOfMeasureId],
 		ISNULL(Qty , 0) AS [Qty],
-		ISNULL(ExtendedPrice , 0) AS [ExtendedPrice]
+		ISNULL(ExtendedPrice , 0) AS [ExtendedPrice],
+		NPD.[TaxTypeId]
     FROM [DBO].[NonPOInvoicePartDetails] NPD WITH (NOLOCK)   
     WHERE NPD.[NonPOInvoiceId] = @NonPOInvoiceId and NPD.MasterCompanyId = @MasterCompanyId 
                   

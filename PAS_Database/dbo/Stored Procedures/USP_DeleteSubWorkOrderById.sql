@@ -29,129 +29,30 @@ BEGIN
 	IF(ISNULL(@SubWorkOrderId, 0) > 0)
 	BEGIN
 		
-		DECLARE @LaborHeaderId BIGINT = 0,
-		@SWOStockLineId BIGINT = 0,
+		DECLARE	@SWOStockLineId BIGINT = 0,
 		@SWOQty BIGINT = 0,
-		@StockLineId BIGINT = 0,
-		@WorkOrderMaterialId BIGINT = 0,
-		@AttachMentModuleId BIGINT = 0,
-		@AttachMentIdS VARCHAR(150) = '',
-		@ModuleId BIGINT = 0,
-		@TotalPart BIGINT = 0,
-		@StartCount BIGINT = 1,
-		@TempSubWOPartId BIGINT = 0;
+		@WorkOrderMaterialId BIGINT = 0;
 
-		IF OBJECT_ID('tempdb..#tempSubWOPart') IS NOT NULL
-			DROP TABLE #tempSubWOPart
+		SELECT @SWOStockLineId = [StockLineId], @WorkOrderMaterialId = [WorkOrderMaterialsId] FROM [dbo].[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId;
+		SELECT @SWOQty = SUM(ISNULL(Quantity, 0)) FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId;
 
-		CREATE TABLE #tempSubWOPart
-		(
-			ID INT IDENTITY(1,1) NOT NULL,
-			SubWorkOrderId BIGINT NULL,
-			SubWOPartNoId BIGINT NULL,
-		)
+		DELETE FROM [dbo].[WorkOrderMaterialStockLineAudit] WHERE [StockLineId] = @SWOStockLineId AND [WorkOrderMaterialsId] = @WorkOrderMaterialId;
+		DELETE FROM [dbo].[WorkOrderMaterialStockLine] WHERE [StockLineId] = @SWOStockLineId AND [WorkOrderMaterialsId] = @WorkOrderMaterialId;
 
-		INSERT INTO #tempSubWOPart(SubWorkOrderId, SubWOPartNoId)
-		SELECT SubWorkOrderId, SubWOPartNoId FROM [dbo].[SubWorkOrderPartNumber] WHERE [SubWorkOrderId] = @SubWorkOrderId;
+		UPDATE [dbo].[WorkOrderMaterials]
+		SET Quantity = Quantity - ISNULL(@SWOQty, 0), [UpdatedDate] = GETUTCDATE()
+		WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialId 
 
-		SET @TotalPart = (SELECT COUNT(ID) FROM #tempSubWOPart);
-
-		WHILE(@StartCount <= @TotalPart)
-		BEGIN
-
-			SET @TempSubWOPartId = (SELECT SubWOPartNoId FROM #tempSubWOPart WHERE [ID] = @StartCount);
-			
-			SET @AttachMentModuleId = (SELECT AttachmentModuleId FROM [DBO].[AttachmentModule] WITH(NOLOCK) WHERE UPPER([Name]) = 'SUBWORKORDER')
-			SET @ModuleId = (SELECT ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SUBWORKORDER')
-
-			SELECT @AttachMentIdS = STUFF ((SELECT ',' + CAST(P.AttachmentId AS VARCHAR) FROM dbo.[Attachment] AS P    
-						WHERE P.ReferenceId = @SubWorkOrderId AND [ModuleId] = @AttachMentModuleId
-						FOR XML PATH('') ) ,1,1,'') 
-
-			SET @LaborHeaderId = (SELECT [SubWorkOrderLaborHeaderId] FROM [dbo].[SubWorkOrderLaborHeader] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId);
-			SELECT @SWOStockLineId = [StockLineId], @WorkOrderMaterialId = [WorkOrderMaterialsId] FROM [dbo].[SubWorkOrder] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId;
-			SELECT @SWOQty = SUM(ISNULL(Quantity, 0)) FROM [dbo].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			--DELETE FROM [dbo].[WorkOrderMaterialStockLine] WHERE [StockLineId] = @SWOStockLineId AND [WorkOrderMaterialsId] = @WorkOrderMaterialId
-			
-
-			DELETE FROM [dbo].[SubWorkOrderAssetAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderAsset] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderChargesAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderCharges] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderFreightAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderFreight] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			DELETE FROM [dbo].[SubWorkOrderLaborAudit] WHERE [SubWorkOrderLaborHeaderId] = @LaborHeaderId
-			DELETE FROM [dbo].[SubWorkOrderLabor] WHERE [SubWorkOrderLaborHeaderId] = @LaborHeaderId
-			DELETE FROM [dbo].[SubWorkOrderLaborHeaderAudit] WHERE [SubWorkOrderLaborHeaderId] = @LaborHeaderId
-			DELETE FROM [dbo].[SubWorkOrderLaborHeader] WHERE [SubWorkOrderLaborHeaderId] = @LaborHeaderId
-
-			DELETE FROM [dbo].[SubWorkOrderTeardownAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderTeardown] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderSettlementDetailsAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderSettlementDetails] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			--UPDATE [dbo].[WorkOrderMaterials]
-			--SET Quantity = Quantity - ISNULL(@SWOQty, 0), [UpdatedDate] = GETUTCDATE()
-			--WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialId 
+		UPDATE [dbo].[Stockline]
+		SET [QuantityAvailable] = QuantityAvailable + ISNULL(@SWOQty, 0),
+			[QuantityReserved] = ISNULL(QuantityReserved, 0) - ISNULL(@SWOQty, 0),
+			[UpdatedBy] = @UserName,
+			[UpdatedDate] = GETUTCDATE()
+		WHERE [StockLineId] = @SWOStockLineId;
 		
-			UPDATE [dbo].[Stockline]
-			SET QuantityAvailable = QuantityAvailable + ISNULL(@SWOQty, 0), [UpdatedDate] = GETUTCDATE()
-			WHERE [StockLineId] = @SWOStockLineId;
-		
-			DELETE FROM [dbo].[SubWorkOrderMPNCostDetailAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId; 
-			DELETE FROM [dbo].[SubWorkOrderMPNCostDetail] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			DELETE FROM [dbo].[SubWorkOrderCostDetailsAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderCostDetails] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			DELETE FROM [dbo].[SubWorkOrderPartNumberAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-			DELETE FROM [dbo].[SubWorkOrderPartNumber] WHERE [SubWorkOrderId] = @SubWorkOrderId AND SubWOPartNoId = @TempSubWOPartId;
-
-			SET @StartCount = @StartCount + 1
-		END
-
-			DELETE FROM [dbo].[SubWorkOrderMaterialMapping] WHERE [SubWorkOrderId] = @SubWorkOrderId AND [WorkOrderMaterialsId] = @WorkOrderMaterialId
-
-			--DOCUMENTS DELETE
-			DELETE FROM [dbo].[AttachmentDetailsAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[AttachmentDetails] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[CommonDocumentDetailsAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[CommonDocumentDetails] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[AttachmentAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[Attachment] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-
-			--DELETE COMMUNICATION
-			DELETE FROM [dbo].[MemoAudit] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-			DELETE FROM [dbo].[Memo] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId		
-
-			SELECT @AttachMentIdS = STUFF ((SELECT ',' + CAST(P.AttachmentId AS VARCHAR) FROM dbo.[Email] AS P    
-					WHERE P.ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-					FOR XML PATH('') ) ,1,1,'') 
-			--EMAIL DOCUMENTS DELETE
-			DELETE FROM [dbo].[AttachmentDetailsAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[AttachmentDetails] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[CommonDocumentDetailsAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[CommonDocumentDetails] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[AttachmentAudit] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-			DELETE FROM [dbo].[Attachment] WHERE [AttachmentId] IN (SELECT value FROM STRING_SPLIT(@AttachMentIdS, ','))
-
-			DELETE FROM [dbo].[EmailAudit] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-			DELETE FROM [dbo].[Email] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-
-			DELETE FROM [dbo].[CommunicationTextAudit] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-			DELETE FROM [dbo].[CommunicationText] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-			DELETE FROM [dbo].[CommunicationPhoneAudit] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-			DELETE FROM [dbo].[CommunicationPhone] WHERE ReferenceId = @SubWorkOrderId AND [ModuleId] = @ModuleId
-
-			DELETE FROM [dbo].[SubWorkOrderAudit] WHERE [SubWorkOrderId] = @SubWorkOrderId   
-			DELETE FROM [dbo].[SubWorkOrder] WHERE [SubWorkOrderId] = @SubWorkOrderId  
-
-		
-		--UPDATE [dbo].[SubWorkOrder]
-		--SET [IsDeleted] = 1, [UpdatedBy] = @UserName, [UpdatedDate] = GETUTCDATE()
-		--WHERE [SubWorkOrderId] = @SubWorkOrderId
+		UPDATE [dbo].[SubWorkOrder]
+		SET [IsDeleted] = 1, [UpdatedBy] = @UserName, [UpdatedDate] = GETUTCDATE()
+		WHERE [SubWorkOrderId] = @SubWorkOrderId
 
 	END
 	COMMIT  TRANSACTION

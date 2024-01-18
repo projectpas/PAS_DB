@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -19,6 +20,7 @@
     3    10/13/2023   Devendra Shekh timelife issue resolved  
     4    11/09/2023   Vishal Suthar  auto reserve stockline based on PO settings  
 	5    13-12-2023   Shrey Chandegara  update for stockline history  
+	6    17-01-2024   Shrey Chandegara  Update for asset attributetype and glaccounts changes
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -1146,6 +1148,7 @@ BEGIN
                         DECLARE @PORequestorId_Asset BIGINT;
                         DECLARE @POVendorId_Asset BIGINT;
                         DECLARE @NewStocklineId_Asset BIGINT;
+                        DECLARE @NewAssetRecordId BIGINT;
                         DECLARE @StockLineNumber_Asset VARCHAR(100);
                         DECLARE @InventoryNumber_Asset VARCHAR(100);
                         DECLARE @CNCurrentNumber_Asset BIGINT;
@@ -1343,6 +1346,8 @@ BEGIN
 
                         SELECT @NewStocklineId_Asset = SCOPE_IDENTITY();
 
+						SET @NewAssetRecordId = (SELECT AssetRecordId FROM AssetInventory WHERE AssetInventoryId = @NewStocklineId_Asset)
+
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AC.AssetRecordId = @ItemMasterId_Asset)
 						BEGIN
 							DECLARE @CalibrationRequired BIT = 0;
@@ -1474,6 +1479,7 @@ BEGIN
                         END
 
                         EXEC UpdateStocklineColumnsWithId @NewStocklineId_Asset;
+						EXEC UpdateAssetInventoryAttributeColumns @NewStocklineId_Asset,@NewAssetRecordId;
 
                         PRINT 'Decrease @LoopID';
 

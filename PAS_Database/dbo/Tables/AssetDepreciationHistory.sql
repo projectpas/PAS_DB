@@ -24,6 +24,9 @@
     [UpdatedDate]           DATETIME     NOT NULL,
     [IsActive]              BIT          CONSTRAINT [AssetDepreciationHistory_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDelete]              BIT          CONSTRAINT [DF_AssetDepreciationHistory_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [DepreciationStartDate] VARCHAR (30) NULL,
     CONSTRAINT [PK_ID] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 

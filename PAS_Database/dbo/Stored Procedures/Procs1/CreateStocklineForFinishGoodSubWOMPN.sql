@@ -23,8 +23,9 @@
  6    08/28/2023   Moin Bloch      Added SubWorkOrder Labor + Part Cost Reverse Batch Entry 
  7    08/29/2023   Moin Bloch      Added WO Part Issue Batch Entry 
  8    10/16/2023   Devendra Shekh  TIMELIFE issue resolved
+ 9    01/17/2024   Hemant Saliya   Update Revised STL While Close Sub WO  
        
--- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=62,@UpdatedBy=N'ADMIN 
+-- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
   
@@ -106,7 +107,7 @@ BEGIN
 
 	SELECT @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB');
   
-    SELECT @StocklineId = StockLineId,   
+    SELECT @StocklineId = CASE WHEN ISNULL(RevisedStockLineId, 0) > 0 THEN RevisedStockLineId ELSE StockLineId END,   
 	       @OldStocklineId = StockLineId,   
            @SubWorkOrderId = SubWorkOrderId,  
 		   @WorkOrderId = WorkOrderId,
@@ -287,6 +288,8 @@ BEGIN
      SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
      UPDATE [dbo].[CodePrefixes] SET [CurrentNummber] = @SLCurrentNumber WHERE [CodeTypeId] = 30 AND MasterCompanyId = @MasterCompanyId  
+
+	 UPDATE [dbo].[SubWorkOrderPartNumber] SET RevisedStocklineId = @NewStocklineId WHERE [SubWorkOrderId] = @SubWorkOrderId AND [SubWOPartNoId] = @SubWOPartNumberId
   
      EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @NewStocklineId  
 
@@ -311,14 +314,14 @@ BEGIN
   
      EXEC USP_SaveSLMSDetails @MSModuleID, @NewStocklineId, @EntityMSID, @MasterCompanyId, 'SWO Close Job'  
   
-     SELECT @WorkOrderWorkflowId = WFWO.WorkFlowWorkOrderId,   
+     SELECT TOP 1 @WorkOrderWorkflowId = WFWO.WorkFlowWorkOrderId,   
             @OldWorkOrderMaterialsId =  SWO.WorkOrderMaterialsId,  
             @WorkOrderId = SWO.WorkOrderId,  
             @SubWorkOrderNum=SWO.SubWorkOrderNo  
      FROM [dbo].[SubWorkOrderPartNumber] SWP WITH(NOLOCK)   
      JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWP.SubWorkOrderId = SWO.SubWorkOrderId  
      JOIN [dbo].[WorkOrderWorkflow] WFWO WITH(NOLOCK) ON WFWO.WorkOrderPartNoId = SWO.WorkOrderPartNumberId  
-     WHERE SWP.SubWOPartNoId = @SubWOPartNumberId AND SWO.StockLineId = @StocklineId  
+     WHERE SWP.SubWOPartNoId = @SubWOPartNumberId --AND SWO.StockLineId = @StocklineId  
   
      SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WO WITH(NOLOCK) where WO.WorkOrderId = @WorkOrderId      
   
@@ -328,7 +331,8 @@ BEGIN
      FROM dbo.WorkOrderMaterials WOM WHERE WorkOrderMaterialsId = @OldWorkOrderMaterialsId;  
   
      UPDATE StockLine   
-      SET QuantityOnHand = ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0),           
+      SET QuantityOnHand = ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0),
+		  QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(@SubWOQuantity,0),
        UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy, WorkOrderMaterialsId = @NewWorkOrderMaterialsId,         
        Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + @ControlNumber  
      FROM dbo.StockLine SL   
@@ -422,7 +426,8 @@ BEGIN
        END;  
   		 
        UPDATE StockLine   
-          SET [QuantityAvailable] = ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0),           
+          SET [QuantityAvailable] = ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0),
+			  [QuantityOnHand] = ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0),
               [QuantityIssued] = ISNULL(SL.QuantityIssued,0) + ISNULL(@SubWOQuantity,0),    
               [UpdatedDate] = GETUTCDATE(), 
 			  [UpdatedBy] = @UpdatedBy, 
@@ -474,6 +479,13 @@ BEGIN
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
     ROLLBACK TRAN;  
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

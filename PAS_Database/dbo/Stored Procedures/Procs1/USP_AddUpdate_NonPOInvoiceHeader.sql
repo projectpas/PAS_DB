@@ -21,6 +21,7 @@
     5    11-OCT-2023	Devendra Shekh			added new columns for insert
     6    26-OCT-2023	Devendra Shekh			added new columns for insert
 	7    11-JAN-2024	Moin Bloch   			added new columns ReferenceId,ReferenceModuleId
+	7    16-JAN-2024	Moin Bloch   			added Updated by on Update Header
   
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
@@ -137,7 +138,7 @@ BEGIN
 				   ,[PaymentTermsId] = @PaymentTermsId
 				   ,[StatusId] = @StatusId
 				   ,[ManagementStructureId] = @ManagementStructureId
-				   ,[UpdatedBy] = @CreatedBy  
+				   ,[UpdatedBy] = @UpdatedBy  
 				   ,[UpdatedDate] = GETUTCDATE()  
 				   ,[IsDeleted] = @IsDeleted  
 				   ,[PaymentMethodId] = @PaymentMethodId
@@ -149,6 +150,7 @@ BEGIN
 				   ,[PONumber] = @PONumber
 				   ,[ReferenceId] = @ReferenceId
 				   ,[ReferenceModuleId] = @ReferenceModuleId
+
               WHERE [NonPOInvoiceId] = @NonPOInvoiceId;  
 
 		INSERT INTO #tmpReturnNonPOInvoiceId ([NonPOInvoiceId]) VALUES (@NonPOInvoiceId);    

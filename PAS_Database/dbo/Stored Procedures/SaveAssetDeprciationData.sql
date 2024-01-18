@@ -34,12 +34,18 @@ BEGIN
 		DECLARE @AccumlatedDepr DECIMAL(18,2);
 		DECLARE @NetBookValue DECIMAL(18,2);
 		DECLARE @NBVAfterDepreciation DECIMAL(18,2);
+		DECLARE @ResidualPercentage DECIMAL(18,2);
+		DECLARE @AfterReduceResidual DECIMAL(18,2);
+		DECLARE @DepreciationStartDate DATETIME;
 
-		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciation WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciation)
-		SELECT @DepreciationAmount = (ISNULL(ISNULL(@InstalledCost,0) / ISNULL(@DepreciableLife,0),0));		-- @InstalledCost / @DepreciableLife
-		SELECT @AccumlatedDepr = (ISNULL(ISNULL(@AccumlatedDepr,0) + ISNULL(@DepreciationAmount,0),0));		-- @AccumlatedDepr + @DepreciationAmount;
-		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));			-- @InstalledCost - @AccumlatedDepr;
-		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));	-- @NetBookValue - @DepreciationAmount;
+		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory)
+		SELECT @ResidualPercentage = ResidualPercentage FROM AssetInventory WHERE [AssetInventoryId] = @AssetInventoryId 
+		SELECT @AfterReduceResidual = ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@ResidualPercentage,0),0);
+		SELECT @DepreciationAmount = ISNULL(ISNULL(@AfterReduceResidual,0) / ISNULL(@DepreciableLife,0),0);										-- (@InstalledCost - @ResidualPercentage) / @DepreciableLife
+		SELECT @AccumlatedDepr = (ISNULL(ISNULL(@AccumlatedDepr,0) + ISNULL(@DepreciationAmount,0),0));											-- @AccumlatedDepr + @DepreciationAmount;
+		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));												-- @InstalledCost - @AccumlatedDepr;
+		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));										-- @NetBookValue - @DepreciationAmount;
+		SET @DepreciationStartDate = GETUTCDATE();
 
 		IF(@InServiceDate = NULL)
 		BEGIN
@@ -50,7 +56,7 @@ BEGIN
 
 		([SerialNo],[StklineNumber],[InServiceDate],[DepriciableStatus],[CURRENCY],[DepriciableLife],[DepreciationMethod],[DepreciationFrequency],[AssetId]
 		,[AssetInventoryId],[InstalledCost],[DepreciationAmount],[AccumlatedDepr],[NetBookValue],[NBVAfterDepreciation],[LastDeprRunPeriod],[AccountingCalenderId],
-		[MasterCompanyId],[CreatedBy],[CreatedDate],[updatedBy],[updatedDate],[IsActive],[IsDelete])
+		[MasterCompanyId],[CreatedBy],[CreatedDate],[updatedBy],[updatedDate],[IsActive],[IsDelete],[DepreciationStartDate])
 		
 		VALUES (
 				@SerialNumber,
@@ -76,10 +82,11 @@ BEGIN
 				@UpdatedBy,
 				@UpdatedDate,
 				@IsActive,
-				@IsDeleted
+				@IsDeleted,
+				@DepreciationStartDate
 			)
 
-		-- SELECT * FROM AssetDepreciation
+		-- SELECT * FROM AssetDepreciationHistory
 					
 	END
 	COMMIT  TRANSACTION

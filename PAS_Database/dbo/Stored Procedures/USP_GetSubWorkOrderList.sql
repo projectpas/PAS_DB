@@ -13,6 +13,7 @@
     1    12/25/2023   Devendra Shekh			Created
     2    01/08/2024   Devendra Shekh			added new columns
     3    01/09/2024   Devendra Shekh			added new column
+	4    01/16/2024   Hemant Saliya				Updated For Reopen Sub WO
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
@@ -106,6 +107,7 @@ BEGIN
 			SubWorkOrderId BIGINT NULL,
 			WorkOrderId BIGINT NULL,
 			IsAllowDelete BIT NULL,
+			IsAllowReOpen BIT NULL,
 			SubReleaseFromId BIGINT NULL,
 		)
 
@@ -170,6 +172,7 @@ BEGIN
 		;WITH Result AS(
 				SELECT DISTINCT
 						SWO.SubWorkOrderId,
+						SWPT.SubWOPartNoId,
 						SWO.SubWorkOrderNo,
 						IM.PartNumber AS 'MasterPartNo',
 						IM.PartDescription AS 'MasterPartDescription',
@@ -188,27 +191,27 @@ BEGIN
 						SWO.UpdatedDate,
 						Upper(SWO.CreatedBy) CreatedBy,
 						Upper(SWO.UpdatedBy) UpdatedBy,
-						tmpSub.isAllowDelete as 'isAllowDelete',
+						tmpSub.isAllowDelete as '	',
 						STS.[Description] AS 'SubWOStatus',
 						OCD.[Description] AS 'OriginalCondition',
 						UCD.[Description] AS 'UpdatedCondition',
 						CASE WHEN ISNULL(SWPT.IsTransferredToParentWO, 0) = 0 THEN 'NO' ELSE 'YES' END AS 'IsTransferredToParentWO',
+						CASE WHEN (ISNULL(WOMS.QtyReserved , 0) + ISNULL(WOMS.QtyIssued , 0)) > 0 THEN 0 ELSE SWPT.IsClosed  END AS 'isAllowReOpen',
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
 						SL.StockLineNumber AS 'UpdatedStockLineNumber',
 						tmpSub.SubReleaseFromId
-			   FROM [dbo].[SubWorkOrder] SWO WITH (NOLOCK)
-				--INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SWO.WorkOrderId
-				--INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-				--INNER JOIN [dbo].[WorkScope] WOS WITH (NOLOCK) ON WOP.WorkOrderScopeId = WOS.WorkScopeId
+			   FROM [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = SWPT.SubWorkOrderId
+				---INNER JOIN [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK) ON SWO.SubWorkOrderId = SWPT.SubWorkOrderId
-				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SWO.StockLineId = SL.StockLineId
+				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SWPT.ItemMasterId = IM.ItemMasterId
+				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SWO.StockLineId = SL.StockLineId
 				INNER JOIN [dbo].[WorkScope] SUBWOS WITH (NOLOCK) ON SWPT.SubWorkOrderScopeId = SUBWOS.WorkScopeId
 				LEFT JOIN [dbo].[Condition] OCD WITH (NOLOCK) ON SWPT.ConditionId = OCD.ConditionId
 				LEFT JOIN [dbo].[Condition] UCD WITH (NOLOCK) ON SWPT.RevisedConditionId = UCD.ConditionId
 				LEFT JOIN [dbo].[WorkOrderStatus] STS WITH (NOLOCK) ON SWPT.SubWorkOrderStatusId = STS.Id
 				LEFT JOIN #tempSubWO tmpSub WITH (NOLOCK) ON SWO.SubWorkOrderId = tmpSub.SubWorkOrderId
+				LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.StockLineId = SWPT.RevisedStockLineId 
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	

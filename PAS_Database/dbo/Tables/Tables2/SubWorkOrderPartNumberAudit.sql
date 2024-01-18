@@ -41,6 +41,9 @@
     [IsTraveler]              BIT            NULL,
     [IsManualForm]            BIT            NULL,
     [IsTransferredToParentWO] BIT            NULL,
+    [RevisedStockLineId]      BIGINT         NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([SubWOPartNoAuditId] ASC)
 );
+
+
 

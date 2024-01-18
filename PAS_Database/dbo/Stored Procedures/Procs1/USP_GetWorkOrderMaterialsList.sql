@@ -34,6 +34,7 @@
 	15   11/29/2023   Devendra Shekh	qty issue for qtyremaining resolved
 	16   11/30/2023   Devendra Shekh	qty issue for qtyremaining resolved
 	17   12/05/2023   Devendra Shekh	qty issue for qty to tender
+	18   12/05/2023   Devendra Shekh	changes for subwo
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3651,3119, 0
 **************************************************************/
@@ -205,7 +206,7 @@ SET NOCOUNT ON
 						IM.ItemGroup,
 						IM.ManufacturerName,
 						SL.WorkOrderNumber,
-						SWO.SubWorkOrderNo,
+						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						WOM.WorkOrderId,
 						'' AS SalesOrder,
 						IM.SiteName AS Site,
@@ -365,10 +366,13 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE 1 END END AS IsSubWorkOrderCreated,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.SubWorkOrderStatusId = 2 THEN 1 ELSE 0 END AS IsSubWorkOrderClosed,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
-						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.SubWorkOrderId END END AS SubWorkOrderId,
+						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.StockLineId END END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 						--Employeename =(SELECT TOP 1 (em.FirstName +' '+ em.LastName) FROM dbo.WorkOrder wo WITH (NOLOCK) JOIN dbo.Employee em WITH (NOLOCK) on  em.EmployeeId = wo.EmployeeId where wo.WorkOrderId=WOM.WorkOrderId ),
 						Employeename = UPPER(WOM.CreatedBy),
@@ -426,7 +430,7 @@ SET NOCOUNT ON
 						IM.ItemGroup,
 						IM.ManufacturerName,
 						SL.WorkOrderNumber,
-						SWO.SubWorkOrderNo,
+						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						WOM.WorkOrderId,
 						'' AS SalesOrder,
 						IM.SiteName AS Site,
@@ -586,10 +590,13 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE 1 END END AS IsSubWorkOrderCreated,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.SubWorkOrderStatusId = 2 THEN 1 ELSE 0 END AS IsSubWorkOrderClosed,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
-						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.SubWorkOrderId END END AS SubWorkOrderId,
+						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.StockLineId END END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 						--Employeename =(SELECT TOP 1 (em.FirstName +' '+ em.LastName) FROM dbo.WorkOrder wo WITH (NOLOCK) JOIN dbo.Employee em WITH (NOLOCK) on  em.EmployeeId = wo.EmployeeId where wo.WorkOrderId=WOM.WorkOrderId ),
 						Employeename = UPPER(WOM.CreatedBy),
@@ -650,7 +657,7 @@ SET NOCOUNT ON
 						IM.ItemGroup,
 						IM.ManufacturerName,
 						SL.WorkOrderNumber,
-						SWO.SubWorkOrderNo,
+						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						WOM.WorkOrderId,
 						'' AS SalesOrder,
 						IM.SiteName AS Site,
@@ -806,10 +813,13 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE 1 END END AS IsSubWorkOrderCreated,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.SubWorkOrderStatusId = 2 THEN 1 ELSE 0 END AS IsSubWorkOrderClosed,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
-						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.SubWorkOrderId END END AS SubWorkOrderId,
+						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.StockLineId END END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 						Employeename = UPPER(WOM.CreatedBy),
 						CASE WHEN SL.RepairOrderPartRecordId IS NOT NULL AND MSTL.RepairOrderId > 0 THEN SL.ReceivedDate ELSE ROP.EstRecordDate END AS 'RONextDlvrDate',
@@ -866,7 +876,7 @@ SET NOCOUNT ON
 						IM.ItemGroup,
 						IM.ManufacturerName,
 						SL.WorkOrderNumber,
-						SWO.SubWorkOrderNo,
+						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						WOM.WorkOrderId,
 						'' AS SalesOrder,
 						IM.SiteName AS Site,
@@ -1022,10 +1032,13 @@ SET NOCOUNT ON
 						CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 						IsRoleUp = 0,
 						WOM.ProvisionId,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE 1 END END AS IsSubWorkOrderCreated,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.SubWorkOrderStatusId = 2 THEN 1 ELSE 0 END AS IsSubWorkOrderClosed,
-						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
-						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE  SWO.StockLineId END AS SubWorkOrderStockLineId,
+						CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.SubWorkOrderId END END AS SubWorkOrderId,
+						CASE WHEN SWO.StockLineId IS NULL THEN 0 ELSE 
+							CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN 0 ELSE SWO.StockLineId END END AS SubWorkOrderStockLineId,
 						ISNULL(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
 						Employeename = UPPER(WOM.CreatedBy),
 						CASE WHEN SL.RepairOrderPartRecordId IS NOT NULL AND MSTL.RepairOrderId > 0 THEN SL.ReceivedDate ELSE ROP.EstRecordDate END AS 'RONextDlvrDate',

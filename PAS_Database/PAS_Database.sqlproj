@@ -2747,5 +2747,6 @@
     <Build Include="dbo\Stored Procedures\USP_ReOpenSubWorkOrderByPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetDocumentDetailsByReferenceId.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetNonStockReportAsOfNow_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ManualJournal_PostCheckBatchDetails.sql" />
   </ItemGroup>
 </Project>

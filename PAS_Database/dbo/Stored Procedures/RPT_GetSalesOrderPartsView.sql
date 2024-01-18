@@ -10,6 +10,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    01/10/2024  AMIT GHEDIYA    Created
+   2    01/18/2024  AMIT GHEDIYA    Remove duplication part display.
 
 EXEC RPT_GetSalesOrderPartsView 567
 
@@ -88,7 +89,9 @@ BEGIN
 			--						WHERE soc.ItemMasterId = sp.ItemMasterId AND soc.ConditionId = sp.ConditionId
 			--						AND soc.SalesOrderId = sp.SalesOrderId AND soc.SalesOrderPartId = sp.SalesOrderPartId
 			--						),
-			'-' AS filteresMiscCharges,
+			--'-' AS filteresMiscCharges,
+			filteresMiscCharges = (SELECT CONVERT(varchar, CAST(ISNULL(SUM(soc.BillingAmount), 0) AS money), 1) FROM dbo.SalesOrderCharges soc WITH(NOLOCK)
+				WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.SalesOrderPartId = sp.SalesOrderPartId AND soc.IsActive = 1 AND soc.IsDeleted = 0),
 			ISNULL(sl.IdNumber, '') AS IdNumber,
 			ISNULL(sl.TraceableToName, '') AS TraceableToName,
 			ISNULL(sl.CertifiedBy, '') AS CertifiedBy,
@@ -133,6 +136,7 @@ BEGIN
 				  AND IsDeleted = 0
 			), 0) AS QtyToShip,
 			ISNULL(sp.Notes, '') AS Notes,
+			ISNULL(REPLACE(REPLACE(ISNULL(so.Notes,''), '<p>', ''),'</p>',''), '') AS NotesHeader,
 			ISNULL(sp.MarkupPerUnit, 0) AS MarkupPerUnit,
 			ISNULL(sp.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,
 			ISNULL(sp.GrossSalePrice, 0) AS GrossSalePrice,
@@ -184,20 +188,40 @@ BEGIN
    --                                     (this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount == null ? 0 : (decimal)this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount),
 			SubTotal = ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0) 
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END
 										+ 
 										ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
-							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0)
+							ELSE CASE WHEN 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc  WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							IS NULL THEN 0 ELSE 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							END END,0)
 										,0),
 			TotalFreight = ISNULL(CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0),
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0) 
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END,0),
 			TotalCharges = ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
-							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0),
+							ELSE CASE WHEN 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							IS NULL THEN 0 ELSE 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							END END,0),
 
 			SalesTax = ISNULL(
 				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END,0) *
 				(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 				INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 				INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
@@ -207,7 +231,11 @@ BEGIN
 			OtherTax = ISNULL(
 				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END,0) *
 				(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 				INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 				INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
@@ -216,22 +244,38 @@ BEGIN
 			Total =  --ISNULL((ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0)) 
 						ISNULL(ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END
 										+ 
 										ISNULL(CASE WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
-							ELSE CASE WHEN soc.BillingAmount IS NULL THEN 0 ELSE soc.BillingAmount END END,0)
+							ELSE CASE WHEN 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							IS NULL THEN 0 ELSE 
+							(SELECT SUM(soc.BillingAmount) FROM dbo.SalesOrderCharges soc WITH(NOLOCK) WHERE soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0)
+							END END,0)
 										,0)
 						+ 
 					 ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 											+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-											ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+											ELSE CASE WHEN 
+											(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+											IS NULL THEN 0 ELSE 
+											(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+											END END,0) *
 					(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 					INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 					INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
 					WHERE CustomerId=cust.CustomerId AND SiteId = posadd.SiteId AND TT.Code='SALES TAX' AND CTTR.IsDeleted=0 AND CTTR.IsActive=1) / 100 ),0) + 
 					ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
-										ELSE CASE WHEN sof.BillingAmount IS NULL THEN 0 ELSE sof.BillingAmount END END,0) *
+										ELSE CASE WHEN 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										IS NULL THEN 0 ELSE 
+										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
+										END END,0) *
 					(SELECT SUM(CAST(ISNULL(TR.TaxRate,0) as Decimal(18,2))) FROM dbo.CustomerTaxTypeRateMapping CTTR WITH(NOLOCK)
 					INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 					INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
@@ -261,8 +305,8 @@ BEGIN
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN dbo.Priority pri WITH(NOLOCK) ON sp.PriorityId = pri.PriorityId
 			LEFT JOIN dbo.SalesOrder so WITH(NOLOCK) ON sp.SalesOrderId = so.SalesOrderId
-			LEFT JOIN dbo.SalesOrderFreight sof WITH(NOLOCK) ON sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0
-			LEFT JOIN dbo.SalesOrderCharges soc WITH(NOLOCK) ON soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0
+			--LEFT JOIN dbo.SalesOrderFreight sof WITH(NOLOCK) ON sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0
+			--LEFT JOIN dbo.SalesOrderCharges soc WITH(NOLOCK) ON soc.SalesOrderId = so.SalesOrderId AND soc.ItemMasterId = sp.ItemMasterId AND soc.IsActive = 1 AND soc.IsDeleted = 0
 			LEFT JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON sl.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
 			LEFT JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			LEFT JOIN dbo.CustomerFinancial custfc WITH(NOLOCK) ON cust.CustomerId = custfc.CustomerId

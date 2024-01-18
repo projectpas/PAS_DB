@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    12/05/2023   AMIT GHEDIYA	    Modify(Added Traceable & Tagged fields) 
     2    12/26/2023   Vishal Suthar	    Undo Amit's changes to update from PO Part
+	3    18-04-2024   Shrey Chandegara  change for order date 
 
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
@@ -128,7 +129,7 @@ BEGIN
 	    ShippingVia = SV.[Name],
 	    WorkOrder = WO.WorkOrderNum,
 	    ShelfLife = im.ShelfLife,
-	    OrderDate = po.OpenDate,
+	    OrderDate = po.CreatedDate,
 	    CoreUnitCost = IMPS.PP_UnitPurchasePrice,
 	    IsHazardousMaterial = IM.IsHazardousMaterial,
 	    IsPMA = IM.IsPma,

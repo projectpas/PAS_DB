@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -19,6 +20,7 @@
 	3    12/04/2023   Shrey Chandegara	Updated For Insert into NonStockInventoryDraft  
 	4    12/20/2023   Vishal Suthar		Fixed non stock issues
 	5    12/26/2023   Vishal Suthar		Modified the SP to set traceableTo and taggedBy field from PO Part into Stockline Draft
+	6    18-01-2024   Shrey Chandegara  update for orderdate
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -44,7 +46,7 @@ BEGIN
     DECLARE @QtyOrdered INT = 0;    
     DECLARE @ItemMasterId BIGINT = 0;    
     DECLARE @ConditionId BIGINT = 0;    
-    DECLARE @OrderDate DATETIME;    
+    DECLARE @OrderDate [DATETIME2](7) ;    
     DECLARE @POUnitCost DECIMAL(18, 2) = 0;    
     DECLARE @POPartUnitCost DECIMAL(18, 2) = 0;    
     DECLARE @IdCodeTypeId BIGINT;    
@@ -80,9 +82,8 @@ BEGIN
     AND (PurchaseOrderPartRecordId NOT IN (SELECT StkDraft.PurchaseOrderPartRecordId FROM dbo.StocklineDraft StkDraft WITH(NOLOCK) WHERE StkDraft.PurchaseOrderId = @PurchaseOrderId AND StkDraft.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId))  
     
     SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderParts;    
-    
-    WHILE (@LoopID > 0)    
-    BEGIN    
+    WHILE (@LoopID > 0)   
+    BEGIN
      SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Id Number';      
     
      IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL      
@@ -108,10 +109,11 @@ BEGIN
 	 @TaggedByType = POP.TaggedByType, @TaggedBy = POP.TaggedBy, @TagDate = POP.TagDate
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      
-	 SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
-    
+
+
      INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)    
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom    
      FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId    
@@ -226,8 +228,8 @@ BEGIN
      END    
     
      SET @LoopID = @LoopID - 1;    
-    END    
-    
+    END 
+
     /* Start: Asset changes */
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartsAsset') IS NOT NULL    
     BEGIN    
@@ -292,7 +294,7 @@ BEGIN
      SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost, 
    
      @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+     SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM DBO.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
     
@@ -485,7 +487,7 @@ BEGIN
   
    
       @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     SELECT @OrderDate = PO.OpenDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+     SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM DBO.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
     

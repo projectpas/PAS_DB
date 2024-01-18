@@ -12,9 +12,9 @@
  ** --   --------     -------		---------------------------     
     1    05/05/2023   Rajesh Gami     Created
 **************************************************************
- EXEC USP_Lot_GetLotSummaryByLotId 81 
+ EXEC USP_Lot_GetLotSummaryByLotId 57 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+Create   PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN
@@ -35,7 +35,7 @@ BEGIN
 			DECLARE @MarginAmount decimal(18,2) = 0,@MarginPercent decimal(18,2) = 0,@LotCostRemaining decimal(18,2) = 0,@OtherSalesExpenses decimal(18,2) = 0,@SoldCost decimal(18,2) = 0,@RemainingCostPercentage decimal(18,2) = 0;
 			DECLARE @OriginalCostUnit int=0,@RepairCostUnit int=0,@TransferredInCostUnit int=0,@TransferredOutCostUnit int=0,@OtherCostUnit int=0,@RevenueCostUnit int=0;
 			DECLARE @CogsPartCostUnit int=0,@CommissionExpenseUnit int=0,@TotalExpenseUnit int=0,@LotCostRemainingUnit int=0;
-			DECLARE @AppModuleId INT = 0;
+			DECLARE @AppModuleId INT = 0,@AdjustmentAmount decimal(18,2) = 0,@TransferredOutROCost decimal(18,2) = 0;
 			SELECT @AppModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'Lot';
 			
 			/************ COST Calculation ***************/
@@ -90,8 +90,19 @@ BEGIN
 				Select * INTO #tempTableLT FROM Lot_CTE Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer
 				Select @OtherCost = ISNULL( (SUM(ISNULL(FreightCost,0)))+ (SUM(ISNULL(ChargesCost,0))) ,0) from #tempTableLT
 
+
+				;WITH Lot_Adjust AS(
+				SELECT sl.StockLineId StockLineId,ISNULL(sl.Adjustment,0)Adjustment from 
+					DBO.LOT lot WITH(NOLOCK) 
+					INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
+					INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId
+					Where  lot.LotId = @LotId
+				)
+				Select * INTO #tempTableLTAdj FROM Lot_Adjust Group by StockLineId,Adjustment
+				Select @AdjustmentAmount = ISNULL(SUM(ISNULL(Adjustment,0)),0) from #tempTableLTAdj
+
 			--SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost) - (@TransferredOutCost);
-			SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost);
+			SET @TotalLotCost = (@OriginalCost + @RepairCost + @TransferredInCost + @OtherCost + (@AdjustmentAmount));
 
 			SET @CommissionExpense = ISNULL((SELECT SUM(ISNULL(CommissionExpense,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId),0);
 			SET @RevenueCost = ISNULL((SELECT SUM(ISNULL(ExtSalesUnitPrice,0)) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId AND REPLACE([Type],' ','') = REPLACE(@LOT_TransOut_SO,' ','') ),0)
@@ -132,7 +143,8 @@ BEGIN
 			   ,@CogsPartCostUnit AS CogsPartCostUnit
 			   ,@CommissionExpenseUnit AS CommissionExpenseUnit
 			   ,@TotalExpenseUnit AS TotalExpenseUnit
-
+			   ,ISNULL(@AdjustmentAmount,0) AS AdjustmentAmount
+			   ,ISNULL(@TransferredOutROCost,0) AS TransferredOutROCost
 			   ,CASE WHEN @LotCostRemainingUnit <0 THEN 0 ELSE @LotCostRemainingUnit END AS LotCostRemainingUnit
 				
 	END

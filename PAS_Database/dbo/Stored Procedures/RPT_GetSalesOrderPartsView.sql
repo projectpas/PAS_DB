@@ -135,7 +135,7 @@ BEGIN
 				  AND IsActive = 1
 				  AND IsDeleted = 0
 			), 0) AS QtyToShip,
-			ISNULL(sp.Notes, '') AS Notes,
+			ISNULL(REPLACE(REPLACE(ISNULL(sp.Notes,''), '<p>', ''),'</p>',''), '') AS Notes,
 			ISNULL(REPLACE(REPLACE(ISNULL(so.Notes,''), '<p>', ''),'</p>',''), '') AS NotesHeader,
 			ISNULL(sp.MarkupPerUnit, 0) AS MarkupPerUnit,
 			ISNULL(sp.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,

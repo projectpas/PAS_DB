@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:   [USP_ReOpenSubWorkOrderByPartId]           
  ** Author:  HEMANT SALIYA
- ** Description: This stored procedure is used TO DELETE Sub WorkOrder BY ID
+ ** Description: This stored procedure is used TO Re Open Sub WorkOrder BY Part ID
  ** Purpose:         
  ** Date:   01/16/2024      
           
@@ -30,24 +30,32 @@ BEGIN
 	BEGIN
 		
 		DECLARE 
+		@SubWorkOrderId BIGINT = 0,
 		@SWOStockLineId BIGINT = 0,
+		@MasterCompanyId INT = 0,
 		@RevisedStockLineId BIGINT = 0,
 		@WorkOrderMaterialId BIGINT = 0;
-
-		IF OBJECT_ID('tempdb..#tempSubWOPart') IS NOT NULL
-			DROP TABLE #tempSubWOPart
-
-		CREATE TABLE #tempSubWOPart
-		(
-			ID INT IDENTITY(1,1) NOT NULL,
-			SubWorkOrderId BIGINT NULL,
-			SubWOPartNoId BIGINT NULL,
-		)
-
-		INSERT INTO #tempSubWOPart(SubWorkOrderId, SubWOPartNoId)
-		SELECT SubWorkOrderId, SubWOPartNoId FROM [dbo].[SubWorkOrderPartNumber] WHERE [SubWorkOrderId] = @SubWOPartNoId;
-
+		DECLARE @SubWOQuantity INT = 1; -- It will be Always 1  
+		DECLARE @SubWorkOrderStatusId INT = 0; 
+		DECLARE @SubWorkOrderStageId INT = 0; 
 		
+		SELECT @SubWorkOrderStatusId = Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'Open'
+
+		IF(ISNULL(@SubWorkOrderStatusId, 0) <= 0)
+		BEGIN
+			SET @SubWorkOrderStatusId = 1 -- It will be Open
+		END
+
+		SELECT @RevisedStockLineId = RevisedStockLineId, @SubWorkOrderId = SubWorkOrderId, @MasterCompanyId = MasterCompanyId FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNoId 
+		SELECT TOP 1 @SubWorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE StageCode IN ('RECEIVED', 'OPEN') AND MasterCompanyId = @MasterCompanyId
+
+		UPDATE dbo.Stockline SET QuantityReserved = ISNULL(QuantityReserved, 0) + ISNULL(@SubWOQuantity, 0) , 
+								 QuantityAvailable = ISNULL(QuantityAvailable, 0) - ISNULL(@SubWOQuantity, 0)
+		WHERE StockLineId = @RevisedStockLineId
+		UPDATE dbo.SubWorkOrder SET SubWorkOrderStatusId = @SubWorkOrderStatusId WHERE  SubWorkOrderId = @SubWorkOrderId
+		UPDATE dbo.SubWorkOrderPartNumber SET SubWorkOrderStatusId = @SubWorkOrderStatusId, SubWorkOrderStageId = @SubWorkOrderStageId, 
+				IsClosed = 0, IsFinishGood = 0, islocked = 0 , IsTransferredToParentWO = 0
+		WHERE  SubWorkOrderId = @SubWorkOrderId
 
 	END
 	COMMIT  TRANSACTION

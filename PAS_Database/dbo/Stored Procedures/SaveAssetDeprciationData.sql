@@ -21,7 +21,8 @@ CREATE   PROCEDURE [dbo].[SaveAssetDeprciationData]
 @CURRENCY VARCHAR(30) = NULL,
 @EntityMSID BIGINT = NULL,
 @UpdatedBy VARCHAR(30) = NULL,
-@UpdatedDate DATETIME = NULL
+@UpdatedDate DATETIME = NULL,
+@SelectedAccountingPeriodId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -37,6 +38,7 @@ BEGIN
 		DECLARE @ResidualPercentage DECIMAL(18,2);
 		DECLARE @AfterReduceResidual DECIMAL(18,2);
 		DECLARE @DepreciationStartDate DATETIME;
+		DECLARE @LastDeprRunPeriod VARCHAR(30)
 
 		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory)
 		SELECT @ResidualPercentage = ResidualPercentage FROM AssetInventory WHERE [AssetInventoryId] = @AssetInventoryId 
@@ -45,6 +47,8 @@ BEGIN
 		SELECT @AccumlatedDepr = (ISNULL(ISNULL(@AccumlatedDepr,0) + ISNULL(@DepreciationAmount,0),0));											-- @AccumlatedDepr + @DepreciationAmount;
 		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));												-- @InstalledCost - @AccumlatedDepr;
 		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));										-- @NetBookValue - @DepreciationAmount;
+		
+		SELECT @LastDeprRunPeriod = PeriodName FROM AccountingCalendar WHERE AccountingCalendarId = @SelectedAccountingPeriodId 
 		SET @DepreciationStartDate = GETUTCDATE();
 
 		IF(@InServiceDate = NULL)
@@ -74,8 +78,8 @@ BEGIN
 				@AccumlatedDepr,
 				@NetBookValue,
 				@NBVAfterDepreciation,
-				'',
-				0,
+				@LastDeprRunPeriod,
+				@SelectedAccountingPeriodId,
 				@MasterCompanyId,
 				@CreatedBy,
 				@CreatedDate,

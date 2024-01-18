@@ -157,16 +157,18 @@ BEGIN
 								ASM.TotalCost as InstalledCost,
 								ASM.ReceivedDate as InServiceDate,
 								'Depreciating' as DepreciableStatus,
-								0 as DepreciationAmount,
-								0 as AccumlatedDepr,
-								0 as NetBookValue,
-								0 as NBVAfterDepreciation,
+								
 								ASM.AssetLife as DepreciableLife,
 								ASM.DepreciationFrequencyName,
 								CURR.Code as Currency,
 								ASM.DepreciationMethodName as DepreciationMethod,
-								asm.ResidualPercentage
+								asm.ResidualPercentage,
 
+								ADH.AccountingCalenderId,
+								ADH.DepreciationAmount as DepreciationAmount,
+								ADH.AccumlatedDepr as AccumlatedDepr,
+								ADH.NetBookValue as NetBookValue,
+								ADH.NBVAfterDepreciation as NBVAfterDepreciation
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
@@ -179,6 +181,7 @@ BEGIN
 								 LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								 LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 								 LEFT JOIN [dbo].Currency CURR WITH (NOLOCK) ON CURR.CurrencyId = ASM.CurrencyId
+								 LEFT JOIN [dbo].AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = ASM.AssetInventoryId
 
 							WHERE (((asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), GETUTCDATE(), 112) != CONVERT(VARCHAR(6), asm.EntryDate, 112)) ) OR
 							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR

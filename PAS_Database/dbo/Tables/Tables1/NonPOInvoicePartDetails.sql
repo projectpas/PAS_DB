@@ -25,6 +25,9 @@
     [UnitOfMeasureId]           BIGINT          NULL,
     [Qty]                       BIGINT          NULL,
     [ExtendedPrice]             DECIMAL (18, 2) NULL,
+    [TaxTypeId]                 BIGINT          NULL,
     CONSTRAINT [PK_NonPOInvoicePartDetails] PRIMARY KEY CLUSTERED ([NonPOInvoicePartDetailsId] ASC)
 );
+
+
 

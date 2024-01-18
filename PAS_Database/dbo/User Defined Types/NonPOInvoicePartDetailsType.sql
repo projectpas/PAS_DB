@@ -21,5 +21,8 @@
     [Description]               VARCHAR (500)   NULL,
     [UnitOfMeasureId]           BIGINT          NULL,
     [Qty]                       BIGINT          NULL,
-    [ExtendedPrice]             DECIMAL (18, 2) NULL);
+    [ExtendedPrice]             DECIMAL (18, 2) NULL,
+    [TaxTypeId]                 BIGINT          NULL);
+
+
 

@@ -81,8 +81,11 @@ BEGIN
 		DECLARE @DeprFrequencyMonthly VARCHAR(50) ='MTHLY,MONTHLY'
 		DECLARE @DeprFrequencyQUATERLY VARCHAR(50) ='QUATERLY,QTLY'
 		DECLARE @DeprFrequencyYEARLY VARCHAR(50) ='YEARLY,YRLY'
+
+		DECLARE @InServiceDate1 DATETIME = GETUTCDATE();
+
 		SELECT TOP 1  @AssetStatusid = [AssetStatusid] FROM [dbo].[AssetStatus] WITH (NOLOCK)  WHERE UPPER([name]) ='DEPRECIATING' AND [MasterCompanyId] = @MasterCompanyId
-		
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -155,7 +158,8 @@ BEGIN
 								asm.statusNote,
 
 								ASM.TotalCost as InstalledCost,
-								ASM.ReceivedDate as InServiceDate,
+								-- ISNULL(ASM.ReceivedDate, @InServiceDate1) as InServiceDate,
+								CASE WHEN ISNULL(ASM.ReceivedDate,'') != '' THEN ASM.ReceivedDate ELSE ISNULL(@InServiceDate1,'') END as InServiceDate,
 								'Depreciating' as DepreciableStatus,
 								
 								ASM.AssetLife as DepreciableLife,

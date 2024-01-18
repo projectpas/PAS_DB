@@ -547,7 +547,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineUnitCostAdjusted (StocklineId, UnitCost, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0), 0)) 'UnitCost',    
+        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitCost',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 11  -- Unit Cost
@@ -589,7 +589,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineUnitPriceAdjusted (StocklineId, UnitPrice, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0), 0)) 'UnitPrice',    
+        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitPrice',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 12  -- Unit Sales Price

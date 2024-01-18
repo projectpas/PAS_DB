@@ -2745,6 +2745,7 @@
     <Build Include="dbo\Tables\NonPOSettingMaster.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPNTileExchangeList.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenSubWorkOrderByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\GetDocumentDetailsByReferenceId.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetNonStockReportAsOfNow_SSRS.sql" />
   </ItemGroup>
 </Project>

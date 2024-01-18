@@ -45,8 +45,8 @@ BEGIN
 		AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;		
 
 		SELECT 
-		ISNULL(LEFT(@FullChar, 180),'') AS descriptionPart1,
-		ISNULL(RIGHT(@FullChar, LEN(@FullChar) -180),'') AS descriptionPart2
+		ISNULL(LEFT(@FullChar, 400),'') AS descriptionPart1,
+		ISNULL(RIGHT(@FullChar, LEN(@FullChar) -400),'') AS descriptionPart2
 		--REPLACE(REPLACE(ISNULL(LEFT(@FullChar, 400),''), '<p>', ''),'</p>','<br />') as descriptionPart1,
 		--REPLACE(REPLACE(ISNULL(RIGHT(@FullChar, LEN(@FullChar) -400),''), '<p>', ''),'</p>','<br />') as descriptionPart2
 	END

@@ -25,7 +25,8 @@ CREATE     PROCEDURE [dbo].[USP_ManualJournal_PostCheckBatchDetails]
 AS
 BEGIN 
 	BEGIN TRY
-		
+	BEGIN TRANSACTION
+	BEGIN
 		DECLARE @CodeTypeId AS BIGINT = 74;
 		DECLARE @currentNo AS BIGINT = 0;
 		DECLARE @JournalTypeNumber varchar(100);
@@ -340,7 +341,8 @@ BEGIN
 		--Update  Status to Post
 		UPDATE ManualJournalHeader SET ManualJournalStatusId = @ManualJournalStatusId WHERE ManualJournalHeaderId = @ManualJournalHeaderId;
 		SELECT @ManualJournalHeaderId AS 'ManualJournalHeaderId';
-
+	END	
+	COMMIT  TRANSACTION
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -33,7 +33,8 @@ BEGIN
 	BEGIN 
 		SELECT 
 			TOP 1 
-		 @FullChar = REPLACE(REPLACE(REPLACE(ISNULL(Description,''), '<p>', ''),'</p>',''),'</strong>','</strong><br /><br />')
+			ISNULL(Description,'') AS termDescription
+		-- @FullChar = REPLACE(REPLACE(REPLACE(ISNULL(Description,''), '<p>', ''),'</p>',''),'</strong>','</strong><br /><br />')
 		--ISNULL(LEFT(Description, 182),'') AS descriptionPart1,
 		--ISNULL(RIGHT(Description, LEN(Description) -182),'') AS descriptionPart2
 		--ISNULL(LEFT(Description, 182),'') AS descriptionPart1,
@@ -44,15 +45,15 @@ BEGIN
 		WHERE EmailTemplateTypeId = @EmailTemplateTypeId 
 		AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;		
 
-		SELECT 
-		ISNULL(LEFT(@FullChar, 200),'') AS descriptionPart1,
-		ISNULL(RIGHT(@FullChar, LEN(@FullChar) -200),'') AS descriptionPart2
+		--SELECT 
+		--ISNULL(LEFT(@FullChar, 200),'') AS descriptionPart1,
+		--ISNULL(RIGHT(@FullChar, LEN(@FullChar) -200),'') AS descriptionPart2
 		--REPLACE(REPLACE(ISNULL(LEFT(@FullChar, 400),''), '<p>', ''),'</p>','<br />') as descriptionPart1,
 		--REPLACE(REPLACE(ISNULL(RIGHT(@FullChar, LEN(@FullChar) -400),''), '<p>', ''),'</p>','<br />') as descriptionPart2
 	END
 	ELSE
 	BEGIN 
-		SELECT '' AS descriptionPart1, '' AS descriptionPart2;
+		SELECT '' AS termDescription;
 	END	
 
   END TRY    

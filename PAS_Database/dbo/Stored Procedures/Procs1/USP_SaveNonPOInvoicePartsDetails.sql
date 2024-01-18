@@ -12,6 +12,7 @@
     1    21-09-2023     Devendra Shekh			Created
 	2	 26-10-2023		Devendra				added new columns  
 	3	 11-01-2024		Moin Bloch		        Modified chaned Status Open To Approved
+	4	 17-01-2024		Moin Bloch		        Modified Added [TaxTypeId]
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveNonPOInvoicePartsDetails]
@@ -53,6 +54,7 @@ BEGIN
 								,TARGET.[UnitOfMeasureId] =SOURCE.[UnitOfMeasureId]
 								,TARGET.[Qty] =SOURCE.[Qty]
 								,TARGET.[ExtendedPrice] =SOURCE.[ExtendedPrice]
+								,TARGET.[TaxTypeId] = SOURCE.[TaxTypeId]
 							
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (
@@ -81,6 +83,7 @@ BEGIN
 										,[UnitOfMeasureId]
 										,[Qty]
 										,[ExtendedPrice]
+										,[TaxTypeId]
 								   )
 							VALUES (
 										 SOURCE.[NonPOInvoiceId]
@@ -108,6 +111,7 @@ BEGIN
 										,SOURCE.[UnitOfMeasureId]
 										,SOURCE.[Qty]
 										,SOURCE.[ExtendedPrice]
+										,SOURCE.[TaxTypeId]
 										);
 					 END
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetAccountingPeriodsByLegalEntity]             
  ** Author: Hemant Saliya  
  ** Description: This stored procedure is used to Get income statement(actual) report Data 
@@ -13,6 +14,7 @@
 	1    08/08/2023   Hemant Saliya  Created
 	2    20/12/2023   Moin Bloch     Added IsAdjustPeriod,isacpStatusName Field
 	3    08/01/2024   Moin Bloch     Added [isaccStatusName],[isacrStatusName],[isassetStatusName],[isinventoryStatusName] Field
+	4    18/01/2024   Bhargav Saliya  Added [label],[value] Field
 
 ************************************************************************
 EXEC [GetAccountingPeriodsByLegalEntity] 1
@@ -24,8 +26,10 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			SELECT DISTINCT AC.[AccountingCalendarId], 
+			SELECT DISTINCT AC.[AccountingCalendarId],
+							AC.[AccountingCalendarId] AS [value],
 			                AC.[PeriodName], 
+							AC.[PeriodName] AS [label], 
 							AC.[FromDate], 
 							AC.[ToDate],
 							AC.[FiscalName], 

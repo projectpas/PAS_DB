@@ -1,4 +1,21 @@
-﻿--EXEC GetAccountingPeriodsByMS 1
+﻿/*************************************************************             
+ ** File:   [GetAccountingPeriodsByLegalEntity]             
+ ** Author: 
+ ** Description: This stored procedure is used to Get Vendor Payment  Data 
+ ** Purpose:            
+ ** Date: 
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+	
+	2    18/01/2024   Bhargav Saliya  Added [label],[value] Field
+
+************************************************************************
+EXEC GetAccountingPeriodsByMS 1
+************************************************************************/
 CREATE PROCEDURE [dbo].[GetAccountingPeriodsByMS]
 @EntityStructureId BIGINT
 AS
@@ -6,7 +23,17 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			SELECT DISTINCT AC.AccountingCalendarId,AC.PeriodName,AC.FromDate,AC.ToDate,AC.FiscalName,AC.FiscalYear,AC.IsAdjustPeriod FROM dbo.EntityStructureSetup ESS WITH(NOLOCK)
+			SELECT DISTINCT
+					AC.AccountingCalendarId,
+					AC.AccountingCalendarId AS [value],
+					AC.PeriodName,
+					AC.PeriodName AS [label],
+					AC.FromDate,
+					AC.ToDate,
+					AC.FiscalName,
+					AC.FiscalYear,
+					AC.IsAdjustPeriod
+			FROM dbo.EntityStructureSetup ESS WITH(NOLOCK)
 			INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
 			INNER JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON MSL.LegalEntityId = AC.LegalEntityId
 			where ESS.EntityStructureId = @EntityStructureId --AND AC.[Status]='Open'

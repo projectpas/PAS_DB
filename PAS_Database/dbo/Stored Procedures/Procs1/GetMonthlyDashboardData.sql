@@ -13,6 +13,7 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates                                             
+    2    19 Jan 2024   Bhargav Saliya               Utc Date Changes                                             
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
@@ -77,7 +78,7 @@ BEGIN
 
 			SELECT @MasterLoopID = MIN(ID) FROM #tmpDateOfMonth;
 
-			PRINT @Month
+			
 
 			WHILE (@MasterLoopID <= @Day)
 			BEGIN
@@ -87,6 +88,8 @@ BEGIN
 				IF (@ChartType = 1)
 				BEGIN
 					DECLARE @Cnts INT = 0;
+					print 'Bharga'
+					print @SelectedDate
 
 					SELECT @Cnts = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
@@ -95,9 +98,10 @@ BEGIN
 					INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
 					INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
 					INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
-					WHERE Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date) = CONVERT(DATE, @SelectedDate) 
+					--WHERE Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date) = CONVERT(DATE, @SelectedDate) 
+					WHERE Cast(RC.ReceivedDate as Date) = CONVERT(DATE, @SelectedDate) 
 					AND RC.MasterCompanyId = @MasterCompanyId
-					GROUP BY ReceivedDate
+					GROUP BY RC.ReceivedDate
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
 					SELECT CONVERT(DATE, @SelectedDate) AS DateProcess, ISNULL(@Cnts, 0)

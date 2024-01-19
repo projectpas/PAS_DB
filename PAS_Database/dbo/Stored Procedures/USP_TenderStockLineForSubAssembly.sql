@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [USP_UpdateSerialNumberByWOPartId]           
+ ** File:   [USP_TenderStockLineForSubAssembly]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to tender stockline for sub-assembly 
  ** Purpose:         
@@ -17,11 +17,12 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1    01/04/2024		Devendra Shekh		Created
+    2    01/19/2024		Devendra Shekh		qty base tender stk changes
      
 --exec USP_TenderStockLineForSubAssembly @WorkOrderId=3932,@WorkFlowWorkOrderId=3398,@WorkOrderMaterialsId=16047
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=4003,@WorkFlowWorkOrderId=3460,@WorkOrderMaterialsId=16129
 **************************************************************/
-
+ 
 CREATE   PROCEDURE [dbo].[USP_TenderStockLineForSubAssembly]
 	@WorkOrderId BIGINT,
 	@WorkFlowWorkOrderId BIGINT,
@@ -147,25 +148,6 @@ BEGIN
 				FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 				SET @ARConditionId = (SELECT ConditionId FROM Condition WHERE [Description] = 'AR' AND MasterCompanyId = @MasterCompanyId);
 
-				--CodePrefix Data Insert
-				INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
-				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
-				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
-				WHERE CT.CodeTypeId = @CodeTypeId
-				AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
-
-				IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
-				BEGIN
-					SELECT @Nummber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
-					
-					SET @ReceiverNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
-									@Nummber,
-									(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId),
-									(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
-				END
-				/*****************End Prefixes*******************/	
-
 				/*****************Quntity for Part : Start*******************/
 				INSERT INTO #tmpWOMStockline SELECT DISTINCT						
 						WOMS.StockLineId, 						
@@ -197,24 +179,11 @@ BEGIN
 				
 				SELECT @ProvisionId = ProvisionId, @Quantity = ISNULL(Quantity, 0), @ConditionId = ConditionCodeId, @PartQtyToTurnIn = ISNULL(QtyToTurnIn, 0), @MaterialItemMasterId = ISNULL(ItemMasterId, 0)
 				FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
-				SELECT @ItemMasterId = [ItemMasterId], @ManagementStructureId = ManagementStructureId, @CurrentSerialNumber =  ISNULL(CurrentSerialNumber, 1) 
-				FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
+
 				SELECT @MaterialIsSerialized = isSerialized FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @MaterialItemMasterId;
 				
 				SET @SerialNumber = (SELECT [SerialNumber] FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON RC.ReceivingCustomerWorkId = WO.ReceivingCustomerWorkId WHERE WO.WorkOrderId = @WorkOrderId)
-
-				IF(@MaterialItemMasterId > 0)
-				BEGIN
-					IF(@MaterialIsSerialized = 1 AND @WOTypeId = @TearDownWO)
-					BEGIN
-						SET @SerialNumber = @WorkOrderNumber + '-' + CAST(@CurrentSerialNumber AS VARCHAR);
-					END
-				END
-				ELSE
-				BEGIN
-					SET @SerialNumber = @WorkOrderNumber + '-' + CAST((@CurrentSerialNumber + 1) AS VARCHAR);
-				END
 
 				--Customer Data Insert
 				INSERT INTO #tempCustomer([CustomerId], [Name], [CustomerAffiliationId], [customerType])
@@ -257,7 +226,13 @@ BEGIN
 
 				IF(ISNULL(@IsSerialized, 0) = 1)
 				BEGIN
-					SET @Quantity = 1
+					--SET @Quantity = 1
+					SET @QtyToTender = ISNULL(@PartQtyToTurnIn, 0) - ISNULL(@PartQuantityTurnIn, 0)
+					IF(@QtyToTender = 0)
+					BEGIN
+						SET @QtyToTender = @Quantity - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0))
+					END
+					SET @Quantity = @QtyToTender
 				END
 				ELSE
 				BEGIN
@@ -270,16 +245,67 @@ BEGIN
 					SET @SerialNumber = '';
 				END
 
-				--Tender StockLine Part
-				EXEC [dbo].[usp_SaveTurnInWorkOrderMaterils] 
-					@IsMaterialStocklineCreate, @IsCustomerStock, @IsCustomerstockType, @MaterialItemMasterId, @UnitOfMeasureId, @ConditionId,
-					@Quantity, @IsSerialized, @SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName,
-					@TraceableToTypeId, @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate,
-					@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UpdatedBy,
-					@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId
+				DECLARE @TOTALQTY BIGINT = 0;
+				SET @TOTALQTY = @Quantity
+
+				WHILE(@TOTALQTY > 0)
+				BEGIN
+
+					--CodePrefix Data Insert
+					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+					WHERE CT.CodeTypeId = @CodeTypeId
+					AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+					IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
+					BEGIN
+						SELECT @Nummber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) END 
+						FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+					
+						SET @ReceiverNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+										@Nummber,
+										(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId),
+										(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+					END
+					/*****************End Prefixes*******************/	
+
+					SELECT @ItemMasterId = [ItemMasterId], @ManagementStructureId = ManagementStructureId, @CurrentSerialNumber = CurrentSerialNumber 
+					FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
+
+					SET @CurrentSerialNumber = CASE WHEN @CurrentSerialNumber IS NULL THEN 1 ELSE @CurrentSerialNumber + 1 END
+
+					IF(@MaterialItemMasterId > 0)
+					BEGIN
+						IF(@MaterialIsSerialized = 1 AND @WOTypeId = @TearDownWO)
+						BEGIN
+							SET @SerialNumber = @WorkOrderNumber + '-' + CAST(@CurrentSerialNumber AS VARCHAR);
+						END
+					END
+					ELSE
+					BEGIN
+						SET @SerialNumber = @WorkOrderNumber + '-' + CAST((@CurrentSerialNumber) AS VARCHAR);
+					END
+
+					IF(ISNULL(@IsSerialized, 0) = 0)
+						SET @SerialNumber = '';
+					
+					--Tender StockLine Part
+					EXEC [dbo].[usp_SaveTurnInWorkOrderMaterils] 
+						@IsMaterialStocklineCreate, @IsCustomerStock, @IsCustomerstockType, @MaterialItemMasterId, @UnitOfMeasureId, @ConditionId,
+						1, @IsSerialized, @SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName,
+						@TraceableToTypeId, @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate,
+						@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UpdatedBy,
+						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId
+					
+					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
+					TRUNCATE TABLE #tmpCodePrefixes;
+
+					SET @TOTALQTY = @TOTALQTY - 1
+				END
+
 		
 				--Updating CodePrefix
-				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
 				--PRINT 'Sub WorkOrder Start'
 

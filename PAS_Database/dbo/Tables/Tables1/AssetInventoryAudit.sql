@@ -170,10 +170,12 @@
     [IntangibleWriteOffGLAccountName]   VARCHAR (250)   NULL,
     [AssetAttributeTypeId]              BIGINT          NULL,
     [ReceivablesAmount]                 DECIMAL (18, 2) NULL,
-    [DepreciationStartDate]             VARCHAR (30)    NULL,
+    [DepreciationStartDate]             DATETIME        NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );
+
+
 
 
 

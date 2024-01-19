@@ -24,6 +24,7 @@
  7    08/29/2023   Moin Bloch      Added WO Part Issue Batch Entry 
  8    10/16/2023   Devendra Shekh  TIMELIFE issue resolved
  9    01/17/2024   Hemant Saliya   Update Revised STL While Close Sub WO  
+10    01/17/2024   Hemant Saliya   Update RepairOrderUnitCost NULL to Zero
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  

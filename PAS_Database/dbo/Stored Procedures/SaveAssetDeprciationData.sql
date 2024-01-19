@@ -56,6 +56,11 @@ BEGIN
 			SET @InServiceDate = GETUTCDATE();
 		END
 
+		IF(@SerialNumber = NULL)
+		BEGIN
+			SET @SerialNumber = '';
+		END
+
 		INSERT INTO [AssetDepreciationHistory]
 
 		([SerialNo],[StklineNumber],[InServiceDate],[DepriciableStatus],[CURRENCY],[DepriciableLife],[DepreciationMethod],[DepreciationFrequency],[AssetId]
@@ -102,7 +107,7 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'SaveAssetDeprciationData' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@AssetInventoryId, '') + ''', 													'
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@AssetInventoryId, 0) + ''', 													'
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

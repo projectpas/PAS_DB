@@ -2750,5 +2750,7 @@
     <Build Include="dbo\Stored Procedures\USP_ManualJournal_PostCheckBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetRegisterReport.sql" />
     <Build Include="dbo\Stored Procedures\GetPNTileExchangeQuoteList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Lot_GetInitialPODetails_1.sql" />
+    <Build Include="dbo\Stored Procedures\GetSubWOAssetList.sql" />
   </ItemGroup>
 </Project>

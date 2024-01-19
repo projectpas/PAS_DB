@@ -88,8 +88,6 @@ BEGIN
 				IF (@ChartType = 1)
 				BEGIN
 					DECLARE @Cnts INT = 0;
-					print 'Bharga'
-					print @SelectedDate
 
 					SELECT @Cnts = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId

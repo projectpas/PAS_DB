@@ -19,6 +19,7 @@
     1    02/22/2021   Hemant Saliya Created
 	2    10/04/2021   Hemant Saliya Update Sub WO Pick Ticket Deletion based On Reservation 
 	3    12/18/2023   Hemant Saliya Added Kit Part for Sub WO Cost Calc
+	4    01/18/2024   Hemant Saliya Updated for Update Materilas Qty
      
  EXECUTE USP_UpdateSubWOMaterialsCost 161
 **************************************************************/ 
@@ -111,6 +112,29 @@ SET NOCOUNT ON
 					Quantity = CASE WHEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued,0)) > Quantity THEN (ISNULL(QtyReserved, 0) + ISNULL(QtyIssued,0)) ELSE Quantity END
 				FROM dbo.SubWorkOrderMaterialStockLine WOM WITH(NOLOCK)
 					JOIN #tmpWOMaterials tmp ON WOM.SubWorkOrderMaterialsId = tmp.SubWorkOrderMaterialsId
+
+				--FOR UPDATED WORKORDER MATERIALS QTY
+				UPDATE dbo.SubWorkOrderMaterials 
+				SET Quantity = GropWOM.Quantity	
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.SubWorkOrderMaterialsId   
+					FROM dbo.SubWorkOrderMaterials WOM 
+					JOIN dbo.SubWorkOrderMaterialStockLine WOMS ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					GROUP BY WOM.SubWorkOrderMaterialsId
+				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterials.SubWorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.SubWorkOrderMaterials.Quantity,0)	
+
+				--FOR UPDATED WORKORDER MATERIALS QTY
+				UPDATE dbo.SubWorkOrderMaterialsKit 
+				SET Quantity = GropWOM.Quantity	
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId    
+					FROM dbo.SubWorkOrderMaterialsKit WOM 
+					JOIN dbo.SubWorkOrderMaterialStockLineKit WOMS ON WOMS.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					GROUP BY WOM.SubWorkOrderMaterialsKitId
+				) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterialsKit.SubWorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.SubWorkOrderMaterialsKit.Quantity,0)			
+						
 
 				IF OBJECT_ID(N'tempdb..#tmpWOMaterials') IS NOT NULL
 				BEGIN

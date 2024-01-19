@@ -19,7 +19,8 @@
     2    03/29/2023   Vishal Suthar		Modified to handle KIT material cost
 	3    05/17/2023   Hemant Saliya		Corrected Cost Calculation
 	4    08/17/2023   Moin Bloch		Comment Updating Unit Cost Values 
-	3    12/29/2023   Hemant Saliya		Added Is null for Extended Cost
+	5    12/29/2023   Hemant Saliya		Added Is null for Extended Cost
+	6    01/18/2024   Hemant Saliya     Updated for Update Materilas Qty
      
  EXECUTE USP_UpdateWOMaterialsCost 7351
 **************************************************************/
@@ -108,6 +109,29 @@ SET NOCOUNT ON
 					JOIN #tmpWOMaterials tmp ON WOM.WorkOrderMaterialsKitId = tmp.WorkOrderMaterialsId
 					LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH(NOLOCK) ON IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId
 				WHERE tmp.StlCount = 0 AND tmp.IsKit = 1
+
+				--FOR UPDATED WORKORDER MATERIALS QTY
+				UPDATE dbo.WorkOrderMaterials 
+				SET Quantity = GropWOM.Quantity	
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsId   
+					FROM dbo.WorkOrderMaterials WOM 
+					JOIN dbo.WorkOrderMaterialStockLine WOMS ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					GROUP BY WOM.WorkOrderMaterialsId
+				) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
+
+				--FOR UPDATED WORKORDER MATERIALS QTY
+				UPDATE dbo.WorkOrderMaterialsKit 
+				SET Quantity = GropWOM.Quantity	
+				FROM(
+					SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId    
+					FROM dbo.WorkOrderMaterialsKit WOM 
+					JOIN dbo.WorkOrderMaterialStockLineKit WOMS ON WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId 
+					WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+					GROUP BY WOM.WorkOrderMaterialsKitId
+				) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterialsKit.Quantity,0)			
+						
 
 				PRINT 'H-1'
 

@@ -11,7 +11,7 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
 
-EXEC RPT_GetSalesOrderPrintPdfHeaderData 781
+EXEC RPT_GetSalesOrderPrintPdfHeaderData 806
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
@@ -45,7 +45,7 @@ BEGIN
 			UPPER(so.SalesOrderNumber) AS SONum,
 			so.OpenDate AS OrderDate,
 			CONVERT(VARCHAR, sop.EstimatedShipDate, 101) AS ShipDate,
-			Awb = (SELECT TOP 1 sos.AirwayBill
+			Awb = (SELECT TOP 1 UPPER(ISNULL(sos.AirwayBill,0))
 					FROM dbo.SalesOrder so WITH(NOLOCK)
 				  LEFT JOIN dbo.SalesOrderShipping sos WITH(NOLOCK) ON so.SalesOrderId = sos.SalesOrderId
 					WHERE sos.SalesOrderId = @salesOrderId),
@@ -60,7 +60,12 @@ BEGIN
 			ISNULL(sop.TaxPercentage, 0) AS TaxRate,
 			0 AS ShippingAndHandling,
 			so.ManagementStructureId,
-			UPPER(so.CustomerReference) AS CustomerReference
+			UPPER(so.CustomerReference) AS CustomerReference,
+			ShipVia = (SELECT TOP 1 UPPER(ISNULL(sv.[Name],0))
+					FROM dbo.SalesOrder so WITH(NOLOCK)
+				  LEFT JOIN dbo.SalesOrderShipping sos WITH(NOLOCK) ON so.SalesOrderId = sos.SalesOrderId
+				  LEFT JOIN dbo.ShippingVia sv WITH(NOLOCK) ON sos.ShipViaId = sv.ShippingViaId
+					WHERE sos.SalesOrderId = @salesOrderId)
 		FROM dbo.SalesOrder so WITH(NOLOCK)
 			LEFT JOIN dbo.SalesOrderPart sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId

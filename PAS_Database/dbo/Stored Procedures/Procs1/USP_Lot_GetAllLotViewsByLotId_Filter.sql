@@ -98,6 +98,7 @@ BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
+
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN		
@@ -253,7 +254,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
 				,SL.LotMainStocklineId
-		        ,ISNULL(sl.Adjustment,0) Adjustment
+		        ,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,im.ManufacturerName
 				,sobi.InvoiceDate InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
@@ -1143,7 +1144,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,Sl.LotSourceId
 				,Sl.IsFromInitialPO
 				,SL.LotMainStocklineId
-				,ISNULL(sl.Adjustment,0) Adjustment
+				,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,ltCal.CreatedDate
 				,im.ManufacturerName
 				FROM DBO.LOT lot WITH(NOLOCK)
@@ -1700,6 +1701,35 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId 
 					   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.PurchaseOrderFreight PF WITH(NOLOCK) WHERE PF.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
 							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
+				
+				UNION ALL
+
+					SELECT
+					 lot.LotId
+					,ISNULL(ro.RepairOrderId,0) PurchaseOrderId			
+					,ven.VendorName Vendor
+					,ISNULL(ven.VendorCode,'') VendorCode
+					,ISNULL(ven.VendorId,0) VendorId			
+					,ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) AS FreightCost
+					,ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) AS ChargesCost
+					,ro.CreatedDate AS PoDate
+					,ro.RepairOrderNumber AS PoNum			
+					,part.PartNumber
+					,part.PartDescription
+					,part.Condition
+					,part.Manufacturer
+					FROM DBO.LOT lot WITH(NOLOCK) 
+						 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
+						 INNER JOIN RepairOrder ro WITH(NOLOCK) on part.RepairOrderId = ro.RepairOrderId
+						 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
+						 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
+						 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId AND ltCal.ReferenceId = ro.RepairOrderId AND ltCal.ChildId = part.RepairOrderPartRecordId AND ltCal.Type = 'Trans In (RO)'
+						 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON ro.VendorId = ven.VendorId
+						 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
+					 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId 
+						   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
+								OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
+				
 				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				 SELECT * INTO #OtherCostTbl FROM  Result 

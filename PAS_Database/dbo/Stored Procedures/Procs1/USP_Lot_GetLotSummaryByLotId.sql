@@ -14,7 +14,7 @@
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 57 
 **************************************************************/
-Create   PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE     PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN
@@ -30,7 +30,7 @@ BEGIN
 			DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In(WO)';	DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
 			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out(PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out(RO)';
 			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)';	
-			DECLARE @OriginalCost decimal(18,2) = 0,@RepairCost decimal(18,2) = 0,@TransferredInCost decimal(18,2) = 0,@TransferredOutCost decimal(18,2) = 0,@OtherCost decimal(18,2) = 0;
+			DECLARE @OriginalCost decimal(18,2) = 0,@RepairCost decimal(18,2) = 0,@TransferredInCost decimal(18,2) = 0,@TransferredOutCost decimal(18,2) = 0,@OtherCost decimal(18,2) = 0,@OtherCostRepair decimal(18,2) = 0;
 			DECLARE @TotalLotCost decimal(18,2) = 0,@RevenueCost decimal(18,2) = 0,@CogsPartCost decimal(18,2) = 0,@CommissionExpense decimal(18,2) = 0,@TotalExpense decimal(18,2) = 0;
 			DECLARE @MarginAmount decimal(18,2) = 0,@MarginPercent decimal(18,2) = 0,@LotCostRemaining decimal(18,2) = 0,@OtherSalesExpenses decimal(18,2) = 0,@SoldCost decimal(18,2) = 0,@RemainingCostPercentage decimal(18,2) = 0;
 			DECLARE @OriginalCostUnit int=0,@RepairCostUnit int=0,@TransferredInCostUnit int=0,@TransferredOutCostUnit int=0,@OtherCostUnit int=0,@RevenueCostUnit int=0;
@@ -90,9 +90,27 @@ BEGIN
 				Select * INTO #tempTableLT FROM Lot_CTE Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer
 				Select @OtherCost = ISNULL( (SUM(ISNULL(FreightCost,0)))+ (SUM(ISNULL(ChargesCost,0))) ,0) from #tempTableLT
 
+				;WITH Lot_CTERepair AS(
+				SELECT
+				 lot.LotId
+				,ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) AS FreightCost
+				,ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) AS ChargesCost
+				FROM DBO.LOT lot WITH(NOLOCK) 
+					 INNER JOIN RepairOrderPart part WITH(NOLOCK) on part.LotId = lot.LotId
+					 INNER JOIN RepairOrder ro WITH(NOLOCK) on part.RepairOrderId = ro.RepairOrderId
+					 --INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
+					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltCal.ReferenceId = ro.RepairOrderId AND ltCal.ChildId = part.RepairOrderPartRecordId  AND ltCal.Type = @LOT_TransIn_RO
+
+				 WHERE lot.LotId = @LotId
+					   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.RepairOrderFreight PF WITH(NOLOCK) WHERE PF.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
+							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.RepairOrderCharges PC WITH(NOLOCK) WHERE PC.RepairOrderPartRecordId = part.RepairOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
+				 )
+
+				 Select @OtherCostRepair =  ISNULL( (SUM(ISNULL(FreightCost,0)))+ (SUM(ISNULL(ChargesCost,0))) ,0) from Lot_CTERepair
+				 SET @OtherCost = @OtherCost + @OtherCostRepair;
 
 				;WITH Lot_Adjust AS(
-				SELECT sl.StockLineId StockLineId,ISNULL(sl.Adjustment,0)Adjustment from 
+				SELECT sl.StockLineId StockLineId,(ISNULL(sl.Adjustment,0)* ISNULL(sl.QuantityOnHand, 0)) Adjustment from 
 					DBO.LOT lot WITH(NOLOCK) 
 					INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId
@@ -153,6 +171,7 @@ BEGIN
   BEGIN CATCH
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
+
 			ROLLBACK TRAN;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()

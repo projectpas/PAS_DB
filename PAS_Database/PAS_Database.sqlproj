@@ -2752,5 +2752,6 @@
     <Build Include="dbo\Stored Procedures\GetPNTileExchangeQuoteList.sql" />
     <Build Include="dbo\Stored Procedures\USP_Lot_GetInitialPODetails_1.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWOAssetList.sql" />
+    <Build Include="dbo\Stored Procedures\GetStocklineInventoryMismatch_3.sql" />
   </ItemGroup>
 </Project>

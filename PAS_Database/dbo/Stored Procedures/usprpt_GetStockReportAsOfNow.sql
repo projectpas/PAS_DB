@@ -16,7 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
      
-exec usprpt_GetStockReportAsOfNow @mastercompanyid=1,@id=N'1/17/2024',@id2=N'1,2,3',@id3=1,@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
+exec usprpt_GetStockReportAsOfNow @mastercompanyid=11,@id=N'1/19/2024',@id2=N'',@id3=1,@strFilter=N'49!50,51!!!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -137,7 +137,7 @@ BEGIN
 	Vendor_Name, QTY_on_Hand, Qty_Reserved, Qty_Available, Qty_Adjusted, PO_UnitCost, POExtCost, ROExtCost, ObtainedFrom, [Owner], Traceableto, Mfg, UnitCost, UnitPrice, ExtPrice,
 	CostAdjustment, ExtCostAdjustment, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, [Site], Warehouse, [Location], Shelf, Bin, GlAccount, PO_Num, RO_Num, RO_Cost, 
 	Inventory_Cost, PORcvdDate, RORcvdDate, POReceiverNum, ROReceiverNum, MasterCompanyId, StockLineId)
-	SELECT COUNT(1) OVER () AS TotalRecordsCount,    
+	SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,    
         UPPER(im.partnumber) AS 'PN',    
         UPPER(im.PartDescription) AS 'PN_Description',    
         UPPER(stl.SerialNumber) 'Serial_Num',    
@@ -156,7 +156,10 @@ BEGIN
         stl.QuantityOnHand 'QTY_on_Hand',    
         stl.QuantityReserved 'Qty_Reserved',    
         UPPER(stl.QuantityAvailable) 'Qty_Available',    
-        CASE WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN STl.QuantityOnHand - stladj.ChangedTo ELSE 0 END AS 'Qty_Adjusted',
+        --CASE WHEN stladjtype.StocklineAdjustmentDataTypeId = 10 THEN (STl.QuantityOnHand - stladj.ChangedTo) ELSE 0 END AS 'Qty_Adjusted',
+        (SELECT SUM(CAST(stladj.ChangedTo AS INT) - CAST(stladj.ChangedFrom AS INT)) FROM DBO.StocklineAdjustment stladj WITH (NOLOCK) LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
+		WHERE stladj.StocklineAdjustmentDataTypeId IN (10, 15) AND
+		stladj.StocklineId = stl.StockLineId) AS 'Qty_Adjusted',
 		ISNULL(stl.purchaseorderUnitCost , 0) 'PO_UnitCost',    
 		ISNULL(ISNULL(stl.purchaseorderUnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'POExtCost',
 		ISNULL(ISNULL(stl.RepairOrderUnitCost,0) * ISNULL(stl.QuantityOnHand,0) , 0) 'ROExtCost',
@@ -186,18 +189,18 @@ BEGIN
         CASE WHEN ISNULL(stl.RepairOrderId, 0) > 0 THEN UPPER(stl.ReceiverNumber) ELSE '' END 'ROReceiverNum',
 		stl.MasterCompanyId,
 		stl.StockLineId
-      FROM DBO.stockline stl WITH (NOLOCK)    
-     INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+     FROM DBO.stockline stl WITH (NOLOCK)    
+     INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId   
+	 INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
 	 LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
-	 LEFT OUTER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId    
-	 LEFT OUTER JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
-	 LEFT OUTER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
-	 LEFT OUTER JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid    
+	 LEFT JOIN DBO.PurchaseOrder pox WITH (NOLOCK) ON stl.PurchaseOrderId = pox.PurchaseOrderId    
+	 LEFT JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON stl.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId    
+	 LEFT JOIN DBO.RepairOrder rox WITH (NOLOCK) ON stl.RepairOrderId = rox.repairorderid    
 	 LEFT JOIN DBO.vendor VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
-	 LEFT JOIN DBO.StocklineAdjustment stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
-	 LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
-     WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 and CAST(stl.CreatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE)
-	 --AND stl.QuantityOnHand > 0
+	 --LEFT JOIN DBO.StocklineAdjustment stladj WITH (NOLOCK) ON stl.StockLineId = stladj.StocklineId    
+	 --LEFT JOIN DBO.StocklineAdjustmentDataType stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId    
+     WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 AND CAST(stl.CreatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE)
+	 AND stl.QuantityOnHand > 0
 	 AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
 	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2,''), ',')))
 	 AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
@@ -248,7 +251,8 @@ BEGIN
 	 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 
 	 UPDATE StkOriginal
-	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkReceived.QTY_OH
+	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkReceived.QTY_OH,
+	 StkOriginal.Qty_Available = StkOriginal.Qty_Available - StkReceived.QTY_OH
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineReceivedDate StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
 
@@ -293,7 +297,8 @@ BEGIN
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 
 	 UPDATE StkOriginal
-	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH
+	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH,
+	 StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkSold.QTY_OH
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineSoldDate StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
 
@@ -336,7 +341,8 @@ BEGIN
 
 	-- Increase Consumed Qty
 	UPDATE StkOriginal
-	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH
+	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH,
+	StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkSold.QTY_OH
 	FROM #TEMPOriginalStocklineRecords StkOriginal
 	INNER JOIN #TEMPStocklineConsumed StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
 
@@ -378,7 +384,8 @@ BEGIN
 
 	-- Remove Un-Issued Qty
 	UPDATE StkOriginal
-	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkUnIssued.QTY_OH
+	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkUnIssued.QTY_OH,
+	StkOriginal.Qty_Available = StkOriginal.Qty_Available - StkUnIssued.QTY_OH
 	FROM #TEMPOriginalStocklineRecords StkOriginal
 	INNER JOIN #TEMPStocklineUnIssued StkUnIssued ON StkOriginal.StockLineId = StkUnIssued.StocklineId
 
@@ -445,7 +452,8 @@ BEGIN
 
 	-- Increase Adjusted Qty (Decreased Qty)
 	UPDATE StkOriginal
-	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH
+	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH,
+	StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkSold.QTY_OH
 	FROM #TEMPOriginalStocklineRecords StkOriginal
 	INNER JOIN #TEMPStocklineQtyAdjusted_Reduced StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
 
@@ -512,7 +520,8 @@ BEGIN
 
 	-- Removed Adjusted Qty (Increased Qty)
 	UPDATE StkOriginal
-	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkSold.QTY_OH
+	SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkSold.QTY_OH,
+	StkOriginal.Qty_Available = StkOriginal.Qty_Available - StkSold.QTY_OH
 	FROM #TEMPOriginalStocklineRecords StkOriginal
 	INNER JOIN #TEMPStocklineQtyAdjusted_Increased StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
 
@@ -645,7 +654,7 @@ BEGIN
 	INNER JOIN #TEMPStocklineUnitCostAdjustedBulk StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
 
 	/* Final Result Set */
-	SELECT TotalRecordsCount,    
+	SELECT DISTINCT TotalRecordsCount,    
         PN,
         PN_Description,
         Serial_Num,
@@ -704,7 +713,8 @@ BEGIN
 		ROReceiverNum,
 		stl.MasterCompanyId,
 		stl.StockLineId 
-		FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0;
+		FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0
+		ORDER BY PN;
   END TRY
 
   BEGIN CATCH

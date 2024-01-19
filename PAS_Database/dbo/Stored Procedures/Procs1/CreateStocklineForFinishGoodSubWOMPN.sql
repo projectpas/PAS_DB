@@ -29,7 +29,7 @@
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
+CREATE    PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
 @SubWOPartNumberId BIGINT,  
 @UpdatedBy VARCHAR(50),  
 @IsMaterialStocklineCreate BIT = FLASE,  
@@ -264,7 +264,7 @@ BEGIN
          ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
          ,[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]  
          ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId]  
-         ,[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId], @ROUnitCost ,[ReceivedDate],[ReceiverNumber]  
+         ,[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId], ISNULL(@ROUnitCost, 0) ,[ReceivedDate],[ReceiverNumber]  
          ,[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER]  
          ,[OEM],[Memo],[ManagementStructureId],[LegalEntityId],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE()  
          ,[isSerialized],[ShelfId],[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]  
@@ -280,7 +280,7 @@ BEGIN
          ,[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition]  
          ,[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber]  
          ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
-         ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],@ROUnitCost,[TaggedByType]  
+         ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],ISNULL(@ROUnitCost, 0),[TaggedByType]  
          ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1, 1,@SubWorkOrderNum,1,[IsStkTimeLife]
      FROM dbo.Stockline WITH(NOLOCK)  
      WHERE StockLineId = @StocklineId  

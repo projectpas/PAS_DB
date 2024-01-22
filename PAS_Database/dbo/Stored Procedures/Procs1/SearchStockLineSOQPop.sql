@@ -27,6 +27,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(per.PercentValue,0.00) PercentValue
 			,ISNULL(lsm.LotSetupId,0) LotSetupId
 			,ISNULL(lsm.IsUseMargin,0) IsUseMargin
+			,lot.LotNumber AS LotNumber
 			,sl.StockLineId
 			,im.ItemMasterId As PartId
 			,im.ItemMasterId As ItemMasterId
@@ -140,6 +141,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(per.PercentValue,0.00) PercentValue
 			,ISNULL(lsm.LotSetupId,0) LotSetupId
 			,ISNULL(lsm.IsUseMargin,0) IsUseMargin
+			,lot.LotNumber AS LotNumber
 			,sl.StockLineId
 			,im.ItemMasterId As PartId
 			,im.ItemMasterId As ItemMasterId

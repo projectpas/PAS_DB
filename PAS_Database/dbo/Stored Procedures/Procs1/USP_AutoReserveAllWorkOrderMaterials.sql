@@ -16,6 +16,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 5    07/26/2023		 HEMANT SALIYA			Allow User to reserver & Issue other Customer Stock as well
 ** 6    08/18/2023       AMIT GHEDIYA           Updated for historytext for Wohistory.
 ** 7    08/18/2023       HEMANT SALIYA          Updated for Condition Group Change
+** 8    08/18/2023       HEMANT SALIYA          Updated for Module Id Changes
 
 EXEC USP_AutoReserveAllWorkOrderMaterials 2858,0,0,98
 **************************************************************/ 
@@ -48,6 +49,8 @@ BEGIN
 					DECLARE @QtytToRes INT = 0;
 					DECLARE @NewWorkOrderMaterialsId BIGINT;
 					DECLARE @NewStockline BIGINT;
+					DECLARE @ModuleId INT;
+					DECLARE @SubModuleId INT;
 
 					DECLARE @Autocount INT;
 					DECLARE @Materialscount INT;
@@ -68,6 +71,10 @@ BEGIN
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
+					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
+					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 
 					IF OBJECT_ID(N'tempdb..#ConditionGroup') IS NOT NULL
 					BEGIN
@@ -156,15 +163,13 @@ BEGIN
 						DECLARE @count1 INT;
 						DECLARE @slcount INT;
 						DECLARE @TotalCounts INT;
-						DECLARE @StocklineId BIGINT; 
-						DECLARE @ModuleId INT;
+						DECLARE @StocklineId BIGINT; 						
 						DECLARE @ReferenceId BIGINT;
 						DECLARE @IsAddUpdate BIT; 
 						DECLARE @ExecuteParentChild BIT; 
 						DECLARE @UpdateQuantities BIT;
 						DECLARE @IsOHUpdated BIT; 
-						DECLARE @AddHistoryForNonSerialized BIT; 
-						DECLARE @SubModuleId INT;
+						DECLARE @AddHistoryForNonSerialized BIT; 						
 						DECLARE @SubReferenceId BIGINT;
 						DECLARE @ReservePartStatus INT;
 						DECLARE @WorkOrderMaterialsId BIGINT;
@@ -172,10 +177,6 @@ BEGIN
 						DECLARE @stockLineQty INT;
 						DECLARE @stockLineQtyAvailable INT;
 						DECLARE @UpdateBy varchar(200);
-
-						SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
-						SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
-						SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 
 						SET @ReservePartStatus = 1; -- FOR RESERTVE
 						SET @IsAddUpdate = 0;

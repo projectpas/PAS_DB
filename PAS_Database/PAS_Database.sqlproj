@@ -2754,5 +2754,6 @@
     <Build Include="dbo\Stored Procedures\GetSubWOAssetList.sql" />
     <Build Include="dbo\Stored Procedures\MigrateEmployeeRecords.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckWOMarerialsExist.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterForExchange_ById.sql" />
   </ItemGroup>
 </Project>

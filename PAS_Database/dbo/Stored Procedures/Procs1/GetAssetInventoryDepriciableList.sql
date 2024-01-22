@@ -165,10 +165,10 @@ BEGIN
 								asm.ResidualPercentage,
 
 								A.AccountingCalenderId,
-								A.DepreciationAmount,
-								A.AccumlatedDepr,
-								A.NetBookValue,
-								A.NBVAfterDepreciation
+								B.DepreciationAmount,
+								B.AccumlatedDepr,
+								B.NetBookValue,
+								B.NBVAfterDepreciation
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
@@ -185,15 +185,23 @@ BEGIN
 
 								 OUTER APPLY      
 									 (      
-										SELECT TOP 1 ADH.AccountingCalenderId AS 'AccountingCalenderId',
-														ADH.DepreciationAmount,
+										SELECT DISTINCT STRING_AGG(ISNULL(ADH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
+										--SELECT TOP 1 ADH.AccountingCalenderId  AS 'AccountingCalenderId'
+										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
+										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
+										 -- ORDER BY ADH.ID DESC
+									 ) A
+
+									  OUTER APPLY      
+									 (      
+										SELECT TOP 1 ADH.DepreciationAmount,
 														ADH.AccumlatedDepr,
 														ADH.NetBookValue,
 														ADH.NBVAfterDepreciation
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
 										 ORDER BY ADH.ID DESC
-									 ) A
+									 ) B
 
 
 							WHERE (((asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), GETUTCDATE(), 112) != CONVERT(VARCHAR(6), asm.EntryDate, 112)) ) OR

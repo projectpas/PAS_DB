@@ -41,6 +41,7 @@
     [IsManualForm]            BIT            NULL,
     [IsTransferredToParentWO] BIT            NULL,
     [RevisedStockLineId]      BIGINT         NULL,
+    [RevisedSerialNumber]     VARCHAR (50)   NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumber] PRIMARY KEY CLUSTERED ([SubWOPartNoId] ASC),
     CONSTRAINT [FK_SubWorkOrderPartNumber_CMM] FOREIGN KEY ([CMMId]) REFERENCES [dbo].[Publication] ([PublicationRecordId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -58,6 +59,8 @@
     CONSTRAINT [FK_SubWorkOrderPartNumber_Workflow] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

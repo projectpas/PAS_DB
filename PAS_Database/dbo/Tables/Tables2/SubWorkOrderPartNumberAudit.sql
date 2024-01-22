@@ -42,8 +42,11 @@
     [IsManualForm]            BIT            NULL,
     [IsTransferredToParentWO] BIT            NULL,
     [RevisedStockLineId]      BIGINT         NULL,
+    [RevisedSerialNumber]     VARCHAR (50)   NULL,
     CONSTRAINT [PK_SubWorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([SubWOPartNoAuditId] ASC)
 );
+
+
 
 
 

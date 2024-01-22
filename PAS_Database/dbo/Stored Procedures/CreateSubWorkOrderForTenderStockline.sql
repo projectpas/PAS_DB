@@ -1,6 +1,5 @@
-﻿
-/*************************************************************           
- ** File:   [GetRecevingCustomerList]           
+﻿/*************************************************************           
+ ** File:   [CreateSubWorkOrderForTenderStockline]           
  ** Author:   Hemant Saliya
  ** Description: Create Sub Work Order For Tender Stockline 
  ** Purpose:         
@@ -16,9 +15,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04-Jan-2024   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    04-Jan-2024   Hemant Saliya		Created
+	2    22-Jan-2024   Devendra Shekh		duplicate subowo issue resolved
      
  EXECUTE [CreateSubWorkOrderForTenderStockline] 4007, 3494, 'ADMIN User'
 **************************************************************/ 
@@ -179,7 +179,7 @@ BEGIN
 								GETUTCDATE(),GETUTCDATE(),1,0,0,NULL,0,0,tmpWOM.ConditionId,CustomerReference,tmpWOM.ItemMasterId,ISNULL(WOS.IsTraveler, 0),ISNULL(WOS.IsManualForm, 0), NULL 
 						FROM #tmpWorkOrderMaterials tmpWOM 
 							JOIN dbo.WorkOrderPartNumber WOP ON tmpWOM.WorkOrderPartNumberId = WOP.ID
-							JOIN dbo.Assemply Assy ON tmpWOM.ItemMasterId = Assy.MappingItemMasterId AND WOP.ItemMasterId = Assy.ItemMasterId
+							JOIN dbo.Assemply Assy ON tmpWOM.ItemMasterId = Assy.MappingItemMasterId AND WOP.ItemMasterId = Assy.ItemMasterId AND Assy.ProvisionId = @SubWOProvisionID AND Assy.PopulateWoMaterialList = 1
 							JOIN #WorkOrderSettings WOS ON WOP.MasterCompanyId = WOS.MasterCompanyId AND WOS.WorkOrderTypeId = @WorkOrderTypeId
 						WHERE tmpWOM.ID = @count
 

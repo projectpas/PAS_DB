@@ -155,7 +155,7 @@ BEGIN
 								asm.statusNote,
 
 								ASM.TotalCost as InstalledCost,
-								ASM.DepreciationStartDate as InServiceDate,
+								ASM.ReceivedDate as InServiceDate,
 								'Depreciating' as DepreciableStatus,
 								
 								ASM.AssetLife as DepreciableLife,
@@ -164,7 +164,11 @@ BEGIN
 								ASM.DepreciationMethodName as DepreciationMethod,
 								asm.ResidualPercentage,
 
-								A.AccountingCalenderId
+								A.AccountingCalenderId,
+								A.DepreciationAmount,
+								A.AccumlatedDepr,
+								A.NetBookValue,
+								A.NBVAfterDepreciation
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
@@ -181,7 +185,11 @@ BEGIN
 
 								 OUTER APPLY      
 									 (      
-										SELECT TOP 1 ADH.AccountingCalenderId AS 'AccountingCalenderId'			           
+										SELECT TOP 1 ADH.AccountingCalenderId AS 'AccountingCalenderId',
+														ADH.DepreciationAmount,
+														ADH.AccumlatedDepr,
+														ADH.NetBookValue,
+														ADH.NBVAfterDepreciation
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
 										 ORDER BY ADH.ID DESC

@@ -16,7 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
      
-exec usprpt_GetStockReportAsOfNow @mastercompanyid=11,@id=N'1/19/2024',@id2=N'',@id3=1,@strFilter=N'49!50,51!!!!!!!!'
+exec usprpt_GetStockReportAsOfNow @mastercompanyid=11,@id=N'1/18/2024',@id2=N'',@id3=1,@strFilter=N'49!50,51!!!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -89,6 +89,7 @@ BEGIN
 		Item_Type VARCHAR(100) NULL,
 		stocktype VARCHAR(50) NULL,
 		Vendor_Name VARCHAR(100) NULL,
+		Qty INT NULL,
 		QTY_on_Hand INT NULL,
 		Qty_Reserved INT NULL,
 		Qty_Available INT NULL,
@@ -134,7 +135,7 @@ BEGIN
 	) 
 
 	INSERT INTO #TEMPOriginalStocklineRecords (TotalRecordsCount, PN, PN_Description, Serial_Num, SL_Num, ControlNumber, Cond, Item_Group, Is_Customer_Stock, UOM, Item_Type, stocktype,
-	Vendor_Name, QTY_on_Hand, Qty_Reserved, Qty_Available, Qty_Adjusted, PO_UnitCost, POExtCost, ROExtCost, ObtainedFrom, [Owner], Traceableto, Mfg, UnitCost, UnitPrice, ExtPrice,
+	Vendor_Name, Qty, QTY_on_Hand, Qty_Reserved, Qty_Available, Qty_Adjusted, PO_UnitCost, POExtCost, ROExtCost, ObtainedFrom, [Owner], Traceableto, Mfg, UnitCost, UnitPrice, ExtPrice,
 	CostAdjustment, ExtCostAdjustment, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, [Site], Warehouse, [Location], Shelf, Bin, GlAccount, PO_Num, RO_Num, RO_Cost, 
 	Inventory_Cost, PORcvdDate, RORcvdDate, POReceiverNum, ROReceiverNum, MasterCompanyId, StockLineId)
 	SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,    
@@ -153,6 +154,7 @@ BEGIN
 		   	 WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER'    
 			 ELSE 'OEM' END AS stocktype,    
         UPPER(VNDR.VendorName) 'Vendor_Name',    
+        stl.Quantity 'Qty',    
         stl.QuantityOnHand 'QTY_on_Hand',    
         stl.QuantityReserved 'Qty_Reserved',    
         UPPER(stl.QuantityAvailable) 'Qty_Available',    
@@ -223,12 +225,14 @@ BEGIN
 	CREATE TABLE #TEMPStocklineReceivedDate (        
 		ID BIGINT IDENTITY(1,1),        
 		StocklineId BIGINT NULL,
+		Qty INT NULL,
 		QTY_OH INT NULL,
 		MasterCompanyId INT NULL
 	)
 
-	INSERT INTO #TEMPStocklineReceivedDate (StocklineId, QTY_OH, MasterCompanyId)
+	INSERT INTO #TEMPStocklineReceivedDate (StocklineId, Qty, QTY_OH, MasterCompanyId)
 	SELECT stl.StockLineId AS StocklineId,    
+        (stl.Quantity) 'Qty',    
         (stl.QuantityOnHand) 'QTY_OH',    
         stl.MasterCompanyId
       FROM DBO.stockline stl WITH (NOLOCK)    
@@ -251,7 +255,7 @@ BEGIN
 	 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 
 	 UPDATE StkOriginal
-	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkReceived.QTY_OH,
+	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand - StkReceived.Qty,
 	 StkOriginal.Qty_Available = StkOriginal.Qty_Available - StkReceived.QTY_OH
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineReceivedDate StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId

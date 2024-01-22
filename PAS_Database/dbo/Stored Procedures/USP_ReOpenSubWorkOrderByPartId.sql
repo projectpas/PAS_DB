@@ -57,6 +57,8 @@ BEGIN
 				IsClosed = 0, IsFinishGood = 0, islocked = 0 , IsTransferredToParentWO = 0
 		WHERE  SubWorkOrderId = @SubWorkOrderId
 
+		UPDATE SubWorkOrderSettlementDetails SET IsMastervalue = 0, Isvalue_NA = 0, ConditionId = NULL, conditionName = null, RevisedItemmasterid = null WHERE SubWorkOrderId = @SubWorkOrderId AND WorkOrderSettlementId IN (7, 9)
+
 	END
 	COMMIT  TRANSACTION
 	END TRY    

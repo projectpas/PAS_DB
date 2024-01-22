@@ -25,6 +25,7 @@
  8    10/16/2023   Devendra Shekh  TIMELIFE issue resolved
  9    01/17/2024   Hemant Saliya   Update Revised STL While Close Sub WO  
 10    01/17/2024   Hemant Saliya   Update RepairOrderUnitCost NULL to Zero
+11    01/22/2024   Hemant Saliya   Add For create Sub WO Stockline History
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -341,6 +342,10 @@ BEGIN
   
      UPDATE [dbo].[Stockline] SET isActive = 0        
      WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0  
+
+	 DECLARE @SubWorkOrderModule AS BIGINT = 16; -- For Sub Work Order
+
+	 EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, 15, 1, @UpdatedBy;
   
      INSERT INTO [dbo].[StockLineHistoryDetails] ([StocklineId], [ItemMasterId_o], [ItemMasterId_m], [StocklineNum],  
       [PurchaseOrderId], [PONum], [POCost], [ConditionId], [ConditionName], [RepairOrderId], [RONum], [WorkscoprId],[WorkscopeName],  
@@ -435,6 +440,12 @@ BEGIN
 			  [WorkOrderMaterialsId] = @NewWorkOrderMaterialsId,  
               [Memo] = 'This stockline has been updated.Sub WO is: ' + @SubWorkOrderNum + ' and Main WO is: ' + @WorkOrderNum
          FROM [dbo].[StockLine] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @NewStocklineId;  
+
+
+		DECLARE @ActionId INT = 0;
+		SET @ActionId = 4; -- Issue
+		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @SubWOQuantity, @UpdatedBy = @UpdatedBy;
+
 		 		  
        --UPDATE WO PART LEVEL TOTAL COST  
        EXEC USP_UpdateWOTotalCostDetails @WorkOrderId = @WorkOrderId, @WorkOrderWorkflowId = @WorkOrderWorkflowId, @UpdatedBy = @UpdatedBy ;  

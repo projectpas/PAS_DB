@@ -26,12 +26,13 @@
  9    01/17/2024   Hemant Saliya   Update Revised STL While Close Sub WO  
 10    01/17/2024   Hemant Saliya   Update RepairOrderUnitCost NULL to Zero
 11    01/22/2024   Hemant Saliya   Add For create Sub WO Stockline History
+12    10/16/2023   Devendra Shekh  update revised serialnum close sub wo
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
   
-CREATE    PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
+CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
 @SubWOPartNumberId BIGINT,  
 @UpdatedBy VARCHAR(50),  
 @IsMaterialStocklineCreate BIT = FLASE,  
@@ -98,6 +99,7 @@ BEGIN
 	DECLARE @WOModuleName varchar(200)='WOP-PartsIssued'
 	DECLARE @laborType varchar(200)='434'
 	DECLARE @WorkFlowWorkOrderId BIGINT = 0; 
+	DECLARE @RevisedSerialNumber VARCHAR(50) = '';
   
     SET @MSModuleID = 2; -- Stockline Module ID  
   
@@ -115,7 +117,8 @@ BEGIN
 		   @WorkOrderId = WorkOrderId,
            @RevisedPartNoId = CASE WHEN ISNULL(RevisedItemmasterid, 0) > 0 THEN RevisedItemmasterid ELSE ItemMasterId END,  
            @RevisedConditionId = CASE WHEN ISNULL(RevisedConditionId, 0) > 0 THEN RevisedConditionId ELSE ConditionId END,  
-           @MasterCompanyId  = MasterCompanyId  
+           @MasterCompanyId  = MasterCompanyId,
+		   @RevisedSerialNumber = ISNULL(RevisedSerialNumber, '')
     FROM dbo.SubWorkOrderPartNumber WITH(NOLOCK) WHERE SubWOPartNoId = @SubWOPartNumberId  
   
     SELECT @CustomerAffiliationId = CU.[CustomerAffiliationId]  
@@ -429,7 +432,7 @@ BEGIN
         END  
   
         SET @slcount = @slcount + 1;  
-       END;  
+       END;
   		 
        UPDATE StockLine   
           SET [QuantityAvailable] = ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0),
@@ -438,7 +441,9 @@ BEGIN
               [UpdatedDate] = GETUTCDATE(), 
 			  [UpdatedBy] = @UpdatedBy, 
 			  [WorkOrderMaterialsId] = @NewWorkOrderMaterialsId,  
-              [Memo] = 'This stockline has been updated.Sub WO is: ' + @SubWorkOrderNum + ' and Main WO is: ' + @WorkOrderNum
+              [Memo] = 'This stockline has been updated.Sub WO is: ' + @SubWorkOrderNum + ' and Main WO is: ' + @WorkOrderNum,
+			  [SerialNumber] = CASE WHEN ISNULL(@RevisedSerialNumber, '') != '' THEN @RevisedSerialNumber ELSE [SerialNumber] END,
+			  [isSerialized] = CASE WHEN ISNULL(@RevisedSerialNumber, '') != '' THEN 1 ELSE [isSerialized] END
          FROM [dbo].[StockLine] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @NewStocklineId;  
 
 

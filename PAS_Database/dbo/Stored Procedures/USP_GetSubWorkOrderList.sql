@@ -199,7 +199,7 @@ BEGIN
 						OCD.[Description] AS 'OriginalCondition',
 						UCD.[Description] AS 'UpdatedCondition',
 						CASE WHEN ISNULL(SWPT.IsTransferredToParentWO, 0) = 0 THEN 'NO' ELSE 'YES' END AS 'IsTransferredToParentWO',
-						CASE WHEN (ISNULL(WOMS.QtyReserved , 0) + ISNULL(WOMS.QtyIssued , 0)) > 0 THEN 0 ELSE SWPT.IsClosed  END AS 'isAllowReOpen',
+						CASE WHEN (ISNULL(WOMS.QtyReserved , 0) + ISNULL(WOMS.QtyIssued , 0)) > 0 OR ISNULL(WPN.IsClosed, 0) = 1   THEN 0 ELSE SWPT.IsClosed  END AS 'isAllowReOpen',
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
 						SL.StockLineNumber AS 'UpdatedStockLineNumber',
 						tmpSub.SubReleaseFromId
@@ -210,11 +210,13 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SWPT.ItemMasterId = IM.ItemMasterId
 				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SWO.StockLineId = SL.StockLineId
 				INNER JOIN [dbo].[WorkScope] SUBWOS WITH (NOLOCK) ON SWPT.SubWorkOrderScopeId = SUBWOS.WorkScopeId
+				INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON SWO.WorkOrderPartNumberId = WPN.ID
 				LEFT JOIN [dbo].[Condition] OCD WITH (NOLOCK) ON SWPT.ConditionId = OCD.ConditionId
 				LEFT JOIN [dbo].[Condition] UCD WITH (NOLOCK) ON SWPT.RevisedConditionId = UCD.ConditionId
 				LEFT JOIN [dbo].[WorkOrderStatus] STS WITH (NOLOCK) ON SWPT.SubWorkOrderStatusId = STS.Id
 				LEFT JOIN #tempSubWO tmpSub WITH (NOLOCK) ON SWO.SubWorkOrderId = tmpSub.SubWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.StockLineId = SWPT.RevisedStockLineId 
+				
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	

@@ -2753,5 +2753,6 @@
     <Build Include="dbo\Stored Procedures\USP_Lot_GetInitialPODetails_1.sql" />
     <Build Include="dbo\Stored Procedures\GetSubWOAssetList.sql" />
     <Build Include="dbo\Stored Procedures\MigrateEmployeeRecords.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckWOMarerialsExist.sql" />
   </ItemGroup>
 </Project>

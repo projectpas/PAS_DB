@@ -18,6 +18,7 @@
  ** --   --------		-------				--------------------------------          
     1    01/04/2024		Devendra Shekh		Created
     2    01/19/2024		Devendra Shekh		qty base tender stk changes
+    3    01/23/2024		Devendra Shekh		serial Number issue resolved
      
 --exec USP_TenderStockLineForSubAssembly @WorkOrderId=3932,@WorkFlowWorkOrderId=3398,@WorkOrderMaterialsId=16047
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=4003,@WorkFlowWorkOrderId=3460,@WorkOrderMaterialsId=16129

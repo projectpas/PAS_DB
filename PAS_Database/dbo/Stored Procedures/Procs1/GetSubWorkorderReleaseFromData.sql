@@ -11,6 +11,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** --   --------    -------         --------------------------------    
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings    
    2    09/28/2023  BHARGAV SALIYA   In Sub WO 8130 form remove header Notes text from block 12. 
+   3    01/23/2024  Devendra Shekh   revised serial number changes 
     
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'    
     

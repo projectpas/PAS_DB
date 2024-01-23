@@ -1,5 +1,4 @@
-﻿    
-/*************************************************************       
+﻿/*************************************************************       
 ** Author:  <Hemant Saliya>      
 ** Create date: <01/23/2023>      
 ** Description: <Get Work order Release Form Data>      
@@ -16,7 +15,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'    
     
 **************************************************************/     
-CREATE     PROC [dbo].[GetSubWorkorderReleaseFromData]    
+CREATE   PROC [dbo].[GetSubWorkorderReleaseFromData]    
 @SubWorkOrderId bigint = null,    
 @SubWOPartNoId bigint = null,    
 @IsEasaLicense bit = 0    
@@ -57,7 +56,7 @@ BEGIN
 			  CASE WHEN isnull(wosc.RevisedItemmasterid,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END as PartNumber,      
 			  wopn.CustomerReference as Reference,    
 			  wop.Quantity as Quantity,    
-			  UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber END) AS Batchnumber,    
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
 			  wosc.conditionName AS [status],    
 			  '' AS Certifies,     
 			  0 AS approved ,    

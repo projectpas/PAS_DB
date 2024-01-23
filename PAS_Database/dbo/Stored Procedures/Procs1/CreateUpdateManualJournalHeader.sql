@@ -15,6 +15,7 @@
 4    05/09/2023   MOIN BLOCH    Modify (Added RecurringNumberOfPeriod For Recurring)
 5    06/09/2023   Moin Bloch    Added Posted date for Accounting Batch
 5    07/09/2023   Moin Bloch    Modify (Added Update Journal Status Open when update Header info)
+6    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
 
 -- exec CreateUpdateManualJournalHeader 92,1      
 **************************************************************/   
@@ -65,6 +66,7 @@ BEGIN
 			DECLARE @ApprovalStatusId INT;
 			DECLARE @OpenStatusId INT;			
 			DECLARE @ActionId INT;
+			DECLARE @isrec INT = 3;
 
 			SELECT @StatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Approved';
 			SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
@@ -235,6 +237,10 @@ BEGIN
 				IF(@ManualJournalStatusId = @PostStatusId)
 				BEGIN
 					UPDATE [dbo].[ManualJournalHeader] SET [PostedDate] = GETUTCDATE() WHERE [ManualJournalHeaderId] = @ManualJournalHeaderId;
+					IF(@IsRecuring = @isrec)
+					BEGIN
+						EXEC [dbo].[USP_ManualJournal_PostCheckBatchDetails] @ManualJournalHeaderId;
+					END
 				END
 
 			END  

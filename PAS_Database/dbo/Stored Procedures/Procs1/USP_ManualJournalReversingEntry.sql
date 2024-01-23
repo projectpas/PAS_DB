@@ -13,11 +13,12 @@
 	1    09/01/2023   Moin Bloch    Created
 	2    09/05/2023   Moin Bloch    Added MS for Accounting Batch
 	3    09/06/2023   Moin Bloch    Added Posted date for Accounting Batch
+	4    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
 	
 	EXEC [dbo].[USP_ManualJournalReversingEntry] 102,1
 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_ManualJournalReversingEntry]
+CREATE     PROCEDURE [dbo].[USP_ManualJournalReversingEntry]
 @ManualJournalHeaderId BIGINT,
 @MasterCompanyId INT
 AS  
@@ -62,9 +63,13 @@ BEGIN
 		DECLARE @ManagementStructureId BIGINT;
 		DECLARE @MSModuleId INT = 0		
 		DECLARE @UpdatedBy varchar(100);
+		DECLARE @ManualJournalStatusId int = NULL;
+		DECLARE @PostStatusId INT;
+
 		SELECT @CodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'ManualJournalType';		
 		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Approved';
 		SELECT @RevStatusId = [ReversingStatusId] FROM [dbo].[ReversingStatus] WITH(NOLOCK) WHERE [Name] = 'Reversed';
+		SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
 		SELECT @ManualJournalMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal';
 		SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 				 
@@ -108,7 +113,8 @@ BEGIN
 				 @LegalEntityId = [LedgerId],
 				 @OldJournalNumber = [JournalNumber],
 				 @IsRecuring = [IsRecuring],
-				 @UpdatedBy = [UpdatedBy]
+				 @UpdatedBy = [UpdatedBy],
+				 @ManualJournalStatusId = [ManualJournalStatusId]
 		    FROM [dbo].[ManualJournalHeader] WITH(NOLOCK) 
 		   WHERE [ManualJournalHeaderId] = @ManualJournalHeaderId;
 
@@ -380,6 +386,11 @@ BEGIN
 
 		END  
 
+		   IF(@ManualJournalStatusId = @PostStatusId)
+		   BEGIN
+				EXEC [dbo].[USP_ManualJournal_PostCheckBatchDetails] @ManualJournalHeaderId;
+		   END
+			
 		END
 
 		COMMIT  TRANSACTION  

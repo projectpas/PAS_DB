@@ -13,6 +13,7 @@
  ** --   --------     -------		-------------------------------            
 	1    09/04/2023   Moin Bloch    Created
 	2    09/06/2023   Moin Bloch    Added Posted date for Accounting Batch
+	3    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
 
 	EXEC [dbo].[USP_ManualJournalRecurringEntry] 102,1
 
@@ -62,11 +63,14 @@ BEGIN
 		DECLARE @IsRecursiveDone BIT;
 		DECLARE @RecurringNumberOfPeriod INT;
 		DECLARE @ManagementStructureId BIGINT;
-		DECLARE @MSModuleId INT = 0		
+		DECLARE @MSModuleId INT = 0;		
 		DECLARE @UpdatedBy varchar(100);
+		DECLARE @ManualJournalStatusId int = NULL;
+		DECLARE @PostStatusId INT;
 
 		SELECT @CodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'ManualJournalType';		
 		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Approved';
+		SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
 		SELECT @ManualJournalMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal';
 		SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 
@@ -110,7 +114,8 @@ BEGIN
 				 @EffectiveDate = [EffectiveDate],
 				 @IsRecursiveDone = ISNULL([IsRecursiveDone],0),
 				 @RecurringNumberOfPeriod = [RecurringNumberOfPeriod],
-				 @UpdatedBy = [UpdatedBy]
+				 @UpdatedBy = [UpdatedBy],
+				 @ManualJournalStatusId = [ManualJournalStatusId]
 		    FROM [dbo].[ManualJournalHeader] WITH(NOLOCK) 
 		   WHERE [ManualJournalHeaderId] = @ManualJournalHeaderId;
 
@@ -387,6 +392,7 @@ BEGIN
 				  WHERE [ModuleID] = @ManualJournalMSModuleId 
 				    AND [ReferenceID] = @ManualJournalHeaderId;
 					
+					
 					--IF(ISNULL(@AccountStatus,0) = 1)
 					--BEGIN
 					--	UPDATE [dbo].[ManualJournalHeader] 
@@ -404,6 +410,11 @@ BEGIN
 					SET @Counter  = @Counter  + 1;
 
                 END
+			
+				IF(@ManualJournalStatusId = @PostStatusId)
+				BEGIN
+					EXEC [dbo].[USP_ManualJournal_PostCheckBatchDetails] @ManualJournalHeaderId;
+				END
 			END  
 		END
 		COMMIT  TRANSACTION  

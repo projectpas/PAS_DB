@@ -281,6 +281,10 @@ BEGIN
 						BEGIN
 							SET @SerialNumber = @WorkOrderNumber + '-' + CAST(@CurrentSerialNumber AS VARCHAR);
 						END
+						ELSE
+						BEGIN
+							SET @SerialNumber = '';
+						END
 					END
 					ELSE
 					BEGIN

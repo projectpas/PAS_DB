@@ -155,7 +155,7 @@ BEGIN
 								asm.statusNote,
 
 								ASM.TotalCost as InstalledCost,
-								ASM.ReceivedDate as InServiceDate,
+								ASM.DepreciationStartDate as InServiceDate,
 								'Depreciating' as DepreciableStatus,
 								
 								ASM.AssetLife as DepreciableLife,

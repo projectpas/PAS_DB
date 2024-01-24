@@ -21,9 +21,8 @@
 
  exec UpdateStocklineDraftDetailRo  132
 **************************************************************/  
-
-CREATE     Procedure [dbo].[UpdateStocklineDraftDetailRo]
-@RepairOrderId  bigint
+CREATE   Procedure [dbo].[UpdateStocklineDraftDetailRo]
+	@RepairOrderId bigint
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -32,13 +31,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRY
 BEGIN TRANSACTION
 
-	  UPDATE dbo.StocklineDraft SET ParentId =  (SELECT TOP 1 S.StockLineDraftId FROM dbo.StocklineDraft S WHERE 
+		UPDATE dbo.StocklineDraft SET ParentId =  (SELECT TOP 1 S.StockLineDraftId FROM dbo.StocklineDraft S WITH (NOLOCK) WHERE 
 	                                      S.StockLineDraftNumber = SDF.StockLineDraftNumber 
 								          AND (ISNULL(IsParent,0) = 1))
-	  FROM dbo.StocklineDraft SDF WHERE SDF.RepairOrderId = @RepairOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
+		FROM dbo.StocklineDraft SDF WITH (NOLOCK) WHERE SDF.RepairOrderId = @RepairOrderId AND ISNULL(SDF.IsParent,0) = 0 AND ISNULL(SDF.IsParent,0) = 0
 
 		UPDATE SD SET
-		
 		Manufacturer = MF.[NAME],
 		Condition = CO.[Description],
 		Warehouse = WH.[Name],
@@ -53,16 +51,6 @@ BEGIN TRANSACTION
 								  WHEN SD.OwnerType = 9 THEN COMON.[Name]	
 								  ELSE SD.OwnerName
 					 END,
-		--TraceableToName = CASE WHEN SD.TraceableToType = 1 THEN CUSTTTN.[Name] 
-		--                          WHEN SD.TraceableToType = 2 THEN VENTTN.VendorName
-		--						  WHEN SD.TraceableToType = 9 THEN COMTTN.[Name]	
-		--						  ELSE SD.TraceableToName
-		--			 END,
-		--TaggedByName = CASE WHEN SD.TaggedByType = 1 THEN TAGCUST.[Name] 
-		--                          WHEN SD.TaggedByType = 2 THEN TAGVEN.VendorName
-		--						  WHEN SD.TaggedByType = 9 THEN TAGCOM.[Name]	
-		--						  ELSE SD.TaggedByName
-		--			 END,
 		CertifiedBy = CASE WHEN SD.CertifiedTypeId = 1 THEN CERCUST.[Name] 
 		                          WHEN SD.CertifiedTypeId = 2 THEN CERVEN.VendorName
 								  WHEN SD.CertifiedTypeId = 9 THEN CERCOM.[Name]	
@@ -70,7 +58,6 @@ BEGIN TRANSACTION
 						END,
 		
 		GLAccount = (ISNULL(GLA.AccountCode,'')+'-'+ISNULL(GLA.AccountName,'')),
-		--AssetName =  AST.[Name],       always null need to verify
 		LegalEntityName = LE.[Name],
 		ShelfName = SF.[Name],
 		BinName = B.[Name],
@@ -78,7 +65,6 @@ BEGIN TRANSACTION
 		ObtainFromTypeName = (select ModuleName from dbo.Module WITH (NOLOCK) Where Moduleid = SD.ObtainFromType),
 		OwnerTypeName =  (select ModuleName from dbo.Module WITH (NOLOCK) Where Moduleid = SD.OwnerType),
 		TraceableToTypeName =  (select ModuleName from dbo.Module WITH (NOLOCK) Where Moduleid = SD.TraceableToType),
-		--TaggedByTypeName =  (select ModuleName from dbo.Module WITH (NOLOCK) Where Moduleid = SD.TaggedByType),
 		CertifiedType =  (select ModuleName from dbo.Module WITH (NOLOCK) Where Moduleid = SD.CertifiedTypeId),
 		ShippingVia = SV.[Name],
 		WorkOrder = WO.WorkOrderNum,
@@ -91,24 +77,21 @@ BEGIN TRANSACTION
 		OEM = IM.IsOEM,
 		WorkOrderId = ROP.WorkOrderId,
 		SalesOrderId = ROP.SalesOrderId,
-		--TaggedByName = (ISNULL(Emp.FirstName,'')+' '+ISNULL(Emp.LastName,'')),
 		UnitOfMeasure = UM.shortname,
 		RevisedPartNumber = RIM.partnumber,
 		TagType = TT.[Name],
 		[IsStkTimeLife] = IM.[isTimeLife],
-		TraceableTo = ROP.TraceableTo,
-		TraceableToName = ROP.TraceableToName,
-		TraceableToType = ROP.TraceableToType,
-		TagTypeId = ROP.TagTypeId,
-		TaggedByType = ROP.TaggedByType,
-		TaggedBy = ROP.TaggedBy,
-		TaggedByName = ROP.TaggedByName,
-		TaggedByTypeName = ROP.TaggedByTypeName,
-		TagDate = ROP.TagDate
-
+		TraceableTo = CASE WHEN SD.TraceableTo IS NULL THEN ROP.TraceableTo ELSE SD.TraceableTo END,
+		TraceableToName = CASE WHEN SD.TraceableToName IS NULL THEN ROP.TraceableToName ELSE SD.TraceableToName END,
+		TraceableToType = CASE WHEN SD.TraceableToType IS NULL THEN ROP.TraceableToType ELSE SD.TraceableToType END,
+		TagTypeId = CASE WHEN SD.TagTypeId IS NULL THEN ROP.TagTypeId ELSE SD.TagTypeId END,
+		TaggedByType = CASE WHEN SD.TaggedByType IS NULL THEN ROP.TaggedByType ELSE SD.TaggedByType END,
+		TaggedBy = CASE WHEN SD.TaggedBy IS NULL THEN ROP.TaggedBy ELSE SD.TaggedBy END,
+		TaggedByName = CASE WHEN SD.TaggedByName IS NULL THEN ROP.TaggedByName ELSE SD.TaggedByName END,
+		TaggedByTypeName = CASE WHEN SD.TaggedByTypeName IS NULL THEN ROP.TaggedByTypeName ELSE SD.TaggedByTypeName END,
+		TagDate = CASE WHEN SD.TagDate IS NULL THEN ROP.TagDate ELSE SD.TagDate END
 		FROM dbo.StocklineDraft SD WITH (NOLOCK)
 		INNER JOIN dbo.RepairOrderPart ROP  WITH (NOLOCK) ON ROP.RepairOrderPartRecordId =  SD.RepairOrderPartRecordId and ROP.ItemTypeId=1
-		--LEFT JOIN #StocklineDraftMSDATA PMS  WITH (NOLOCK) ON PMS.MSID = SD.ManagementStructureEntityId
 		LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 		LEFT JOIN dbo.Condition CO  WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
 		LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId
@@ -150,7 +133,6 @@ BEGIN TRANSACTION
 		WHERE RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND isParent = 1 and ROP.ItemTypeId=1)) FROM dbo.RepairOrderPart ROP  WITH (NOLOCK)
 		WHERE ROP.RepairOrderId = @RepairOrderId and ROP.ItemTypeId=1
 
-
 		UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(QuantityBackOrdered),0) from dbo.RepairOrderPart  WITH (NOLOCK)
 		where ParentId = POP.RepairOrderPartRecordId and POP.ItemTypeId=1 )) FROM dbo.RepairOrderPart POP  WITH (NOLOCK)
 		where POP.RepairOrderId = @RepairOrderId AND POP.isParent = 1 and POP.ItemTypeId=1
@@ -159,15 +141,12 @@ BEGIN TRANSACTION
 					where POP.ItemTypeId=1 and ParentId = POP.RepairOrderPartRecordId),0) > 0
 		
 		SELECT RepairOrderNumber as value FROM dbo.RepairOrder PO WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId	
-
-
 COMMIT TRANSACTION
 END TRY
   BEGIN CATCH  
-	   IF @@trancount > 0	  
-       ROLLBACK TRANSACTION;
-	
-	   DECLARE @ErrorLogID INT
+		IF @@trancount > 0	  
+			ROLLBACK TRANSACTION;
+		DECLARE @ErrorLogID INT
 	   ,@DatabaseName VARCHAR(100) = db_name()
 	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 	   ,@AdhocComments VARCHAR(150) = 'UpdateStocklineDraftDetailRo'
@@ -180,22 +159,8 @@ END TRY
 			,@ApplicationName = @ApplicationName
 			,@ErrorLogID = @ErrorLogID OUTPUT;
 
-		RAISERROR (
-				'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'
-				,16
-				,1
-				,@ErrorLogID
-				)
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
 
 		RETURN (1);           
   END CATCH
-	--IF OBJECT_ID(N'tempdb..#StocklineDraftMSDATA') IS NOT NULL
-	--BEGIN
-	--   DROP TABLE #StocklineDraftMSDATA 
-	--END
-	--IF OBJECT_ID(N'tempdb..#MSDATA') IS NOT NULL
-	--BEGIN
-	--	DROP TABLE #MSDATA 
-	--END
-
 END

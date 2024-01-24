@@ -64,7 +64,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @DepreciableLife varchar(30) = null,
 @DepreciationFrequencyName varchar(50) = null,
 @Currency varchar(50) = null,
-@DepreciationMethod varchar(50) = null
+@DepreciationMethod varchar(50) = null,
+@LegalentityId varchar(50) = null
 AS
 BEGIN
 
@@ -176,20 +177,19 @@ BEGIN
 								 LEFT JOIN [dbo].[AssetIntangibleType]  astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								 LEFT JOIN [dbo].[Manufacturer]  maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								 LEFT JOIN [dbo].[AssetCalibration] cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId AND asm.CalibrationRequired = 1	
-								 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId	
-								 LEFT JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId
 								 LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								 LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 								 LEFT JOIN [dbo].Currency CURR WITH (NOLOCK) ON CURR.CurrencyId = ASM.CurrencyId
-								 -- INNER JOIN [dbo].AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = ASM.AssetInventoryId
-
-								 OUTER APPLY      
+								 INNER JOIN [dbo].LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,','))
+								 INNER JOIN ManagementStructureLevel MSL on LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.Level1Id = MSL.ID AND MSD.ReferenceID = asm.AssetInventoryId	
+								
+								OUTER APPLY      
 									 (      
 										SELECT DISTINCT STRING_AGG(ISNULL(ADH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
-										--SELECT TOP 1 ADH.AccountingCalenderId  AS 'AccountingCalenderId'
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
-										 -- ORDER BY ADH.ID DESC
 									 ) A
 
 									  OUTER APPLY      

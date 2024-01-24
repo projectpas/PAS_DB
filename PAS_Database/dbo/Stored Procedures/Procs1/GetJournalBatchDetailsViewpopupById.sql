@@ -1537,7 +1537,7 @@ BEGIN
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 				 ORDER BY DS.DisplayNumber ASC;  
 			END 
-			IF(UPPER(@Module) = UPPER('MJE'))        
+			IF(UPPER(@Module) = UPPER('MJE') OR UPPER(@Module) = UPPER('ManualJournal'))        
 			BEGIN  		
 				DECLARE @ManualManagementStructureModuleId BIGINT = 0;
 

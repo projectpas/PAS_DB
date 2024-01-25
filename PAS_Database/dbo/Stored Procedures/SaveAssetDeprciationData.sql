@@ -37,13 +37,17 @@ BEGIN
 		DECLARE @NBVAfterDepreciation DECIMAL(18,2);
 		DECLARE @ResidualPercentage DECIMAL(18,2);
 		DECLARE @AfterReduceResidual DECIMAL(18,2);
+		DECLARE @ReduceResidualPerc DECIMAL(18,2);
+		DECLARE @Hundred DECIMAL(18,2) = 100;
 		DECLARE @DepreciationStartDate DATETIME;
 		DECLARE @LastDeprRunPeriod VARCHAR(30)
 
 		SELECT @AccumlatedDepr = [AccumlatedDepr] FROM AssetDepreciationHistory WHERE [AssetInventoryId] = @AssetInventoryId AND [ID] = (SELECT MAX(ID) FROM AssetDepreciationHistory)
 		SELECT @ResidualPercentage = ResidualPercentage FROM AssetInventory WHERE [AssetInventoryId] = @AssetInventoryId 
-		SELECT @AfterReduceResidual = ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@ResidualPercentage,0),0);
-		SELECT @DepreciationAmount = ISNULL(ISNULL(@AfterReduceResidual,0) / ISNULL(@DepreciableLife,0),0);										-- (@InstalledCost - @ResidualPercentage) / @DepreciableLife
+
+		SELECT @ReduceResidualPerc = ISNULL(ISNULL(@ResidualPercentage,0) / ISNULL(@Hundred,0),0);				
+		SELECT @AfterReduceResidual = ISNULL(ISNULL(@InstalledCost,0) - (ISNULL(@InstalledCost,0) * ISNULL(@ReduceResidualPerc,0)),0);
+		SELECT @DepreciationAmount = ISNULL(ISNULL(@AfterReduceResidual,0) / ISNULL(@DepreciableLife,0),0);										-- (@InstalledCost * @ResidualPercentage / 100) / @DepreciableLife
 		SELECT @AccumlatedDepr = (ISNULL(ISNULL(@AccumlatedDepr,0) + ISNULL(@DepreciationAmount,0),0));											-- @AccumlatedDepr + @DepreciationAmount;
 		SELECT @NetBookValue = (ISNULL(ISNULL(@InstalledCost,0) - ISNULL(@AccumlatedDepr,0),0));												-- @InstalledCost - @AccumlatedDepr;
 		SELECT @NBVAfterDepreciation = (ISNULL(ISNULL(@NetBookValue,0) - ISNULL(@DepreciationAmount,0),0));										-- @NetBookValue - @DepreciationAmount;

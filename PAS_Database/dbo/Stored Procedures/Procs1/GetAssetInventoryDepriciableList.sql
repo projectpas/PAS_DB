@@ -54,17 +54,18 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @StklineNumber varchar(50) = null,
 @ControlNumber varchar(50) = null,
 @EmployeeId bigint=1,
-@InstalledCost decimal,
-@InServiceDate decimal,
+@InstalledCost varchar(30) = null,
+@InServiceDate datetime = null,
 @DepreciableStatus varchar(50) = null,
-@DepreciationAmount decimal,
-@AccumlatedDepr decimal,
-@NetBookValue decimal,
-@NBVAfterDepreciation decimal,
-@DepreciableLife bigint,
+@DepreciationAmount varchar(30) = null,
+@AccumlatedDepr varchar(30) = null,
+@NetBookValue varchar(30) = null,
+@NBVAfterDepreciation varchar(30),
+@DepreciableLife varchar(30) = null,
 @DepreciationFrequencyName varchar(50) = null,
 @Currency varchar(50) = null,
-@DepreciationMethod varchar(50) = null
+@DepreciationMethod varchar(50) = null,
+@LegalentityId varchar(50) = null
 AS
 BEGIN
 
@@ -176,20 +177,19 @@ BEGIN
 								 LEFT JOIN [dbo].[AssetIntangibleType]  astI WITH(NOLOCK) ON ast.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 								 LEFT JOIN [dbo].[Manufacturer]  maf WITH(NOLOCK) ON asm.ManufacturerId = maf.ManufacturerId
 								 LEFT JOIN [dbo].[AssetCalibration] cal WITH(NOLOCK) ON asm.AssetRecordId=cal.AssetRecordId AND asm.CalibrationRequired = 1	
-								 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId	
-								 LEFT JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON cal.CalibrationDefaultVendorId=V.VendorId
 								 LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								 LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 								 LEFT JOIN [dbo].Currency CURR WITH (NOLOCK) ON CURR.CurrencyId = ASM.CurrencyId
-								 -- INNER JOIN [dbo].AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = ASM.AssetInventoryId
-
-								 OUTER APPLY      
+								 INNER JOIN [dbo].LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,','))
+								 INNER JOIN ManagementStructureLevel MSL on LE.LegalEntityId = MSL.LegalEntityId
+								 INNER JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.Level1Id = MSL.ID AND MSD.ReferenceID = asm.AssetInventoryId	
+								
+								OUTER APPLY      
 									 (      
 										SELECT DISTINCT STRING_AGG(ISNULL(ADH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
-										--SELECT TOP 1 ADH.AccountingCalenderId  AS 'AccountingCalenderId'
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
-										 -- ORDER BY ADH.ID DESC
 									 ) A
 
 									  OUTER APPLY      
@@ -236,7 +236,18 @@ BEGIN
 								(BuName LIKE '%'+@GlobalFilter+'%') OR
 								(DivName LIKE '%' +@GlobalFilter+'%') OR
 								(DeptName LIKE '%' +@GlobalFilter+'%') OR
-								(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
+
+								 (cast(InstalledCost as varchar(10)) LIKE '%' +@GlobalFilter+'%')  OR 
+								-- (cast(InServiceDate as nvarchar(10)) LIKE '%' +@GlobalFilter+'%') OR
+								(CAST(DepreciationAmount as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
+								(CAST(AccumlatedDepr as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
+								(cast(NetBookValue as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
+								(cast(NBVAfterDepreciation as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR
+								(DepreciableStatus LIKE '%' +@GlobalFilter+'%') OR 
+								(cast(DepreciableLife as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
+								(Currency LIKE '%' +@GlobalFilter+'%') OR 
+								(DepreciationFrequencyName LIKE '%' +@GlobalFilter+'%') OR 
+								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') 
 								))
 							OR   
 							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
@@ -262,7 +273,19 @@ BEGIN
 								(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND
 								(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) and
 								(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
-								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') 
+								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%')  AND
+								
+								 (ISNULL(@DepreciationAmount,'') ='' OR cast(DepreciationAmount as varchar(10)) LIKE '%' + @DepreciationAmount+'%') AND
+								 (ISNULL(@AccumlatedDepr,'') ='' OR cast(AccumlatedDepr as varchar(10)) LIKE '%' + @AccumlatedDepr+'%') AND
+								(ISNULL(@NetBookValue,'') ='' OR cast(NetBookValue as varchar(10)) LIKE '%' + @NetBookValue+'%') AND
+								(ISNULL(@NBVAfterDepreciation,'') ='' OR cast(NBVAfterDepreciation as varchar(10)) LIKE '%' + @NBVAfterDepreciation+'%') AND
+								(ISNULL(@InServiceDate,'') ='' OR CAST(InServiceDate AS DATE) = CAST(@InServiceDate AS DATE)) AND --  
+								(ISNULL(@DepreciableStatus,'') ='' OR DepreciableStatus LIKE '%' + @DepreciableStatus+'%') AND
+								(ISNULL(@DepreciableLife,'') ='' OR cast(DepreciableLife as varchar(10)) LIKE '%' + @DepreciableLife+'%') AND
+								(ISNULL(@Currency,'') ='' OR Currency LIKE '%' + @Currency+'%') AND
+								(ISNULL(@DepreciationFrequencyName,'') ='' OR DepreciationFrequencyName LIKE '%' + @DepreciationFrequencyName+'%') AND
+								(ISNULL(@DepreciationMethod,'') ='' OR DepreciationMethod LIKE '%' + @DepreciationMethod+'%') AND
+								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') 
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) FROM #TempResult			
@@ -284,6 +307,18 @@ BEGIN
 					CASE WHEN (@SortOrder=1 AND @SortColumn='AssetStatus')  THEN AssetStatus END ASC,
 					CASE WHEN (@SortOrder=1 AND @SortColumn='InventoryNumber')  THEN InventoryNumber END ASC,
 					CASE WHEN (@SortOrder=1 AND @SortColumn='InventoryStatus')  THEN InventoryStatus END ASC,
+					
+					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationAmount')  THEN DepreciationAmount END ASC,
+					CASE WHEN (@SortOrder=1 AND @SortColumn='AccumlatedDepr')  THEN AccumlatedDepr END ASC,					
+					CASE WHEN (@SortOrder=1 AND @SortColumn='NetBookValue')  THEN NetBookValue END ASC,
+					CASE WHEN (@SortOrder=1 AND @SortColumn='NBVAfterDepreciation')  THEN NBVAfterDepreciation END ASC,					
+					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciableStatus')  THEN DepreciableStatus END ASC,
+					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciableLife')  THEN DepreciableLife END ASC,					
+					CASE WHEN (@SortOrder=1 AND @SortColumn='Currency')  THEN Currency END ASC,
+					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END ASC,					
+					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END ASC,
+					CASE WHEN (@SortOrder=1 AND @SortColumn='InstalledCost')  THEN InstalledCost END ASC,	
+					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,	
 
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETID')  THEN AssetId END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETNAME')  THEN Name END DESC,
@@ -300,7 +335,20 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='AssetStatus')  THEN AssetStatus END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InventoryNumber')  THEN InventoryNumber END DESC,
-					CASE WHEN (@SortOrder=-1 AND @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC ,	
+					
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationAmount')  THEN DepreciationAmount END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='AccumlatedDepr')  THEN AccumlatedDepr END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='NetBookValue')  THEN NetBookValue END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='NBVAfterDepreciation')  THEN NBVAfterDepreciation END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciableStatus')  THEN DepreciableStatus END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciableLife')  THEN DepreciableLife END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='Currency')  THEN Currency END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END DESC,					
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='InstalledCost')  THEN InstalledCost END DESC,
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC
+
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 				END
@@ -311,11 +359,20 @@ BEGIN
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
                     ROLLBACK TRAN;
+
+					SELECT
+						ERROR_NUMBER() AS ErrorNumber,
+						ERROR_STATE() AS ErrorState,
+						ERROR_SEVERITY() AS ErrorSeverity,
+						ERROR_PROCEDURE() AS ErrorProcedure,
+						ERROR_LINE() AS ErrorLine,
+						ERROR_MESSAGE() AS ErrorMessage;
+
 					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'GetRecevingCustomerList' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''', 
-													   @Parameter2 = ' + ISNULL(@PageSize,'') + ', 
+              , @AdhocComments     VARCHAR(150)    = 'GetAssetInventoryDepriciableList' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageSize  , '') + ''', 
+													   @Parameter2 = ' + ISNULL(@PageNumber,'') + ', 
 													   @Parameter3 = ' + ISNULL(@SortColumn,'') + ', 
 													   @Parameter4 = ' + ISNULL(@SortOrder,'') + ', 
 													   @Parameter5 = ' + ISNULL(@StatusID,'') + ', 

@@ -65,7 +65,7 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @DepreciationFrequencyName varchar(50) = null,
 @Currency varchar(50) = null,
 @DepreciationMethod varchar(50) = null,
-@LegalentityId varchar(50) = null
+@LegalentityId varchar(500) = null
 AS
 BEGIN
 
@@ -181,10 +181,14 @@ BEGIN
 								 LEFT JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								 LEFT JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 								 LEFT JOIN [dbo].Currency CURR WITH (NOLOCK) ON CURR.CurrencyId = ASM.CurrencyId
-								 INNER JOIN [dbo].LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,','))
-								 INNER JOIN ManagementStructureLevel MSL on LE.LegalEntityId = MSL.LegalEntityId
-								 INNER JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.Level1Id = MSL.ID AND MSD.ReferenceID = asm.AssetInventoryId	
-								
+								 --INNER JOIN [dbo].LegalEntity LE WITH (NOLOCK) ON LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,','))
+								 --INNER JOIN ManagementStructureLevel MSL on LE.LegalEntityId = MSL.LegalEntityId
+								 --INNER JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.Level1Id = MSL.ID AND MSD.ReferenceID = asm.AssetInventoryId	
+								LEFT JOIN [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
+								LEFT JOIN [dbo].EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
+								LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+								LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
+
 								OUTER APPLY      
 									 (      
 										SELECT DISTINCT STRING_AGG(ISNULL(ADH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
@@ -216,6 +220,7 @@ BEGIN
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
 																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
+																AND (LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,',')))
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult FROM  Result
 					WHERE (

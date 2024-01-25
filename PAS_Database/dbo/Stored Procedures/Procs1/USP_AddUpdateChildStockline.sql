@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -19,6 +20,7 @@
 	3    6 Nov 2023   Rajesh Gami       SalesPrice Expriry Date And Stockline History UnitSalesPrice and SalesPriceExpiryDate related change
 	4    5 Jan 2024   Hemant Saliya     Added Rec Customer Delete Hinstory
 	5    8 Jan 2024   Hemant Saliya     Added Create Sub WO Hinstory
+	6    23 jan 2024  Shrey Chandegara  Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
   
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -69,7 +71,7 @@ BEGIN
 		DECLARE @RemainingQtyToCreate INT = 0;
 		SET @RemainingQtyToCreate = @QtyOnAction - @UnAvailQtyCount;
 
-		IF (@ActionId = 1 OR @ActionId = 11)
+		IF (@ActionId = 1 OR @ActionId = 11 OR @ActionId = 7)
 		BEGIN
 			SELECT @Qty = Quantity,   
 			@RemainingAvailableQty = QuantityAvailable,  

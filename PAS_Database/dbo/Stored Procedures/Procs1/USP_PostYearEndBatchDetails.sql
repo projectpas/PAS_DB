@@ -13,6 +13,8 @@
 	1    06/09/2023   Hemant Saliya  Created
 	2    30/09/2023   Hemant Saliya  Updated For GL Account Number And JE Auto Number
 	3    20/10/2023   Hemant Saliya  Added Manual Journal Batches
+	4    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+
  ************************************************************** 
  EXEC dbo.USP_PostYearEndBatchDetails @StartPeriodId=128,@EndPeriodId=140,@MasterCompanyId=1,@UserName=N'ADMIN User',@LegalEntityIds=N'1',@Memo=N'<p>Run for Demo And SilverXis</p>'
 **************************************************************/  
@@ -120,7 +122,6 @@ BEGIN
 				DECLARE @DistributionCode VARCHAR(200);
 				DECLARE @StatusId INT;
 				DECLARE @PostedStatusId INT;
-				DECLARE @ManualJournalStatusId INT;				
 				DECLARE @StatusName VARCHAR(200);
 				DECLARE @JournalTypeId INT;
 				DECLARE @JournalTypeCode VARCHAR(200);
@@ -133,7 +134,6 @@ BEGIN
 				DECLARE @RevenueGLAccountTypeId AS BIGINT;
 				DECLARE @ExpenseGLAccountTypeId AS BIGINT;
 				DECLARE @BatchMSModuleId BIGINT; 
-				DECLARE @ManualBatchMSModuleId BIGINT; 
 				DECLARE @Revenue DECIMAL(18, 2) = 0;
 				DECLARE @Expenses DECIMAL(18, 2) = 0;
 				DECLARE @NetEarning DECIMAL(18, 2) = 0;
@@ -164,7 +164,6 @@ BEGIN
 				SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('Year End');
 				SELECT @StatusId = Id,@StatusName = [name] FROM dbo.BatchStatus WITH(NOLOCK)  WHERE UPPER([Name]) = UPPER('Open')
 				SELECT @PostedStatusId = Id FROM dbo.BatchStatus WITH(NOLOCK)  WHERE UPPER([Name]) = UPPER('Posted')
-				SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 				SELECT TOP 1 @JournalTypeId = JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId 
 
 				SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId = @JournalTypeId AND StatusId = @StatusId
@@ -173,7 +172,6 @@ BEGIN
 				SELECT @ExpenseGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Expense' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 
 				SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-				SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 
 				DECLARE @ID AS int = 0;	
 				SELECT @ID = MAX(ID) FROM #tmpLegalEntity 
@@ -197,20 +195,6 @@ BEGIN
 					WHERE CB.IsDeleted = 0 AND CB.MasterCompanyId = @MasterCompanyId AND B.IsDeleted = 0 AND
 						CAST(B.PostedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
 					GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId,ML.LegalEntityId
-					
-					UNION ALL
-
-					SELECT cbd.GlAccountId, GL.AccountCode, GL.AccountName, cbd.ManagementStructureId, ML.LegalEntityId,
-						ISNULL(SUM(cbd.Debit),0), ISNULL(SUM(cbd.Credit),0)
-					FROM dbo.ManualJournalDetails cbd WITH(NOLOCK)
-						INNER JOIN dbo.ManualJournalHeader bd WITH(NOLOCK) ON  cbd.ManualJournalHeaderId = bd.ManualJournalHeaderId AND ManualJournalStatusId = @ManualJournalStatusId
-						INNER JOIN #tmpAccountingPeriod tmp ON bd.AccountingPeriodId = tmp.AccountPeriodId
-						INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId) 
-						INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-						INNER JOIN dbo.ManagementStructureLevel ML WITH(NOLOCK) on MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
-					WHERE cbd.MasterCompanyId = @masterCompanyId AND cbd.IsDeleted = 0 AND bd.IsDeleted = 0
-						AND CAST(bd.PostedDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
-					GROUP BY cbd.GlAccountId,GL.AccountCode,GL.AccountName,cbd.ManagementStructureId,ML.LegalEntityId
 
 					SELECT @TotalDebit = SUM(ISNULL(DebitAmount,0)), @TotalCredit = SUM(ISNULL(CreditAmount,0)) FROM #TempTable WHERE LegalEntityId = @LegalEntityId GROUP BY LegalEntityId
 

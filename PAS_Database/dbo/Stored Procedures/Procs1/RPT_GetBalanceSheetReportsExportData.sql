@@ -11,7 +11,8 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
 	1    20/09/2023   Hemnat Saliya  Created
-	1    30/10/2023   Hemnat Saliya  Updated For GL Balance
+	2    30/10/2023   Hemnat Saliya  Updated For GL Balance
+	3    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 
 ************************************************************************
 EXEC [RPT_GetBalanceSheetReportsExportData] 137,137,23,1,1,0, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -38,9 +39,9 @@ BEGIN
 		  DECLARE @AccountPeriodIds VARCHAR(max);  
 		  DECLARE @LegalEntityId BIGINT;
 		  DECLARE @PostedBatchStatusId BIGINT;
-		  DECLARE @ManualJournalStatusId BIGINT;
+		  --DECLARE @ManualJournalStatusId BIGINT;
 		  DECLARE @BatchMSModuleId BIGINT; 
-		  DECLARE @ManualBatchMSModuleId BIGINT; 
+		  --DECLARE @ManualBatchMSModuleId BIGINT; 
 		  DECLARE @AssetGLAccountTypeId AS BIGINT;
 		  DECLARE @LiabilitiesGLAccountTypeId AS BIGINT;
 		  DECLARE @EquityGLAccountTypeId AS BIGINT;
@@ -76,9 +77,9 @@ BEGIN
 		  SELECT @LiabilitiesGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Liabilities' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SELECT @EquityGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Owners Equity' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		  SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
+		  --SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 		  SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-		  SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
+		  --SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 
 		  IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 		  BEGIN    
@@ -208,42 +209,7 @@ BEGIN
 		  				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 		  				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 		  				AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  		GROUP BY LF.LeafNodeId, GLM.IsPositive, GL.GLAccountTypeId
-		  
-		  		UNION ALL
-		  
-		  		SELECT	DISTINCT LF.LeafNodeId , @AccountcalID, 
-		  			CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END 'DebitAmount',
-		  				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
-		  			CASE WHEN GL.GLAccountTypeId = @AssetGLAccountTypeId THEN
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END)  
-					ELSE
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) -
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END)
-					END AS AMONUT
-		  			FROM dbo.ManualJournalDetails MJD WITH (NOLOCK) 
-		  				JOIN dbo.GLAccount GL ON MJD.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@AssetGLAccountTypeId, @LiabilitiesGLAccountTypeId,@EquityGLAccountTypeId) 
-		  				JOIN dbo.ManualJournalHeader MJH  WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
-		  				JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON MJD.GlAccountId = GLM.GLAccountId AND GLM.IsDeleted = 0
-		  				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = MJD.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-		  				JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0
-		  					 AND ISNULL(ReportingStructureId, 0) = @ReportingStructureId
-		  			WHERE GLM.GLAccountId = MJD.GlAccountId  AND MJH.ManualJournalStatusId = @ManualJournalStatusId --AND MJD.ManagementStructureId = @managementStructureId 
-		  					AND MJD.MasterCompanyId = @MasterCompanyId AND MJD.IsDeleted = 0 AND MJH.IsDeleted = 0
-		  					AND MJH.AccountingPeriodId IN (SELECT AccountcalID FROm #AccPeriodTable_All)
-		  					AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-		  					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-		  					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-		  					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-		  					AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-		  					AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-		  					AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-		  					AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-		  					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-		  					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-		  					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  			GROUP BY  LF.LeafNodeId, GLM.IsPositive, GL.GLAccountTypeId)
+		  		GROUP BY LF.LeafNodeId, GLM.IsPositive, GL.GLAccountTypeId)
 		  
 		  	SET @MAXCalTempID = @MAXCalTempID - 1;
 		  END

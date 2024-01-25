@@ -16,6 +16,7 @@
 	4    24/11/2023   Moin Bloch     Renamed ReferenceModule VENDOR RMA To VENDOR CREDIT MEMO AND SO TO CUSTOMER CREDIT MEMO 
 	5    28/11/2023   Moin Bloch     Added ReferenceId For WIRETRANSFER,ACHTRANSFER,CREDITCARDPAYMENT
 	6    12/12/2023   Moin Bloch     Added CreditMemoHeaderId and IsStandAloneCM For 'CRFD' 
+	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -51,9 +52,7 @@ BEGIN
 		  DECLARE @LegalEntityId BIGINT;
 		  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		  DECLARE @PostedBatchStatusId BIGINT;
-		  DECLARE @ManualJournalStatusId BIGINT;
 		  DECLARE @BatchMSModuleId BIGINT; 
-		  DECLARE @ManualBatchMSModuleId BIGINT; 
 		  DECLARE @RevenueGLAccountTypeId AS BIGINT;
 		  DECLARE @ExpenseGLAccountTypeId AS BIGINT;
 		  DECLARE @CustomerRefundModuleId BIGINT = 0;
@@ -73,11 +72,9 @@ BEGIN
 		  SELECT @FROMDATE = FromDate, @LegalEntityId = LegalEntityId FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId AND IsDeleted = 0
 		  SELECT @TODATE = ToDate FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0 
 		  SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		  SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 		  SELECT @RevenueGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Revenue' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SELECT @ExpenseGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Expense' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-		  SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 		  SELECT @CustomerRefundModuleId = [ModuleId] FROM [dbo].[Module] WHERE [ModuleName] = 'CustomerRefund';
 
 		  SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
@@ -125,9 +122,6 @@ BEGIN
 		  WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
 		  	 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
 		  
-		  --INSERT INTO #AccPeriodTable (PeriodName) 
-		  --VALUES('Total')
-
 		  IF OBJECT_ID(N'tempdb..#GLBalance') IS NOT NULL
 		  BEGIN
 		    DROP TABLE #GLBalance
@@ -178,43 +172,7 @@ BEGIN
 					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY LF.LeafNodeId , BD.AccountingPeriod, GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120), GL.GLAccountTypeId
-
-			UNION ALL
-
-			SELECT	DISTINCT LF.LeafNodeId , REPLACE(AC.PeriodName, ' - ', ''), MJD.GlAccountId, MJH.JournalNumber, MJH.ManualJournalHeaderId, CONVERT(DATETIME, MJH.EntryDate, 120),
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END 'DebitAmount',
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
-				CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END)  
-					ELSE
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) -
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END)
-					END AS AMONUT,
-					1
-				FROM dbo.ManualJournalDetails MJD WITH (NOLOCK) 
-					JOIN dbo.GLAccount GL ON MJD.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId) 
-					JOIN dbo.ManualJournalHeader MJH  WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
-					JOIN dbo.AccountingCalendar AC WITH (NOLOCK) ON MJH.AccountingPeriodId = AC.AccountingCalendarId
-					JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON MJD.GlAccountId = GLM.GLAccountId AND GLM.IsDeleted = 0
-					INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = MJD.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-					JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0
-						 AND ISNULL(ReportingStructureId, 0) = @ReportingStructureId
-			WHERE GLM.GLAccountId = MJD.GlAccountId  AND MJH.ManualJournalStatusId = @ManualJournalStatusId AND MJD.GlAccountId = @GLAccountId
-					AND MJD.MasterCompanyId = @MasterCompanyId AND MJD.IsDeleted = 0 AND MJH.IsDeleted = 0
-					AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-					AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-					AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-					AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-					AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  GROUP BY  LF.LeafNodeId , AC.PeriodName, GLM.IsPositive, MJD.GlAccountId, MJH.JournalNumber, MJH.ManualJournalHeaderId, CONVERT(DATETIME, MJH.EntryDate, 120), GL.GLAccountTypeId)
+			GROUP BY LF.LeafNodeId , BD.AccountingPeriod, GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, CMD.EntryDate, 120), GL.GLAccountTypeId)
 
 		  IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL
 		  BEGIN

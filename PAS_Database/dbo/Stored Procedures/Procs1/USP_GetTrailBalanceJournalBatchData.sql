@@ -18,7 +18,8 @@
     1    07/24/2023   Devendra Shekh			Created	
     2    08/08/2023   Devendra Shekh			ambiguous column error resolved	
     3    08/10/2023   Devendra Shekh			modified the sp
-	4    09/01/2023   Hemant Saliya  Added MS Filters	 
+	4    09/01/2023   Hemant Saliya				Added MS Filters	 
+	5    01/25/2024   Hemant Saliya				Remove Manual Journal from Reports
      
 --EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134',2,@xmlFilter=N'
 <?xml version="1.0" encoding="utf-16"?>
@@ -80,9 +81,7 @@ BEGIN
 	BEGIN
 		
 		DECLARE @BatchMSModuleId BIGINT; 
-		DECLARE @ManualBatchMSModuleId BIGINT; 
 		DECLARE @PostedBatchStatusId BIGINT;
-		DECLARE @ManualJournalStatusId BIGINT;
 
 		DECLARE   
 		@level1 VARCHAR(MAX) = NULL,  
@@ -97,9 +96,7 @@ BEGIN
 		@Level10 VARCHAR(MAX) = NULL
 		
 		SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-		SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 		SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 
 		SELECT @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
 		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,  
@@ -164,32 +161,6 @@ BEGIN
 			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		GROUP BY cbd.GlAccountId, bd.AccountingPeriod,bd.JournalTypeNumber,GL.AccountCode,GL.AccountName
-
-		UNION ALL
-
-		SELECT cbd.GlAccountId,(GL.AccountCode + ' - ' +	GL.AccountName) AS 'GlAccount' ,
-			ISNULL(SUM(cbd.Credit),0) 'Credit',ISNULL(SUM(cbd.Debit),0) 'Debit',ac.PeriodName AS 'PeriodName',
-			bd.JournalNumber AS 'JournalNumber'
-		FROM dbo.ManualJournalDetails cbd WITH(NOLOCK)
-			INNER JOIN dbo.ManualJournalHeader bd WITH(NOLOCK) ON  cbd.ManualJournalHeaderId = bd.ManualJournalHeaderId AND ManualJournalStatusId = @ManualJournalStatusId
-			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId
-			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-			LEFT JOIN dbo.AccountingCalendar AC WITH(NOLOCK) ON  bd.AccountingPeriodId = AC.AccountingCalendarId
-		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId --AND cbd.ManagementStructureId = @managementStructureId 
-			AND cbd.IsDeleted = 0 AND bd.IsDeleted = 0
-			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-			AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-			AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-			AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-			AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-			AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		GROUP BY cbd.GlAccountId, ac.PeriodName,bd.JournalNumber, GL.AccountCode, GL.AccountName 
-		
 	END
 	END TRY
 	BEGIN CATCH

@@ -12,6 +12,9 @@ BEGIN
 				BEGIN TRANSACTION
 				BEGIN
 				
+				DECLARE @ID BIGINT = 0, @DistributionName VARCHAR(250);
+
+				SELECT @ID = [ID], @DistributionName = [Name] FROM DBO.DistributionSetup WITH(NOLOCK) WHERE [Name] = 'Manual' AND [DistributionSetupCode] = 'Manual';
 
 				--  JournalBatchDetails LIST
 					IF((SELECT COUNT(CommonJournalBatchDetailId) FROM @tbl_CommonJournalBatchDetails) > 0 )
@@ -60,7 +63,8 @@ BEGIN
 										,ManagementStructureId
 										,LastMSLevel
 										,AllMSlevels
-										
+										,[DistributionSetupId]
+										,[DistributionName]
 										)
 							VALUES (
 										SOURCE.JournalBatchDetailId
@@ -85,6 +89,8 @@ BEGIN
 										,SOURCE.ManagementStructureId
 										,SOURCE.LastMSLevel
 										,SOURCE.AllMSlevels
+										,@ID
+										,@DistributionName
 										);
 
 

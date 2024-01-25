@@ -2756,5 +2756,6 @@
     <Build Include="dbo\Stored Procedures\USP_CheckWOMarerialsExist.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterForExchange_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterForExchangeQuote_ById.sql" />
+    <Build Include="dbo\Tables\ManualJournalPaymentBatchDetails.sql" />
   </ItemGroup>
 </Project>

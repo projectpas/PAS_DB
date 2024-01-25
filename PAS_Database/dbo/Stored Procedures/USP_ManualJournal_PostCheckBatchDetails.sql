@@ -18,7 +18,7 @@
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_ManualJournal_PostCheckBatchDetails]
+CREATE       PROCEDURE [dbo].[USP_ManualJournal_PostCheckBatchDetails]
 (
 	@ManualJournalHeaderId BIGINT
 )
@@ -124,13 +124,13 @@ BEGIN
 			
 			SELECT @MasterCompanyId = MasterCompanyId , @UpdateBy = UpdatedBy , @ManagementStructureId = ManagementStructureId FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
-			SELECT @EmployeeId = @EmployeeId FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
+			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 			SELECT TOP 1 @JournalTypeId = JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='ManualJouralDebit';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
-			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			
@@ -141,13 +141,17 @@ BEGIN
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 			FROM [DBO].[CodePrefixes] CP WITH(NOLOCK) JOIN [DBO].[CodeTypes] CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 			WHERE CT.CodeTypeId IN (@CodeTypeId) AND  CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
-			
-			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-			FROM [DBO].[EntityStructureSetup] est WITH(NOLOCK) 
-			INNER JOIN [DBO].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
-			INNER JOIN [DBO].[AccountingCalendar] acc WITH(NOLOCK) ON msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			where est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId  
-			AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
+				
+			SELECT @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+			FROM [DBO].[AccountingCalendar] acc WITH(NOLOCK)
+			WHERE acc.AccountingCalendarId = @AccountingPeriodId AND acc.MasterCompanyId=@MasterCompanyId  
+
+			--SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+			--FROM [DBO].[EntityStructureSetup] est WITH(NOLOCK) 
+			--INNER JOIN [DBO].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
+			--INNER JOIN [DBO].[AccountingCalendar] acc WITH(NOLOCK) ON msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+			--where est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId  
+			--AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
 			
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -163,8 +167,8 @@ BEGIN
 				ROLLBACK TRAN;
 			END
 			
-			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
-			BEGIN
+			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId)
+			BEGIN print 2
 				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK))
 				BEGIN  
 					set @batch ='001'  
@@ -210,14 +214,14 @@ BEGIN
 				UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 			END
 			ELSE
-			BEGIN 
-				SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId   
+			BEGIN print 1
+				SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId 
 				   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
-						 FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  ORDER BY JournalBatchDetailId DESC   
+						 FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND AccountingPeriodId = @AccountingPeriodId  ORDER BY JournalBatchDetailId DESC   
           
 				IF(@CurrentPeriodId = 0)  
 				BEGIN  
-				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
+				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId AND AccountingPeriodId = @AccountingPeriodId 
 				END  
 			END
 			
@@ -302,8 +306,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManualJorManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
-					--INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
-					--VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManualJorManagementStructureId,@ManualJournalHeaderId,@CommonBatchDetailId,@ManualJournalModuleID,@StockLineId,@EmployeeId)
+					INSERT INTO [dbo].[ManualJournalPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,ReferenceDetailId,CommonJournalBatchDetailId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManualJorManagementStructureId,@ManualJournalHeaderId,@ManualJournalDetailsId,@CommonBatchDetailId)
 
 					-----Inventory-Stock--------
 

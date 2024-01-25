@@ -15,10 +15,11 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    17/10/2022   SUBHASH Saliya Created 
+    2    24/01/2024   Bhargav Saliya Add Field [StockLineNumber] 
 	
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
-Create       PROCEDURE [dbo].[GetCommonScrapCertificateList]  
+CREATE       PROCEDURE [dbo].[GetCommonScrapCertificateList]  
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50) = null,  
@@ -39,7 +40,9 @@ Create       PROCEDURE [dbo].[GetCommonScrapCertificateList]
  @UpdatedBy varchar(50) = null,  
  @MasterCompanyId varchar(200) = null,
  @partDescription varchar(50) = null,
- @cntrlNum varchar(50) = null
+ @cntrlNum varchar(50) = null,
+ @stockLineNumber varchar(50) = null,
+ @IsDeleted bit= null
  
 AS   
 BEGIN  
@@ -60,6 +63,10 @@ BEGIN
     END  
   
     SET @RecordFrom = (@PageNumber-1)*@PageSize;  
+    IF @IsDeleted is null  
+    BEGIN  
+		SET @IsDeleted = 0;
+    END
   
     IF (@GlobalFilter IS NULL OR @GlobalFilter = '')  
     BEGIN  
@@ -85,6 +92,7 @@ BEGIN
 				,WOPN.Id as workOrderPartNoId
 				,WO.WorkOrderId as WorkOrderId
 				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId 
+				,UPPER(ST.StockLineNumber) StockLineNumber
 				FROM dbo.WorkOrder WO WITH (NOLOCK)
 				INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId
 				INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
@@ -104,6 +112,7 @@ BEGIN
 				,SWOPN.SubWOPartNoId as workOrderPartNoId
 				,SWO.SubWorkOrderId as WorkOrderId
 				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId 
+				,UPPER(ST.StockLineNumber) StockLineNumber
 				FROM dbo.SubWorkOrder SWO WITH (NOLOCK)
 				INNER JOIN SubWorkOrderPartNumber SWOPN WITH (NOLOCK) ON SWOPN.SubWorkOrderId =SWO.SubWorkOrderId
 				INNER JOIN ItemMaster IM WITH (NOLOCK) ON SWOPN.ItemMasterId=IM.ItemMasterId
@@ -138,13 +147,15 @@ BEGIN
 				,isnull(SC.UpdatedDate,SC.UpdatedDate) as UpdatedDate
 				,Isnull(SC.isSubWorkOrder,0) as isSubWorkOrder
 				,SC.MasterCompanyId
+				,UPPER(CTE.StockLineNumber) StockLineNumber
 				FROM CTE CTE WITH (NOLOCK)
 				INNER JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.ScrapCertificateId=CTE.ScrapCertificateId 
 				LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 				LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
 				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
-                WHERE SC.MasterCompanyId = @MasterCompanyId AND isnull(SC.IsDeleted, 0) = 0  
+                WHERE SC.MasterCompanyId = @MasterCompanyId  AND (SC.IsDeleted = @IsDeleted)
+				--AND isnull(SC.IsDeleted, 0) = 0
      ), ResultCount AS(SELECT COUNT(ScrapCertificateId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult FROM  Result  
       WHERE (  
@@ -161,7 +172,8 @@ BEGIN
       (ScrapedByEmployee like '%'+@GlobalFilter+'%') OR  
       (CertifiedBy like '%' +@GlobalFilter+'%' ) OR   
       (CreatedBy like '%' +@GlobalFilter+'%') OR  
-      (UpdatedBy like '%' +@GlobalFilter+'%')  
+      (UpdatedBy like '%' +@GlobalFilter+'%') OR
+	  (StockLineNumber like '%' +@GlobalFilter+'%')  
       ))  
       OR     
       (@GlobalFilter='' AND (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND  
@@ -179,7 +191,9 @@ BEGIN
       (IsNull(@ScrapReason,'') ='' OR ScrapReason like '%' + @ScrapReason+'%') AND  
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
       (IsNull(@ScrapedByEmployee,'') ='' OR ScrapedByEmployee like '%' + @ScrapedByEmployee+'%') AND  
-      (IsNull(@CertifiedBy,'') ='' OR CertifiedBy like '%' + @CertifiedBy+'%')  
+      (IsNull(@CertifiedBy,'') ='' OR CertifiedBy like '%' + @CertifiedBy+'%')  AND
+      (IsNull(@StockLineNumber,'') ='' OR StockLineNumber like '%' + @StockLineNumber+'%')  
+
       ))  
   
       SELECT @Count = COUNT(ScrapCertificateId) from #TempResult     
@@ -200,7 +214,9 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 	   CASE WHEN (@SortOrder=1 and @SortColumn='cntrlNum')  THEN cntrlNum END ASC,  
-      CASE WHEN (@SortOrder=1 and @SortColumn='partDescription')  THEN partDescription END ASC, 
+      CASE WHEN (@SortOrder=1 and @SortColumn='partDescription')  THEN partDescription END ASC,
+      CASE WHEN (@SortOrder=1 and @SortColumn='StockLineNumber')  THEN StockLineNumber END ASC,  
+	  
   
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='PartNumber')  THEN PartNumber END DESC,  
@@ -216,7 +232,9 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='CertifiedBy')  THEN CertifiedBy END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+      CASE WHEN (@SortOrder=-1 and @SortColumn='StockLineNumber')  THEN StockLineNumber END DESC  
+	  
   
       OFFSET @RecordFrom ROWS   
       FETCH NEXT @PageSize ROWS ONLY  

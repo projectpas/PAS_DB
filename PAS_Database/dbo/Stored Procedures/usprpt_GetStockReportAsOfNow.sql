@@ -133,13 +133,17 @@ BEGIN
 		POReceiverNum VARCHAR(100) NULL,
 		ROReceiverNum VARCHAR(100) NULL,
 		MasterCompanyId INT NULL,
-		StockLineId BIGINT NULL
+		StockLineId BIGINT NULL,
+		IsCustomerStock BIT NULL,
+		CustomerId BIGINT NULL,
+		CustomerName VARCHAR(100),
+		ReceiverNum VARCHAR(100)
 	) 
 
 	INSERT INTO #TEMPOriginalStocklineRecords (TotalRecordsCount, PN, PN_Description, Serial_Num, SL_Num, ControlNumber, Cond, Item_Group, Is_Customer_Stock, UOM, Item_Type, stocktype,
 	Vendor_Name, Qty, QTY_on_Hand, Qty_Reserved, Qty_Available, Qty_Adjusted, PO_UnitCost, POExtCost, ROExtCost, ObtainedFrom, [Owner], Traceableto, Mfg, UnitCost, UnitPrice, ExtPrice,
 	CostAdjustment, ExtCostAdjustment, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, [Site], Warehouse, [Location], Shelf, Bin, GlAccount, 
-	PO_Num, RO_Num, WO_Num, SWO_Num, RO_Cost, Inventory_Cost, PORcvdDate, RORcvdDate, POReceiverNum, ROReceiverNum, MasterCompanyId, StockLineId)
+	PO_Num, RO_Num, WO_Num, SWO_Num, RO_Cost, Inventory_Cost, PORcvdDate, RORcvdDate, POReceiverNum, ROReceiverNum, MasterCompanyId, StockLineId, IsCustomerStock, CustomerId, CustomerName, ReceiverNum)
 	SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,    
         UPPER(im.partnumber) AS 'PN',    
         UPPER(im.PartDescription) AS 'PN_Description',    
@@ -193,7 +197,11 @@ BEGIN
         CASE WHEN ISNULL(stl.PurchaseOrderId, 0) > 0 THEN UPPER(stl.ReceiverNumber) ELSE '' END 'POReceiverNum',
         CASE WHEN ISNULL(stl.RepairOrderId, 0) > 0 THEN UPPER(stl.ReceiverNumber) ELSE '' END 'ROReceiverNum',
 		stl.MasterCompanyId,
-		stl.StockLineId
+		stl.StockLineId,
+		stl.IsCustomerStock AS IsCustomerStock,
+		stl.CustomerId,
+		CUST.[Name] AS CustomerName,
+		stl.ReceiverNumber AS ReceiverNum
      FROM DBO.stockline stl WITH (NOLOCK)    
      INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId   
 	 INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
@@ -204,6 +212,7 @@ BEGIN
 	 LEFT JOIN DBO.WorkOrder wox WITH (NOLOCK) ON stl.WorkOrderId = wox.WorkOrderId
 	 LEFT JOIN DBO.SubWorkOrder swox WITH (NOLOCK) ON stl.SubWorkOrderId = swox.SubWorkOrderId
 	 LEFT JOIN DBO.vendor VNDR WITH (NOLOCK) ON stl.VendorId = VNDR.VendorId    
+	 LEFT JOIN DBO.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = stl.CustomerId
      WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 AND CAST(stl.CreatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE)
 	 AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
 	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2,''), ',')))
@@ -735,7 +744,11 @@ BEGIN
         POReceiverNum,
 		ROReceiverNum,
 		stl.MasterCompanyId,
-		stl.StockLineId 
+		stl.StockLineId,
+		stl.IsCustomerStock,
+		stl.CustomerId,
+		CustomerName,
+		stl.ReceiverNum
 		FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0
 		ORDER BY PN;
   END TRY

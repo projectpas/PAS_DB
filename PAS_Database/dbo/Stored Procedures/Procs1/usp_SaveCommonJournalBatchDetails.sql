@@ -12,9 +12,9 @@ BEGIN
 				BEGIN TRANSACTION
 				BEGIN
 				
-				DECLARE @ID BIGINT = 0, @DistributionName VARCHAR(250);
+				DECLARE @ID BIGINT = 0, @DistributionName VARCHAR(250),@ManualName VARCHAR(100) ='Manual';
 
-				SELECT @ID = [ID], @DistributionName = [Name] FROM DBO.DistributionSetup WITH(NOLOCK) WHERE [Name] = 'Manual' AND [DistributionSetupCode] = 'Manual';
+				SELECT @ID = [ID], @DistributionName = [Name] FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER([Name]) = UPPER(@ManualName) AND UPPER([DistributionSetupCode]) = UPPER(@ManualName);
 
 				--  JournalBatchDetails LIST
 					IF((SELECT COUNT(CommonJournalBatchDetailId) FROM @tbl_CommonJournalBatchDetails) > 0 )

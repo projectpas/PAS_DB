@@ -91,12 +91,18 @@ BEGIN
 		DECLARE @UpdateBy VARCHAR(100);
 		DECLARE @EmployeeId BIGINT=0;  
 		DECLARE @ManualJournalStatusId BIGINT=0; 
-	
+		DECLARE @CodePrefixMJE VARCHAR(100) = 'MJE';
+		DECLARE @ModuleName VARCHAR(100) = 'Accounting';
 		SET @DistributionCodeName = 'ManualJournal';
+		DECLARE @DistributionSetupCode VARCHAR(100) = 'ManualJouralDebit';
+		DECLARE @DistributionSetupCodeCredit VARCHAR(100) = 'ManualJouralDebit';
+		DECLARE @Status VARCHAR(50) = 'Open';
+		DECLARE @CodePrefixSL VARCHAR(100) ='SL';
+		DECLARE @StatusPosted VARCHAR(100) = 'Posted';
 
-		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE CodePrefix='MJE';
+		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
-		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = UPPER(@ModuleName);
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -120,16 +126,16 @@ BEGIN
 
 		IF(ISNULL(@Amount,0) <> 0)
 		BEGIN 
-			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('ManualJournal')
+			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER(@DistributionCodeName)
 			
 			SELECT @MasterCompanyId = MasterCompanyId , @UpdateBy = UpdatedBy , @ManagementStructureId = ManagementStructureId FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 			SELECT TOP 1 @JournalTypeId = JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
-			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='ManualJouralDebit';
+			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND UPPER(DistributionSetupCode)=UPPER(@DistributionSetupCode);
 			
-			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
+			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE UPPER([Name])= UPPER(@Status)
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
@@ -276,13 +282,13 @@ BEGIN
 					IF(ISNULL(@Debit,0) > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
-						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'ManualJouralDebit'
+						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCode)
 						AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					END
 					ELSE
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
-						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'ManualJouralCredit'
+						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCodeCredit)
 						AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					END
 					
@@ -297,7 +303,7 @@ BEGIN
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 1 ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,
-						@ManualJorManagementStructureId ,'ManualJournal',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+						@ManualJorManagementStructureId ,@DistributionCodeName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId);
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
@@ -312,7 +318,7 @@ BEGIN
 					-----Inventory-Stock--------
 
 					--GEt Stockline Module ID
-					SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'SL';
+					SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER([CodePrefix]) = UPPER(@CodePrefixSL);
 
 					SET @ManualJournalDetailsId = 0;
 					SET @GlAccountId = 0;
@@ -341,7 +347,7 @@ BEGIN
 		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 		
-		select @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where [Name] = 'Posted'
+		select @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where UPPER([Name]) = UPPER(@StatusPosted)
 		--Update  Status to Post
 		UPDATE ManualJournalHeader SET ManualJournalStatusId = @ManualJournalStatusId WHERE ManualJournalHeaderId = @ManualJournalHeaderId;
 		SELECT @ManualJournalHeaderId AS 'ManualJournalHeaderId';

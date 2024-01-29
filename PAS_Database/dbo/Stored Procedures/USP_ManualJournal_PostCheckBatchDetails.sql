@@ -174,7 +174,7 @@ BEGIN
 			END
 			
 			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId)
-			BEGIN print 2
+			BEGIN
 				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK))
 				BEGIN  
 					set @batch ='001'  
@@ -220,7 +220,7 @@ BEGIN
 				UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 			END
 			ELSE
-			BEGIN print 1
+			BEGIN
 				SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId 
 				   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
 						 FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND AccountingPeriodId = @AccountingPeriodId  ORDER BY JournalBatchDetailId DESC   

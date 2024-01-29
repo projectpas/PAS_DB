@@ -139,7 +139,6 @@ FETCH NEXT FROM db_cursor INTO @JournalBatchDetailId
 
 WHILE @@FETCH_STATUS = 0  
 BEGIN  
-      print @JournalBatchDetailId
 	         DECLARE @currentNo AS BIGINT = 0;
 			 DECLARE @CodeTypeId AS BIGINT = 74;
 			 DECLARE @JournalTypeNumber varchar(100);

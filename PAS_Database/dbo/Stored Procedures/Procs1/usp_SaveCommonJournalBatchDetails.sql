@@ -12,6 +12,9 @@ BEGIN
 				BEGIN TRANSACTION
 				BEGIN
 				
+				DECLARE @ID BIGINT = 0, @DistributionName VARCHAR(250),@ManualName VARCHAR(100) ='Manual';
+
+				SELECT @ID = [ID], @DistributionName = [Name] FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER([Name]) = UPPER(@ManualName) AND UPPER([DistributionSetupCode]) = UPPER(@ManualName);
 
 				--  JournalBatchDetails LIST
 					IF((SELECT COUNT(CommonJournalBatchDetailId) FROM @tbl_CommonJournalBatchDetails) > 0 )
@@ -60,7 +63,8 @@ BEGIN
 										,ManagementStructureId
 										,LastMSLevel
 										,AllMSlevels
-										
+										,[DistributionSetupId]
+										,[DistributionName]
 										)
 							VALUES (
 										SOURCE.JournalBatchDetailId
@@ -85,6 +89,8 @@ BEGIN
 										,SOURCE.ManagementStructureId
 										,SOURCE.LastMSLevel
 										,SOURCE.AllMSlevels
+										,@ID
+										,@DistributionName
 										);
 
 
@@ -133,7 +139,6 @@ FETCH NEXT FROM db_cursor INTO @JournalBatchDetailId
 
 WHILE @@FETCH_STATUS = 0  
 BEGIN  
-      print @JournalBatchDetailId
 	         DECLARE @currentNo AS BIGINT = 0;
 			 DECLARE @CodeTypeId AS BIGINT = 74;
 			 DECLARE @JournalTypeNumber varchar(100);

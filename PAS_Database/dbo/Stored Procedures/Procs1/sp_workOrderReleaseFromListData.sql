@@ -52,7 +52,8 @@ BEGIN
 					  --,UPPER(wop.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,UPPER(wro.[Batchnumber]) as Batchnumber 
+					  --,UPPER(wro.[Batchnumber]) as Batchnumber 
+					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
 					  --,wro.[status]
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]

@@ -10,8 +10,9 @@
  ** PR     Date         Author		     	Change Description            
  ** --    --------     -------			-------------------------------          
     1     16-01-2024   Ekta Chandegra	   Created
+    2     26-01-2024   Ekta Chandegra	   Add fields IsDeleted, IsActive
 
-EXEC [GetDocumentDetailsByReferenceId] 788
+EXEC [GetDocumentDetailsByReferenceId] 3616
 
 **************************************************************/ 
 
@@ -24,10 +25,10 @@ BEGIN
 	BEGIN TRY 
 		
 		SELECT  cdd.DocName , ad.FileName,ad.FileType,ad.Link,
-		ad.FileSize, ad.AttachmentId
+		ad.FileSize, ad.AttachmentId, ad.IsDeleted, ad.IsActive
 		FROM DBO.AttachmentDetails ad 
 		INNER JOIN DBO.CommonDocumentDetails cdd WITH (NOLOCK) ON ad.AttachmentId = cdd.AttachmentId 
-		WHERE cdd.ReferenceId = @ReferenceId
+		WHERE cdd.ReferenceId = @ReferenceId AND cdd.IsDeleted = 0 AND cdd.IsActive = 1
 	END TRY
 	BEGIN CATCH
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

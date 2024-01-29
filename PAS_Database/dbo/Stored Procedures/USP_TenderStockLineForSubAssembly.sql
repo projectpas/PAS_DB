@@ -1,6 +1,6 @@
 ﻿/*************************************************************           
  ** File:   [USP_TenderStockLineForSubAssembly]           
- ** Author:   Devendra Shekh
+ ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to tender stockline for sub-assembly 
  ** Purpose:         
  ** Date:   01/03/2024        
@@ -16,14 +16,14 @@
  **************************************************************           
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
-    1    01/04/2024		Devendra Shekh		Created
+    1    01/04/2024		Hemant Saliya		Created
     2    01/19/2024		Devendra Shekh		qty base tender stk changes
-    3    01/23/2024		Devendra Shekh		serial Number issue resolved
-     
---exec USP_TenderStockLineForSubAssembly @WorkOrderId=3932,@WorkFlowWorkOrderId=3398,@WorkOrderMaterialsId=16047
-exec USP_TenderStockLineForSubAssembly @WorkOrderId=4003,@WorkFlowWorkOrderId=3460,@WorkOrderMaterialsId=16129
+    3    01/23/2024		Devendra Shekh		serial Number issue resolved    
+	4    01/29/2024		Hemant Saliya		Resolved Error 
+
+exec USP_TenderStockLineForSubAssembly @WorkOrderId=4185,@WorkFlowWorkOrderId=3646,@WorkOrderMaterialsId=16481
 **************************************************************/
- 
+ --Select * from WorkOrderMaterials where WorkOrderId =  4185
 CREATE   PROCEDURE [dbo].[USP_TenderStockLineForSubAssembly]
 	@WorkOrderId BIGINT,
 	@WorkFlowWorkOrderId BIGINT,
@@ -304,27 +304,21 @@ BEGIN
 						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId
 					
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
-					TRUNCATE TABLE #tmpCodePrefixes;
+					
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+					BEGIN
+						TRUNCATE TABLE #tmpCodePrefixes;
+					END
 
 					SET @TOTALQTY = @TOTALQTY - 1
 				END
-
-		
-				--Updating CodePrefix
-
-				--PRINT 'Sub WorkOrder Start'
-
-				--EXEC [dbo].[CreateSubWorkOrderForTenderStockline] @WorkOrderId = @WorkOrderId, @WorkOrderPartNoId = @WorkOrderPartNoId, @CreatedBy = @UpdatedBy
-
-				--PRINT 'Sub WorkOrder End'
-
 			END
 		COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'
+				PRINT 'ROLLBACK'				
 				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 

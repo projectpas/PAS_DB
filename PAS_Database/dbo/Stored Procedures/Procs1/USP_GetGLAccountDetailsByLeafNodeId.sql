@@ -12,7 +12,8 @@
  ** --   --------     -------		-------------------------------            
 	1    17/07/2023   Hemant Saliya  Created
 	2    05/08/2023   Hemant Saliya  Update for Display GL Account wise
-	3    19/09/2023   Hemant Saliya  Added MS and LE Filters	 
+	3    19/09/2023   Hemant Saliya  Added MS and LE Filters	
+	4    25/01/2024   Hemant Saliya		Remove Manual Journal from Reports
 
 ************************************************************************
 EXEC [USP_GetGLAccountDetailsByLeafNodeId] 133,133,8,1,1,102,@xmlFilter=N'<?xml version="1.0" encoding="utf-16"?>
@@ -85,11 +86,9 @@ BEGIN
 		  DECLARE @AccountPeriods VARCHAR(max);  
 		  DECLARE @AccountPeriodIds VARCHAR(max);  
 		  DECLARE @PostedBatchStatusId BIGINT;
-		  DECLARE @ManualJournalStatusId BIGINT;
 		  DECLARE @RevenueGLAccountTypeId AS BIGINT;
 		  DECLARE @ExpenseGLAccountTypeId AS BIGINT;
 		  DECLARE @BatchMSModuleId BIGINT; 
-		  DECLARE @ManualBatchMSModuleId BIGINT; 
 
 		  DECLARE   
 			@level1 VARCHAR(MAX) = NULL,  
@@ -106,11 +105,9 @@ BEGIN
 		  SELECT @FROMDATE = FromDate, @LegalEntityId = LegalEntityId FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId AND IsDeleted = 0
 		  SELECT @TODATE = ToDate FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0 
 		  SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		  SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 		  SELECT @RevenueGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Revenue' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SELECT @ExpenseGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Expense' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		  SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-		  SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 
 		  SELECT @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
 		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,  
@@ -254,42 +251,7 @@ BEGIN
 					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  GROUP BY LF.LeafNodeId , CMD.GLAccountId, CMD.GlAccountNumber, CMD.GlAccountName, BD.AccountingPeriodId, BD.AccountingPeriod, GLM.IsPositive,  GL.GLAccountTypeId
-
-		UNION ALL
-
-		SELECT DISTINCT LF.LeafNodeId , MJD.GlAccountId, GL.AccountCode, GL.AccountName, MJH.AccountingPeriodId, AC.PeriodName, REPLACE(AC.PeriodName, ' - ', ' '),  
-					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END 'DebitAmount',
-					CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END 'CreditAmount',
-					CASE WHEN GL.GLAccountTypeId = @ExpenseGLAccountTypeId THEN
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END) - 
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END)  
-					ELSE
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Credit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Credit, 0)), 0) * -1 END) -
-						(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(MJD.Debit, 0)) ELSE ISNULL(SUM(ISNULL(MJD.Debit, 0)), 0) * -1 END)
-					END AS AMONUT
-			  FROM dbo.ManualJournalDetails MJD WITH (NOLOCK) 
-		  		JOIN dbo.GLAccount GL ON MJD.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId)
-		  		JOIN dbo.ManualJournalHeader MJH  WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
-				JOIN dbo.AccountingCalendar AC WITH (NOLOCK) ON MJH.AccountingPeriodId = AC.AccountingCalendarId
-		  		JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON MJD.GlAccountId = GLM.GLAccountId AND GLM.IsDeleted = 0
-				JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = MJD.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-		  		JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0
-		  			 AND ISNULL(ReportingStructureId, 0) = @ReportingStructureId
-			  WHERE GLM.GLAccountId = MJD.GlAccountId  
-		  			AND MJH.ManualJournalStatusId = @ManualJournalStatusId 
-							AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-							AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-							AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-							AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-							AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-							AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-							AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-							AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-							AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-							AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-							AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			  GROUP BY  LF.LeafNodeId , MJD.GlAccountId, GL.AccountCode, GL.AccountName, MJH.AccountingPeriodId, AC.PeriodName, GLM.IsPositive,  GL.GLAccountTypeId)
+		  GROUP BY LF.LeafNodeId , CMD.GLAccountId, CMD.GlAccountNumber, CMD.GlAccountName, BD.AccountingPeriodId, BD.AccountingPeriod, GLM.IsPositive,  GL.GLAccountTypeId)
 
 		  DECLARE @LID AS int = 0;
 		  DECLARE @IsFristRow AS bit = 1;

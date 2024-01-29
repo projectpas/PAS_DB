@@ -15,11 +15,18 @@
     [CustomerFinancialId]          BIGINT        NULL,
     [SiteId]                       BIGINT        NULL,
     [SiteName]                     VARCHAR (50)  NULL,
+    [ShipFromSiteId]               BIGINT        NULL,
+    [ShipFromSiteName]             VARCHAR (50)  NULL,
+    [IsRepair]                     BIT           NULL,
+    [IsProductSale]                BIT           NULL,
+    [IsTaxExempt]                  BIT           NULL,
     CONSTRAINT [PK_CTTRMapping] PRIMARY KEY CLUSTERED ([CustomerTaxTypeRateMappingId] ASC),
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerIdTaxTypeRate] UNIQUE NONCLUSTERED ([CustomerId] ASC, [TaxRateId] ASC, [TaxTypeId] ASC, [SiteId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

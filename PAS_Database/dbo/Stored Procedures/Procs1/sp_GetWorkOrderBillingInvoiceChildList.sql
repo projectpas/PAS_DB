@@ -1,4 +1,5 @@
-﻿/**************************************************************           
+﻿
+/**************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   	Date         Author				Change Description            
@@ -7,9 +8,10 @@
 	2    31/08/2023   Devendra Shekh		old version billing partnumber issue resolved
 	3    01/01/2024   Devendra Shekh		updated for serialnumber
 	4    01/02/2024   Devendra Shekh		updated for serialnumber
-	4    22-01-2024   Shrey Chandegara		updated for Notes
+	5    22-01-2024   Shrey Chandegara		updated for Notes
+	6    24-01-2024   Shrey Chandegara      remove condition from WorkOrderBillingInvoicing for QtyBilled
 
-	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 3543,3013
+	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
 **************************************************************/ 
 
@@ -51,7 +53,7 @@ BEGIN
 						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 						ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber', 
 						cr.[Name] as CustomerName, 
-						(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
+						(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
 						'1' as ItemNo,
 						wop.WorkOrderId, 
 						wop.Id as WorkOrderPartId, 
@@ -71,7 +73,7 @@ BEGIN
 					FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 						INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-						LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+						LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 						LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 						LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
@@ -139,7 +141,7 @@ BEGIN
 								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 								ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber',
 								cr.[Name] as CustomerName, 
-								(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
+								(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
 								'1' as ItemNo,
 								wop.WorkOrderId, 
 								wop.Id as WorkOrderPartId, 
@@ -158,7 +160,7 @@ BEGIN
 							FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 								INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
 								LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-								LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+								LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId-- AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 								LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 								LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
@@ -226,7 +228,7 @@ BEGIN
 							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 							ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber', 
 							cr.[Name] as CustomerName, 
-							(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
+							(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId) AS QtyBilled,
 							'1' as ItemNo,
 							wop.WorkOrderId, 
 							wop.Id as WorkOrderPartId, 
@@ -243,7 +245,7 @@ BEGIN
 							,wobi.Notes
 						FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-							LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wop.WorkOrderId AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+							LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wop.WorkOrderId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 							LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
 							LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
 							INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 

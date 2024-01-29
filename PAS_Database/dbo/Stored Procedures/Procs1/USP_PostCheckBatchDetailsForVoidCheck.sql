@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    06/30/2023   Satish Gohil	Created	
 	2    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
+	3    22/01/2024	  Moin Bloch	Modify(Added PdfPath Null when IsVoidedCheck Is True)
      
 **************************************************************/
 
@@ -114,9 +115,10 @@ BEGIN
 		FETCH NEXT FROM @PostBatchCursor INTO @ReadyToPayId,@VendorId
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
-			UPDATE VendorReadyToPayDetails
+			UPDATE dbo.VendorReadyToPayDetails
 			SET IsVoidedCheck = 1,
-				UpdatedDate = GETUTCDATE()
+				UpdatedDate = GETUTCDATE(),
+				PdfPath = NULL
 				WHERE ReadyToPayId = @ReadyToPayId AND VendorId = @VendorId 
 
 			----- Update Vendor Payment details------

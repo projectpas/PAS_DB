@@ -13,10 +13,11 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    01/05/2024   AMIT GHEDIYA		Created  
+	2    01/05/2024   HEMANT SALIYA		Updated For Handle Flat Rate values 
 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2140,3018  
 **************************************************************/  
-CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
+CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
  @WorkOrderQuoteId bigint,  
  @workOrderPartNoId bigint  
 AS  
@@ -48,21 +49,17 @@ BEGIN
 		 SUM(wqd.MaterialRevenue) AS 'MaterialRevenue',  
 		 SUM(wqd.LaborRevenue) AS 'LaborRevenue',  
 		 SUM(wqd.ChargesRevenue) AS 'ChargesRevenue',  
-		 SUM(wqd.MaterialFlatBillingAmount) AS 'MaterialFlatBillingAmount',  
-		 SUM(wqd.LaborFlatBillingAmount) AS 'LaborFlatBillingAmount',  
-		 SUM(wqd.ChargesFlatBillingAmount) AS 'ChargesFlatBillingAmount',  
-		 SUM(wqd.FreightFlatBillingAmount) AS 'FreightFlatBillingAmount',  
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.MaterialFlatBillingAmount) END AS 'MaterialFlatBillingAmount' ,  
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.LaborFlatBillingAmount) END AS 'LaborFlatBillingAmount',  
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.ChargesFlatBillingAmount) END AS 'ChargesFlatBillingAmount',  
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 0.00 ELSE SUM(wqd.FreightFlatBillingAmount) END AS 'FreightFlatBillingAmount',  
 		 wop.Quantity,  
 		 ISNULL(wqd.QuoteMethod,0) AS QuoteMethod,  
 		 wqd.CommonFlatRate,  
 		 wop.TATDaysStandard ,
 		 ISNULL(wqd.EvalFees,0) AS EvalFees,
-		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN 
-				wqd.CommonFlatRate 
-		 ELSE 
-			SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + 
-			ISNULL(wqd.LaborFlatBillingAmount, 0) + 
-			ISNULL(wqd.ChargesFlatBillingAmount, 0) + ISNULL(wqd.FreightFlatBillingAmount,0))
+		 CASE WHEN ISNULL(wqd.QuoteMethod,0) > 0 THEN wqd.CommonFlatRate 
+		 ELSE SUM(ISNULL(wqd.MaterialFlatBillingAmount, 0) + ISNULL(wqd.LaborFlatBillingAmount, 0) + ISNULL(wqd.ChargesFlatBillingAmount, 0) + ISNULL(wqd.FreightFlatBillingAmount,0))
 		 END AS subtotalfortax
 	FROM dbo.WorkOrder wo WITH(NOLOCK)
 		 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
@@ -72,9 +69,9 @@ BEGIN
 		 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
 		 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 		 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
-		 WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
+	WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-		 GROUP BY im.PartNumber,  
+	GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,  
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees
    END  

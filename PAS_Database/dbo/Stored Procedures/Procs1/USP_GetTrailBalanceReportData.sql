@@ -20,7 +20,8 @@
 	4    07/05/2023   Satish Gohil  Year calculation count issue fixed
 	5    08/08/2023   Devendra Shekh Glaccountid column added 
 	6    09/01/2023   Hemant Saliya  Added MS Filters	
-	6    10/23/2023   Hemant Saliya  Updated for All GL Account List
+	7    10/23/2023   Hemant Saliya  Updated for All GL Account List
+	8    01/25/2024   Hemant Saliya  Remove Manual Journal from Reports
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 **************************************************************/
@@ -46,9 +47,7 @@ BEGIN
 		DECLARE @ToDate DATETIME = NULL
 		DECLARE @PeriodEndDate DATETIME = NULL
 		DECLARE @BatchMSModuleId BIGINT; 
-		DECLARE @ManualBatchMSModuleId BIGINT; 
 		DECLARE @PostedBatchStatusId BIGINT;
-		DECLARE @ManualJournalStatusId BIGINT;
 		DECLARE @StatisticalGLAccountTypeId BIGINT;
 		DECLARE @PeriodName VARCHAR(100) = '';
 		DECLARE @xml XML;
@@ -189,7 +188,6 @@ BEGIN
 			 SequenceNumber INT
 		 ) 
 
-
 		
 		CREATE TABLE #tmpEntityStructureSetup(        
 			 ID BIGINT  IDENTITY(1,1),        
@@ -212,12 +210,9 @@ BEGIN
 		FROM dbo.AccountingCalendar WITH(NOLOCK) 
 		WHERE AccountingCalendarId = @AccountingPeriodId
 
-		--SELECT @FiscalYear
 
 		SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
-		SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 		SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 		SELECT @StatisticalGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE UPPER(GLAccountClassName) = 'STATISTICAL' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 
 		SELECT @INITIALFROMDATE = MIN(StartDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear
@@ -291,53 +286,6 @@ BEGIN
 					 MSL5.Code,MSL6.Code,MSL7.Code, MSL8.Code, MSL9.Code,MSL10.Code,MSL1.[Description],MSL2.[Description],
 					 MSL3.[Description],MSL4.[Description],MSL5.[Description],MSL6.[Description],MSL7.[Description],
 					 MSL8.[Description],MSL9.[Description],MSL10.[Description], GC.SequenceNumber
-		
-		UNION ALL
-
-			SELECT DISTINCT CB.GlAccountId 'GlAccountId', MSD.EntityMSID AS EntityStructureId, CB.[MasterCompanyId], SUM(ISNULL(Credit,0)) 'Credit', SUM(ISNULL(Debit,0)) 'Debit',
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] ELSE  CAST(MSL1.Code AS VARCHAR(250)) END AS Level1Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] ELSE  CAST(MSL2.Code AS VARCHAR(250)) END AS Level2Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description] ELSE  CAST(MSL3.Code AS VARCHAR(250)) END AS Level3Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description] ELSE  CAST(MSL4.Code AS VARCHAR(250)) END AS Level4Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description] ELSE  CAST(MSL5.Code AS VARCHAR(250)) END AS Level5Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description] ELSE  CAST(MSL6.Code AS VARCHAR(250)) END AS Level6Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description] ELSE  CAST(MSL7.Code AS VARCHAR(250)) END AS Level7Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] ELSE  CAST(MSL8.Code AS VARCHAR(250)) END AS Level8Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] ELSE  CAST(MSL9.Code AS VARCHAR(250)) END AS Level9Name,
-				CASE WHEN @IsShortMS = 0 THEN CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] ELSE  CAST(MSL10.Code AS VARCHAR(250)) END AS Level10Name,
-				GC.SequenceNumber
-			FROM dbo.ManualJournalDetails CB WITH (NOLOCK)
-				INNER JOIN dbo.ManualJournalHeader B WITH (NOLOCK) ON CB.ManualJournalHeaderId = B.ManualJournalHeaderId
-				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CB.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId  AND GL.GLAccountTypeId NOT IN (@StatisticalGLAccountTypeId)  
-				LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
-				LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
-				LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
-			WHERE CB.MasterCompanyId = @MasterCompanyId AND B.ManualJournalStatusId = @ManualJournalStatusId  AND CB.IsDeleted = 0 AND B.IsDeleted = 0 AND
-					B.AccountingPeriodId IN (SELECT AccountcalID FROM #AccPeriodTable_All)					
-					AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-					AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-					AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-					AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-					AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-					AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY CB.GlAccountId,MSD.EntityMSID, CB.[MasterCompanyId],MSL1.Code,MSL2.Code,MSL3.Code,MSL4.Code,
-					 MSL5.Code,MSL6.Code,MSL7.Code, MSL8.Code, MSL9.Code,MSL10.Code,MSL1.[Description],MSL2.[Description],
-					 MSL3.[Description],MSL4.[Description],MSL5.[Description],MSL6.[Description],MSL7.[Description],
-					 MSL8.[Description],MSL9.[Description],MSL10.[Description], GC.SequenceNumber
 		)
 
 		INSERT INTO #TEMP(GlAccountId,EntityStructureId, MasterCompanyId, Credit,Debit,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,
@@ -346,7 +294,6 @@ BEGIN
 			  Level6Name,Level7Name,Level8Name,Level9Name,Level10Name,SequenceNumber FROM RESULT 
 		GROUP BY GlAccountId,EntityStructureId, MasterCompanyId, Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,
 			  Level6Name,Level7Name,Level8Name,Level9Name,Level10Name,SequenceNumber
-
 
 		--SELECT * FROM #AccPeriodTable_All
 		INSERT INTO #tmpEntityStructureSetup(EntityStructureId, MasterCompanyId,LegalEntityId, level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,Level7Name,Level8Name,Level9Name,Level10Name)
@@ -426,55 +373,6 @@ BEGIN
 			LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		WHERE CMB.IsDeleted = 0 AND BD.IsDeleted = 0 AND B.IsDeleted = 0 AND CMB.MasterCompanyId = @MasterCompanyId AND ISNULL(CMB.IsVersionIncrease, 0) = 0	
 			AND BD.AccountingPeriodId IN (SELECT AccountcalID FROM #AccPeriodTable_All WHERE UPPER(PeriodName) = @PeriodName)
-			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
-			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
-			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
-			AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))  
-			AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))  
-			AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))  
-			AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))  
-			AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))  
-			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
-			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
-			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		GROUP BY CMB.GlAccountId,MSD.EntityMSID, CMB.[MasterCompanyId],MSL1.Code,MSL2.Code,MSL3.Code,MSL4.Code,
-					 MSL5.Code,MSL6.Code,MSL7.Code, MSL8.Code, MSL9.Code,MSL10.Code,MSL1.[Description],MSL2.[Description],
-					 MSL3.[Description],MSL4.[Description],MSL5.[Description],MSL6.[Description],MSL7.[Description],
-					 MSL8.[Description],MSL9.[Description],MSL10.[Description], GC.SequenceNumber
-
-		UNION ALL
-
-		SELECT DISTINCT
-			CMB.GlAccountId,MSD.EntityMSID AS EntityStructureId, CMB.[MasterCompanyId], 
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] ELSE  CAST(MSL1.Code AS VARCHAR(250)) END  AS Level1Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] ELSE  CAST(MSL2.Code AS VARCHAR(250)) END AS Level2Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description] ELSE  CAST(MSL3.Code AS VARCHAR(250)) END AS Level3Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description] ELSE  CAST(MSL4.Code AS VARCHAR(250)) END AS Level4Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description] ELSE  CAST(MSL5.Code AS VARCHAR(250)) END AS Level5Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description] ELSE  CAST(MSL6.Code AS VARCHAR(250)) END AS Level6Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description] ELSE  CAST(MSL7.Code AS VARCHAR(250)) END AS Level7Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] ELSE  CAST(MSL8.Code AS VARCHAR(250)) END AS Level8Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] ELSE  CAST(MSL9.Code AS VARCHAR(250)) END AS Level9Name,
-			CASE WHEN @IsShortMS = 0 THEN CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] ELSE  CAST(MSL10.Code AS VARCHAR(250)) END AS Level10Name,
-			SUM(ISNULL(CMB.Credit,0)) 'CreditAmount',
-			SUM(ISNULL(CMB.Debit,0)) 'DebitAmount',
-			GC.SequenceNumber
-		FROM dbo.ManualJournalDetails CMB WITH(NOLOCK)
-			INNER JOIN dbo.ManualJournalHeader BH WITH (NOLOCK) ON CMB.ManualJournalHeaderId = BH.ManualJournalHeaderId
-			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = CMB.ManualJournalDetailsId AND MSD.ModuleId = @ManualBatchMSModuleId
-			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CMB.GlAccountId = GL.GLAccountId AND GL.GLAccountTypeId NOT IN (@StatisticalGLAccountTypeId)  
-			LEFT JOIN dbo.GLAccountClass GC WITH(NOLOCK) ON GL.GLAccountTypeId = GC.GLAccountClassId
-			LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
-			LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
-		WHERE CMB.IsDeleted = 0 AND BH.IsDeleted = 0 AND CMB.MasterCompanyId = @MasterCompanyId  AND AccountingPeriodId IN (SELECT AccountcalID FROM #AccPeriodTable_All WHERE UPPER(PeriodName) = @PeriodName) AND BH.ManualJournalStatusId = @ManualJournalStatusId
 			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  

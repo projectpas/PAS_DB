@@ -1,10 +1,12 @@
 ﻿
 
+
 CREATE VIEW [dbo].[vw_CreditTerms]
 AS
 SELECT ct.[CreditTermsId]
       ,ct.[Name]
-      ,ct.[PercentId] AS [Percentage]
+      ,ct.[PercentId] AS [PercentId]
+	  ,p.[PercentValue] AS [PercentValue]
 	  ,p.[PercentValue] AS [Percent]
       ,ct.[Days]
       ,ct.[NetDays]

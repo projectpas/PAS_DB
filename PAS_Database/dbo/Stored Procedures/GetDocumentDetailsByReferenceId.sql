@@ -10,24 +10,27 @@
  ** PR     Date         Author		     	Change Description            
  ** --    --------     -------			-------------------------------          
     1     16-01-2024   Ekta Chandegra	   Created
+    2     25-01-2024   Ekta Chandegra	   IsDeleted, IsActive fields are added
+    3     30-01-2024   Ekta Chandegra	   Add masterCompanyId parameter
 
-EXEC [GetDocumentDetailsByReferenceId] 788
+EXEC [GetDocumentDetailsByReferenceId] 411, 1
 
 **************************************************************/ 
 
 CREATE  PROCEDURE [dbo].[GetDocumentDetailsByReferenceId]
-	@ReferenceId BIGINT = NULL
+	@ReferenceId BIGINT = NULL,
+	@MasterCompanyId BIGINT = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY 
 		
-		SELECT  cdd.DocName , ad.FileName,ad.FileType,ad.Link,
+		SELECT  cdd.DocName , cdd.IsActive,cdd.IsDeleted, ad.FileName,ad.FileType,ad.Link,
 		ad.FileSize, ad.AttachmentId
 		FROM DBO.AttachmentDetails ad 
 		INNER JOIN DBO.CommonDocumentDetails cdd WITH (NOLOCK) ON ad.AttachmentId = cdd.AttachmentId 
-		WHERE cdd.ReferenceId = @ReferenceId
+		WHERE cdd.MasterCompanyId = @MasterCompanyId AND cdd.ReferenceId = @ReferenceId AND cdd.IsActive = 1 AND cdd.IsDeleted = 0 
 	END TRY
 	BEGIN CATCH
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

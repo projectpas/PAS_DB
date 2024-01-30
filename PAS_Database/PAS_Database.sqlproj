@@ -2758,5 +2758,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterForExchangeQuote_ById.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderQuoteTearDownPrintView.sql" />
     <Build Include="dbo\Tables\ManualJournalPaymentBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceChildList.sql" />
   </ItemGroup>
 </Project>

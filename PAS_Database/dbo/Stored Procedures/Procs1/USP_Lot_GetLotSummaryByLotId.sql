@@ -12,7 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    05/05/2023   Rajesh Gami     Created
 **************************************************************
- EXEC USP_Lot_GetLotSummaryByLotId 57 
+ EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
@@ -25,11 +25,11 @@ BEGIN
 	BEGIN
 			DECLARE @LOT_PO_Type VARCHAR(100) = 'PO';DECLARE @LOT_RO_Type VARCHAR(100)= 'RO';
 			DECLARE @LOT_SO_Type VARCHAR(100)= 'SO';DECLARE @LOT_WO_Type VARCHAR(100)= 'WO';
-			DECLARE @LOT_TransIn_LOT VARCHAR(100) = 'Trans In(Lot)';DECLARE @LOT_TransIn_PO VARCHAR(100) = 'Trans In(PO)';
-			DECLARE @LOT_TransIn_RO VARCHAR(100) = 'Trans In(RO)';	DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans In(SO)';
-			DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In(WO)';	DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
-			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out(PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out(RO)';
-			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out(SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out(WO)';	
+			DECLARE @LOT_TransIn_LOT VARCHAR(100) = 'Trans In (Lot)';DECLARE @LOT_TransIn_PO VARCHAR(100) = 'Trans In (PO)';
+			DECLARE @LOT_TransIn_RO VARCHAR(100) = 'Trans In (RO)';	DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans Out (SO)';
+			DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In (WO)';	DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
+			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out (PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out (RO)';
+			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out (SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out (WO)';	
 			DECLARE @OriginalCost decimal(18,2) = 0,@RepairCost decimal(18,2) = 0,@TransferredInCost decimal(18,2) = 0,@TransferredOutCost decimal(18,2) = 0,@OtherCost decimal(18,2) = 0,@OtherCostRepair decimal(18,2) = 0;
 			DECLARE @TotalLotCost decimal(18,2) = 0,@RevenueCost decimal(18,2) = 0,@CogsPartCost decimal(18,2) = 0,@CommissionExpense decimal(18,2) = 0,@TotalExpense decimal(18,2) = 0;
 			DECLARE @MarginAmount decimal(18,2) = 0,@MarginPercent decimal(18,2) = 0,@LotCostRemaining decimal(18,2) = 0,@OtherSalesExpenses decimal(18,2) = 0,@SoldCost decimal(18,2) = 0,@RemainingCostPercentage decimal(18,2) = 0;
@@ -89,7 +89,10 @@ BEGIN
 
 				Select * INTO #tempTableLT FROM Lot_CTE Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer
 				Select @OtherCost = ISNULL( (SUM(ISNULL(FreightCost,0)))+ (SUM(ISNULL(ChargesCost,0))) ,0) from #tempTableLT
+				PRINT @LotId
+				PRINT @LOT_TransIn_RO
 
+		
 				;WITH Lot_CTERepair AS(
 				SELECT
 				 lot.LotId
@@ -107,6 +110,9 @@ BEGIN
 				 )
 
 				 Select @OtherCostRepair =  ISNULL( (SUM(ISNULL(FreightCost,0)))+ (SUM(ISNULL(ChargesCost,0))) ,0) from Lot_CTERepair
+				 --SELECT * FROM #tempTableRepair
+				 PRINT @OtherCost
+				 PRINT @OtherCostRepair
 				 SET @OtherCost = @OtherCost + @OtherCostRepair;
 
 				;WITH Lot_Adjust AS(

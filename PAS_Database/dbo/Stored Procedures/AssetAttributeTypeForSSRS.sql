@@ -3,15 +3,16 @@
 -- Create date: <30-1-2024>
 -- Description:	<AssetAttributeTypeForSSRS,,>
 -- =============================================
-CREATE   PROCEDURE AssetAttributeTypeForSSRS	
+CREATE   PROCEDURE [dbo].[AssetAttributeTypeForSSRS]	
+@MasterCompanyId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-			SELECT * 
-			FROM AssetAttributeType WITH (NOLOCK)
-			WHERE MasterCompanyId=1
+			SELECT AAT.AssetAttributeTypeId, AAT.AssetAttributeTypeName, AAT.MasterCompanyId
+			FROM AssetAttributeType AAT WITH (NOLOCK)
+			WHERE AAT.MasterCompanyId=@MasterCompanyId AND AAT.IsActive = 1 AND AAT.IsDeleted = 0;	
 	END TRY
 	BEGIN CATCH
     ROLLBACK TRANSACTION

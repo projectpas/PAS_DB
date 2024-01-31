@@ -3,14 +3,15 @@
 -- Create date: <30-1-2024>
 -- Description:	<AssetAttributeTypeForSSRS,,>
 -- =============================================
-CREATE   PROCEDURE InventoryStatusForSSRS	
+CREATE   PROCEDURE [dbo].[InventoryStatusForSSRS]	
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
-			SELECT * 
-			FROM AssetInventoryStatus WITH (NOLOCK)
+			SELECT AIS.AssetInventoryStatusId, AIS.[Status], AIS.MasterCompanyId
+			FROM AssetInventoryStatus AIS WITH (NOLOCK)
+			WHERE AIS.IsActive = 1 AND AIS.IsDeleted = 0;	
 	END TRY
 	BEGIN CATCH
     ROLLBACK TRANSACTION

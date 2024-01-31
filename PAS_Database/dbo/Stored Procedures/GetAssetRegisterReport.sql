@@ -8,9 +8,8 @@ CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
 @AssetStatus VARCHAR(30),
 @AssetInventoryStatus VARCHAR(30),
 @MasterCompanyId INT,
---@PageNumber INT = 1,      
---@PageSize INT = NULL,
-@xmlFilter XML = ''
+@ManagementStructureId INT,
+@xmlFilter XML 
 AS
 BEGIN
 	BEGIN TRY
@@ -21,7 +20,7 @@ BEGIN
 	
 		DECLARE @AssetModuleID varchar(500);
 		--DECLARE @xmlFilter XML;
-		SELECT @AssetModuleID = ModuleId FROM Module WHERE ModuleName='AssetInventory' AND ModuleName='Asset'  
+		SELECT @AssetModuleID = ModuleId FROM Module WHERE ModuleName='AssetInventory' AND ModuleName='Asset'
 
 		DECLARE 
 				@level1 VARCHAR(MAX) = NULL,    
@@ -33,8 +32,7 @@ BEGIN
 				@Level7 VARCHAR(MAX) = NULL,      
 				@Level8 VARCHAR(MAX) = NULL,      
 				@Level9 VARCHAR(MAX) = NULL,      
-				@Level10 VARCHAR(MAX) = NULL,      
-				@IsDownload BIT = NULL  
+				@Level10 VARCHAR(MAX) = NULL
 
 		SELECT @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
 			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,  
@@ -69,26 +67,26 @@ BEGIN
 		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
 
 		SELECT  AI.AssetInventoryId,
-				'Tangible' AS AssetCategory,
-				ASTS.[Name] AS AssetStatus,
-				ASTIS.[Status] AS InventoryStatus,
-				ASAT.AssetAttributeTypeName AS AssetClass,
+				'TANGIBLE' AS AssetCategory,
+				UPPER(ASTS.[Name]) AS AssetStatus,
+				UPPER(ASTIS.[Status]) AS InventoryStatus,
+				UPPER(ASAT.AssetAttributeTypeName) AS AssetClass,
 				AI.InventoryNumber,
-				AI.PartNumber,
+				UPPER(AI.PartNumber) AS PartNumber,
 				AI.AlternateAssetRecordId,
-				AST.MANUFACTURERPN AS ManufacturerPN,
+				UPPER(AST.MANUFACTURERPN) AS ManufacturerPN,
 				-- AST.[Name] AS AssetName,
-				AI.[Name] AS AssetName,
-				AI.ManufactureName,
+				UPPER(AI.[Name]) AS AssetName,
+				UPPER(AI.ManufactureName) AS ManufactureName,
 				AI.ManufacturerId,
-				AI.Model,
+				UPPER(AI.Model) AS Model,
 				-- ASTIS.[Status], 
 				AI.AssetLife,
-				AI.DepreciationMethodName,
-				AAT.[Name] AS AcquisitionType,
+				UPPER(AI.DepreciationMethodName) AS DepreciationMethodName,
+				UPPER(AAT.[Name]) AS AcquisitionType,
 				AI.ReceivedDate,
 				AI.DepreciationStartDate, -- CHANGE IT TO DEPR START DATE
-				AI.DepreciationFrequencyName,
+				UPPER(AI.DepreciationFrequencyName) AS DepreciationFrequencyName,
 				-- ASTS.[Name],
 				AI.TotalCost,
 				ADH.AccumlatedDepr,
@@ -98,7 +96,7 @@ BEGIN
 				'' AS NumOfDeprPeriod,
 				'' AS DeprPeriodRemaining,
 				AI.SerialNo,
-				AI.StklineNumber,
+				UPPER(AI.StklineNumber) AS StklineNumber,
 				UPPER(MSD.Level1Name) AS level1,        
 				UPPER(MSD.Level2Name) AS level2,       
 				UPPER(MSD.Level3Name) AS level3,       

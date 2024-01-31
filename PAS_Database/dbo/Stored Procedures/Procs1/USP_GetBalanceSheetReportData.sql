@@ -824,8 +824,6 @@ BEGIN
 		DECLARE @COUNTMAX3 AS INT
 		SELECT @COUNTMAX3 = MAX(ID), @COUNT3 = MIN(ID) FROM ##AccBalanceSheetTablePivot
 
-		SELECT * FROM ##AccBalanceSheetTablePivot
-
 		WHILE (@COUNT3 <= @COUNTMAX3)
 		BEGIN
 			print 'Step 3'
@@ -843,15 +841,15 @@ BEGIN
 					DECLARE @APName4 AS VARCHAR(100);
 					SELECT @APName4 = PeriodName FROM #AccPeriodTable WHERE ID = @COUNT4 --GROUP BY PeriodName
 
-					SELECT  * FROM #AccPeriodTable
-					--Need to Add If Condition for check Period Name
-					DECLARE @SQLQueryUpdateHeader varchar(max) = 'UPDATE ##AccBalanceSheetTablePivot SET [' + CAST(@APName4 AS VARCHAR(100)) +'] = NULL WHERE leafNodeId = ' + CAST(@LeafNodeId3 AS VARCHAR(100)) +'' 
-					--PRINT (@SQLQueryUpdateHeader)
-					EXEC(@SQLQueryUpdateHeader)  
+					IF EXISTS (SELECT 1 FROM tempdb.sys.columns WHERE [object_id] = object_id('tempdb..##AccBalanceSheetTablePivot') AND NAME =''+ CAST(@APName4 AS VARCHAR(100)) +'')
+					BEGIN
+						DECLARE @SQLQueryUpdateHeader varchar(max) = 'UPDATE ##AccBalanceSheetTablePivot SET [' + CAST(@APName4 AS VARCHAR(100)) +'] = NULL WHERE leafNodeId = ' + CAST(@LeafNodeId3 AS VARCHAR(100)) +'' 
+						--PRINT (@SQLQueryUpdateHeader)
+						EXEC(@SQLQueryUpdateHeader)  
+					END
 
 					SET @COUNT4 = @COUNT4 + 1
 				END
-
 			END
 
 			SET @COUNT3 = @COUNT3 + 1

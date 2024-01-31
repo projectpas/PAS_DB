@@ -12,11 +12,12 @@
  ** --   --------     -------		-------------------------------            
 	1    31/08/2023   Rajesh Gami  Created
 	2    19/12/2023   Moin Bloch   Updated (Added Calander Period Name When we getting 0 Month)
+	3    31/01/2024   Hemnat Saliya Handle ADJ- Period case
 **************************************************************/  
 
 /*************************************************************             
 
---EXEC [USP_GetBalanceSheetReport_ColumnName] 23,'128','133',8,1  
+--EXEC [USP_GetBalanceSheetReport_ColumnName] 23,1,1,'139','139'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetBalanceSheetReport_ColumnName]  
@@ -94,8 +95,8 @@ BEGIN
 		  
 		  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
 				FROM dbo.AccountingCalendar WITH(NOLOCK)
-				WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
-		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+				WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND
+		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
 				FOR xml PATH ('')), 1, 1, '')   
 
 		  INSERT INTO #TempTable(LeafNodeId,Name,ParentId,ParentName,GlAccountId,GlAccountName,Amount,PeriodId,PeriodName,IsPositive,DisplayPeriodName,SequenceNumber)  
@@ -117,7 +118,7 @@ BEGIN
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
 
-		 -- select * from #TempTable
+		  --select * from #TempTable
 		  
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)
 		  VALUES(0, 'name', '', 0, 0)

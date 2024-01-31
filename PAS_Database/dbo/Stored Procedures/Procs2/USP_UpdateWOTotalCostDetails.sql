@@ -14,9 +14,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/22/2021   Hemant Saliya		Created
+	2    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
      
  EXECUTE USP_UpdateWOTotalCostDetails 331, 358, 'admin', 1
 **************************************************************/ 
@@ -270,7 +271,7 @@ SET NOCOUNT ON
 				
 				--CASE WHEN INVOICE IS GENERATED THEN TAKE IT FROM INVOICE
 				IF((SELECT COUNT(1) FROM dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) 
-					WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOB.IsVersionIncrease = 0) > 0)
+					WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.WorkFlowWorkOrderId = @WorkOrderWorkflowId AND WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0) > 0)
 				BEGIN
 					UPDATE #WOCostDetails
 					SET Revenue = ISNULL(WOB.GrandTotal,0),
@@ -285,7 +286,7 @@ SET NOCOUNT ON
 						DirectCostPer = dbo.udfCalcPercentage(ISNULL(WOCD.DirectCost,0), ISNULL(WOB.GrandTotal,0))
 					FROM #WOCostDetails WOCD 
 						JOIN dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) ON WOCD.WorkOrderId = WOB.WorkOrderId AND WOCD.WorkFlowWorkOrderId = wob.WorkFlowWorkOrderId
-					WHERE WOB.IsVersionIncrease = 0
+					WHERE WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
 				END
 
 				IF((SELECT COUNT(1) FROM dbo.WorkOrderMPNCostDetails WOC WITH(NOLOCK) 

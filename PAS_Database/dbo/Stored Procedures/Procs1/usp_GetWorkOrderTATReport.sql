@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetWorkOrderTATReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderTAT Report
@@ -18,6 +17,7 @@
     1					Swetha		Created
 	2	        		Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
+	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -125,7 +125,7 @@ BEGIN
         LEFT JOIN DBO.Employee E WITH (NOLOCK)
           ON WOPN.TechnicianId = E.EmployeeId
         LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK)
-          ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0
+          ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0
         LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WO.WorkOrderId = WOS.WorkOrderId
         LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK)

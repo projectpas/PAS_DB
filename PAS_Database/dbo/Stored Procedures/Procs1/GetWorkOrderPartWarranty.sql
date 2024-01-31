@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderPartWarranty]           
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used retrieve Partnumber and stockline userd
@@ -13,10 +12,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    05/13/2022   Subhash Saliya Created
-	2    05/13/2022   Subhash Saliya Updated for Check
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    05/13/2022   Subhash Saliya	Created
+	2    05/13/2022   Subhash Saliya	Updated for Check
+	3	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
      
 --EXEC [GetWorkOrderPartWarranty] 9, 158651,'STL-000037'
 **************************************************************/
@@ -54,6 +54,7 @@ BEGIN
 					LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
 			    WHERE WOPN.ItemMasterId = @ItemMasterId and ST.isSerialized = 1 and ST.SerialNumber = @SerialNumber AND ISNULL(ST.SerialNumber,'')  != ''  AND 
 					WS.ShipDate > (DATEADD(year, -1, GETUTCDATE())) --WOBI.InvoiceStatus='Invoiced' AND WOBI.IsVersionIncrease=0
+					AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 					ORDER BY WS.ShipDate DESC
 			END
 		COMMIT  TRANSACTION

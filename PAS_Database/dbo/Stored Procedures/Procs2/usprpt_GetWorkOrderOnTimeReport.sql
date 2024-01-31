@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    06-May-2022  Mahesh Sorathiya   Created  
+    2    31-JAN-2024   Devendra Shekh	added isperforma Flage for WO
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
@@ -96,7 +97,7 @@ BEGIN
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
 			LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0  
+			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
 			LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  
 			LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId  
 			LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 
@@ -156,7 +157,7 @@ BEGIN
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-        LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0  
+        LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
         LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  
         LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId  
         LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 

@@ -31,6 +31,7 @@
 	15   17-OCT-2023   Moin Bloch          Modify(Added Stand Alone Credit Memo)
 	16   16-NOV-2023   Moin Bloch          Modify(Added Exchange SO Invoice Records)
 	17   01-DEC-2023   Moin Bloch          Modify(Added 6 decimal IN FixRateAmount)
+	18   31-JAN-2024   Devendra Shekh      changes for performInvoice
 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingReport]       
@@ -136,7 +137,7 @@ BEGIN
       LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId      
       INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
       INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId      
-      INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND wobii.BillingInvoicingId = wobi.BillingInvoicingId AND wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID      
+      INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND wobii.BillingInvoicingId = wobi.BillingInvoicingId AND wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsPerformaInvoice, 0) = 0     
       INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId      
       INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID      
        LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID               
@@ -431,7 +432,7 @@ BEGIN
          LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId      
          INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
          INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId      
-         INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID      
+         INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsPerformaInvoice, 0) = 0     
          INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId      
          INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID      
           LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID      
@@ -1389,7 +1390,7 @@ BEGIN
          LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId      
          INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
          INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId      
-         INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID      
+         INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsPerformaInvoice, 0) = 0     
          INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId      
          INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID      
           LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID      

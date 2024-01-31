@@ -1,6 +1,21 @@
-﻿/*************************************************************
+﻿/*************************************************************           
+ ** File:   [GetDashboardViewData]
+ ** Author: unknown
+ ** Description: This stored procedure is used to Get Dashboard View Data
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 
-**************************************************************/ 
+-- EXEC GetDashboardViewData 
+************************************************************************/
+
 CREATE   PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
@@ -60,6 +75,7 @@ BEGIN
 				AND wobi.IsVersionIncrease = 0
 				AND CONVERT(DATE, wobi.InvoiceDate) = CONVERT(DATE, @Date) 
 				AND wobi.MasterCompanyId = @MasterCompanyId
+				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 			END
 			ELSE IF (@DashboardType = 3)
 			BEGIN

@@ -1,4 +1,25 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
+﻿/*************************************************************           
+ ** File:   [usp_GetWorkOrderTracking]           
+ ** Author:      
+ ** Description: Get Data FOR WorkOrderTracking
+ ** Purpose:         
+ ** Date:          
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date         Author  		Change Description            
+ ** --   --------     -------			--------------------------------          
+	1
+	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
+     
+EXECUTE   [dbo].[usp_GetWorkOrderTracking] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
+**************************************************************/
+CREATE PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
 @Level2 varchar(max) = NULL,
@@ -181,6 +202,7 @@ BEGIN
 
       WHERE WOPN.ReceivedDate BETWEEN (@FromDate) AND (@ToDate)
 	  and WOPN.MasterCompanyId =@mastercompanyid
+	  AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
     COMMIT TRANSACTION
   END TRY
   BEGIN CATCH

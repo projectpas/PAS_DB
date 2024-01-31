@@ -13,11 +13,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    13/12/2023   AMIT GHEDIYA     Created
+	2	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
      
 -- EXEC USP_GetOldWorkOrderForBillingInvoicedData 3788
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetOldWorkOrderForBillingInvoicedData]
+CREATE   PROCEDURE [dbo].[USP_GetOldWorkOrderForBillingInvoicedData]
 	@WorkOrderId BIGINT
 AS
 BEGIN
@@ -51,7 +52,8 @@ BEGIN
 				LEFT JOIN CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
 				LEFT JOIN Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
 				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
-	Where WO.WorkOrderId = @WorkOrderId  AND WOBI.IsVersionIncrease=0;
+	Where WO.WorkOrderId = @WorkOrderId  AND WOBI.IsVersionIncrease=0
+	AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0;
 
 	END TRY 
 	BEGIN CATCH      

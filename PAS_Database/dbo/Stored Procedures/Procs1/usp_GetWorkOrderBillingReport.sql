@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetWorkOrderBillingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderBillingReport
@@ -13,15 +12,16 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
-    1					Swetha		Created
-	2	        		Swetha		Added Transaction & NO LOCK
-	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
+ ** S NO   Date         Author  		Change Description            
+ ** --   --------     -------			--------------------------------          
+    1					Swetha			Created
+	2	        		Swetha			Added Transaction & NO LOCK
+	3	30-Nov-2021		Hemant			Updated Managment Structure Details and Date filter Condition
+	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderBillingReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderBillingReport] @name varchar(40) = NULL,
 @Fromdate datetime = NULL,
 @Todate datetime = NULL,
 @mastercompanyid varchar(200),
@@ -149,6 +149,7 @@ BEGIN
       WHERE C.Name IN (@name) OR @name = ' '
 	  AND CAST(WOBI.invoicedate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)
       AND WO.mastercompanyid = @mastercompanyid
+	  AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 
     COMMIT TRANSACTION
   END TRY

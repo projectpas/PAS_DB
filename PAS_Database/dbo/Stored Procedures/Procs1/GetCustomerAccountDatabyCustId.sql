@@ -1,4 +1,21 @@
-﻿-- EXEC [dbo].[GetCustomerAccountDatabyCustId] 13
+﻿/*************************************************************           
+ ** File:   [GetCustomerAccountDatabyCustId]
+ ** Author: unknown
+ ** Description: This stored procedure is used to Get CustomerAccountData by CustId
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+
+-- EXEC GeSOWOtInvoiceDate '74'  
+************************************************************************/
+-- EXEC [dbo].[GetCustomerAccountDatabyCustId] 13
 CREATE PROCEDURE [dbo].[GetCustomerAccountDatabyCustId]
 	@customerId bigint = null
 AS
@@ -50,7 +67,7 @@ BEGIN
 			   LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
+			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 		 	   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			   --INNER JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = wobi.BillingInvoicingId AND ipy.InvoiceType=2
 			   INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID

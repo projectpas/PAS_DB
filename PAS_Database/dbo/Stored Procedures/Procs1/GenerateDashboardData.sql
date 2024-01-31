@@ -1,7 +1,24 @@
-﻿/*************************************************************
+﻿/*********************           
+ ** File:   [GenerateDashboardData]        
+ ** Author:   JEVIK RAIYANI
+ ** Description: This stored procedure is used to generateDashboardData
+ ** Purpose:         
+ ** Date:   22-11-2023      
+          
+ ** RETURN VALUE:           
+  
+ **********************           
+  ** Change History           
+ **********************           
+ ** PR   Date             Author		         Change Description            
+ ** --   --------         -------		     ----------------------------   
+    1             
+	2  01/31/2024		Devendra Shekh			added isperforma Flage for WO
+**********************/
+/*************************************************************
 EXEC [dbo].[GenerateDashboardData] 10, 2021
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GenerateDashboardData] 
+CREATE   PROCEDURE [dbo].[GenerateDashboardData] 
 	@Month INT = NULL,
 	@Year INT = NULL
 AS
@@ -77,7 +94,7 @@ BEGIN
 						--GROUP BY ReceivedDate
 
 						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.WorkOrderBillingInvoicing 
-						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
+						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing
@@ -130,7 +147,7 @@ BEGIN
 						GROUP BY ReceivedDate
 
 						SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.WorkOrderBillingInvoicing 
-						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
+						WHERE IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsPerformaInvoice, 0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing

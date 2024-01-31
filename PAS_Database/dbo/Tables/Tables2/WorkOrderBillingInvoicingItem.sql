@@ -22,9 +22,12 @@
     [VersionNo]                VARCHAR (20)    NULL,
     [IsVersionIncrease]        BIT             NULL,
     [ConditionId]              BIGINT          NULL,
+    [IsPerformaInvoice]        BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingItem] PRIMARY KEY CLUSTERED ([WOBillingInvoicingItemId] ASC),
     FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicingItem_WorkOrderBillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[WorkOrderBillingInvoicing] ([BillingInvoicingId])
 );
+
+
 

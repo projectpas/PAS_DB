@@ -22,6 +22,9 @@
     [PDFPath]                       NVARCHAR (MAX)  NULL,
     [VersionNo]                     VARCHAR (20)    NULL,
     [IsVersionIncrease]             BIT             NULL,
+    [IsPerformaInvoice]             BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditWOBillingInvoicingItemId] ASC)
 );
+
+
 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetLaborTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for LaborTracking Report 
@@ -17,6 +16,7 @@
  ** --   --------     -------    --------------------------------          
     1                 Swetha Created
     2				  Swetha Added Transaction & NO LOCK
+	3	01/31/2024    Devendra Shekh	added isperforma Flage for WO
      
 EXECUTE   [dbo].[usp_GetLaborTrackingReport] '','2019-04-25','2021-07-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
@@ -199,6 +199,7 @@ BEGIN
       OR @itemmasterid = ' '
       AND WO.opendate BETWEEN (@Fromdate) AND (@Todate)
       AND WOPN.mastercompanyid = @mastercompanyid
+	  AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
       GROUP BY workordernum,
                im.partnumber,
                wost.description,

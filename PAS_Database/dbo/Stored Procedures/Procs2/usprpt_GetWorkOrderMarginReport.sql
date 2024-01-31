@@ -1,5 +1,4 @@
-﻿  
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usprpt_GetWorkOrderMarginReport]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used Get Work Order Margin Report Data  
@@ -24,9 +23,10 @@
  5    20/07/2023   AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated - revenue changes  
  6    24/08/2023   BHARGAV SALIYA Convert Dates UTC To LegalEntity Time Zone
  7    04/09/2023   HEMANT SALIYA  Corrected Revenue Balance
+ 8    01/31/2024   Devendra Shekh	added isperforma Flage for WO
 
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
+CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
 @PageNumber INT = 1,      
 @PageSize INT = NULL,      
 @mastercompanyid INT,      
@@ -110,7 +110,7 @@ BEGIN
 				 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
 				 INNER JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId    
 				 LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID           
-				 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0      
+				 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0     
 				 LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0      
 				 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
 				 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
@@ -141,7 +141,7 @@ BEGIN
 				  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
 				  LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
-				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId  
+				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0    
 				  LEFT JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
 				  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  
 				  LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId  
@@ -224,7 +224,7 @@ BEGIN
 						 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID      
 						 INNER JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId AND WO.WorkOrderId = WOC.WorkOrderId    
 						 LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID           
-						 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0      
+						 LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0        
 						 LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0      
 						 LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id      
 						 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId      
@@ -313,7 +313,7 @@ BEGIN
 				  INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				  LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
 				  LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId    
-				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId  
+				  LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0   
 				  LEFT JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOBI.WorkOrderPartNoId = WOWF.WorkOrderPartNoId  
 				  -- LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 				  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId  

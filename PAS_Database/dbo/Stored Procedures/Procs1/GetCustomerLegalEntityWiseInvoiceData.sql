@@ -12,10 +12,11 @@
  ** --   --------      -------  --------------------------------            
  1                 unknown          Created  
  2    05/01/2024   Moin Bloch       Modify(Added dbo in Table)  
+ 3    01/31/2024   Devendra Shekh	added isperforma Flage for WO
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceData] 66,29
   
 ************************************************************************/ 
-CREATE PROCEDURE [dbo].[GetCustomerLegalEntityWiseInvoiceData]
+CREATE   PROCEDURE [dbo].[GetCustomerLegalEntityWiseInvoiceData]
 	@CustomerId bigint = null,
 	@ManagementStructureId bigint = null
 AS
@@ -65,7 +66,7 @@ BEGIN
 			FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
 			INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 			INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-			INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID and wobi.IsVersionIncrease=0
+			INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID and wobi.IsVersionIncrease=0 AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 			INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
 			INNER JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
 			 LEFT JOIN [dbo].[CustomerFinancial] CF  WITH (NOLOCK) ON CF.CustomerId=ct.CustomerId

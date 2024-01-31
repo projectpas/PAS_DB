@@ -13,8 +13,9 @@ Exec [ReverseWorkOrder]
 ** 2    07/24/2023  Vishal Suthar		 Added stockline history for re-open finished goods
 ** 3	27/07/2023  Satish Gohil		 Account Entry Added
 ** 4    04/08/2023  Satish Gohil		 Seprate Accounting Entry WO Type Wise
-** 4    08/09/2023  Devendra Shekh		 updating WorkOrderSettlementDetails
-** 5    08/11/2023  Devendra Shekh		 added Isvalue_NA for updating WorkOrderSettlementDetails
+** 5    08/09/2023  Devendra Shekh		 updating WorkOrderSettlementDetails
+** 6    08/11/2023  Devendra Shekh		 added Isvalue_NA for updating WorkOrderSettlementDetails
+** 7    08/11/2023  Devendra Shekh		 added isperforma Flage for WO  
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -61,7 +62,7 @@ AS
 				WHERE WSI.WorkOrderPartNumId = @workOrderPartNoId
 
 				SELECT @BillingInvoicingId = WOB.BillingInvoicingId FROM dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) 
-					JOIN dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId
+					JOIN dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
 				WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
 
 				IF(ISNULL(@IsShippingDone,0) > 0)

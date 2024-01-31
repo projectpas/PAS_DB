@@ -18,6 +18,7 @@
  ** --   --------     -------			--------------------------------          
     1    02/22/2021   Hemant Saliya		Created
     2    03/29/2023   Vishal Suthar		Modified to handle WO Material KIT changes
+	3    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
      
  EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
 
@@ -260,7 +261,7 @@ SET NOCOUNT ON
 				FROM #WOCostDetails
 				
 				--CASE WHEN INVOICE IS GENERATED THEN TAKE IT FROM INVOICE
-				IF((SELECT COUNT(1) FROM dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.IsVersionIncrease = 0) > 0)
+				IF((SELECT COUNT(1) FROM dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) WHERE WOB.WorkOrderId = @WorkOrderId AND WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0) > 0)
 				BEGIN
 					UPDATE #WOCostDetails
 					SET Revenue = ISNULL(WOB.GrandTotal,0),
@@ -275,7 +276,7 @@ SET NOCOUNT ON
 						DirectCostPer = dbo.udfCalcPercentage(ISNULL(DirectCost,0), ISNULL(WOB.GrandTotal,0))
 					FROM #WOCostDetails WOCD 
 						JOIN dbo.WorkOrderBillingInvoicing WOB WITH(NOLOCK) ON WOCD.WorkOrderId = WOB.WorkOrderId
-					WHERE WOB.IsVersionIncrease = 0
+					WHERE WOB.IsVersionIncrease = 0 AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
 				END
 
 				IF((SELECT COUNT(1) FROM dbo.WorkOrderCostDetails WOC WITH(NOLOCK) 

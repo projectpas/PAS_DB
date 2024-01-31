@@ -10,8 +10,9 @@
  **************************************************************           
  ** PR   Date          Author		Change Description            
  ** --   --------      -------		--------------------------------          
-    1                 unknown        Created
-	2    09/27/2023   Moin Bloch     Modify(Formatted the SP)
+    1					unknown			Created
+	2	09/27/2023		Moin Bloch		Modify(Formatted the SP)
+	3	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
@@ -33,7 +34,7 @@ BEGIN
 			
 			SELECT @WOSTDT = MIN(wb.InvoiceDate) 
 			FROM [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) WHERE wb.RemainingAmount > 0 
-				AND wb.InvoiceStatus = 'Invoiced' 
+				AND wb.InvoiceStatus = 'Invoiced' AND ISNULL(wb.IsPerformaInvoice, 0) = 0
 				AND wb.CustomerId IN ((SELECT Item FROM DBO.SPLITSTRING(@CustomerIDS,',')));    
 			
 			IF(@SOSTDT IS NULL OR @SOSTDT = '')  

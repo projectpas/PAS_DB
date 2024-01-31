@@ -2759,5 +2759,6 @@
     <Build Include="dbo\Stored Procedures\RPT_GetCommonWorkOrderQuoteTearDownPrintView.sql" />
     <Build Include="dbo\Tables\ManualJournalPaymentBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineInventoryMismatch_3.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOBillingViewDataById.sql" />
   </ItemGroup>
 </Project>

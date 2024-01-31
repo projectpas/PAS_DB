@@ -15,6 +15,7 @@
  4		13/12/2023   Moin Bloch			    Updated YTD Balance Issue in Balance Sheet 
  5		15/12/2023   Moin Bloch			    Added Static Income Statement ReportingStructureId Need TO Change  Line Number 53
  6      25/01/2024   Hemant Saliya	        Remove Manual Journal from Reports
+ 6      31/01/2024   Hemant Saliya	        Updated for Handle Balabce Issues
 
 **************************************************************/
   
@@ -31,6 +32,8 @@ CREATE   PROCEDURE [dbo].[USP_GetBalanceSheetReportData]
 AS
 BEGIN
   BEGIN TRY
+		---Static Income Statement ReportingStructureId Need TO Change-----------------------------------------------------------
+		DECLARE @IncomeStatementReportingStructureId BIGINT = 8    
 
 		DECLARE @LeafNodeId AS BIGINT;
 		DECLARE @AccountcalID AS BIGINT;
@@ -40,18 +43,16 @@ BEGIN
 		DECLARE @LEFROMDATE DATETIME;
 		DECLARE @LETODATE DATETIME;  
 		DECLARE @PostedBatchStatusId BIGINT;
-		--DECLARE @ManualJournalStatusId BIGINT;
 		DECLARE @RevenueGLAccountTypeId AS BIGINT;
 		DECLARE @ExpenseGLAccountTypeId AS BIGINT;
 		DECLARE @AssetGLAccountTypeId AS BIGINT;
 		DECLARE @LiabilitiesGLAccountTypeId AS BIGINT;
 		DECLARE @EquityGLAccountTypeId AS BIGINT;
 		DECLARE @BatchMSModuleId BIGINT; 
-		--DECLARE @ManualBatchMSModuleId BIGINT; 
 		DECLARE @YTDLeafNodeId BIGINT; 
 		DECLARE @RELeafNodeId BIGINT; 
 
-		DECLARE @IncomeStatementReportingStructureId BIGINT = 8    ---   Static Income Statement ReportingStructureId Need TO Change
+		
 
 		DECLARE @IsDebugMode BIT; 
 		SET @IsDebugMode = 0;
@@ -115,7 +116,7 @@ BEGIN
 		
 		SELECT @INITIALFROMDATE = MIN(FromDate) FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0  
 		
-		SELECT @NAME = NAME,@FiscalYear = [FiscalYear] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = 1 AND [AccountingCalendarId] = 139 AND [IsDeleted] = 0   
+		SELECT @NAME = NAME,@FiscalYear = [FiscalYear] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = 1 AND [AccountingCalendarId] = @StartAccountingPeriodId AND [IsDeleted] = 0   
 
 		SELECT @CURRENTYEARFROMDATE = MIN([FromDate]) FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [NAME] = @NAME AND [FiscalYear] = @FiscalYear;
 		
@@ -124,7 +125,6 @@ BEGIN
 		SELECT @FROMDATE = FromDate, @LegalEntityId = LegalEntityId FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId AND IsDeleted = 0  
 		SELECT @TODATE = ToDate FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0 
 		SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
-		--SELECT @ManualJournalStatusId =  ManualJournalStatusId FROM dbo.ManualJournalStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Manual Batch Details Only
 		SELECT @AssetGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Asset' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		SELECT @LiabilitiesGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Liabilities' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
 		SELECT @EquityGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Owners Equity' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1
@@ -151,10 +151,11 @@ BEGIN
 		)
 
 		INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
-		SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
+		SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , MIN(FromDate), MAX(ToDate)
 		FROM dbo.AccountingCalendar WITH(NOLOCK)
 		WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
 			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0 
+		GROUP BY REPLACE(PeriodName,' - ',''), [Period]
 
 		INSERT INTO #AccPeriodTable (PeriodName) 
 		VALUES('Total')
@@ -319,11 +320,11 @@ BEGIN
 		  PeriodNameDistinct VARCHAR(100) NULL
 		)
 
-		--IF(@IsDebugMode = 1)
-		--BEGIN
-		--	SELECT * FROM #AccPeriodTable
-		--	SELECT * FROm #AccPeriodTable_All
-		--END
+		IF(@IsDebugMode = 1)
+		BEGIN
+			SELECT * FROM #AccPeriodTable
+			SELECT * FROM #AccPeriodTable_All
+		END
 
 		SELECT @MAXCalTempID = MAX(ID) fROM #AccPeriodTable
 		WHILE(@MAXCalTempID > 0)
@@ -339,6 +340,8 @@ BEGIN
 			WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
 				CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
 			ORDER BY FiscalYear, [Period]
+
+			--SELECT * FROM #AccPeriodTable_All
 					
 			INSERT INTO #GLBalance (LeafNodeId,  DebitAmount, CreaditAmount,  Amount, PeriodNameDistinct)
 			(SELECT DISTINCT LF.LeafNodeId , 
@@ -402,6 +405,10 @@ BEGIN
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId ,GLM.IsPositive
 
+			--SELECT * FROM #GLBalance
+			--SELECT * FROM #TempTableYTDBalabce
+			--SELECT * FROM #AccPeriodTable_All
+
 			INSERT INTO #TempTableBeginingRetailEarnings(GlAccountId,GLAccountCode,GLAccountName,ManagementStructureId,DebitAmount,CreditAmount, PeriodNameDistinct, LeafNodeId)
 			SELECT DISTINCT CB.GlAccountId,GL.AccountCode,GL.AccountName,
 				CB.ManagementStructureId, 				
@@ -429,10 +436,14 @@ BEGIN
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId ,GLM.IsPositive
+
+			--Select '#TempTableBeginingRetailEarnings'			
+			--Select * FROM #TempTableBeginingRetailEarnings
+			--SELECT * FROM #TempTableYTDBalabce
 					
 			SET @MAXCalTempID = @MAXCalTempID - 1;
 		END
-						
+		
 		UPDATE #GLBalance SET AccountingPeriodId = AccountcalID FROM #GLBalance GLB JOIN #AccPeriodTableFinal APF ON GLB.PeriodNameDistinct = APF.PeriodName
 		UPDATE #TempTableYTDBalabce SET AccountingPeriodId = AccountcalID FROM #TempTableYTDBalabce YTD JOIN #AccPeriodTableFinal APF ON YTD.PeriodNameDistinct = APF.PeriodName
 		UPDATE #TempTableBeginingRetailEarnings SET AccountingPeriodId = AccountcalID FROM #TempTableBeginingRetailEarnings YTD JOIN #AccPeriodTableFinal APF ON YTD.PeriodNameDistinct = APF.PeriodName
@@ -452,6 +463,8 @@ BEGIN
 			FROM #TempTableBeginingRetailEarnings 
 			GROUP BY PeriodNameDistinct, AccountingPeriodId
 		) GropBal WHERE GropBal.AccountingPeriodId = #TempTableBeginingRetailEarnings.AccountingPeriodId 
+
+		--Select * FROM #TempTableBeginingRetailEarnings
 
 		IF(@IsDebugMode = 1)
 		BEGIN
@@ -507,7 +520,9 @@ BEGIN
 											ORDER BY ID
 				 END
 			END				
-			
+			--Select @periodNameDistinct
+			--Select * from #TempTable
+
 			UPDATE #TempTable SET Amount = tmpCal.Amount
 			FROM(SELECT SUM(ISNULL(GL.Amount, 0)) AS Amount, T.LeafNodeId, T.PeriodNameDistinct
 				FROM #TempTable T 
@@ -515,6 +530,7 @@ BEGIN
 			GROUP BY T.LeafNodeId, T.PeriodNameDistinct
 			)tmpCal WHERE tmpCal.PeriodNameDistinct = #TempTable.PeriodNameDistinct AND tmpCal.LeafNodeId = #TempTable.LeafNodeId AND tmpCal.PeriodNameDistinct = @PeriodNameDistinct 
 
+			--Select * from #TempTable
 
 			UPDATE #TempTable SET Amount = (ISNULL(GL.Amount, 0))						
 			FROM #TempTable T 
@@ -522,11 +538,15 @@ BEGIN
 			AND T.LeafNodeId = GL.LeafNodeId 
 			AND T.PeriodNameDistinct = GL.PeriodNameDistinct
 
+			--Select * from #TempTable
+
 			UPDATE #TempTable SET Amount = (ISNULL(GL.Amount, 0))						
 			FROM #TempTable T 
 			JOIN #TempTableBeginingRetailEarnings GL ON T.PeriodNameDistinct = @periodNameDistinct 
 			AND T.LeafNodeId = GL.LeafNodeId 
-			AND T.PeriodNameDistinct = GL.PeriodNameDistinct		
+			AND T.PeriodNameDistinct = GL.PeriodNameDistinct
+			
+			--Select * from #TempTable
 	
 			 UPDATE #TempTable
 			   SET ChildCount = ISNULL((SELECT COUNT(ISNULL(T.Amount, 0))
@@ -541,6 +561,7 @@ BEGIN
 					FROM #TempTable T1 WHERE  T1.PeriodNameDistinct = @PeriodNameDistinct --T1.AccountingPeriodId = @AccountcalID
 		
 			 UPDATE #TempTable SET IsProcess = 0  WHERE PeriodNameDistinct = @PeriodNameDistinct --AccountingPeriodId = @AccountcalID
+			 --Select * from #TempTable
 
 			 SET @CID = 0;
 			 SET @CLID = 0;
@@ -692,6 +713,7 @@ BEGIN
 		DECLARE @COUNTMAX AS INT
 		SELECT @COUNTMAX = MAX(ID), @COUNT = MIN(ID) FROM #AccPeriodTableFinal
 
+		PRINT '#AccPeriodTableFinal'
 		WHILE (@COUNT <= @COUNTMAX)
 		BEGIN
 			DECLARE @APName AS VARCHAR(100);
@@ -802,6 +824,8 @@ BEGIN
 		DECLARE @COUNTMAX3 AS INT
 		SELECT @COUNTMAX3 = MAX(ID), @COUNT3 = MIN(ID) FROM ##AccBalanceSheetTablePivot
 
+		SELECT * FROM ##AccBalanceSheetTablePivot
+
 		WHILE (@COUNT3 <= @COUNTMAX3)
 		BEGIN
 			print 'Step 3'
@@ -819,6 +843,8 @@ BEGIN
 					DECLARE @APName4 AS VARCHAR(100);
 					SELECT @APName4 = PeriodName FROM #AccPeriodTable WHERE ID = @COUNT4 --GROUP BY PeriodName
 
+					SELECT  * FROM #AccPeriodTable
+					--Need to Add If Condition for check Period Name
 					DECLARE @SQLQueryUpdateHeader varchar(max) = 'UPDATE ##AccBalanceSheetTablePivot SET [' + CAST(@APName4 AS VARCHAR(100)) +'] = NULL WHERE leafNodeId = ' + CAST(@LeafNodeId3 AS VARCHAR(100)) +'' 
 					--PRINT (@SQLQueryUpdateHeader)
 					EXEC(@SQLQueryUpdateHeader)  

@@ -11,6 +11,7 @@
     1    01/03/2021   Deep Patel    Created
 	2    02/03/2021   Deep Patel    add SO type parameter in query.
 	3    06/12/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
+	4    01/31/2024   AMIT GHEDIYA	Updated to Added IsPerforma for Billing
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -53,7 +54,7 @@ SET NOCOUNT ON;
 			LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 			INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
 			LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId
+			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0
 			WHERE sop.SalesOrderPartId = @SalesOrderPartId;
 		END
 

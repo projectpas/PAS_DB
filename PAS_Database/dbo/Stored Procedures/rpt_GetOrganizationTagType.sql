@@ -1,23 +1,16 @@
 ﻿CREATE   PROCEDURE [dbo].[rpt_GetOrganizationTagType] 
+(
+	@mastercompanyid INT = NULL
+)
 AS
 BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
   BEGIN TRY
-    BEGIN TRANSACTION
-		SELECT * FROM DBO.OrganizationTagType WITH (NOLOCK);
-    COMMIT TRANSACTION
+		SELECT OrganizationTagTypeId, [Name] FROM DBO.OrganizationTagType OTT WITH (NOLOCK) 
+		WHERE OTT.MasterCompanyId = @mastercompanyid;
   END TRY
-
   BEGIN CATCH
-    ROLLBACK TRANSACTION
-
-    IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
-    BEGIN
-      DROP TABLE #managmetnstrcture
-    END
-
     DECLARE @ErrorLogID int,
         @DatabaseName varchar(100) = DB_NAME(),
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

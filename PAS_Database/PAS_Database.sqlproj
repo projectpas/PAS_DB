@@ -2760,5 +2760,8 @@
     <Build Include="dbo\Tables\ManualJournalPaymentBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineInventoryMismatch_3.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOBillingViewDataById.sql" />
+    <Build Include="dbo\Stored Procedures\InventoryStatusForSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\AssetStatusForSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\AssetAttributeTypeForSSRS.sql" />
   </ItemGroup>
 </Project>

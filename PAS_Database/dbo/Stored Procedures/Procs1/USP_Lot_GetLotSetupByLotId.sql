@@ -12,7 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    30/03/2023   Rajesh Gami     Created
 **************************************************************
-EXEC USP_Lot_GetLotSetupByLotId 8 
+EXEC USP_Lot_GetLotSetupByLotId 53 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetLotSetupByLotId] 
 @LotId bigint =0
@@ -29,7 +29,7 @@ BEGIN
 		SELECT DISTINCT
 		    ISNULL(LS.LotSetupId,0)LotSetupId
 		   ,LT.LotId
-           ,ISNULL(LS.IsUseMargin,1) IsUseMargin
+           ,ISNULL(LS.IsUseMargin,0) IsUseMargin
            ,ISNULL(LS.MarginPercentageId,0)MarginPercentageId
            ,ISNULL(LS.IsOverallLotCost,0)IsOverallLotCost
            ,ISNULL(LS.IsCostToPN,0)IsCostToPN
@@ -47,6 +47,7 @@ BEGIN
 		   ,UPPER(LT.LotNumber) LotNumber
 		   ,UPPER(LC.ConsigneeName) ConsigneeName
 		   ,UPPER(LC.ConsignmentNumber) ConsignmentNumber
+		   ,( CASE WHEN ISNULL(LS.IsUseMargin,0) = 0 THEN 0 ELSE  ISNULL((SELECT Top 1 per.PercentValue FROM DBO.[Percent] per WITH(NOLOCK) WHERE per.percentId = ISNULL(LS.MarginPercentageId,0)),0) END) AS PercentValue
             FROM dbo.Lot LT WITH (NOLOCK)
 			INNER JOIN dbo.LotDetail LD WITH(NOLOCK) ON LT.LotId = LD.LotId
 			LEFT JOIN dbo.LotConsignment LC WITH(NOLOCK) ON lt.LotId = LC.LotId

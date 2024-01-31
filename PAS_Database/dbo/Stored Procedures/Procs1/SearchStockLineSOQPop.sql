@@ -58,7 +58,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
-			,ISNULL(sl.UnitCost, 0) AS unitCost
+			,(CASE WHEN ISNULL(lsm.IsUseMargin,0) = 1 THEN CONVERT(DECIMAL(10,2),((ISNULL(sl.UnitCost, 0) * ISNULL(per.PercentValue,0.00))/100 ))  ELSE  CONVERT(DECIMAL(10,2), ISNULL(sl.UnitCost, 0))  END)   AS unitCost
 			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -124,7 +124,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
 							and imps.ConditionId = c.ConditionId
 			LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
-			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
+			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId AND lsm.IsUseMargin = 1
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))  

@@ -8,56 +8,93 @@ CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
 @AssetStatus VARCHAR(30),
 @AssetInventoryStatus VARCHAR(30),
 @MasterCompanyId INT,
-@PageNumber INT = 1,      
-@PageSize INT = NULL
+--@PageNumber INT = 1,      
+--@PageSize INT = NULL,
+@xmlFilter XML = ''
 AS
 BEGIN
-	SET NOCOUNT ON;      
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED     
-	
-	DECLARE 
-		@level1 VARCHAR(MAX) = NULL,    
-		@level2 VARCHAR(MAX) = NULL,      
-		@level3 VARCHAR(MAX) = NULL,      
-		@level4 VARCHAR(MAX) = NULL,      
-		@Level5 VARCHAR(MAX) = NULL,      
-		@Level6 VARCHAR(MAX) = NULL,      
-		@Level7 VARCHAR(MAX) = NULL,      
-		@Level8 VARCHAR(MAX) = NULL,      
-		@Level9 VARCHAR(MAX) = NULL,      
-		@Level10 VARCHAR(MAX) = NULL,      
-		@IsDownload BIT = NULL  
-		
-	DECLARE @AssetModuleID varchar(500);
-	SELECT @AssetModuleID = ModuleId FROM Module WHERE ModuleName='AssetInventory' AND ModuleName='Asset'     
-
-	BEGIN TRY 
-	BEGIN TRANSACTION
+	BEGIN TRY
 	BEGIN
+	
+		SET NOCOUNT ON;      
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED     
+	
+		DECLARE @AssetModuleID varchar(500);
+		--DECLARE @xmlFilter XML;
+		SELECT @AssetModuleID = ModuleId FROM Module WHERE ModuleName='AssetInventory' AND ModuleName='Asset'  
 
-	    SELECT  AI.AssetInventoryId,
+		DECLARE 
+				@level1 VARCHAR(MAX) = NULL,    
+				@level2 VARCHAR(MAX) = NULL,      
+				@level3 VARCHAR(MAX) = NULL,      
+				@level4 VARCHAR(MAX) = NULL,      
+				@Level5 VARCHAR(MAX) = NULL,      
+				@Level6 VARCHAR(MAX) = NULL,      
+				@Level7 VARCHAR(MAX) = NULL,      
+				@Level8 VARCHAR(MAX) = NULL,      
+				@Level9 VARCHAR(MAX) = NULL,      
+				@Level10 VARCHAR(MAX) = NULL,      
+				@IsDownload BIT = NULL  
+
+		SELECT @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,  
+  
+			   @level2=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,  
+  
+			   @level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,  
+  
+			   @level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,  
+  
+			   @level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,  
+  
+			   @level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,  
+  
+			   @level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,  
+  
+			   @level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,  
+  
+			   @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,  
+  
+			   @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
+			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
+  
+		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
+
+		SELECT  AI.AssetInventoryId,
 				'Tangible' AS AssetCategory,
+				ASTS.[Name] AS AssetStatus,
+				ASTIS.[Status] AS InventoryStatus,
+				ASAT.AssetAttributeTypeName AS AssetClass,
 				AI.InventoryNumber,
 				AI.PartNumber,
 				AI.AlternateAssetRecordId,
-				AST.MANUFACTURERPN,
-				AI.[Name],
+				AST.MANUFACTURERPN AS ManufacturerPN,
+				-- AST.[Name] AS AssetName,
+				AI.[Name] AS AssetName,
 				AI.ManufactureName,
 				AI.ManufacturerId,
 				AI.Model,
-				ASTIS.[Status], 
+				-- ASTIS.[Status], 
 				AI.AssetLife,
 				AI.DepreciationMethodName,
-				AI.AssetAcquisitionTypeId,
+				AAT.[Name] AS AcquisitionType,
 				AI.ReceivedDate,
-				AI.CreatedDate, -- CHANGE IT TO DEPR START DATE
+				AI.DepreciationStartDate, -- CHANGE IT TO DEPR START DATE
 				AI.DepreciationFrequencyName,
-				ASTS.[Name],
+				-- ASTS.[Name],
 				AI.TotalCost,
 				ADH.AccumlatedDepr,
 				ADH.NetBookValue,
 				ADH.DepreciationAmount,
-				'' AS LastDeprDate,
+				ADH.LastDeprRunPeriod AS LastDeprDate,
 				'' AS NumOfDeprPeriod,
 				'' AS DeprPeriodRemaining,
 				AI.SerialNo,
@@ -76,14 +113,30 @@ BEGIN
 		FROM AssetInventory AI WITH (NOLOCK)
 				LEFT JOIN Asset AST WITH (NOLOCK) ON AST.AssetId = AI.AssetId
 				LEFT JOIN AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId
-				INNER JOIN Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
-				INNER JOIN AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId
-				INNER JOIN AssetInventoryStatus ASTIS WITH(NOLOCK) ON ASTIS.AssetInventoryStatusId = AI.InventoryStatusId
-				LEFT JOIN TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId=AI.TangibleClassId
-				INNER JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
-				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 
+				LEFT JOIN Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
+				LEFT JOIN AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId
+				LEFT JOIN AssetAcquisitionType AAT WITH(NOLOCK) ON AAT.AssetAcquisitionTypeId = AI.AssetAcquisitionTypeId
+				LEFT JOIN AssetInventoryStatus ASTIS WITH(NOLOCK) ON ASTIS.AssetInventoryStatusId = AI.InventoryStatusId
+				-- LEFT JOIN TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId=AI.TangibleClassId
+				LEFT JOIN AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
+				LEFT JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
+				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 				
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON  MSD.Level1Id = MSL1.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON  MSD.Level2Id = MSL2.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON  MSD.Level3Id = MSL3.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON  MSD.Level4Id = MSL4.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON  MSD.Level5Id = MSL5.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON  MSD.Level6Id = MSL6.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON  MSD.Level7Id = MSL7.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON  MSD.Level8Id = MSL8.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON  MSD.Level9Id = MSL9.ID
+			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID	
 
-		WHERE AI.AssetStatusId=@AssetStatus AND AI.InventoryStatusId=@AssetInventoryStatus AND AI.TangibleClassId = @AssetClass  
+		WHERE AI.AssetAttributeTypeId = @AssetClass 
+			  AND AI.AssetStatusId=@AssetStatus 
+			  AND AI.InventoryStatusId=@AssetInventoryStatus 
+			  AND AI.MasterCompanyId = @MasterCompanyId
+			  -- AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
 			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
@@ -93,20 +146,19 @@ BEGIN
 			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) 
+			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
 
-		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
-		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END 
+		--SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
+		--SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END 
 			
-	END
-	COMMIT  TRANSACTION		
+	END	
 	END TRY  
 	BEGIN CATCH  
 	    IF @@trancount > 0
 	    ROLLBACK TRAN;
 		DECLARE @ErrorLogID INT ,@DatabaseName VARCHAR(100) = db_name()      
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------      
-		,@AdhocComments VARCHAR(150) = 'CopyReportingStructure'      
+		,@AdhocComments VARCHAR(150) = 'GetAssetRegisterReport'      
 		,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@AssetClass, '') AS varchar(100))      
 											+ '@Parameter2 = ''' + CAST(ISNULL(@AssetStatus, '') AS varchar(100))       
 											+ '@Parameter3 = ''' + CAST(ISNULL(@AssetInventoryStatus, '') AS varchar(100))      

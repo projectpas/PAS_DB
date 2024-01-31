@@ -536,7 +536,7 @@ BEGIN
 							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],
 						[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],
-						ISNULL([RepairOrderUnitCost], 0),[ReceivedDate],@ReceiverNumber,[ReconciliationNumber],ISNULL([UnitSalesPrice], 0),ISNULL([CoreUnitCost], 0),[GLAccountId],[AssetId],[IsHazardousMaterial],
+						ISNULL([RepairOrderUnitCost], 0),GETUTCDATE(),@ReceiverNumber,[ReconciliationNumber],ISNULL([UnitSalesPrice], 0),ISNULL([CoreUnitCost], 0),[GLAccountId],[AssetId],[IsHazardousMaterial],
 						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
 						NULL,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
 						[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],

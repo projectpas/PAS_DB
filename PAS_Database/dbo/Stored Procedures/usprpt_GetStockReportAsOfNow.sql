@@ -16,7 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
      
-exec usprpt_GetStockReportAsOfNow @mastercompanyid=11,@id=N'1/18/2024',@id2=N'',@id3=1,@strFilter=N'49!50,51!!!!!!!!'
+exec usprpt_GetStockReportAsOfNow @mastercompanyid=11,@id=N'1/29/2024',@id2=N'',@id3=0,@strFilter=N'49!50,51!!!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -215,6 +215,7 @@ BEGIN
 	 LEFT JOIN DBO.Customer CUST WITH (NOLOCK) ON CUST.CustomerId = stl.CustomerId
      WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 AND CAST(stl.CreatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE)
 	 AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
+	 --AND stl.StockLineId = 167518
 	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2,''), ',')))
 	 AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
 	 AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
@@ -443,7 +444,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Reduced (StocklineId, QTY_OH, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0), 0)) 'QTY_OH',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0), 0)) 'QTY_OH',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 15
@@ -463,10 +464,11 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Reduced (StocklineId, QTY_OH, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.Qty AS INT), 0) - ISNULL(CAST(StkAdjust.NewQty AS INT), 0), 0)) 'QTY_OH',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.Qty AS INT), 0) - ISNULL(CAST(StkAdjust.NewQty AS INT), 0), 0)) 'QTY_OH',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.BulkStockLineAdjustmentDetails StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StockLineAdjustmentTypeId = 1
@@ -486,6 +488,7 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Increase Adjusted Qty (Decreased Qty)
 	UPDATE StkOriginal
@@ -509,7 +512,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Increased (StocklineId, QTY_OH, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0), 0)) 'QTY_OH',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.ChangedTo AS INT), 0) - ISNULL(CAST(StkAdjust.ChangedFrom AS INT), 0), 0)) 'QTY_OH',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 10
@@ -529,10 +532,11 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Increased (StocklineId, QTY_OH, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.NewQty AS INT), 0) - ISNULL(CAST(StkAdjust.Qty AS INT), 0), 0)) 'QTY_OH',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.NewQty AS INT), 0) - ISNULL(CAST(StkAdjust.Qty AS INT), 0), 0)) 'QTY_OH',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.BulkStockLineAdjustmentDetails StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StockLineAdjustmentTypeId = 1
@@ -552,6 +556,7 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Removed Adjusted Qty (Increased Qty)
 	UPDATE StkOriginal
@@ -575,7 +580,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineUnitCostAdjusted (StocklineId, UnitCost, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitCost',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitCost',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 11  -- Unit Cost
@@ -595,6 +600,7 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
 	SET StkOriginal.UnitCost = CASE WHEN StkSold.UnitCost > 0 THEN (StkOriginal.UnitCost - StkSold.UnitCost) ELSE (StkOriginal.UnitCost + StkSold.UnitCost) END
@@ -616,7 +622,7 @@ BEGIN
 
 	INSERT INTO #TEMPStocklineUnitPriceAdjusted (StocklineId, UnitPrice, MasterCompanyId)
 	SELECT StkAdjust.StockLineId AS StocklineId,    
-        (ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitPrice',    
+        SUM(ISNULL(ISNULL(CAST(StkAdjust.ChangedFrom AS Decimal(18, 2)), 0) - ISNULL(CAST(StkAdjust.ChangedTo AS Decimal(18, 2)), 0), 0)) 'UnitPrice',    
         stl.MasterCompanyId
     FROM DBO.stockline stl WITH (NOLOCK)
 	INNER JOIN dbo.StocklineAdjustment StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StocklineAdjustmentDataTypeId = 12  -- Unit Sales Price
@@ -636,6 +642,7 @@ BEGIN
 	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
 	SET StkOriginal.UnitPrice = CASE WHEN StkSold.UnitPrice > 0 THEN (StkOriginal.UnitCost - StkSold.UnitPrice) ELSE (StkOriginal.UnitCost + StkSold.UnitPrice) END

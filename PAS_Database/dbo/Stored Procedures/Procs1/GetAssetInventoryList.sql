@@ -56,7 +56,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
 @Model varchar(50) = null,
 @StklineNumber varchar(50) = null,
 @ControlNumber varchar(50) = null,
-@EmployeeId bigint=1
+@EmployeeId bigint=1,
+@LastMSLevel varchar(50) = null 
 AS
 BEGIN
 
@@ -174,7 +175,8 @@ BEGIN
 								(BuName LIKE '%'+@GlobalFilter+'%') OR
 								(DivName LIKE '%' +@GlobalFilter+'%') OR
 								(DeptName LIKE '%' +@GlobalFilter+'%') OR
-								(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
+								(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+								(LastMSLevel LIKE '%' +@GlobalFilter+'%')
 								))
 							OR   
 							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
@@ -201,7 +203,8 @@ BEGIN
 								(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 								(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 								(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
-								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') 
+								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
+								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') 
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) from #TempResult			
@@ -224,6 +227,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END ASC,					
 					CASE WHEN (@SortOrder=1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETNAME')  THEN Name END Desc,
@@ -241,7 +245,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='AssetStatus')  THEN AssetStatus END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryNumber')  THEN InventoryNumber END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='WorkOrderNum')  THEN WorkOrderNum END DESC,		
-					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='InventoryStatus')  THEN InventoryStatus END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 				--END

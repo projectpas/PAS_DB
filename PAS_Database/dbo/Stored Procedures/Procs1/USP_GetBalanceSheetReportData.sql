@@ -181,20 +181,6 @@ BEGIN
 		INSERT INTO #AccPeriodTableFinal (AccountcalID, PeriodName) 
 		VALUES(9999999,'Total')
 
-		IF OBJECT_ID(N'tempdb..#tmpLegalEntity') IS NOT NULL
-		BEGIN
-			DROP TABLE #tmpLegalEntity
-		END
-
-		CREATE TABLE #tmpLegalEntity
-		(
-			ID BIGINT NOT NULL IDENTITY, 
-			LegalEntityId BIGINT NULL,
-		)
-
-		INSERT INTO #tmpLegalEntity(LegalEntityId)
-		SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))
-
 		CREATE TABLE #TempTableYTDBalabce
 		(
 			rownumber BIGINT NOT NULL IDENTITY,

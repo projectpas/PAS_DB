@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
+	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
@@ -36,7 +37,9 @@ CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @EmployeeId bigint=61,
 @MasterCompanyId bigint=1,
 @ItemMasterId bigint=7,
-@ViewType varchar(50)
+@ViewType varchar(50),
+@FromDate datetime = NULL,
+@ToDate datetime = NULL
 AS
 BEGIN
 
@@ -88,6 +91,7 @@ BEGIN
 					--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId
 					AND PO.MasterCompanyId = @MasterCompanyId
+					AND PO.CreatedDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -152,6 +156,7 @@ BEGIN
 				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				  AND PO.MasterCompanyId = @MasterCompanyId
+				  AND PO.CreatedDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR

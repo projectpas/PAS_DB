@@ -131,28 +131,28 @@ BEGIN
 			ISNULL(SIP.Name,'') AS ShipVia,
 			bi.InvoiceTime
 		FROM 
-		    WorkOrderBillingInvoicing bi
-		    JOIN WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId
-		    JOIN Customer cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
-		    JOIN Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
-		    JOIN CustomerContact custCont WITH(NOLOCK) ON wo.CustomerContactId = custCont.CustomerContactId
-		    LEFT JOIN Contact contact WITH(NOLOCK) ON custCont.ContactId = contact.ContactId
-		    LEFT JOIN CustomerFinancial cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
-		    LEFT JOIN InvoiceType it WITH(NOLOCK) ON bi.InvoiceTypeId = it.InvoiceTypeId
-		    LEFT JOIN Employee emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
-		    JOIN Customer billToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId = billToCustomer.CustomerId
-		    JOIN CustomerBillingAddress billToSite WITH(NOLOCK) ON bi.SoldToSiteId = billToSite.CustomerBillingAddressId
-		    JOIN Address billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
-		    LEFT JOIN Countries billToCountry WITH(NOLOCK) ON billToAddress.CountryId = billToCountry.countries_id
-		    JOIN CustomerDomensticShipping shipToSite WITH(NOLOCK) ON bi.ShipToSiteId = shipToSite.CustomerDomensticShippingId
-		    JOIN Address shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-		    LEFT JOIN Employee sp WITH(NOLOCK) ON wo.SalesPersonId = sp.EmployeeId
-		    LEFT JOIN Countries cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
-		    LEFT JOIN Currency cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
-		    JOIN CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-		    LEFT JOIN WorkOrderShipping shippingInfo WITH(NOLOCK) ON bi.WorkOrderShippingId = shippingInfo.WorkOrderShippingId
-		    LEFT JOIN ShippingVia sipVia WITH(NOLOCK) ON bi.ShipViaId = sipVia.ShippingViaId
-		    LEFT JOIN Countries shipToCountry WITH(NOLOCK) ON shippingInfo.ShipToCountryId = shipToCountry.countries_id
+		    DBO.WorkOrderBillingInvoicing bi
+		    JOIN DBO.WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId
+		    JOIN DBO.Customer cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
+		    JOIN DBO.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
+		    JOIN DBO.CustomerContact custCont WITH(NOLOCK) ON wo.CustomerContactId = custCont.CustomerContactId
+		    LEFT JOIN DBO.Contact contact WITH(NOLOCK) ON custCont.ContactId = contact.ContactId
+		    LEFT JOIN DBO.CustomerFinancial cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
+		    LEFT JOIN DBO.InvoiceType it WITH(NOLOCK) ON bi.InvoiceTypeId = it.InvoiceTypeId
+		    LEFT JOIN DBO.Employee emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
+		    JOIN DBO.Customer billToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId = billToCustomer.CustomerId
+		    JOIN DBO.CustomerBillingAddress billToSite WITH(NOLOCK) ON bi.SoldToSiteId = billToSite.CustomerBillingAddressId
+		    JOIN DBO.Address billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
+		    LEFT JOIN DBO.Countries billToCountry WITH(NOLOCK) ON billToAddress.CountryId = billToCountry.countries_id
+		    JOIN DBO.CustomerDomensticShipping shipToSite WITH(NOLOCK) ON bi.ShipToSiteId = shipToSite.CustomerDomensticShippingId
+		    JOIN DBO.Address shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
+		    LEFT JOIN DBO.Employee sp WITH(NOLOCK) ON wo.SalesPersonId = sp.EmployeeId
+		    LEFT JOIN DBO.Countries cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
+		    LEFT JOIN DBO.Currency cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
+		    JOIN DBO.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+		    LEFT JOIN DBO.WorkOrderShipping shippingInfo WITH(NOLOCK) ON bi.WorkOrderShippingId = shippingInfo.WorkOrderShippingId
+		    LEFT JOIN DBO.ShippingVia sipVia WITH(NOLOCK) ON bi.ShipViaId = sipVia.ShippingViaId
+		    LEFT JOIN DBO.Countries shipToCountry WITH(NOLOCK) ON shippingInfo.ShipToCountryId = shipToCountry.countries_id
 			LEFT JOIN DBO.WorkOrderType WOT WITH(NOLOCK) on WOT.Id = WO.WorkOrderTypeId
 			LEFT JOIN DBO.WorkOrderPartNumber WOP WITH(NOLOCK) on WOP.Id = @WorkOrderPartId
 			LEFT JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = CF.CurrencyId

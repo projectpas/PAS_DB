@@ -18,6 +18,7 @@
 	3    22/11/2023   AMIT GHEDIYA  Modify(FOR Exchange Invoice)
 	4    05/01/2024   Moin Bloch    Replaced PercentId at CreditTermsId
 	5    08/01/2024   Moin Bloch    Replaced Days insted of NetDays
+	6	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
@@ -255,7 +256,7 @@ BEGIN
 		  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
   
      FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
-     LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId      
+     LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
      LEFT JOIN  [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId      
      LEFT JOIN  [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId      
      INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=WOBI.CustomerId      

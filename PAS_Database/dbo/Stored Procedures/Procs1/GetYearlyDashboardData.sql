@@ -12,7 +12,8 @@
  **********************           
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
-    1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates                                             
+    1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates      
+	2	 31 JAN 2024    Devendra Shekh			   added isperforma Flage for WO 
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
@@ -108,6 +109,7 @@ BEGIN
 						AND MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
 						--AND EMS.EmployeeId = @EmployeeId
 						AND WOBI.MasterCompanyId = @MasterCompanyId
+						AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 					)
 
 					SELECT @Amt = SUM(Total) FROM cte GROUP BY Mnth

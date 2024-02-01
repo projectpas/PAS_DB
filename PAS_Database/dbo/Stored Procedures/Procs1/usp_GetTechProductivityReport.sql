@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetTechProductivityReport]           
  ** Author:   Swetha  
  ** Description: Get Data for TechProductivity Report  
@@ -17,10 +16,11 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3	01/31/2024    Devendra Shekh	added isperforma Flage for WO
      
 EXECUTE   [dbo].[usp_GetTechProductivityReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetTechProductivityReport] @FirstName varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetTechProductivityReport] @FirstName varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -189,7 +189,7 @@ BEGIN
         LEFT JOIN DBO.EmployeeStation ES WITH (NOLOCK)
           ON wopn.TechStationId = ES.EmployeeStationId
         LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-          ON WO.WorkOrderId = WOBI.WorkOrderId and wobi.IsVersionIncrease=0
+          ON WO.WorkOrderId = WOBI.WorkOrderId and wobi.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
           ON WOPN.MasterCompanyId = MC.MasterCompanyId
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)

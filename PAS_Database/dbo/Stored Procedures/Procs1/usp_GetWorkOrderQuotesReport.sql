@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetWorkOrderQuotesReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderQuotes Report
@@ -18,6 +17,7 @@
     1					Swetha		Created
 	2					Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
+	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetWorkOrderQuotesReport] '','2020-04-25','2021-09-25','4','4','','',''
 **************************************************************/
@@ -147,7 +147,7 @@ BEGIN
       WHERE (C.Name IN (@name) OR isnull(@name,'') = '')
 	  AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)
       AND WO.mastercompanyid = @mastercompanyid
-
+	  AND ISNULL(WBI.IsPerformaInvoice, 0) = 0
     COMMIT TRANSACTION
   END TRY
 

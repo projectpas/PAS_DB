@@ -13,7 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
     1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates                                             
-    2    19 Jan 2024   Bhargav Saliya               Utc Date Changes                                             
+    2    19 Jan 2024   Bhargav Saliya               Utc Date Changes                  
+	3	 31 jan 2024   Devendra Shekh				added isperforma Flage for WO
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
@@ -121,6 +122,7 @@ BEGIN
 					INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 					WHERE WOBI.IsVersionIncrease = 0 AND Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date) = CONVERT(DATE, @SelectedDate) 
 					AND WOBI.MasterCompanyId = @MasterCompanyId
+					AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 					GROUP BY CAST(InvoiceDate AS DATE)
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
@@ -156,7 +158,7 @@ BEGIN
 		IF @@trancount > 0
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments VARCHAR(150) = 'GetDashboardViewData' 
+            , @AdhocComments VARCHAR(150) = 'GetMonthlyDashboardData' 
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		------------------------------------
     1    30/05/2023   VISHAL SUTHAR     Created
+	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO 
      
 -- EXEC USP_CheckWorkOrderPartUpdateValidation 3402, 20769, 'wfgjertyuh', 180, 11
 ************************************************************************/
@@ -93,7 +94,7 @@ BEGIN
 				SELECT 'This part is already shipped' AS ErrorMessage;
 			END
 
-			IF EXISTS (SELECT TOP 1 * FROM DBO.WorkOrderBillingInvoicingItem WOB (NOLOCK) WHERE WOB.WorkOrderPartId = @WorkOrderPartNumberId AND MasterCompanyId = @MasterCompanyId)
+			IF EXISTS (SELECT TOP 1 * FROM DBO.WorkOrderBillingInvoicingItem WOB (NOLOCK) WHERE WOB.WorkOrderPartId = @WorkOrderPartNumberId AND MasterCompanyId = @MasterCompanyId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0)
 			BEGIN
 				INSERT INTO #tmpWOErrorMessages
 				SELECT 'This part is already invoiced' AS ErrorMessage;

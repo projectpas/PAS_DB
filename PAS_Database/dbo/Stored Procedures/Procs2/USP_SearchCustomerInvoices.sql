@@ -1,9 +1,26 @@
-﻿--EXEC USP_SearchCustomerInvoices 100,1,'',-1,0,'','','',null,'','','',null,'','','','','',2,'','','invoice',10,''
+﻿/*************************************************************           
+ ** File:   [USP_SearchCustomerInvoices]
+ ** Author: unknown
+ ** Description: This stored procedure is used TO Search CustomerInvoices
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+
+-- EXEC GeSOWOtInvoiceDate '74'  
+************************************************************************/
+--EXEC USP_SearchCustomerInvoices 100,1,'',-1,0,'','','',null,'','','',null,'','','','','',2,'','','invoice',10,''
 --EXEC dbo.USP_SearchCustomerInvoices @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',
 --@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,@OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,
 --@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,@CustomerReference=NULL,@MasterCompanyId=1,@SerialNumber=NULL,@StockType=NULL,@ViewType=N'invoice',
 --@EmployeeId=2,@RemainingAmount=NULL,@LastMSLevel=NULL
-CREATE PROCEDURE [dbo].[USP_SearchCustomerInvoices]
+CREATE   PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @PageSize int,  
 @PageNumber int,  
 @SortColumn varchar(50),  
@@ -62,7 +79,7 @@ BEGIN
 				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,WOWF.WorkFlowWorkOrderId,
 				CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
 				LEFT JOIN WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID =WOWF.WorkOrderPartNoId
 				LEFT JOIN Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
@@ -78,7 +95,7 @@ BEGIN
 			Select PC.BillingInvoicingId,(Case When Count(WOPN.ManagementStructureId) > 1 Then 'Multiple' ELse max(M.LastMSLevel) End)  as 'LastMSLevel'  
 			,a.AllMSlevels
 			from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 			LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =PC.WorkOrderId and WOPN.ID=WOBII.WorkOrderPartId
 			LEFT JOIN WorkorderManagementStructureDetails M WITH (NOLOCK) ON M.ReferenceID = WOPN.ID AND M.ModuleID = @ModuleID
 			Outer Apply(  
@@ -86,7 +103,7 @@ BEGIN
 				STUFF((SELECT CASE WHEN LEN(MS.AllMSlevels) >0 then ',' ELSE '' END + MS.AllMSlevels  
 				from  WorkorderManagementStructureDetails MS WITH (NOLOCK)
 			inner join WorkOrderPartNumber WOPN WITH (NOLOCK) on MS.ReferenceID=WOPN.ID AND WOPN.WorkOrderId =PC.WorkOrderId
-			inner join  WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) on WOBII.WorkOrderPartId=WOPN.ID 
+			inner join  WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) on WOBII.WorkOrderPartId=WOPN.ID AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				where MS.ModuleID=@ModuleID and WOBII.BillingInvoicingId=PC.BillingInvoicingId
 				FOR XML PATH('')), 1, 1, '') AllMSlevels 				  
 			) A  
@@ -98,7 +115,7 @@ BEGIN
 			Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
 			A.VersionNo [VersionNoType] 
 			from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 			LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =PC.WorkOrderId and WOPN.ID=WOBII.WorkOrderPartId
 			LEFT JOIN WorkOrder WO WITH (NOLOCK) ON PC.WorkOrderId = WO.WorkOrderId
 			LEFT JOIN WorkOrderQuote WQ WITH (NOLOCK) ON WQ.WorkOrderId = WO.WorkOrderId
@@ -111,6 +128,7 @@ BEGIN
 					LEFT JOIN WorkOrderQuote WQ WITH (NOLOCK) ON WQ.WorkOrderId = WO.WorkOrderId
 					Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					AND S.IsActive = 1 AND S.IsDeleted = 0  
+					AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					FOR XML PATH('')), 1, 1, '') VersionNo   
 			) A  
 			WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0
@@ -120,7 +138,7 @@ BEGIN
 			Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse A.CustomerReference End)  as 'CustomerReference',  
 			A.CustomerReference [CustomerReferenceType] 
 			from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 			LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =PC.WorkOrderId and WOPN.ID=WOBII.WorkOrderPartId
 			Outer Apply(  
 				SELECT   
@@ -129,6 +147,7 @@ BEGIN
 					Left Join WorkOrderPartNumber I WITH (NOLOCK) On I.ID=S.WorkOrderPartId  
 					Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					AND S.IsActive = 1 AND S.IsDeleted = 0  
+					AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					FOR XML PATH('')), 1, 1, '') CustomerReference  
 			) A  
 			WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0
@@ -137,7 +156,7 @@ BEGIN
 			SRNoCTE AS(  
 			Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse A.SerialNumber End)  as 'SerialNumber',  
 			A.SerialNumber [SerialNumberType] from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+			LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 			LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =PC.WorkOrderId and WOPN.ID=WOBII.WorkOrderPartId
 			LEFT JOIN Stockline STL WITH (NOLOCK) ON STL.StockLineId=WOPN.StockLineId
 			Outer Apply(  
@@ -148,6 +167,7 @@ BEGIN
 					LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=I.StockLineId
 					Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					AND S.IsActive = 1 AND S.IsDeleted = 0  
+					AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					FOR XML PATH('')), 1, 1, '') SerialNumber  
 			) A  
 			WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0
@@ -156,7 +176,7 @@ BEGIN
 			PartCTE AS(  
 				Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PN',  
 				A.PartNumber [PartNumberType] from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 then ',' ELSE '' END + I.partnumber  
@@ -164,6 +184,7 @@ BEGIN
 					 Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
 					 Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  
 				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0
@@ -172,7 +193,7 @@ BEGIN
 				PartDescCTE AS(  
 				Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PNDescription',  
 				A.PartDescription [PartDescriptionType] from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription  
@@ -180,6 +201,7 @@ BEGIN
 					 Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
 					 Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					 FOR XML PATH('')), 1, 1, '') PartDescription  
 				) A  
 				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0
@@ -189,7 +211,7 @@ BEGIN
 				Select PC.BillingInvoicingId,(Case When Count(WOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse 
 				A.StockType End)  as 'StockType',  
 				A.StockType [StocktypeType] from WorkOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId
+				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =PC.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT ',' + CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -200,6 +222,7 @@ BEGIN
 					 Left Join ItemMaster IM WITH (NOLOCK) On S.ItemMasterId=IM.ItemMasterId  
 					 Where S.BillingInvoicingId = PC.BillingInvoicingId  
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND ISNULL(S.IsPerformaInvoice, 0) = 0
 					 FOR XML PATH('')), 1, 1, '') StockType  
 				) A  
 				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0 
@@ -682,7 +705,7 @@ BEGIN
 					 WOBI.WorkOrderId AS [ReferenceId],WOWF.WorkFlowWorkOrderId,
 					 CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
+				LEFT JOIN WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 				LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
 				LEFT JOIN WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID =WOWF.WorkOrderPartNoId
 				LEFT JOIN Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId

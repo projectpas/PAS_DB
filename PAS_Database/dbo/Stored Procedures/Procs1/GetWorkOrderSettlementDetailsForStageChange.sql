@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/07/2023   Vishal Suthar		Created
+	2	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderSettlementDetailsForStageChange]
@@ -116,7 +117,7 @@ BEGIN
 		SELECT @IsBillingCompleled = count(wobi.BillingInvoicingId) FROM DBO.WorkOrderBillingInvoicing wobi 
 				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
 				INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wobi.WorkOrderId AND wop.ID = wobii.WorkOrderPartId
-				INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced'
+				INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId  WHERE wop.WorkOrderId = @WorkorderId and wop.ID =@workOrderPartNoId and wobi.IsVersionIncrease=0 and InvoiceStatus='Invoiced' AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 
 		IF (EXISTS (SELECT 1 FROM dbo.WorkOrderLaborHeader WLH WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @workflowWorkorderId and IsDeleted= 0))
 		BEGIN 

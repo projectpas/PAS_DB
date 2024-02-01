@@ -12,9 +12,10 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    08/09/2023			Devendra shekh			  Created
+    2    01/31/2023			Devendra shekh			  changes for condition Update
 
 
-exec dbo.USP_UpdateConditionById @WOPartNoId =3212,@WOId=3765,@ConditionId=11
+exec dbo.USP_UpdateConditionById @WOPartNoId =3696,@WOId=4201,@ConditionId=10
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateConditionById]      
 @WOPartNoId  bigint,
@@ -27,7 +28,12 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+					IF OBJECT_ID('tempdb..#Results') IS NOT NULL
+						DROP TABLE #Results
+
 					DECLARE @WOBillingId BIGINT = 0;
+
+					SELECT * INTO #Results FROM(SELECT BillingInvoicingId FROM WorkOrderBillingInvoicing t2 WHERE t2.WorkOrderId = @WOId AND t2.IsVersionIncrease = 0 GROUP BY BillingInvoicingId) A
 
 					SELECT @WOBillingId = ISNULL(WBI.BillingInvoicingId,0) 
 					FROM [dbo].WorkOrderBillingInvoicing WBI WITH(NOLOCK) WHERE WBI.WorkOrderId = @WOId AND WBI.IsVersionIncrease = 0 
@@ -37,8 +43,8 @@ BEGIN
 
 					IF(@WOBillingId > 0)
 					BEGIN
-						UPDATE dbo.WorkOrderBillingInvoicing SET ConditionId = @ConditionId   WHERE BillingInvoicingId = @WOBillingId;
-						UPDATE dbo.WorkOrderBillingInvoicingItem SET ConditionId = @ConditionId   WHERE BillingInvoicingId = @WOBillingId;
+						UPDATE dbo.WorkOrderBillingInvoicing SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
+						UPDATE dbo.WorkOrderBillingInvoicingItem SET ConditionId = @ConditionId   WHERE BillingInvoicingId IN (SELECT BillingInvoicingId FROM #Results);
 					END					
 
 			END

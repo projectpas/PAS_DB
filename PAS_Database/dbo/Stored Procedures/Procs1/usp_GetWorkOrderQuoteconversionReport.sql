@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetWorkOrderQuoteconversionReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrder Quote Conversion Report
@@ -18,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetWorkOrderQuoteconversionReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -204,7 +204,7 @@ BEGIN
       OR @name = ' '
       AND WOQ.opendate BETWEEN (@FromDate) AND (@ToDate)
       AND WO.mastercompanyid = @mastercompanyid
-
+	  AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
     COMMIT TRANSACTION
   END TRY
 

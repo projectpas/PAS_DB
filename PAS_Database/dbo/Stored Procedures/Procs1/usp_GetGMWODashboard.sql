@@ -15,10 +15,11 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+    4	01/31/2024   Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetGMWODashboard] 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetGMWODashboard]
+CREATE   PROCEDURE [dbo].[usp_GetGMWODashboard]
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -60,6 +61,7 @@ BEGIN
           ON WOBI.itemmasterId = IM.ItemMasterId
         LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
+		  WHERE ISNULL(WOBI.IsPerformaInvoice, 0) = 0
     COMMIT TRANSACTION
   END TRY
 

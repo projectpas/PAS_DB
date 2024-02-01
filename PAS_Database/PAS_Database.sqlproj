@@ -2763,6 +2763,9 @@
     <Build Include="dbo\Stored Procedures\InventoryStatusForSSRS.sql" />
     <Build Include="dbo\Stored Procedures\AssetStatusForSSRS.sql" />
     <Build Include="dbo\Stored Procedures\AssetAttributeTypeForSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOPerformaInvoiceList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOPerformaInvoiceChildList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOBillingPerformaInvoiceListByWOPartId.sql" />
     <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceChildList.sql" />
     <Build Include="dbo\Stored Procedures\GetProformaInvoicingSODetails.sql" />

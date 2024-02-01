@@ -16,10 +16,11 @@
  ** --   --------     -------      --------------------------------      
 	1   24-Aug-2023  Bhargav Saliya   Convert Dates UTC To LegalEntity Time Zone
     2   25-AUG-2023  Ekta Chandegra  Convert text into uppercase
+	3   31-JAN-2024   Devendra Shekh      changes for performInvoice
  
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]   
+CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBillingReport]   
 @PageNumber INT = 1,  
 @PageSize INT = NULL,  
 @mastercompanyid INT,  
@@ -105,7 +106,7 @@ BEGIN
    BEGIN   
     SELECT @PageSize=COUNT(*)  
      FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)  
-     INNER JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0  
+     INNER JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
      INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId  
      INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIM.WorkOrderPartId = WOPN.ID  
      INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
@@ -153,7 +154,7 @@ BEGIN
       LEFT JOIN DBO.InvoiceStatus IVS WITH (NOLOCK) ON WOBI.InvoiceStatus = IVS.Status  
       LEFT JOIN DBO.WorkOrderStage WTG WITH (NOLOCK) ON WOPN.WorkOrderStageId = WTG.WorkOrderStageId  
       LEFT JOIN DBO.WorkOrderStatus AS WTS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WTS.Id  
-      LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0     
+      LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0     
       LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.WorkOrderPartId  
       LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
       LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  
@@ -222,7 +223,7 @@ BEGIN
    INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
    INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
    LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId AND WOBI.IsVersionIncrease = 0      
-   LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0  
+   LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0
    LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.WorkOrderPartId  
    LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId   
    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1  
@@ -313,7 +314,7 @@ BEGIN
       LEFT JOIN DBO.InvoiceStatus IVS WITH (NOLOCK) ON WOBI.InvoiceStatus = IVS.Status  
       LEFT JOIN DBO.WorkOrderStage WTG WITH (NOLOCK) ON WOPN.WorkOrderStageId = WTG.WorkOrderStageId  
       LEFT JOIN DBO.WorkOrderStatus AS WTS WITH (NOLOCK) ON WOPN.WorkOrderStatusId = WTS.Id  
-      LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0     
+      LEFT JOIN DBO.WorkOrderBillingInvoicingItem WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0    
       LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.WorkOrderPartId  
       LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
       LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId  

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetWorkOrderOnTimeReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderOnTime Report
@@ -19,13 +18,14 @@
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
+	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
      
 EXECUTE   [dbo].[usp_GetWorkOrderOnTimeReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 --select * from dbo.ManagementStructure WHERE ParentId in (1,4,43,44,45,80,84,88) 
 --select * from dbo.ManagementStructure WHERE ParentId in (46,47,66) 
---select * from dbo.ManagementStructure WHERE ParentId in (48,49,50,58,59,67,68,69) 
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderOnTimeReport] @name varchar(40) = NULL,
+	--select * from dbo.ManagementStructure WHERE ParentId in (48,49,50,58,59,67,68,69) 
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderOnTimeReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid varchar(200),
@@ -134,7 +134,7 @@ BEGIN
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK)
           ON WO.csrid = E1.Employeeid
         LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK)
-          ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0
+          ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0
 	    LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK)
           ON WOPN.ID = WOSI.WorkOrderPartNumId
         LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)

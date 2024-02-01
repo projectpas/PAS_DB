@@ -10,9 +10,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    08/25/2023   Vishal Suthar Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    08/25/2023   Vishal Suthar		Created
+	2	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
      
  EXECUTE [GetMRODashboardReport] 1
 **************************************************************/
@@ -94,7 +95,7 @@ BEGIN
 		LEFT JOIN DBO.WorkOrderTurnArroundTime WOTAT WITH (NOLOCK) ON WOP.ID = WOTAT.WorkOrderPartNoId AND WOTAT.CurrentStageId = WOP.WorkOrderStageId
 		LEFT JOIN DBO.WorkOrderShippingItem WOShipItem WITH (NOLOCK) ON WOShipItem.WorkOrderPartNumId = WOP.ID
 		LEFT JOIN DBO.WorkOrderShipping WOShip WITH (NOLOCK) ON WOShipItem.WorkOrderShippingId = WOShip.WorkOrderShippingId
-		LEFT JOIN DBO.WorkOrderBillingInvoicing WOBill WITH (NOLOCK) ON WOBill.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOBill.IsVersionIncrease = 0
+		LEFT JOIN DBO.WorkOrderBillingInvoicing WOBill WITH (NOLOCK) ON WOBill.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId AND WOBill.IsVersionIncrease = 0 AND ISNULL(WOBill.IsPerformaInvoice, 0) = 0
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = WOBill.CurrencyId
 		LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WOQ.WorkOrderId = WO.WorkOrderId
 		LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId

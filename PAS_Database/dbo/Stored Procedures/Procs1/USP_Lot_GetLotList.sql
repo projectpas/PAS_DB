@@ -103,7 +103,7 @@ BEGIN
 							  + ISNULL((SELECT SUM(ISNULL(OtherCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0) 
 							  + ISNULL((SELECT ISNULL(SUM(TransferredInCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND (UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(Lot)',' ','')) OR UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(PO)',' ','')))),0)
 							  AS AcqusitionCost
-			   ,(((
+			    ,(((
 				--ISNULL((SELECT ISNULL(SUM(POP.ExtendedCost),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) 
 				--			  on PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.LotId = POP.LotId AND po.LotId = LT.LotId
 				--			  WHERE POP.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)+
@@ -113,10 +113,15 @@ BEGIN
 				ISNULL((SELECT ISNULL(SUM(POC.ExtendedCost),0)  FROM dbo.PurchaseOrder PO WITH(NOLOCK) 
 							  LEFT JOIN dbo.PurchaseOrderCharges POC WITH(NOLOCK) on PO.PurchaseOrderId = POC.PurchaseOrderId
 							  WHERE PO.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)) 
+							  + (SELECT SUM(ISNULL(sl.Adjustment,0)* ISNULL(sl.QuantityOnHand, 0)) from 
+					DBO.LOT lot WITH(NOLOCK) 
+					INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
+					INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId
+					Where  lot.LotId = LT.LotId)
 							  + ISNULL((SELECT SUM(ISNULL(RepairCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0) 
 							  + ISNULL((SELECT SUM(ISNULL(OtherCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0)
 							  + ISNULL((SELECT ISNULL(SUM(TransferredInCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE  LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND (UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(Lot)',' ','')) OR UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(PO)',' ','')))),0) 							) 
-							  - ((ISNULL((SELECT ISNULL(SUM(TransferredOutCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ','')) ),0)) + (ISNULL((SELECT ISNULL(SUM(ExtSalesUnitPrice),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId  AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ','')) ),0)) ) ) AS RemainingCost
+							  - ((ISNULL((SELECT ISNULL(SUM(TransferredOutCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ','')) ),0)) + (ISNULL((SELECT ISNULL(SUM(ISNULL(SOP.UnitCost,0) * ISNULL(LCD.Qty,0)),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId INNER JOIN DBO.SalesOrderPart SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId WHERE LCD.LotId = LT.LotId  AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ','')) ),0)) ) ) AS RemainingCost
 			   --,(ISNULL((SELECT ISNULL(SUM(POP.ExtendedCost),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) 
 						--	  on PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.LotId = POP.LotId
 						--	  WHERE POP.LotId = LT.LotId),0) 

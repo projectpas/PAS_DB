@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetPurchaseOrderHistory]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get purchase order history   
@@ -15,6 +16,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
+	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -36,7 +38,9 @@ CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
 @EmployeeId bigint=61,
 @MasterCompanyId bigint=1,
 @ItemMasterId bigint=7,
-@ViewType varchar(50)='poview'
+@ViewType varchar(50)='poview',
+@FromDate datetime = NULL,
+@ToDate datetime = NULL
 AS
 BEGIN
 
@@ -48,7 +52,6 @@ BEGIN
 		DECLARE @MSModuleID INT = 4; -- Employee Management Structure Module ID
 		DECLARE @VendorRFQPO INT = 20; -- Employee Management Structure Module ID
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
-
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn=Upper('CreatedDate')
@@ -89,6 +92,7 @@ BEGIN
 		        ) F
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId = @ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent= 1
 				  AND PO.MasterCompanyId = @MasterCompanyId
+				  AND PO.CreatedDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -153,6 +157,7 @@ BEGIN
 		        ) F
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId
+				  AND PO.CreatedDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR

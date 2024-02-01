@@ -27,7 +27,7 @@ BEGIN
 			DECLARE @LOT_SO_Type VARCHAR(100)= 'SO';DECLARE @LOT_WO_Type VARCHAR(100)= 'WO';
 			DECLARE @LOT_TransIn_LOT VARCHAR(100) = 'Trans In (Lot)';DECLARE @LOT_TransIn_PO VARCHAR(100) = 'Trans In (PO)';
 			DECLARE @LOT_TransIn_RO VARCHAR(100) = 'Trans In (RO)';	DECLARE @LOT_TransIn_SO VARCHAR(100) = 'Trans Out (SO)';
-			DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In (WO)';	DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out(Lot)';
+			DECLARE @LOT_TransIn_WO VARCHAR(100) = 'Trans In (WO)';	DECLARE @LOT_TransOut_LOT VARCHAR(100) = 'Trans Out (Lot)';
 			DECLARE @LOT_TransOut_PO VARCHAR(100) = 'Trans Out (PO)'; DECLARE @LOT_TransOut_RO VARCHAR(100) = 'Trans Out (RO)';
 			DECLARE @LOT_TransOut_SO VARCHAR(100) = 'Trans Out (SO)'; DECLARE @LOT_TransOut_WO VARCHAR(100) = 'Trans Out (WO)';	
 			DECLARE @OriginalCost decimal(18,2) = 0,@RepairCost decimal(18,2) = 0,@TransferredInCost decimal(18,2) = 0,@TransferredOutCost decimal(18,2) = 0,@OtherCost decimal(18,2) = 0,@OtherCostRepair decimal(18,2) = 0;
@@ -44,8 +44,16 @@ BEGIN
 			SELECT @TransferredOutCost = ISNULL(SUM(ISNULL(TransferredOutCost,0)),0)
 				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ',''))
 
-			SELECT @SoldCost = ISNULL(SUM(ISNULL(ExtSalesUnitPrice,0)),0)
-				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
+			--SELECT @SoldCost = ISNULL(SUM(ISNULL(ExtSalesUnitPrice,0)),0)
+			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
+			
+			SELECT @SoldCost = ISNULL(SUM(ISNULL(SOP.UnitCost,0) * ISNULL(LCD.Qty,0)),0)
+				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) 
+				   INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId
+				   INNER JOIN DBO.SalesOrderPart SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
+				   WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
+
+
 			SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
 				   FROM 
 					DBO.LotCalculationDetails LCD WITH(NOLOCK)
@@ -137,6 +145,8 @@ BEGIN
 			--SET @LotCostRemaining = (@TotalLotCost - @CogsPartCost)
 			SET @LotCostRemaining = (CASE WHEN @TotalLotCost - (@TransferredOutCost + @SoldCost) <0 THEN 0 ELSE (@TotalLotCost - (@TransferredOutCost + @SoldCost)) END)
 			SET @RemainingCostPercentage = (CASE WHEN @TotalLotCost > 0 THEN ((@LotCostRemaining / @TotalLotCost) * 100) ELSE 0 END)
+			
+/*************************** FINAL OUTPUT  *******************************/
 			SELECT 
 				ISNULL(@OriginalCost,0) AS OriginalCost
 			   ,ISNULL(@RepairCost,0) AS RepairCost

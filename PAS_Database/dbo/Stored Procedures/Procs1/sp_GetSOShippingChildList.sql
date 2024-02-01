@@ -1,4 +1,24 @@
-﻿  
+﻿/*************************************************************           
+ ** File:   [sp_GetSOShippingChildList]           
+ ** Author:   
+ ** Description: 
+ ** Purpose:         
+ ** Date:   
+
+ ** PARAMETERS:           
+ @UserType varchar(60)   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+	 1    01/31/2024   AMIT GHEDIYA			Added IsPerforma for Billing
+     
+ EXEC [dbo].[sp_GetSOShippingChildList] 814, 318, 15  
+**************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
  @SalesOrderId  bigint,  
  @SalesOrderPartId bigint,  
@@ -35,7 +55,7 @@ BEGIN
   LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   
      AND SPI.SalesOrderPartId = sop.SalesOrderPartId  
   LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
-  LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.SalesOrderShippingId  
+  LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.SalesOrderShippingId AND ISNULL(SOBI.IsProforma,0) = 0
   WHERE sopt.SalesOrderId = @SalesOrderId  
   AND sop.ItemMasterId = @SalesOrderPartId  
   AND sop.ConditionId = @ConditionId  

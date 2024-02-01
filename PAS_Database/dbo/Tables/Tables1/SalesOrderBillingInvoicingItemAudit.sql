@@ -18,7 +18,10 @@
     [StockLineId]                   BIGINT          NULL,
     [VersionNo]                     VARCHAR (100)   NULL,
     [IsVersionIncrease]             BIT             NULL,
+    [IsProforma]                    BIT             NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItemAudit_SalesOrderBillingInvoicingItem] FOREIGN KEY ([SOBillingInvoicingItemId]) REFERENCES [dbo].[SalesOrderBillingInvoicingItem] ([SOBillingInvoicingItemId])
 );
+
+
 

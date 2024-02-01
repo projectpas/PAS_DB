@@ -562,7 +562,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,im.ManufacturerName
 				,sl.itemType
 				,UPPER(sl.UnitOfMeasure) AS Uom		
-				,per.PercentValue
+				--,per.PercentValue
 				,(CASE WHEN SL.TraceableToType = @AppModuleCustomerId THEN (SELECT CUT.[Name] FROM [dbo].[Customer] CUT WHERE CUT.CustomerId = SL.[TraceableTo] )
 						    WHEN SL.TraceableToType = @AppModuleVendorId THEN (SELECT VET.[VendorName] FROM [dbo].[Vendor] VET WHERE VET.[VendorId] = SL.[TraceableTo])
 						    WHEN SL.TraceableToType = @AppModuleCompanyId THEN (SELECT CTT.[Name] FROM [dbo].[LegalEntity] CTT WHERE CTT.[LegalEntityId] = SL.[TraceableTo])
@@ -591,8 +591,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
 					 INNER JOIN #commonTemp sl on ltin.StockLineId = sl.StockLineId
 					 INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on sl.ItemMasterId = im.ItemMasterId
-					 LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) on lot.LotId = lsm.LotId
-					 LEFT JOIN DBO.[Percent] per WITH(NOLOCK) on lsm.MarginPercentageId = per.PercentId
+					 --LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) on lot.LotId = lsm.LotId
+					 --LEFT JOIN DBO.[Percent] per WITH(NOLOCK) on lsm.MarginPercentageId = per.PercentId
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 LEFT JOIN DBO.SalesOrderPart sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
@@ -641,7 +641,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(LotNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(Uom LIKE '%' + @GlobalFilter + '%') OR
-					(PercentValue LIKE '%' + @GlobalFilter + '%') OR
+					--(PercentValue LIKE '%' + @GlobalFilter + '%') OR
 					(ControlNumber like '%' + @GlobalFilter + '%') OR
 					(IdNumber like '%' + @GlobalFilter + '%') OR
 					(TraceableToName like '%' + @GlobalFilter + '%') OR
@@ -700,7 +700,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
 					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
 					(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-					(ISNULL(@PercentValue, 0) = 0 OR CAST(PercentValue as VARCHAR(10)) LIKE @PercentValue) AND
+					--(ISNULL(@PercentValue, 0) = 0 OR CAST(PercentValue as VARCHAR(10)) LIKE @PercentValue) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%')
 					)
@@ -793,8 +793,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				CASE WHEN (@SortOrder=-1 and @SortColumn='Adjustment')  THEN Adjustment END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='Uom')  THEN Uom END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='Uom')  THEN Uom END DESC,
-				CASE WHEN (@SortOrder=1 and @SortColumn='PercentValue')  THEN PercentValue END ASC,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='PercentValue')  THEN PercentValue END DESC,
+				--CASE WHEN (@SortOrder=1 and @SortColumn='PercentValue')  THEN PercentValue END ASC,
+				--CASE WHEN (@SortOrder=-1 and @SortColumn='PercentValue')  THEN PercentValue END DESC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='VendorCode')  THEN VendorCode END ASC,

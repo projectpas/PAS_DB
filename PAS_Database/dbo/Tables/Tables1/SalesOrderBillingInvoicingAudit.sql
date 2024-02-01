@@ -48,7 +48,10 @@
     [CreditMemoUsed]            DECIMAL (18, 2) NULL,
     [VersionNo]                 VARCHAR (100)   NULL,
     [IsVersionIncrease]         BIT             NULL,
+    [IsProforma]                BIT             NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingAudit_SalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[SalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 

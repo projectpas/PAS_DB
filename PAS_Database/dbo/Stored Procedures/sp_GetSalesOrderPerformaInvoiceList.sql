@@ -28,7 +28,8 @@ BEGIN
 								sop.SalesOrderId, 
 								imt.ItemMasterId AS SalesOrderPartId,				
 								'' AS [Status],
-								0 AS ItemNo  
+								0 AS ItemNo,
+								sop.Qty AS Qty
 						FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId

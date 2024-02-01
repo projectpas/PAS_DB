@@ -2769,5 +2769,11 @@
     <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceList.sql" />
     <Build Include="dbo\Stored Procedures\sp_GetSalesOrderPerformaInvoiceChildList.sql" />
     <Build Include="dbo\Stored Procedures\GetProformaInvoicingSODetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_Exchange.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SOQ.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_Sales.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale.sql" />
   </ItemGroup>
 </Project>

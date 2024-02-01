@@ -3,9 +3,9 @@
     [CustomerTaxTypeRateMappingId]      BIGINT        NOT NULL,
     [CustomerId]                        BIGINT        NOT NULL,
     [TaxTypeId]                         TINYINT       NOT NULL,
-    [TaxRateId]                         BIGINT        NOT NULL,
+    [TaxRateId]                         BIGINT        NULL,
     [TaxType]                           VARCHAR (256) NOT NULL,
-    [TaxRate]                           VARCHAR (256) NOT NULL,
+    [TaxRate]                           VARCHAR (256) NULL,
     [MasterCompanyId]                   INT           NOT NULL,
     [CreatedBy]                         VARCHAR (256) NOT NULL,
     [UpdatedBy]                         VARCHAR (256) NOT NULL,
@@ -24,6 +24,8 @@
     CONSTRAINT [PK_CustomerTaxTypeRateMappingAudit] PRIMARY KEY CLUSTERED ([AuditCustomerTaxTypeRateMappingId] ASC),
     CONSTRAINT [FK_CustomerTaxTypeRateMappingAudit_CustomerTaxTypeRateMapping] FOREIGN KEY ([CustomerTaxTypeRateMappingId]) REFERENCES [dbo].[CustomerTaxTypeRateMapping] ([CustomerTaxTypeRateMappingId])
 );
+
+
 
 
 

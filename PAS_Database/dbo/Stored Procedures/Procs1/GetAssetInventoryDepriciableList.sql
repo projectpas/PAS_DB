@@ -82,6 +82,9 @@ BEGIN
 		DECLARE @DeprFrequencyMonthly VARCHAR(50) ='MTHLY,MONTHLY'
 		DECLARE @DeprFrequencyQUATERLY VARCHAR(50) ='QUATERLY,QTLY'
 		DECLARE @DeprFrequencyYEARLY VARCHAR(50) ='YEARLY,YRLY'
+		DECLARE @ReduceResidualPerc DECIMAL(18,2);
+		DECLARE @ResidualPercentage DECIMAL(18,2);
+
 		SELECT TOP 1  @AssetStatusid = [AssetStatusid] FROM [dbo].[AssetStatus] WITH (NOLOCK)  WHERE UPPER([name]) ='DEPRECIATING' AND [MasterCompanyId] = @MasterCompanyId
 		
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
@@ -212,6 +215,7 @@ BEGIN
 							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR
 									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 
 							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE))) <= asm.AssetLife)
+																AND (B.NetBookValue > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
 																AND (asm.InventoryStatusId = 1) 
 																AND (asm.IsTangible = 1) 

@@ -65,6 +65,11 @@ BEGIN
 			SET @SerialNumber = '';
 		END
 
+		IF(@NBVAfterDepreciation < 0)
+		BEGIN
+			SET @NBVAfterDepreciation = 0;
+		END
+
 		INSERT INTO [AssetDepreciationHistory]
 
 		([SerialNo],[StklineNumber],[InServiceDate],[DepriciableStatus],[CURRENCY],[DepriciableLife],[DepreciationMethod],[DepreciationFrequency],[AssetId]

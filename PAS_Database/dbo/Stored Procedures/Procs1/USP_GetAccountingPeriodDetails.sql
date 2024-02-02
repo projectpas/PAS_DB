@@ -14,9 +14,13 @@
 	2    25/05/2023   Satish Gohil  Modify (Added Next Acc Period Id)
 	3    01/06/2023   Satish Gohil  Convert Into Dynamic query for Status Condition
 	4    22/06/2023   Satish Gohil  Remove duplication insert validation
-	5    1/11/2023    Ayesha Sultana     Unpost batch restrictions on closed batch
-	6    2/11/2023    Ayesha Sultana     Unpost batch restrictions on closed batch - bug fix
-	7    01/01/2024   Moin Bloch     Changed Error Msg As Per Client Requirements PN-6428
+	5    1/11/2023    Ayesha		Unpost batch restrictions on closed batch
+	6    2/11/2023    Ayesha		Unpost batch restrictions on closed batch - bug fix
+	7    01/01/2024   Moin Bloch    Changed Error Msg As Per Client Requirements PN-6428
+	8    01/02/2024   Hemant Saliya Update for Post Batch Validation Need to Chack for GL Only
+
+EXEC USP_GetAccountingPeriodDetails 1647, 'ADMIN%20User'
+
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_GetAccountingPeriodDetails]  
@@ -118,22 +122,23 @@ BEGIN
 		SET @str = 'SELECT @ClosePeriodName = ISNULL(B.PeriodName,''''),@NextOpenPeriodName =ISNULL(ACC.PeriodName,''''),@NextOpenPeriodId = ISNULL(ACC.AccountingCalendarId,0)
 		FROM dbo.AccountingCalendar A with(nolock) 
 		 LEFT JOIN dbo.AccountingCalendar B with(nolock) ON A.AccountingCalendarId = B.AccountingCalendarId ' 
-		 +CASE WHEN @JEType = 'AR' THEN ' AND ISNULL(B.isacrStatusName,0) = 0'
-			WHEN @JEType = 'AP' THEN ' AND ISNULL(B.isacpStatusName,0) = 0'
-			WHEN @JEType = 'ASSET' THEN ' AND ISNULL(B.isassetStatusName,0) = 0'
-			WHEN @JEType = 'INV' THEN ' AND ISNULL(B.isinventoryStatusName,0) = 0'
+		 +CASE WHEN @JEType = 'AR' THEN ' AND ISNULL(B.isaccStatusName,0) = 0'
+			WHEN @JEType = 'AP' THEN ' AND ISNULL(B.isaccStatusName,0) = 0'
+			WHEN @JEType = 'ASSET' THEN ' AND ISNULL(B.isaccStatusName,0) = 0'
+			WHEN @JEType = 'INV' THEN ' AND ISNULL(B.isaccStatusName,0) = 0'
 			WHEN @JEType = 'GEN' THEN ' AND ISNULL(B.isaccStatusName,0) = 0' ELSE '' END +
 			' OUTER APPLY(SELECT TOP 1 AccountingCalendarId,ISNULL(C.PeriodName,'''') PeriodName FROM
 				dbo.AccountingCalendar C with(nolock) 
 				WHERE A.LegalEntityId = C.LegalEntityId AND C.FromDate > A.ToDate' + 
-				CASE WHEN @JEType = 'AR' THEN ' AND ISNULL(C.isacrStatusName,0) = 1'
-				WHEN @JEType = 'AP' THEN ' AND ISNULL(C.isacpStatusName,0) = 1'
-				WHEN @JEType = 'ASSET' THEN ' AND ISNULL(C.isassetStatusName,0) = 1'
-				WHEN @JEType = 'INV' THEN ' AND ISNULL(C.isinventoryStatusName,0) = 1'
+				CASE WHEN @JEType = 'AR' THEN ' AND ISNULL(C.isaccStatusName,0) = 1'
+				WHEN @JEType = 'AP' THEN ' AND ISNULL(C.isaccStatusName,0) = 1'
+				WHEN @JEType = 'ASSET' THEN ' AND ISNULL(C.isaccStatusName,0) = 1'
+				WHEN @JEType = 'INV' THEN ' AND ISNULL(C.isaccStatusName,0) = 1'
 				WHEN @JEType = 'GEN' THEN ' AND ISNULL(C.isaccStatusName,0) = 1' ELSE '' END +'
 			)ACC
 			WHERE A.AccountingCalendarId = '''+CONVERT(VARCHAR(10),@AccountingCalendarId)+''''
-
+		
+		PRINT @str
 		EXECUTE sp_executesql @str, N'@AccountingCalendarId nvarchar(10), @ClosePeriodName nvarchar(10) OUTPUT,@NextOpenPeriodName nvarchar(10) OUTPUT,@NextOpenPeriodId nvarchar(10) OUTPUT', 
 		@AccountingCalendarId = @AccountingCalendarId ,@ClosePeriodName = @ClosePeriodName OUTPUT,@NextOpenPeriodName = @NextOpenPeriodName OUTPUT, @NextOpenPeriodId = @NextOpenPeriodId OUTPUT
 

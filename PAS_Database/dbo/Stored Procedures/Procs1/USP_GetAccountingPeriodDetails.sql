@@ -82,9 +82,9 @@ BEGIN
   
 	  INSERT INTO #BatchTable (BatchId,AccuntingPeriodId,MasterCompanyId,CreatedDate) 
 	  SELECT JournalBatchHeaderId,ISNULL(AccountingPeriodId,0),MasterCompanyId,CreatedDate  
-	  FROM dbo.BatchHeader with(nolock) WHERE JournalBatchHeaderId IN(SELECT ITEM FROM DBO.SplitString(@BatchId,','));  
+	  FROM dbo.BatchHeader WITH(NOLOCK) WHERE JournalBatchHeaderId IN(SELECT ITEM FROM DBO.SplitString(@BatchId,','));  
   
-	  SELECT @MasterCompanyId = MasterCompanyID FROM dbo.BatchHeader with(nolock) WHERE JournalBatchHeaderId = (SELECT top(1) MasterCompanyId from #BatchTable)  
+	  SELECT @MasterCompanyId = MasterCompanyID FROM dbo.BatchHeader WITH(NOLOCK) WHERE JournalBatchHeaderId = (SELECT top(1) MasterCompanyId from #BatchTable)  
     
 	  SELECT @ROWCOUNT = COUNT(*) FROM #BatchTable  
 	
@@ -98,17 +98,15 @@ BEGIN
 		SELECT @Date = CreatedDate FROM #BatchTable where ID = @ID  
 
 		SELECT @AccountingCalendarId = ISNULL(AccountingCalendarId,0)  
-		FROM dbo.EntityStructureSetup est with(nolock)  
-		LEFT JOIN dbo.ManagementStructureLevel msl with(nolock) on est.Level1Id = msl.ID  
-		LEFT JOIN dbo.AccountingCalendar acc with(nolock) on msl.LegalEntityId = acc.LegalEntityId  
+		FROM dbo.EntityStructureSetup est WITH(NOLOCK)  
+		LEFT JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID  
+		LEFT JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId  
 		WHERE est.EntityStructureId = @MANAGEMENTId AND @Date >= acc.FromDate AND @Date <= acc.ToDate AND acc.IsDeleted = 0 --AND ISNULL(acc.Status,'Closed') = 'Closed'  
 	   END  
 	   ELSE  
 	   BEGIN  
-
-		SELECT @AccountingCalendarId = ISNULL(AccountingCalendarId,0) FROM dbo.AccountingCalendar with(nolock)   
-		WHERE AccountingCalendarId = (SELECT ISNULL(AccuntingPeriodId,0) FROM #BatchTable where ID = @ID)  
-		AND IsDeleted = 0 --AND ISNULL(Status,'Closed') = 'Closed'  
+		SELECT @AccountingCalendarId = ISNULL(AccountingCalendarId,0) FROM dbo.AccountingCalendar WITH(NOLOCK)   
+		WHERE AccountingCalendarId = (SELECT ISNULL(AccuntingPeriodId,0) FROM #BatchTable where ID = @ID) AND IsDeleted = 0 --AND ISNULL(Status,'Closed') = 'Closed'  
 	   END  
 
 	   IF(ISNULL(@AccountingCalendarId,0) > 0)  
@@ -138,7 +136,7 @@ BEGIN
 			)ACC
 			WHERE A.AccountingCalendarId = '''+CONVERT(VARCHAR(10),@AccountingCalendarId)+''''
 		
-		PRINT @str
+		--PRINT @str
 		EXECUTE sp_executesql @str, N'@AccountingCalendarId nvarchar(10), @ClosePeriodName nvarchar(10) OUTPUT,@NextOpenPeriodName nvarchar(10) OUTPUT,@NextOpenPeriodId nvarchar(10) OUTPUT', 
 		@AccountingCalendarId = @AccountingCalendarId ,@ClosePeriodName = @ClosePeriodName OUTPUT,@NextOpenPeriodName = @NextOpenPeriodName OUTPUT, @NextOpenPeriodId = @NextOpenPeriodId OUTPUT
 
@@ -148,7 +146,6 @@ BEGIN
 			
 			IF(ISNULL(@UNPOSTED,'')<>'')
 			BEGIN
-			  --SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed. New Open Accounting Period Is ' + @NextOpenPeriodName + ' Do You Want to Proceed ??'  
 				SET @MSG = 'Accounting Period: '+ @ClosePeriodName + ' is closed.'  
 			END
 
@@ -162,7 +159,6 @@ BEGIN
 		
 		IF(ISNULL(@ClosePeriodName,'') <> '' AND ISNULL(@NextOpenPeriodName,'') = '')  
 		BEGIN  
-		   --SET @MSG = @ClosePeriodName + ' Accounting Period Is Already Closed.Does not found Any Open Period.'  
 			 SET @MSG = 'Accounting Period: '+ @ClosePeriodName + ' is closed.'  
 			 IF NOT EXISTS(SELECT * FROM #ErrorMsg WHERE Msg = @MSG)  
 			 BEGIN   

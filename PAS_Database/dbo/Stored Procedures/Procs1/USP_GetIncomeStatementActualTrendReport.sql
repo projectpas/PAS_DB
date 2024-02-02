@@ -12,6 +12,7 @@
  1    10/07/2023   Hemant Saliya		Created 
  2    18/09/2023   Hemant Saliya		Updated for Legal Entity Accounting Calendor Wise 
  3    25/01/2024   Hemant Saliya		Remove Manual Journal from Reports
+ 4    01/02/2024   Hemant Saliya		Remove Supress Zero Logic
 
  @strFilter=N'1!2,7!3,11,10!4,12'
 **************************************************************       
@@ -136,10 +137,10 @@ BEGIN
 		SELECT @FROMDATE = FromDate, @LegalEntityId = LegalEntityId FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId AND IsDeleted = 0  
 		SELECT @TODATE = ToDate,  @FiscalYear = FiscalYear FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @EndAccountingPeriodId AND IsDeleted = 0 
 
-		IF(@IsSupressZero = 0)
-		BEGIN
-			SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
-		END
+		--IF(@IsSupressZero = 0)
+		--BEGIN
+		--	SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
+		--END
 
 		SELECT @PostedBatchStatusId =  Id FROM dbo.BatchStatus WITH(NOLOCK) WHERE [Name] = 'Posted' -- For Posted Batch Details Only
 		SELECT @RevenueGLAccountTypeId = GLAccountClassId FROM dbo.GLAccountClass WITH(NOLOCK) WHERE GLAccountClassName = 'Revenue' AND MasterCompanyId = @MasterCompanyId AND IsDeleted = 0 AND IsActive = 1

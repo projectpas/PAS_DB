@@ -13,11 +13,13 @@
 	1    23/06/2023   Hemant Saliya  Created
 	2    23/06/2023   Hemant Saliya  Updated for Supress Zero
 	3    19/12/2023   Moin Bloch     Updated (Added Calander Period Name When we getting 0 Month)
+	4    02/02/2024   Hemant Saliya  Commented for Supress Zero logic
+
 **************************************************************/  
 
 /*************************************************************             
 
-EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'138','189', 0  
+EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'179','179', 0  
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementTrend_ColumnName]  
@@ -69,10 +71,10 @@ BEGIN
 		  --SELECT @FROMDATE
 		  --SELECT @TODATE
 
-		  IF(@IsSupressZero = 0)
-		  BEGIN
-			  SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
-		  END
+		  --IF(@IsSupressZero = 0)
+		  --BEGIN
+			 -- SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
+		  --END
 
 		  PRINT @TODATE
 

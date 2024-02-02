@@ -50,7 +50,7 @@ BEGIN
 						LEAD(AC.[FiscalYear]) OVER (ORDER BY AC.[FromDate]) AS [FiscalYearNext]
 			FROM [dbo].[EntityStructureSetup] ESS WITH(NOLOCK)
 				JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ESS.[Level1Id] = MSL.[ID]
-				JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON MSL.[LegalEntityId] = AC.[LegalEntityId] AND ISNULL(IsAdjustPeriod, 0) = 0 
+				JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON MSL.[LegalEntityId] = AC.[LegalEntityId] --AND ISNULL(IsAdjustPeriod, 0) = 0 
 			WHERE AC.[LegalEntityId] = @LegalEntityId AND AC.[IsDeleted] = 0 --AND AC.FiscalYear >= YEAR(GETDATE()) 
 			GROUP BY AC.[AccountingCalendarId], AC.[PeriodName], AC.[FromDate], AC.[ToDate], AC.[FiscalName], AC.[FiscalYear], AC.[Period],AC.[IsAdjustPeriod],AC.[isacpStatusName],AC.[isaccStatusName],AC.[isacrStatusName],AC.[isassetStatusName],AC.[isinventoryStatusName]			
 			ORDER BY AC.[FiscalYear] DESC, AC.[Period] ASC;

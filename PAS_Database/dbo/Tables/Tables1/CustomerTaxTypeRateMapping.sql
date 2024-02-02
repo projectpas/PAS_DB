@@ -2,9 +2,9 @@
     [CustomerTaxTypeRateMappingId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [CustomerId]                   BIGINT        NOT NULL,
     [TaxTypeId]                    TINYINT       NOT NULL,
-    [TaxRateId]                    BIGINT        NOT NULL,
+    [TaxRateId]                    BIGINT        NULL,
     [TaxType]                      VARCHAR (256) NOT NULL,
-    [TaxRate]                      VARCHAR (256) NOT NULL,
+    [TaxRate]                      VARCHAR (256) NULL,
     [MasterCompanyId]              INT           NOT NULL,
     [CreatedBy]                    VARCHAR (256) NOT NULL,
     [UpdatedBy]                    VARCHAR (256) NOT NULL,
@@ -25,6 +25,8 @@
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerIdTaxTypeRate] UNIQUE NONCLUSTERED ([CustomerId] ASC, [TaxRateId] ASC, [TaxTypeId] ASC, [SiteId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

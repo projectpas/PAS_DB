@@ -65,7 +65,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @DepreciationFrequencyName varchar(50) = null,
 @Currency varchar(50) = null,
 @DepreciationMethod varchar(50) = null,
-@LegalentityId varchar(500) = null
+@LegalentityId varchar(500) = null,
+@LastMSLevel varchar(50) = null 
 AS
 BEGIN
 
@@ -256,7 +257,8 @@ BEGIN
 								(cast(DepreciableLife as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
 								(Currency LIKE '%' +@GlobalFilter+'%') OR 
 								(DepreciationFrequencyName LIKE '%' +@GlobalFilter+'%') OR 
-								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') 
+								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') OR
+								(LastMSLevel LIKE '%' +@GlobalFilter+'%')
 								))
 							OR   
 							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
@@ -294,7 +296,8 @@ BEGIN
 								(ISNULL(@Currency,'') ='' OR Currency LIKE '%' + @Currency+'%') AND
 								(ISNULL(@DepreciationFrequencyName,'') ='' OR DepreciationFrequencyName LIKE '%' + @DepreciationFrequencyName+'%') AND
 								(ISNULL(@DepreciationMethod,'') ='' OR DepreciationMethod LIKE '%' + @DepreciationMethod+'%') AND
-								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') 
+								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') AND
+								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') 
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) FROM #TempResult			
@@ -327,7 +330,8 @@ BEGIN
 					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END ASC,					
 					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END ASC,
 					CASE WHEN (@SortOrder=1 AND @SortColumn='InstalledCost')  THEN InstalledCost END ASC,	
-					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,	
+					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETID')  THEN AssetId END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETNAME')  THEN Name END DESC,
@@ -356,7 +360,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END DESC,					
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InstalledCost')  THEN InstalledCost END DESC,
-					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC
 
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

@@ -2775,5 +2775,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_Sales.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_Common.sql" />
   </ItemGroup>
 </Project>

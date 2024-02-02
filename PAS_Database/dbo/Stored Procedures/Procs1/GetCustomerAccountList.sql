@@ -14,6 +14,7 @@
 	1                      unknown         Created            
 	2    05-01-2024        Moin Bloch      Modified (Formated The SP)
 	3	 01/31/2024		Devendra Shekh	   added isperforma Flage for WO
+	4	 01/02/2024	    AMIT GHEDIYA	   added isperforma Flage for SO
 	
     EXEC [dbo].[GetCustomerAccountList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
 ***************************************************************************************************/ 
@@ -101,7 +102,7 @@ BEGIN
 			INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
 			 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = so.CreditTermId
 			--where ct.CustomerId=58 AND sobi.InvoiceStatus='Reviewed'
-			WHERE sobi.InvoiceStatus = 'Invoiced'
+			WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0
 			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code
 			
 			UNION ALL
@@ -216,13 +217,13 @@ SELECT DISTINCT C.CustomerId,
 					   max(SO.ManagementStructureId) as ManagementStructureId,
 					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference'
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId
+			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
 		 	  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     

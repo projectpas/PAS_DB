@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/18/2022   Subhash Saliya Created
+	2	 02/1/2024	  AMIT GHEDIYA	 added isperforma Flage for SO
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
@@ -59,7 +60,7 @@ BEGIN
 				LEFT JOIN CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=SO.CustomerContactId
 				LEFT JOIN Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
 				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-			    Where SOBI.SOBillingInvoicingId=@InvoicingId		
+			    Where SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
 
 
 			END

@@ -13,7 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------   
     1             
-	2  01/31/2024		Devendra Shekh			added isperforma Flage for WO
+	2   01/31/2024		Devendra Shekh			added isperforma Flage for WO
+	3	01/02/2024	    AMIT GHEDIYA				added isperforma Flage for SO
 **********************/
 /*************************************************************
 EXEC [dbo].[GenerateDashboardData] 10, 2021
@@ -98,7 +99,7 @@ BEGIN
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing
-						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
+						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsProforma,0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber
@@ -151,7 +152,7 @@ BEGIN
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing
-						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID
+						WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) AND MasterCompanyId = @MasterCompanyLoopID AND ISNULL(IsProforma,0) = 0
 						GROUP BY CAST(InvoiceDate AS DATE)
 
 						SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber

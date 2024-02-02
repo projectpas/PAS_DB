@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
     1    05/01/2024   Moin Bloch    Format SP
+	2	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 
 	EXEC [dbo].[SearchCustomerInvoices]
 **************************************************************/ 
@@ -45,7 +46,7 @@ BEGIN
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId
 				LEFT JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId
-			WHERE SOBI.InvoiceStatus = 'Invoiced'
+			WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SOBI.IsProforma,0) = 0
 				Group By SOBI.InvoiceNo, C.Name, C.CustomerCode, SOBI.InvoiceNo, SOBI.InvoiceDate, S.SalesOrderNumber,
 				S.CustomerReference, Curr.Code, SOBI.GrandTotal, SOBI.InvoiceDate, S.BalanceDue, S.CreditLimit, S.CreditTermName
 				--SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4

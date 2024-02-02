@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
+﻿/*************************************************************           
+ ** File:   [GetPackagingLabelPrintForVendorRMA]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
+CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
 	@VendorRMAId bigint,
 	@PackagingSlipId bigint
 AS
@@ -16,8 +32,8 @@ BEGIN
 		(SELECT top 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS QtyShipped,
 		(SELECT top 1 NoOfContainer FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId
 		Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS NoOfContainer,
-		(SELECT top 1 InvoiceNo FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.VendorRMAId) AS InvoiceNo,
-		(SELECT top 1 InvoiceDate FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.VendorRMAId) AS InvoiceDate
+		(SELECT top 1 InvoiceNo FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.VendorRMAId AND ISNULL(SOBI.IsProforma,0) = 0) AS InvoiceNo,
+		(SELECT top 1 InvoiceDate FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.VendorRMAId AND ISNULL(SOBI.IsProforma,0) = 0) AS InvoiceDate
 		FROM RMAPickTicket sopt WITH(NOLOCK)
 		LEFT JOIN DBO.VendorRMAPackaginSlipItems SPI WITH(NOLOCK) ON sopt.RMAPickTicketId = SPI.RMAPickTicketId AND SPI.VendorRMADetailId = sopt.VendorRMADetailId
 		LEFT JOIN DBO.VendorRMAPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId

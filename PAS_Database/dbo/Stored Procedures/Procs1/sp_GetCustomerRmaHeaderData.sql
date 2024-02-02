@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/18/2022   Subhash Saliya	 Created
     2	 19/06/2023   Ayesha Sultana	 ALtered - get new column ReceiverNum
+    3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
@@ -50,7 +51,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId
+			  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsProforma,0) = 0
 			END
 
 

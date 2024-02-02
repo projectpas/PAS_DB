@@ -13,8 +13,9 @@
  **************************************************************           
  ** S NO   Date         Author  	Change Description            
  ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
+    1                 Swetha		Created
+	2	        	  Swetha		Added Transaction & NO LOCK
+	3	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
      
 EXECUTE   [dbo].[usp_GetGMSODashboard] 
 **************************************************************/
@@ -31,10 +32,9 @@ BEGIN
         SOP.marginamount AS PartsSaleGM,
         SOBI.invoicedate 'SALE DATE'
       FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-      INNER JOIN dbo.SalesOrder SO WITH (NOLOCK)
-        ON SOBI.SalesOrderId = SO.SalesOrderId
-        INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK)
-          ON SO.SalesOrderId = SOP.SalesOrderId
+      INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+      INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+	  WHERE ISNULL(SOBI.IsProforma,0) = 0
     COMMIT TRANSACTION
   END TRY
 

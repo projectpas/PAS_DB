@@ -20,6 +20,7 @@
 	8    06/12/2023   Amit Ghediya     Modify(Exchange Invoice Disc Amount/Date)
 	9    14/12/2023   Amit Ghediya     Modify(NetDays to Days for calculation)
 	10   05/01/2024   Moin Bloch       Renamed CreditTerms.Percentage To PercentId
+	11   02/1/2024	  AMIT GHEDIYA	   added isperforma Flage for SO
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -203,7 +204,7 @@ BEGIN
 			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
 			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId      
 			LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CM.CustomerId = CF.CustomerId      
-			LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0    
+			LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0  AND ISNULL(SOBI.IsProforma,0) = 0 
 			LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON CMD.InvoiceId =  WOBI.BillingInvoicingId AND CMD.IsWorkOrder = 1    
 			LEFT JOIN [dbo].[Currency] WCurr WITH (NOLOCK) ON WOBI.CurrencyId = WCurr.CurrencyId      
 			LEFT JOIN [dbo].[Currency] SCurr WITH (NOLOCK) ON SOBI.CurrencyId = SCurr.CurrencyId      

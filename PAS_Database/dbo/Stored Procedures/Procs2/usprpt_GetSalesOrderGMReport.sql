@@ -18,6 +18,7 @@
     2    20-JUNE-2023  Devendra Shekh      made changes to do the total 
     3    11-JULY-2023  AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY
     3    20-JULY-2023  AYESHA SULTANA      CREDIT MEMO DATA CORRESPONDING TO SALES ORDER GROSS MARGIN IF ANY - revenue amount changes
+	4	 01-JAN-2024   AMIT GHEDIYA		   added isperforma Flage for SO
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -93,7 +94,7 @@ BEGIN
 			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
-			LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid  
+			LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0 
 			LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid  
 			LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 			LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid  
@@ -128,7 +129,7 @@ BEGIN
 		    SELECT  @PageSizeCM =COUNT(*)					
 				  FROM DBO.CreditMemo CM WITH (NOLOCK)   
 						INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-						LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId
+						LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
 						LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 						LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
 						LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId   
@@ -219,7 +220,7 @@ BEGIN
 		INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid  
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid  
+        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid  
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid 
 		LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid  
@@ -312,7 +313,7 @@ BEGIN
 
 				  FROM DBO.CreditMemo CM WITH (NOLOCK)   
 						INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-						LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId
+						LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
 						LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 						LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
 						LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId   

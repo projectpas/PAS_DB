@@ -1,4 +1,20 @@
-﻿CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
+﻿/*************************************************************           
+ ** File:   [GetSOSOQDashboardDataCount]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
+CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
 	@MasterCompanyId INT = 1,
 	@EmployeeId BIGINT = 61,
 	@Type varchar(50)
@@ -286,7 +302,7 @@ BEGIN
 			   INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 				Where (RO.IsDeleted = 0)
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
-				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem)
+				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem WHERE ISNULL(IsProforma,0) = 0)
 				--GROUP BY RO.StatusId
 
 
@@ -302,7 +318,7 @@ BEGIN
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
 				Where (RO.IsDeleted = 0) and (ROP.IsDeleted = 0)
 				AND RO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
-				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem)
+				AND ROP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem WHERE ISNULL(IsProforma,0) = 0)
 				--GROUP BY RO.StatusId
 
 		SELECT ISNULL(@SOQReceivedCount, 0) AS 'SOQReceivedCount', ISNULL(@SOQApprovedInternalCount, 0) AS 'SOQApprovedInternalCount', ISNULL(@SOQApprovedCustomerCount, 0) AS 'SOQApprovedCustomerCount', 

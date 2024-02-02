@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Moin Bloch    Created
+	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	
  --  EXEC GetCreditMemoPartsForPrint 93,0,38
 **************************************************************/ 
@@ -37,8 +38,8 @@ BEGIN
 					   CM.UnitPrice,
 					   CM.Amount						
 				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)						
-					INNER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId
-					INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
+					INNER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
+					INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 					INNER JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId

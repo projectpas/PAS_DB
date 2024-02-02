@@ -14,6 +14,7 @@
  ** --   --------         -------		     ----------------------------       
     1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates      
 	2	 31 JAN 2024    Devendra Shekh			   added isperforma Flage for WO 
+	3	 01 FEB 2024	AMIT GHEDIYA	           added isperforma Flage for SO
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
@@ -132,7 +133,7 @@ BEGIN
 						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE 
 						MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
-						AND SOBI.MasterCompanyId = @MasterCompanyId
+						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 					)
 
 					SELECT @SOAmt = SUM(Total) FROM cte GROUP BY Mnth

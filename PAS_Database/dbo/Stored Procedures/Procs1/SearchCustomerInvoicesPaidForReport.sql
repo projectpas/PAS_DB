@@ -1,4 +1,19 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [SearchCustomerInvoicesPaidForReport]
+ ** Author: unknown
+ ** Description:
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
 -- EXEC SearchCustomerInvoicesPaidForReport 49
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
 @ReceiptId bigint = null
@@ -90,7 +105,7 @@ BEGIN
 		LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON [IP].CustomerId = CU.CustomerId
 		LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId
 		LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId	
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
 		LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId
 		WHERE 
 		[IP].ReceiptId = @receiptId AND [IP].IsDeleted=0

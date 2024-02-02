@@ -15,8 +15,9 @@
  **************************************************************           
  ** S NO   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
+    1                 Swetha		Created
+	2	        	  Swetha		Added Transaction & NO LOCK
+	3	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
      
 --EXECUTE   [dbo].[usp_GetARInvoiceAgingReport] '','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -164,7 +165,7 @@ AS
                             ELSE ''
                           END                                AS LEVEL4
 			FROM  DBO.SalesOrder SO WITH(NOLOCK)
-			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId
+			INNER JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
 			LEFT OUTER JOIN DBO.Customer C WITH(NOLOCK) ON SOBI.CustomerId=C.CustomerId
 			LEFT OUTER JOIN DBO.Currency CUR WITH(NOLOCK) ON SOBI.CurrencyId=CUR.CurrencyId
 			LEFT OUTER JOIN DBO.CustomerFinancial CF WITH(NOLOCK) ON C.CustomerId=CF.CustomerId

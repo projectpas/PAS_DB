@@ -79,7 +79,7 @@ FROM [dbo].[InvoicePayments] [IP] WITH (NOLOCK)
 	  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON [IP].CustomerId = C.CustomerId  
 	  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId  
 	  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId   
-	  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
+	  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId 
 	  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId  
 	  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
 WHERE [IP].CustomerId = @customerId AND [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0  

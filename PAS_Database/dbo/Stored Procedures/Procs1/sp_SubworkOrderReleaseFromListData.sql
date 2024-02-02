@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [sp_workOrderReleaseFromListData]           
+ ** File:   [sp_SubworkOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
  ** Purpose:         
@@ -13,13 +13,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    03/23/2020   Subhash Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    03/23/2020   Subhash Saliya	Created
+	2    02/01/2024   Devendra Shekh	Updated for revised Part Panry and Condition
 
 
      
- EXECUTE [sp_workOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
+ EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_SubworkOrderReleaseFromListData]
@@ -52,11 +53,14 @@ BEGIN
 					  ,wro.[OrganizationName]
 					  ,wro.[InvoiceNo]
 					  ,wro.[ItemName]
-					  ,UPPER(wro.[Description]) as Description
-					  ,UPPER(wro.[PartNumber]) as PartNumber
+					  --,UPPER(wro.[Description]) as Description
+					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber
+					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description
+					  --,UPPER(wro.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  ,UPPER(wro.[Batchnumber]) as Batchnumber
+					  --,UPPER(wro.[Batchnumber]) as Batchnumber
+					   ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
@@ -91,6 +95,8 @@ BEGIN
 					  ,wro.[EmployeeId]
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.SubWorkOrderPartNumber wop WITH(NOLOCK) on wro.SubWOPartNoId = wop.SubWOPartNoId
+					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
 				      LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
 					  LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 					  LEFT JOIN dbo.SubWorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9

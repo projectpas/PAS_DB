@@ -10,6 +10,7 @@
 	5    22-01-2024   Shrey Chandegara		updated for Notes
 	6    24-01-2024   Shrey Chandegara      remove condition from WorkOrderBillingInvoicing for QtyBilled
 	7    30/01/2024   Devendra Shekh		updated for performInvoice
+	8    01/02/2024   Devendra Shekh		updated for performInvoice
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -73,7 +74,7 @@ BEGIN
 					FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 						INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-						LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+						LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 						LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 						LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
@@ -160,7 +161,7 @@ BEGIN
 							FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 								INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
 								LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-								LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId-- AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+								LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wos.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0-- AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 								LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 								LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
@@ -245,7 +246,7 @@ BEGIN
 							,wobi.Notes
 						FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-							LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wop.WorkOrderId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+							LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wop.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 							LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 							LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
 							INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 

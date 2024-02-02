@@ -20,7 +20,9 @@ BEGIN
 	
 		DECLARE @AssetModuleID varchar(500);
 		--DECLARE @xmlFilter XML;
-		SELECT @AssetModuleID = ModuleId FROM Module WHERE ModuleName='AssetInventory' AND ModuleName='Asset'
+		SELECT @AssetModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName ='AssetInventoryTangible'
+
+		print @AssetModuleID
 
 		DECLARE 
 				@level1 VARCHAR(MAX) = NULL,    
@@ -34,37 +36,29 @@ BEGIN
 				@Level9 VARCHAR(MAX) = NULL,      
 				@Level10 VARCHAR(MAX) = NULL
 
-		SELECT @level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,  
-  
-			   @level2=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,  
-  
-			   @level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,  
-  
-			   @level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,  
-  
-			   @level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,  
-  
-			   @level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,  
-  
-			   @level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,  
-  
-			   @level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,  
-  
-			   @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,  
-  
-			   @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-			   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
-  
+		SELECT 		@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
+					   @level2=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,    
+					   @level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,    
+					   @level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,    
+					   @level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,    
+					   @level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,    
+					   @level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,    
+					   @level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,    
+					   @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,    
+					   @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
+					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end    
 		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
+
+		print @level1
 
 		SELECT  AI.AssetInventoryId,
 				'TANGIBLE' AS AssetCategory,
@@ -118,23 +112,12 @@ BEGIN
 				-- LEFT JOIN TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId=AI.TangibleClassId
 				LEFT JOIN AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
 				LEFT JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
-				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 				
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON  MSD.Level1Id = MSL1.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON  MSD.Level2Id = MSL2.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON  MSD.Level3Id = MSL3.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON  MSD.Level4Id = MSL4.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON  MSD.Level5Id = MSL5.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON  MSD.Level6Id = MSL6.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON  MSD.Level7Id = MSL7.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON  MSD.Level8Id = MSL8.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON  MSD.Level9Id = MSL9.ID
-			   LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID	
+				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 		
 
 		WHERE AI.AssetAttributeTypeId = @AssetClass 
 			  AND AI.AssetStatusId=@AssetStatus 
 			  AND AI.InventoryStatusId=@AssetInventoryStatus 
 			  AND AI.MasterCompanyId = @MasterCompanyId
-			  -- AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
 			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
@@ -144,11 +127,7 @@ BEGIN
 			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-
-		--SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
-		--SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END 
-			
+			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  			
 	END	
 	END TRY  
 	BEGIN CATCH  

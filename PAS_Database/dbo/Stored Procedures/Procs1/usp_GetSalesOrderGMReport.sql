@@ -14,8 +14,9 @@
  **************************************************************           
  ** S NO   Date         Author    Change Description            
  ** --   --------     -------    --------------------------------          
-    1                 Swetha Created
-    2              Swetha Added Transaction & NO LOCK
+    1                 Swetha			Created
+    2                 Swetha			Added Transaction & NO LOCK
+	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
      
 EXECUTE   [dbo].[usp_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -112,7 +113,7 @@ BEGIN
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
           ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
-          ON SO.salesorderid = SOBI.salesorderid
+          ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK)
           ON SO.salesorderid = SOMS.salesorderid
         LEFT JOIN dbo.customer C WITH (NOLOCK)

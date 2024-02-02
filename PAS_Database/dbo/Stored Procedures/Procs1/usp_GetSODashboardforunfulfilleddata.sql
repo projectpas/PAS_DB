@@ -14,8 +14,9 @@
  **************************************************************           
  ** S NO   Date         Author  	Change Description            
  ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
+    1                 Swetha		Created
+	2	        	  Swetha		Added Transaction & NO LOCK
+	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
      
 EXECUTE   [dbo].[usp_GetSODashboardforunfulfilleddata] 
 **************************************************************/
@@ -45,7 +46,7 @@ BEGIN
         SO.OpenDate 'Open Date'
       FROM dbo.SalesOrder AS SO WITH (NOLOCK)
       LEFT JOIN dbo.SalesOrderBillingInvoicing AS SOBI WITH (NOLOCK)
-        ON SO.salesorderid = SOBI.SalesOrderId
+        ON SO.salesorderid = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN dbo.Customer AS C WITH (NOLOCK)
           ON SOBI.CustomerId = C.CustomerId
         LEFT OUTER JOIN dbo.SalesOrderQuote AS SOQ WITH (NOLOCK)

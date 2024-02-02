@@ -13,6 +13,8 @@
  1                 unknown          Created  
  2    05/01/2024   Moin Bloch       Modify(Added dbo in Table)  
  3    01/31/2024   Devendra Shekh	added isperforma Flage for WO
+ 4	  01/02/2024   AMIT GHEDIYA	    added isperforma Flage for SO
+
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceData] 66,29
   
 ************************************************************************/ 
@@ -48,7 +50,7 @@ BEGIN
 			INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 			INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 			--where sobi.InvoiceStatus != 'Invoiced' AND so.ManagementStructureId = @ManagementStructureId AND so.CustomerId = @CustomerId
-			WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId
+			WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId
 			GROUP BY ct.CustomerId,sobi.SOBillingInvoicingId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,ctm.[Name],cr.Code,sobi.GrandTotal,sobi.RemainingAmount
 			
 			UNION ALL

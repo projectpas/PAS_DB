@@ -14,6 +14,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
    1   16/08/2023       Ekta Chandegra     Convert text into uppercase   
+   2   01/02/2024	    AMIT GHEDIYA	   added isperforma Flage for SO
 
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -216,8 +217,9 @@ BEGIN
 			INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId FROM  DBO.SalesOrderBillingInvoicing SOBI
-			LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-		    GROUP BY SalesOrderPartId,InvoiceNo) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
+				LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
+				WHERE ISNULL(SOBI.IsProforma,0) = 0
+				GROUP BY SalesOrderPartId,InvoiceNo) SOBilling ON SOBilling.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN (SELECT SalesOrderPartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderCharges A2 WITH (NOLOCK) WHERE A2.[IsActive] = 1 
 		    GROUP BY SalesOrderPartId) SOCharges ON SOCharges.SalesOrderPartId = SOP.SalesOrderPartId
 		 ) A

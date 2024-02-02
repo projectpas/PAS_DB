@@ -12,11 +12,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
-	3	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+ ** S NO   Date         Author  		Change Description            
+ ** --   --------     -------			--------------------------------          
+    1                 Swetha			Created
+	2	        	  Swetha			Added Transaction & NO LOCK
+	3	01/31/2024	  Devendra Shekh	added isperforma Flage for WO
+	4	02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
      
 EXECUTE   [dbo].[usp_GetSalespersonReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -159,7 +160,7 @@ BEGIN
 		  --LEFT JOIN DBO.CustomerSales CS WITH (NOLOCK) ON C.customerid = CS.customerid
             LEFT JOIN DBO.Employee E WITH (NOLOCK) ON SO.SalesPersonId = E.EmployeeId
             LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON SO.CustomerSeviceRepId = E1.employeeid
-            LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
+            LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
             LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK) ON SO.salesorderid = SOMS.salesorderid
             LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK) ON C.MasterCompanyId = MC.MasterCompanyId
             INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK) ON MS.ManagementStructureId = SO.ManagementStructureId 

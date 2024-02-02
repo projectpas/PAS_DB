@@ -9,9 +9,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04/20/2022   Subhash Saliya Created
+ ** PR   Date         Author		  Change Description            
+ ** --   --------     -------		  --------------------------------          
+    1    04/20/2022   Subhash Saliya  Created
+	2	 02/1/2024	  AMIT GHEDIYA	 added isperforma Flage for SO
 	
  -- exec sp_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
@@ -68,18 +69,18 @@ BEGIN
 					 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  
-				WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND isnull(SOBII.IsDeleted,0)=0
+				WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND isnull(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
 				GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 				) 
 			    FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
-				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 				LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
 				LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-			    WHERE SOBI.SOBillingInvoicingId=@InvoicingId		
+			    WHERE SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
 
 			END
 			ELSE 
@@ -148,7 +149,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-			  SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId
+			  SELECT @InvoiceStatus = InvoiceStatus FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsProforma,0) = 0
 			END
 
 			   SELECT CRM.[RMADeatilsId]

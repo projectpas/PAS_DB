@@ -11,13 +11,13 @@
  **************************************************************                 
  ** Change History                 
  **************************************************************                 
- ** PR   Date         Author  Change Description                  
- ** --   --------     -------  --------------------------------                
-    1    05/03/2022   Vishal Suthar Fixed Management Structure binding      
-	2    19/05/2023   Satish Gohil  Show only legal entity releted invoice 
-	3    22/11/2023   AMIT GHEDIYA  Modify(FOR Exchange Invoice)
-	4    05/01/2024   Moin Bloch    Replaced PercentId at CreditTermsId
-	5    08/01/2024   Moin Bloch    Replaced Days insted of NetDays
+ ** PR   Date         Author			Change Description                  
+ ** --   --------     -------		  --------------------------------                
+    1    05/03/2022   Vishal Suthar		Fixed Management Structure binding      
+	2    19/05/2023   Satish Gohil		Show only legal entity releted invoice 
+	3    22/11/2023   AMIT GHEDIYA		Modify(FOR Exchange Invoice)
+	4    05/01/2024   Moin Bloch		Replaced PercentId at CreditTermsId
+	5    08/01/2024   Moin Bloch		Replaced Days insted of NetDays
 	6	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 
       
@@ -124,7 +124,7 @@ BEGIN
 			   ELSE 0 END AS 'DiscountAvailable'    
   
      FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
-      LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId      
+      LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId     
       LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId    
 	  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId
       LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
@@ -320,7 +320,7 @@ BEGIN
       0 AS DiscountAvailable   
      FROM [dbo].[CreditMemo] CM WITH (NOLOCK)      
 	  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
-	   LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0    
+	   LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0   
 	   LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON CMD.InvoiceId =  WOBI.BillingInvoicingId AND CMD.IsWorkOrder = 1    
 	   LEFT JOIN [dbo].[Currency] WCurr WITH (NOLOCK) ON WOBI.CurrencyId = WCurr.CurrencyId      
 	   LEFT JOIN [dbo].[Currency] SCurr WITH (NOLOCK) ON SOBI.CurrencyId = SCurr.CurrencyId      

@@ -12,6 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -84,7 +85,7 @@ BEGIN
 					item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
 					sobi.GrandTotal, cust.Name AS CustomerName, so.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 					FROM DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK)
-					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId
+					INNER JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 0
 					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
 					LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
 					LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
@@ -99,6 +100,7 @@ BEGIN
 					AND ISNULL(sop.StockLineId,0) > 0
 					AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
 					AND sobi.MasterCompanyId = @MasterCompanyId
+					AND ISNULL(sobi.IsProforma,0) = 0
 				), ResultCount AS(Select COUNT(PartNumber) AS totalItems FROM Result) 
 
 				Select * from Result

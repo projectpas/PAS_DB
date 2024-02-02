@@ -15,6 +15,7 @@
  ** --   --------     -------		  --------------------------------          
     1    04/21/2023   Amit Ghediya    Created
     2    06/26/2023   Vishal Suthar   TRIM the PO/RO number
+	3	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
      
 -- EXEC RPT_GetCreditMemoById 32
 
@@ -82,7 +83,7 @@ BEGIN
 	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK) 
 	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
 									ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
-	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId])
+	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)
 								    END AS 'PostedDate'	
 
       ,
@@ -113,18 +114,18 @@ BEGIN
 					LEN(
 				 TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId]
+						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
 						FOR XML PATH('')), 1, 1, '')) 
 						) < 20
 				THEN
 					TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId]
+						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
 						FOR XML PATH('')), 1, 1, '')) 
 				ELSE
 					LEFT(TRIM(STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId]
+						WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
 						FOR XML PATH('')), 1, 1, '')), 20) + '....'
 				END
 		 END AS 'PORONum'
@@ -132,9 +133,9 @@ BEGIN
 	                                      WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])
 						    ELSE 
 								(SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK) 
-									LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId
+									LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.[IsProforma],0) = 0
 									LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192
-	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] )
+	                                      WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)
 						    END AS 'Awb'	
 
   FROM [dbo].[CreditMemo] CM WITH (NOLOCK) 

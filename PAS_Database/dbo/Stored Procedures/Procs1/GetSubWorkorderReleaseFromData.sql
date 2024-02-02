@@ -12,8 +12,10 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings    
    2    09/28/2023  BHARGAV SALIYA   In Sub WO 8130 form remove header Notes text from block 12. 
    3    01/23/2024  Devendra Shekh   revised serial number changes 
+   4    02/01/2024  Devendra Shekh   added conditino for customer refernce
+
     
-EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'    
+EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
     
 **************************************************************/     
 CREATE   PROC [dbo].[GetSubWorkorderReleaseFromData]    
@@ -55,7 +57,8 @@ BEGIN
 			  '1' as ItemName,    
 			  CASE WHEN isnull(wosc.RevisedItemmasterid,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,      
 			  CASE WHEN isnull(wosc.RevisedItemmasterid,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END as PartNumber,      
-			  wopn.CustomerReference as Reference,    
+			  CASE WHEN ISNULL(wopn.CustomerReference, '') = '' THEN '-'
+				   ELSE wopn.CustomerReference END AS Reference,    
 			  wop.Quantity as Quantity,    
 			  CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber END) ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,    
 			  wosc.conditionName AS [status],    

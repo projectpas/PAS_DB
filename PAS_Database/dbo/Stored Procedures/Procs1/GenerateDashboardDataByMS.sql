@@ -13,7 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------   
     1    22 Nov 2023	JEVIK RAIYANI              update SQProcessed variable calculation         
-	2	01/31/2024		Devendra Shekh				added isperforma Flage for WO
+	2	 01/31/2024		Devendra Shekh				added isperforma Flage for WO
+	3	 01/02/2024	    AMIT GHEDIYA	            added isperforma Flage for SO
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -70,7 +71,7 @@ BEGIN
 	    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 	    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		WHERE CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate)
-		AND SOBI.MasterCompanyId = @MasterCompanyId
+		AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 		GROUP BY CAST(InvoiceDate AS DATE)
 
 		SELECT @MROWorkable = SUM(Quantity) FROM DBO.WorkOrderPartNumber WOP WITH (NOLOCK) 

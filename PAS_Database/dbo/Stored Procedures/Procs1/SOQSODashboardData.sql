@@ -1,9 +1,20 @@
-﻿-- =============================================
--- Author:		Deep Patel
--- Create date: 19-July-2022
--- Description:	Get SOQSO Dashboard Details
---EXEC SOQSODashboardData 10,1,'',-1,'',null,null,null,null,0,0,null,null,null,null,null,null,null,1,61,1
--- =============================================
+﻿
+/*************************************************************           
+ ** File:   [SOQSODashboardData]
+ ** Author: Deep Patel
+ ** Description: This stored procedure is used to Get SOQSO Dashboard Details
+ ** Purpose:         
+ ** Date:   19-July-2022       
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1	19-July-2022	Deep Patel		Created
+	2	01-JAN-2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
 CREATE PROCEDURE [dbo].[SOQSODashboardData]
 	-- Add the parameters for the stored procedure here
 	@PageSize int,
@@ -826,7 +837,7 @@ BEGIN
 		        ) B
 				--Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId and (SO.StatusId = 10)),
 				Where (SO.IsDeleted=0) AND SO.MasterCompanyId = @MasterCompanyId AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ',')) 
-				AND SP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem)
+				AND SP.SalesOrderPartId NOT IN(select SalesOrderPartId From SalesOrderBillingInvoicingItem WHERE ISNULL(IsProforma,0) = 0)
 				GROUP BY SO.SalesOrderId,SOQ.SalesOrderQuoteNumber,SP.ConditionId,SP.ItemMasterId,SO.OpenDate
 				,C.CustomerId,C.Name,MST.Name,P.Description,E.FirstName,E.LastName,IM.partnumber,im.PartDescription,SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate,
 				--A.Freight,

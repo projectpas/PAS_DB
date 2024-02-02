@@ -65,7 +65,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @DepreciationFrequencyName varchar(50) = null,
 @Currency varchar(50) = null,
 @DepreciationMethod varchar(50) = null,
-@LegalentityId varchar(500) = null
+@LegalentityId varchar(500) = null,
+@LastMSLevel varchar(50) = null 
 AS
 BEGIN
 
@@ -82,6 +83,9 @@ BEGIN
 		DECLARE @DeprFrequencyMonthly VARCHAR(50) ='MTHLY,MONTHLY'
 		DECLARE @DeprFrequencyQUATERLY VARCHAR(50) ='QUATERLY,QTLY'
 		DECLARE @DeprFrequencyYEARLY VARCHAR(50) ='YEARLY,YRLY'
+		DECLARE @ReduceResidualPerc DECIMAL(18,2);
+		DECLARE @ResidualPercentage DECIMAL(18,2);
+
 		SELECT TOP 1  @AssetStatusid = [AssetStatusid] FROM [dbo].[AssetStatus] WITH (NOLOCK)  WHERE UPPER([name]) ='DEPRECIATING' AND [MasterCompanyId] = @MasterCompanyId
 		
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
@@ -212,6 +216,7 @@ BEGIN
 							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR
 									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 
 							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE))) <= asm.AssetLife)
+																AND (B.NetBookValue > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
 																AND (asm.InventoryStatusId = 1) 
 																AND (asm.IsTangible = 1) 
@@ -252,7 +257,8 @@ BEGIN
 								(cast(DepreciableLife as varchar(10)) LIKE '%' +@GlobalFilter+'%') OR 
 								(Currency LIKE '%' +@GlobalFilter+'%') OR 
 								(DepreciationFrequencyName LIKE '%' +@GlobalFilter+'%') OR 
-								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') 
+								(DepreciationMethod LIKE '%' +@GlobalFilter+'%') OR
+								(LastMSLevel LIKE '%' +@GlobalFilter+'%')
 								))
 							OR   
 							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
@@ -290,7 +296,8 @@ BEGIN
 								(ISNULL(@Currency,'') ='' OR Currency LIKE '%' + @Currency+'%') AND
 								(ISNULL(@DepreciationFrequencyName,'') ='' OR DepreciationFrequencyName LIKE '%' + @DepreciationFrequencyName+'%') AND
 								(ISNULL(@DepreciationMethod,'') ='' OR DepreciationMethod LIKE '%' + @DepreciationMethod+'%') AND
-								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') 
+								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') AND
+								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') 
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) FROM #TempResult			
@@ -323,7 +330,8 @@ BEGIN
 					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END ASC,					
 					CASE WHEN (@SortOrder=1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END ASC,
 					CASE WHEN (@SortOrder=1 AND @SortColumn='InstalledCost')  THEN InstalledCost END ASC,	
-					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,	
+					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETID')  THEN AssetId END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETNAME')  THEN Name END DESC,
@@ -352,7 +360,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationFrequencyName')  THEN DepreciationFrequencyName END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='DepreciationMethod')  THEN DepreciationMethod END DESC,					
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InstalledCost')  THEN InstalledCost END DESC,
-					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC
+					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC
 
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

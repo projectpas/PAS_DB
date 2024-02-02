@@ -13,11 +13,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author    Change Description            
- ** --   --------     -------    --------------------------------          
-    1					Swetha Created
-    2					Swetha Added Transaction & NO LOCK
-	3	13-Dec 2021		Hemant Added Updated for Upper Case
+ ** S NO   Date         Author				Change Description            
+ ** --   --------     -------				 --------------------------------          
+    1					Swetha				 Created
+    2					Swetha Added		 Transaction & NO LOCK
+	3	13-Dec 2021		Hemant Added		 Updated for Upper Case
+	4	02-FEB 2024	    AMIT GHEDIYA	     added isperforma Flage for SO
      
 EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -115,7 +116,7 @@ BEGIN
       LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
-          ON SO.salesorderid = SOBI.salesorderid
+          ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN dbo.customer C WITH (NOLOCK)
           ON SOBI.customerid = C.customerid
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)

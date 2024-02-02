@@ -14,7 +14,9 @@
  ** PR   Date         Author  Change Description                
  ** --   --------     -------  --------------------------------              
     1    17/04/2023  Amit Ghediya    Created    
-    2    01/08/2023  Satish Gohil    Modify(Remove Other tax calculation )     
+    2    01/08/2023  Satish Gohil    Modify(Remove Other tax calculation )   
+	3	 01/02/2024	 AMIT GHEDIYA	 added isperforma Flage for SO
+
 -- EXEC RPT_PrintCreditMemoCalculationData 34,11,1,394,1969    
     
 ************************************************************************/    
@@ -41,9 +43,9 @@ BEGIN
                WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])    
           ELSE     
            (SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)     
-            LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId    
+            LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.IsProforma,0) = 0   
             LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192    
-               WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] )    
+               WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0 )    
           END) ,    
    @tmpNotes = ISNULL(CM.[Notes], ''),    
    @tmpTotalFreight = CM.[TotalFreight],    
@@ -74,8 +76,8 @@ BEGIN
   BEGIN    
     SELECT @tmpTotal = SUM(CM.Amount)         
     FROM dbo.CreditMemoDetails CM WITH (NOLOCK)          
-     LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId    
-     LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId    
+     LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0   
+     LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId  AND ISNULL(SOBII.IsProforma,0) = 0  
      LEFT JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId    
      LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId    
      LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId    
@@ -100,7 +102,7 @@ BEGIN
      INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.BillToSiteId    
      INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId    
      INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId    
-   WHERE bi.SOBillingInvoicingId = @CustomerId;    
+   WHERE bi.SOBillingInvoicingId = @CustomerId AND ISNULL(bi.IsProforma,0) = 0;    
     
   --Tax Cal Only match site    
   --IF(@tmpSiteId > 0)    

@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/11/2022  Deep Patel     Created
+	2	 02/1/2024	 AMIT GHEDIYA	added isperforma Flage for SO
      
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -269,7 +270,7 @@ BEGIN
 
 					 IF(@InvoiceType = 1)
 					 BEGIN
-						SELECT @InvoiceNo=InvoiceNo from SalesOrderBillingInvoicing WHERE SOBillingInvoicingId=@SOBillingInvoicingId;
+						SELECT @InvoiceNo=InvoiceNo from SalesOrderBillingInvoicing WHERE SOBillingInvoicingId=@SOBillingInvoicingId AND ISNULL(IsProforma,0) = 0;
 						SET @ModuleName='SOI';
 					 END
 					 ELSE

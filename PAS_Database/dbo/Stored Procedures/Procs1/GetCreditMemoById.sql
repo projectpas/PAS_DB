@@ -17,6 +17,7 @@
 	2    20/05/2022  Subhash Saliya     Updated  
 	3    12/09/2022  AMIT GHEDIYA		Updated for get IsStandAloneCM value.
     4    18/10/2023  BHARGAV SALIYA     Get CurrencyId   
+	5	 01/02/2024	 AMIT GHEDIYA	    added isperforma Flage for SO
 -- EXEC GetCreditMemoById 8  
   
 ************************/  
@@ -84,7 +85,7 @@ BEGIN
    ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.PostedDate,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK)   
                                        WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
          ELSE (SELECT ISNULL(SB.PostedDate,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)   
-                                       WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId])  
+                                       WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0)  
             END AS 'PostedDate'   
   
       ,CASE WHEN CM.[IsWorkOrder]=1 THEN  STUFF((SELECT ', ' + WP.CustomerReference  
@@ -95,16 +96,16 @@ BEGIN
        ELSE   
         STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
        INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-       WHERE SI.SOBillingInvoicingId = CM.[InvoiceId]  
+       WHERE SI.SOBillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsProforma],0) = 0
        FOR XML PATH('')), 1, 1, '')   
        END AS 'PORONum'  
   , CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(WB.WayBillRef,NULL) FROM [dbo].[WorkOrderBillingInvoicing] WB WITH (NOLOCK)   
                                        WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
           ELSE   
         (SELECT TOP 1 ISNULL(SAOS.AirwayBill,NULL) FROM [dbo].[SalesOrderBillingInvoicing] SB WITH (NOLOCK)   
-         LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId  
+         LEFT JOIN SalesOrderBillingInvoicingItem SABI ON SB.SOBillingInvoicingId = SABI.SOBillingInvoicingId AND ISNULL(SABI.[IsProforma],0) = 0  
          LEFT JOIN SalesOrderShipping SAOS ON SABI.SalesOrderShippingId = SAOS.SalesOrderShippingId  --and  SAOS.SalesOrderId = 192  
-                                       WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] )  
+                                       WHERE SB.[SOBillingInvoicingId] = CM.[InvoiceId] AND ISNULL(SB.[IsProforma],0) = 0 )  
           END AS 'Awb' 
 	,ISNULL(CM.Amount,0) Amount,
 	CM.[IsStandAloneCM]

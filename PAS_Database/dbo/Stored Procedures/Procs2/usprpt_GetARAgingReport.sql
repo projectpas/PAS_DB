@@ -32,6 +32,7 @@
 	16   16-NOV-2023   Moin Bloch          Modify(Added Exchange SO Invoice Records)
 	17   01-DEC-2023   Moin Bloch          Modify(Added 6 decimal IN FixRateAmount)
 	18   31-JAN-2024   Devendra Shekh      changes for performInvoice
+	19	 01/02/2024	   AMIT GHEDIYA	       added isperforma Flage for SO
 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingReport]       
@@ -166,12 +167,12 @@ BEGIN
        LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
       INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
       INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-      INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+      INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId  AND ISNULL(sobii.IsProforma,0) = 0    
       INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId      
       INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
        LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID 
       WHERE SO.CustomerId = ISNULL(@customerid,SO.CustomerId)  
-	  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' 
+	  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0 
       AND CAST(sobi.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid      
       AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
       AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
@@ -224,13 +225,13 @@ BEGIN
 	 SELECT sobi.SOBillingInvoicingId AS BillingInvoicingId 
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)         
 	  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-	  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId   
+	  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0   
       INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId      
       INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
        LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
       INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
       INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-      INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+      INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0     
       INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId      
       INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
        LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID 
@@ -546,7 +547,7 @@ BEGIN
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
 				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
 				   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID      
@@ -574,7 +575,7 @@ BEGIN
 					 GROUP BY CMD.BillingInvoicingItemId       
 				  ) B      
 				  WHERE SO.CustomerId = ISNULL(@customerid,SO.CustomerId)
-				  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' 
+				  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0 
 				  AND CAST(sobi.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid      
 				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
 				  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
@@ -780,13 +781,13 @@ BEGIN
 					0 AS 'InvoicePaidAmount'
 			  FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 		          INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId       
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0       
 				  INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId      
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
 				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  --INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
 				  INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  
@@ -1504,7 +1505,7 @@ BEGIN
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
 				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
 				   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID      
@@ -1532,7 +1533,7 @@ BEGIN
 					 GROUP BY CMD.BillingInvoicingItemId       
 				  ) B      
 				  WHERE SO.CustomerId = ISNULL(@customerid,SO.CustomerId)   
-				  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' 
+				  AND sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0
 				  AND CAST(sobi.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
 				  AND SO.mastercompanyid = @mastercompanyid      
 				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
@@ -1740,13 +1741,13 @@ BEGIN
 					0 AS 'InvoicePaidAmount'
 			  FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 		          INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId       
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId      
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
 				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
-				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId      
+				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  --INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
 				  INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  

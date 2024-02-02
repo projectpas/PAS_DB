@@ -18,6 +18,7 @@
  6    16-OCT-2023  Moin Bloch       Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
  7    17-OCT-2023  Moin Bloch       Modify(Added Stand Alone Credit Memo)
  8    31-JAN-2024  Devendra Shekh	added isperforma Flage for WO
+ 9	  01/02/2024   AMIT GHEDIYA	    added isperforma Flage for SO
 
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceDataDateWise] 77,23,'2022-05-12','2022-05-12',1,1,79,2  
   
@@ -56,7 +57,7 @@ BEGIN
            sobi.InvoiceStatus as InvoiceStatus,  
            STUFF(UPPER((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 			 INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-			 WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId  
+			 WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0 
 			 FOR XML PATH(''))), 1, 1, '')  
            AS 'Reference',  
 		   ctm.[Name] as CreditTerm,     
@@ -78,9 +79,9 @@ BEGIN
 		  INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId  
 		   LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
 		  INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
-          ON CM.InvoiceId = sobi.SOBillingInvoicingId      
+          ON CM.InvoiceId = sobi.SOBillingInvoicingId   
   
-   WHERE sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND   
+   WHERE sobi.RemainingAmount > 0 AND ISNULL(sobi.IsProforma,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND   
    le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  
    AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND sobi.BillToSiteId=@SiteId  
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
@@ -138,7 +139,7 @@ BEGIN
           sobi.InvoiceStatus as InvoiceStatus,  
           STUFF(UPPER((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 		   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId  
+		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0  
 		   FOR XML PATH(''))), 1, 1, '')  
           AS 'Reference',  
           ctm.[Name] as CreditTerm,     
@@ -161,7 +162,7 @@ BEGIN
         INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
            ON CM.InvoiceId = sobi.SOBillingInvoicingId   
             
-     WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
+     WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
        CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
            AND sobi.BillToSiteId=@SiteId  
           GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
@@ -305,7 +306,7 @@ BEGIN
           sobi.InvoiceStatus as InvoiceStatus,  
           STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 		   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId  
+		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0   
 		   FOR XML PATH('')), 1, 1, '')  
           AS 'Reference',  
 	      ctm.[Name] as CreditTerm,     
@@ -330,7 +331,7 @@ BEGIN
      
    WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
     AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
-    AND sobi.BillToSiteId=@SiteId  
+    AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsProforma,0) = 0   
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
    ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount   
      
@@ -470,7 +471,7 @@ BEGIN
    sobi.InvoiceStatus as InvoiceStatus,  
    STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
        INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-       WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId  
+       WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0   
        FOR XML PATH('')), 1, 1, '')  
        AS 'Reference',  
    ctm.[Name] as CreditTerm,     
@@ -493,7 +494,7 @@ BEGIN
     INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
     ON CM.InvoiceId = sobi.SOBillingInvoicingId   
      
-   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0   AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
    AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
    AND sobi.BillToSiteId=@SiteId  
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  

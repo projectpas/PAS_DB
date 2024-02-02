@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [DBO].[USP_GetCustomerGeneralLedgerListByCustomer]    
+﻿/*************************************************************           
+ ** File:   [USP_GetCustomerGeneralLedgerListByCustomer]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
+CREATE   PROCEDURE [dbo].[USP_GetCustomerGeneralLedgerListByCustomer]    
 (    
   @PageNumber int,        
   @PageSize int,        
@@ -52,7 +68,7 @@ BEGIN
    FROM [dbo].CustomerGeneralLedger CL WITH(NOLOCK)  
    LEFT JOIN [dbo].Customer C WITH(NOLOCK) ON CL.CustomerId = C.CustomerId  
    LEFT JOIN [dbo].ManagementStructureModule M WITH(NOLOCK) ON CL.ModuleId = M.ManagementStructureModuleId  
-   LEFT JOIN [dbo].SalesOrderBillingInvoicing SB WITH(NOLOCK) ON CL.ReferenceId = SB.SOBillingInvoicingId  
+   LEFT JOIN [dbo].SalesOrderBillingInvoicing SB WITH(NOLOCK) ON CL.ReferenceId = SB.SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0  
    LEFT JOIN [dbo].WorkOrderBillingInvoicing WB WITH(NOLOCK) ON CL.ReferenceId = WB.BillingInvoicingId  
    LEFT JOIN [dbo].ExchangeSalesOrderBillingInvoicing ESB WITH(NOLOCK) ON CL.ReferenceId = ESB.SOBillingInvoicingId  
    LEFT JOIN [dbo].CustomerPayments CS ON CL.ReferenceId = CS.ReceiptId  

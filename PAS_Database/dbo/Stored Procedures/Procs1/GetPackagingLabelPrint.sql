@@ -1,4 +1,20 @@
-﻿CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
+﻿/*************************************************************           
+ ** File:   [GetPackagingLabelPrint]
+ ** Author: unknown
+ ** Description:
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
+CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
 	@SalesOrderId bigint,
 	@PackagingSlipId bigint
 AS
@@ -16,8 +32,8 @@ BEGIN
 	(SELECT top 1 QtyShipped FROM DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) Where SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS QtyShipped,
 		(SELECT top 1 NoOfContainer FROM DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.SalesOrderShipping SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 		Where SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId) AS NoOfContainer,
-		(SELECT top 1 InvoiceNo FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.SalesOrderId) AS InvoiceNo,
-		(SELECT top 1 InvoiceDate FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.SalesOrderId) AS InvoiceDate
+		(SELECT top 1 InvoiceNo FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0) AS InvoiceNo,
+		(SELECT top 1 InvoiceDate FROM DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) Where SOBI.SalesOrderId = SOS.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0) AS InvoiceDate
 		FROM SOPickTicket sopt WITH(NOLOCK)
 		LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId

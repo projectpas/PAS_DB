@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/11/2022  Deep Patel     Created
+	2	 02/1/2024	 AMIT GHEDIYA	added isperforma Flage for SO
      
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -129,7 +130,7 @@ BEGIN
 					  inner join AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 					  where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(getdate() as date)   >= CAST(FromDate as date) and  CAST(getdate() as date) <= CAST(ToDate as date)
 		              Set @ReferencePartId=@partId	
-					  SELECT @InvoiceNo=InvoiceNo,@SalesTax=(isnull(SalesTax,0)+ isnull(OtherTax,0) ) from SalesOrderBillingInvoicing Where SOBillingInvoicingId=@InvoiceId;
+					  SELECT @InvoiceNo=InvoiceNo,@SalesTax=(isnull(SalesTax,0)+ isnull(OtherTax,0) ) from SalesOrderBillingInvoicing Where SOBillingInvoicingId=@InvoiceId AND ISNULL(IsProforma,0) = 0;
 
 	            IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN

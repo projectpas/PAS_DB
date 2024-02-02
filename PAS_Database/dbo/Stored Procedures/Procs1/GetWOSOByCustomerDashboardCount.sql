@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/17/2023   Vishal Suthar Created
+	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
      
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
@@ -37,7 +38,7 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN DBO.SalesOrderBillingInvoicing SOB WITH (NOLOCK) ON SOB.SalesOrderId = SOP.SalesOrderId
+				LEFT JOIN DBO.SalesOrderBillingInvoicing SOB WITH (NOLOCK) ON SOB.SalesOrderId = SOP.SalesOrderId AND ISNULL(SOB.IsProforma,0) = 0
 				Where SO.MasterCompanyId = @MasterCompanyId
 				AND IM.partnumber <> ''
 			END

@@ -11,6 +11,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
+	2	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
 
 -- EXEC [dbo].[RPT_GetCustomerBillingAddressForCreditMemo] 131,0,1
 **************************************************************/ 
@@ -100,7 +101,7 @@ BEGIN
 			 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.BillToSiteId
 			 INNER JOIN [Address] billToAddress WITH(NOLOCK) ON billToAddress.AddressId=billToSite.AddressId
 			 INNER JOIN [Countries] ca WITH(NOLOCK) ON ca.countries_id=billToAddress.CountryId
-			WHERE bi.SOBillingInvoicingId = @InvoiceID;
+			WHERE bi.SOBillingInvoicingId = @InvoiceID AND ISNULL(bi.IsProforma,0) = 0;
 		END
 	END	 
 	END TRY    

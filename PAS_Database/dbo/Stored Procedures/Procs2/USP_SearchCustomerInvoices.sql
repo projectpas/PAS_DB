@@ -12,6 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
+	3	01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
 
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
@@ -259,7 +260,7 @@ BEGIN
 				SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,
 				CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 			FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 				LEFT JOIN SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
 				LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
@@ -268,13 +269,13 @@ BEGIN
 				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
-			Where SOBI.MasterCompanyId=@MasterCompanyId			
+			Where SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0			
 			),
 			SVersionCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
 				A.VersionNo [VersionNoType] 
 				from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				LEFT JOIN SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
 				Outer Apply(  
 				 SELECT   
@@ -284,17 +285,17 @@ BEGIN
 					 LEFT JOIN SalesOrder SO WITH (NOLOCK) ON I.SalesOrderId = SO.SalesOrderId
 					 LEFT JOIN SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0  AND ISNULL(S.IsProforma,0) = 0
 					 FOR XML PATH('')), 1, 1, '') VersionNo  
 				) A  
-				WHERE PC.MasterCompanyId=@MasterCompanyId
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.VersionNo  
 				),
 			SCRefCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.CustomerReference End)  as 'CustomerReference',  
 				A.CustomerReference [CustomerReferenceType] 
 				from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				LEFT JOIN SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
 				Outer Apply(  
 				 SELECT   
@@ -302,17 +303,17 @@ BEGIN
 					 FROM SalesOrderBillingInvoicingItem S WITH (NOLOCK)  
 					 Left Join SalesOrderPart I WITH (NOLOCK) On I.SalesOrderPartId=S.SalesOrderPartId  
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0  AND ISNULL(S.IsProforma,0) = 0
 					 FOR XML PATH('')), 1, 1, '') CustomerReference  
 				) A  
-				WHERE PC.MasterCompanyId=@MasterCompanyId
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.CustomerReference  
 				),
 				SSRNoCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.SerialNumber End)  as 'SerialNumber',  
 				ISNULL(A.SerialNumber,'') [SerialNumberType] 
 				from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				LEFT JOIN SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
 				LEFT JOIN Stockline STL WITH (NOLOCK) ON STL.StockLineId=WOPN.StockLineId
 				Outer Apply(  
@@ -322,49 +323,49 @@ BEGIN
 					 Left Join SalesOrderPart I WITH (NOLOCK) On I.SalesOrderPartId=S.SalesOrderPartId 
 					 LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0  AND ISNULL(S.IsProforma,0) = 0
 					 FOR XML PATH('')), 1, 1, '') SerialNumber  
 				) A  
-				 WHERE PC.MasterCompanyId=@MasterCompanyId
+				 WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.SerialNumber  
 				),
 			SOPartCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PN',  
 				A.PartNumber [PartNumberType] from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 then ',' ELSE '' END + I.partnumber  
 					 FROM SalesOrderBillingInvoicingItem S WITH (NOLOCK)  
 					 Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0  AND ISNULL(S.IsProforma,0) = 0
 					 FOR XML PATH('')), 1, 1, '') PartNumber  
 				) A  
-				 WHERE PC.MasterCompanyId=@MasterCompanyId
+				 WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.PartNumber  
 				),
 				SOPartDescCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PNDescription',  
 				A.PartDescription [PartDescriptionType] from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription  
 					 FROM SalesOrderBillingInvoicingItem S WITH (NOLOCK)  
 					 Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0  AND ISNULL(S.IsProforma,0) = 0
 					 FOR XML PATH('')), 1, 1, '') PartDescription  
 				) A  
-				 WHERE PC.MasterCompanyId=@MasterCompanyId
+				 WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.PartDescription  
 				),
 				SOStockCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse 
 				A.StockType End)  as 'StockType',  
 				A.StockType [StocktypeType] from SalesOrderBillingInvoicing PC WITH (NOLOCK) 
-				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.IsProforma,0) = 0
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT ',' + CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -374,10 +375,10 @@ BEGIN
 					 FROM SalesOrderBillingInvoicingItem S WITH (NOLOCK)  
 					 Left Join ItemMaster IM WITH (NOLOCK) On S.ItemMasterId=IM.ItemMasterId  
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  
-					 AND S.IsActive = 1 AND S.IsDeleted = 0  
+					 AND S.IsActive = 1 AND S.IsDeleted = 0 AND ISNULL(S.IsProforma,0) = 0 
 					 FOR XML PATH('')), 1, 1, '') StockType  
 				) A  
-				 WHERE PC.MasterCompanyId=@MasterCompanyId
+				 WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.IsProforma,0) = 0
 				Group By PC.SOBillingInvoicingId, A.StockType  
 				),
 				SOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
@@ -735,7 +736,7 @@ BEGIN
 					 SOBI.SalesOrderId AS [ReferenceId],0 as WorkFlowWorkOrderId,
 					 CASE WHEN Max(CRM.RMAHeaderId) >1 then 1 else  0 end isRMACreate
 			FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
+				LEFT JOIN SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 				LEFT JOIN SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 				LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
@@ -745,7 +746,7 @@ BEGIN
 				LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
-			Where SOBI.MasterCompanyId=@MasterCompanyId
+			Where SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 			GROUP BY 
 			SOBI.SOBillingInvoicingId,SOBI.InvoiceNo,
 				SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,

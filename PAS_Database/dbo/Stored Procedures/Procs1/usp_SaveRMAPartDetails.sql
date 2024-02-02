@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Subhash Saliya Created
 	2    04/19/2023   MOIN BLOCH     ADDED NEW FIELDS   
+	3	 02/1/2024	  AMIT GHEDIYA	 added isperforma Flage for SO
 	
 declare @p1 dbo.CustomerRMADeatilsType
 insert into @p1 values(3,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GPS',N'',N'',N'',7427,N'STL-000063',N'CNTL-000778',N'ID_NUM-000002',145,N'WO-000111',45,74,3330,5,N'Non Functional',N'',N'True',2,N'ADMIN ADMIN',N'ADMIN ADMIN','2022-04-22 05:20:26.5100000','2022-04-22 05:20:26.5100000',1,0)
@@ -145,7 +146,7 @@ BEGIN
 						END
 						ELSE
 						BEGIN
-						  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId
+						  SELECT @InvoiceStatus = InvoiceStatus FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK) WHERE  SOBillingInvoicingId =@InvoiceId AND ISNULL(SOBI.IsProforma,0) = 0
 						END
 
 					 SELECT  CRM.[RMADeatilsId]

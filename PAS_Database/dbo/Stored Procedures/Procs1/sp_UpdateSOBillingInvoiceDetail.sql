@@ -1,4 +1,20 @@
-﻿CREATE Procedure [dbo].[sp_UpdateSOBillingInvoiceDetail]
+﻿/*************************************************************           
+ ** File:   [sp_UpdateSOBillingInvoiceDetail]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author		Change Description            
+ ** --   --------      -------		--------------------------------          
+    1					unknown			Created
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+
+************************************************************************/
+CREATE Procedure [dbo].[sp_UpdateSOBillingInvoiceDetail]
 	@SOBillingInvoicingId  bigint,
 	@ManagementStructureId  bigint
 AS
@@ -65,11 +81,11 @@ BEGIN
 		SB.Level4 = PMS.Level4
 		FROM dbo.SalesOrderBillingInvoicing SB WITH (NOLOCK)
 		LEFT JOIN #SOBillingInvoicingMSDATA PMS ON PMS.MSID = @ManagementStructureId
-		WHERE SB.SOBillingInvoicingId = @SOBillingInvoicingId
+		WHERE SB.SOBillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0
 
 		SELECT
 		InvoiceNo as value
-		FROM dbo.SalesOrderBillingInvoicing SB WITH (NOLOCK) WHERE SOBillingInvoicingId = @SOBillingInvoicingId
+		FROM dbo.SalesOrderBillingInvoicing SB WITH (NOLOCK) WHERE SOBillingInvoicingId = @SOBillingInvoicingId AND ISNULL(SB.IsProforma,0) = 0
 	COMMIT  TRANSACTION
 	END TRY    
 	BEGIN CATCH      

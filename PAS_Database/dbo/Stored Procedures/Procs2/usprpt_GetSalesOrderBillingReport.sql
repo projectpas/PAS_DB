@@ -12,12 +12,13 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** SNO   Date         Author    Change Description              
- ** --   --------  ------------- --------------------------------            
-    1   15-APR-2022  HEMANT SALIYA Created  
-    2   16-JUNE-203     Devendra Shekh  made changes to do total   
-    3   11-JULY-2023 AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
+ ** SNO   Date         Author			Change Description              
+ ** --   --------    -------------		--------------------------------            
+    1   15-APR-2022   HEMANT SALIYA     Created  
+    2   16-JUNE-203   Devendra Shekh    made changes to do total   
+    3   11-JULY-2023  AYESHA SULTANA    CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
 	4   19-JULY-2023  SHREY CHANDEGARA  Changes for revenue Issue
+	5	01-FEB-2024	  AMIT GHEDIYA	added isperforma Flage for SO
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -99,7 +100,7 @@ select
    LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
    LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid    
    LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid    
-   LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid    
+   LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0    
    LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid    
    LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid    
    LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1    
@@ -124,7 +125,7 @@ select
  SELECT @PageSizeCM=COUNT(*) 
 	FROM dbo.CreditMemo CM WITH (NOLOCK)    
       INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
-      LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId  
+      LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0  
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId  
       LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId   
       LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid     
@@ -192,7 +193,7 @@ select
   LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
   LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid    
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid    
-        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid    
+        LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK) ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0   
         LEFT JOIN dbo.customer C WITH (NOLOCK) ON SOBI.customerid = C.customerid    
   LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON SOP.itemmasterid = IM.itemmasterid    
         LEFT JOIN dbo.stockline STL WITH (NOLOCK) ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1    
@@ -250,7 +251,7 @@ select
   
     FROM dbo.CreditMemo CM WITH (NOLOCK)    
       INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
-      LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId  
+      LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0  
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId  
       LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId   
       LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid     

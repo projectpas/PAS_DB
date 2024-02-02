@@ -41,6 +41,12 @@
     [LaborlogoffHours]           INT           NULL,
     [WOStages]                   VARCHAR (50)  NULL,
     [AllowInvoiceBeforeShipping] BIT           NULL,
+    [CapesWarning]               BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarning]                 BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarningAtReceiving]      BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarningAtShipping]       BIT           DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
+
+
 

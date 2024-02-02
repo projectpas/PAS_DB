@@ -40,10 +40,16 @@
     [LaborlogoffHours]           INT           NULL,
     [WOStages]                   VARCHAR (50)  NULL,
     [AllowInvoiceBeforeShipping] BIT           NULL,
+    [CapesWarning]               BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarning]                 BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarningAtReceiving]      BIT           DEFAULT ((0)) NOT NULL,
+    [CMMWarningAtShipping]       BIT           DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkOrderSettings] PRIMARY KEY CLUSTERED ([WorkOrderSettingId] ASC),
     CONSTRAINT [FK_WorkOrderSettings_ConditionId] FOREIGN KEY ([DefaultConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

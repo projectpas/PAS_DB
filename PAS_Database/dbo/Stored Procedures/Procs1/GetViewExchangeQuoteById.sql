@@ -1,8 +1,8 @@
 ﻿
 /*
-EXEC [dbo].[GetViewExchangeQuoteById] 60
+EXEC [dbo].[GetViewExchangeQuoteById] 138
 */
-CREATE   PROCEDURE [dbo].[GetViewExchangeQuoteById]
+CREATE     PROCEDURE [dbo].[GetViewExchangeQuoteById]
 	@ExchangeQuoteId bigint
 AS
 BEGIN
@@ -28,7 +28,7 @@ BEGIN
 				(SELECT TOP 1 ISNULL(BillingAmount, 0) FROM DBO.ExchangeQuoteCharges MISC WHERE MISC.ExchangeQuoteId = @ExchangeQuoteId AND MISC.IsActive = 1 AND MISC.IsDeleted = 0) AS Misc,
 				custfc.CurrencyId, cur.Code AS CurrencyName, msd.EntityMSID AS EntityStructureId, msd.LastMSLevel, msd.AllMSlevels, soq.IsEnforceApproval AS IsEnforceApproval, soq.EnforceEffectiveDate AS EnforceEffectiveDate,
 				soq.EmployeeId, exchso.ExchangeSalesOrderNumber, exchso.ExchangeSalesOrderId, custAddress.Line1 AS CustomerAddress1, custAddress.Line2 AS CustomerAddress2, custAddress.City AS CustomerCity, custAddress.StateOrProvince AS CustomerState,
-				custAddress.PostalCode AS CustomerPostalCode, cconc.countries_name AS CustomerCountry
+				custAddress.PostalCode AS CustomerPostalCode, cconc.countries_name AS CustomerCountry,soq.CustomerServiceRepName AS CustomerSeviceRepName,soq.CreditTermName AS CreditTerms
 				FROM 
 				DBO.ExchangeQuote soq WITH (NOLOCK)
 				INNER JOIN DBO.ExchangeManagementStructureDetails msd WITH (NOLOCK) ON soq.ExchangeQuoteId = msd.ReferenceID AND msd.ModuleID = 58

@@ -216,7 +216,8 @@ BEGIN
 							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR
 									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 
 							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE))) <= asm.AssetLife)
-																AND (B.NetBookValue > ASM.ResidualPercentage)
+																-- AND (B.NetBookValue IS NOT NULL AND B.NetBookValue > ASM.ResidualPercentage)
+																AND (B.NetBookValue IS NULL OR ISNULL(B.NetBookValue,0) > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
 																AND (asm.InventoryStatusId = 1) 
 																AND (asm.IsTangible = 1) 

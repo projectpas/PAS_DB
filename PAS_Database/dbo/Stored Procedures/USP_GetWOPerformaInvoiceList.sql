@@ -85,7 +85,7 @@ BEGIN
 						LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
 						LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
-						AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wop.Quantity
+						AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wop.Quantity AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
 					WHERE wop.WorkOrderId = @WorkOrderId
 					GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
 					wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription

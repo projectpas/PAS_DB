@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------     
 	1
 	2    01/29/2024   Devendra Shekh	modified sp for performaInvoice
+	3    02/02/2024   Devendra Shekh	modified sp for performaInvoice
 
 	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 2183, 1752
 **************************************************************/ 
@@ -59,7 +60,7 @@ BEGIN
 					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0
 					LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
-					AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wosi.QtyShipped
+					AND wobii.WorkOrderPartId = wop.ID AND wobii.NoofPieces = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 				WHERE wop.WorkOrderId = @WorkOrderId 
 				and wop.ID in (SELECT WorkOrderPartId FROM WorkOrderBillingInvoicingItem WITH (NOLOCK)
 								WHERE ISNULL(IsPerformaInvoice, 0) = 0 AND BillingInvoicingId in 

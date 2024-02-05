@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[OneFourtyFiveChildPartDetail] (
+    [OneFourtyFiveChildPartId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [IntegrationMasterId]      BIGINT          NULL,
+    [RepairCertiNo]            VARCHAR (50)    NULL,
+    [LastUpdate]               VARCHAR (50)    NULL,
+    [QuoteDate]                DATETIME2 (7)   NULL,
+    [OHPrice]                  DECIMAL (18, 2) NULL,
+    [OHTAT]                    INT             NULL,
+    [RepairPrice]              DECIMAL (18, 2) NULL,
+    [RepairTAT]                INT             NULL,
+    [TestPrice]                DECIMAL (18, 2) NULL,
+    [TestTAT]                  INT             NULL,
+    [WebLink]                  VARCHAR (MAX)   NULL,
+    [Location]                 VARCHAR (100)   NULL,
+    [MasterCompanyId]          INT             NOT NULL,
+    [CreatedBy]                VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                VARCHAR (256)   NULL,
+    [CreatedDate]              DATETIME2 (7)   CONSTRAINT [DF_OneFourtyFiveChildPartDetail_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]              DATETIME2 (7)   CONSTRAINT [DF_OneFourtyFiveChildPartDetail_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsDeleted]                BIT             CONSTRAINT [DF_OneFourtyFiveChildPartDetail_IsDeleted] DEFAULT ((0)) NULL,
+    [IsActive]                 BIT             CONSTRAINT [DF_OneFourtyFiveChildPartDetail_IsActive] DEFAULT ((0)) NULL,
+    CONSTRAINT [PK_OneFourtyFiveChildPartDetail] PRIMARY KEY CLUSTERED ([OneFourtyFiveChildPartId] ASC),
+    CONSTRAINT [FK_OneFourtyFiveChildPartDetail_IntegrationMaster] FOREIGN KEY ([IntegrationMasterId]) REFERENCES [dbo].[IntegrationMaster] ([IntegrationMasterId])
+);
+

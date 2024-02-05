@@ -499,6 +499,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 'WIRETRAN'
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 'ACHTRAN'
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 'CCPAY'
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN 'MANUALJOURNAL'
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
@@ -526,6 +527,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN ''
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJH.JournalNumber	
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN ''
 											ELSE '' END,
@@ -553,6 +555,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 0
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
@@ -574,6 +577,7 @@ BEGIN
 			  LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId 
 			  LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId 
 			  LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId 
+			  LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON tmp.JournalBatchDetailId = MJSD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId 
 			  LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VRBD.JournalBatchDetailId 
 			  LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId 
@@ -589,6 +593,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
 			  LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
+			  LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJSD.ReferenceId
 		WHERE ISNULL(tmp.IsManualJournal, 0) = 0
 
 		UPDATE #AccTrendTable 

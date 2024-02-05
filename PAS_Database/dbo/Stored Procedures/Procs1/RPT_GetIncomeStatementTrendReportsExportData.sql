@@ -110,6 +110,37 @@ BEGIN
 		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
 		  ORDER BY FiscalYear, [Period]
 
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+			IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					  INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					  SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+					  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 1 
+					  ORDER BY FiscalYear, [Period]
+				END
+				ELSE
+				BEGIN
+					  INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					  SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+					  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
+					  ORDER BY FiscalYear, [Period]
+				END
+		  END
+		  ELSE
+		  BEGIN
+					INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					  SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+					  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)
+					  ORDER BY FiscalYear, [Period]
+		 END
+
 		  --SELECT * FROM #AccPeriodTable_All
 
 		  IF OBJECT_ID(N'tempdb..#GLBalance') IS NOT NULL

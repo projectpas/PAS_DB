@@ -95,10 +95,8 @@ BEGIN
 
 		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
 		  BEGIN
-				PRINT '1'
 				IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
 				BEGIN
-					PRINT '2'
 					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
 					FROM dbo.AccountingCalendar WITH(NOLOCK)
 					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 1 AND   
@@ -107,7 +105,6 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					PRINT '3'
 					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
 					FROM dbo.AccountingCalendar WITH(NOLOCK)
 					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND   
@@ -117,7 +114,6 @@ BEGIN
 		  END
 		  ELSE
 		  BEGIN
-				PRINT '4'
 			  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
 					FROM dbo.AccountingCalendar WITH(NOLOCK)
 					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  

@@ -17,6 +17,7 @@
 	5    28/11/2023   Moin Bloch     Added ReferenceId For WIRETRANSFER,ACHTRANSFER,CREDITCARDPAYMENT
 	6    12/12/2023   Moin Bloch     Added CreditMemoHeaderId and IsStandAloneCM For 'CRFD' 
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+	8    05/02/2024   Hemant Saliya	 Updated For Adjustment Period
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -439,6 +440,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 'WIRETRAN'
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 'ACHTRAN'
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 'CCPAY'
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN 'MANUALJOURNAL'											
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
@@ -454,6 +456,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN '' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN '' --SD.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN V.VendorName
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJH.JournalNumber	
 											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN ''		
 											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.CustomerName
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN ''
@@ -493,6 +496,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 0
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
@@ -514,6 +518,7 @@ BEGIN
 			  LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON tmp.JournalBatchDetailId = MJSD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VRBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId
@@ -529,6 +534,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
 			  LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
+			  LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJSD.ReferenceId
 
 			--SELECT * FROM #AccTrendTable
 

@@ -1889,7 +1889,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetCustomerRMAPartsDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetExchangeSOCoreMonitoringList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetIncomeStatementActualTrendReport.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\RPT_GetIncomeStatementActualTrendReport_HC.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetIncomeStatementTrendReportsExportData.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetManagementStructureDetailsForExchSoReportsHeader.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\RPT_GetManagementStructureDetailsForPOReportsHeader.sql" />
@@ -2270,8 +2269,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetHistory.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementActualTrendReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementTrend_ActualReport.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementTrend_ActualReport_HC.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementTrend_ActualReport_HC1.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementTrend_ColumnName.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetIncomeStatementTrendBudgetReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetInternalWorkorderDeatils.sql" />

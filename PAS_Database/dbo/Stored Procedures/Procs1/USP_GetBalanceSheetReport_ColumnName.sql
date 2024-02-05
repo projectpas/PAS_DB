@@ -10,14 +10,14 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-	1    31/08/2023   Rajesh Gami  Created
-	2    19/12/2023   Moin Bloch   Updated (Added Calander Period Name When we getting 0 Month)
-	3    31/01/2024   Hemnat Saliya Handle ADJ- Period case
+	1    31/08/2023   Rajesh Gami   Created
+	2    19/12/2023   Moin Bloch    Updated (Added Calander Period Name When we getting 0 Month)
+	3    01/02/2024   Hemnat Saliya Handle ADJ- Period case
 **************************************************************/  
 
 /*************************************************************             
 
---EXEC [USP_GetBalanceSheetReport_ColumnName] 23,1,1,'139','139'
+--EXEC [USP_GetBalanceSheetReport_ColumnName] 23,1,1,'140','140'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetBalanceSheetReport_ColumnName]  
@@ -92,12 +92,44 @@ BEGIN
 			   PeriodId INT,  
 			   PeriodName VARCHAR(50)  
 		  ) 
+
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+				PRINT '1'
+				IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					PRINT '2'
+					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 1 AND   
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')
+				END
+				ELSE
+				BEGIN
+					PRINT '3'
+					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND   
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')
+				END
+		  END
+		  ELSE
+		  BEGIN
+				PRINT '4'
+			  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
+			  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')   
+		  END
 		  
-		  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
-				FROM dbo.AccountingCalendar WITH(NOLOCK)
-				WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND
-		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
-				FOR xml PATH ('')), 1, 1, '')   
+		  --SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+				--FROM dbo.AccountingCalendar WITH(NOLOCK)
+				--WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND --ISNULL(IsAdjustPeriod, 0) = 0 AND
+		  --CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+				--FOR xml PATH ('')), 1, 1, '')   
 
 		  INSERT INTO #TempTable(LeafNodeId,Name,ParentId,ParentName,GlAccountId,GlAccountName,Amount,PeriodId,PeriodName,IsPositive,DisplayPeriodName,SequenceNumber)  
 			SELECT L.LeafNodeId,L.Name,L.ParentId,L1.Name,GLM.GLAccountId,GL.AccountName,(ISNULL(CBD.CreditAmount,0) - ISNULL(CBD.DebitAmount,0)),CBD.AccountingPeriodId,ISNULL(CBD.PeriodName,'Other'),l.IsPositive,CBD.AccountingPeriod, L.SequenceNumber  

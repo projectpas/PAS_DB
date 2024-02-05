@@ -115,12 +115,42 @@ BEGIN
 			FiscalYear INT NULL,
 			OrderNum INT NULL
 		  )
+
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+			IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					  INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum]) 
+					  SELECT  REPLACE(PeriodName,' - ',''),[FiscalYear],[Period]
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 1 AND
+		  				 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum]) 
+					  SELECT  REPLACE(PeriodName,' - ',''),[FiscalYear],[Period]
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND
+		  				 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)
+				END
+		  END
+		  ELSE
+		  BEGIN
+					INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum]) 
+					  SELECT  REPLACE(PeriodName,' - ',''),[FiscalYear],[Period]
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND
+		  				 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)
+		 END
 		  
-		  INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum]) 
-		  SELECT  REPLACE(PeriodName,' - ',''),[FiscalYear],[Period]
-		  FROM dbo.AccountingCalendar WITH(NOLOCK)
-		  WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
-		  	 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+		  --INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum]) 
+		  --SELECT  REPLACE(PeriodName,' - ',''),[FiscalYear],[Period]
+		  --FROM dbo.AccountingCalendar WITH(NOLOCK)
+		  --WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
+		  --	 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+
+
 		  
 		  IF OBJECT_ID(N'tempdb..#GLBalance') IS NOT NULL
 		  BEGIN

@@ -19,7 +19,8 @@
 
 /*************************************************************             
 
-EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'179','179', 0  
+EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'140','140', 0 
+EXEC [USP_GetIncomeStatementTrend_ColumnName] 8, 1, 1,'139','139', 0 
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetIncomeStatementTrend_ColumnName]  
@@ -76,7 +77,7 @@ BEGIN
 			 -- SELECT @TODATE = MAX(ToDate) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE FiscalYear = @FiscalYear AND IsDeleted = 0 
 		  --END
 
-		  PRINT @TODATE
+		  --PRINT @TODATE
 
 		  CREATE TABLE #TempTable (       
 			   ID BIGINT NOT NULL IDENTITY(1,1),    
@@ -106,12 +107,40 @@ BEGIN
 			   FiscalYear INT,
 			   [Period] INT
 		  ) 
-		  
-		  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
-				FROM dbo.AccountingCalendar WITH(NOLOCK)
-				WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
-		  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
-				FOR xml PATH ('')), 1, 1, '')   
+
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+				PRINT '1'
+				IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					PRINT '2'
+					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 1 AND   
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')
+				END
+				ELSE
+				BEGIN
+					PRINT '3'
+					SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 AND ISNULL(IsAdjustPeriod, 0) = 0 AND   
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')
+				END
+		  END
+		  ELSE
+		  BEGIN
+				PRINT '4'
+			  SELECT @AccountPeriodIds = STUFF((SELECT ',' + CAST(AccountingCalendarId AS varchar(MAX))  
+					FROM dbo.AccountingCalendar WITH(NOLOCK)
+					WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
+			  CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  
+					FOR xml PATH ('')), 1, 1, '')   
+		  END
+
+		  --SELECT @AccountPeriodIds
 
 		  INSERT INTO #TempTable(LeafNodeId,Name,ParentId,ParentName,GlAccountId,GlAccountName,Amount,PeriodId,PeriodName,IsPositive,DisplayPeriodName,SequenceNumber)  
 			SELECT L.LeafNodeId,L.Name,L.ParentId,L1.Name,GLM.GLAccountId,GL.AccountName,(ISNULL(CBD.CreditAmount,0) - ISNULL(CBD.DebitAmount,0)),CBD.AccountingPeriodId,ISNULL(CBD.PeriodName,'Other'),l.IsPositive,CBD.AccountingPeriod, L.SequenceNumber  
@@ -132,24 +161,28 @@ BEGIN
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
 
+		  --SELECT * FROM #TempTable
+
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)
 		  VALUES(0, 'name', '', 0, 0)
 
 		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  
 		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1 FROM #TempTable 
+
+		  --SELECT * FROM #AccPeriodTempTable
 		  		 
-		  IF(@IsSupressZero = 0)
-		  BEGIN
-			  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign, [FiscalYear], [Period])  
-			  SELECT DISTINCT AccountingCalendarId,  REPLACE(AC.PeriodName,' - ',' ') , '', 1, 1, AC.[FiscalYear], AC.[Period]
-			  FROM dbo.AccountingCalendar AC WITH(NOLOCK)
-			  WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
-		  		 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
-				 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
-			  ORDER BY AC.[FiscalYear],AC.[Period]
-		  END
-		  ELSE
-		  BEGIN	
+		  --IF(@IsSupressZero = 0)
+		  --BEGIN
+			 -- INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign, [FiscalYear], [Period])  
+			 -- SELECT DISTINCT AccountingCalendarId,  REPLACE(AC.PeriodName,' - ',' ') , '', 1, 1, AC.[FiscalYear], AC.[Period]
+			 -- FROM dbo.AccountingCalendar AC WITH(NOLOCK)
+			 -- WHERE LegalEntityId = @LegalEntityId AND IsDeleted = 0 AND  IsAdjustPeriod = 0 AND --AC.[Period] >= @Period AND
+		  --		 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+				-- AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
+			 -- ORDER BY AC.[FiscalYear],AC.[Period]
+		  --END
+		  --ELSE
+		  --BEGIN	
 				DECLARE @PeriodId BIGINT;
 				SELECT TOP 1 @PeriodId = [PeriodId] FROM #AccPeriodTempTable WHERE [PeriodId] > 0
 				IF(@PeriodId IS NULL)
@@ -162,7 +195,7 @@ BEGIN
 					 AND AccountingCalendarId NOT IN (SELECT ISNULL(PeriodId, 0) FROM #AccPeriodTempTable )
 				  ORDER BY AC.[FiscalYear],AC.[Period]
 				END
-		  END
+		  --END
 
 		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1 WHERE PeriodName = 'Other'
 

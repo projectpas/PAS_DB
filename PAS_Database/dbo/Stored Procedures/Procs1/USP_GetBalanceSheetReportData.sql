@@ -15,7 +15,7 @@
  4		13/12/2023   Moin Bloch			    Updated YTD Balance Issue in Balance Sheet 
  5		15/12/2023   Moin Bloch			    Added Static Income Statement ReportingStructureId Need TO Change  Line Number 53
  6      25/01/2024   Hemant Saliya	        Remove Manual Journal from Reports
- 6      31/01/2024   Hemant Saliya	        Updated for Handle Balabce Issues
+ 7      31/01/2024   Hemant Saliya	        Updated for Handle Balance Issues
 
 **************************************************************/
   
@@ -154,7 +154,7 @@ BEGIN
 		SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , MIN(FromDate), MAX(ToDate)
 		FROM dbo.AccountingCalendar WITH(NOLOCK)
 		WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
-			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0 
+			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) --AND ISNULL(IsAdjustPeriod, 0) = 0 
 		GROUP BY REPLACE(PeriodName,' - ',''), [Period]
 
 		INSERT INTO #AccPeriodTable (PeriodName) 
@@ -176,7 +176,7 @@ BEGIN
 		SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') , @FROMDATE, ToDate
 		FROM dbo.AccountingCalendar WITH(NOLOCK)
 		WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
-			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0 
+			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) --AND ISNULL(IsAdjustPeriod, 0) = 0 
 
 		INSERT INTO #AccPeriodTableFinal (AccountcalID, PeriodName) 
 		VALUES(9999999,'Total')
@@ -309,7 +309,6 @@ BEGIN
 		IF(@IsDebugMode = 1)
 		BEGIN
 			SELECT * FROM #AccPeriodTable
-			SELECT * FROM #AccPeriodTable_All
 		END
 
 		SELECT @MAXCalTempID = MAX(ID) fROM #AccPeriodTable
@@ -324,7 +323,7 @@ BEGIN
 			SELECT AccountingCalendarId, REPLACE(PeriodName,' - ',' ') ,FromDate,ToDate, FiscalYear
 			FROM dbo.AccountingCalendar WITH(NOLOCK)
 			WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
-				CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
+				CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  --AND ISNULL(IsAdjustPeriod, 0) = 0 
 			ORDER BY FiscalYear, [Period]
 
 			--SELECT * FROM #AccPeriodTable_All
@@ -455,7 +454,7 @@ BEGIN
 		IF(@IsDebugMode = 1)
 		BEGIN
 			SELECT * FROM #GLBalance
-			SELECT * FROm #TempTable
+			--SELECT * FROm #TempTable
 			SELECT * FROM #TempTableYTDBalabce
 			SELECT * FROM #TempTableBeginingRetailEarnings
 		END

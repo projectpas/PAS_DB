@@ -13,6 +13,7 @@
  2    18/09/2023   Hemant Saliya		Updated for Legal Entity Accounting Calendor Wise 
  3    25/01/2024   Hemant Saliya		Remove Manual Journal from Reports
  4    01/02/2024   Hemant Saliya		Remove Supress Zero Logic
+ 5    05/02/2024   Hemant Saliya	    Updated For Adjustment Period
 
  @strFilter=N'1!2,7!3,11,10!4,12'
 **************************************************************       
@@ -201,6 +202,38 @@ BEGIN
 			FromDate DATETIME NULL,
 			ToDate DATETIME NULL
 		 )
+
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+			IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					 SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					 FROM dbo.AccountingCalendar WITH(NOLOCK)
+					 WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 1 
+					 ORDER BY FiscalYear, [Period]
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					 SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					 FROM dbo.AccountingCalendar WITH(NOLOCK)
+					 WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
+					 ORDER BY FiscalYear, [Period]
+				END
+		  END
+		  ELSE
+		  BEGIN
+					INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
+					 SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
+					 FROM dbo.AccountingCalendar WITH(NOLOCK)
+					 WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
+					 ORDER BY FiscalYear, [Period]
+		 END
+
 	 
 		 INSERT INTO #AccPeriodTable_All (AccountcalID, PeriodName, FromDate, ToDate) 
 		 SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') ,FromDate,ToDate
@@ -208,6 +241,9 @@ BEGIN
 		 WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  and IsDeleted = 0 and  
 			CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
 		 ORDER BY FiscalYear, [Period]
+
+
+
 
 		CREATE TABLE #AccTrendTable (
 		  ID bigint NOT NULL IDENTITY (1, 1),

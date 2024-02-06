@@ -2779,5 +2779,6 @@
     <Build Include="dbo\Tables\ILSChildPartDetail.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllIntegrationPartOffline.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateIntegrationPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_INVBS.sql" />
   </ItemGroup>
 </Project>

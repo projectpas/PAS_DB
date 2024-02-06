@@ -11,7 +11,8 @@
 	1    01/31/2024   AMIT GHEDIYA	Created
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
-	@SalesOrderPartId bigint
+	@SalesOrderPartId BIGINT,
+	@soBillingInvoicingId BIGINT
 AS
 BEGIN
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -48,7 +49,7 @@ SET NOCOUNT ON;
 			LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 1
 			LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 1
-			WHERE sop.SalesOrderPartId = @SalesOrderPartId;
+			WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.SOBillingInvoicingId = @soBillingInvoicingId;
 
 	END TRY    
 	BEGIN CATCH      

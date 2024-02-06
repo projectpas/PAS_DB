@@ -7,11 +7,12 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 **************************************************************
 ** Change History
 **************************************************************  
-** PR   Date        Author          Change Description  
-** --   --------    -------         --------------------------------
-** 1    01/01/2024  AMIT GHEDIYA    Created
+** PR   Date        Author				Change Description  
+** --   --------    -------				--------------------------------
+** 1    01/01/2024  AMIT GHEDIYA		Created
+** 2    02/05/2024  VISHAL SUTHAR		Modified to fix WOQ Print Issues
 
-EXEC RPT_GetWorkOrderPrintPdfData 4933,234
+EXEC RPT_GetWorkOrderPrintPdfData 5320,4937
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -96,8 +97,9 @@ BEGIN
 		shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
 		shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END, 
 
-		shipAddCombo = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) + ', ' else UPPER(shipToAddress.Line1) + ', ' END +              
-					   CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END,
+		shipAddCombo = CASE WHEN shippingInfo.WorkOrderId > 0  THEN (UPPER(shippingInfo.ShipToAddress1)) ELSE (UPPER(shipToAddress.Line1)) END +             
+					   CASE WHEN shippingInfo.WorkOrderId > 0 THEN (CASE WHEN ISNULL(shippingInfo.ShipToAddress2, '') <> '' THEN ', ' + UPPER(ISNULL(shippingInfo.ShipToAddress2, '')) ELSE '' END) ELSE 
+					   (CASE WHEN ISNULL(shipToAddress.Line2, '') <> '' THEN ', ' + UPPER(ISNULL(shipToAddress.Line2, '')) ELSE '' END) END,
 		
 		shipCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(ISNULL(shipToAddress.City,'')) END,              
 		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(ISNULL(shipToAddress.StateOrProvince,'')) END,              

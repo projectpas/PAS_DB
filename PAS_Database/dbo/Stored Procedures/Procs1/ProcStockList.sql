@@ -24,6 +24,7 @@
 	7    06/07/2023   Vishal Suthar		Added new field 'lotNumber' for list
 	8    23/08/2023   Amit Ghediya		Updated filter list as per ManagementStructureId
 	9    16/10/2023   Devendra Shekh	timelife issue resolved
+	10   02/02/2024	  Bhargav Saliya    Filter with 'CustomerName'.
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -81,7 +82,8 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@Location varchar(100) = NULL,    
 	@IsALTStock bit NULL,  
 	@WorkOrderNumber  varchar(50) = NULL,
-	@IsTimeLife varchar(50) = NULL     
+	@IsTimeLife varchar(50) = NULL,
+	@CustomerName varchar(50) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -188,6 +190,7 @@ BEGIN
 	   stl.Location,      
 	   stl.LocationId,    
 	   lot.LotNumber,
+	   (ISNULL(ct.Name,'')) 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId,    
 		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId 
   
@@ -202,6 +205,7 @@ BEGIN
 		  LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
 		  LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
 		  LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
+		  LEFT JOIN dbo.Customer ct WITH (NOLOCK) ON ct.CustomerId = stl.CustomerId
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
@@ -238,7 +242,8 @@ BEGIN
 		  (ownerName LIKE '%' +@GlobalFilter+'%') OR        
 		  (LastMSLevel LIKE '%' +@GlobalFilter+'%') OR        
 		  (WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
-		  (UpdatedBy LIKE '%' +@GlobalFilter+'%')))         
+		  (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+		  (CustomerName LIKE '%' +@GlobalFilter+'%')))         
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		  (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -278,7 +283,8 @@ BEGIN
 		  (ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage LIKE '%' + @WorkOrderStage + '%') AND        
 		  (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND   
 		  (ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
-		  (ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%'))        
+		  (ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
+		  (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))        
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults           
         
@@ -358,7 +364,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -420,6 +428,7 @@ BEGIN
 		stl.Location,    
 		stl.LocationId,   
 		lot.LotNumber,
+		(ISNULL(ct.Name,'')) 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,    
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
 	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
@@ -432,7 +441,8 @@ BEGIN
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 		 LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
 		 LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
-		 LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
+		 LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId
+		 LEFT JOIN dbo.Customer ct WITH (NOLOCK) ON ct.CustomerId = stl.CustomerId
 		 WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
   
 	   ',')))                
@@ -471,7 +481,8 @@ BEGIN
 		(obtainFrom LIKE '%' +@GlobalFilter+'%') OR        
 		(ownerName LIKE '%' +@GlobalFilter+'%') OR        
 		(WorkOrderStage LIKE '%' +@GlobalFilter+'%') OR        
-		(UpdatedBy LIKE '%' +@GlobalFilter+'%')))         
+		(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
+		(CustomerName LIKE '%' +@GlobalFilter+'%')))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND        
@@ -511,7 +522,8 @@ BEGIN
 		(ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage like '%' + @WorkOrderStage+'%') and        
 		(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND  
 		(ISNULL(@WorkOrderNumber,'') ='' OR WorkOrderNumber LIKE '%' + @WorkOrderNumber + '%') AND
-		(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%'))        
+		(ISNULL(@IsTimeLife,'') ='' OR IsTimeLife LIKE '%' + @IsTimeLife + '%') AND
+		(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -592,7 +604,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC   
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -1132,7 +1146,8 @@ BEGIN
                 @Parameter39 = ' + ISNULL(@MasterCompanyId,'') + ',         
                 @Parameter40 = ' + ISNULL(@IsCustomerStock ,'') +',  
                 @Parameter41 = ' + ISNULL(@WorkOrderNumber,'') + ',
-                @Parameter42 = ' + ISNULL(@IsTimeLife ,'') +',  
+                @Parameter42 = ' + ISNULL(@IsTimeLife ,'') +',
+				@Parameter43 = ' + ISNULL(@CustomerName,'') + ',
 				'        
               , @ApplicationName VARCHAR(100) = 'PAS'        
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------        

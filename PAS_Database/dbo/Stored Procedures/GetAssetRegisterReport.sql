@@ -4,9 +4,9 @@
 -- Description:	<This SP to get all the Asset Register Reports>
 -- =============================================
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
-@AssetClass VARCHAR(30),
-@AssetStatus VARCHAR(30),
-@AssetInventoryStatus VARCHAR(30),
+@AssetClass VARCHAR(30) = NULL,
+@AssetStatus VARCHAR(30) = NULL,
+@AssetInventoryStatus VARCHAR(30) = NULL,
 @MasterCompanyId INT,
 @ManagementStructureId INT,
 @xmlFilter XML 
@@ -89,7 +89,7 @@ BEGIN
 				ADH.LastDeprRunPeriod AS LastDeprDate,
 				'' AS NumOfDeprPeriod,
 				'' AS DeprPeriodRemaining,
-				AI.SerialNo,
+				UPPER(AI.SerialNo) AS SerialNo,
 				UPPER(AI.StklineNumber) AS StklineNumber,
 				UPPER(MSD.Level1Name) AS level1,        
 				UPPER(MSD.Level2Name) AS level2,       
@@ -114,9 +114,9 @@ BEGIN
 				LEFT JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
 				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 		
 
-		WHERE AI.AssetAttributeTypeId = @AssetClass 
-			  AND AI.AssetStatusId=@AssetStatus 
-			  AND AI.InventoryStatusId=@AssetInventoryStatus 
+		WHERE ((ISNULL(@AssetClass,0) = 0 OR AI.AssetAttributeTypeId IN (@AssetClass,0)))			
+			  AND ((ISNULL(@AssetStatus,0) = 0 OR AI.AssetStatusId IN (@AssetStatus,0)))		 
+			  AND ((ISNULL(@AssetInventoryStatus,0) = 0 OR AI.InventoryStatusId IN (@AssetInventoryStatus,0)))	 
 			  AND AI.MasterCompanyId = @MasterCompanyId
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      

@@ -11,10 +11,11 @@
 	6    24-01-2024   Shrey Chandegara      remove condition from WorkOrderBillingInvoicing for QtyBilled
 	7    30/01/2024   Devendra Shekh		updated for performInvoice
 	8    01/02/2024   Devendra Shekh		updated for performInvoice
-	9    06/02/2024  Shrey Chandegara      add conditionId for multiple billing invoicing issue.
+	9    06/02/2024   Shrey Chandegara      add conditionId for multiple billing invoicing issue.
 	10   06/02/2024   Devendra Shekh		updated for performInvoice
+	11   07/02/2024   Devendra Shekh		updated for performInvoice
 
-	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
+	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4281,3785
 
 **************************************************************/ 
 
@@ -320,7 +321,7 @@ BEGIN
 							LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 							LEFT JOIN DBO.InvoiceType INV WITH(NOLOCK) on INV.InvoiceTypeId = wobi.InvoiceTypeId
 						WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 
-						AND (ISNULL(wop.IsFinishGood, 0) = 1)
+							AND (ISNULL(wop.IsFinishGood, 0) = 1)
 						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 							wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 							sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
@@ -381,8 +382,9 @@ BEGIN
 					'1' AS ItemNo,
 					wop.WorkOrderId, 
 					wop.Id AS WorkOrderPartId, 
-					cond.Memo AS 'Condition',
-					cond.ConditionId ,
+					CASE WHEN ISNULL(billcond.Memo, '') != '' THEN billcond.Memo 
+						 WHEN ISNULL(billcond.Code, '') != '' THEN billcond.Code ELSE cond.Memo END AS 'Condition',
+					CASE WHEN ISNULL(billcond.ConditionId, 0) = 0 THEN cond.ConditionId ELSE billcond.ConditionId END AS 'ConditionId',
 					curr.Code AS 'CurrencyCode',
 					(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN 0 ELSE wobi.SubTotal END) AS TotalSales,
 					wobi.InvoiceStatus ,
@@ -400,27 +402,29 @@ BEGIN
 					--LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
 					INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 
 					INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
+					LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 					LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobi.ItemMasterId
 					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
-					LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wobi.ConditionId
+					LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
 					LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId AND wobi.WorkOrderShippingId = wos.WorkOrderShippingId
 					LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.WorkOrderShipping wossn WITH(NOLOCK) on wop.WorkOrderId = wossn.WorkOrderId
 					LEFT JOIN DBO.WorkOrderShippingItem wosisn WITH(NOLOCK) on wossn.WorkOrderShippingId = wosisn.WorkOrderShippingId AND wosisn.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.InvoiceType INV WITH(NOLOCK) on INV.InvoiceTypeId = wobi.InvoiceTypeId
+					LEFT JOIN DBO.Condition billcond  WITH(NOLOCK) on billcond.ConditionId = wobi.ConditionId
 				WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartId 
 				
 				GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 					wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 					sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
 					--,wocd.TotalCost
-					cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wobi.SubTotal 
+					cond.Code,curr.Code,wobi.VersionNo,imt.ItemMasterId,wobi.SubTotal 
 					, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
 					,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
-					,wosisn.WorkOrderShippingId,INV.[Description],cond.ConditionId 
+					,wosisn.WorkOrderShippingId,INV.[Description],cond.ConditionId,billcond.Code,billcond.ConditionId,billcond.Memo,cond.Memo
 				) a
 
 				;WITH CTE_Temp AS
@@ -444,7 +448,6 @@ BEGIN
 				ORDER BY WOBillingInvoicingId desc	
 				drop table  #MyTempTable3 
 				--INSERTING BillingInvoicing Details For ProformaInvoice ::-END
-
 				SELECT * FROM #InvoiceMainDetails;
 			END
 		COMMIT  TRANSACTION

@@ -15,7 +15,7 @@
     1    01/05/2024   AMIT GHEDIYA		Created  
     2    02/05/2024   VISHAL SUTHAR		Modified to fix WOQ Print issues
 
---EXEC [RPT_GetWorkOrderQuoteHeaderData] 4094
+--EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
 **************************************************************/  
 CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 

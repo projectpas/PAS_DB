@@ -105,8 +105,12 @@ BEGIN
 		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(ISNULL(shipToAddress.StateOrProvince,'')) END,              
 		shipPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,              
 
-		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) + ' ' END
-					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(TRIM(shippingInfo.SoldToState)) else UPPER(TRIM(shipToAddress.StateOrProvince)) END
+		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) END
+					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN 
+						CASE WHEN ISNULL(shippingInfo.SoldToState, '') = '' THEN '' ELSE ', ' + UPPER(TRIM(shippingInfo.SoldToState)) END 
+					  else 
+						CASE WHEN ISNULL(shipToAddress.StateOrProvince, '') = '' THEN '' ELSE ', ' + UPPER(TRIM(shipToAddress.StateOrProvince)) END 
+					  END
 					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN 
 						CASE WHEN ISNULL(shippingInfo.SoldToZip, '') = '' THEN '' ELSE ', ' + UPPER(shippingInfo.SoldToZip) END
 					  ELSE 

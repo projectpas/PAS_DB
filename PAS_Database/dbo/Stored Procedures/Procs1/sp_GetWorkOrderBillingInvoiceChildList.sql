@@ -12,7 +12,7 @@
 	7    30/01/2024   Devendra Shekh		updated for performInvoice
 	8    01/02/2024   Devendra Shekh		updated for performInvoice
 	9    06/02/2024  Shrey Chandegara      add conditionId for multiple billing invoicing issue.
-	10    06/02/2024   Devendra Shekh		updated for performInvoice
+	10   06/02/2024   Devendra Shekh		updated for performInvoice
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -67,6 +67,7 @@ BEGIN
 					[Notes] [NVARCHAR](MAX) NULL,
 					[InvoiceTypeName] [VARCHAR](50) NULL,
 					[IsProformaInvoice] [bit] NULL,
+					[ConditionId] [BIGINT] NULL,
 				)
 
 
@@ -75,12 +76,12 @@ BEGIN
 					SELECT * INTO #MyTempTable from 
 					(SELECT DISTINCT 
 						wosi.WorkOrderShippingId, 
-						CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
-						CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-						CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+						CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
+						CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+						CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 						wos.WOShippingNum, 
 						wos.AirwayBill As 'AWB',
-						(SUM(wosi.QtyShipped)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+						(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 						wo.WorkOrderNum as WorkOrderNumber, 
 						--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 						--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
@@ -92,7 +93,7 @@ BEGIN
 						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 						ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber', 
 						cr.[Name] as CustomerName, 
-						(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+						(SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 						'1' as ItemNo,
 						wop.WorkOrderId, 
 						wop.Id as WorkOrderPartId, 
@@ -101,9 +102,9 @@ BEGIN
 						cond.ConditionId,
 						curr.Code as 'CurrencyCode',
 						--wocd.TotalCost as TotalSales,
-						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
+						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
 						wobi.InvoiceStatus ,
-						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 						(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 						,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -150,10 +151,10 @@ BEGIN
 	
 					INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice])
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId])
 					select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0 from CTE_Temp t1
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId from CTE_Temp t1
 					where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 							or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 							or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -171,12 +172,12 @@ BEGIN
 						SELECT * INTO #MyTempTable1 from 
 							(SELECT DISTINCT 
 								wosi.WorkOrderShippingId, 
-								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
-								CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
+								CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 								wos.WOShippingNum, 
 								wos.AirwayBill As 'AWB',
-								(SUM(wosi.QtyShipped)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+								(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 								wo.WorkOrderNum as WorkOrderNumber, 
 								--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 								--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
@@ -188,7 +189,7 @@ BEGIN
 								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 								ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber',
 								cr.[Name] as CustomerName, 
-								(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+								(SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 								'1' as ItemNo,
 								wop.WorkOrderId, 
 								wop.Id as WorkOrderPartId, 
@@ -197,9 +198,9 @@ BEGIN
 								cond.ConditionId,
 								curr.Code as 'CurrencyCode',
 								--wocd.TotalCost as TotalSales,
-								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
+								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
 								wobi.InvoiceStatus ,
-								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 								(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 								,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -245,10 +246,10 @@ BEGIN
 	
 							INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice])
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId])
 							select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0 from CTE_Temp t1
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId from CTE_Temp t1
 							where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 									or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 									or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -265,13 +266,13 @@ BEGIN
 						(SELECT DISTINCT 
 							--wop.ID AS WorkOrderShippingId, 
 							CASE WHEN wosi.WorkOrderShippingId IS NOT NULL THEN wosi.WorkOrderShippingId ELSE wop.ID END AS WorkOrderShippingId, 
-							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
-							CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
+							CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 							'' AS WOShippingNum, 
 							'' As 'AWB',
 							--(SUM(wopick.QtyToShip)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId)) as QtyToBill, 
-							(SUM(wop.Quantity)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+							(SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 							wo.WorkOrderNum as WorkOrderNumber, 
 							--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 							--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
@@ -283,7 +284,7 @@ BEGIN
 							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 							ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber', 
 							cr.[Name] as CustomerName, 
-							(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+							(SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 							'1' as ItemNo,
 							wop.WorkOrderId, 
 							wop.Id as WorkOrderPartId, 
@@ -291,9 +292,9 @@ BEGIN
 							cond.Memo as 'Condition',
 							cond.ConditionId ,
 							curr.Code as 'CurrencyCode',
-							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
+							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobi.SubTotal end) as TotalSales,
 							wobi.InvoiceStatus ,
-							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 							CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 							(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 							,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -339,10 +340,10 @@ BEGIN
 	
 						INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice])
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId])
 						select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0 from CTE_Temp t1
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId from CTE_Temp t1
 						where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 								or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 								or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -359,14 +360,14 @@ BEGIN
 				(SELECT DISTINCT 
 					CASE WHEN wos.WorkOrderShippingId IS NOT NULL THEN wos.WorkOrderShippingId 
 						 ELSE CASE WHEN wosisn.WorkOrderShippingId IS NOT NULL THEN wosisn.WorkOrderShippingId ELSE 0 END END AS WorkOrderShippingId, 
-					CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
-					CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-					CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+					CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK)  WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS WOBillingInvoicingId, 
+					CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+					CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 					CASE WHEN ISNULL(wos.WOShippingNum, '') = ''  THEN '' ELSE wos.WOShippingNum END AS WOShippingNum, 
 				    CASE WHEN ISNULL(wos.AirwayBill, '') = '' THEN '' ELSE wos.AirwayBill END As 'AWB',
 					CASE WHEN ISNULL(wos.WorkOrderShippingId, 0) != 0 
-						 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
-						 ELSE (SUM(wop.Quantity)- (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
+						 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
+						 ELSE (SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
 					wo.WorkOrderNum AS WorkOrderNumber, 
 					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END AS 'PartNumber',
@@ -376,15 +377,16 @@ BEGIN
 					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
 					ELSE CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END END AS 'SerialNumber', 
 					cr.[Name] AS CustomerName, 
-					(SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) AS QtyBilled,
+					(SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) AS QtyBilled,
 					'1' AS ItemNo,
 					wop.WorkOrderId, 
 					wop.Id AS WorkOrderPartId, 
 					cond.Memo AS 'Condition',
+					cond.ConditionId ,
 					curr.Code AS 'CurrencyCode',
-					(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN 0 ELSE wobi.SubTotal END) AS TotalSales,
+					(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN 0 ELSE wobi.SubTotal END) AS TotalSales,
 					wobi.InvoiceStatus ,
-					(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(*) FROM DBO.WorkOrderBillingInvoicingItem wobii WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN NULL ELSE wobi.VersionNo END) AS VersionNo ,
+					(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN NULL ELSE wobi.VersionNo END) AS VersionNo ,
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 					(CASE WHEN wobi.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsAllowIncreaseVersion
 					,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -393,8 +395,8 @@ BEGIN
 					,ISNULL(INV.[Description], 'PROFORMA') AS [InvoiceTypeName]
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 					LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
-					LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.WorkOrderId = wop.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 1
-					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
+					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
+					LEFT JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.WorkOrderId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 1 
 					--LEFT JOIN DBO.WorkOrderMPNCostDetails wocd WITH(NOLOCK) on wop.ID = wocd.WOPartNoId
 					INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 
 					INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
@@ -418,7 +420,7 @@ BEGIN
 					cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wobi.SubTotal 
 					, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
 					,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
-					,wosisn.WorkOrderShippingId,INV.[Description] 
+					,wosisn.WorkOrderShippingId,INV.[Description],cond.ConditionId 
 				) a
 
 				;WITH CTE_Temp AS
@@ -429,10 +431,10 @@ BEGIN
 				)
 				INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice])
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId])
 				SELECT [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
-													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 1 from CTE_Temp t1
+													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 1, ConditionId from CTE_Temp t1
 				WHERE (((VersionNo IS NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)
 						OR ((VersionNo IS NOT NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 						OR((VersionNo IS NULL AND IsAllowIncreaseVersion =0) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)

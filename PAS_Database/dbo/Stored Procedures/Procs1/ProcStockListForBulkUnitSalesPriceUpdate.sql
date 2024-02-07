@@ -18,7 +18,8 @@
 	1    15/11/2023   Rajesh Gami		Create    
 	2    20/11/2023   Devendra Shekh	added unitsales price, expirationDate    
 	3    21/11/2023   Devendra Shekh	added conditionids and itemmasterid for filter    
-	4    02/03/2024   Ekta Chandegra    added @ItemClassificationName
+	4    02/01/2024   Ekta Chandegra    added @ItemClassificationName
+	5    07/02/2024   Ekta Chandegra    added @ConditionId
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -39,6 +40,7 @@ CREATE     PROCEDURE [dbo].[ProcStockListForBulkUnitSalesPriceUpdate]
 	@GlAccountName varchar(50) = NULL,        
 	@ItemCategory varchar(50) = NULL,        
 	@Condition varchar(50) = NULL,        
+	@ConditionId varchar(50) = NULL,       
 	@QuantityAvailable varchar(50) = NULL,        
 	@QuantityOnHand varchar(50) = NULL,        
 	@CompanyName varchar(50) = NULL,        
@@ -158,6 +160,7 @@ BEGIN
 		stl.ControlNumber,        
 		stl.IdNumber,        
 		(ISNULL(stl.Condition,'')) 'Condition',                 
+		(ISNULL(stl.ConditionId,'')) 'ConditionId',                 
 		(ISNULL(stl.ReceivedDate,'')) 'ReceivedDate',        
 		(ISNULL(stl.ShippingReference,'')) 'AWB',               
 		stl.ExpirationDate 'ExpirationDate',        
@@ -234,6 +237,7 @@ BEGIN
 		  (TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		  (IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (Condition LIKE '%' +@GlobalFilter+'%') OR        
+		  (ConditionId LIKE '%' +@GlobalFilter+'%') OR        
 		  (Location LIKE '%' +@GlobalFilter+'%') OR     
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
@@ -268,6 +272,7 @@ BEGIN
 		  (ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
+		  (ISNULL(@ConditionId,'') ='' OR ConditionId LIKE '%' + @ConditionId + '%') AND        
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND     
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
@@ -329,7 +334,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IdNumber')  THEN IdNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IdNumber')  THEN IdNumber END DESC,         
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,         
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,  
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionId')  THEN ConditionId END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionId')  THEN ConditionId END DESC,  
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='ExpirationDate')  THEN ExpirationDate END ASC,        
@@ -399,6 +406,7 @@ BEGIN
 		stl.ControlNumber,        
 		stl.IdNumber,        
 		(ISNULL(stl.Condition,'')) 'Condition',                 
+		(ISNULL(stl.ConditionId,'')) 'ConditionId',                 
 		(ISNULL(stl.ReceivedDate,'')) 'ReceivedDate',        
 		(ISNULL(stl.ShippingReference,'')) 'AWB',               
 		(ISNULL(stl.ExpirationDate,'')) 'ExpirationDate',        
@@ -478,6 +486,7 @@ BEGIN
 		(TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		(IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(Condition LIKE '%' +@GlobalFilter+'%') OR        
+		(ConditionId LIKE '%' +@GlobalFilter+'%') OR        
 		(Location LIKE '%' +@GlobalFilter+'%') OR        
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
@@ -510,7 +519,8 @@ BEGIN
 		(ISNULL(@TagType,'') ='' OR TagType LIKE '%' + @TagType + '%') AND        
 		(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
-		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
+		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND 
+		(ISNULL(@ConditionId,'') ='' OR ConditionId LIKE '%' + @ConditionId + '%') AND 
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -573,7 +583,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IdNumber')  THEN IdNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IdNumber')  THEN IdNumber END DESC,         
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,         
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionId')  THEN ConditionId END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionId')  THEN ConditionId END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='ExpirationDate')  THEN ExpirationDate END ASC,        
@@ -648,6 +660,7 @@ BEGIN
 		stl.ControlNumber,        
 		stl.IdNumber,        
 		(ISNULL(stl.Condition,'')) 'Condition',                 
+		(ISNULL(stl.ConditionId,'')) 'ConditionId',                 
 		(ISNULL(stl.ReceivedDate,'')) 'ReceivedDate',        
 		(ISNULL(stl.ShippingReference,'')) 'AWB',               
 		stl.ExpirationDate 'ExpirationDate',        
@@ -728,6 +741,7 @@ BEGIN
 		  (TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		  (IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (Condition LIKE '%' +@GlobalFilter+'%') OR        
+		  (ConditionId LIKE '%' +@GlobalFilter+'%') OR        
 		  (Location LIKE '%' +@GlobalFilter+'%') OR     
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
@@ -763,6 +777,7 @@ BEGIN
 		  (ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
+		  (ISNULL(@ConditionId,'') ='' OR ConditionId LIKE '%' + @ConditionId + '%') AND        
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND     
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
@@ -826,7 +841,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IdNumber')  THEN IdNumber END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IdNumber')  THEN IdNumber END DESC,         
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,         
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC, 
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionId')  THEN ConditionId END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionId')  THEN ConditionId END DESC, 
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='ExpirationDate')  THEN ExpirationDate END ASC,        
@@ -897,6 +914,7 @@ BEGIN
 		stl.ControlNumber,        
 		stl.IdNumber,        
 		(ISNULL(stl.Condition,'')) 'Condition',                 
+		(ISNULL(stl.ConditionId,'')) 'ConditionId',                 
 		(ISNULL(stl.ReceivedDate,'')) 'ReceivedDate',        
 		(ISNULL(stl.ShippingReference,'')) 'AWB',               
 		(ISNULL(stl.ExpirationDate,'')) 'ExpirationDate',        
@@ -979,6 +997,7 @@ BEGIN
 		(TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		(IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(Condition LIKE '%' +@GlobalFilter+'%') OR        
+		(ConditionId LIKE '%' +@GlobalFilter+'%') OR        
 		(Location LIKE '%' +@GlobalFilter+'%') OR        
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
@@ -1013,6 +1032,7 @@ BEGIN
 		(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
+		(ISNULL(@ConditionId,'') ='' OR ConditionId LIKE '%' + @ConditionId + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -1077,7 +1097,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IdNumber')  THEN IdNumber END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IdNumber')  THEN IdNumber END DESC,         
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,         
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='ConditionId')  THEN ConditionId END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ConditionId')  THEN ConditionId END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='ExpirationDate')  THEN ExpirationDate END ASC,        

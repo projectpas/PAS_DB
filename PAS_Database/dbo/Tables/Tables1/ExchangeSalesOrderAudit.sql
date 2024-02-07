@@ -60,6 +60,12 @@
     [IsApproved]                BIT             NULL,
     [CoreAccepted]              BIT             DEFAULT ((0)) NOT NULL,
     [IsVendor]                  BIT             NULL,
+    [IsFreightFlatRate]         BIT             NULL,
+    [FreightFlatRate]           DECIMAL (18, 2) NULL,
+    [IsChargeFlatRate]          BIT             NULL,
+    [ChargeFlatRate]            DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 

@@ -105,9 +105,13 @@ BEGIN
 		shipState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(ISNULL(shipToAddress.StateOrProvince,'')) END,              
 		shipPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,              
 
-		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) + ', ' END
-					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(shipToAddress.StateOrProvince) END
-					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(shipToAddress.PostalCode) END,
+		shipComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) + ', ' else UPPER(shipToAddress.City) + ' ' END
+					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(TRIM(shippingInfo.SoldToState)) else UPPER(TRIM(shipToAddress.StateOrProvince)) END
+					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN 
+						CASE WHEN ISNULL(shippingInfo.SoldToZip, '') = '' THEN '' ELSE ', ' + UPPER(shippingInfo.SoldToZip) END
+					  ELSE 
+						CASE WHEN ISNULL(shipToAddress.PostalCode, '') = '' THEN '' ELSE ', ' + UPPER(shipToAddress.PostalCode) END
+					END,
 
 		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,              
 		wop.ManagementStructureId,              

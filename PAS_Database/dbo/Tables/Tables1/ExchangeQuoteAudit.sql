@@ -63,6 +63,12 @@
     [IsEnforceApproval]        BIT             NULL,
     [IsNewVersionCreated]      BIT             DEFAULT ((0)) NOT NULL,
     [QuoteParentId]            BIGINT          NULL,
+    [IsFreightFlatRate]        BIT             NULL,
+    [FreightFlatRate]          DECIMAL (18, 2) NULL,
+    [IsChargeFlatRate]         BIT             NULL,
+    [ChargeFlatRate]           DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
+
+
 

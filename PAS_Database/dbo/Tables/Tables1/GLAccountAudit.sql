@@ -23,6 +23,9 @@
     [Category1099Id]              BIGINT          NULL,
     [Threshold]                   DECIMAL (18, 2) NULL,
     [IsManualJEReference]         BIT             NULL,
-    [ReferenceTypeId]             INT             NULL
+    [ReferenceTypeId]             INT             NULL,
+    [SubLedgerId]                 INT             NULL
 );
+
+
 

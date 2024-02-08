@@ -148,8 +148,11 @@ BEGIN
 										AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
 										AND sobii.IsVersionIncrease = 0
 						WHERE sop.SalesOrderId = @SalesOrderId 
-						AND imt.partnumber NOT IN(SELECT partnumber FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
-						AND sop.ConditionId NOT IN(SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
+						--AND imt.partnumber NOT IN(SELECT partnumber FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
+						--AND sop.ConditionId NOT IN(SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
+						AND (imt.partnumber NOT IN (SELECT partnumber FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
+							AND sop.ConditionId NOT IN (SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
+							)
 						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
 							sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId
 				)

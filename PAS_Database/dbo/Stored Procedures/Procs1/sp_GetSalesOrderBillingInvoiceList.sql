@@ -41,6 +41,7 @@ BEGIN
 				CREATE TABLE #SalesOrderBillingInvoiceList(
 					SalesOrderNumber [VARCHAR](MAX)  NULL,
 					partnumber [VARCHAR](MAX) NOT NULL,
+					ItemMasterId [BIGINT]  NULL,
 					PartDescription [VARCHAR](MAX) NULL,
 					ConditionId [BIGINT]  NULL,
 					SalesOrderId [BIGINT]  NULL,
@@ -52,9 +53,9 @@ BEGIN
 
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 				BEGIN
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
+					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
 					(
-					SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 				
+					SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
 					sop.SalesOrderId, imt.ItemMasterId,--imt.ItemMasterId AS SalesOrderPartId,				
 					'' as [Status],
 					0 AS ItemNo
@@ -70,7 +71,7 @@ BEGIN
 								AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sosi.QtyShipped
 								AND ISNULL(sobii.IsVersionIncrease,0) = 0 AND ISNULL(sobii.IsProforma,0) = 0
 					WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
-					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
+					GROUP BY so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription,
 					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId)
 				END
 				ELSE
@@ -78,8 +79,8 @@ BEGIN
 
 				IF (@SalesOrderShippingId > 0)
 				BEGIN
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
-					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 				
+					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
+					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
 					sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,				
 					'' as [Status],
 					0 AS ItemNo
@@ -99,13 +100,13 @@ BEGIN
 					WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
 					AND (ISNULL(soapr.SalesOrderApprovalId, 0) > 0 OR ISNULL(sosi.QtyShipped, 0) > 0) 
 					--AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0)
-					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
+					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
 					sop.SalesOrderId, imt.ItemMasterId,  sop.ConditionId)
 				END
 				ELSE 
 				BEGIN 
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
-					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sop.ConditionId, 				
+					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
+					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
 					sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,				
 					'' as [Status],
 					0 AS ItemNo
@@ -125,13 +126,14 @@ BEGIN
 					WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
 					AND (ISNULL(soapr.SalesOrderApprovalId, 0) > 0 OR ISNULL(sosi.QtyShipped, 0) > 0)  
 					AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0)
-					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
+					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
 					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId)
 				END
-				
-				INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
+				--select * from #SalesOrderBillingInvoiceList;
+				INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,Status,ItemNo)
 				(SELECT DISTINCT so.SalesOrderNumber, 
 								imt.partnumber, 
+								imt.ItemMasterId,
 								imt.PartDescription, 
 								sop.ConditionId, 				
 								sop.SalesOrderId, 
@@ -140,8 +142,8 @@ BEGIN
 								0 AS ItemNo
 								--sop.Qty AS Qty
 						FROM DBO.SalesOrderPart sop WITH (NOLOCK)
-							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+							INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+							INNER JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId
 							LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 1
 							LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 1
@@ -150,15 +152,16 @@ BEGIN
 						WHERE sop.SalesOrderId = @SalesOrderId 
 						--AND imt.partnumber NOT IN(SELECT partnumber FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
 						--AND sop.ConditionId NOT IN(SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
-						AND (imt.partnumber NOT IN (SELECT partnumber FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
-							AND sop.ConditionId NOT IN (SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderId = @SalesOrderId)
-							)
-						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
+						AND (imt.ItemMasterId NOT IN (SELECT ItemMasterId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderPartId = sop.SalesOrderPartId AND  tmp.SalesOrderId = @SalesOrderId)
+							AND sop.ConditionId NOT IN (SELECT ConditionId FROM #SalesOrderBillingInvoiceList tmp WHERE tmp.SalesOrderPartId = sop.SalesOrderPartId AND tmp.SalesOrderId = @SalesOrderId)
+						)
+						GROUP BY so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription,
 							sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId
 				)
 
-				SELECT SalesOrderNumber,
+				SELECT DISTINCT SalesOrderNumber,
 					   partnumber,
+					   ItemMasterId,
 					   PartDescription,
 					   ConditionId,
 					   SalesOrderId,

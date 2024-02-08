@@ -10,11 +10,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		 Change Description              
- ** --   --------     -------		--------------------------------            
-    1    01/05/2024   AMIT GHEDIYA    Created  
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    01/05/2024   AMIT GHEDIYA		Created  
+    2    02/05/2024   VISHAL SUTHAR		Modified to fix WOQ Print issues
 
---EXEC [RPT_GetWorkOrderQuoteHeaderData] 2140
+--EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
 **************************************************************/  
 CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 
@@ -54,10 +55,13 @@ BEGIN
             Email = UPPER(ISNULL(con.Email,'')),
             Address1 = UPPER(ISNULL(adr.Line1,'')),
             Address2 = UPPER(ISNULL(adr.Line2,'')),
-			ComboAddress = UPPER(ISNULL(adr.Line1,'')) + '' + UPPER(ISNULL(adr.Line2,'')),
+			ComboAddress = UPPER(ISNULL(adr.Line1,'')) + (CASE WHEN ISNULL(adr.Line2, '') = '' THEN '' ELSE (', ' + UPPER(ISNULL(adr.Line2,''))) END),
             City = UPPER(ISNULL(adr.City,'')),
             State = UPPER(ISNULL(adr.StateOrProvince,'')),
-			ComboCitystate = UPPER(ISNULL(adr.City,'')) + '' + UPPER(ISNULL(adr.StateOrProvince,'')),
+			ComboCitystate = UPPER(ISNULL(adr.City,'')) + ' ' + UPPER(ISNULL(adr.StateOrProvince,'')),
+			ComboCitystateZip = UPPER(ISNULL(adr.City,'')) + 
+				CASE WHEN ISNULL(adr.StateOrProvince, '') = '' THEN '' ELSE (', ' + UPPER(ISNULL(adr.StateOrProvince,''))) END + 
+				(CASE WHEN ISNULL(adr.PostalCode,'') = '' THEN '' ELSE ', ' + UPPER(ISNULL(adr.PostalCode,'')) END),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),

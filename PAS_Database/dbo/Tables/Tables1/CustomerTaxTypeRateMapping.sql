@@ -23,8 +23,10 @@
     CONSTRAINT [PK_CTTRMapping] PRIMARY KEY CLUSTERED ([CustomerTaxTypeRateMappingId] ASC),
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerTaxTypeRateMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [Unique_CustomerIdTaxTypeRate] UNIQUE NONCLUSTERED ([CustomerId] ASC, [TaxRateId] ASC, [TaxTypeId] ASC, [SiteId] ASC, [MasterCompanyId] ASC)
+    CONSTRAINT [Unique_CustomerIdTaxTypeRate] UNIQUE NONCLUSTERED ([CustomerId] ASC, [TaxRateId] ASC, [TaxTypeId] ASC, [SiteId] ASC, [ShipFromSiteId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

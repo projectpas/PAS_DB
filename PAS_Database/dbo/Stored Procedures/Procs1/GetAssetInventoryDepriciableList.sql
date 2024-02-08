@@ -217,7 +217,7 @@ BEGIN
 									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 
 							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE))) <= asm.AssetLife)
 																-- AND (B.NetBookValue IS NOT NULL AND B.NetBookValue > ASM.ResidualPercentage)
-																AND (B.NetBookValue IS NULL OR ISNULL(B.NetBookValue,0) > ASM.ResidualPercentage)
+																-- AND (B.NetBookValue IS NULL OR ISNULL(B.NetBookValue,0) > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
 																AND (asm.InventoryStatusId = 1) 
 																AND (asm.IsTangible = 1) 
@@ -227,6 +227,7 @@ BEGIN
 																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 																AND (LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,',')))
+																AND ( ASM.DepreciationStartDate <= CAST(GETUTCDATE() AS DATE) )
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult FROM  Result
 					WHERE (

@@ -22,8 +22,8 @@
 
 /*************************************************************             
 
-EXEC dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet @StartAccountingPeriodId=138,@EndAccountingPeriodId=138,@ReportingStructureId=23,@ManagementStructureId=1,
-@MasterCompanyId=1,@LeafNodeId=102,@GLAccountId=307,@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
+EXEC dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet @StartAccountingPeriodId=179,@EndAccountingPeriodId=179,@ReportingStructureId=23,@ManagementStructureId=1,
+@MasterCompanyId=1,@LeafNodeId=150,@GLAccountId=2,@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet]
@@ -140,11 +140,39 @@ BEGIN
 			OrderNum INT NULL
 		  )
 
-		  INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
-		  SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
-		  FROM dbo.AccountingCalendar WITH(NOLOCK)
-		  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
-			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0 
+		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
+		  BEGIN
+			IF((SELECT ISNULL(IsAdjustPeriod, 0) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @StartAccountingPeriodId) > 0)
+				BEGIN
+					  INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
+					  SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
+						 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 1
+				END
+				ELSE
+				BEGIN
+					  INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
+					  SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
+					  FROM dbo.AccountingCalendar WITH(NOLOCK)
+					  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
+						 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0
+				END
+		  END
+		  ELSE
+		  BEGIN
+					INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
+				    SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
+				    FROM dbo.AccountingCalendar WITH(NOLOCK)
+				    WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
+						CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE)
+		 END
+
+		  --INSERT INTO #AccPeriodTable (PeriodName, [OrderNum], FromDate, ToDate) 
+		  --SELECT DISTINCT REPLACE(PeriodName,' - ',''), [Period] , FromDate, ToDate
+		  --FROM dbo.AccountingCalendar WITH(NOLOCK)
+		  --WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
+			 --CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) --AND ISNULL(IsAdjustPeriod, 0) = 0 
 		  
 		  INSERT INTO #AccPeriodTable (AccountcalID, PeriodName) 
 		  VALUES(9999999,'Total')
@@ -165,7 +193,7 @@ BEGIN
 		  SELECT AccountingCalendarId, REPLACE(PeriodName,' - ','') , @FROMDATE, ToDate
 		  FROM dbo.AccountingCalendar WITH(NOLOCK)
 		  WHERE LegalEntityId = @LegalEntityId and IsDeleted = 0 and  
-			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) AND ISNULL(IsAdjustPeriod, 0) = 0 
+			 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) --AND ISNULL(IsAdjustPeriod, 0) = 0 
 
 		  INSERT INTO #AccPeriodTableFinal (AccountcalID, PeriodName) 
 		  VALUES(9999999,'Total')
@@ -240,7 +268,7 @@ BEGIN
 			SELECT AccountingCalendarId, REPLACE(PeriodName,' - ',' ') ,FromDate,ToDate
 			FROM dbo.AccountingCalendar WITH(NOLOCK)
 			WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
-				CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  AND ISNULL(IsAdjustPeriod, 0) = 0 
+				CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  --AND ISNULL(IsAdjustPeriod, 0) = 0 
 			ORDER BY FiscalYear, [Period]
 
 			INSERT INTO #GLBalance (LeafNodeId, AccountingPeriodId, DebitAmount, CreaditAmount,  Amount,GLAccountId, JournalNumber, JournalBatchDetailId, EntryDate, PeriodNameDistinct, IsManualJournal)
@@ -596,16 +624,29 @@ BEGIN
 			  LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJSD.ReferenceId
 		WHERE ISNULL(tmp.IsManualJournal, 0) = 0
 
+		--SELECT * FROM #AccTrendTable
+
 		UPDATE #AccTrendTable 
 					SET ReferenceModule = CASE WHEN tmp.IsManualJournal = 1 THEN 'MANUAL JE' ELSE ReferenceModule END,
 						ReferenceName = CASE WHEN tmp.IsManualJournal = 1 THEN MJH.JournalNumber ELSE ReferenceName END,
 						Referenceid = CASE WHEN tmp.IsManualJournal = 1 THEN MJD.ManualJournalHeaderId ELSE tmp.Referenceid END,
 						LastMSLevel = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN  MJD.LastMSLevel ELSE MJD.LastMSLevel END,
-						AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END
+						AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END						
 			 FROM #AccTrendTable tmp 
 			 JOIN dbo.ManualJournalHeader MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = tmp.JournalBatchDetailId
 			 JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
 			 WHERE ISNULL(tmp.IsManualJournal, 0) = 1
+			
+			--SELECT * FROM #AccTrendTable WHERE JournalNumber = 'JE-000128'
+
+			UPDATE #AccTrendTable 
+					SET AccountingPeriod = CASE WHEN ISNULL(BD.JournalTypeNumber, '') != '' THEN REPLACE(BD.AccountingPeriod,' - ','')  ELSE tmp.AccountingPeriod END,
+						PeriodName = CASE WHEN ISNULL(BD.JournalTypeNumber, '') != '' THEN REPLACE(BD.AccountingPeriod,' - ','')  ELSE tmp.PeriodName END											
+			 FROM #AccTrendTable tmp 
+			 JOIN dbo.BatchDetails BD WITH (NOLOCK) ON BD.JournalTypeNumber = tmp.JournalNumber	
+			 WHERE BD.JournalBatchDetailId = tmp.JournalBatchDetailId
+
+			 --SELECT * FROM #AccTrendTable WHERE JournalNumber = 'JE-000128'
 
 		  ;WITH cte
 			AS

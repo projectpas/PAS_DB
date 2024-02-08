@@ -71,11 +71,11 @@ BEGIN
 				ISNULL(SOQAS.AllAddressId, 0) AS BillToPOAddressId,
 				ISNULL(SOQAS.UserType, 0) AS BillToUserType,
 				CASE WHEN SOQAS.UserType = @CustomerModuleID
-				     THEN (SELECT CustomerId FROM dbo.Customer WHERE UPPER([NAME]) = UPPER(SOS.SoldToName))
+				     THEN (SELECT CustomerId FROM dbo.Customer WITH (NOLOCK) WHERE UPPER([NAME]) = UPPER(SOS.SoldToName))
 					 WHEN SOQAS.UserType = @VendorModuleID
-					 THEN (SELECT VendorId FROM dbo.Vendor WHERE UPPER([VendorName]) = UPPER(SOS.SoldToName))
+					 THEN (SELECT VendorId FROM dbo.Vendor WITH (NOLOCK) WHERE UPPER([VendorName]) = UPPER(SOS.SoldToName))
 					 WHEN SOQAS.UserType = @CompanyModuleID
-					 THEN (SELECT LegalEntityId FROM dbo.LegalEntity WHERE UPPER([NAME]) = UPPER(SOS.SoldToName))
+					 THEN (SELECT LegalEntityId FROM dbo.LegalEntity WITH (NOLOCK) WHERE UPPER([NAME]) = UPPER(SOS.SoldToName))
 				END AS BillToUserId,	
 				ISNULL(SOS.SoldToName,'')BillToUserName,				
 				ISNULL(SOS.SoldToSiteId, 0) AS BillToSiteId,

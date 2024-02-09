@@ -64,8 +64,12 @@
     [FreightFlatRate]           DECIMAL (18, 2) NULL,
     [IsChargeFlatRate]          BIT             NULL,
     [ChargeFlatRate]            DECIMAL (18, 2) NULL,
+    [IsFreightFlatRateInsert]   BIT             NULL,
+    [IsChargeFlatRateInsert]    BIT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 
 
 

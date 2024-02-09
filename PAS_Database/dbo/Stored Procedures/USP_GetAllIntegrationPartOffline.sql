@@ -71,7 +71,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							im.UpdatedDate
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
-						WHERE IM.PartNumber = @PartNumber AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
+						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
 
 				END   /**** End:  145 Integration ******/
 				ELSE IF(UPPER(@PortalType) = UPPER(@ILSName)) /**** Start:  ILS Integration ******/
@@ -96,7 +96,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 							im.UpdatedDate
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
-						WHERE IM.PartNumber = @PartNumber AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
+						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
 				END  /**** END:  ILS Integration ******/
 			END /***** End: @IsAll = 0 ******/
 			ELSE

@@ -12,6 +12,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    09/29/2023  HEMANT SALIYA    Updated For Notes in Remarks
 ** 3    01/01/2024  Devendra Shekh   updated for SerialNumber(Batchnumber)
+** 4    02/08/2024  Shrey Chandegara  Updated for status (add case condition in status)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1
 **************************************************************/ 
@@ -53,7 +54,7 @@ BEGIN
 			  wop.Quantity AS Quantity,  
 			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber end)
 			  ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-			  wosc.conditionName AS [status],  
+			  CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status],
 			  '' as Certifies,   
 			  0 AS approved ,  
 			  0 AS Nonapproved,  
@@ -101,6 +102,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
+			  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 		 WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID=@workOrderPartNumberId  
   END TRY      
   BEGIN CATCH        

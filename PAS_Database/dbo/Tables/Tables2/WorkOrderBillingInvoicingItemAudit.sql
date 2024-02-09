@@ -23,8 +23,11 @@
     [VersionNo]                     VARCHAR (20)    NULL,
     [IsVersionIncrease]             BIT             NULL,
     [IsPerformaInvoice]             BIT             NULL,
+    [IsInvoicePosted]               BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditWOBillingInvoicingItemId] ASC)
 );
+
+
 
 
 

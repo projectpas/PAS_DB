@@ -17,6 +17,7 @@
 	1
 	2    01/29/2024   Devendra Shekh	modified sp for performaInvoice
 	3    02/02/2024   Devendra Shekh	modified sp for performaInvoice
+	4    02/08/2024   Devendra Shekh	changed join for shipping to left
 
 	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 2183, 1752
 **************************************************************/ 
@@ -54,8 +55,8 @@ BEGIN
 					END as [Status], 0 AS ItemNo  
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)
 					LEFT JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
-					INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
-					INNER JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
+					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
+					LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0

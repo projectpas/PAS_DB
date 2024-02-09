@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
+	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -70,12 +71,13 @@ BEGIN
 			BEGIN		
 
 			;WITH Result AS(									
-		   		SELECT PO.PurchaseOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.PurchaseOrderNumber,PO.OpenDate as 'PODate',
+		   		SELECT DISTINCT PO.PurchaseOrderId, POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,PO.PurchaseOrderNumber,PO.OpenDate as 'PODate',
 				--POP.EstDeliveryDate as 'ReceivedDate',
 				F.ReceiveDate as 'ReceivedDate',
 				PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',VRFQPO.VendorRFQPurchaseOrderNumber AS 'QuoteNumber',
 				VRFQPO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
-				DATEDIFF(day, PO.OpenDate, F.ReceiveDate) AS TAT from PurchaseOrderPart POP WITH (NOLOCK)
+				DATEDIFF(day, PO.OpenDate, F.ReceiveDate) AS TAT 
+				from PurchaseOrderPart POP WITH (NOLOCK)
 				INNER JOIN PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 				INNER JOIN ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
 				INNER JOIN Vendor VN WITH (NOLOCK) ON VN.VendorId = PO.VendorId
@@ -136,7 +138,7 @@ BEGIN
 		ELSE
 		BEGIN
 			;WITH Result AS(									
-		   		select PO.VendorRFQPurchaseOrderId as 'PurchaseOrderId', POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,P.PurchaseOrderNumber,PO.OpenDate as 'PODate',
+		   		select DISTINCT PO.VendorRFQPurchaseOrderId as 'PurchaseOrderId', POP.ItemMasterId,IM.partnumber as 'PartNumber',IM.PartDescription,P.PurchaseOrderNumber,PO.OpenDate as 'PODate',
 				F.ReceiveDate as 'ReceivedDate',
 				PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',PO.VendorRFQPurchaseOrderNumber AS 'QuoteNumber',
 				PO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
@@ -155,7 +157,7 @@ BEGIN
 					SELECT TOP 1 ST.ReceivedDate AS ReceiveDate from #TempStkList ST WHERE ST.ItemMasterId = VRFQPO.ItemMasterId AND ST.PurchaseOrderId = VRFQPO.PurchaseOrderId AND ST.PurchaseOrderPartRecordId = VRFQPO.PurchaseOrderPartRecordId
 					ORDER BY ST.ReceivedDate ASC
 		        ) F
-				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId 
+				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) -- AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId
 				  AND PO.CreatedDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)

@@ -20,6 +20,7 @@
 	3    21/11/2023   Devendra Shekh	added conditionids and itemmasterid for filter    
 	4    02/01/2024   Ekta Chandegra    added @ItemClassificationName
 	5    07/02/2024   Ekta Chandegra    added @ConditionId
+	6    08/02/2024   Ekta Chandegra    Retrieve PP_UnitPurchasePrice from ItemMasterPurchaseSales
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -169,7 +170,8 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		im.ItemTypeId,     
+		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -208,7 +210,8 @@ BEGIN
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		  LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
+		  LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
+		  LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 		  LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
 		  LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ISNULL(stl.QuantityAvailable,0)  > 0 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
@@ -416,7 +419,8 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
-		im.ItemTypeId,        
+		im.ItemTypeId,  
+		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -454,7 +458,8 @@ BEGIN
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		 LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId                  
+		 LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId          
+		 LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 		 LEFT JOIN dbo.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId                  
 		 LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		 WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
@@ -669,7 +674,8 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		im.ItemTypeId, 
+		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -710,7 +716,8 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
+	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId    
+	   LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
 	   LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
@@ -923,7 +930,8 @@ BEGIN
 		(ISNULL(stl.TagType,'')) 'TagType',         
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
-		im.ItemTypeId,        
+		im.ItemTypeId, 
+		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
 		stl.CreatedBy,        
@@ -963,7 +971,8 @@ BEGIN
 	   INNER JOIN DBO.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 	   INNER JOIN DBO.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 	   INNER JOIN DBO.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId     
+	   LEFT JOIN DBO.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId    
+	   LEFT JOIN dbo.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId  AND imps.ConditionId = stl.ConditionId  
 	   LEFT JOIN DBO.TimeLife tf WITH (NOLOCK) ON stl.StockLineId = tf.StockLineId     
 	   LEFT JOIN DBO.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		 WHERE ALT.MappingType =1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND ((stl.IsDeleted = 0) AND (@stockTypeId IS NULL OR im.ItemTypeId = @stockTypeId)) AND (@StockLineIds IS NULL OR stl

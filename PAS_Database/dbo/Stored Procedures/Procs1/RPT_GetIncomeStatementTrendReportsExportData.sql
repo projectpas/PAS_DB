@@ -426,7 +426,7 @@ BEGIN
 		  DECLARE @LCOUNT AS int = 0;
 		  SELECT @LCOUNT = MAX(ID) fROM #AccPeriodTable WHERE PeriodName <> 'Total'
 
-		  --SELECT * FROM #AccPeriodTable
+		  --SELECT * FROM #ReportingStructureExport
 		  WHILE(@LCOUNT > 0)
 		  BEGIN
 			 SELECT @AccountcalMonth = ISNULL(PeriodName, ''), @AccountPeriods = PeriodName, @SequenceNumber = OrderNum FROM #AccPeriodTable where ID = @LCOUNT
@@ -434,20 +434,6 @@ BEGIN
 			 INSERT INTO #ReportingStructureExportData(leafNodeId, NodeName, Amount, AccountcalMonth, AccountingPeriod, IsPositive, IsLeafNode, ParentId, IsTotlaLine,LevelId, SequenceNumber)
 					  SELECT LeafNodeId,UPPER(NodeName), 0, @AccountcalMonth, @AccountPeriods, IsPositive, IsLeafNode, ParentId, IsTotlaLine,LevelId, @SequenceNumber
 									FROM  #ReportingStructureExport 
-
-			 --SELECT @LCOUNT
-			 --SELECT * FROM #ReportingStructureExportData
-			 --SELECT * FROM  #GLBalance
-			 --UPDATE GL ACCOUNT SUM AND ASSIGN TO EACH ACCONTING CALENDER MONTH
-
-			 --UPDATE #ReportingStructureExportData 
-				--SET Amount = ISNULL(GL.Amount, 0), --CASE WHEN T1.IsPositive = 1 THEN ISNULL(GL.Amount, 0) ELSE ISNULL(GL.Amount, 0) * -1 END, 
-				----ISNULL(GL.Amount, 0),
-				--	ChildCount = ISNULL((SELECT COUNT(ISNULL(T.Amount, 0))
-    --                                       FROM #ReportingStructureExportData T
-    --                                            WHERE T.ParentId = T1.LeafNodeId AND T.AccountcalMonth = @AccountcalMonth), 0)
-			 --FROM #ReportingStructureExportData T1 
-			 --JOIN #GLBalance GL ON T1.LeafNodeId = GL.LeafNodeId AND T1.AccountcalMonth = GL.AccountcalMonth AND T1.AccountcalMonth = @AccountcalMonth
 
 			 UPDATE #ReportingStructureExportData 
 				SET Amount = tmpCal.Amount

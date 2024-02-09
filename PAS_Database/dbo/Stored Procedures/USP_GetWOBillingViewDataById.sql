@@ -10,13 +10,14 @@
  **************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** PR   Date         Author   Change Description                    
- ** --   --------     -------   --------------------------------                  
+ ** PR   Date         Author			Change Description                    
+ ** --   --------     -------			--------------------------------                  
     1    30-01-2024   Shrey Chandegara  Created
+    2    09-02-2024   Devendra Shekh	added isProforma
              
  EXECUTE USP_GetWOBillingViewDataById 410,4000,3488   
 **************************************************************/         
-Create      PROCEDURE [dbo].[USP_GetWOBillingViewDataById]      
+CREATE   PROCEDURE [dbo].[USP_GetWOBillingViewDataById]      
      
 @WorkOrderBillingId BIGINT,      
 @WorkOrderId BIGINT,      
@@ -129,7 +130,8 @@ BEGIN
 			bi.FreightCost,
 			bi.FreightCostPlus,
 			ISNULL(SIP.Name,'') AS ShipVia,
-			bi.InvoiceTime
+			bi.InvoiceTime,
+			ISNULL(bi.IsPerformaInvoice, 0) AS 'IsProformaInvoice'
 		FROM 
 		    DBO.WorkOrderBillingInvoicing bi
 		    JOIN DBO.WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId

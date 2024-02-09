@@ -32,8 +32,9 @@
 
 
 
-GO
 
+
+GO
 
 ----------------------------------------------
 
@@ -79,9 +80,54 @@ BEGIN
 
 
 
-	INSERT INTO [dbo].[WorkOrderChargesAudit] 
+	INSERT INTO [dbo].[WorkOrderChargesAudit]
+           ([WorkOrderChargesId]
+           ,[WorkOrderId]
+           ,[WorkFlowWorkOrderId]
+           ,[ChargesTypeId]
+           ,[VendorId]
+           ,[Quantity]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[UpdatedBy]
+           ,[CreatedDate]
+           ,[UpdatedDate]
+           ,[IsActive]
+           ,[IsDeleted]
+           ,[TaskId]
+           ,[Description]
+           ,[UnitCost]
+           ,[ExtendedCost]
+           ,[IsFromWorkFlow]
+           ,[ReferenceNo]
+           ,[WOPartNoId]
+           ,[UOMId]
+           ,[Task]
+           ,[ChargeType]
+           ,[GlAccount]
+           ,[Vendor])
 
-    SELECT * ,@Task,@ChargeType,@GLAccount,@Vendor
+    SELECT [WorkOrderChargesId]
+           ,[WorkOrderId]
+           ,[WorkFlowWorkOrderId]
+           ,[ChargesTypeId]
+           ,[VendorId]
+           ,[Quantity]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[UpdatedBy]
+           ,[CreatedDate]
+           ,[UpdatedDate]
+           ,[IsActive]
+           ,[IsDeleted]
+           ,[TaskId]
+           ,[Description]
+           ,[UnitCost]
+           ,[ExtendedCost]
+           ,[IsFromWorkFlow]
+           ,[ReferenceNo]
+           ,[WOPartNoId]
+           ,[UOMId] ,@Task,@ChargeType,@GLAccount,@Vendor
 
 	FROM INSERTED 
 

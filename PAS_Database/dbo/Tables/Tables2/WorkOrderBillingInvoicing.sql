@@ -79,6 +79,7 @@
     [RevisedSerialNumber]                VARCHAR (50)    NULL,
     [IsPerformaInvoice]                  BIT             NULL,
     [DepositAmount]                      DECIMAL (18, 2) NULL,
+    [IsInvoicePosted]                    BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC),
     FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -96,6 +97,8 @@
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderBillingInvoicing_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 

@@ -21,11 +21,12 @@
 	9    14/12/2023   Amit Ghediya     Modify(NetDays to Days for calculation)
 	10   05/01/2024   Moin Bloch       Renamed CreditTerms.Percentage To PercentId
 	11   02/1/2024	  AMIT GHEDIYA	   added isperforma Flage for SO
+	12   08/02/2024	  Devendra Shekh   added IsInvoicePosted flage for WO
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
-CREATE       PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE   PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      
@@ -141,7 +142,7 @@ BEGIN
 			 0 AS 'BillingId'
 			 FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
 			 INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0      
-			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
+			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.[IsInvoicePosted], 0) != 1
 			 LEFT JOIN  [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId        
 			 LEFT JOIN  [dbo].[Customer] C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId      
 			 LEFT JOIN  [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId      
@@ -156,7 +157,8 @@ BEGIN
 					 SELECT TOP 1 ARBalance FROM [dbo].[CustomerCreditTermsHistory] cch WITH(NOLOCK)      
 					 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
 			 ) H      
-		WHERE WOBI.InvoiceStatus = 'Invoiced' AND WOBI.CustomerId = @customerId AND WOBI.RemainingAmount > 0      
+		WHERE WOBI.InvoiceStatus = 'Invoiced' AND WOBI.CustomerId = @customerId AND WOBI.RemainingAmount > 0 
+		AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, CT.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 wop.CustomerReference,Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      
 			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,WOBI.CreditMemoUsed      

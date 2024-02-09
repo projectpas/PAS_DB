@@ -80,9 +80,12 @@
     [RevisedSerialNumber]                VARCHAR (50)    NULL,
     [IsPerformaInvoice]                  BIT             NULL,
     [DepositAmount]                      DECIMAL (18, 2) NULL,
+    [IsInvoicePosted]                    BIT             NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([BillingInvoicingAuditId] ASC),
     FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
 
 
 

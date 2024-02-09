@@ -2787,5 +2787,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderShippingAddressById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOProformaInvoice.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterPurchaseSalesType.sql" />
   </ItemGroup>
 </Project>

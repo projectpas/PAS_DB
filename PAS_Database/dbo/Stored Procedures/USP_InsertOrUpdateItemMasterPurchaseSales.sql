@@ -12,18 +12,20 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    10/01/2024		  Ekta Chandegra		  Created
+    2    09/02/2024		  Ekta Chandegra		  Added table type 
 
+declare @p1 dbo.ItemMasterPurchaseSalesType
+insert into @p1 values(121,9,1,100,95.0)
+insert into @p1 values(121,7,1,155,110.4)
 
-exec dbo.[USP_InsertOrUpdateItemMasterPurchaseSales] @ItemMasterId=93301, @ConditionId=8 , 
-@CreatedBy='Admin',@UnitSalePrice=180,@UnitPurchasePrice=30
+exec [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales] @tbl_ItemMasterPurchaseSalesType=@p1
+
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales]      
-@ItemMasterId  BIGINT,
-@ConditionId  BIGINT,
-@CreatedBy varchar(50),
-@UnitSalePrice decimal(18,2),
-@UnitPurchasePrice decimal(18,2)
+(
+    @tbl_ItemMasterPurchaseSalesType ItemMasterPurchaseSalesType READONLY
+)
 AS    
 BEGIN    
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -31,13 +33,61 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-					DECLARE @MasterCompanyId bigInt=0,@CurrencyId bigInt=0
-					IF OBJECT_ID(N'tempdb..#tmpItemMasterPurchaseSales') IS NOT NULL
+
+				DECLARE @MainPartLoopID AS INT;
+				DECLARE @LoopID AS INT;
+				DECLARE @CurrentIndex BIGINT;
+
+					IF OBJECT_ID(N'tempdb..#ItemMasterPurchaseSalesType') IS NOT NULL
 				BEGIN
-				DROP TABLE #tmpItemMasterPurchaseSales 
+				DROP TABLE #ItemMasterPurchaseSalesType 
 				END
 				
-				CREATE TABLE #tmpItemMasterPurchaseSales 
+				CREATE TABLE #ItemMasterPurchaseSalesType
+				(
+				    [ID] BIGINT NOT NULL IDENTITY,
+					[ItemMasterId] [bigint] NULL,
+					[ConditionId] [bigint] NULL,
+					[MasterCompanyId] [bigint] NULL,
+					[UnitSalePrice] [decimal](18, 2) NULL,
+					[UnitPurchasePrice] [decimal](18, 2) NULL
+				)
+
+				INSERT INTO #ItemMasterPurchaseSalesType
+				(
+					[ItemMasterId] ,
+					[ConditionId] ,
+					[MasterCompanyId] ,
+					[UnitSalePrice] ,
+					[UnitPurchasePrice]
+				)
+				SELECT [ItemMasterId] ,[ConditionId] ,[MasterCompanyId] ,[UnitSalePrice] ,
+					[UnitPurchasePrice]  FROM  @tbl_ItemMasterPurchaseSalesType;
+
+				SELECT @MainPartLoopID = MAX(ID) FROM #ItemMasterPurchaseSalesType;
+
+				WHILE (@MainPartLoopID > 0)
+				BEGIN
+					DECLARE @ItemMasterId BIGINT;
+					DECLARE @ConditionId BIGINT;
+					DECLARE @MasterCompanyId BIGINT;
+					DECLARE @UnitSalePrice DECIMAL(18,2);
+					DECLARE @UnitPurchasePrice DECIMAL(18,2);
+
+                SELECT @ItemMasterId = ItemMasterId ,
+					   @ConditionId = ConditionId ,
+					   @MasterCompanyId = MasterCompanyId,
+					   @UnitSalePrice = UnitSalePrice,
+					   @UnitPurchasePrice = UnitPurchasePrice
+                FROM #ItemMasterPurchaseSalesType
+                WHERE ID = @MainPartLoopID;
+
+				 IF OBJECT_ID(N'tempdb..#tmpItemMasterPurchaseSalesType') IS NOT NULL
+                    BEGIN
+                        DROP TABLE #tmpItemMasterPurchaseSalesType
+                    END
+
+				CREATE TABLE #tmpItemMasterPurchaseSalesType
 				(
 					[ItemMasterId] [bigint]  NULL,
 					[PartNumber] [varchar](50)  NULL,
@@ -84,7 +134,7 @@ BEGIN
 					[SalePriceSelectName] [varchar](200) NULL,
 				)
 				
-				INSERT INTO #tmpItemMasterPurchaseSales
+				INSERT INTO #tmpItemMasterPurchaseSalesType
 					([ItemMasterId],[PartNumber],[PP_UOMId] ,[PP_CurrencyId],[PP_FXRatePerc],[PP_VendorListPrice],
 					[PP_LastListPriceDate],[PP_PurchaseDiscPerc],[PP_PurchaseDiscAmount],[PP_LastPurchaseDiscDate],
 					[PP_UnitPurchasePrice],[SP_FSP_UOMId], [SP_FSP_CurrencyId],[SP_FSP_FXRatePerc],[SP_FSP_FlatPriceAmount],
@@ -102,22 +152,21 @@ BEGIN
 					null,null ,null,
 					null,null ,null ,
 					null,null,	@UnitSalePrice ,
-					IM.[MasterCompanyId],@CreatedBy,@CreatedBy,GETUTCDATE() ,GETUTCDATE() ,1 ,0,
-					0 ,[ConditionId],0 ,null,null ,
+					IM.[MasterCompanyId],IM.[CreatedBy],IM.[CreatedBy],GETUTCDATE() ,GETUTCDATE() ,1 ,0,
+					0 ,@ConditionId,0 ,null,null ,
 					null,null,null ,null,null ,
 					null,'Flat'
 					FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
+					--JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
 					LEFT JOIN [DBO].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = @ConditionId
 					WHERE IM.ItemMasterId = @ItemMasterId AND CON.ConditionId = @ConditionId;
 
-			SELECT * FROM #tmpItemMasterPurchaseSales
+		  --select * from #tmpItemMasterPurchaseSalesType
 		  MERGE dbo.ItemMasterPurchaseSale AS TARGET  
-		  USING #tmpItemMasterPurchaseSales AS SOURCE ON (TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId)   
-		  WHEN MATCHED   
+		  USING #tmpItemMasterPurchaseSalesType AS SOURCE ON (SOURCE.ItemMasterId = TARGET.ItemMasterId AND SOURCE.ConditionId = TARGET.ConditionId)   
+		  WHEN MATCHED 
 		  THEN UPDATE   
-		  SET   
-		  TARGET.[PP_UnitPurchasePrice] = SOURCE.[PP_UnitPurchasePrice],  
-		  
+		  SET   		  
 		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice]
 		  WHEN NOT MATCHED BY TARGET  
 		  THEN  
@@ -142,7 +191,10 @@ BEGIN
 					SOURCE.[ConditionId],SOURCE.[SalePriceSelectId] ,SOURCE.[ConditionName],SOURCE.[PP_UOMName] ,
 					SOURCE.[SP_FSP_UOMName],SOURCE.[PP_CurrencyName],SOURCE.[SP_FSP_CurrencyName] ,SOURCE.[PP_PurchaseDiscPercValue],SOURCE.[SP_CalSPByPP_SaleDiscPercValue] ,
 					SOURCE.[SP_CalSPByPP_MarkUpPercOnListPriceValue],SOURCE.[SalePriceSelectName]);
-			
+
+					SET @MainPartLoopID = @MainPartLoopID - 1;
+				END
+				
 			END
 		COMMIT  TRANSACTION
 	END TRY    
@@ -155,7 +207,6 @@ BEGIN
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateConditionById' 
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' +  CAST(ISNULL(@ItemMasterId, '') as varchar(100))
 			  + '@MasterCompanyId = ''' + CAST(ISNULL(@ConditionId, '') AS varchar(100))
-			  + '@CreatedBy = ''' + CAST(ISNULL(@CreatedBy, '') AS varchar(100))
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

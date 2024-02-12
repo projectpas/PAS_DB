@@ -2795,5 +2795,7 @@
     <Build Include="dbo\Stored Procedures\USP_ILS_ADDSendILSRFQ.sql" />
     <Build Include="dbo\User Defined Types\ILSRFQPartType.sql" />
     <Build Include="dbo\User Defined Types\ItemMasterPurchaseSalesType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_INVBS_Parts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping.sql" />
   </ItemGroup>
 </Project>

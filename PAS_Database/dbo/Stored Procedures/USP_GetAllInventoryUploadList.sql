@@ -26,6 +26,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			InvUpload.EmailSent,
 			InvUpload.ErrDescription,
 			InvUpload.InventoryLoadId,
+			InvUpload.FilePath,
 			InvUpload.CreatedBy,
 			InvUpload.UpdatedBy,
 			InvUpload.CreatedDate,

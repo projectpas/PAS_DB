@@ -138,7 +138,7 @@
     [itemGroup]                           VARCHAR (256)   NULL,
     [TLAPartNumber]                       VARCHAR (100)   NULL,
     [NHAPartNumber]                       VARCHAR (100)   NULL,
-    [TLAPartDescription]                  VARCHAR (100)   NULL,
+    [TLAPartDescription]                  NVARCHAR (MAX)  NULL,
     [NHAPartDescription]                  VARCHAR (100)   NULL,
     [itemType]                            VARCHAR (100)   NULL,
     [CustomerId]                          BIGINT          NULL,
@@ -194,6 +194,8 @@
     [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

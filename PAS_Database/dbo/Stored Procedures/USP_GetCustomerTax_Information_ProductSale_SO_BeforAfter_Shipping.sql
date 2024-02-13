@@ -182,7 +182,7 @@ BEGIN
 									ISNULL(SUM(SOF.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.FreightBilingMethodId,SO.TotalFreight
 
 	SELECT @TotalCharges = CASE WHEN SO.ChargesBilingMethodId = @ChargesBilingMethodId
@@ -191,7 +191,7 @@ BEGIN
 									ISNULL(SUM(SOC.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.ChargesBilingMethodId,SO.TotalCharges
 	
 	IF(@FreightMethodId = @FreightBilingMethodId)
@@ -360,7 +360,7 @@ BEGIN
     DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME(),
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            @AdhocComments varchar(150) = '[USP_GetCustomerTax_Information_ProductSale_SO]',
+            @AdhocComments varchar(150) = '[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping]',
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
@@ -374,12 +374,3 @@ BEGIN
     RETURN (1);
   END CATCH
 END
---1
---select 136.80+20+20  -> 8.84
---select 114.00 + 10+10 -> 9.38  999
-
---select * from [SalesOrderPart] where SalesOrderPartId = 11272   40  11271 = 20
-
---select * from ItemMaster where ItemMasterId=121 11022022
-
--- select 136.80+60

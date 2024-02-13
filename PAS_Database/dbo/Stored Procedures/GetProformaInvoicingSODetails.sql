@@ -39,7 +39,8 @@ SET NOCOUNT ON;
 					   so.TypeId, 
 					   sotype.[Name] AS RevType, 
 					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
-					   sobi.GrandTotal
+					   sobi.GrandTotal,
+					   sobi.Notes
 				FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -74,7 +75,8 @@ SET NOCOUNT ON;
 				   so.TypeId, 
 				   sotype.[Name] AS RevType, 
 				   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
-				   sobi.GrandTotal
+				   sobi.GrandTotal,
+				   sobi.Notes
 			FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

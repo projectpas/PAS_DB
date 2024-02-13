@@ -22,7 +22,9 @@ CREATE     PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@TypeId int = NULL,
 	@IntegrationPortalId int = NULL,
 	@StatusId int = NULL,
+	@PriorityId int= NULL,
 	@Priority VARCHAR(50) = NULL,
+	@RequestedQty int= NULL,
 	@QuoteWithinDays INT = NULL,
 	@DeliverByDate DATETIME = NULL,
 	@PreparedBy VARCHAR(50) = NULL,
@@ -41,21 +43,22 @@ BEGIN
 			DECLARE @TypeName varchar(50) = (SELECT TOP 1 [Type] FROM DBO.IntegrationRFQType WITH(NOLOCK) WHERE IntegrationRFQTypeId = @TypeId);
 			DECLARE @StatusName varchar(50) = (SELECT TOP 1 [Status] FROM DBO.IntegrationRFQStatus WITH(NOLOCK) WHERE IntegrationRFQStatusId = @StatusId)
 			DECLARE @IntegrationPortal varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationPortal WITH(NOLOCK) WHERE IntegrationPortalId = @IntegrationPortalId)
+			SET @Priority = (SELECT TOP 1 [Description] FROM DBO.[Priority] WITH(NOLOCK) WHERE PriorityId = @PriorityId);
 
 			INSERT INTO [dbo].[ThirdPartyRFQ]
            ([RFQId] ,[PortalRFQId],[Name],[IntegrationRFQTypeId],[TypeName],[IntegrationPortalId],[IntegrationPortal],[IntegrationRFQStatusId]
            ,[Status],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive])
 			VALUES
-           (@RFQId,@PortalRFQId,@Name,@TypeId,@TypeName,@IntegrationPortalId,@IntegrationPortal,@StatusId
+           (UPPER(@RFQId),UPPER(@PortalRFQId),@Name,@TypeId,@TypeName,@IntegrationPortalId,@IntegrationPortal,@StatusId
 		   ,@StatusName,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),0,1)
 
 		   SET @LatestThirdPartyRFQId = SCOPE_IDENTITY();
 		   /**** Insert data into the ILS RFQ Detail table *****/
 	       INSERT INTO [dbo].[ILSRFQDetail]
-			   ([ThirdPartyRFQId],[Priority],[QuoteWithinDays],[DeliverByDate],[PreparedBy],[AttachmentId],[DeliverToAddress] ,[BuyerComment]
+			   ([ThirdPartyRFQId],[PriorityId],[Priority],[RequestedQty],[QuoteWithinDays],[DeliverByDate],[PreparedBy],[AttachmentId],[DeliverToAddress] ,[BuyerComment]
 			   ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsDeleted]  ,[IsActive])
 		   VALUES
-			   (@LatestThirdPartyRFQId,@Priority ,@QuoteWithinDays ,@DeliverByDate ,@PreparedBy ,@AttachmentId ,@DeliverToAddress ,@BuyerComment
+			   (@LatestThirdPartyRFQId,@PriorityId,@Priority,@RequestedQty,@QuoteWithinDays ,@DeliverByDate ,@PreparedBy ,@AttachmentId ,@DeliverToAddress ,@BuyerComment
 			   ,@MasterCompanyId ,@CreatedBy ,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,0 ,1)
 			
 		   SET @LatestILSRFQDetailId = SCOPE_IDENTITY();

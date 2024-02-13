@@ -1,7 +1,8 @@
 ﻿
---EXEC USP_GetCageCode_ByLegalEntityId 20
+--EXEC USP_GetCageCode_ByLegalEntityId 1, 1
 CREATE   PROCEDURE [dbo].[USP_GetCageCode_ByLegalEntityId]
-@LegalEntityId bigint
+	@LegalEntityId bigint,
+	@ThirdPartInegrationId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -12,11 +13,11 @@ BEGIN
 			BEGIN 
 				
 				SELECT 
-					CASE WHEN (SELECT COUNT(1) FROM [DBO].[ThirdPartInegration] WITH (NOLOCK) WHERE [LegalEntityId] = @LegalEntityId) > 0 THEN 1 ELSE 0 END AS IsExist, 
+					CASE WHEN (SELECT COUNT(1) FROM [DBO].[ThirdPartInegration] WITH (NOLOCK) WHERE [LegalEntityId] = @LegalEntityId AND IntegrationIds = @ThirdPartInegrationId) > 0 THEN 1 ELSE 0 END AS IsExist, 
 					t.LegalEntityId,
 					t.CageCode
 				FROM [DBO].[LegalEntity] t WITH (NOLOCK) 
-				WHERE t.[LegalEntityId] = @LegalEntityId
+				WHERE t.[LegalEntityId] = @LegalEntityId; 
                 
 			END
 		COMMIT  TRANSACTION

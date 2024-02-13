@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/11/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10368,10824,77,1
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10368,10825,77,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
 @SOBillingInvoicingId BIGINT,

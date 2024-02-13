@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/29/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 10824
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 10825
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint

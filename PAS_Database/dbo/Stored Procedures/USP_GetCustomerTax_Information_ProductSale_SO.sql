@@ -128,7 +128,7 @@ BEGIN
 									ISNULL(SUM(SOF.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.FreightBilingMethodId,SO.TotalFreight
 
 	SELECT @TotalCharges = CASE WHEN SO.ChargesBilingMethodId = @ChargesBilingMethodId
@@ -137,7 +137,7 @@ BEGIN
 									ISNULL(SUM(SOC.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.ChargesBilingMethodId,SO.TotalCharges
 	
 	IF(@FreightMethodId = @FreightBilingMethodId)

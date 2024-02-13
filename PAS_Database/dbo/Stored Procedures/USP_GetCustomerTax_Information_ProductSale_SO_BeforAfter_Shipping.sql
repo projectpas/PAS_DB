@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/11/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10374,10829,77,1
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10381,10835,77,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
 @SOBillingInvoicingId BIGINT,
@@ -119,12 +119,12 @@ BEGIN
 	  WHERE SOS.[MasterCompanyId] = @MasterCompanyId AND SOS.[IsActive] = 1 AND SOS.[IsDeleted] = 0 AND SOS.[AllowInvoiceBeforeShipping] = 1;
 
 	 IF(@SalesOrderSettingId > 0)
-	 BEGIN
+	 BEGIN	 
 		INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 		SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
 	          FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
 		      INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[SalesOrderShippingId]  = SOS.[SalesOrderShippingId]
-			  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
+			  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SalesOrderPartId] = SOSI.[SalesOrderPartId]
 	          WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
 			  
         SELECT @TotalShippingRecords = COUNT(*) FROM #tmprShipDetails  
@@ -161,15 +161,15 @@ BEGIN
 		END
 	 END
 	 ELSE
-	 BEGIN
+	 BEGIN		
 			INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 			SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
 				  FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
 				  INNER JOIN [dbo].[SalesOrderShipping] SOS WITH(NOLOCK) ON SOBI.[SalesOrderShippingId]  = SOS.[SalesOrderShippingId]
-				  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
+				  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId] AND SOBI.[SalesOrderPartId] = SOSI.[SalesOrderPartId]
 				  WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
-	 END
-		
+	  END		
+	
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
 	       @ChargesMethodId = SO.[ChargesBilingMethodId] 
 	  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 

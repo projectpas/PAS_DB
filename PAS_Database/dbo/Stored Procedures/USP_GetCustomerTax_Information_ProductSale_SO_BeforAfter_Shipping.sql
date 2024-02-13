@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/11/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10367,10820,77,1
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10368,10825,77,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
 @SOBillingInvoicingId BIGINT,
@@ -29,6 +29,10 @@ BEGIN
   BEGIN TRY
 	DECLARE @SalesTax Decimal(18,2) = 0;
 	DECLARE @OtherTax Decimal(18,2) = 0;
+	DECLARE @FreighSalesTax DECIMAL(18,2) = 0;
+	DECLARE @FreighOtherTax DECIMAL(18,2) = 0;
+	DECLARE @ChargeSalesTax DECIMAL(18,2) = 0;	
+	DECLARE @ChargeOtherTax DECIMAL(18,2) = 0;
 	DECLARE @TotalRecord INT = 0; 
 	DECLARE @MinId BIGINT = 1;    
 	DECLARE @MinPartId BIGINT = 1;    
@@ -89,7 +93,7 @@ BEGIN
 		[SalesOrderId] BIGINT NULL,
 		[SalesOrderPartId] BIGINT NULL,
 		[SalesTax] DECIMAL(18,2) NULL,
-		[OtherTax]  DECIMAL(18,2) NULL
+		[OtherTax]  DECIMAL(18,2) NULL				
 	)
 	
 	CREATE TABLE #tmprShipDetails2
@@ -115,7 +119,7 @@ BEGIN
 	  WHERE SOS.[MasterCompanyId] = @MasterCompanyId AND SOS.[IsActive] = 1 AND SOS.[IsDeleted] = 0 AND SOS.[AllowInvoiceBeforeShipping] = 1;
 
 	 IF(@SalesOrderSettingId > 0)
-	 BEGIN
+	 BEGIN	   
 		INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 		SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
 	          FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
@@ -178,7 +182,7 @@ BEGIN
 									ISNULL(SUM(SOF.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.FreightBilingMethodId,SO.TotalFreight
 
 	SELECT @TotalCharges = CASE WHEN SO.ChargesBilingMethodId = @ChargesBilingMethodId
@@ -187,19 +191,19 @@ BEGIN
 									ISNULL(SUM(SOC.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.ChargesBilingMethodId,SO.TotalCharges
 	
 	IF(@FreightMethodId = @FreightBilingMethodId)
 	BEGIN
-			SELECT @TotalFreightPartWise = ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE [SO].[SalesOrderId] = @SalesOrderId 
+			SELECT @TotalFreightPartWise = ISNULL(SO.[TotalFreight],0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE [SO].[SalesOrderId] = @SalesOrderId 
 			SET @TaxableFreight = @TotalFreightPartWise;
 			SET @FreighFlag = 1;
 	END
 
 	IF(@ChargesMethodId = @ChargesBilingMethodId)
 	BEGIN
-			SELECT @TotalChargePartWise = ISNULL(SO.TotalCharges,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE [SO].[SalesOrderId] = @SalesOrderId 
+			SELECT @TotalChargePartWise = ISNULL(SO.[TotalCharges],0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) WHERE [SO].[SalesOrderId] = @SalesOrderId 
 			SET @TaxableCharge = @TotalChargePartWise;
 			SET @ChargeFlag = 1;
 	END
@@ -232,8 +236,8 @@ BEGIN
 			  AND SOC.[SalesOrderPartId] = @SalesOrderPartId 
 			  AND SOC.[IsActive] = 1 
 			  AND SOC.[IsDeleted] = 0; 
-		END				
-
+		END			
+		
 		EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale] 
 		     @CustomerId,
 			 @ShipToSiteId,
@@ -248,27 +252,73 @@ BEGIN
 			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;			  
 			  
 	    SET @SubTotal += ISNULL(@Total,0);
-	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
-	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
+	    SET @SalesTax = (ISNULL(@Total,0) * ISNULL(@TotalSalesTax,0) / 100)
+	    SET @OtherTax = (ISNULL(@Total,0) * ISNULL(@TotalOtherTax,0) / 100)
 
-		UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax, [OtherTax] = @OtherTax  WHERE [ID] = @MinId
-		
+		IF(@FreighFlag = 0 AND @ChargeFlag = 0)
+		BEGIN
+			SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
+			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 1 AND @ChargeFlag = 1)
+		BEGIN
+			IF(@TaxableFreight > 0)
+			BEGIN
+				SET @FreighSalesTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @FreighOtherTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+			IF(@TaxableCharge > 0)
+			BEGIN
+				SET @ChargeSalesTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @ChargeOtherTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 1 AND @ChargeFlag = 0)
+		BEGIN
+			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)	
+
+			IF(@TaxableFreight > 0)
+			BEGIN
+				SET @FreighSalesTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @FreighOtherTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @ChargeSalesTax + @FreighSalesTax, 
+										[OtherTax] = @OtherTax + @ChargeOtherTax + @FreighOtherTax								
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 0 AND @ChargeFlag = 1)
+		BEGIN			
+			SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)	
+
+			IF(@TaxableCharge > 0)
+			BEGIN
+				SET @ChargeSalesTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @ChargeOtherTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END
 		IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
 		BEGIN
 			IF NOT EXISTS(SELECT 1 FROM #tmprShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId AND [CustomerId]=@CustomerId)
 			BEGIN
 				INSERT INTO #tmprShipDetails2 ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesTax],[OtherTax])
 				     SELECT @OriginSiteId,@ShipToSiteId,@CustomerId,@SalesOrderId,ISNULL(@TotalSalesTax,0),ISNULL(@TotalOtherTax,0);
-			END	
-
-			IF(@FreighFlag = 0)
-			BEGIN
-				SET @TaxableFreight += @TotalFreightPartWise;			
-			END
-			IF(@ChargeFlag = 0)
-			BEGIN
-				SET @TaxableCharge += @TotalChargePartWise;			
-			END			
+			END		
 		END
 			 			
 		SET @MinId = @MinId + 1
@@ -289,12 +339,14 @@ BEGIN
 	    SET @TotalOtherTaxes += @OTX
 
 		SET @MinId2 = @MinId2 + 1
-	END		
-
-	SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	  FROM #tmprShipDetails
-
+	END	
+	
+	--SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
+	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
+	--  FROM #tmprShipDetails
+	
+	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
+		
 	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	        ISNULL(@TotalCharges,0) AS TotalCharges,
 			ISNULL((@SubTotal),0) AS Total,			
@@ -308,7 +360,7 @@ BEGIN
     DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME(),
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            @AdhocComments varchar(150) = '[USP_GetCustomerTax_Information_ProductSale_SO]',
+            @AdhocComments varchar(150) = '[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping]',
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

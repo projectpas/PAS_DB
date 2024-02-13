@@ -1,7 +1,9 @@
 ﻿CREATE TABLE [dbo].[ILSRFQDetail] (
     [ILSRFQDetailId]   BIGINT         IDENTITY (1, 1) NOT NULL,
     [ThirdPartyRFQId]  BIGINT         NOT NULL,
+    [PriorityId]       INT            NULL,
     [Priority]         VARCHAR (50)   NULL,
+    [RequestedQty]     INT            NULL,
     [QuoteWithinDays]  INT            NULL,
     [DeliverByDate]    DATETIME2 (7)  NULL,
     [PreparedBy]       VARCHAR (50)   NULL,
@@ -18,4 +20,6 @@
     CONSTRAINT [PK_ILSRFQDetail] PRIMARY KEY CLUSTERED ([ILSRFQDetailId] ASC),
     CONSTRAINT [FK_ILSRFQDetail_ThirdPartyRFQ] FOREIGN KEY ([ThirdPartyRFQId]) REFERENCES [dbo].[ThirdPartyRFQ] ([ThirdPartyRFQId])
 );
+
+
 

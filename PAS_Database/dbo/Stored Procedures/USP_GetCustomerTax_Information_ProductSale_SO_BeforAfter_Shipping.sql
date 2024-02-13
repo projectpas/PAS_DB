@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/11/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10368,10825,77,1
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10374,10829,77,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
 @SOBillingInvoicingId BIGINT,
@@ -119,7 +119,7 @@ BEGIN
 	  WHERE SOS.[MasterCompanyId] = @MasterCompanyId AND SOS.[IsActive] = 1 AND SOS.[IsDeleted] = 0 AND SOS.[AllowInvoiceBeforeShipping] = 1;
 
 	 IF(@SalesOrderSettingId > 0)
-	 BEGIN	   
+	 BEGIN
 		INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderId],[SalesOrderPartId])	
 		SELECT SOS.[OriginSiteId],SOS.[ShipToSiteId],SOS.[CustomerId],SOS.[SalesOrderId],SOSI.[SalesOrderPartId]
 	          FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)							 
@@ -130,12 +130,12 @@ BEGIN
         SELECT @TotalShippingRecords = COUNT(*) FROM #tmprShipDetails  
 		
 		IF(@TotalShippingRecords = 0)
-		BEGIN
+		BEGIN			
 			INSERT INTO #tmprBillingPartDetails ([SalesOrderId],[SalesOrderPartId])	
 			SELECT @SalesOrderId,SOBI.[SalesOrderPartId]
 				  FROM [dbo].[SalesOrderBillingInvoicingItem] SOBI WITH(NOLOCK)	
 			WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND SOBI.[IsActive] = 1 AND SOBI.[IsDeleted] = 0;
-
+					
            SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprBillingPartDetails
 		   IF(@TotalDirectBillingRecords > 0)
 		   BEGIN
@@ -144,7 +144,7 @@ BEGIN
 					  DECLARE @BillingOriginSiteId BIGINT = 0
 					  DECLARE @BillingShipToSiteId BIGINT = 0
 
-					  SELECT @SalesOrderPartId = [SalesOrderPartId] FROM #tmprBillingPartDetails WHERE ID = @MinId
+					  SELECT @SalesOrderPartId = [SalesOrderPartId] FROM #tmprBillingPartDetails WHERE ID = @MinPartId					  
 
 				      EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_INVBS_Parts] 
 					       @SalesOrderId,
@@ -169,8 +169,7 @@ BEGIN
 				  INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]
 				  WHERE [SOBI].[SOBillingInvoicingId] = @SOBillingInvoicingId AND [SOBI].[IsActive] = 1 AND [SOBI].[IsDeleted] = 0;
 	 END
-  
-							
+		
 	SELECT @FreightMethodId = SO.[FreightBilingMethodId],
 	       @ChargesMethodId = SO.[ChargesBilingMethodId] 
 	  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 

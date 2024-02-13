@@ -35,7 +35,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			InvUpload.MasterCompanyId,
 			InvUpload.IsDeleted
 		FROM DBO.[ILSInventoryUpload] InvUpload WITH (NOLOCK)
-		WHERE InvUpload.MasterCompanyId = @MasterCompanyId;
+		WHERE InvUpload.MasterCompanyId = @MasterCompanyId
+		ORDER BY InvUpload.ILSInventoryUploadId DESC;
 	END TRY    
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

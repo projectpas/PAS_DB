@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/29/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 10820
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 10825
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
@@ -24,8 +24,12 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
-	DECLARE @SalesTax Decimal(18,2) = 0;
-	DECLARE @OtherTax Decimal(18,2) = 0;
+	DECLARE @SalesTax DECIMAL(18,2) = 0;
+	DECLARE @OtherTax DECIMAL(18,2) = 0;
+	DECLARE @FreighSalesTax DECIMAL(18,2) = 0;
+	DECLARE @FreighOtherTax DECIMAL(18,2) = 0;
+	DECLARE @ChargeSalesTax DECIMAL(18,2) = 0;	
+	DECLARE @ChargeOtherTax DECIMAL(18,2) = 0;
 	DECLARE @TotalRecord INT = 0; 
 	DECLARE @MinId BIGINT = 1;    
 	DECLARE @SOModuleId BIGINT = 0;
@@ -124,7 +128,7 @@ BEGIN
 									ISNULL(SUM(SOF.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH(NOLOCK) ON so.SalesOrderId = SOF.SalesOrderId AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.FreightBilingMethodId,SO.TotalFreight
 
 	SELECT @TotalCharges = CASE WHEN SO.ChargesBilingMethodId = @ChargesBilingMethodId
@@ -133,7 +137,7 @@ BEGIN
 									ISNULL(SUM(SOC.BillingAmount),0) 
 								END			
 	FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	INNER JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
+	LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH(NOLOCK) ON so.SalesOrderId = SOC.SalesOrderId AND SOC.IsActive = 1 AND SOC.IsDeleted = 0  
    	WHERE SO.SalesOrderId = @SalesOrderId GROUP BY SO.ChargesBilingMethodId,SO.TotalCharges
 	
 	IF(@FreightMethodId = @FreightBilingMethodId)
@@ -163,7 +167,7 @@ BEGIN
 			   @SalesOrderPartId = [SalesOrderPartId]
 		FROM #tmprShipDetails WHERE ID = @MinId
 
-		IF( @FreighFlag = 0)
+		IF(@FreighFlag = 0)
 		BEGIN
 			SELECT @TotalFreightPartWise = ISNULL(SUM(SOF.[BillingAmount]),0) 											
 	        FROM [dbo].[SalesOrderFreight] SOF WITH(NOLOCK)
@@ -199,7 +203,63 @@ BEGIN
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
 	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
 
-		UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax, [OtherTax] = @OtherTax  WHERE [ID] = @MinId
+		IF(@FreighFlag = 0 AND @ChargeFlag = 0)
+		BEGIN
+			SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
+			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 1 AND @ChargeFlag = 1)
+		BEGIN
+			IF(@TaxableFreight > 0)
+			BEGIN
+				SET @FreighSalesTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @FreighOtherTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+			IF(@TaxableCharge > 0)
+			BEGIN
+				SET @ChargeSalesTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @ChargeOtherTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 1 AND @ChargeFlag = 0)
+		BEGIN
+			SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)	
+
+			IF(@TaxableFreight > 0)
+			BEGIN
+				SET @FreighSalesTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @FreighOtherTax = (ISNULL(@TaxableFreight / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax								
+								  WHERE [ID] = @MinId
+		END
+		IF(@FreighFlag = 0 AND @ChargeFlag = 1)
+		BEGIN			
+			SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
+			SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)	
+
+			IF(@TaxableCharge > 0)
+			BEGIN
+				SET @ChargeSalesTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalSalesTax,0) / 100)
+				SET @ChargeOtherTax = (ISNULL(@TaxableCharge / @TotalRecord,0) * ISNULL(@TotalOtherTax,0) / 100)
+			END
+							
+			UPDATE #tmprShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
+										[OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
+								  WHERE [ID] = @MinId
+		END	
 		
 		IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
 		BEGIN
@@ -243,9 +303,11 @@ BEGIN
 	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TotalFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TotalCharges,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
 	--  FROM #tmprShipDetails
 
-	SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
-	       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
-	  FROM #tmprShipDetails
+	--SELECT @FinalSalesTaxes = SUM(SalesTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalSalesTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
+	--       @FinalOtherTaxes = SUM(OtherTax)+(ISNULL(@TaxableFreight,0)  * ISNULL(@TotalOtherTaxes,0) / 100)+(ISNULL(@TaxableCharge,0)  * ISNULL(@TotalOtherTaxes,0) / 100)		 
+	--  FROM #tmprShipDetails
+
+	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
 
 	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	        ISNULL(@TotalCharges,0) AS TotalCharges,	

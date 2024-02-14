@@ -23,6 +23,7 @@
 	11   02/1/2024	  AMIT GHEDIYA	   added isperforma Flage for SO
 	12   08/02/2024	  Devendra Shekh   added IsInvoicePosted flage for WO
 	13   14/02/2024	  AMIT GHEDIYA     added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
+    14   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -100,7 +101,7 @@ BEGIN
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
 			  AND SOBI.CustomerId = @customerId 
-			  AND SOBI.IsBilling = 0 --AND SOBI.RemainingAmount > 0     
+			  AND SOBI.IsBilling = 0 --AND SOBI.RemainingAmount > 0 
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, CT.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,SOBI.CreditMemoUsed      
@@ -130,7 +131,7 @@ BEGIN
 			 C.CustomerId,      
 			 C.Name AS 'CustName',      
 			 C.CustomerCode,       
-			 wop.CustomerReference,      
+			 '' as CustomerReference,      
 			 GETUTCDATE() AS 'InvDueDate',       
 			 ISNULL(CF.CreditLimit, 0) AS 'CreditLimit',      
 			 WO.CreditTerms AS 'CreditTermName',      
@@ -162,7 +163,7 @@ BEGIN
 		WHERE WOBI.InvoiceStatus = 'Invoiced' AND WOBI.CustomerId = @customerId AND WOBI.RemainingAmount > 0 
 		AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, CT.Days, WOBI.PostedDate, WO.WorkOrderNum,      
-			 wop.CustomerReference,Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      
+			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,
 			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,WOBI.CreditMemoUsed      
       
 		UNION ALL    

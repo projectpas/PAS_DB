@@ -2800,5 +2800,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_INVBS_Parts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping.sql" />
     <Build Include="dbo\Stored Procedures\SP_SaveSOPorformaInvoicingIsBill.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateUsedDepositForProforma_byId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOBillingDepositeData_ByWOId.sql" />
   </ItemGroup>
 </Project>

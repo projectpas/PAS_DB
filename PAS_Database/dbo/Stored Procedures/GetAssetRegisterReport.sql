@@ -9,56 +9,54 @@ CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
 @AssetInventoryStatus VARCHAR(30) = NULL,
 @MasterCompanyId INT,
 @ManagementStructureId INT,
-@xmlFilter XML 
+@xmlFilter  VARCHAR(MAX) = NULL 
 AS
 BEGIN
 	BEGIN TRY
 	BEGIN
 	
 		SET NOCOUNT ON;      
-		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED     
-	
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED     	
+		
+		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #TEMPMSFilter
+			END
+
+			CREATE TABLE #TEMPMSFilter(        
+					ID BIGINT  IDENTITY(1,1),        
+					LevelIds VARCHAR(MAX)			 
+				) 
+
+			INSERT INTO #TEMPMSFilter(LevelIds)
+			SELECT Item FROM DBO.SPLITSTRING(@xmlFilter,'!')
+
+			DECLARE   
+			@level1 VARCHAR(MAX) = NULL,  
+			@level2 VARCHAR(MAX) = NULL,  
+			@level3 VARCHAR(MAX) = NULL,  
+			@level4 VARCHAR(MAX) = NULL,  
+			@Level5 VARCHAR(MAX) = NULL,  
+			@Level6 VARCHAR(MAX) = NULL,  
+			@Level7 VARCHAR(MAX) = NULL,  
+			@Level8 VARCHAR(MAX) = NULL,  
+			@Level9 VARCHAR(MAX) = NULL,  
+			@Level10 VARCHAR(MAX) = NULL 
+
+			SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
+			SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
+			SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
+			SELECT @level4 = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
+			SELECT @level5 = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
+			SELECT @level6 = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
+			SELECT @level7 = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
+			SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
+			SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
+			SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10
+
 		DECLARE @AssetModuleID varchar(500);
 		--DECLARE @xmlFilter XML;
 		SELECT @AssetModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName ='AssetInventoryTangible'
-
-		print @AssetModuleID
-
-		DECLARE 
-				@level1 VARCHAR(MAX) = NULL,    
-				@level2 VARCHAR(MAX) = NULL,      
-				@level3 VARCHAR(MAX) = NULL,      
-				@level4 VARCHAR(MAX) = NULL,      
-				@Level5 VARCHAR(MAX) = NULL,      
-				@Level6 VARCHAR(MAX) = NULL,      
-				@Level7 VARCHAR(MAX) = NULL,      
-				@Level8 VARCHAR(MAX) = NULL,      
-				@Level9 VARCHAR(MAX) = NULL,      
-				@Level10 VARCHAR(MAX) = NULL
-
-		SELECT 		@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
-					   @level2=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,    
-					   @level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,    
-					   @level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,    
-					   @level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,    
-					   @level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,    
-					   @level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,    
-					   @level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,    
-					   @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,    
-					   @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-					   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end    
-		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
-
-		print @level1
 
 		SELECT  AI.AssetInventoryId,
 				'TANGIBLE' AS AssetCategory,

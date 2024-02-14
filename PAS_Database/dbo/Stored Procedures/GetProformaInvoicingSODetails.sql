@@ -38,8 +38,9 @@ SET NOCOUNT ON;
 					   cf.CurrencyId,
 					   so.TypeId, 
 					   sotype.[Name] AS RevType, 
-					   (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) AS NoofPieces,
-					   sobi.GrandTotal
+					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
+					   sobi.GrandTotal,
+					   sobi.Notes
 				FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -73,8 +74,9 @@ SET NOCOUNT ON;
 				   cf.CurrencyId,
 				   so.TypeId, 
 				   sotype.[Name] AS RevType, 
-				   (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) AS NoofPieces,
-				   sobi.GrandTotal
+				   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
+				   sobi.GrandTotal,
+				   sobi.Notes
 			FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

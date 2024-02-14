@@ -34,12 +34,12 @@ BEGIN
 		DECLARE @lotModuleId int = (SELECT TOP 1 ModuleId FROM dbo.Module WHERE	UPPER(ModuleName) = 'LOT')
 		DECLARE @TotalCounts INT,@count INT,@LatestId BIGINT,@LastOrignalCost DECIMAL(18,2),@UpdatedUnitCost DECIMAL(18,2),@TotalMarginCost DECIMAL(18,2)=0,@CommissionCost DECIMAL(18,2)=0,@TotalSalesCost DECIMAL(18,2)=0;
 		DECLARE @LastLotTransInOutId BIGINT =NULL, @LastStockLineId BIGINT =NULL,@LastQty int =NULL;
-		DECLARE @IsMaintainStkLine bit = 0,@IsInitialPO bit = 0,@InitialPOCost DECIMAL(18,2),@InitialPOId BIGINT = 0;
-		DECLARE @PercentId BIGINT = 0,@PercentValue DECIMAL(18,2),@Qty INT = 0, @lotNumber varchar(20) ='', @lotDesc varchar(max);
+		DECLARE @IsMaintainStkLine bit = 0,@IsUseMargin bit = 0,@IsInitialPO bit = 0,@InitialPOCost DECIMAL(18,2),@InitialPOId BIGINT = 0;
+		DECLARE @MarginPercentageId BIGINT = 0,@PercentValue DECIMAL(18,2),@Qty INT = 0, @lotNumber varchar(20) ='', @lotDesc varchar(max);
 		Select @lotNumber = LotNumber, @lotDesc = LotName from dbo.Lot WITH(NOLOCK) WHERE LotId = @LotId
 		DECLARE @ConsignmentPercent DECIMAL(18,2),@ConsignmentFixedAmt DECIMAL(18,2), @IsRevenue bit =0, @IsMargin bit = 0, @IsFixedAmount bit = 0,@IsRevenueSplit bit = 0, @ConPercentId bigint =0,@QtyLot int = 0;
 		SET @count = 1;
-		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0) ,@PercentId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
+		SELECT TOP 1 @IsMaintainStkLine = ISNULL(IsMaintainStkLine,0),@IsUseMargin =ISNULL(IsUseMargin,0)  ,@MarginPercentageId = ISNULL(MarginPercentageId,0)  FROM DBO.LotSetupMaster WITH(NOLOCK) WHERE LotId = @LotId
 		IF OBJECT_ID(N'tempdb..#tmpLotCalculationDetailsType') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpLotCalculationDetailsType
@@ -232,7 +232,7 @@ BEGIN
 		ELSE IF(UPPER(@Type) = UPPER('Trans Out (SO)'))
 		BEGIN	
 		print 'start'
-			Set @PercentValue = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] Where PercentId = @PercentId),0);
+			Set @PercentValue = ISNULL((SELECT TOP 1 ISNULL(PercentValue,0) FROM DBO.[Percent] Where PercentId = @MarginPercentageId),0);
 			INSERT INTO #tmpLotCalculationDetailsType ([LotCalculationId], [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
 												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],SalesUnitPrice)
@@ -257,11 +257,17 @@ BEGIN
 				INSERT INTO [DBO].[LotCalculationDetails]([LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
 												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-												  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice,ExtSalesUnitPrice,Margin,MarginAmount,COGS)
+												  MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice,ExtSalesUnitPrice
+												  ,Margin
+												  ,MarginAmount
+												  ,COGS)
 				SELECT [LotId], [LotTransInOutId], [Type], [ReferenceId], [ChildId], [OriginalCost],
 												  [RepairCost], [AdjustedLotCost], [RepCost], [Qty],[TransferredInCost], [TransferredOutCost] , [RemainingCost], [OtherCost], [TotalLotCost], [Revenue],
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
-					@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice, ISNULL(SalesUnitPrice,0) * Qty, @PercentValue,Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100)), (ISNULL(SalesUnitPrice,0) * Qty)- (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0)*Qty) * @PercentValue)/100)))
+												  @MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice, ISNULL(SalesUnitPrice,0) * Qty
+												  ,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE @PercentValue END)
+												  ,(CASE WHEN @IsUseMargin = 0 THEN (SELECT TOP 1 Sp.UnitCost FROM dbo.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]) ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
+												  ,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE ((ISNULL(SalesUnitPrice,0) * Qty)- (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0)*Qty) * @PercentValue)/100)))) END)
 				FROM #tmpLotCalculationDetailsType lot 
 				WHERE lot.ID = @count;
 

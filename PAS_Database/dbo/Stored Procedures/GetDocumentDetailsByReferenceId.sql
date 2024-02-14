@@ -12,6 +12,8 @@
     1     16-01-2024   Ekta Chandegra	   Created
     2     25-01-2024   Ekta Chandegra	   IsDeleted, IsActive fields are added
     3     30-01-2024   Ekta Chandegra	   Add masterCompanyId parameter
+	4	  12-02-2024   Ekta Chandegra      IsDeleted, IsActive fields are added for join  
+	5	  12-02-2024   Ekta Chandegra      AttachmentDetailId is retrieve for documents listing
 
 EXEC [GetDocumentDetailsByReferenceId] 411, 1
 
@@ -26,10 +28,10 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY 
 		
-		SELECT  cdd.DocName , cdd.IsActive,cdd.IsDeleted, ad.FileName,ad.FileType,ad.Link,
-		ad.FileSize, ad.AttachmentId
+		SELECT cdd.DocName , cdd.IsActive,cdd.IsDeleted, ad.FileName,ad.FileType,ad.Link,
+		ad.FileSize, ad.AttachmentId , ad.AttachmentDetailId
 		FROM DBO.AttachmentDetails ad 
-		INNER JOIN DBO.CommonDocumentDetails cdd WITH (NOLOCK) ON ad.AttachmentId = cdd.AttachmentId 
+		INNER JOIN DBO.CommonDocumentDetails cdd WITH (NOLOCK) ON ad.AttachmentId = cdd.AttachmentId AND ad.IsActive = cdd.IsActive AND ad.IsDeleted = cdd.IsDeleted
 		WHERE cdd.MasterCompanyId = @MasterCompanyId AND cdd.ReferenceId = @ReferenceId AND cdd.IsActive = 1 AND cdd.IsDeleted = 0 
 	END TRY
 	BEGIN CATCH

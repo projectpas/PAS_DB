@@ -2787,5 +2787,18 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderShippingAddressById.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOProformaInvoice.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise.sql" />
+    <Build Include="dbo\Tables\ThirdPartyRFQ.sql" />
+    <Build Include="dbo\Tables\IntegrationRFQType.sql" />
+    <Build Include="dbo\Tables\IntegrationRFQStatus.sql" />
+    <Build Include="dbo\Tables\ILSRFQPart.sql" />
+    <Build Include="dbo\Tables\ILSRFQDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ILS_ADDSendILSRFQ.sql" />
+    <Build Include="dbo\User Defined Types\ILSRFQPartType.sql" />
+    <Build Include="dbo\User Defined Types\ItemMasterPurchaseSalesType.sql" />
+    <Build Include="dbo\Tables\ILSInventoryUpload.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllInventoryUploadList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_INVBS_Parts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping.sql" />
+    <Build Include="dbo\Stored Procedures\SP_SaveSOPorformaInvoicingIsBill.sql" />
   </ItemGroup>
 </Project>

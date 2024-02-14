@@ -278,13 +278,16 @@ BEGIN
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 					LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.CurrencyId  
 					INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId )
+					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
+					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId 
+					AND ((ISNULL(soapr.SalesOrderApprovalId, 0) > 0   
+					AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0))))
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 		END
 
-		IF((SELECT COUNT(1) FROM #SalesOrderBillingInvoiceChildList WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @SalesOrderPartId AND ConditionId = @ConditionId) <= 0 )
-		BEGIN 
+		--IF((SELECT COUNT(1) FROM #SalesOrderBillingInvoiceChildList WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @SalesOrderPartId AND ConditionId = @ConditionId) <= 0 )
+		--BEGIN 
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -330,7 +333,7 @@ BEGIN
 					--AND sop.ItemMasterId NOT IN()
 					)
 					--ORDER BY sobi.SOBillingInvoicingId DESC
-		END
+		--END
 		SELECT SalesOrderShippingId,
 			   SOBillingInvoicingId ,
 			   InvoiceDate , 

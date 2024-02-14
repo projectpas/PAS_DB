@@ -51,7 +51,7 @@ BEGIN
 
 				SET @TotalRec = (SELECT MAX(Id) FROM #tempProformaInvoice);
 
-				IF(@TotalRec > 0)
+				IF(ISNULL(@TotalRec, 0) > 0)
 				BEGIN
 
 					WHILE(@TotalRec >= @StartCount)

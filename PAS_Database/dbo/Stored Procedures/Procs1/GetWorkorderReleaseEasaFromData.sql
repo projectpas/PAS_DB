@@ -1,4 +1,4 @@
-﻿Create   PROC [dbo].[GetWorkorderReleaseEasaFromData]
+﻿CREATE   PROC [dbo].[GetWorkorderReleaseEasaFromData]
 @WorkorderId bigint,
 @workOrderPartNumberId bigint
 AS
@@ -27,7 +27,7 @@ BEGIN
 					    rc.Reference as Reference,
 					    wop.Quantity as Quantity,
 					    UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' else sl.SerialNumber end) as Batchnumber,
-						wosc.conditionName as [status],
+						CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END  as [status],
 						'' as Certifies, 
 					    0 as approved ,
 					    0 as Nonapproved,
@@ -67,7 +67,7 @@ BEGIN
 					   LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
 					   LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 					   LEFT JOIN dbo.ItemMaster ims WITH(NOLOCK) on ims.ItemMasterId = wosc.RevisedPartId
-					   --LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
+					   LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
 					   LEFT JOIN DBO.Publication pub WITH(NOLOCK) on wop.CMMId = pub.PublicationRecordId
 					   LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					   LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

@@ -10,13 +10,15 @@
  **************************************************************                   
   ** Change History                   
  **************************************************************                   
- ** PR   Date         Author   Change Description                    
- ** --   --------     -------   --------------------------------                  
+ ** PR   Date         Author			Change Description                    
+ ** --   --------     -------			--------------------------------                  
     1    30-01-2024   Shrey Chandegara  Created
+    2    09-02-2024   Devendra Shekh	added isProforma
+    3    12-02-2024   Devendra Shekh	added join for ShipToCustomer
              
  EXECUTE USP_GetWOBillingViewDataById 410,4000,3488   
 **************************************************************/         
-Create      PROCEDURE [dbo].[USP_GetWOBillingViewDataById]      
+CREATE   PROCEDURE [dbo].[USP_GetWOBillingViewDataById]      
      
 @WorkOrderBillingId BIGINT,      
 @WorkOrderId BIGINT,      
@@ -41,7 +43,7 @@ BEGIN
 		    custAddress.StateOrProvince AS State,
 		    custAddress.PostalCode AS PostalCode,
 		    cust.CustomerPhone AS PhoneFax,
-			shippingInfo.ShipToName AS ShipToCustomer,
+			CASE WHEN ISNULL(shippingInfo.ShipToName, '') = '' THEN shipToCust.[Name] ELSE shippingInfo.ShipToName END AS ShipToCustomer,
 		    shipToSite.SiteName AS ShipToSiteName,
 		    shipToAddress.Line1 AS ShipToAddressLine1,
 		    shipToAddress.Line2 AS ShipToAddressLine2,
@@ -129,7 +131,8 @@ BEGIN
 			bi.FreightCost,
 			bi.FreightCostPlus,
 			ISNULL(SIP.Name,'') AS ShipVia,
-			bi.InvoiceTime
+			bi.InvoiceTime,
+			ISNULL(bi.IsPerformaInvoice, 0) AS 'IsProformaInvoice'
 		FROM 
 		    DBO.WorkOrderBillingInvoicing bi
 		    JOIN DBO.WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId
@@ -158,6 +161,7 @@ BEGIN
 			LEFT JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = CF.CurrencyId
 			LEFT JOIN DBO.WorkOrderStage WOS WITH(NOLOCK) on WOP.WorkOrderStageId = WOS.WorkOrderStageId
 			LEFT JOIN DBO.ShippingVia SIP WITH(NOLOCK) on SIP.ShippingViaId = bi.ShipViaId
+			LEFT JOIN DBO.Customer shipToCust WITH(NOLOCK) ON bi.ShipToCustomerId = shipToCust.CustomerId
 		WHERE 
 		    bi.BillingInvoicingId = @WorkOrderBillingId
 		    AND bi.IsActive = 1

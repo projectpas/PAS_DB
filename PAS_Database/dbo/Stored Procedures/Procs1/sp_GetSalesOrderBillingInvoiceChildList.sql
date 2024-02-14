@@ -229,7 +229,7 @@ BEGIN
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 			ELSE
-			BEGIN print 'dd';
+			BEGIN 
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -294,7 +294,6 @@ BEGIN
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 		END
-		--select * from #SalesOrderBillingInvoiceChildList;
 		--IF((SELECT COUNT(1) FROM #SalesOrderBillingInvoiceChildList WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @SalesOrderPartId AND ConditionId = @ConditionId) <= 0 )
 		--BEGIN 
 			INSERT INTO #SalesOrderBillingInvoiceChildList(

@@ -22,6 +22,7 @@
 	10   05/01/2024   Moin Bloch       Renamed CreditTerms.Percentage To PercentId
 	11   02/1/2024	  AMIT GHEDIYA	   added isperforma Flage for SO
 	12   08/02/2024	  Devendra Shekh   added IsInvoicePosted flage for WO
+	13   14/02/2024	  AMIT GHEDIYA     added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -98,7 +99,8 @@ BEGIN
 				 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
-			  AND SOBI.CustomerId = @customerId --AND SOBI.RemainingAmount > 0     
+			  AND SOBI.CustomerId = @customerId 
+			  AND SOBI.IsBilling = 0 --AND SOBI.RemainingAmount > 0     
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, CT.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,SOBI.CreditMemoUsed      

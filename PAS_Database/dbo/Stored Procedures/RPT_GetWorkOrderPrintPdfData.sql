@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -10,7 +11,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
 ** 1    01/01/2024  AMIT GHEDIYA		Created
-** 2    02/05/2024  VISHAL SUTHAR		Modified to fix WOQ Print Issues
+** 2    02/13/2024  Vishal Suthar		Modified the WOFPrintDate field
 
 EXEC RPT_GetWorkOrderPrintPdfData 5320,4937
 
@@ -29,8 +30,9 @@ BEGIN
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
 		DECLARE @TravelerName AS varchar(250) = 0;            
+		DECLARE @WOFPrintDate AS DATETIME;            
    
-		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
+		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
@@ -50,7 +52,7 @@ BEGIN
 		'1' as NoofItem,              
 		UPPER(wo.CreatedBy) as Preparedby,              
 		UPPER(wop.CustomerReference) as ronum,            
-		getdate() as DatePrinted,              
+		@WOFPrintDate as DatePrinted,              
 		wo.CreatedDate as workreqDate,      
 		CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 		p.Description as Priority,              

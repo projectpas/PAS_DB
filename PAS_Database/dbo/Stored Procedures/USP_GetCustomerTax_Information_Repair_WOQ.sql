@@ -187,12 +187,12 @@ BEGIN
 	       @FinalOtherTaxes = SUM([OtherTax]) 
 	FROM #tmprWorkorderquoteDetails	
 					
-	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
-	        ISNULL(@TotalCharges,0) AS TotalCharges,	
-	        ISNULL((@SubTotal),0) AS SubTotal,
-	        ISNULL((@SubTotal + @FinalSalesTaxes + @FinalOtherTaxes),0) AS GrandTotal,
-			ISNULL(@FinalSalesTaxes,0) AS SalesTax,
-			ISNULL(@FinalOtherTaxes,0) AS OtherTax
+	SELECT  ISNULL(@TotalFreight,0) AS WOQTotalFreight,
+	        ISNULL(@TotalCharges,0) AS WOQTotalCharges,	
+	        ISNULL((@SubTotal),0) AS WOQSubTotal,
+	        ISNULL((@SubTotal + @FinalSalesTaxes + @FinalOtherTaxes),0) AS WOQGrandTotal,
+			ISNULL(@FinalSalesTaxes,0) AS WOQSalesTax,
+			ISNULL(@FinalOtherTaxes,0) AS WOQOtherTax
 	
   END TRY
 

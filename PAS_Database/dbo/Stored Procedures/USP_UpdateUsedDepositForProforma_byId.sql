@@ -11,6 +11,7 @@
  ** PR   Date         Author				Change Description              
  ** --   --------     -------				-------------------------------            
     1    14/02/2024   Devendra Shekh		created
+    1    15/02/2024   Devendra Shekh		changes subtotal to grandtotal
 
 	EXEC  [dbo].[USP_UpdateUsedDepositForProforma_byId] 508
 **************************************************************/ 
@@ -51,7 +52,7 @@ BEGIN
 		[TaxTypeId] [BIGINT] NULL,
 	)
 
-	SELECT @WorkOrderId = [WorkOrderId], @TotalWorkOrderCostPlus = [SubTotal]
+	SELECT @WorkOrderId = [WorkOrderId], @TotalWorkOrderCostPlus = [GrandTotal]
 	FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId;
 
 	SELECT @CustomerId = [CustomerId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId; 

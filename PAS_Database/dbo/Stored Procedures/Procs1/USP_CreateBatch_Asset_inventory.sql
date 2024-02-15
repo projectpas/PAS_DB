@@ -16,6 +16,7 @@
 	3	 08/16/2023	  Amit Ghediya	     Updated Fix entry for ACCUMULATEDDEPRECIATION to DR/CR. 
 	4    21/08/2023   Moin Bloch         Modify(Added Accounting MS Entry)
 	5    1/JAN/2024   AYESHA SULTANA     MODIFY(GETTING @SelectedAccountingPeriodId FROM API)
+	7    14/02/2023	  Moin Bloch		 Updated Used Distribution Setup Code Insted of Name 
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -404,7 +405,7 @@ BEGIN
 
 					SET @Amount = isnull(@DepreciationAmount,0);
 					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType
-					from DistributionSetup WITH(NOLOCK)  
+					from dbo.DistributionSetup WITH(NOLOCK)  
 					where UPPER(DistributionSetupCode) =UPPER('ACCUMULATEDDEPRECIATION') AND 
 					DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 					
@@ -581,7 +582,7 @@ BEGIN
 				SET @Amount =  ISNULL((ISNULL(@AssetUnitPrice,0)-ISNULL(@PercentageAmount,0)),0);
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
-				from DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') AND
+				from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') AND
 				DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 				select @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId 
@@ -635,7 +636,7 @@ BEGIN
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
-				from DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') 
+				from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') 
 				AND DistributionMasterId=@DistributionMasterId  AND MasterCompanyId = @MasterCompanyId
 				
 				--SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetSaleGLAccountId 
@@ -752,7 +753,7 @@ BEGIN
 
 				------Asset Account -----------
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
-				from DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
+				from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
 				AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId 
@@ -804,7 +805,7 @@ BEGIN
 				------Loss/(Gain) on Disposal of Assets -----------
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
-				from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Loss/(Gain) on Disposal of Assets') AND
+				from dbo.DistributionSetup WITH(NOLOCK)  where  UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') AND
 				DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 				--SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AssetSaleGLAccountId 

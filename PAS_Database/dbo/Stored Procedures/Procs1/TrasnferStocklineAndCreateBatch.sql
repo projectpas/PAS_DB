@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
 	1    08/23/2023   Amit Ghediya	Modify for restrict entry when amount is 0.	
 	2    01/01/2024   BHARGAV SALIYA  CONVERT DATE IN UTC
+	3    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
 **************************************************************/
 -----------------------------------------------------------------------------------------------------
 /*************************************************************
@@ -522,7 +523,10 @@ BEGIN
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline WITH(NOLOCK) where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
 				      					SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Adjustment') AND DistributionMasterId=@DistributionMasterId
+
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
+					  from dbo.DistributionSetup WITH(NOLOCK)  where UPPER([DistributionSetupCode]) =UPPER('ADJSPEC') 
+					  AND DistributionMasterId=@DistributionMasterId
 
 					  SELECT @GlAccountId=GlAccountId FROM DBO.Stockline WITH(NOLOCK) WHERE StocklineId=@StocklineId;
 					  SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName FROM DBO.GLAccount WITH(NOLOCK) WHERE @GlAccountId=GlAccountId;
@@ -558,7 +562,8 @@ BEGIN
 
 
 					-----Existing Stockline--------
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Adjustment') AND DistributionMasterId=@DistributionMasterId
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+					from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('ADJSPEC') AND DistributionMasterId=@DistributionMasterId
 
 					 INSERT INTO [dbo].[CommonBatchDetails]
                             (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])

@@ -25,7 +25,7 @@
      
  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 561, 41196, 7  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
+CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
 	 @SalesOrderPartId bigint,  
 	 @ConditionId bigint  
@@ -280,8 +280,8 @@ BEGIN
 					INNER JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
 					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
 					WHERE sop.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @SalesOrderPartId AND sop.ConditionId = @ConditionId 
-					AND ((ISNULL(soapr.SalesOrderApprovalId, 0) > 0   
-					AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0))))
+					--AND ((ISNULL(soapr.SalesOrderApprovalId, 0) > 0   
+					AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0))
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 		END

@@ -14,6 +14,7 @@
 	2    31/05/2023   Satish Gohil	Modify(Added Accounting entry for Negative Stockline and also  Acc Period changes)
 	3    05/06/2023   Satish Gohil  Modify(Calculation issue fixed)
 	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
+	5    14/02/2023	  Moin Bloch	Updated Used Distribution Setup Code Insted of Name 
 
 **************************************************************/  
 
@@ -181,14 +182,14 @@ BEGIN
 				------ Update StockLine --------
 
 				------ Update StockLine Accounting --------
-				SELECT @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('StocklineAdjustment')
+				SELECT @DistributionMasterId =ID from dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('StocklineAdjustment')
 
-				SELECT @IsAccountByPass =IsAccountByPass from MasterCompany WITH(NOLOCK)  where MasterCompanyId= @MasterCompanyId
-				SELECT @DistributionCode =DistributionCode from DistributionMaster WITH(NOLOCK)  where ID= @DistributionMasterId
-				SELECT @StatusId =Id,@StatusName=name from BatchStatus WITH(NOLOCK)  where Name= 'Open'
-				SELECT top 1 @JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
-				SELECT @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
-				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId
+				SELECT @IsAccountByPass =IsAccountByPass from dbo.MasterCompany WITH(NOLOCK)  where MasterCompanyId= @MasterCompanyId
+				SELECT @DistributionCode =DistributionCode from dbo.DistributionMaster WITH(NOLOCK)  where ID= @DistributionMasterId
+				SELECT @StatusId =Id,@StatusName=name from dbo.BatchStatus WITH(NOLOCK)  where Name= 'Open'
+				SELECT top 1 @JournalTypeId =JournalTypeId from dbo.DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
+				SELECT @JournalBatchHeaderId =JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
+				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from dbo.JournalType WITH(NOLOCK)  where ID= @JournalTypeId
 				SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StockLineId
 				SET @Amount = ISNULL(@QtyAvl,0) * ISNULL(@UnitPrice,0)
 
@@ -305,7 +306,11 @@ BEGIN
 						
 						SET @Amount = CASE WHEN ISNULL(@QtyDiffenece,0) <> 0 AND ISNULL(@UnitPriceDiffenece,0) <> 0 THEN ABS(ABS(@UnitPrice * @QtyAvl) - ABS(@UnitPriceDiffenece * @QtyDiffenece))
 						WHEN ISNULL(@QtyDiffenece,0) = 0 THEN ABS(@QtyAvl * @Amount) ELSE ABS(@QtyDiffenece * @Amount) END;	
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Adjustment') AND DistributionMasterId=@DistributionMasterId
+						
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
+						from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('ADJSPEC') 
+						AND DistributionMasterId=@DistributionMasterId
+						
 						SELECT @GlAccountId=ISNULL(GlAccountId,0) FROM DBO.Stockline WITH(NOLOCK) WHERE StocklineId=@StocklineId;
 						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName FROM DBO.GLAccount WITH(NOLOCK) WHERE @GlAccountId=GlAccountId;
 						select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails WITH(NOLOCK)  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
@@ -351,7 +356,9 @@ BEGIN
 
 						-----Existing Stockline--------
 
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Adjustment') AND DistributionMasterId=@DistributionMasterId
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+						from dbo.DistributionSetup WITH(NOLOCK)  
+						where UPPER(DistributionSetupCode) =UPPER('ADJSPEC') AND DistributionMasterId=@DistributionMasterId
 
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])

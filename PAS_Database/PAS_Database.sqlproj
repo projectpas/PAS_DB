@@ -2802,5 +2802,6 @@
     <Build Include="dbo\Stored Procedures\SP_SaveSOPorformaInvoicingIsBill.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateUsedDepositForProforma_byId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWOBillingDepositeData_ByWOId.sql" />
+    <Build Include="dbo\Stored Procedures\ThirdPartySendRFQList.sql" />
   </ItemGroup>
 </Project>

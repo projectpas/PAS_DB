@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_ILS_ADDSendILSRFQ]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to add ISL RFQ data into our database
@@ -40,8 +41,8 @@ BEGIN
 	BEGIN TRY
 	  BEGIN TRANSACTION
 			DECLARE @LatestThirdPartyRFQId bigint, @LatestILSRFQDetailId bigint;	
-			DECLARE @TypeName varchar(50) = (SELECT TOP 1 [Type] FROM DBO.IntegrationRFQType WITH(NOLOCK) WHERE IntegrationRFQTypeId = @TypeId);
-			DECLARE @StatusName varchar(50) = (SELECT TOP 1 [Status] FROM DBO.IntegrationRFQStatus WITH(NOLOCK) WHERE IntegrationRFQStatusId = @StatusId)
+			DECLARE @TypeName varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationRFQType WITH(NOLOCK) WHERE IntegrationRFQTypeId = @TypeId);
+			DECLARE @StatusName varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationRFQStatus WITH(NOLOCK) WHERE IntegrationRFQStatusId = @StatusId)
 			DECLARE @IntegrationPortal varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationPortal WITH(NOLOCK) WHERE IntegrationPortalId = @IntegrationPortalId)
 			SET @Priority = (SELECT TOP 1 [Description] FROM DBO.[Priority] WITH(NOLOCK) WHERE PriorityId = @PriorityId);
 

@@ -15,6 +15,7 @@
  ** --   --------     -------				--------------------------------          
 	1    16/01/2024   Devendra Shekh		Created
 	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added@
+
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@PageNumber int = 1,
@@ -45,7 +46,6 @@ CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@StatusValue varchar(50) = NULL,
 	@SerialNumber varchar(50) = NULL,
 	@IsVendor varchar(50) = NULL
-
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -89,7 +89,7 @@ BEGIN
 				CO.[Description] AS [ConditionName],
 				SO.[SalesPersonName],					
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,							
-				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN V.VendorId ELSE C.CustomerId END AS CustomerId,        
+				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN V.VendorId ELSE C.CustomerId END AS CustomerId,
 				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN V.VendorName ELSE C.[Name] END AS [CustomerName],
 				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN 'Yes' ELSE 'No' END AS IsVendor, 
 				SP.ConditionId,
@@ -150,6 +150,7 @@ BEGIN
 				(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	
 				(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
+				(ISNULL(@IsVendor,'') ='' OR IsVendor LIKE '%' + @IsVendor + '%') AND
 				(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))))		
 					
 			SELECT @Count = COUNT(ExchangeSalesOrderId) FROM #TempResult			
@@ -187,7 +188,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsVendor')  THEN IsVendor END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsVendor')  THEN IsVendor END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

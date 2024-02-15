@@ -1,4 +1,21 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [USP_BatchTriggerBasedonDistributionROStockline]           
+ ** Author: 
+ ** Description: 
+ ** Purpose:         
+ ** Date:   
+
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          	
+	1    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
+**************************************************************/
 /*************************************************************           
 EXEC [dbo].[USP_BatchTriggerBasedonDistributionROStockline] 64201,1,'10.00','ReceivingRO','deep patel',1,'STOCK',0
 ************************************************************************/
@@ -252,7 +269,9 @@ BEGIN
 					  --SET @currentNo = @currentNo+1
 					  --SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 					  
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Stock - Inventory') AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+					  from dbo.DistributionSetup WITH(NOLOCK)  where UPPER([DistributionSetupCode]) =UPPER('RROSTKINV')
+					  AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
 				     INSERT INTO [dbo].[BatchDetails]
                             (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
@@ -287,7 +306,9 @@ BEGIN
 
 					-----Goods Received Not Invoiced (GRNI)--------
 					  
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+					  from dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('RROGRNI')  
+					  AND DistributionMasterId = (SELECT [ID] from dbo.DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
 				 --    INSERT INTO [dbo].[BatchDetails]
      --                       (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
@@ -351,7 +372,9 @@ BEGIN
 					  --SET @currentNo = @currentNo+1
 					  --SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Asset - Inventory') AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from 
+					  dbo.DistributionSetup WITH(NOLOCK)  where UPPER([DistributionSetupCode]) = UPPER('RROASSETINV')
+					  AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
 				     INSERT INTO [dbo].[BatchDetails]
                             (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
@@ -385,7 +408,9 @@ BEGIN
 
 
 						-----Goods Received Not Invoiced (GRNI)--------
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Goods Received Not Invoiced (GRNI)') AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+					  from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('RROGRNI')
+					  AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
 				 --    INSERT INTO [dbo].[BatchDetails]
      --                       (DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,

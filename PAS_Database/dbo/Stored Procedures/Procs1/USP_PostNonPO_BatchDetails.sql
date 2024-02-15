@@ -21,6 +21,7 @@
     5    31-OCT-2023		 Devendra Shekh			added posteddate for npoheaderupdate
     6    02-NOV-2023		 Devendra Shekh			added EXEC [USP_AddVendorPaymentDetailsForNonPOById]
     7    09-JAN-2024         Moin Bloch             Modify(Replace Invocedate instead of GETUTCDATE() in Invoice) 
+	8    14/02/2023	         Moin Bloch	            Updated Used Distribution Setup Code Insted of Name 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **************************************************************/
 
@@ -245,7 +246,7 @@ BEGIN
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType
-				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
+				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
 				 SELECT TOP 1  @GlAccountId=GlAccountId,@GlAccountNumber=AccountCode,@GlAccountName=AccountName  FROM GLAccount WHERE GLAccountId = @PartGlAccId
@@ -282,7 +283,7 @@ BEGIN
 				BEGIN
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 						@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
+						FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE')
 						AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
 						INSERT INTO [dbo].[CommonBatchDetails]

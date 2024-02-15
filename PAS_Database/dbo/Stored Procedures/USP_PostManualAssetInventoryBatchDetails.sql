@@ -15,10 +15,11 @@
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				--------------------------------          
 	1    09/01/2023          Moin Bloch          Created
+	2    14/02/2023		     Moin Bloch			 Updated Used Distribution Setup Code Insted of Name 
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
-create    PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
+CREATE    PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
 @AssetInventoryId BIGINT,
 @OldUnitCost DECIMAL(18,2),
 @IsCreate BIT
@@ -369,7 +370,7 @@ BEGIN
 			             @GlAccountId = [GlAccountId],
 						 @GlAccountNumber = [GlAccountNumber],
 						 @GlAccountName = [GlAccountName] 
-			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('GOOD RECEIPT NOT INVOICED (GRNI)') 
+			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('MAST_ASSET_GRNI') 
 			         AND [DistributionMasterId] = @DistributionMasterId;
 					 
 			INSERT INTO [dbo].[CommonBatchDetails]
@@ -502,8 +503,8 @@ BEGIN
 			              --@GlAccountId = [GlAccountId],
 						  --@GlAccountNumber = [GlAccountNumber],
 						  --@GlAccountName = GlAccountName 
-			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)
-					WHERE UPPER([Name]) = UPPER('ASSET - INVENTORY') 
+			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)					
+					WHERE UPPER([DistributionSetupCode]) = UPPER('RPOASSETINV')
 			          AND [DistributionMasterId] = @DistributionMasterId;
 
 			 INSERT INTO [dbo].[CommonBatchDetails]

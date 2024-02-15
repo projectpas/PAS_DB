@@ -21,6 +21,7 @@
 	4    02/01/2024   Ekta Chandegra    added @ItemClassificationName
 	5    07/02/2024   Ekta Chandegra    added @ConditionId
 	6    08/02/2024   Ekta Chandegra    Retrieve PP_UnitPurchasePrice from ItemMasterPurchaseSales
+	7    14/02/2024   Ekta Chandegra    Retrieve ManufacturerId from ItemMaster
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -171,6 +172,7 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		im.ItemTypeId,     
+		im.ManufacturerId,     
 		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
@@ -419,7 +421,8 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		--(ISNULL(stl.GlAccountName,'')) 'GlAccountName',         
-		im.ItemTypeId,  
+		im.ItemTypeId,
+		im.ManufacturerId,     
 		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
@@ -675,6 +678,7 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		im.ItemTypeId, 
+		im.ManufacturerId,     
 		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        
@@ -931,6 +935,7 @@ BEGIN
 		(ISNULL(stl.TraceableToName,'')) 'TraceableToName',                
 		(ISNULL(stl.itemType,'')) 'ItemCategory',         
 		im.ItemTypeId, 
+		im.ManufacturerId,
 		imps.PP_UnitPurchasePrice,
 		stl.IsActive,                             
 		stl.CreatedDate,        

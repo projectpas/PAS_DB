@@ -12,7 +12,7 @@
  ** PR   Date			Author					Change Description              
  ** --   --------		-------				--------------------------------            
     1    18/10/2023		Devendra Shekh			 Created  
-   
+    2    14/02/2023		Moin Bloch			     Updated Used Distribution Setup Code Insted of Name 
  -- exec USP_PostCreditMemo_RefundBatchDetails 
 **********************/   
   
@@ -94,7 +94,7 @@ BEGIN
 				SELECT TOP 1 @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy, @CurrentManagementStructureId =ManagementStructureId FROM dbo.CustomerRefund WITH(NOLOCK) WHERE CustomerRefundId = @CustomerRefundId
 				SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CRFD')	
 				SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-				SELECT top 1 @JournalTypeId =JournalTypeId FROM DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 				--SELECT @CurrentManagementStructureId =ManagementStructureId FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
@@ -202,7 +202,7 @@ BEGIN
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-				 FROM DistributionSetup WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Receivable') 
+				 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRFDACCREC') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'CRFD')
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
@@ -235,7 +235,7 @@ BEGIN
 
 				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-				FROM DistributionSetup WITH(NOLOCK) WHERE UPPER(Name) = UPPER('Accounts Payable') 
+				FROM dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRFDACCAP') 
 				AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'CRFD')
 
 				INSERT INTO [dbo].[CommonBatchDetails]

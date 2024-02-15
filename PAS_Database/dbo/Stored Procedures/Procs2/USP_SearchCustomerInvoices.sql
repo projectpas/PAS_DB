@@ -20,6 +20,7 @@
 	3	01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
 	4   02/06/2024   Devendra Shekh		UPDATE isperforma
 	5   08/02/2024	  Devendra Shekh    added IsInvoicePosted flage for WO
+	6   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
      
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -82,7 +83,7 @@ BEGIN
 				ISNULL(WOBI.RemainingAmount,0) RemainingAmount,
 				WQ.QuoteNumber,
 				IsWorkOrder=1,IsExchange=0,
-				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,WOWF.WorkFlowWorkOrderId,
+				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,
 				CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 				,ISNULL(WOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)

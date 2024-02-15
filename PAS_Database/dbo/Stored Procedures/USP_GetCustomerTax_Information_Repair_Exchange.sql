@@ -14,8 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    01/02/2024   Moin Bloch    Created
+	2    14-02-2024   Shrey Chandegara Updated for change @TotalFreight and @TotalCharge value.
      
--- EXEC [USP_GetCustomerTax_Information_Repair_Exchange] 804
+-- EXEC [USP_GetCustomerTax_Information_Repair_Exchange] 368
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange] 
 @ExchangeSalesOrderId BIGINT
@@ -116,17 +117,19 @@ BEGIN
 
    --------------------------------- Flat Rate Not Included Due TO Flat Rate Functionality Remain in Exchange--------------------------------------------------------
  	
-	SELECT @TotalFreight = ISNULL(SUM(ESOF.BillingAmount),0) 							
+	--SELECT @TotalFreight = CASE WHEN ISNULL(SUM(ESOF.BillingAmount),0) = 0 THEN ISNULL(ESO.FreightFlatRate,0) ELSE 0 END 							
+	SELECT @TotalFreight = CASE WHEN ESO.IsFreightFlatRate = 1 THEN ISNULL(ESO.FreightFlatRate,0) ELSE ISNULL(SUM(ESOF.BillingAmount),0) END						
 	FROM [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) 
-	INNER JOIN [dbo].[ExchangeSalesOrderFreight] ESOF WITH(NOLOCK) ON ESO.[ExchangeSalesOrderId] = ESOF.[ExchangeSalesOrderId] AND ESOF.IsActive = 1 AND ESOF.IsDeleted = 0  
-   	WHERE ESO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId;
-
+	LEFT JOIN [dbo].[ExchangeSalesOrderFreight] ESOF WITH(NOLOCK) ON ESO.[ExchangeSalesOrderId] = ESOF.[ExchangeSalesOrderId] AND ESOF.IsActive = 1 AND ESOF.IsDeleted = 0  
+   	WHERE ESO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId
+	GROUP BY ESO.FreightFlatRate,ESO.IsFreightFlatRate
 	-------------------------------- Flat Rate Not Included Due TO Flat Rate Functionality Remain in Exchange--------------------------------------------------------
 	
-	SELECT @TotalCharges = ISNULL(SUM(ESOC.BillingAmount),0)
+	SELECT @TotalCharges = CASE WHEN ESO.IsChargeFlatRate = 1 THEN ISNULL(ESO.ChargeFlatRate,0) ELSE ISNULL(SUM(ESOC.BillingAmount),0) END 
 	FROM [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) 			
-	INNER JOIN [dbo].[ExchangeSalesOrderCharges] ESOC WITH(NOLOCK) ON ESO.[ExchangeSalesOrderId] = ESOC.[ExchangeSalesOrderId] AND ESOC.IsActive = 1 AND ESOC.IsDeleted = 0  
-    WHERE ESO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId;
+	LEFT JOIN [dbo].[ExchangeSalesOrderCharges] ESOC WITH(NOLOCK) ON ESO.[ExchangeSalesOrderId] = ESOC.[ExchangeSalesOrderId] AND ESOC.IsActive = 1 AND ESOC.IsDeleted = 0  
+    WHERE ESO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId
+	GROUP BY ESO.IsChargeFlatRate,ESO.ChargeFlatRate
 												
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprExchangeDetails    
 	

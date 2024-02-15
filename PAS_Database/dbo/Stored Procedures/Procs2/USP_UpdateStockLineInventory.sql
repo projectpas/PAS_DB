@@ -138,19 +138,7 @@ BEGIN
 			)ACC
 			WHERE A.AccountingCalendarId = @AccountcalenderId  
 		  END 
-		 -- IF(@InventoryType = '1')
-		 -- BEGIN
-			--UPDATE T1
-			--SET T1.QuantityAvailable = 0,
-			--T1.QuantityOnHand = 0,
-			--T1.UpdatedBy = @UpdateBy,
-			--T1.UpdatedDate = GETUTCDATE()
-			--FROM dbo.Stockline T1
-			--INNER JOIN #temptable T2 ON T1.StockLineId = T2.StockLineId
-
-		 -- END
-		 -- IF(@InventoryType = '3')
-		 -- BEGIN 
+		
 			IF(ISNULL(@AccountingPeriodId,0) <> 0)
 			BEGIN
 				SET @CreatedDate = Convert(datetime,(CAST(CONVERT (date, @CreatedDate) as varchar(10)) +' ' + CAST(CONVERT (time, GETUTCDATE(),8) as varchar(8))),20)
@@ -166,7 +154,6 @@ BEGIN
 				@UnitPriceDiffenece = (ISNULL(UnitPrice,0) - ISNULL(OldUnitPrice,0)),
 				@QtyOnHand=QtyOnHand,@OldQtyAvl=OldQtyAvl,@UnitPrice = UnitPrice 
 				FROM #temptable WHERE rownumber = @MinId
-
 
 				------ Update StockLine --------
 				UPDATE dbo.Stockline 
@@ -195,14 +182,6 @@ BEGIN
 
 				IF((@JournalTypeCode ='ADJ') and @IsAccountByPass=0 AND @Amount > 0)
 				BEGIN
-					--select top 1  @AccountingPeriodId=AccountingCalendarId,@AccountingPeriod=PeriodName from AccountingCalendar  WITH(NOLOCK) 
-					--WHERE AccountingCalendarId = @AccountcalenderId
-
-					--SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK) 
-					--inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-					--inner join AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-					--WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
-
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				    BEGIN 
 					DROP TABLE #tmpCodePrefixes

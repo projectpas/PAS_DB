@@ -17,11 +17,10 @@
  ** --   --------			-------				--------------------------------          
     1    17-July-2023		 Devendra Shekh			Created	
     2    18-July-2023		 Devendra Shekh			getting glaccount details for stock inventory
-													distribution from stockline
-													changed accounts payable to COGS / Inventory Reserve
 	3    21/08/2023          Moin Bloch             Modify(Added Accounting MS Entry)
+	4    14/02/2024          Hemant Saliya          Updated for Use Code insted of Name
 
-	EXEC USP_PostManualStockLine_NewBatchDetails 164050,'Admin user',100
+	EXEC USP_PostManualStockLine_NewBatchDetails 177281,'Admin user',280
 
 **************************************************************/
 
@@ -125,37 +124,36 @@ BEGIN
 			@PurchaseOrderId=PurchaseOrderId, @RepairOrderId=RepairOrderId, @StocklineNumber=StocklineNumber, @SiteId=[SiteId], @Site=[Site], @WarehouseId=[WarehouseId], @Warehouse=[Warehouse],
 			@LocationId=[LocationId], @Location=[Location], @BinId=[BinId], @Bin=[Bin], @ShelfId=[ShelfId], @Shelf=[Shelf], @VendorId=VendorId, @NewUnitCost =UnitCost,@UpdateBy=sl.CreatedBy,
 			@StkGlAccountId = sl.GLAccountId, @StkGlAccountName = gl.AccountName, @StkGlAccountNumber = gl.AccountCode
-			FROM [dbo].[Stockline] sl WITH(NOLOCK)
-			LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON sl.GLAccountId = gl.GLAccountId
-			WHERE StockLineId=@StocklineId;
+		FROM [dbo].[Stockline] sl WITH(NOLOCK)
+				LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON sl.GLAccountId = gl.GLAccountId
+		WHERE StockLineId=@StocklineId;
 
 		SET @Differece = (ISNULL(@NewUnitCost,0) - ISNULL(@OldUnitCost,0))
 		
-		SELECT @CheckAmount = SUM(ISNULL(Quantity * ABS(@Differece),0)) FROM Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId 
+		SELECT @CheckAmount = SUM(ISNULL(Quantity * ABS(@Differece),0)) FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId 
 
 		IF(ISNULL(@CheckAmount,0) > 0)
 		BEGIN		
-			--SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy from dbo.Stockline WITH(NOLOCK) where StockLineId = @StocklineId
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('ManualStockLine')	
-			SELECT @StatusId =Id,@StatusName=name from BatchStatus WITH(NOLOCK)  where Name= 'Open'
-			SELECT top 1 @JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
-			SELECT @JournalBatchHeaderId =JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId
-			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName from JournalType WITH(NOLOCK)  where ID= @JournalTypeId
-			SELECT @CurrentManagementStructureId =ManagementStructureId from Employee WITH(NOLOCK)  where CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')	
+			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
+			SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
+			SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'Stockline'
 
-			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @StocklineId
+			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @StocklineId
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 			FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-			select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-			from [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
-			INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			where est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
-			AND CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+			FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
+				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+				INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
+				AND CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -171,18 +169,18 @@ BEGIN
 				ROLLBACK TRAN;
 			END
 
-			IF NOT EXISTS(select JournalBatchHeaderId from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
+			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK) WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 			BEGIN
-				IF NOT EXISTS(select JournalBatchHeaderId from BatchHeader WITH(NOLOCK))
+				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 				BEGIN  
-					set @batch ='001'  
-					set @Currentbatch='001' 
+					SET @batch ='001'  
+					SET @Currentbatch='001' 
 				END
 				ELSE
 				BEGIN 
 					SELECT top 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1   
 					  ELSE  1 END   
-					FROM BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc  
+					FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc  
 
 					IF(CAST(@Currentbatch AS BIGINT) >99)  
 					BEGIN
@@ -215,17 +213,17 @@ BEGIN
 				  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode);    
                            
 				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()    
-				Update BatchHeader set CurrentNumber=@CurrentNumber  where JournalBatchHeaderId= @JournalBatchHeaderId  
+				UPDATE dbo.BatchHeader set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 			END
 			ELSE
 			BEGIN 
 				SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) from BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and StatusId=@StatusId   
 				   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
-						 FROM BatchDetails WITH(NOLOCK) where JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc   
+						 FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  ORDER BY JournalBatchDetailId DESC   
           
-				if(@CurrentPeriodId =0)  
-				begin  
-				   Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   where JournalBatchHeaderId= @JournalBatchHeaderId  
+				IF(@CurrentPeriodId =0)  
+				BEGIN  
+				   UPDATE BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
 			END
 
@@ -239,12 +237,11 @@ BEGIN
 		
 			SET @JournalBatchDetailId=SCOPE_IDENTITY()
 
-
 			 -----Account Payable || COGS / Inventory Reserve--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-			 from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('COGS / Inventory Reserve') 
+			 from dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
 
@@ -282,7 +279,7 @@ BEGIN
 				
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-			 from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('STOCK - INVENTORY') 
+			 from DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) =UPPER('MSTK-STOCK-INV') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
 
@@ -294,9 +291,6 @@ BEGIN
 				VALUES	
 				(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 				,@StkGlAccountId ,@StkGlAccountNumber ,@StkGlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-				--CASE WHEN @Differece < 0 THEN (CASE WHEN @CRDRType = 0 THEN 1 ELSE 0 END) ELSE (CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END) END,
-				--CASE WHEN @Differece < 0 THEN (CASE WHEN @CRDRType = 1 THEN 0 ELSE @CheckAmount END) ELSE (CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END) END,
-				--CASE WHEN @Differece < 0 THEN (CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END) ELSE (CASE WHEN @CRDRType = 1 THEN 0 ELSE @CheckAmount END) END,
 				CASE WHEN @Differece < 0 THEN 0 ELSE 1 END,
 				CASE WHEN @Differece < 0 THEN 0 ELSE @CheckAmount END,
 				CASE WHEN @Differece < 0 THEN @CheckAmount ELSE 0 END,
@@ -310,7 +304,7 @@ BEGIN
 				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
 			
-				INSERT INTO [StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, 
+				INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, 
 				RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], 
 				[ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId])
 				VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, 
@@ -321,17 +315,16 @@ BEGIN
 
 			SET @TotalDebit=0;
 			SET @TotalCredit=0;
-			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) where JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
-			UPDATE BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   where JournalBatchDetailId=@JournalBatchDetailId
+			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
+			UPDATE BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
 		
+			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails 
+			WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
+			
+			SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		
-		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails 
-		WITH(NOLOCK) where JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
-		SET @TotalBalance =@TotalDebit-@TotalCredit
-
-		UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-	    Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy where JournalBatchHeaderId= @JournalBatchHeaderId
+			UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+			UPDATE BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 		END
 	END TRY

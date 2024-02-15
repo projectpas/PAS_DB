@@ -262,7 +262,6 @@ BEGIN
 					CASE WHEN @CheckAmount > 0 THEN 1 ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN @CheckAmount ELSE 0 END,
 					CASE WHEN @CheckAmount > 0 THEN 0 ELSE ABS(@CheckAmount) END,
-					--1,@CheckAmount,0,
 					@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 

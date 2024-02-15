@@ -97,7 +97,6 @@ BEGIN
 				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-				--SELECT @CurrentManagementStructureId =ManagementStructureId FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId
 				SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CustomerRefund'
 
 				SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@CurrentManagementStructureId))
@@ -216,7 +215,6 @@ BEGIN
 					CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
 					CASE WHEN @CRDRType = 1 THEN @SumAmount ELSE 0 END,
 					CASE WHEN @CRDRType = 1 THEN 0 ELSE @SumAmount END,
-					--1,@CheckAmount,0,
 					@CurrentManagementStructureId ,'CustomerRefund',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 

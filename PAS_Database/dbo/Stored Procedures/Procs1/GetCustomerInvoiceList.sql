@@ -12,6 +12,7 @@
 	8    07-NOV-2023      AMIT GHEDIYA		Modify(Added Add Exchange Invoice)
 	9	 31-JAN-2024	  Devendra Shekh    added isperforma Flage for WO
 	10	 01/02/2024	      AMIT GHEDIYA	    added isperforma Flage for SO
+	11	 16-FEB-2024	  Devendra Shekh    removed isperforma Flage for WO
 
 **************************************************************/  
 --exec GetCustomerInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'CustName',@SortOrder=1,@GlobalFilter=N'',@StatusId=2,@CustName='Fast',@CustomerCode=NULL,@CustomertType=NULL,@currencyCode=NULL,@BalanceAmount=NULL,@CurrentlAmount=NULL,@Amountpaidbylessthen0days=NULL,@Amountpaidby30days=NULL,@Amountpaidby60days=NULL,@Amountpaidby90days=NULL,@Amountpaidby120days=NULL,@Amountpaidbymorethan120days=NULL,@LegelEntity=NULL,@EmployeeId=2,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@viewType=N'Deatils',@MasterCompanyId=1,@InvoiceDate=NULL,@CustomerRef=NULL,@InvoiceNo=NULL,@DocType=NULL,@Salesperson=NULL,@Terms=NULL,@DueDate=NULL,@FixRateAmount=NULL,@InvoiceAmount=NULL,@InvoicePaidAmount=NULL,@InvoicePaidDate=NULL,@PaymentRef=NULL,@CMAmount=NULL,@CMDate=NULL,@AdjustMentAmount=NULL,@AdjustMentDate=NULL,@SOMSModuleID=17,@WOMSModuleID=12
@@ -178,7 +179,7 @@ BEGIN
 			    LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = WO.SalesPersonId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+			   INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
 			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
 			    LEFT JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -876,7 +877,7 @@ BEGIN
 			   INNER JOIN dbo.[WorkOrder] WO WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 			   LEFT JOIN  dbo.[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = WO.CreditTermId
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN dbo.[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) ON wobi.IsVersionIncrease=0 AND wobi.WorkOrderId=WO.WorkOrderId  AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			   INNER JOIN dbo.[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) ON wobi.IsVersionIncrease=0 AND wobi.WorkOrderId=WO.WorkOrderId
 		 	   INNER JOIN dbo.[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			   INNER JOIN dbo.[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
 			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'
@@ -978,7 +979,7 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = WO.CreditTermId
 			   INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 			   INNER JOIN [dbo].[WorkOrderWorkFlow] F WITH (NOLOCK) ON F.WorkOrderPartNoId = wop.ID
-			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobi.IsVersionIncrease=0 AND wobi.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			    LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WO.SalesPersonId 
 			   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
@@ -1013,7 +1014,7 @@ BEGIN
 			   (  
 					SELECT STUFF((SELECT CASE WHEN LEN(S.InvoiceNo) > 0 THEN ',' ELSE '' END + s.InvoiceNo  
 					 FROM [dbo].[WorkOrderBillingInvoicing] S WITH (NOLOCK)  
-					 WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 AND ISNULL(s.IsPerformaInvoice, 0) = 0 FOR XML PATH('')), 1, 1, '') InvoiceNo  
+					 WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceNo  
 				) B
 				OUTER APPLY
 				(  
@@ -1021,13 +1022,13 @@ BEGIN
 					 FROM [dbo].[WorkOrder] WOS WITH (NOLOCK) 
 					 INNER JOIN [dbo].[WorkOrderPartNumber] s WITH (NOLOCK) ON WOS.WorkOrderId = s.WorkOrderId
 					 INNER JOIN [dbo].[WorkOrderWorkFlow] F WITH (NOLOCK) ON F.WorkOrderPartNoId = s.ID
-					 INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobis WITH(NOLOCK) on wobis.IsVersionIncrease=0 AND wobis.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId AND ISNULL(wobis.IsPerformaInvoice, 0) = 0
+					 INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobis WITH(NOLOCK) on wobis.IsVersionIncrease=0 AND wobis.WorkFlowWorkOrderId=F.WorkFlowWorkOrderId
 					WHERE wobi.CustomerId = wobis.CustomerId  AND wobis.InvoiceStatus = 'Invoiced' FOR XML PATH('')), 1, 1, '') CustomerReference  
 				) D
 				OUTER APPLY(  
 					 SELECT	STUFF((SELECT CASE WHEN LEN(S.InvoiceDate) >0 then ',' ELSE '' END + CONVERT(VARCHAR, S.InvoiceDate, 110)   
 						 FROM [dbo].[WorkOrderBillingInvoicing] S WITH (NOLOCK)  
-					WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 AND ISNULL(S.IsPerformaInvoice, 0) = 0 FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
+					WHERE wobi.CustomerId = s.CustomerId AND S.InvoiceStatus = 'Invoiced'  AND s.IsVersionIncrease = 0 FOR XML PATH('')), 1, 1, '') InvoiceDateNew  
 				) E
 			   
 			   WHERE  C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced' 

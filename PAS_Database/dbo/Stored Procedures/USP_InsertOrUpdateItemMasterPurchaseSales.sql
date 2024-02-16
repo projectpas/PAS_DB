@@ -13,10 +13,11 @@
  ** --   --------			-------				--------------------------------          
     1    10/01/2024		  Ekta Chandegra		  Created
     2    09/02/2024		  Ekta Chandegra		  Added table type 
+    3    16/02/2024		  Ekta Chandegra		  Update purchase price also 
 
 declare @p1 dbo.ItemMasterPurchaseSalesType
-insert into @p1 values(121,9,1,100,95.0)
-insert into @p1 values(121,7,1,155,110.4)
+insert into @p1 values(24,1,1,120.00,250.00)
+insert into @p1 values(20751,7,1,340.00,250.00)
 
 exec [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales] @tbl_ItemMasterPurchaseSalesType=@p1
 
@@ -167,7 +168,8 @@ BEGIN
 		  WHEN MATCHED 
 		  THEN UPDATE   
 		  SET   		  
-		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice]
+		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
+		  TARGET.[PP_UnitPurchasePrice] = SOURCE.[PP_UnitPurchasePrice]
 		  WHEN NOT MATCHED BY TARGET  
 		  THEN  
 		  INSERT([ItemMasterId],[PartNumber],[PP_UOMId] ,[PP_CurrencyId],[PP_FXRatePerc],[PP_VendorListPrice],

@@ -101,9 +101,9 @@ BEGIN
 					DROP TABLE #tempCustomer
 				END
 
-				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+				IF OBJECT_ID(N'tempdb..#tmpWOCodePrefixesNew') IS NOT NULL
 				BEGIN
-					DROP TABLE #tmpCodePrefixes
+					DROP TABLE #tmpWOCodePrefixesNew
 				END
 
 				CREATE TABLE #tempCustomer
@@ -127,7 +127,7 @@ BEGIN
 					[IsDeleted] BIT NULL,
 				)
 
-				CREATE TABLE #tmpCodePrefixes
+				CREATE TABLE #tmpWOCodePrefixesNew
 				(
 						ID BIGINT NOT NULL IDENTITY, 
 						CodePrefixId BIGINT NULL,
@@ -253,21 +253,21 @@ BEGIN
 				BEGIN
 
 					--CodePrefix Data Insert
-					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+					INSERT INTO #tmpWOCodePrefixesNew (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId = @CodeTypeId
 					AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-					IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
+					IF (EXISTS (SELECT 1 FROM #tmpWOCodePrefixesNew WHERE CodeTypeId = @CodeTypeId))
 					BEGIN
 						SELECT @Nummber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 ELSE CAST(StartsFrom AS BIGINT) END 
-						FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+						FROM #tmpWOCodePrefixesNew WHERE CodeTypeId = @CodeTypeId
 					
 						SET @ReceiverNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
 										@Nummber,
-										(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId),
-										(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+										(SELECT CodePrefix FROM #tmpWOCodePrefixesNew WHERE CodeTypeId = @CodeTypeId),
+										(SELECT CodeSufix FROM #tmpWOCodePrefixesNew WHERE CodeTypeId = @CodeTypeId)))
 					END
 					/*****************End Prefixes*******************/	
 
@@ -305,9 +305,9 @@ BEGIN
 					
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 					
-					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+					IF OBJECT_ID(N'tempdb..#tmpWOCodePrefixesNew') IS NOT NULL
 					BEGIN
-						TRUNCATE TABLE #tmpCodePrefixes;
+						TRUNCATE TABLE #tmpWOCodePrefixesNew;
 					END
 
 					SET @TOTALQTY = @TOTALQTY - 1

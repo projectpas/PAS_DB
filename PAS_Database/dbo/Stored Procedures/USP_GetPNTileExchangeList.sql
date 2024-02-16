@@ -14,6 +14,8 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    16/01/2024   Devendra Shekh		Created
+	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added@
+
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@PageNumber int = 1,
@@ -42,8 +44,8 @@ CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@MasterCompanyId bigint=1,
 	@ConditionId VARCHAR(250) = NULL,
 	@StatusValue varchar(50) = NULL,
-	@SerialNumber varchar(50) = NULL
-
+	@SerialNumber varchar(50) = NULL,
+	@IsVendor varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -89,6 +91,7 @@ BEGIN
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,							
 				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN V.VendorId ELSE C.CustomerId END AS CustomerId,
 				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN V.VendorName ELSE C.[Name] END AS [CustomerName],
+				CASE WHEN ISNULL(SO.IsVendor,0) = 1 THEN 'Yes' ELSE 'No' END AS IsVendor, 
 				SP.ConditionId,
 				SO.[IsDeleted],					
 				SO.[CreatedDate],
@@ -96,8 +99,8 @@ BEGIN
 				SO.[IsActive],					
 				SO.[StatusId],
 				ISNULL(IM.ManufacturerName,'')ManufacturerName,			
-				MSOS.[Name] AS StatusValue,
-				ISNULL(SO.IsVendor,0) IsVendor
+				MSOS.[Name] AS StatusValue
+				--ISNULL(SO.IsVendor,0) IsVendor
 			   FROM [dbo].[ExchangeSalesOrder] SO WITH (NOLOCK)	
 			   LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) on C.CustomerId = SO.CustomerId AND ISNULL(SO.IsVendor,0) = 0
 			   LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) on V.VendorId = SO.CustomerId AND ISNULL(SO.IsVendor,0) = 1
@@ -147,6 +150,7 @@ BEGIN
 				(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	
 				(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
+				(ISNULL(@IsVendor,'') ='' OR IsVendor LIKE '%' + @IsVendor + '%') AND
 				(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))))		
 					
 			SELECT @Count = COUNT(ExchangeSalesOrderId) FROM #TempResult			
@@ -184,7 +188,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusValue')  THEN StatusValue END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusValue')  THEN StatusValue END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='IsVendor')  THEN IsVendor END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsVendor')  THEN IsVendor END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

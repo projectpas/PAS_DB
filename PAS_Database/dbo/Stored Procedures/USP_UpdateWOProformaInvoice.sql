@@ -17,6 +17,7 @@
  ** --   	--------		-------				--------------------------------     
 	1		08/02/2024		Devendra Shekh			CREATED
 	2		15/02/2024		Devendra Shekh			Modified
+	3		16/02/2024		Devendra Shekh			added NOLOCK for update
 
 	EXEC [USP_UpdateWOProformaInvoice] 4270,3737
 
@@ -67,13 +68,15 @@ BEGIN
 
 						SELECT @BillingInvoiceId = [BillingInvoicingId] FROM #tempProformaInvoice WHERE Id = @StartCount;
 
-						UPDATE [dbo].[WorkOrderBillingInvoicing]
-						SET IsInvoicePosted = 1
-						WHERE [BillingInvoicingId] = @BillingInvoiceId
+						UPDATE WOB
+						SET WOB.IsInvoicePosted = 1
+						FROM [dbo].[WorkOrderBillingInvoicing] WOB WITH(NOLOCK)
+						WHERE WOB.[BillingInvoicingId] = @BillingInvoiceId
 
-						UPDATE [dbo].[WorkOrderBillingInvoicingItem]
-						SET IsInvoicePosted = 1
-						WHERE [BillingInvoicingId] = @BillingInvoiceId
+						UPDATE WOBI
+						SET WOBI.IsInvoicePosted = 1
+						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)
+						WHERE WOBI.[BillingInvoicingId] = @BillingInvoiceId
 
 						SET @StartCount = @StartCount + 1;
 					END
@@ -83,13 +86,15 @@ BEGIN
 				IF(ISNULL(@WOProfomaBillingInvoicingId, 0) > 0)
 				BEGIN
 					PRINT @WOProfomaBillingInvoicingId
-					UPDATE [dbo].[WorkOrderBillingInvoicing]
-					SET IsInvoicePosted = 1
-					WHERE [BillingInvoicingId] = @WOProfomaBillingInvoicingId
+					UPDATE WOBN
+					SET WOBN.IsInvoicePosted = 1
+					FROM [dbo].[WorkOrderBillingInvoicing] WOBN WITH(NOLOCK)
+					WHERE WOBN.[BillingInvoicingId] = @WOProfomaBillingInvoicingId
 
-					UPDATE [dbo].[WorkOrderBillingInvoicingItem]
-					SET IsInvoicePosted = 1
-					WHERE [BillingInvoicingId] = @WOProfomaBillingInvoicingId
+					UPDATE WOBIN
+					SET WOBIN.IsInvoicePosted = 1
+					FROM [dbo].[WorkOrderBillingInvoicingItem] WOBIN WITH(NOLOCK)
+					WHERE WOBIN.[BillingInvoicingId] = @WOProfomaBillingInvoicingId
 				END
 
 			END

@@ -17,6 +17,7 @@
     1    25/10/2023   Amit Ghediya	  Created	
 	2    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	  Modified Added [ReferenceId]
+	4	 16/02/2024   Ekta Chandegra  Pass @newQty instead of @remainingQty in [DBO].[USP_AddUpdateStocklineHistory] call
 
 	EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -300,11 +301,11 @@ BEGIN
 					SET @remainingQty = @QuantityOnHand - @newqty;
 					IF(@remainingQty > 0)
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @remainingQty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
 					END
 					ELSE
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @remainingQty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
 					END
 
 					DECLARE @Stockline BIGINT;

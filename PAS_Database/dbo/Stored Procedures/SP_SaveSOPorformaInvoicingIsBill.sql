@@ -39,7 +39,9 @@ BEGIN
 					@TotalSalesOrderCostPlus DECIMAL(18,2) = 0,
 					@UsedDepositAmt DECIMAL(18,2) = 0,
 					@SOProFormaBillingInvoicingId BIGINT = 0,
-					@SOisProforma BIT;
+					@SOisProforma BIT,
+					@SalesOrderPartNoId BIGINT = 0,
+					@SOProfomaBillingInvoicingId BIGINT = 0;
 
 		------------- Update Remaining Deposit -------------------------------------
 			
@@ -50,18 +52,27 @@ BEGIN
 			BEGIN
 				--Get deposit from invoiced.
 				SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				WHERE [SalesOrderId] = @SalesOrderId AND IsVersionIncrease = 0 AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 				--Update Remaining balace
 				IF(@DepositAmt > 0)
 				BEGIN
-					UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ISNULL(RemainingAmount ,0) - @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					DECLARE @RemainingAmount DECIMAL(18,2) = 0;
+					SELECT @RemainingAmount = ISNULL(RemainingAmount,0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					IF(@RemainingAmount > @DepositAmt)
+					BEGIN
+						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ISNULL(RemainingAmount ,0) - @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					END
+					ELSE
+					BEGIN
+						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					END
 				END
 
 				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
 
 				SELECT TOP 1 @SOProFormaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				WHERE [SalesOrderId] = @SalesOrderId AND IsVersionIncrease = 0 AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 				IF(ISNULL(@SOProFormaBillingInvoicingId, 0) > 0)
 				BEGIN
@@ -85,6 +96,9 @@ BEGIN
 				SalesOrderPartId [BIGINT]  NULL,
 				SOBillingInvoicingId [BIGINT]  NULL
 			);
+
+			SELECT TOP 1 @SalesOrderPartNoId = SalesOrderPartId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+			SELECT TOP 1 @SOProfomaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartNoId AND ISNULL(IsProforma, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0;
 
 			SELECT @sobillngId = SOBillingInvoicingId , @soPartID = SalesOrderPartId , @isProforma = IsProforma FROM DBO.SalesOrderBillingInvoicingItem WITH(NOLOCK) WHERE SOBillingInvoicingId = @sobillingInvoicingId;
 			IF(ISNULL(@sobillngId,0) > 0 AND @isProforma = 0)
@@ -110,6 +124,19 @@ BEGIN
 					END
 					
 				END
+			END
+
+			IF(ISNULL(@SOProfomaBillingInvoicingId, 0) > 0 AND @isProforma = 0)
+			BEGIN
+				UPDATE SOBN
+				SET SOBN.IsBilling = 1
+				FROM [dbo].[SalesOrderBillingInvoicing] SOBN WITH(NOLOCK)
+				WHERE SOBN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId
+
+				UPDATE SOBIN
+				SET SOBIN.IsBilling = 1
+				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBIN WITH(NOLOCK)
+				WHERE SOBIN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId
 			END
 		END
 	END	

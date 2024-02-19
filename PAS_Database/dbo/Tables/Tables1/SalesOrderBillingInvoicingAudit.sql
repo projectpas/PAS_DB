@@ -51,9 +51,12 @@
     [IsProforma]                BIT             NULL,
     [IsBilling]                 BIT             NULL,
     [DepositAmount]             DECIMAL (18, 2) NULL,
+    [UsedDeposit]               DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingAudit_SalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[SalesOrderBillingInvoicing] ([SOBillingInvoicingId])
 );
+
+
 
 
 

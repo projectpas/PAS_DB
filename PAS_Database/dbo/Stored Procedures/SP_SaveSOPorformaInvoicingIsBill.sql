@@ -1,10 +1,9 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_SaveSOPorformaInvoicingIsBill]           
  ** Author:  AMIT GHEDIYA
  ** Description: This stored procedure is used to update isbilling flag after standard proforma invoice flag to isbiiling.
  ** Purpose:         
- ** Date:  13/02/2024   
+ ** Date:  15/02/2024   
           
          
  ** RETURN VALUE:           
@@ -13,7 +12,7 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    13/02/2024   AMIT GHEDIYA		 Created
+    1    15/02/2024   AMIT GHEDIYA		 Created
      
 ************************************************************************/
 
@@ -34,7 +33,46 @@ BEGIN
 					@soPartID BIGINT,
 					@SalesOrderPartId BIGINT,
 					@SOBillingInvoicingIds BIGINT,
-					@COUNT AS INT = 0;
+					@COUNT AS INT = 0,
+					@SalesOrderId BIGINT = 0,
+					@DepositAmt DECIMAL(18,2) = 0,
+					@TotalSalesOrderCostPlus DECIMAL(18,2) = 0,
+					@UsedDepositAmt DECIMAL(18,2) = 0,
+					@SOProFormaBillingInvoicingId BIGINT = 0,
+					@SOisProforma BIT;
+
+		------------- Update Remaining Deposit -------------------------------------
+			
+			SELECT @SalesOrderId = [SalesOrderId], @TotalSalesOrderCostPlus = [GrandTotal], @SOisProforma = [IsProforma]
+			FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+
+			IF(@SOisProforma != 1)
+			BEGIN
+				--Get deposit from invoiced.
+				SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+				WHERE [SalesOrderId] = @SalesOrderId AND IsVersionIncrease = 0 AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+
+				--Update Remaining balace
+				IF(@DepositAmt > 0)
+				BEGIN
+					UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ISNULL(RemainingAmount ,0) - @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+				END
+
+				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
+
+				SELECT TOP 1 @SOProFormaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+				WHERE [SalesOrderId] = @SalesOrderId AND IsVersionIncrease = 0 AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+
+				IF(ISNULL(@SOProFormaBillingInvoicingId, 0) > 0)
+				BEGIN
+					UPDATE [dbo].[SalesOrderBillingInvoicing]
+					SET [UsedDeposit] = ISNULL(UsedDeposit, 0) + @UsedDepositAmt
+					WHERE [SOBillingInvoicingId] = @SOProFormaBillingInvoicingId
+				END
+			END
+
+		-------------End Update Remaining Deposit -------------------------------------
+
 
 			--Create Temp Table 
 			IF OBJECT_ID(N'tempdb..#SalesOrderBillingInvoiceList') IS NOT NULL

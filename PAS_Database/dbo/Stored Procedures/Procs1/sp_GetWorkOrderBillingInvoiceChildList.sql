@@ -66,7 +66,7 @@ BEGIN
 					[ItemMasterId] [BIGINT] NULL,
 					[IsAllowIncreaseVersion] [BIT] NULL,
 					[WorkFlowWorkOrderId] [BIGINT] NULL,
-					[AWB] [VARCHAR](10) NULL,
+					[AWB] [VARCHAR](50) NULL,
 					[IsFinishGood] [BIT] NULL,
 					[Notes] [NVARCHAR](MAX) NULL,
 					[InvoiceTypeName] [VARCHAR](50) NULL,
@@ -511,8 +511,8 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'sp_GetWorkOrderBillingInvoiceChildList' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '''
-													   @Parameter2 = ' + ISNULL(@WorkOrderPartId ,'') +''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@WorkOrderId AS VARCHAR), '') + '''
+													   @Parameter2 = ' + ISNULL(CAST(@WorkOrderPartId AS VARCHAR) ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

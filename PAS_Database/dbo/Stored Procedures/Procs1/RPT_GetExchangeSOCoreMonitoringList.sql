@@ -36,16 +36,16 @@ BEGIN
 		 , 'Exchange Sales Order Number - ' + UPPER(EXCHSO.ExchangeSalesOrderNumber) + CASE WHEN ISNULL(EXCHSOP.POId,0) != 0 THEN ', PO Num - ' + CAST(EXCHSOP.PONumber AS varchar) ELSE '' END + (CASE WHEN ISNULL(IM.PartNumber,'') != '' THEN ', PN - ' + IM.PartNumber ELSE '' END) AS 'ExchangeSalesOrderNumber'
 
 
-		from [DBO].ExchangeCoreMonitoringDetails EMD
-		INNER JOIN [DBO].ExchangeSalesOrder EXCHSO ON EXCHSO.ExchangeSalesOrderId = EMD.ExchangeSalesOrderId
-		INNER JOIN [DBO].ExchangeSalesOrderPart EXCHSOP ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId
-		LEFT JOIN [DBO].ExchangeCoreLetterType EXCHCT ON EMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId
-		LEFT JOIN [DBO].ReceivingCustomerWork RCT ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
-		LEFT JOIN [DBO].ItemMaster IM ON EXCHSOP.ItemMasterId = IM.ItemMasterId
-		LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH ON IM.ItemMasterId = IMEXCH.ItemMasterId
-		LEFT JOIN [DBO].Stockline ST ON RCT.StockLineId = ST.StockLineId
-		LEFT JOIN [DBO].Manufacturer MN ON IM.ManufacturerId = MN.ManufacturerId
-		LEFT JOIN [DBO].ItemMaster ITM ON Im.ItemMasterId = RCT.RevisePartId
+		from [DBO].ExchangeCoreMonitoringDetails EMD WITH (NOLOCK)
+		INNER JOIN [DBO].ExchangeSalesOrder EXCHSO WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = EMD.ExchangeSalesOrderId
+		INNER JOIN [DBO].ExchangeSalesOrderPart EXCHSOP WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId
+		LEFT JOIN [DBO].ExchangeCoreLetterType EXCHCT WITH (NOLOCK) ON EMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId
+		LEFT JOIN [DBO].ReceivingCustomerWork RCT WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
+		LEFT JOIN [DBO].ItemMaster IM WITH (NOLOCK) ON EXCHSOP.ItemMasterId = IM.ItemMasterId
+		LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
+		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId
+		LEFT JOIN [DBO].Manufacturer MN WITH (NOLOCK) ON IM.ManufacturerId = MN.ManufacturerId
+		LEFT JOIN [DBO].ItemMaster ITM WITH (NOLOCK) ON Im.ItemMasterId = RCT.RevisePartId
 		WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId AND EMD.ExchangeCoreMonitoringDetailsId = @ExchangeCoreMonitoringDetailsId;
     END TRY
 	BEGIN CATCH      

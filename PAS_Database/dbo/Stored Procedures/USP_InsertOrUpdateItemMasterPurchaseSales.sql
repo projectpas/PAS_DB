@@ -14,6 +14,7 @@
     1    10/01/2024		  Ekta Chandegra		  Created
     2    09/02/2024		  Ekta Chandegra		  Added table type 
     3    16/02/2024		  Ekta Chandegra		  Update purchase price also 
+    4    19/02/2024		  Ekta Chandegra		  Set Flat price amount and sales price 
 
 declare @p1 dbo.ItemMasterPurchaseSalesType
 insert into @p1 values(24,1,1,120.00,250.00)
@@ -149,12 +150,12 @@ BEGIN
 					
 					SELECT [ItemMasterId],[PartNumber],[PurchaseUnitOfMeasureId],[PurchaseCurrencyId],0,null,
 					null,null,null,null,
-					@UnitPurchasePrice,[PurchaseUnitOfMeasureId],[SalesCurrencyId],0,null,
+					@UnitPurchasePrice,[PurchaseUnitOfMeasureId],[SalesCurrencyId],0,@UnitSalePrice,
 					null,null ,null,
 					null,null ,null ,
 					null,null,	@UnitSalePrice ,
 					IM.[MasterCompanyId],IM.[CreatedBy],IM.[CreatedBy],GETUTCDATE() ,GETUTCDATE() ,1 ,0,
-					0 ,@ConditionId,0 ,null,null ,
+					0 ,@ConditionId,1 ,null,null ,
 					null,null,null ,null,null ,
 					null,'Flat'
 					FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
@@ -169,7 +170,9 @@ BEGIN
 		  THEN UPDATE   
 		  SET   		  
 		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
-		  TARGET.[PP_UnitPurchasePrice] = SOURCE.[PP_UnitPurchasePrice]
+		  TARGET.[PP_UnitPurchasePrice] = SOURCE.[PP_UnitPurchasePrice],
+		  TARGET.[SP_FSP_FlatPriceAmount] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
+		  TARGET.[SalePriceSelectId] = 1
 		  WHEN NOT MATCHED BY TARGET  
 		  THEN  
 		  INSERT([ItemMasterId],[PartNumber],[PP_UOMId] ,[PP_CurrencyId],[PP_FXRatePerc],[PP_VendorListPrice],

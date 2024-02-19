@@ -12,19 +12,19 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date				Author			Change Description            
- ** --   --------			-------			-------------------          
-    1    02-April-2020		Vishal Suthar	Created
-	1    10-May-2020		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			-------------------          
+    1    04-02-2020		Vishal Suthar	Created
+	2    05-10-2020		Hemant Saliya	Rename SP to General Name & added Transation and Content Managment
+	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
      
- EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
+ EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
-@ItemMasterIdlist VARCHAR(max) = '0', 
-@ConditionIds VARCHAR(100) = NULL,
-@CustomerId BIGINT = NULL,
-@MappingType INT = -1
-
+	@ItemMasterIdlist VARCHAR(max) = '0', 
+	@ConditionIds VARCHAR(100) = NULL,
+	@CustomerId BIGINT = NULL,
+	@MappingType INT = -1
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -71,8 +71,8 @@ BEGIN
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 
-					--AND sl.IsCustomerStock = 0
-					AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsCustomerStock = 0
+					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -102,7 +102,7 @@ BEGIN
 					,imps.PP_UnitPurchasePrice
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
-				ORDER BY 7 DESC
+				ORDER BY 9 DESC
 			END
 		COMMIT  TRANSACTION
 

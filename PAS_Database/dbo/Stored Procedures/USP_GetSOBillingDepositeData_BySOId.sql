@@ -30,7 +30,7 @@ BEGIN
 			SUM(ISNULL(sobi.UsedDeposit, 0)) AS UsedDeposit
 		FROM [DBO].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 		WHERE sobi.SalesOrderId = @SalesOrderId
-			  AND sobi.IsProforma = 1 AND sobi.IsVersionIncrease = 0 AND UPPER(InvoiceStatus) = 'INVOICED'
+			  AND sobi.IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED'
 		GROUP BY sobi.SalesOrderId,sobi.MasterCompanyId
 
  END TRY          

@@ -14,7 +14,8 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 3    26/07/2023		Satish Gohil	  Glaccount id validation added
 ** 4    04/08/2023      Satish Gohil	  Seprate Accounting Entry WO Type Wise
 ** 5    08/17/2023      AMIT GHEDIYA	  Updated HistoryText.
-** 6    12/30/2021		HEMANT SALIYA	  Updated Error handling And Resolved Error
+** 6    12/30/2023		HEMANT SALIYA	  Updated Error handling And Resolved Error
+** 7    02/16/2024		HEMANT SALIYA	  Updated for Restrict Accounting Entry by Master Company
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -22,7 +23,7 @@ insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT S
 
 EXEC dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
+CREATE  PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -60,25 +61,26 @@ BEGIN
 					DECLARE @IsKit BIGINT = 0;
 
 					DECLARE @RC int
-                    DECLARE @DistributionMasterId bigint
-                    DECLARE @ReferencePartId bigint
-                    DECLARE @ReferencePieceId bigint
-                    DECLARE @InvoiceId bigint=0
-					DECLARE @IssueQty bigint=0
-                    DECLARE @laborType varchar(200)='434'
+                    DECLARE @DistributionMasterId BIGINT
+					DECLARE @DistributionCode VARCHAR(50)
+                    DECLARE @ReferencePartId BIGINT
+                    DECLARE @ReferencePieceId BIGINT
+                    DECLARE @InvoiceId BIGINT=0
+					DECLARE @IssueQty BIGINT=0
+                    DECLARE @laborType VARCHAR(200)='434'
                     DECLARE @issued bit=1
                     DECLARE @Amount decimal(18,2)
-                    DECLARE @ModuleName varchar(200)='WOP-PartsIssued'
-                    DECLARE @UpdateBy varchar(200)
+                    DECLARE @ModuleName VARCHAR(200)='WOP-PartsIssued'
+                    DECLARE @UpdateBy VARCHAR(200)
 					DECLARE @HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT,
-								@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
-								@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
-								@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-								@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT,
-								@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued BIGINT
-								,@OldValue VARCHAR(MAX)='' ,@NewValue VARCHAR(MAX) ='' 
+							@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
+							@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
+							@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
+							@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT,
+							@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued BIGINT,
+							@OldValue VARCHAR(MAX)='' ,@NewValue VARCHAR(MAX) ='' 
 
-					SELECT @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
+					SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 					SET @PartStatus = 2; -- FOR Issue
@@ -90,7 +92,7 @@ BEGIN
 					SET @slcount = 1;
 					SET @count = 1;
 					SET @countKIT = 1;
-					DECLARE @Qty bigint = 0;
+					DECLARE @Qty BIGINT = 0;
 					DECLARE @ActionId INT = 0;
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @CustomerWOTypeId INT= 0;
@@ -333,8 +335,6 @@ BEGIN
 					IF (@TotalCountsBoth > 0 )
 					BEGIN
 						PRINT 'Hem-3.1'
-						--Select * from #tmpIssueWOMaterialsStocklineWithoutKit
-						--Select top 10 *  FROM dbo.WorkOrderMaterialStockLine where WorkOrderMaterialsId = 15908
 						
 						MERGE dbo.WorkOrderMaterialStockLine AS TARGET
 						USING #tmpIssueWOMaterialsStocklineWithoutKit AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsId)
@@ -399,7 +399,7 @@ BEGIN
 						FROM #tmpIssueWOMaterialsStockline tmpWOM 
 						WHERE tmpWOM.ID = @slcount
 
-						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
+						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StocklineId
 
 						SELECT TOP 1 @WOTypeId =WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @ReferenceId
 						
@@ -427,7 +427,6 @@ BEGIN
 
 						SELECT @historyEmployeeName = (FirstName +' '+ LastName) FROM dbo.Employee WITH(NOLOCK) WHERE EmployeeId = @historyReservedById;
 						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
-						--SELECT @HistoryWorkOrderMaterialsId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK);
 						
 						SET @historytotalReserved = (CAST(@HistoryQtyReserved AS BIGINT) + CAST(@HistoryQuantityActReserved AS BIGINT));
 						
@@ -435,8 +434,8 @@ BEGIN
 						SET @TemplateBody = REPLACE(@TemplateBody, '##MPN##', ISNULL(@MPNPartnumber,''));
 						SET @TemplateBody = REPLACE(@TemplateBody, '##Qty##', ISNULL(@historyQuantityActIssued,0));
 
-						SET @OldValue= '';--(SELECT Cast(@historyQuantity  as varchar))
-						SET @NewValue= 'ISSUED PARTS';--(SELECT Cast(@historyQtyToBeReserved  as varchar))
+						SET @OldValue= '';
+						SET @NewValue= 'ISSUED PARTS';
 
 						PRINT 'Hem-6'
 						
@@ -444,11 +443,13 @@ BEGIN
 						BEGIN
 							EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@OldValue,@NewValue,@TemplateBody,'IssuedParts',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
 						END
+						DECLARE @IsRestrict INT;
 
-						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+						EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 						BEGIN
 							PRINT '7'
-						--EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@OldValue,@NewValue,@TemplateBody,'IssuedParts',@historyMasterCompanyId,@UpdateBy,null,@UpdateBy,null;
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
 								PRINT '7.1.1'
@@ -458,10 +459,9 @@ BEGIN
 							PRINT '7.1'
 						END
 
-						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
+						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 						BEGIN
 							PRINT '8'
-						--EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@OldValue,@NewValue,@TemplateBody,'IssuedParts',@historyMasterCompanyId,@UpdateBy,null,@UpdateBy,null;
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
 								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 

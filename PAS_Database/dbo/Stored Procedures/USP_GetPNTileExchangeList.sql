@@ -14,7 +14,9 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    16/01/2024   Devendra Shekh		Created
-	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added@
+	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added
+	3    16/02/2024   Ekta Chandegra        Filter is added on @IsVendor 
+
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
@@ -134,6 +136,7 @@ BEGIN
 				(CAST(UnitCostExtended AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
 				(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
 				(SalesPersonName LIKE '%' +@GlobalFilter+'%') OR
+				(IsVendor LIKE '%' +@GlobalFilter+'%') OR
 				(CustomerName LIKE '%' +@GlobalFilter+'%'))
 				OR   
 				(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 

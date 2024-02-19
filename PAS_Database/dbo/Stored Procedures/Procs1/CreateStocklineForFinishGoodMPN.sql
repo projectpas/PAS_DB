@@ -28,7 +28,8 @@
 	11   18/08/2023   Vishal Suthar	    Added history for old stockline
 	12   16/10/2023   Devendra Shekh	timelife issue resolved
 	13   30/11/2023   Moin Bloch        Modify(Added LotId in New Stockline)
-	13   01/05/2024   Devendra Shekh        Modify(Added LotId in New Stockline)
+	14   01/05/2024   Devendra Shekh    Modify(Added LotId in New Stockline)
+ ** 15   02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -68,6 +69,7 @@ BEGIN
     DECLARE @RevisedConditionName VARCHAR(50);  
     DECLARE @RC int  
     DECLARE @DistributionMasterId bigint  
+	DECLARE @DistributionCode VARCHAR(50)
     DECLARE @ReferencePartId bigint  
     DECLARE @ReferencePieceId bigint=0  
     DECLARE @InvoiceId bigint=0  
@@ -94,7 +96,7 @@ BEGIN
 	SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 	SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
   
-    SELECT @DistributionMasterId = ID FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')  
+    SELECT @DistributionMasterId = ID , @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')  
     SELECT @StocklineId = WOP.StockLineId,         
       @RevisedConditionId = CASE WHEN ISNULL(WOP.RevisedConditionId, 0) > 0 THEN WOP.RevisedConditionId ELSE WOP.ConditionId END,   
       @RevisedPartNoId = CASE WHEN ISNULL(WOS.RevisedPartId, 0) > 0 THEN WOS.RevisedPartId ELSE WOP.ItemMasterId END,  
@@ -113,9 +115,6 @@ BEGIN
      LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9  
      LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId  
     WHERE WOP.ID = @WorkOrderPartNumberId
-	
-	
-				    
   
     SELECT @WorkOrderNumber = WorkOrderNum, @CustomerId = CustomerId, @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId  
     SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @WorkOrderPartNumberId  
@@ -353,7 +352,11 @@ BEGIN
     
 	SELECT TOP 1 @WOTypeId =WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
-	IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+	DECLARE @IsRestrict INT;
+
+	EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+	IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 	BEGIN
 		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 		BEGIN
@@ -364,7 +367,7 @@ BEGIN
 		END
 	END
 
-	IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
+	IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 	BEGIN
 		IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 		BEGIN
@@ -374,8 +377,6 @@ BEGIN
 
 		END
 	END
-
-
   
     IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
     BEGIN  

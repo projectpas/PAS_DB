@@ -280,7 +280,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
-			Where SOBI.MasterCompanyId=@MasterCompanyId	AND ISNULL(SOBI.[IsBilling], 0) != 1	
+			Where SOBI.MasterCompanyId=@MasterCompanyId AND SOBII.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1	
 			),
 			SVersionCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
@@ -299,7 +299,7 @@ BEGIN
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') VersionNo  
 				) A  
-				WHERE PC.MasterCompanyId=@MasterCompanyId AND ISNULL(PC.[IsBilling], 0) != 1
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0 AND ISNULL(PC.[IsBilling], 0) != 1
 				Group By PC.SOBillingInvoicingId, A.VersionNo  
 				),
 			SCRefCTE AS(  
@@ -762,7 +762,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
-			Where SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.[IsBilling], 0) != 1
+			Where SOBI.MasterCompanyId=@MasterCompanyId AND SOBII.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1
 			GROUP BY 
 			SOBI.SOBillingInvoicingId,SOBI.InvoiceNo,
 				SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,

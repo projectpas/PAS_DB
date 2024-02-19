@@ -17,8 +17,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](
  @DistributionCode VARCHAR(100),
  @MasterCompanyId INT,
  @AccountingCalendarId BIGINT = NULL,
- @UpdateBy VARCHAR(200) = NULL
- --@IsRestrict BIT OUTPUT
+ @UpdateBy VARCHAR(200) = NULL,
+ @IsRestrict BIT OUTPUT
 )  
 AS    
 BEGIN  
@@ -37,7 +37,7 @@ BEGIN
 				DECLARE @IsRestrictASSET BIT = 0;
 				DECLARE @IsRestrictINV BIT = 0;
 				DECLARE @IsRestrictGEN BIT = 0;
-				DECLARE @IsRestrict BIT = 0;
+				--DECLARE @IsRestrict BIT = 0;
 
 				SET @IsRestrict = 0;
 

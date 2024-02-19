@@ -37,7 +37,6 @@ BEGIN
 				DECLARE @IsRestrictASSET BIT = 0;
 				DECLARE @IsRestrictINV BIT = 0;
 				DECLARE @IsRestrictGEN BIT = 0;
-				--DECLARE @IsRestrict BIT = 0;
 
 				SET @IsRestrict = 0;
 
@@ -71,8 +70,6 @@ BEGIN
 				 )
 
 				SELECT @IsAccountByPass = ISNULL(IsAccountByPass, 0) FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
-
-				--SELECT ISNULL(IsAccountByPass, 0), * FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId = 1
 
 				IF(@IsAccountByPass = 0)
 				BEGIN

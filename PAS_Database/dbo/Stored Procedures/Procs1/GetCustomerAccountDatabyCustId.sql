@@ -13,7 +13,8 @@
     1					unknown			Created
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 	3	01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
-	4	01/02/2024	    Devendra Shekh	removed isperforma flage
+	4	15/02/2024	    Devendra Shekh	removed isperforma flage
+	5	19/02/2024	    Devendra Shekh	added isinvoiceposted flage for wo
 
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
@@ -69,7 +70,7 @@ BEGIN
 			   LEFT JOIN CreditTerms ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
 			   INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
-			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID
+			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId and wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0 AND wobii.WorkOrderPartId = wop.ID AND ISNULL(wobii.IsInvoicePosted, 0) = 0
 		 	   INNER JOIN DBO.Currency CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
 			   --INNER JOIN InvoicePayments ipy WITH(NOLOCK) ON ipy.SOBillingInvoicingId = wobi.BillingInvoicingId AND ipy.InvoiceType=2
 			   INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wop.ID
@@ -77,6 +78,7 @@ BEGIN
 			   Left JOIN DBO.LegalEntity Le WITH(NOLOCK) on MSL.LegalEntityId = Le.LegalEntityId
 			  WHERE  wobi.InvoiceStatus = 'Invoiced' 		     
 					AND C.CustomerId= @customerId   
+				    AND ISNULL(wobi.IsInvoicePosted, 0) = 0
 			UNION ALL
 			SELECT DISTINCT (C.CustomerId) as CustomerId,
                        ((ISNULL(C.[Name],''))) 'CustName' ,

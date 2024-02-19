@@ -445,7 +445,7 @@ BEGIN
 						END
 						DECLARE @IsRestrict INT;
 
-						EXEC dbo.USP_GetSubLadgerGLAccountRestriction @DistributionCode = @DistributionCode, @MasterCompanyId = @MasterCompanyId, @AccountingCalendarId = 0, @UpdateBy = @UpdateBy, @IsRestrict = @IsRestrict OUTPUT;
+						EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
 
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 						BEGIN

@@ -16,6 +16,7 @@ Exec [ReverseWorkOrder]
 ** 5    08/09/2023  Devendra Shekh		 updating WorkOrderSettlementDetails
 ** 6    08/11/2023  Devendra Shekh		 added Isvalue_NA for updating WorkOrderSettlementDetails
 ** 7    08/11/2023  Devendra Shekh		 added isperforma Flage for WO  
+** 8    02/19/2024	HEMANT SALIYA	     Updated for Restrict Accounting Entry by Master Company
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -27,28 +28,29 @@ AS
 	
 	DECLARE @ModuleId INT;
 	DECLARE @SubModuleId INT;
-	DECLARE @WorkOrderId BIGINT
-	DECLARE @MasterCompanyId BIGINT
-	DECLARE @StockLineId BIGINT
-	DECLARE @BillingInvoicingId BIGINT
-	DECLARE @IsShippingDone INT
-	DECLARE @IsBillingDone INT
-	DECLARE @DistributionMasterId bigint 
-	DECLARE @ReferencePartId bigint    
-    DECLARE @ReferencePieceId bigint=0  
-	DECLARE @InvoiceId bigint=0  
-	DECLARE @IssueQty bigint=0 
-	DECLARE @issued bit=0 
-	DECLARE @laborType varchar(200)='DIRECTLABOR'
-	DECLARE @Amount decimal(18,2)    
-    DECLARE @ModuleName varchar(200)='WO'
+	DECLARE @WorkOrderId BIGINT;
+	DECLARE @MasterCompanyId BIGINT;
+	DECLARE @StockLineId BIGINT;
+	DECLARE @BillingInvoicingId BIGINT;
+	DECLARE @IsShippingDone INT;
+	DECLARE @IsBillingDone INT;
+	DECLARE @DistributionMasterId BIGINT;
+	DECLARE @DistributionCode VARCHAR(50);
+	DECLARE @ReferencePartId BIGINT;    
+    DECLARE @ReferencePieceId BIGINT=0;  
+	DECLARE @InvoiceId BIGINT=0;  
+	DECLARE @IssueQty BIGINT=0; 
+	DECLARE @issued bit=0; 
+	DECLARE @laborType VARCHAR(200)='DIRECTLABOR';
+	DECLARE @Amount DECIMAL(18,2);    
+    DECLARE @ModuleName VARCHAR(200)='WO';
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
-			SELECT @DistributionMasterId = ID FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
+			SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
 			SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
@@ -98,9 +100,13 @@ AS
 				SET @ActionId = 10; -- Re-OpenFinishedGood
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @workOrderPartNoId, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
 				
-				SELECT TOP 1 @WOTypeId =WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
+				SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
-				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+				DECLARE @IsRestrict INT;
+
+				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdatedBy, @IsRestrict OUTPUT;
+
+				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 				BEGIN
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
@@ -109,7 +115,7 @@ AS
 					END
 				END
 
-				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
+				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 				BEGIN
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  

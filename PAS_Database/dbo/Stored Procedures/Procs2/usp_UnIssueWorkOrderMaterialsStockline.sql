@@ -14,6 +14,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 3    26/07/2023		Satish Gohil		Glaccount id validation added
 ** 4    04/08/2023      Satish Gohil	    Seprate Accounting Entry WO Type Wise
 ** 5    08/18/2023      AMIT GHEDIYA	    Update historytext for WOhistory.
+** 6    02/19/2024		HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -59,6 +60,7 @@ BEGIN
 					DECLARE @stockLineQtyAvailable INT;
 					DECLARE @RC int;
                     DECLARE @DistributionMasterId bigint;
+					DECLARE @DistributionCode VARCHAR(50);
                     DECLARE @ReferencePartId bigint;
                     DECLARE @ReferencePieceId bigint;
                     DECLARE @InvoiceId bigint=0;
@@ -72,7 +74,7 @@ BEGIN
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
-					select @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
+					select @DistributionMasterId =ID, @DistributionCode = DistributionCode from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 					SET @PartStatus = 4; -- FOR Un-Issue
 					SET @IsAddUpdate = 0;
 					SET @ExecuteParentChild = 1;
@@ -284,14 +286,6 @@ BEGIN
 
 						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
 
-						--IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
-						--BEGIN
-						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						--END
-						--ELSE
-						--BEGIN
-						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						--END
 						SELECT TOP 1 @WOTypeId =WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @ReferenceId
 
 						SET @ActionId = 5; -- UnIssue
@@ -343,10 +337,13 @@ BEGIN
 						BEGIN
 							EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,'','UNISSUED PARTS',@TemplateBody,'UnIssuedParts',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
 						END
-						--EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@OldValue,@NewValue,@TemplateBody,'UnIssuedParts',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
+
+						DECLARE @IsRestrict INT;
+
+						EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
 
 						-- batch trigger unissue qty
-						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 						BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
@@ -355,7 +352,7 @@ BEGIN
 							END
 						END
 						
-						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId)
+						IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsRestrict, 0) = 0)
 						BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
@@ -363,7 +360,6 @@ BEGIN
 								@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 							END
 						END
-                        
 
 						SET @slcount = @slcount + 1;
 					END;

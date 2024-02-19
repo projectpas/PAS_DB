@@ -2805,5 +2805,6 @@
     <Build Include="dbo\Stored Procedures\ThirdPartySendRFQList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WOQ.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSOBillingDepositeData_BySOId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ThirdPartySendRFQDetailById.sql" />
   </ItemGroup>
 </Project>

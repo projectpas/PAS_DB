@@ -2810,5 +2810,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderBillingInvoicingPdfData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO_BeforAfter_Shipping.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_Exchange_Quote.sql" />
   </ItemGroup>
 </Project>

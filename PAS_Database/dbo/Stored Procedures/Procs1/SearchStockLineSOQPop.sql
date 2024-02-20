@@ -1,15 +1,30 @@
-﻿---------------------------------------------------------------------------------------------------
--- =============================================
--- Description:	Get Search Data for SOQ, SO  search for from part list tab
--- EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
--- =============================================
+﻿/*************************************************************           
+ ** File:   [SearchStockLineSOQPop]           
+ ** Author		:   Vishal Suthar
+ ** Description	:	Get Search Data for SOQ, SO  search for from part list tab
+ ** Purpose		:   Get Search Data for SOQ, SO  search for from part list tab    
+ ** Date		:   19-FEB-2024
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date				Author			Change Description            
+ ** --   --------			-------			-------------------          
+    1    02-19-2024			Vishal Suthar	Added History
+     
+ EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
+**************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
-@ItemMasterIdlist VARCHAR(max) = '0', 
-@ConditionId BIGINT = NULL,
---@ConditionIds VARCHAR(100) = NULL,
-@CustomerId BIGINT = NULL,
-@MappingType INT = -1,
-@StocklineIdlist VARCHAR(max)='0'
+	@ItemMasterIdlist VARCHAR(max) = '0', 
+	@ConditionId BIGINT = NULL,
+	--@ConditionIds VARCHAR(100) = NULL,
+	@CustomerId BIGINT = NULL,
+	@MappingType INT = -1,
+	@StocklineIdlist VARCHAR(max)='0'
 AS
 BEGIN
 

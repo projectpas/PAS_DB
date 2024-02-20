@@ -16,10 +16,11 @@
     1    18/04/2022  Moin Bloch					Created
     2    03/07/2023  Devendra Shekh				added new condition for rmaid and rmanum
 	3    08/01/2023  AMIT GHEDIYA				Handle Multiple record cash.
+	4    20/02/2023 Devendra Shekh				added new param
      
 -- EXEC CreateUpdateCreditMemoHeader 1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
+CREATE   PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
 	@CreditMemoHeaderId bigint=NULL,
 	@CreditMemoNumber varchar(50)=NULL,
 	@RMAHeaderId bigint=NULL,
@@ -60,6 +61,7 @@ CREATE     PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
 	@IsWorkOrder bit=NULL,
 	@ReferenceId bigint=NULL,
 	@ReturnDate datetime2(7)=NULL,
+	@IsStandAloneCM bit=NULL,
 	@Result bigint OUTPUT
 AS
 BEGIN
@@ -93,12 +95,12 @@ BEGIN
 											   [CustomerId],[CustomerName],[CustomerCode],[CustomerContactId],[CustomerContact],[CustomerContactPhone],
 											   [IsWarranty],[IsAccepted],[ReasonId],[DeniedMemo],[RequestedById],[RequestedBy],[ApproverId],[ApprovedBy],
 											   [WONum],[WorkOrderId],[Originalwosonum],[Memo],[Notes],[ManagementStructureId],[IsEnforce],[MasterCompanyId],
-                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsWorkOrder],[ReferenceId],[ReturnDate])
+                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsWorkOrder],[ReferenceId],[ReturnDate], [IsStandAloneCM])
 										VALUES (@CreditMemoNumber,@rmaId,@rmaNum,@InvoiceId,@InvoiceNumber,@InvoiceDate,@StatusId,@Status,
 												@CustomerId,@CustomerName,@CustomerCode,@CustomerContactId,@CustomerContact,@CustomerContactPhone,  
 												@IsWarranty,@IsAccepted,@ReasonId,@DeniedMemo,@RequestedById,@RequestedBy,@ApproverId,@ApprovedBy,  
 												@WONum,@WorkOrderId,@Originalwosonum,@Memo,@Notes,@ManagementStructureId,@IsEnforce,@MasterCompanyId,
-												@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@IsActive,@IsDeleted,@IsWorkOrder,@ReferenceId,@ReturnDate);
+												@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@IsActive,@IsDeleted,@IsWorkOrder,@ReferenceId,@ReturnDate, @IsStandAloneCM);
 
 				SELECT	@Result = IDENT_CURRENT('CreditMemo');
 

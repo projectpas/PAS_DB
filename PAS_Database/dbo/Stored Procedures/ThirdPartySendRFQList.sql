@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [ThirdPartySendRFQList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Third Party Send RFQ List
@@ -112,7 +113,7 @@ BEGIN
 					   tr.Status Status,
 					   ISNULL(ird.PriorityId,0) PriorityId,
 					   ird.Priority,
-					   ISNULL(ird.RequestedQty,0) RequestedQty,
+					   ISNULL(part.RequestedQty,0) RequestedQty,
 					   ird.QuoteWithinDays QuoteWithinDays,
 					   ird.DeliverByDate DeliverByDate,
 					   ird.PreparedBy,

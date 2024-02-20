@@ -6,7 +6,10 @@
     [Exchange]       VARCHAR (70)  NULL,
     [Description]    VARCHAR (MAX) NULL,
     [Qty]            INT           NULL,
+    [RequestedQty]   INT           NULL,
     [Condition]      VARCHAR (20)  NULL,
     [IsEmail]        BIT           NULL,
     [IsFax]          BIT           NULL);
+
+
 

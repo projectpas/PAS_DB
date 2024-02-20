@@ -6,6 +6,7 @@
     [Exchange]        VARCHAR (70)  NULL,
     [Description]     VARCHAR (MAX) NULL,
     [Qty]             INT           NULL,
+    [RequestedQty]    INT           NULL,
     [Condition]       VARCHAR (20)  NULL,
     [IsEmail]         BIT           NULL,
     [IsFax]           BIT           NULL,
@@ -19,4 +20,6 @@
     CONSTRAINT [PK_ILSRFQPart] PRIMARY KEY CLUSTERED ([ILSRFQPartId] ASC),
     CONSTRAINT [FK_ILSRFQPart_ILSRFQDetail] FOREIGN KEY ([ILSRFQDetailId]) REFERENCES [dbo].[ILSRFQDetail] ([ILSRFQDetailId])
 );
+
+
 

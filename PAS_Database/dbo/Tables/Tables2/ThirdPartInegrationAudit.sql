@@ -14,6 +14,9 @@
     [IsActive]                   BIT           CONSTRAINT [DF_ThirdPartInegrationAuditIsActi_59FA5E80] DEFAULT ((1)) NULL,
     [IsDeleted]                  BIT           CONSTRAINT [DF_ThirdPartInegrationAuditIsDele_5AEE82B9] DEFAULT ((0)) NULL,
     [IntegrationIds]             BIGINT        NOT NULL,
+    [IsEmail]                    BIT           NULL,
     CONSTRAINT [PK_ThirdPartInegrationAudit] PRIMARY KEY CLUSTERED ([ThirdPartInegrationAuditId] ASC)
 );
+
+
 

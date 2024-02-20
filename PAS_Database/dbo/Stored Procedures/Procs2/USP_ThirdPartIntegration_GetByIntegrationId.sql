@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_ThirdPartIntegration_GetByIntegrationId]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used get intigrations data
@@ -35,7 +36,8 @@ BEGIN
 					t.SecretKey,
 					t.AccessKey,
 					l.Name,
-					t.MasterCompanyId
+					t.MasterCompanyId,
+					ISNULL(t.IsEmail,0) IsEmail
 				FROM [DBO].[ThirdPartInegration] t WITH (NOLOCK) 
 				LEFT JOIN [DBO].[LegalEntity] l WITH (NOLOCK) ON t.LegalEntityId = l.LegalEntityId
 				LEFT JOIN [DBO].[IntegrationPortal] i WITH (NOLOCK) ON t.IntegrationIds = i.IntegrationPortalId

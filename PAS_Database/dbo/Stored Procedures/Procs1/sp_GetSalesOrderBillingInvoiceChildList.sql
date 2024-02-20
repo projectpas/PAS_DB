@@ -21,7 +21,8 @@
 	4    07/19/2023	  Satish Gohil	Fixed issue with wrong showing multiple invoice record 
 	5    12/29/2023	  Vishal Suthar	Fixed issue with Where condition when allow billing before shipping in not enabled
 	6    01/30/2024   AMIT GHEDIYA	Updated the SP to show billing data only when is Billing Invoiced
-	7    02/05/2024   AMIT GHEDIYA	Updated the SP to show Performa invoice Data.
+	7    02/05/2024   AMIT GHEDIYA	Updated the SP to show Proforma invoice Data.
+	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
      
  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 561, 41196, 7  
 **************************************************************/
@@ -73,15 +74,16 @@ BEGIN
 			VersionNo [VARCHAR](250)  NULL,
 			IsVersionIncrease [INT]  NULL,
 			IsNewInvoice [INT]  NULL,
-			IsProforma [BIT] NULL
+			IsProforma [BIT] NULL,
+			DepositAmount [DECIMAL](18,2) NULL
 		);
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
-		BEGIN 
+		BEGIN
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-			TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma )
+			TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount )
 		(
 			SELECT DISTINCT sosi.SalesOrderShippingId,   
 			(SELECT TOP 1 a.SOBillingInvoicingId FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
@@ -139,7 +141,8 @@ BEGIN
 			sobii.VersionNo,
 			(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 			CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
-			0 AS IsProforma
+			0 AS IsProforma,
+			0 AS DepositAmount
 			FROM DBO.SalesOrderShippingItem sosi WITH (NOLOCK)  
 			INNER JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sosi.SalesOrderShippingId = sos.SalesOrderShippingId  
 			LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderShippingId = sos.SalesOrderShippingId AND ISNULL(sobii.IsProforma,0) = 0
@@ -169,7 +172,7 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma )
+					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount )
 				(
 				SELECT DISTINCT 
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
@@ -214,7 +217,8 @@ BEGIN
 				sobii.VersionNo, 
 				(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 				CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
-				0 AS IsProforma
+				0 AS IsProforma,
+				0 AS DepositAmount
 				FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 				LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0
 				LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 0 
@@ -233,7 +237,7 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma )
+					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount )
 				(
 					SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -267,7 +271,8 @@ BEGIN
 					sobii.VersionNo, 
 					(CASE WHEN sobii.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
-					0 AS IsProforma
+					0 AS IsProforma,
+					0 AS DepositAmount
 					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0
 					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0 
@@ -291,7 +296,7 @@ BEGIN
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 				SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 				StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma )
+				TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount )
 			(
 				SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -318,7 +323,8 @@ BEGIN
 					sobii.VersionNo, 
 					(CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
 					CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
-					1 AS IsProforma
+					1 AS IsProforma,
+					ISNULL(sobi.DepositAmount,0) AS DepositAmount
 					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 1
 					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1
@@ -359,7 +365,8 @@ BEGIN
 			   VersionNo ,
 			   IsVersionIncrease ,	
 			   IsNewInvoice,
-			   IsProforma
+			   IsProforma,
+			   DepositAmount
 			  FROM #SalesOrderBillingInvoiceChildList;
    END  
    COMMIT  TRANSACTION  

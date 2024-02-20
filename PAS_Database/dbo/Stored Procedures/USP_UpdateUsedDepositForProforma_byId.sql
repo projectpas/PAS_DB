@@ -13,6 +13,7 @@
     1    14/02/2024   Devendra Shekh		created
     2    15/02/2024   Devendra Shekh		changes subtotal to grandtotal
     3    16/02/2024   Devendra Shekh		modified
+    4    19/02/2024   Devendra Shekh		sales tax calculation issue resoleved
 
 	EXEC  [dbo].[USP_UpdateUsedDepositForProforma_byId] 508
 **************************************************************/ 
@@ -84,7 +85,7 @@ BEGIN
 				END
 				ELSE IF(UPPER(ISNULL(@TaxCode, '')) = 'SALES TAX')
 				BEGIN
-					SET @SALESTAX =  @SALESTAX + @TaxRate
+					SET @SALESTAX = @TaxRate
 				END
 
 				SET @StartTacRec = @StartTacRec + 1;

@@ -23,6 +23,7 @@
 	6   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
 	7   15/02/2024	  AMIT GHEDIYA      added IsBilling flage for SO
 	8   15/02/2024	  AMIT GHEDIYA      added DBO & NO(LOCK)
+	9   19/02/2024	  Devendra Shekh    email validation issue for wo resolved
      
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -85,7 +86,7 @@ BEGIN
 				ISNULL(WOBI.RemainingAmount,0) RemainingAmount,
 				WQ.QuoteNumber,
 				IsWorkOrder=1,IsExchange=0,
-				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,
+				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,--WOWF.WorkFlowWorkOrderId, --0 as WorkFlowWorkOrderId,
 				CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 				,ISNULL(WOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
@@ -239,12 +240,19 @@ BEGIN
 				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0 AND ISNULL(PC.[IsInvoicePosted], 0) != 1
 				Group By PC.BillingInvoicingId, A.StockType  
 				),
+				WorkFlowData AS(  
+				Select PC.BillingInvoicingId,WOFN.WorkFlowWorkOrderId, PC.WorkOrderId
+				FROM dbo.WorkOrderBillingInvoicing PC WITH (NOLOCK) 
+				LEFT JOIN dbo.WorkOrderWorkFlow WOFN WITH (NOLOCK) ON WOFN.WorkFlowWorkOrderId = PC.WorkFlowWorkOrderId
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease = 0 AND ISNULL(PC.[IsInvoicePosted], 0) != 1
+				Group By PC.WorkOrderId,PC.BillingInvoicingId,WOFN.WorkFlowWorkOrderId
+				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder,M.IsExchange,
-				LMC.LastMSLevel,LMC.AllMSlevels, M.ReferenceId,M.CustomerId,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice
+				LMC.LastMSLevel,LMC.AllMSlevels, M.ReferenceId,M.CustomerId,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice
 				FROM Result M   
 					Left Join PartCTE PT On M.InvoicingId = PT.BillingInvoicingId  
 					Left Join PartDescCTE PD on PD.BillingInvoicingId = M.InvoicingId
@@ -253,12 +261,13 @@ BEGIN
 					LEFT JOIN SRNoCTE SRC on SRC.BillingInvoicingId=M.InvoicingId
 					LEFT JOIN VersionCTE VC on VC.BillingInvoicingId=M.InvoicingId
 					LEFT JOIN LastMSLevelCTE LMC  on LMC.BillingInvoicingId=M.InvoicingId
+					LEFT JOIN WorkFlowData WOFD  on WOFD.BillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
 				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,LMC.LastMSLevel,LMC.AllMSlevels	,
-				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice)
+				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice)
 			,SOResult AS(
 			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],

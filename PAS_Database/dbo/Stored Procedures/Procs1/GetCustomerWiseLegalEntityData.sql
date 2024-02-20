@@ -13,6 +13,7 @@
     1					unknown			Created
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	4	19/2/2024		Devendra Shekh	REMOVED isperforma Flage for WO
 
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerWiseLegalEntityData] 68,'2022-04-25','2022-04-27'
@@ -42,7 +43,7 @@ BEGIN
 			select le.LegalEntityId,wop.ManagementStructureId,WO.CustomerId,LE.[Name],wobi.SoldToSiteId AS 'BillToSiteId',1 AS 'UserType' from dbo.[WorkOrder] WO
 			   INNER JOIN dbo.[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 			   INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID and wobi.IsVersionIncrease=0 AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			   INNER JOIN DBO.WorkOrderBillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID and wobi.IsVersionIncrease=0
 			   INNER JOIN WorkOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.EntityMSID = wop.ManagementStructureId AND soms.ModuleID=@WOMSModuleID
 			   INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 			   INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId

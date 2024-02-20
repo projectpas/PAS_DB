@@ -53,7 +53,7 @@ BEGIN
 
 
 				IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
-				BEGIN
+				BEGIN 
 					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId, SOPartId,Status,ItemNo)
 					(
 					SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, sop.SalesOrderId, imt.ItemMasterId As SalesOrderPartId, sop.SalesOrderPartId, '' as [Status],	0 AS ItemNo
@@ -73,53 +73,53 @@ BEGIN
 				END
 				ELSE
 				BEGIN
+					IF (@SalesOrderShippingId > 0)
+					BEGIN 
+						INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,SOPartId,Status,ItemNo)
+						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
+						sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId, sop.SalesOrderPartId AS SOPartId,	'' as [Status], 0 AS ItemNo
+						FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
+						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
+						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+									AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
+									AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
+						LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
+						LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
+						LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
+						WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
+						AND (ISNULL(soapr.SalesOrderApprovalId, 0) > 0 OR ISNULL(sosi.QtyShipped, 0) > 0) 
+						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
+						sop.SalesOrderId, imt.ItemMasterId, sop.SalesOrderPartId, sop.ConditionId)
+					END
+					ELSE 
+					BEGIN
+						INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,SOPartId,Status,ItemNo)
+						(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
+						sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,	sop.SalesOrderPartId AS SOPartId,'' as [Status],0 AS ItemNo
+						FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
+						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+						LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
+						LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+									AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
+									AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
+						LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
+						LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
+						LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
+						WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
+						AND ((ISNULL(soapr.SalesOrderApprovalId, 0) > 0   
+						AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0)) OR ISNULL(sosi.QtyShipped, 0) > 0)
+						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
+						sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId, sop.SalesOrderPartId)
+					END
+				END
 
-				IF (@SalesOrderShippingId > 0)
-				BEGIN
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,SOPartId,Status,ItemNo)
-					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber,imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
-					sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId, sop.SalesOrderPartId AS SOPartId,	'' as [Status], 0 AS ItemNo
-					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
-					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-								AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
-								AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
-					LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
-					LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
-					WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
-					AND (ISNULL(soapr.SalesOrderApprovalId, 0) > 0 OR ISNULL(sosi.QtyShipped, 0) > 0) 
-					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
-					sop.SalesOrderId, imt.ItemMasterId, sop.SalesOrderPartId, sop.ConditionId)
-				END
-				ELSE 
-				BEGIN 
-					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderNumber,partnumber,ItemMasterId,PartDescription,ConditionId,SalesOrderId,SalesOrderPartId,SOPartId,Status,ItemNo)
-					(SELECT DISTINCT so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription, sop.ConditionId, 				
-					sop.SalesOrderId, imt.ItemMasterId AS SalesOrderPartId,	sop.SalesOrderPartId AS SOPartId,'' as [Status],0 AS ItemNo
-					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
-					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
-					LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0--AND sobi.IsVersionIncrease = 0
-					LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
-								AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
-								AND sobii.IsVersionIncrease = 0 AND ISNULL(sobii.IsProforma,0) = 0
-					LEFT JOIN DBO.SalesOrderReserveParts SOR WITH (NOLOCK) on SOR.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) on sos.SalesOrderId = sop.SalesOrderId
-					LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) on sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
-					LEFT JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId AND soapr.CustomerStatusId = 2
-					WHERE sop.SalesOrderId = @SalesOrderId AND ISNULL(sop.StockLineId,0) >0
-					AND ((ISNULL(soapr.SalesOrderApprovalId, 0) > 0   
-					AND (ISNULL(SOR.SalesOrderReservePartId, 0) > 0) AND (ISNULL(SOR.TotalReserved, 0) > 0)) OR ISNULL(sosi.QtyShipped, 0) > 0)
-					GROUP BY so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, imt.PartDescription,
-					sop.SalesOrderId, imt.ItemMasterId, sop.ConditionId, sop.SalesOrderPartId)
-				END
-				
 				IF OBJECT_ID(N'tempdb..#tmpSalesOrderPart') IS NOT NULL
 				BEGIN
 					DROP TABLE #tmpSalesOrderPart
@@ -192,8 +192,6 @@ BEGIN
 					   Status,
 					   ItemNo 
 			  FROM #SalesOrderBillingInvoiceList;
-					
-				END
 			END
 			COMMIT  TRANSACTION
 		END TRY    

@@ -1,4 +1,5 @@
 ﻿
+
 /*************************************************************           
  ** File:   [USP_ThirdPartySendRFQDetailById]           
  ** Author: Rajesh Gami
@@ -15,7 +16,8 @@
 **************************************************************
  EXEC USP_ThirdPartySendRFQDetailById 1,1 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_ThirdPartySendRFQDetailById] 
+CREATE     PROCEDURE [dbo].[USP_ThirdPartySendRFQDetailById] 
+@ThirdPartyRFQId bigint =0,
 @ILSRFQPartId bigint =0,
 @MasterCompanyId int = 0
 AS
@@ -43,7 +45,7 @@ BEGIN
 					   tr.Status Status,
 					   ISNULL(ird.PriorityId,0) PriorityId,
 					   ird.Priority,
-					   ISNULL(ird.RequestedQty,0) RequestedQty,
+					   ISNULL(part.RequestedQty,0) RequestedQty,
 					   ird.QuoteWithinDays QuoteWithinDays,
 					   ird.DeliverByDate DeliverByDate,
 					   ird.PreparedBy,
@@ -68,7 +70,8 @@ BEGIN
 			    FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
-			    WHERE part.ILSRFQPartId = @ILSRFQPartId AND part.MasterCompanyId = @MasterCompanyId
+			    WHERE  tr.ThirdPartyRFQId = @ThirdPartyRFQId AND part.MasterCompanyId = @MasterCompanyId
+					   --AND part.ILSRFQPartId = @ILSRFQPartId 
 		END
 		
 	END

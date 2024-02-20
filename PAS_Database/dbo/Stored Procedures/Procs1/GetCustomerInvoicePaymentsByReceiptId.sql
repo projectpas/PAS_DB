@@ -19,6 +19,7 @@
 	4    05/01/2024   Moin Bloch		Replaced PercentId at CreditTermsId
 	5    08/01/2024   Moin Bloch		Replaced Days insted of NetDays
 	6	 01/31/2024	  Devendra Shekh	added isperforma Flage for WO
+	7	 19/02/2024	  Devendra Shekh	removed isperforma and added isinvoiceposted Flage for WO
 
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
@@ -256,7 +257,7 @@ BEGIN
 		  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
   
      FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
-     LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
+     LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsInvoicePosted, 0) = 0
      LEFT JOIN  [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId      
      LEFT JOIN  [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId      
      INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=WOBI.CustomerId      
@@ -265,7 +266,8 @@ BEGIN
      LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId as INT) = p.PercentId        
      LEFT JOIN  [dbo].[InvoicePayments] IPT WITH (NOLOCK) ON IPT.SOBillingInvoicingId = WOBI.BillingInvoicingId AND IPT.InvoiceType=2 AND IPT.ReceiptId = @ReceiptId AND IPT.PageIndex = @PageIndex      
      INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId AND MSD.Level1Id = @legalEntityId      
-     WHERE WOBI.CustomerId=@CustomerId AND WOBI.InvoiceStatus = 'Invoiced' AND WOBI.RemainingAmount > 0      
+     WHERE WOBI.CustomerId=@CustomerId AND WOBI.InvoiceStatus = 'Invoiced' AND WOBI.RemainingAmount > 0     
+	 AND ISNULL(WOBI.IsInvoicePosted, 0) = 0
     
   UNION     
     

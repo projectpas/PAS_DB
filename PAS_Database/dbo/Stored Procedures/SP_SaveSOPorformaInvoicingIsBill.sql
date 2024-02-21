@@ -33,7 +33,9 @@ BEGIN
 					@soPartID BIGINT,
 					@SalesOrderPartId BIGINT,
 					@SOBillingInvoicingIds BIGINT,
+					@PSOBillingInvoicingIds BIGINT,
 					@COUNT AS INT = 0,
+					@PCOUNT AS INT = 0,
 					@SalesOrderId BIGINT = 0,
 					@DepositAmt DECIMAL(18,2) = 0,
 					@TotalSalesOrderCostPlus DECIMAL(18,2) = 0,
@@ -41,7 +43,8 @@ BEGIN
 					@SOProFormaBillingInvoicingId BIGINT = 0,
 					@SOisProforma BIT,
 					@SalesOrderPartNoId BIGINT = 0,
-					@SOProfomaBillingInvoicingId BIGINT = 0;
+					@SOProfomaBillingInvoicingId BIGINT = 0,
+					@BillSOBillingInvoicingId BIGINT = 0;
 
 		------------- Update Remaining Deposit -------------------------------------
 			
@@ -68,6 +71,9 @@ BEGIN
 						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
 					END
 				END
+
+				--Update current billing add deposit amount in ProformaDeposit field
+				UPDATE [dbo].[SalesOrderBillingInvoicing] SET ProformaDeposit = @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
 
 				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
 
@@ -97,6 +103,17 @@ BEGIN
 				SOBillingInvoicingId [BIGINT]  NULL
 			);
 
+			--Create Temp Table 
+			IF OBJECT_ID(N'tempdb..#PSalesOrderBillingInvoiceList') IS NOT NULL
+			BEGIN
+				DROP TABLE #PSalesOrderBillingInvoiceList
+			END
+
+			CREATE TABLE #PSalesOrderBillingInvoiceList(
+				ID BIGINT NOT NULL IDENTITY (1, 1),
+				SOBillingInvoicingId [BIGINT]  NULL
+			);
+
 			SELECT TOP 1 @SalesOrderPartNoId = SalesOrderPartId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
 			SELECT TOP 1 @SOProfomaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicingItem] WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartNoId AND ISNULL(IsProforma, 0) = 1 AND ISNULL(IsVersionIncrease, 0) = 0;
 
@@ -104,21 +121,38 @@ BEGIN
 			IF(ISNULL(@sobillngId,0) > 0 AND @isProforma = 0)
 			BEGIN
 				IF(ISNULL(@soPartID,0) > 0)
-				BEGIN
+				BEGIN 
 					INSERT INTO #SalesOrderBillingInvoiceList(SalesOrderPartId,SOBillingInvoicingId)
 					(SELECT SalesOrderPartId,SOBillingInvoicingId 
-					FROM SalesOrderBillingInvoicingItem WHERE SalesOrderPartId = @soPartID AND IsProforma = 1)
+					FROM SalesOrderBillingInvoicingItem WHERE SOBillingInvoicingId = @sobillingInvoicingId)--SalesOrderPartId = @soPartID AND IsProforma = 1)
 
 					SELECT @COUNT = MAX(ID) FROM #SalesOrderBillingInvoiceList 
 
 					WHILE(@COUNT > 0)
-					BEGIN
+					BEGIN 
 						SELECT @SalesOrderPartId = SalesOrderPartId, @SOBillingInvoicingIds = SOBillingInvoicingId, @SalesOrderPartId = SalesOrderPartId 
 						FROM #SalesOrderBillingInvoiceList WITH(NOLOCK) WHERE ID = @COUNT;
-
+						print @SalesOrderPartId;
 						--Update isbiiling after standdard invoiced post
 						UPDATE DBO.SalesOrderBillingInvoicingItem SET IsBilling = 1 WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1;
-						UPDATE DBO.SalesOrderBillingInvoicing SET IsBilling = 1 WHERE SOBillingInvoicingId = @SOBillingInvoicingIds AND IsProforma = 1;
+
+						--SELECT @BillSOBillingInvoicingId = SOBillingInvoicingId FROM DBO.SalesOrderBillingInvoicingItem  WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1; 
+						INSERT INTO #PSalesOrderBillingInvoiceList(SOBillingInvoicingId)
+						(SELECT SOBillingInvoicingId FROM DBO.SalesOrderBillingInvoicingItem  WITH(NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1)
+						
+						SELECT @PCOUNT = MAX(ID) FROM #PSalesOrderBillingInvoiceList
+
+						WHILE(@PCOUNT > 0)
+						BEGIN
+							SELECT @PSOBillingInvoicingIds = SOBillingInvoicingId
+							FROM #PSalesOrderBillingInvoiceList WITH(NOLOCK) WHERE ID = @PCOUNT;
+
+							UPDATE DBO.SalesOrderBillingInvoicing SET IsBilling = 1 WHERE SOBillingInvoicingId = @PSOBillingInvoicingIds AND IsProforma = 1;
+
+							SET @PCOUNT = @PCOUNT - 1
+						END
+						--print @BillSOBillingInvoicingId;
+						
 
 						SET @COUNT = @COUNT - 1
 					END

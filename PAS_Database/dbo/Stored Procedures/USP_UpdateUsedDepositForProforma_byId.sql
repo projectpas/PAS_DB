@@ -14,6 +14,7 @@
     2    15/02/2024   Devendra Shekh		changes subtotal to grandtotal
     3    16/02/2024   Devendra Shekh		modified
     4    19/02/2024   Devendra Shekh		sales tax calculation issue resoleved
+    5    20/02/2024   Devendra Shekh		added @UsedDepositAmt to select
 
 	EXEC  [dbo].[USP_UpdateUsedDepositForProforma_byId] 508
 **************************************************************/ 
@@ -120,7 +121,7 @@ BEGIN
 		SET @RemainingAmount = ISNULL(@GrandTotal ,0) - (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0))
 		SET @RemainingAmount = CASE WHEN @RemainingAmount > 0 THEN @RemainingAmount ELSE 0 END;
 
-		SELECT @RemainingAmount AS RemainingAmount;
+		SELECT @RemainingAmount AS RemainingAmount, @UsedDepositAmt as UsedDepositAmt;
 	COMMIT  TRANSACTION
  END TRY          
  BEGIN CATCH    

@@ -79,7 +79,7 @@ BEGIN
 		);
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
-		BEGIN
+		BEGIN 
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -168,7 +168,7 @@ BEGIN
 			IF EXISTS (SELECT TOP 1 * FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
-			BEGIN 
+			BEGIN  
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -186,7 +186,7 @@ BEGIN
 				(CASE WHEN sobii.IsVersionIncrease = 1 then (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) else (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId) end) AS SOShippingNum, 
-				(SELECT ISNULL(SUM(SORR.QtyToReserve), 0) + (CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE (SELECT TOP 1 ISNULL(SOSI.QtyShipped, 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+				(SELECT (CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE (SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId) end)				
 				FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK) WHERE SORR.SalesOrderPartId = sop.SalesOrderPartId) as QtyToBill,   
@@ -290,7 +290,7 @@ BEGIN
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 		END
-
+		
 		--IF((SELECT COUNT(1) FROM #SalesOrderBillingInvoiceChildList WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @SalesOrderPartId AND ConditionId = @ConditionId) <= 0 )
 		--BEGIN 
 			INSERT INTO #SalesOrderBillingInvoiceChildList(

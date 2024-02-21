@@ -23,6 +23,7 @@
 	7    10/16/2023   Moin Bloch		Modify(Added Posted Status Insted of Closed Credit Memo Status)
 	8    11/21/2023   HEMANT SALIYA		Updated Journal Type Id and Name in Batch Details
 	9    11/23/2023   Moin Bloch		Modify(LastMSLevel,AllMSlevels Issue Resolved)
+	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 216
      
@@ -164,238 +165,247 @@ BEGIN
 		SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 		SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 		
-		INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
-		SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
-		FROM [DBO].[CodePrefixes] CP WITH(NOLOCK) JOIN [DBO].[CodeTypes] CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
-		WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
 		
-		SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-		FROM [DBO].[EntityStructureSetup] est WITH(NOLOCK) 
-		INNER JOIN [DBO].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
-		INNER JOIN [DBO].[AccountingCalendar] acc WITH(NOLOCK) ON msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-		WHERE est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId  
-		AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
+		IF(ISNULL(@IsRestrict, 0) = 0)
+		BEGIN
+
+			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+			FROM [DBO].[CodePrefixes] CP WITH(NOLOCK) JOIN [DBO].[CodeTypes] CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 		
-		IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
-			BEGIN 
-				SELECT 
-					@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-					ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+			FROM [DBO].[EntityStructureSetup] est WITH(NOLOCK) 
+			INNER JOIN [DBO].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
+			INNER JOIN [DBO].[AccountingCalendar] acc WITH(NOLOCK) ON msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+			WHERE est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId  
+			AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
+		
+			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
+				BEGIN 
+					SELECT 
+						@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+						ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+						FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
 					  	  
-				SET @JournalTypeNumber = (SELECT * FROM [DBO].[udfGenerateCodeNumber](@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
-			END
-			ELSE 
-			BEGIN 
-				ROLLBACK TRAN;
-			END
+					SET @JournalTypeNumber = (SELECT * FROM [DBO].[udfGenerateCodeNumber](@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+				END
+				ELSE 
+				BEGIN 
+					ROLLBACK TRAN;
+				END
 
---------------------------------------------------------------------------------------------------------------------------
+	--------------------------------------------------------------------------------------------------------------------------
 		
-		--Get BatchDetails from tables.
-		SELECT @IsWorkOrder = IsWorkOrder, @InvoiceNumber = InvoiceNumber, @InvoiceId = InvoiceId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+			--Get BatchDetails from tables.
+			SELECT @IsWorkOrder = IsWorkOrder, @InvoiceNumber = InvoiceNumber, @InvoiceId = InvoiceId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 		
-		--tmpCommonJournalBatchDetail table.
-		IF OBJECT_ID(N'tempdb..#tmpCommonJournalBatchDetail') IS NOT NULL
-		BEGIN
-			DROP TABLE #tmpCommonJournalBatchDetail
-		END
-
-		--tmpCommonJournalBatchDetail table create
-		CREATE TABLE #tmpCommonJournalBatchDetail
-		(
-			ID BIGINT NOT NULL IDENTITY, 
-			CommonJournalBatchDetailId BIGINT NULL,
-			InvoiceReferenceId BIGINT NULL,
-		)
-
-		--tmpCommonBatchDetails table.
-		IF OBJECT_ID(N'tempdb..#tmpCommonBatchDetails') IS NOT NULL
-		BEGIN
-			DROP TABLE #tmpCommonBatchDetails
-		END
-
-		CREATE TABLE #tmpCommonBatchDetails
-		(
-			ID BIGINT NOT NULL IDENTITY, 
-			GlAccountId BIGINT NULL,
-			GlAccountNumber VARCHAR(100) NULL,
-			GlAccountName VARCHAR(100) NULL,
-			IsDebit INT NULL,
-			DebitAmount DECIMAL(18,2) NULL,
-			CreditAmount DECIMAL(18,2) NULL,
-			ManagementStructureId BIGINT NULL,
-			JournalTypeId BIGINT NULL,
-			JournalTypeName VARCHAR(100) NULL,
-			DistributionSetupId BIGINT NULL,
-			DistributionName VARCHAR(100) NULL
-		)
-
-		--insert records in tmpCommonJournalBatchDetail if records are availables.
-		IF(@IsWorkOrder = 0)
-		BEGIN
-			SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SalesOrder';
-
-			INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
-			SELECT CommonJournalBatchDetailId,SalesOrderId FROM [DBO].[SalesOrderBatchDetails] WITH(NOLOCK) WHERE DocumentNumber = @InvoiceNumber;
-		END
-		ELSE IF(@IsWorkOrder = 1)
-		BEGIN
-			SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
-
-			INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
-			SELECT CommonJournalBatchDetailId,ReferenceId FROM [DBO].[WorkOrderBatchDetails] WITH(NOLOCK) WHERE InvoiceName = @InvoiceNumber;
-		END
-		print 1
-
-		--Check records are availables.
-		IF EXISTS(SELECT * FROM #tmpCommonJournalBatchDetail)
-		BEGIN
-			SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonJournalBatchDetail
-			WHILE(@MasterLoopID > 0)
+			--tmpCommonJournalBatchDetail table.
+			IF OBJECT_ID(N'tempdb..#tmpCommonJournalBatchDetail') IS NOT NULL
 			BEGIN
-				SELECT @CommonJournalBatchDetailId = CommonJournalBatchDetailId , @InvoiceReferenceId = InvoiceReferenceId FROM #tmpCommonJournalBatchDetail
-				WHERE ID  = @MasterLoopID;
-
-				INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName)
-				SELECT GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName
-					FROM [DBO].[CommonBatchDetails] WITH(NOLOCK)
-				WHERE CommonJournalBatchDetailId = @CommonJournalBatchDetailId; 
-
-				SET @MasterLoopID = @MasterLoopID - 1;
+				DROP TABLE #tmpCommonJournalBatchDetail
 			END
-		END
+
+			--tmpCommonJournalBatchDetail table create
+			CREATE TABLE #tmpCommonJournalBatchDetail
+			(
+				ID BIGINT NOT NULL IDENTITY, 
+				CommonJournalBatchDetailId BIGINT NULL,
+				InvoiceReferenceId BIGINT NULL,
+			)
+
+			--tmpCommonBatchDetails table.
+			IF OBJECT_ID(N'tempdb..#tmpCommonBatchDetails') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpCommonBatchDetails
+			END
+
+			CREATE TABLE #tmpCommonBatchDetails
+			(
+				ID BIGINT NOT NULL IDENTITY, 
+				GlAccountId BIGINT NULL,
+				GlAccountNumber VARCHAR(100) NULL,
+				GlAccountName VARCHAR(100) NULL,
+				IsDebit INT NULL,
+				DebitAmount DECIMAL(18,2) NULL,
+				CreditAmount DECIMAL(18,2) NULL,
+				ManagementStructureId BIGINT NULL,
+				JournalTypeId BIGINT NULL,
+				JournalTypeName VARCHAR(100) NULL,
+				DistributionSetupId BIGINT NULL,
+				DistributionName VARCHAR(100) NULL
+			)
+
+			--insert records in tmpCommonJournalBatchDetail if records are availables.
+			IF(@IsWorkOrder = 0)
+			BEGIN
+				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SalesOrder';
+
+				INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
+				SELECT CommonJournalBatchDetailId,SalesOrderId FROM [DBO].[SalesOrderBatchDetails] WITH(NOLOCK) WHERE DocumentNumber = @InvoiceNumber;
+			END
+			ELSE IF(@IsWorkOrder = 1)
+			BEGIN
+				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
+
+				INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
+				SELECT CommonJournalBatchDetailId,ReferenceId FROM [DBO].[WorkOrderBatchDetails] WITH(NOLOCK) WHERE InvoiceName = @InvoiceNumber;
+			END
+			print 1
+
+			--Check records are availables.
+			IF EXISTS(SELECT * FROM #tmpCommonJournalBatchDetail)
+			BEGIN
+				SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonJournalBatchDetail
+				WHILE(@MasterLoopID > 0)
+				BEGIN
+					SELECT @CommonJournalBatchDetailId = CommonJournalBatchDetailId , @InvoiceReferenceId = InvoiceReferenceId FROM #tmpCommonJournalBatchDetail
+					WHERE ID  = @MasterLoopID;
+
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName)
+					SELECT GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName
+						FROM [DBO].[CommonBatchDetails] WITH(NOLOCK)
+					WHERE CommonJournalBatchDetailId = @CommonJournalBatchDetailId; 
+
+					SET @MasterLoopID = @MasterLoopID - 1;
+				END
+			END
 				
-		SELECT @temptotaldebitcount =SUM(ISNULL(DebitAmount,0)),@temptotalcreditcount =SUM(ISNULL(CreditAmount,0))  
-			FROM #tmpCommonBatchDetails;
+			SELECT @temptotaldebitcount =SUM(ISNULL(DebitAmount,0)),@temptotalcreditcount =SUM(ISNULL(CreditAmount,0))  
+				FROM #tmpCommonBatchDetails;
 					
-		IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
-		BEGIN
-		
-			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
+			IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
 			BEGIN
-				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK))
-				BEGIN  
-					set @batch ='001'  
-					set @Currentbatch='001' 
+		
+				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
+				BEGIN
+					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK))
+					BEGIN  
+						set @batch ='001'  
+						set @Currentbatch='001' 
+					END
+					ELSE
+					BEGIN 
+						SELECT top 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1   
+						  ELSE  1 END   
+						FROM [DBO].[BatchHeader] WITH(NOLOCK) ORDER BY JournalBatchHeaderId DESC  
+
+						IF(CAST(@Currentbatch AS BIGINT) >99)  
+						BEGIN
+							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
+							  ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END   
+						END  
+						ELSE IF(CAST(@Currentbatch AS BIGINT) >9)  
+						BEGIN    
+							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
+							  ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END   
+						END
+						ELSE
+						BEGIN
+						   SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
+							  ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END   
+						END  
+					END
+			
+					SET @CurrentNumber = CAST(@Currentbatch AS BIGINT)     
+								  SET @batch = CAST(@JournalTypeCode +' '+CAST(@batch AS VARCHAR(100)) AS VARCHAR(100))  
+
+					INSERT INTO [dbo].[BatchHeader]    
+					  ([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],
+					  [JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],
+					  [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])    
+					VALUES    
+					  (@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,
+					  @JournalTypeId,@JournalTypename,0,0,0,@MasterCompanyId,
+					  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode);    
+                           
+					SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()    
+					UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END
 				ELSE
 				BEGIN 
-					SELECT top 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1   
-					  ELSE  1 END   
-					FROM [DBO].[BatchHeader] WITH(NOLOCK) ORDER BY JournalBatchHeaderId DESC  
-
-					IF(CAST(@Currentbatch AS BIGINT) >99)  
-					BEGIN
-						SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
-						  ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END   
-					END  
-					ELSE IF(CAST(@Currentbatch AS BIGINT) >9)  
-					BEGIN    
-						SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
-						  ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END   
-					END
-					ELSE
-					BEGIN
-					   SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
-						  ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END   
-					END  
-				END
-			
-				SET @CurrentNumber = CAST(@Currentbatch AS BIGINT)     
-							  SET @batch = CAST(@JournalTypeCode +' '+CAST(@batch AS VARCHAR(100)) AS VARCHAR(100))  
-
-				INSERT INTO [dbo].[BatchHeader]    
-				  ([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],
-				  [JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],
-				  [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])    
-				VALUES    
-				  (@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,
-				  @JournalTypeId,@JournalTypename,0,0,0,@MasterCompanyId,
-				  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode);    
-                           
-				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()    
-				UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
-			END
-			ELSE
-			BEGIN 
-				SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId   
-				   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
-						 FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  ORDER BY JournalBatchDetailId DESC   
+					SELECT @JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId   
+					   SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END   
+							 FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  ORDER BY JournalBatchDetailId DESC   
           
-				IF(@CurrentPeriodId =0)  
-				BEGIN  
-				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
-				END  
-			END
-
-			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
-			[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
-			[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-			VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), 
-			@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, @DistributionCodeName, 
-			NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
-		
-			SET @JournalBatchDetailId = SCOPE_IDENTITY();
-
-			--Reding data from existing gl data & insert for creditmemo
-			SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonBatchDetails
-			WHILE(@MasterLoopID > 0)
-			BEGIN			
-				SELECT @ManagementStructureId = ManagementStructureId FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
-
-				INSERT INTO [dbo].[CommonBatchDetails]
-						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
-						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
-				SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
-						,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-						CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
-						CreditAmount,
-						DebitAmount,
-						ManagementStructureId ,'CreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0
-				FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
-
-				SET @CommonBatchDetailId = SCOPE_IDENTITY();
-
-			-----  Accounting MS Entry  -----
-
-				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-				
-				IF(@IsWorkOrder = 1) -- For get Workorder partnumber for refrenceId
-				BEGIN
-					SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId  FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE BillingInvoicingId = @InvoiceId;
-					SELECT @InvoiceReferenceId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+					IF(@CurrentPeriodId =0)  
+					BEGIN  
+					   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
+					END  
 				END
 
-				INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId)
-				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@ExtNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId);
+				INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
+				[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
+				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), 
+				@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, @DistributionCodeName, 
+				NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
+		
+				SET @JournalBatchDetailId = SCOPE_IDENTITY();
 
-				SET @MasterLoopID = @MasterLoopID - 1;
+				--Reding data from existing gl data & insert for creditmemo
+				SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonBatchDetails
+				WHILE(@MasterLoopID > 0)
+				BEGIN			
+					SELECT @ManagementStructureId = ManagementStructureId FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
+
+					INSERT INTO [dbo].[CommonBatchDetails]
+							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
+							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
+							,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
+							CreditAmount,
+							DebitAmount,
+							ManagementStructureId ,'CreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0
+					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
+
+					SET @CommonBatchDetailId = SCOPE_IDENTITY();
+
+				-----  Accounting MS Entry  -----
+
+					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+				
+					IF(@IsWorkOrder = 1) -- For get Workorder partnumber for refrenceId
+					BEGIN
+						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId  FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE BillingInvoicingId = @InvoiceId;
+						SELECT @InvoiceReferenceId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+					END
+
+					INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@ExtNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId);
+
+					SET @MasterLoopID = @MasterLoopID - 1;
+				END
+			
+	--------------------------------------------------------------------------------------------------------------------------
+			
+				SET @TotalDebit=0;
+				SET @TotalCredit=0;
+				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
+				Update [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
+				WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
+				SET @TotalBalance =@TotalDebit-@TotalCredit
+
+				UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+				UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+						
 			END
-			
---------------------------------------------------------------------------------------------------------------------------
-			
-			SET @TotalDebit=0;
-			SET @TotalCredit=0;
-			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
-			Update [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
-
-			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
-			WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
-			SET @TotalBalance =@TotalDebit-@TotalCredit
-
-			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-			UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-			--Update status to Approved after all postbatch.
-			UPDATE [dbo].[CreditMemo] SET StatusId = @ApprovedStatusId, Status = @ApprovedStatusName WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
-
-			--Return CreditMemoHeaderId
-			SELECT @CreditMemoHeaderId AS CreditMemoHeaderId;
 		END
+
+		--Update status to Approved after all postbatch.
+		UPDATE [dbo].[CreditMemo] SET StatusId = @ApprovedStatusId, Status = @ApprovedStatusName WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+
+		--Return CreditMemoHeaderId
+		SELECT @CreditMemoHeaderId AS CreditMemoHeaderId;
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

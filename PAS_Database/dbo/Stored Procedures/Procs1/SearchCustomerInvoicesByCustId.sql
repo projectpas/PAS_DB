@@ -24,6 +24,7 @@
 	12   08/02/2024	  Devendra Shekh   added IsInvoicePosted flage for WO
 	13   14/02/2024	  AMIT GHEDIYA     added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
     14   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
+	15   20/02/2024	  AMIT GHEDIYA      update Doc type name for performa for both SO & WO
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -51,7 +52,7 @@ BEGIN
     
 		SELECT SOBI.SalesOrderId AS 'Id',      
 	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
-		     'Invoice' AS 'DocumentType',      
+		      CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
 			  SOBI.InvoiceNo AS 'DocNum',       
 			  SOBI.InvoiceDate,       
 			  SOBI.GrandTotal AS 'OriginalAmount',       
@@ -104,13 +105,14 @@ BEGIN
 			  AND SOBI.IsBilling = 0 --AND SOBI.RemainingAmount > 0 
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, CT.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,SOBI.CreditMemoUsed      
+			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma--,SOBI.CreditMemoUsed      
       
 		UNION ALL    
       
 		SELECT WOBI.WorkOrderId AS 'Id',      
-			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',      
-			 'Invoice' AS 'DocumentType',      
+			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
+			 --'Invoice' AS 'DocumentType',      
 			 WOBI.InvoiceNo AS 'DocNum',      
 			 WOBI.InvoiceDate,      
 			 WOBI.GrandTotal AS 'OriginalAmount',      
@@ -164,7 +166,7 @@ BEGIN
 		AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, CT.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,
-			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous--,WOBI.CreditMemoUsed      
+			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice--,WOBI.CreditMemoUsed      
       
 		UNION ALL    
     

@@ -24,8 +24,9 @@
 	12   08/11/2023	  Moin Bloch          Modify(Added ReferenceId)
 	13   17/11/2023	  Moin Bloch          Modify(Added Charges Accounting Entry)
 	14   09/01/2024   Moin Bloch          Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
+	15   02/20/2024	  HEMANT SALIYA		  Updated for Restrict Accounting Entry by Master Company
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
+CREATE PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
 @MasterCompanyId int
 AS
@@ -67,7 +68,6 @@ BEGIN
 			DECLARE @AccountingPeriodId BIGINT=0
 			DECLARE @CurrentManagementStructureId BIGINT=0		
 			DECLARE @DistributionMasterId BIGINT;
-			DECLARE @IsAccountByPass bit=0
 			DECLARE @DistributionCode VARCHAR(200)
 			DECLARE @StatusId INT
 			DECLARE @StatusName VARCHAR(200)
@@ -165,20 +165,22 @@ BEGIN
 			       @ReceivingReconciliationNumber = [ReceivingReconciliationNumber]
 			FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 
-			SELECT @DistributionMasterId =ID FROM dbo.DistributionMaster WITH(NOLOCK)  
+			SELECT @DistributionMasterId =ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
 			WHERE UPPER(DistributionCode)= UPPER(@DisCode)
 
 			SET @INPUTMethod = @DisCode
 			
-			SELECT @IsAccountByPass = IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
-			SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT TOP 1 @JournalTypeId =JournalTypeId,@jlTypeId = JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName,@jlTypeName = JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-			IF(ISNULL(@TotalAmt,0) > 0 AND @IsAccountByPass = 0 AND (@DisCode = 'ReconciliationPO' OR @DisCode = 'ReconciliationRO'))
+			DECLARE @IsRestrict INT;
+
+			EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+			IF(ISNULL(@TotalAmt,0) > 0 AND ISNULL(@IsRestrict, 0) = 0 AND (@DisCode = 'ReconciliationPO' OR @DisCode = 'ReconciliationRO'))
 			BEGIN
 			
 				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 

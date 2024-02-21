@@ -10,8 +10,10 @@
 ** PR   Date         Author				Change Description                
 ** --   --------     -------			--------------------------------              
  1   15/02/2024		Hemant Saliya		Created  
- 
- EXEC USP_GetSubLadgerGLAccountRestriction 'CashReceiptsTradeReceivable', 1, NULL, 'Jim Roberts' --IsRestrict OUTPUT
+
+DECLARE @IsRestrict INT 
+EXEC dbo.USP_GetSubLadgerGLAccountRestriction 'ReconciliationPO', 1, 0, 'ADMIN User', @IsRestrict OUTPUT;
+SELECT @IsRestrict
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](     
  @DistributionCode VARCHAR(100),
@@ -39,8 +41,6 @@ BEGIN
 				DECLARE @IsRestrictGEN BIT = 0;
 
 				SET @IsRestrict = 0;
-
-				SET @AccountingCalendarId = 190
 
 				SELECT @ManagementStructureId = ISNULL(ManagementStructureId,0) 
 				FROM [dbo].[Employee] WITH(NOLOCK)  
@@ -84,7 +84,7 @@ BEGIN
 					SELECT SubLedgerId, [Name], Code 
 					FROM dbo.SubLedger WITH(NOLOCK) 
 					WHERE SubLedgerId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@SubLedgerIds, ','))
-				
+
 					DECLARE @TotalCount AS INT = 0;
 					DECLARE @IsFristRow AS bit = 1;
 					DECLARE @COUNT AS INT = 0;

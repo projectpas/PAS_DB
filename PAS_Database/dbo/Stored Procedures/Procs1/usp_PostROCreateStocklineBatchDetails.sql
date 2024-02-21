@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -16,6 +17,7 @@
 	5    11/08/2023   Satish Gohil  Modify(Set stock type wise distribution entry)
 	6    18/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	7    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
+	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -147,15 +149,13 @@ BEGIN
 					  DECLARE @Desc varchar(100);
 					  DECLARE @CommonJournalBatchDetailId BIGINT=0;
 					  DECLARE @CrDrType BIGINT;
-					  DECLARE @ValidDistribution BIT = 1;
 					  DECLARE @LotId BIGINT = 0
 					  DECLARE @LotNumber VARCHAR(50) 	
 
-					  SELECT @DistributionMasterId = ID FROM dbo.DistributionMaster WITH(NOLOCK)  
+					  SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
 					  WHERE UPPER(DistributionCode)= UPPER('ReceivingROStockline')
 					  
-					  SELECT @IsAccountByPass =IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
-					  SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
+					  SELECT @IsAccountByPass =IsAccountByPass, @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
 					  SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 					  SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId= @MstCompanyId
 					  SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
@@ -166,13 +166,11 @@ BEGIN
 
 					  SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
+					  DECLARE @IsRestrict INT;
+
+					  EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT;
 					  
-					  IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND IsManualText = 0 AND ISNULL(GlAccountId,0) = 0)
-					  BEGIN
-							SET @ValidDistribution = 0;
-					  END
-					  
-					  IF(ISNULL(@Amount,0) > 0 AND @ValidDistribution = 1)
+					  IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
 					  BEGIN
 						  IF((@JournalTypeCode ='RRO') and @IsAccountByPass=0)
 						  BEGIN
@@ -321,7 +319,7 @@ BEGIN
 											 @LotId = ST.LotId,
 								             @LotNumber = LO.LotNumber
 									    FROM [dbo].[Stockline] ST WITH(NOLOCK) 
-								   LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
+											LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
 										WHERE ST.[StockLineId] = @StocklineId;
 								
 									  SELECT @RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId FROM dbo.RepairOrder WITH(NOLOCK) WHERE RepairOrderId= @RepairOrderId;
@@ -331,13 +329,10 @@ BEGIN
 									  SET @UnitPrice = @Amount;
 									  SET @Amount = (@Qty * @Amount);
 
-									  --SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
-									 
 									  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 									  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 									  SET @ReferencePartId=@partId	
 
-									  --SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
 									  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 									  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
@@ -370,7 +365,6 @@ BEGIN
 										 -----  Accounting MS Entry  -----
 
 										 EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-
 
 										INSERT INTO [StocklineBatchDetails]
 											(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],

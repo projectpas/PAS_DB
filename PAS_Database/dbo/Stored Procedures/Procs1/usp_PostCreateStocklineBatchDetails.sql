@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usp_PostCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -17,6 +18,7 @@
 	5    23/11/2023   Moin Bloch    Modify(Added LastMSLevel,AllMSlevels In CommonBatchDetails)
 	6    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
 	7    14/12/2023   Moin Bloch    Modify(Skip Record If Sockline Exists)
+	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -148,26 +150,30 @@ BEGIN
 		INSERT INTO #StocklinePostType ([StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType])
 		SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM @tbl_PostStocklineBatchType
 		
-		SELECT @DistributionMasterId =ID FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
+		SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
 					  
-		SELECT @IsAccountByPass =IsAccountByPass FROM MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
-		SELECT @DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
-		SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-		SELECT TOP 1 @JournalTypeId =JournalTypeId FROM DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
-		SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
-		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-		SELECT @CurrentManagementStructureId =ManagementStructureId FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
+		SELECT @IsAccountByPass = IsAccountByPass, @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
+		SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
+		SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId
+		SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
+		SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
 					  
 		SELECT @Amount = SUM(Amount) FROM #StocklinePostType
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT;
 			   		 
-		IF(ISNULL(@Amount,0) > 0)
+		IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
 		BEGIN
 			IF((@JournalTypeCode ='RPO') and @IsAccountByPass=0)
 			BEGIN
-				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM EntityStructureSetup est WITH(NOLOCK) 
-				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-				INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
+				FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
+					INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+					INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 				WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MstCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -205,9 +211,9 @@ BEGIN
 					ROLLBACK TRAN;
 				END
 
-				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
+				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 				BEGIN
-					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK))
+					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 					BEGIN
 						SET @batch ='001'
 						SET @Currentbatch='001'
@@ -216,7 +222,7 @@ BEGIN
 					BEGIN
 						SELECT TOP 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
 								ELSE  1 END 
-						FROM BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
+						FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
 
 						IF(CAST(@Currentbatch AS BIGINT) >99)
 						BEGIN
@@ -251,9 +257,9 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+					SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 					SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
-						FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
+						FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
 						
 					IF(@CurrentPeriodId =0)
 					BEGIN
@@ -318,24 +324,12 @@ BEGIN
 
 							SET @UnitPrice = @Amount;
 							SET @Amount = (@Qty * @Amount);
-
-							--SELECT @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,
-							--@ManagementStructureId=ManagementStructureId 
-							--FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId;
-
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
-							--SELECT TOP 1 @LastMSLevel=[LastMSLevel],@AllMSlevels=[AllMSlevels] 
-							--FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK)  
-							--WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
-
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							Set @ReferencePartId =@partId	
-
-							--SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
-
 
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
@@ -448,7 +442,6 @@ BEGIN
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPONONSTKINV')
 							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
-
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
 
@@ -506,7 +499,6 @@ BEGIN
 									(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
 									@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
-
 								-----Goods Received Not Invoiced (GRNI)--------
 								EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
 							END
@@ -525,7 +517,6 @@ BEGIN
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
 							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 

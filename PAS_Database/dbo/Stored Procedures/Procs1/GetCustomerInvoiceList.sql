@@ -13,6 +13,7 @@
 	9	 31-JAN-2024	  Devendra Shekh    added isperforma Flage for WO
 	10	 01/02/2024	      AMIT GHEDIYA	    added isperforma Flage for SO
 	11	 16-FEB-2024	  Devendra Shekh    removed isperforma Flage for WO
+	12	 21-FEB-2024	  Devendra Shekh    added proformadeposit for balance calculation
 
 **************************************************************/  
 --exec GetCustomerInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'CustName',@SortOrder=1,@GlobalFilter=N'',@StatusId=2,@CustName='Fast',@CustomerCode=NULL,@CustomertType=NULL,@currencyCode=NULL,@BalanceAmount=NULL,@CurrentlAmount=NULL,@Amountpaidbylessthen0days=NULL,@Amountpaidby30days=NULL,@Amountpaidby60days=NULL,@Amountpaidby90days=NULL,@Amountpaidby120days=NULL,@Amountpaidbymorethan120days=NULL,@LegelEntity=NULL,@EmployeeId=2,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@viewType=N'Deatils',@MasterCompanyId=1,@InvoiceDate=NULL,@CustomerRef=NULL,@InvoiceNo=NULL,@DocType=NULL,@Salesperson=NULL,@Terms=NULL,@DueDate=NULL,@FixRateAmount=NULL,@InvoiceAmount=NULL,@InvoicePaidAmount=NULL,@InvoicePaidDate=NULL,@PaymentRef=NULL,@CMAmount=NULL,@CMDate=NULL,@AdjustMentAmount=NULL,@AdjustMentDate=NULL,@SOMSModuleID=17,@WOMSModuleID=12
@@ -171,7 +172,8 @@ BEGIN
                        (CASE WHEN A.OtherAdjustAmt > 0 THEN 'Other AdjustMents , ' ELSE'' END) +
                        (CASE WHEN A.BankFeeAmount > 0 THEN 'Wire Fee' ELSE '' END)) AS AdjustMentAmountType,
 					   0 AS IsCreditMemo,					   
-					   0 AS StatusId
+					   0 AS StatusId,
+					   ISNULL(wobi.ProformaDeposit,0) AS ProformaDeposit
 			   FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH (NOLOCK) 			  
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = wobi.WorkOrderId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=WO.CustomerId
@@ -270,7 +272,8 @@ BEGIN
                        (CASE WHEN A.OtherAdjustAmt > 0 THEN 'Other AdjustMents , ' ELSE '' END) +
                        (CASE WHEN A.BankFeeAmount > 0 THEN 'Wire Fee' ELSE '' END)) AS AdjustMentAmountType,
 					   0 AS IsCreditMemo,					   
-					   0 AS StatusId
+					   0 AS StatusId,
+					   0 AS ProformaDeposit
 			   FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) 
 			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = sobi.SalesOrderId
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId
@@ -372,7 +375,8 @@ BEGIN
                        (CASE WHEN A.OtherAdjustAmt > 0 THEN 'Other AdjustMents , ' ELSE '' END) +
                        (CASE WHEN A.BankFeeAmount > 0 THEN 'Wire Fee' ELSE '' END)) AS AdjustMentAmountType,
 					   1 AS IsCreditMemo,					   
-					   CM.StatusId
+					   CM.StatusId,
+					   0 AS ProformaDeposit
 			   FROM  [dbo].[CreditMemo] CM WITH (NOLOCK) 	
 			   INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId			   
 			   INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH (NOLOCK) ON CMD.InvoiceId = wobi.BillingInvoicingId		 			  
@@ -466,7 +470,8 @@ BEGIN
                       (CASE WHEN A.OtherAdjustAmt > 0 THEN 'Other AdjustMents , ' ELSE '' END) +
                       (CASE WHEN A.BankFeeAmount > 0 THEN 'Wire Fee' ELSE '' END)) AS AdjustMentAmountType,
 					  1 AS IsCreditMemo,					  
-					  CM.StatusId
+					  CM.StatusId,
+					  0 AS ProformaDeposit
 			    FROM  [dbo].[CreditMemo] CM WITH (NOLOCK) 	
 			   INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId	
 			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) ON CMD.InvoiceId = sobi.SOBillingInvoicingId AND ISNULL(sobi.IsProforma,0) = 0
@@ -556,7 +561,8 @@ BEGIN
 					NULL AS 'AdjustMentDate',
 				    '' AS 'AdjustMentAmountType',
 					1 AS IsCreditMemo,					  
-					CM.StatusId
+					CM.StatusId,
+					0 AS ProformaDeposit
 			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
 			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
@@ -628,7 +634,8 @@ BEGIN
 					   NULL 'AdjustMentDate',
 					   '' AS AdjustMentAmountType,
 					   0 AS IsCreditMemo,					   
-					   0 AS StatusId
+					   0 AS StatusId,
+					   0 AS ProformaDeposit
 			FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)       
 			INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
 			INNER JOIN [dbo].[Customer] CUST WITH (NOLOCK) ON CUST.CustomerId = ESO.CustomerId      
@@ -650,7 +657,7 @@ BEGIN
                        (CTE.CustomertType) 'CustomertType' ,
 					   (CTE.currencyCode) AS  'currencyCode',
 					   --CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.PaymentAmount + ISNULL(CTE.CreditMemoAmount,0)),0) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount',
-					   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.InvoiceAmount - ISNULL(CTE.InvoicePaidAmount,0)),0) - ISNULL(AdjustMentAmount,0) 
+					   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.InvoiceAmount - ISNULL(CTE.InvoicePaidAmount,0) - CTE.ProformaDeposit),0) - ISNULL(AdjustMentAmount,0) 
 					        ELSE CASE WHEN CTE.StatusId = @ClosedCreditMemoStatus  THEN 0 ELSE ISNULL(CTE.CreditMemoAmount,0) END END AS 'BalanceAmount',					   					   
 					   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.Amountpaidbylessthen0days + ISNULL(CTE.CreditMemoAmount,0)),0) ELSE CASE WHEN CTE.StatusId = @ClosedCreditMemoStatus  THEN 0 ELSE ISNULL(CTE.CreditMemoAmount,0) END END AS 'CurrentlAmount',   
 					   ISNULL(CTE.PaymentAmount,0) AS 'PaymentAmount',

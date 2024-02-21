@@ -1,5 +1,18 @@
-﻿/*************************************************************
-EXEC [dbo].[ReallocateItemNo]  62
+﻿/*************************************************************   
+** Author:  <Hemant Saliya>  
+** Create date: <12/30/2021>  
+** Description: <Update Ssales Order Index>  
+  
+EXEC [ReallocateItemNo] 
+************************************************************** 
+** Change History 
+**************************************************************   
+** PR   Date			 Author				 Change Description  
+** --   --------		-------			 --------------------------------
+** 1    12/30/2021		HEMANT SALIYA	  Update Ssales Order Index
+
+*************************************************************
+EXEC [dbo].[ReallocateItemNo]  1010
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[ReallocateItemNo]  
   @SalesOrderId BIGINT
@@ -21,21 +34,25 @@ BEGIN
 			  SalesOrderPartid   bigint,
 			  ItemMasterId bigint,
 			  ConditionId bigint,
+			  QtyRequested INT,
+			  qty INT,
 			  LineId int NULL default 0
 			)
 
-			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId)
-			SELECT SalesOrderPartId,ItemMasterId,ConditionId FROM dbo.SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
+			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId,QtyRequested,qty)
+			SELECT SalesOrderPartId,ItemMasterId,ConditionId,QtyRequested,qty FROM dbo.SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
 
-			DECLARE  @MasterLoopID as bigint  = 0;
-			DECLARE  @ConditionID as bigint  = 0;
-			DECLARE  @ItemMasterID as bigint  = 0;
-			DECLARE  @RankID as bigint  = 0;
+			DECLARE  @MasterLoopID as BIGINT  = 0;
+			DECLARE  @ConditionID as BIGINT  = 0;
+			DECLARE  @ItemMasterID as BIGINT  = 0;
+			DECLARE  @RankID as BIGINT  = 0;
+			DECLARE  @QtyRequested as BIGINT  = 0;
+			
 			SELECT @MasterLoopID = MAX(ID) FROM #tmpSalesOrderPart
 
 			WHILE (@MasterLoopID > 0)
 			BEGIN	 
-				 SELECT  @ConditionID = ConditionId, @ItemMasterID = ItemMasterId FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
+				 SELECT  @ConditionID = ConditionId, @ItemMasterID = ItemMasterId, @QtyRequested = QtyRequested FROM #tmpSalesOrderPart WHERE ID = @MasterLoopID  
 
 				 IF EXISTS (SELECT ID FROM #tmpSalesOrderPart wHERE LineId = 0 AND ID = @MasterLoopID) 
 				 BEGIN
@@ -48,7 +65,19 @@ BEGIN
 					                          AND ItemMasterId = @ItemMasterID
 											  AND LineId = 0
 
-				 SET @MasterLoopID = @MasterLoopID - 1;
+				If( (SELECT SUM(ISNULL(qty, 0)) FROM #tmpSalesOrderPart WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId) > @QtyRequested)
+				BEGIN
+					UPDATE SalesOrderPart
+					SET QtyRequested = tmp.QtyRequested
+					FROM(
+						SELECT SUM(ISNULL(SOP.qty, 0)) AS QtyRequested, SalesOrderId, ConditionId, ItemMasterID
+						   FROM dbo.SalesOrderPart SOP WITH(NOLOCK) 
+						   WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId AND SalesOrderId = @SalesOrderId
+						   GROUP BY SalesOrderId, ConditionId, ItemMasterID
+					)tmp WHERE tmp.SalesOrderId = SalesOrderPart.SalesOrderId AND tmp.ItemMasterID = SalesOrderPart.ItemMasterID AND tmp.ConditionId = SalesOrderPart.ConditionId
+				END
+				
+				SET @MasterLoopID = @MasterLoopID - 1;
 			END
 
 			UPDATE SalesOrderPart

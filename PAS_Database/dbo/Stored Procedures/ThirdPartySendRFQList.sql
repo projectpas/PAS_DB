@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [ThirdPartySendRFQList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Third Party Send RFQ List
@@ -20,6 +19,7 @@ CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
 @SortColumn varchar(50)=NULL,
 @SortOrder int = NULL,
 @GlobalFilter varchar(50) = NULL,
+@IntegrationPortalId int = NULL,
 @IntegrationRFQStatusId int = NULL,
 @Status varchar(50) = NULL,
 @RFQId varchar(50) = NULL,
@@ -69,6 +69,10 @@ BEGIN
 		BEGIN 
 			Set @SortColumn=UPPER(@SortColumn)
 		END	
+		IF(@IntegrationPortalId = 0)
+		BEGIN
+			SET @IntegrationPortalId = NULL
+		END
 		--IF(@IntegrationRFQStatusId=0)
 		--BEGIN
 		--	SET @IsActive=0;
@@ -143,6 +147,7 @@ BEGIN
 					part.MasterCompanyId=@MasterCompanyId 
 					AND (@IntegrationRFQTypeId IS NULL OR tr.IntegrationRFQTypeId = @IntegrationRFQTypeId)
 					AND (@IntegrationRFQStatusId IS NULL OR tr.IntegrationRFQStatusId = @IntegrationRFQStatusId)
+					AND (@IntegrationPortalId IS NULL OR tr.IntegrationPortalId = @IntegrationPortalId)
 			), ResultCount AS(SELECT COUNT(ILSRFQPartId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([RFQId] LIKE '%' +@GlobalFilter+'%') OR

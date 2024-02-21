@@ -1,5 +1,22 @@
-﻿
-CREATE    PROCEDURE [dbo].[CustomerPaymentsReview]    
+﻿/*************************************************************             
+ ** File:   [CustomerPaymentsReview]             
+ ** Author:   
+ ** Description: This stored procedure is used to GET Customer Invoices 
+ ** Purpose:           
+ ** Date:   
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date          Author			Change Description              
+ ** --   --------      -------			-------------------------------            
+	1                  unknown			Created	
+	2    20/02/2024    Devendra Shekh	added isDeleted flage
+
+	EXEC [dbo].[CustomerPaymentsReview]  1,1
+**************************************************************/  
+
+CREATE   PROCEDURE [dbo].[CustomerPaymentsReview]    
 @ReceiptId BIGINT = NULL    
 AS    
 BEGIN    
@@ -30,6 +47,7 @@ BEGIN
    Where CP.ReceiptId = CP1.ReceiptId --AND ICP1.ReceiptId = IPS.ReceiptId --AND ICP1.CustomerId = IPS.CustomerId    
   ) A    
   Where CP.ReceiptId = @ReceiptId    
+  AND IPS.IsDeleted = 0
   GROUP BY A.PaymentRef, IPS.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, ICP.CheckNumber, IWP.ReferenceNo, ICCP.Reference, ICP.Amount, IWP.Amount, ICCP.Amount, IPS.PaymentAmount)    
     
   , myCTE1(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS     

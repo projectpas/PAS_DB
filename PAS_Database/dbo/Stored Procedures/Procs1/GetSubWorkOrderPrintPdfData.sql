@@ -11,6 +11,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** --   --------    -------         --------------------------------
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    12/21/2023  Devendra Shekh   sub print form issue resolved
+** 3    20/02/2024  Shrey Chandegara  Updated for Technum is getting wrong.
 
 EXEC GetSubWorkOrderPrintPdfData 181,155
 
@@ -131,7 +132,7 @@ AS
 				LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid            
 				LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId              
 				LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId              
-				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = wop.TechnicianId              
+				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = SWOPN.TechnicianId              
 				LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = wop.WorkOrderStageId              
 				LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
 				LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            

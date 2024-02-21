@@ -24,7 +24,7 @@
 	7    02/05/2024   AMIT GHEDIYA	Updated the SP to show Proforma invoice Data.
 	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
      
- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 561, 41196, 7  
+ EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1040, 20751, 1  
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
@@ -367,7 +367,8 @@ BEGIN
 			   IsNewInvoice,
 			   IsProforma,
 			   DepositAmount
-			  FROM #SalesOrderBillingInvoiceChildList;
+		FROM #SalesOrderBillingInvoiceChildList
+		ORDER BY partnumber, IsProforma desc, VersionNo desc;
    END  
    COMMIT  TRANSACTION  
   END TRY      

@@ -25,6 +25,7 @@
 	13   14/02/2024	  AMIT GHEDIYA     added IsBilling flage for SO when standard invocie post proforma not available in Receipt information.
     14   14/02/2024	  Devendra Shekh    duplicate wo for multiple MPN issue resolved
 	15   20/02/2024	  AMIT GHEDIYA      update Doc type name for performa for both SO & WO
+	16   22/02/2024	  Devendra Shekh    added isperforma to select 
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -69,7 +70,9 @@ BEGIN
 			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
 			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(SOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN SOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',        
 			  CASE WHEN DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
+			  CASE WHEN ISNULL(SOBI.IsProforma,0 ) = 0 THEN
+					CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
+					ELSE 0 END AS DiscountAvailable,      
 			  C.CustomerId,      
 			  C.[Name] AS 'CustName',      
 			  C.CustomerCode,       
@@ -84,7 +87,8 @@ BEGIN
 			  ISNULL(H.ARBalance,0) AS ARBalance,      
 			  C.Ismiscellaneous,
 			  0 AS 'ExchangeSalesOrderScheduleBillingId',
-			  0 AS 'BillingId'
+			  0 AS 'BillingId',
+			  ISNULL(SOBI.IsProforma,0 ) AS 'isPerformaInvoice'
 		FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)      
 			  JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId      
@@ -129,7 +133,9 @@ BEGIN
 			 CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,      
 			 CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(WOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN WOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',           
 			 CASE WHEN DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
-			 CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable,      
+			 CASE WHEN ISNULL(WOBI.isPerformaInvoice,0 ) = 0 THEN
+				  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
+				  ELSE 0 END AS DiscountAvailable,         
 			 C.CustomerId,      
 			 C.Name AS 'CustName',      
 			 C.CustomerCode,       
@@ -144,7 +150,8 @@ BEGIN
 			 ISNULL(H.ARBalance,0) AS ARBalance,      
 			 C.Ismiscellaneous,
 			 0 AS 'ExchangeSalesOrderScheduleBillingId',
-			 0 AS 'BillingId'
+			 0 AS 'BillingId',
+			 ISNULL(WOBI.isPerformaInvoice,0 ) AS 'isPerformaInvoice'
 			 FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
 			 INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON  WO.WorkOrderId = WOBI.WorkOrderId  and WOBI.IsVersionIncrease = 0      
 			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on WOBI.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.[IsInvoicePosted], 0) != 1
@@ -204,7 +211,8 @@ BEGIN
 		    0 AS ARBalance,      
 		    C.Ismiscellaneous,
 			0 AS 'ExchangeSalesOrderScheduleBillingId',
-			0 AS 'BillingId'
+			0 AS 'BillingId',
+			0 AS 'isPerformaInvoice'
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[CustomerRMAHeader] RM WITH (NOLOCK) ON CM.RMAHeaderId = RM.RMAHeaderId    
 			LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
@@ -260,7 +268,8 @@ BEGIN
 		       0 AS ARBalance,      
 		       CST.Ismiscellaneous,
 			   0 AS 'ExchangeSalesOrderScheduleBillingId',
-			   0 AS 'BillingId'
+			   0 AS 'BillingId',
+			   0 AS 'isPerformaInvoice'
 	    FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.[ManualJournalHeaderId] = MJD.[ManualJournalHeaderId]		  
 		  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.CustomerId = MJD.ReferenceId AND MJD.ReferenceTypeId = 1 
@@ -313,7 +322,8 @@ BEGIN
 			  ISNULL(H.ARBalance,0) AS ARBalance,      
 			  C.Ismiscellaneous,
 			  ESOBI.ExchangeSalesOrderScheduleBillingId,
-			  ESOBI.BillingId
+			  ESOBI.BillingId,
+			  0 AS 'isPerformaInvoice'
 		FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)      
 			 INNER JOIN [dbo].[ExchangeSalesOrder] ES WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ES.ExchangeSalesOrderId      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON ESOBI.CustomerId = C.CustomerId      

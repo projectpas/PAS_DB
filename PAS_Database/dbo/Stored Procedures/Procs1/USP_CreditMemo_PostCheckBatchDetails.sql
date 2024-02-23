@@ -139,8 +139,6 @@ BEGIN
 			SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) 
 			WHERE JournalBatchDetailId = @JournalBatchDetailIdmnt;
 
-			--SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[SalesOrderManagementStructureDetails] WITH(NOLOCK) 
-			--WHERE ReferenceID = @ManagementStructureId;
 			SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 			SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 		END
@@ -153,13 +151,11 @@ BEGIN
 			SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) 
 			WHERE JournalBatchDetailId = @JournalBatchDetailIdmnt;
 
-			--SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[workOrderManagementStructureDetails] WITH(NOLOCK) 
-			--WHERE ReferenceID = @ManagementStructureId;
 			SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 			SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 		END
 
-		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('CMDISACC');
+		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('CMDISACC');
 		SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
 		SELECT @JournalTypeId = ID, @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
 		SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId

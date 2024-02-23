@@ -15,7 +15,8 @@
  ** PR   	Date         Author				Change Description            
  ** --   	--------     -------			--------------------------------     
 	1    01/31/2024		 Devendra Shekh		CREATED
-	1    02/08/2024		 Devendra Shekh		update for conditionid
+	2    02/08/2024		 Devendra Shekh		update for conditionid
+	3    22/02/2024		 Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
 
 	EXEC [USP_GetWOPerformaInvoiceChildList] 3543,3013
 
@@ -46,9 +47,9 @@ BEGIN
 						 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
 						 ELSE (SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
 					wo.WorkOrderNum AS WorkOrderNumber, 
-					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
+					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartNumber ELSE 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END AS 'PartNumber',
-					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartDescription ELSE 
+					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartDescription ELSE 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartDescription ELSE imt.PartDescription END END AS 'PartDescription',
 					sl.StockLineNumber,
 					CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
@@ -70,6 +71,7 @@ BEGIN
 					,ISNULL(wop.IsFinishGood,0)IsFinishGood
 					,wobi.Notes
 					,ISNULL(INV.[Description], 'PROFORMA') AS [InvoiceTypeName]
+					,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 					LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
 					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
@@ -96,8 +98,8 @@ BEGIN
 					--,wocd.TotalCost
 					cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wobi.SubTotal 
 					, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
-					,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
-					,wosisn.WorkOrderShippingId,cond.ConditionId,INV.[Description]
+					,wobi.ItemMasterId,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
+					,wosisn.WorkOrderShippingId,cond.ConditionId,INV.[Description],wobii.IsVersionIncrease
 				) a
 
 				;WITH CTE_Temp AS

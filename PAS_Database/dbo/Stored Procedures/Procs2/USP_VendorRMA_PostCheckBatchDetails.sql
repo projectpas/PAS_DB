@@ -20,6 +20,7 @@
 	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	5    22/08/2023   Amit Ghediya  Added StockLineId in VendorRMAPaymentBatchDetails table.
     6    27/11/2023   Moin Bloch    Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
+	7    02/20/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -88,6 +89,8 @@ BEGIN
 
 		SELECT @CodeTypeId = CodeTypeId FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE CodeType = 'JournalType';
 
+		SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VendorRMA')
+
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpCodePrefixes
@@ -120,19 +123,21 @@ BEGIN
 			SELECT @ExtAmount = ISNULL(ExtendedCost,0),@VendorRMAId = VendorRMAId FROM [DBO].[VendorRMADetail] WITH(NOLOCK) WHERE  VendorRMADetailId = @VendorRMADetailId;
 		END
 
-		IF(ISNULL(@ExtAmount,0) > 0)
-		BEGIN 
-			SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;
-			
-			IF(@MasterCompanyId = 0)
-			BEGIN 
-				SELECT @MasterCompanyId=MasterCompanyId,
-				       @UpdateBy=CreatedBy 
-				 FROM [DBO].[VendorCreditMemoDetail] WITH(NOLOCK) WHERE VendorCreditMemoId = @tmpVendorRMADetailId;
-			END
+		SELECT @MasterCompanyId = MasterCompanyId, @UpdateBy = CreatedBy FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;
 
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VendorRMA')
-			
+		IF(ISNULL(@MasterCompanyId, 0) = 0)
+		BEGIN 
+			SELECT @MasterCompanyId = MasterCompanyId,
+			       @UpdateBy = CreatedBy 
+			 FROM [DBO].[VendorCreditMemoDetail] WITH(NOLOCK) WHERE VendorCreditMemoId = @tmpVendorRMADetailId;
+		END
+
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+		IF(ISNULL(@ExtAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
+		BEGIN 
 			IF(@Module = 'VRMA-CS')  -- RMA Shipping
 			BEGIN
 				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
@@ -164,8 +169,6 @@ BEGIN
 			
 			SELECT @ManagementStructureId = ManagementStructureId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @stklineId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
-			--SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'ReadyToPay'
-			--SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM AccountingManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @VendorRMAId
 			SELECT @VendorName = VendorName FROM [DBO].[Vendor] WITH(NOLOCK) WHERE VendorId = @VendorId
 
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
@@ -221,7 +224,6 @@ BEGIN
 					BEGIN
 					   SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch AS VARCHAR(100))  
 						  ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END   
-  
 					END  
 				END
 			
@@ -459,11 +461,11 @@ BEGIN
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 		END
-
 		
-		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
-		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
-		SET @TotalBalance =@TotalDebit-@TotalCredit
+		SELECT @TotalDebit =SUM(DebitAmount), @TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
+		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted = 0 
+
+		SET @TotalBalance = ISNULL(@TotalDebit,0) - ISNULL(@TotalCredit,0)
 
 		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId

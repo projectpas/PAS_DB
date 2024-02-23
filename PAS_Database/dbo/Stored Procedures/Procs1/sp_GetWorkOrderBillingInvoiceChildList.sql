@@ -16,6 +16,7 @@
 	11   08/02/2024   Devendra Shekh		added new param @IncludeProformaInvoice
 	12   12/02/2024   Devendra Shekh		duplicate data for proforma Issue resolved
 	13   14/02/2024   Devendra Shekh	    added depositamt field for select
+	14   20/02/2024   Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -75,6 +76,7 @@ BEGIN
 					[IsInvoicePosted] [bit] NULL,
 					[DepositAmount] [DECIMAL](18,2) NULL,
 					[UsedDeposit] [DECIMAL](18,2) NULL,
+					[IsAllowIncreaseVersionForBillItem] [BIT] NULL,
 				)
 
 
@@ -92,9 +94,9 @@ BEGIN
 						wo.WorkOrderNum as WorkOrderNumber, 
 						--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 						--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
-						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
+						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartNumber ELSE 
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END as 'PartNumber',
-						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartDescription ELSE 
+						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartDescription ELSE 
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartDescription ELSE imt.PartDescription END END as 'PartDescription',
 						sl.StockLineNumber,
 						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
@@ -121,6 +123,7 @@ BEGIN
 						,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 						,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
+						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						--,(CASE WHEN ISNULL((SELECT TOP 1 ISNULL(stkh.ActionId,0) FROM DBO.Stkline_History stkh WITH(NOLOCK) WHERE stkh.StocklineId = sl.StockLineId),0) = @ActionId THEN 1 else 0 END) IsReOpen
 					FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 						INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId
@@ -148,8 +151,8 @@ BEGIN
 						-- CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END,
 						cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobi.SubTotal 
 						, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
-						,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-						,wobi.[DepositAmount],wobi.[UsedDeposit]
+						,wobi.ItemMasterId,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
+						,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease
 					) a
 
 					;WITH CTE_Temp AS
@@ -163,11 +166,11 @@ BEGIN
 					INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem])
 					select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem] from CTE_Temp t1
 					where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 							or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 							or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -194,9 +197,9 @@ BEGIN
 								wo.WorkOrderNum as WorkOrderNumber, 
 								--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 								--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
-								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
+								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartNumber ELSE 
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END as 'PartNumber',
-								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartDescription ELSE 
+								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartDescription ELSE 
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartDescription ELSE imt.PartDescription END END as 'PartDescription',
 								sl.StockLineNumber,
 								CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
@@ -223,6 +226,7 @@ BEGIN
 								,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 								,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 								,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
+								,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 								--,S.ConditionId AS 'ConditionId'
 							FROM DBO.WorkOrderShippingItem wosi WITH(NOLOCK)
 								INNER JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
@@ -249,8 +253,8 @@ BEGIN
 								-- CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END,
 								cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobi.SubTotal 
 								, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.IsFinishGood
-								,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-								,wobi.[DepositAmount],wobi.[UsedDeposit]
+								,wobi.ItemMasterId,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
+								,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease
 							) a
 
 							;WITH CTE_Temp AS
@@ -264,11 +268,11 @@ BEGIN
 							INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem])
 							select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem] from CTE_Temp t1
 							where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 									or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 									or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable1 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -295,9 +299,9 @@ BEGIN
 							wo.WorkOrderNum as WorkOrderNumber, 
 							--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 							--CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
-							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
+							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartNumber ELSE 
 							CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END as 'PartNumber',
-							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartDescription ELSE 
+							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartDescription ELSE 
 							CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartDescription ELSE imt.PartDescription END END as 'PartDescription',
 							sl.StockLineNumber,
 							CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
@@ -323,6 +327,7 @@ BEGIN
 							,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 							,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 							,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
+							,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 						FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
 							LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
@@ -349,8 +354,8 @@ BEGIN
 							-- CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN cond.Description ELSE wosc.conditionName END,
 							cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wocd.TotalCost,wobi.SubTotal 
 							, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wosi.WorkOrderShippingId,wop.IsFinishGood
-							,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
-							,wobi.[DepositAmount],wobi.[UsedDeposit]
+							,wobi.ItemMasterId,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,cond.ConditionId,INV.[Description],wobi.[IsInvoicePosted]
+							,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease
 						) a
 
 						;WITH CTE_Temp AS
@@ -364,11 +369,11 @@ BEGIN
 						INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit])
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem])
 						select [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 													[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 													[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 0, ConditionId
-													,[IsInvoicePosted], [DepositAmount], [UsedDeposit] from CTE_Temp t1
+													,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem] from CTE_Temp t1
 						where (((VersionNo is null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
 								or ((VersionNo is not null and IsAllowIncreaseVersion =1) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 								or((VersionNo is null and IsAllowIncreaseVersion =0) and ((select count(WorkOrderShippingId) from #MyTempTable2 t2 where t2.WorkOrderPartId = t1.WorkOrderPartId) >0) and RowNumber =1)
@@ -398,9 +403,9 @@ BEGIN
 							 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
 							 ELSE (SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
 						wo.WorkOrderNum AS WorkOrderNumber, 
-						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartNumber ELSE 
+						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartNumber ELSE 
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartNumber ELSE imt.PartNumber END END AS 'PartNumber',
-						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imv.PartDescription ELSE 
+						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND wobi.ItemMasterId > 0 THEN imt.PartDescription ELSE 
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0  THEN wop.RevisedPartDescription ELSE imt.PartDescription END END AS 'PartDescription',
 						sl.StockLineNumber,
 						CASE WHEN ISNULL(wobi.IsVersionIncrease, 0) = 1 AND ISNULL(wobi.RevisedSerialNumber, '') != '' THEN wobi.RevisedSerialNumber 
@@ -426,6 +431,7 @@ BEGIN
 						,CASE WHEN UPPER(ISNULL(woBillData.InvoiceStatus, '')) = 'INVOICED' THEN 1 ELSE ISNULL(wobi.[IsInvoicePosted], 0) END AS [IsInvoicePosted]
 						,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
+						,(CASE WHEN wobii.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersionForBillItem
 					FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)							
 						LEFT JOIN dbo.WorkOrderWorkFlow wof WITH(NOLOCK) on wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @WorkOrderPartId
 						LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobii.WorkOrderPartId = @WorkOrderPartId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
@@ -467,10 +473,10 @@ BEGIN
 						--,wocd.TotalCost
 						cond.Memo,curr.Code,wobi.VersionNo,imt.ItemMasterId,wobi.SubTotal 
 						, wobii.WOBillingInvoicingItemId,wobi.IsVersionIncrease,wowf.WorkFlowWorkOrderId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, wos.WorkOrderShippingId,wop.IsFinishGood
-						,wobi.ItemMasterId,imv.PartNumber,imv.PartDescription,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
+						,wobi.ItemMasterId,wop.RevisedSerialNumber,wobi.RevisedSerialNumber,wobi.Notes,wos.WOShippingNum,wos.AirwayBill,wos.WorkOrderShippingId
 						--,wosisn.WorkOrderShippingId
 						,INV.[Description],cond.ConditionId,wobi.[IsInvoicePosted],billcond.Memo,billcond.Code,billcond.ConditionId,woBillData.InvoiceStatus
-						,woProfomaBillData.WorkOrderShippingId,wobi.[DepositAmount],wobi.[UsedDeposit]
+						,woProfomaBillData.WorkOrderShippingId,wobi.[DepositAmount],wobi.[UsedDeposit],wobii.IsVersionIncrease
 					) a
 
 					;WITH CTE_Temp AS
@@ -482,11 +488,11 @@ BEGIN
 					INSERT INTO #InvoiceMainDetails([WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 														[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 														[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], [IsProformaInvoice], [ConditionId]
-														,[IsInvoicePosted], [DepositAmount], [UsedDeposit])
+														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem])
 					SELECT [WOBillingInvoicingId], [WorkOrderShippingId], [InvoiceDate], [InvoiceNo], [WOShippingNum], [QtyToBill], [WorkOrderNumber], [PartNumber], [PartDescription],
 														[StockLineNumber], [SerialNumber], [QtyBilled], [ItemNo], [WorkOrderId], [WorkOrderPartId], [Condition], [CurrencyCode], [TotalSales], [InvoiceStatus],
 														[VersionNo], [ItemMasterId], [IsAllowIncreaseVersion], [WorkFlowWorkOrderId], [AWB], [IsFinishGood], [Notes], [InvoiceTypeName], 1, ConditionId
-														,[IsInvoicePosted], [DepositAmount], [UsedDeposit] from CTE_Temp t1
+														,[IsInvoicePosted], [DepositAmount], [UsedDeposit], [IsAllowIncreaseVersionForBillItem] from CTE_Temp t1
 					WHERE (((VersionNo IS NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)
 							OR ((VersionNo IS NOT NULL AND IsAllowIncreaseVersion =1) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0))
 							OR((VersionNo IS NULL AND IsAllowIncreaseVersion =0) AND ((SELECT count(WorkOrderShippingId) FROM #MyTempTable3 t2 WHERE t2.WorkOrderPartId = t1.WorkOrderPartId) >0) AND RowNumber =1)

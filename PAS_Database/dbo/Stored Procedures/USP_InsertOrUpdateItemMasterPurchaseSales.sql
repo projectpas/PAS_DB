@@ -16,6 +16,7 @@
     3    16/02/2024		  Ekta Chandegra		  Update purchase price also 
 	4    19/02/2024		  Ekta Chandegra		  Set Flat price amount and sales price 
 	5	 20/02/2024		  Ekta Chandegra		  Set markup amount and markup percentage empty
+	6	 23/02/2024		  Ekta Chandegra		  Set purchase disc amount and purchase disc percentage empty and set unit purchase price as vendor list price
 
 declare @p1 dbo.ItemMasterPurchaseSalesType
 insert into @p1 values(24,1,1,120.00,250.00)
@@ -149,10 +150,10 @@ BEGIN
 					[SP_FSP_UOMName],[PP_CurrencyName],[SP_FSP_CurrencyName] ,[PP_PurchaseDiscPercValue],[SP_CalSPByPP_SaleDiscPercValue] ,
 					[SP_CalSPByPP_MarkUpPercOnListPriceValue],[SalePriceSelectName])		
 					
-					SELECT [ItemMasterId],[PartNumber],[PurchaseUnitOfMeasureId],[PurchaseCurrencyId],0,null,
-					null,null,null,null,
+					SELECT [ItemMasterId],[PartNumber],[PurchaseUnitOfMeasureId],[PurchaseCurrencyId],0,@UnitPurchasePrice,
+					null,-1,0,null,
 					@UnitPurchasePrice,[PurchaseUnitOfMeasureId],[SalesCurrencyId],0,@UnitSalePrice,
-					null,null ,null,
+					null,-1 ,0,
 					null,null ,null ,
 					null,null,	@UnitSalePrice ,
 					IM.[MasterCompanyId],IM.[CreatedBy],IM.[CreatedBy],GETUTCDATE() ,GETUTCDATE() ,1 ,0,
@@ -169,14 +170,17 @@ BEGIN
 		  USING #tmpItemMasterPurchaseSalesType AS SOURCE ON (SOURCE.ItemMasterId = TARGET.ItemMasterId AND SOURCE.ConditionId = TARGET.ConditionId)   
 		  WHEN MATCHED 
 		  THEN UPDATE   
-		  SET   		  
-		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
+		  SET   		
+		  TARGET.[PP_VendorListPrice] = SOURCE.[PP_UnitPurchasePrice],
+		  TARGET.[PP_PurchaseDiscPerc] = -1,
+		  TARGET.[PP_PurchaseDiscAmount] = 0,
 		  TARGET.[PP_UnitPurchasePrice] = SOURCE.[PP_UnitPurchasePrice],
-		  TARGET.[SP_FSP_FlatPriceAmount] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
 		  TARGET.[SalePriceSelectId] = 1,
+		  TARGET.[SP_FSP_FlatPriceAmount] = SOURCE.[SP_CalSPByPP_UnitSalePrice],
 		  TARGET.[SP_CalSPByPP_MarkUpPercOnListPrice] = -1,
 		  TARGET.[SP_CalSPByPP_MarkUpAmount] = 0,
-		  TARGET.[SP_CalSPByPP_LastSalesDiscDate] = NULL
+		  TARGET.[SP_CalSPByPP_LastSalesDiscDate] = NULL,
+		  TARGET.[SP_CalSPByPP_UnitSalePrice] = SOURCE.[SP_CalSPByPP_UnitSalePrice]
 
 		  WHEN NOT MATCHED BY TARGET  
 		  THEN  

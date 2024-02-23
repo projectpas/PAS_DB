@@ -1,21 +1,4 @@
 ﻿
-/****** Object:  UserDefinedTableType [dbo].[CustomerRfqType]    Script Date: 14/02/2023 04:52:18 ******/
---CREATE TYPE [dbo].[CustomerRfqType] AS TABLE(
---	[RfqId] [bigint] NULL,
---	[RfqCreatedDate] [datetime2](7) NULL,
---	[Type] [varchar](50) NULL,
---	[Notes] [varchar](100) NULL,
---	[BuyerName] [varchar](250) NULL,
---	[BuyerCompanyName] [varchar](250) NULL,
---	[BuyerAddress] [varchar](250) NULL,
---	[BuyerCity] [varchar](50) NULL,
---	[BuyerCountry] [varchar](50) NULL,
---	[BuyerState] [varchar](50) NULL,
---	[BuyerZip] [varchar](50) NULL,
---	[LinePartNumber] [VARCHAR](250) NULL,
---	[LineDescription] [VARCHAR](250) NULL
---)
---GO
 
 /*************************************************************           
  ** File:   [USP_AddUpdateCustomerRfq]           
@@ -31,20 +14,19 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    13/02/2023  Amit Ghediya    Created
+	2	 22-02-2024  Rajesh Gami     Complete the Insert call
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
 	@tbl_CustomerRfqType CustomerRfqType READONLY,
 	@MasterCompanyId INT,
-	@CreatedBy VARCHAR(200),
-	@UpdatedBy VARCHAR(200),
-	@CreatedDate DATETIME,
-	@UpdatedDate DATETIME
+	@CreatedBy VARCHAR(200)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
+	BEGIN TRANSACTION;
 	BEGIN TRY
 
 					DECLARE @CustomerRfqId BIGINT;
@@ -60,6 +42,7 @@ BEGIN
 						ID BIGINT NOT NULL IDENTITY, 
 						[RfqId] [BIGINT] NULL,
 						[RfqCreatedDate] [DATETIME2](7) NULL,
+						[IntegrationPortalId] [int] NULL,
 						[Type] [VARCHAR](50) NULL,
 						[Notes] [VARCHAR](100) NULL,
 						[BuyerName] [VARCHAR](250) NULL,
@@ -76,44 +59,53 @@ BEGIN
 						[UpdatedBy] [VARCHAR](50) NOT NULL,
 						[UpdatedDate] [DATETIME2](7) NOT NULL,
 						[IsActive] [BIT] NOT NULL,
-						[IsDeleted] [BIT] NOT NULL,
+						[IsDeleted] [BIT] NOT NULL
 					)
-
-					INSERT INTO #tmpCustomerRfq ([RfqId] ,[RfqCreatedDate] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					print 'STEP 1'
+					INSERT INTO #tmpCustomerRfq ([RfqId] ,[RfqCreatedDate] ,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 						[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
 						[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
-					SELECT [RfqId] ,[RfqCreatedDate] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+					SELECT [RfqId] 
+					,RfqCreatedDate
+					--,CASE WHEN [RfqCreatedDate] IS NOT NULL AND [RfqCreatedDate] != '' THEN CAST([RfqCreatedDate] AS DATETIME2) ELSE NULL END 
+					,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						   @CreatedBy ,GETDATE() ,@UpdatedBy ,GETDATE() ,1 ,0
+						   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0
 					FROM @tbl_CustomerRfqType;
-					
+				print 'STEP 2'
 	  ------------------------------Delete record if exists---------------------------------------------------------------------
-
-					--IF EXISTS(SELECT [RfqId] FROM [dbo].[CustomerRfq])
-					--BEGIN
-					--	DELETE FROM [dbo].[CustomerRfq];
-					--END
-
+					DELETE c
+						FROM [dbo].[CustomerRfq] c 
+						INNER JOIN @tbl_CustomerRfqType tbl  ON c.RfqId=tbl.RfqId AND c.IntegrationPortalId = tbl.IntegrationPortalId
+						WHERE c.MasterCompanyId = @MasterCompanyId
 	 --------------------------- Insert into Rfq table --------------------------------------------------
-					
-					--INSERT INTO [dbo].[CustomerRfq]
-					--		   ([RfqId] ,[RfqCreatedDate] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-					--			[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] , 
-					--			[MasterCompanyId] ,		
-					--			[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
-					--SELECT [RfqId] ,[RfqCreatedDate] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
-					--	   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-					--	   @MasterCompanyId ,
-					--	   @CreatedBy ,GETDATE() ,@UpdatedBy ,GETDATE() ,1 ,0
-					-- FROM #tmpCustomerRfq;
-					
-					--SELECT @CustomerRfqId = SCOPE_IDENTITY();
-
+				print 'STEP 3'
+				--SELECT * FROM #tmpCustomerRfq
+					INSERT INTO [dbo].[CustomerRfq]
+							   ([RfqId] ,[RfqCreatedDate],[IntegrationPortalId] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+								[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] , 
+								[MasterCompanyId] ,		
+								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					SELECT [RfqId] ,[RfqCreatedDate],[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
+						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
+						   @MasterCompanyId ,
+						   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
+					 FROM #tmpCustomerRfq;
+							print 'STEP 4'
+					SELECT @CustomerRfqId = SCOPE_IDENTITY();
+					COMMIT;
     END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
+			SELECT  
+    ERROR_NUMBER() AS ErrorNumber  
+    ,ERROR_SEVERITY() AS ErrorSeverity  
+    ,ERROR_STATE() AS ErrorState  
+    ,ERROR_PROCEDURE() AS ErrorProcedure  
+    ,ERROR_LINE() AS ErrorLine  
+    ,ERROR_MESSAGE() AS ErrorMessage;  
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_AddUpdateCustomerRfq' 

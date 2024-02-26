@@ -15,11 +15,11 @@
     1    30-01-2024   Shrey Chandegara  Created
     2    09-02-2024   Devendra Shekh	added isProforma
     3    12-02-2024   Devendra Shekh	added join for ShipToCustomer
+	4    26-02-2024   Moin Bloch  	    added Sales Tax and Other Tax Fields
              
  EXECUTE USP_GetWOBillingViewDataById 410,4000,3488   
 **************************************************************/         
-CREATE   PROCEDURE [dbo].[USP_GetWOBillingViewDataById]      
-     
+CREATE   PROCEDURE [dbo].[USP_GetWOBillingViewDataById]           
 @WorkOrderBillingId BIGINT,      
 @WorkOrderId BIGINT,      
 @WorkOrderPartId BIGINT    
@@ -132,9 +132,11 @@ BEGIN
 			bi.FreightCostPlus,
 			ISNULL(SIP.Name,'') AS ShipVia,
 			bi.InvoiceTime,
-			ISNULL(bi.IsPerformaInvoice, 0) AS 'IsProformaInvoice'
+			ISNULL(bi.IsPerformaInvoice, 0) AS 'IsProformaInvoice',
+			ISNULL(bi.SalesTax,0) SalesTax,
+			ISNULL(bi.OtherTax,0) OtherTax
 		FROM 
-		    DBO.WorkOrderBillingInvoicing bi
+		    DBO.WorkOrderBillingInvoicing bi WITH(NOLOCK)
 		    JOIN DBO.WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId
 		    JOIN DBO.Customer cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
 		    JOIN DBO.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId

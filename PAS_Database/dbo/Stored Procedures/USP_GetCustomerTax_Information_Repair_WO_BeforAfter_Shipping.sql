@@ -14,8 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/15/2024   Moin Bloch    Created
+	2    02/22/2024   Moin Bloch    Updated For Multiple MPN
      
--- EXEC [USP_GetCustomerTax_Information_Repair_WO_BeforAfter_Shipping] 10381,10835,77,1
+-- EXEC [USP_GetCustomerTax_Information_Repair_WO_BeforAfter_Shipping] 10403,4111,77,1
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_WO_BeforAfter_Shipping] 
 @WoBillingInvoicingId BIGINT,
@@ -64,6 +65,7 @@ BEGIN
 	DECLARE @WorkOrderSettingId BIGINT = 0;
 	DECLARE @TotalShippingRecords INT = 0;
 	DECLARE @TotalDirectBillingRecords INT = 0;	
+	DECLARE @TotalPart INT = 0;	
 
 	IF OBJECT_ID(N'tempdb..#tmprwoShipDetails') IS NOT NULL
 	BEGIN
@@ -113,158 +115,270 @@ BEGIN
 	SELECT @WorkOrderSettingId = ISNULL([WorkOrderSettingId],0) 
 	  FROM [dbo].[WorkOrderSettings] SOS WITH(NOLOCK) 
 	  WHERE SOS.[MasterCompanyId] = @MasterCompanyId AND SOS.[IsActive] = 1 AND SOS.[IsDeleted] = 0 AND SOS.[AllowInvoiceBeforeShipping] = 1;
+	  	
+	 SELECT @TotalPart = COUNT(*) FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
+	 WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND WOBII.[IsVersionIncrease] = 0;
 
-	 IF(@WorkOrderSettingId > 0)
-	 BEGIN	 
-		INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
-		  SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-	          FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-			  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-		      INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-			  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-	          WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
-					  
-        SELECT @TotalShippingRecords = COUNT(*) FROM #tmprwoShipDetails  
-		
-		IF(@TotalShippingRecords = 0)
-		BEGIN			
-			INSERT INTO #tmprwoBillingPartDetails ([WorkOrderId],[WorkOrderPartId])				
-			SELECT @WorkOrderId,WOBI.[WorkOrderPartId]
-				   FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)	
-			WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0;
-					
-           SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprwoBillingPartDetails
-		   IF(@TotalDirectBillingRecords > 0)
-		   BEGIN
-				WHILE @MinPartId <= @TotalDirectBillingRecords
-	            BEGIN
-					  DECLARE @BillingOriginSiteId BIGINT = 0
-					  DECLARE @BillingShipToSiteId BIGINT = 0
-
-					  SELECT @WorkOrderPartId = [WorkOrderPartId] FROM #tmprwoBillingPartDetails WHERE ID = @MinPartId					  
-
-				      EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 
-					       @WorkOrderId,
-						   @WorkOrderPartId,						   
-						   @BillingOriginSiteId = @BillingOriginSiteId OUTPUT,
-		                   @BillingShipToSiteId = @BillingShipToSiteId OUTPUT
-
-					  INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
-					       SELECT @BillingOriginSiteId,@BillingShipToSiteId,@CustomerId,@WorkOrderId,@WorkOrderPartId
-
-					SET @MinPartId = @MinPartId + 1
-				END
-		   END		
-		END
-	 END
-	 ELSE
-	 BEGIN		
+	 IF(@TotalPart = 1)
+	 BEGIN
+		 IF(@WorkOrderSettingId > 0)
+		 BEGIN	 
 			INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
-			 SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
-	          FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
-			  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-		      INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
-			  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
-	          WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
-	  END		
+			  SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
+				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+					  
+			SELECT @TotalShippingRecords = COUNT(*) FROM #tmprwoShipDetails  
+		
+			IF(@TotalShippingRecords = 0)
+			BEGIN			
+				INSERT INTO #tmprwoBillingPartDetails ([WorkOrderId],[WorkOrderPartId])				
+				SELECT @WorkOrderId,WOBI.[WorkOrderPartId]
+					   FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)	
+				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0;
+					
+			   SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprwoBillingPartDetails
+			   IF(@TotalDirectBillingRecords > 0)
+			   BEGIN
+					WHILE @MinPartId <= @TotalDirectBillingRecords
+					BEGIN
+						  DECLARE @BillingOriginSiteId BIGINT = 0
+						  DECLARE @BillingShipToSiteId BIGINT = 0
+
+						  SELECT @WorkOrderPartId = [WorkOrderPartId] FROM #tmprwoBillingPartDetails WHERE ID = @MinPartId					  
+
+						  EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 
+							   @WorkOrderId,
+							   @WorkOrderPartId,						   
+							   @BillingOriginSiteId = @BillingOriginSiteId OUTPUT,
+							   @BillingShipToSiteId = @BillingShipToSiteId OUTPUT
+
+						  INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
+							   SELECT @BillingOriginSiteId,@BillingShipToSiteId,@CustomerId,@WorkOrderId,@WorkOrderPartId
+
+						SET @MinPartId = @MinPartId + 1
+					END
+			   END		
+			END
+		 END
+		 ELSE
+		 BEGIN		
+				INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
+				 SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
+				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+		  END		
 														
-	SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprwoShipDetails    
+		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprwoShipDetails    
 	
-	WHILE @MinId <= @TotalRecord
-	BEGIN
-		SELECT @OriginSiteId = [OriginSiteId],
-	           @ShipToSiteId = [ShipToSiteId],
-		       @CustomerId   = [CustomerId],
-			   @WorkOrderPartId = [WorkOrderPartId]
-		  FROM #tmprwoShipDetails WHERE ID = @MinId
-		---------------------------------------------Freight----------------------------------------------------------		  				
-		SELECT @TotalFreightPartWise = ISNULL(SUM(WOF.[Amount]),0) 
-			  FROM [dbo].[WorkOrderFreight] WOF WITH(NOLOCK)	
-	        INNER JOIN [dbo].[WorkOrderWorkFlow] WWF WITH(NOLOCK) ON WOF.[WorkFlowWorkOrderId] = wwf.[WorkFlowWorkOrderId]
-	        INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = WWF.[WorkOrderPartNoId]
-            WHERE WOF.[WorkOrderId] = @WorkOrderId 
-			  AND WWF.[WorkOrderPartNoId] = @WorkOrderPartId 
-			  AND WOF.IsActive = 1 
-			  AND WOF.IsDeleted = 0
-		---------------------------------------------Charges----------------------------------------------------------
-		SELECT @TotalChargePartWise = ISNULL(SUM(WOC.[ExtendedCost]),0) 
-			  FROM [dbo].[WorkOrderCharges] WOC WITH(NOLOCK)	
-	        INNER JOIN [dbo].[WorkOrderWorkFlow] WWF WITH(NOLOCK) ON WOC.[WorkFlowWorkOrderId] = wwf.[WorkFlowWorkOrderId]
-	        INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = WWF.[WorkOrderPartNoId]
-            WHERE WOC.[WorkOrderId] = @WorkOrderId 
-			  AND WWF.[WorkOrderPartNoId] = @WorkOrderPartId 
-			  AND WOC.IsActive = 1 
-			  AND WOC.IsDeleted = 0
-		--------------------------------------------------------------------------------------------------------------		
-		EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale] 
-		     @CustomerId,
-			 @ShipToSiteId,
-			 @OriginSiteId,
-		     @TotalSalesTax = @TotalSalesTax OUTPUT,
-		     @TotalOtherTax = @TotalOtherTax OUTPUT	
-			 
-		--SELECT @Total = (ISNULL(SOP.UnitSalesPricePerUnit, 0) * ISNULL(SOBI.NoofPieces,0))
-		--	FROM [dbo].[SalesOrderBillingInvoicingItem]  SOBI WITH(NOLOCK)
-		--	INNER JOIN [dbo].[SalesOrderPart] SOP WITH(NOLOCK) on SOBI.SalesOrderPartId = SOP.SalesOrderPartId
-		--	WHERE [SOP].[SalesOrderId] = @SalesOrderId 
-		--	  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;		
-		
-		SELECT WOBI.[SubTotal] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
-			INNER JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
-			WHERE [WOBI].[WorkOrderId] = @WorkOrderId 
-			  AND [WOBII].[WorkOrderPartId] = @WorkOrderPartId;	
-			  
-			  
-	    SET @SubTotal += ISNULL(@Total,0);
-	    SET @SalesTax = (ISNULL(@Total,0) * ISNULL(@TotalSalesTax,0) / 100)
-	    SET @OtherTax = (ISNULL(@Total,0) * ISNULL(@TotalOtherTax,0) / 100)
-
-		SET @FreighSalesTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
-		SET @FreighOtherTax = (ISNULL(@TotalFreightPartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
-		SET @ChargeSalesTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalSalesTax,0) / 100)
-		SET @ChargeOtherTax = (ISNULL(@TotalChargePartWise,0)  * ISNULL(@TotalOtherTax,0) / 100)
-							
-		UPDATE #tmprwoShipDetails SET [SalesTax] = @SalesTax + @FreighSalesTax + @ChargeSalesTax, 
-									  [OtherTax] = @OtherTax + @FreighOtherTax + @ChargeOtherTax									
-								WHERE [ID] = @MinId	
-		
-		IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
+		WHILE @MinId <= @TotalRecord
 		BEGIN
-			IF NOT EXISTS(SELECT 1 FROM #tmprwoShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId AND [CustomerId]=@CustomerId)
-			BEGIN
-				INSERT INTO #tmprwoShipDetails2 ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[SalesTax],[OtherTax])
-				     SELECT @OriginSiteId,@ShipToSiteId,@CustomerId,@WorkOrderId,ISNULL(@TotalSalesTax,0),ISNULL(@TotalOtherTax,0);
-			END		
-		END		
-		SET @MinId = @MinId + 1
-	END
-	
-	SELECT @TotalRecord2 = COUNT(*), @MinId2 = MIN(ID) FROM #tmprwoShipDetails2    
-
-	WHILE @MinId2 <= @TotalRecord2
-	BEGIN
-		DECLARE @STX DECIMAL(18,2)=0
-		DECLARE @OTX DECIMAL(18,2)=0
-
-		SELECT @STX = [SalesTax],
-		       @OTX = [OtherTax]			  
-		FROM #tmprwoShipDetails2 WHERE ID = @MinId2
-
-		SET @TotalSalesTaxes += @STX
-	    SET @TotalOtherTaxes += @OTX
-
-		SET @MinId2 = @MinId2 + 1
-	END	
-			
-	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprwoShipDetails	
+			SELECT @OriginSiteId = [OriginSiteId],
+				   @ShipToSiteId = [ShipToSiteId],
+				   @CustomerId   = [CustomerId],
+				   @WorkOrderPartId = [WorkOrderPartId]
+			  FROM #tmprwoShipDetails WHERE ID = @MinId
+			---------------------------------------------Freight----------------------------------------------------------		  				
+			SELECT @TotalFreightPartWise = ISNULL(SUM(WOF.[Amount]),0) 
+				  FROM [dbo].[WorkOrderFreight] WOF WITH(NOLOCK)	
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WWF WITH(NOLOCK) ON WOF.[WorkFlowWorkOrderId] = wwf.[WorkFlowWorkOrderId]
+				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = WWF.[WorkOrderPartNoId]
+				WHERE WOF.[WorkOrderId] = @WorkOrderId 
+				  AND WWF.[WorkOrderPartNoId] = @WorkOrderPartId 
+				  AND WOF.IsActive = 1 
+				  AND WOF.IsDeleted = 0
+			---------------------------------------------Charges----------------------------------------------------------
+			SELECT @TotalChargePartWise = ISNULL(SUM(WOC.[ExtendedCost]),0) 
+				  FROM [dbo].[WorkOrderCharges] WOC WITH(NOLOCK)	
+				INNER JOIN [dbo].[WorkOrderWorkFlow] WWF WITH(NOLOCK) ON WOC.[WorkFlowWorkOrderId] = wwf.[WorkFlowWorkOrderId]
+				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOP.[ID] = WWF.[WorkOrderPartNoId]
+				WHERE WOC.[WorkOrderId] = @WorkOrderId 
+				  AND WWF.[WorkOrderPartNoId] = @WorkOrderPartId 
+				  AND WOC.IsActive = 1 
+				  AND WOC.IsDeleted = 0
+			--------------------------------------------------------------------------------------------------------------		
+			EXEC [dbo].[USP_GetCustomerTax_Information_Repair] 
+				 @CustomerId,
+				 @ShipToSiteId,
+				 @OriginSiteId,
+				 @TotalSalesTax = @TotalSalesTax OUTPUT,
+				 @TotalOtherTax = @TotalOtherTax OUTPUT	
+				
+			SELECT  @Total = WOBII.[SubTotal] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
+				INNER JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				WHERE [WOBI].[WorkOrderId] = @WorkOrderId 
+				  AND [WOBII].[WorkOrderPartId] = @WorkOrderPartId;	
+				  
+			SET @SubTotal += ISNULL(@Total,0);
+			SET @SalesTax = (ISNULL(@Total,0) * ISNULL(@TotalSalesTax,0) / 100)
+			SET @OtherTax = (ISNULL(@Total,0) * ISNULL(@TotalOtherTax,0) / 100)
+										
+			UPDATE #tmprwoShipDetails SET [SalesTax] = @SalesTax, 
+										  [OtherTax] = @OtherTax 									
+									WHERE [ID] = @MinId	
 		
-	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
-	        ISNULL(@TotalCharges,0) AS TotalCharges,
-			ISNULL((@SubTotal),0) AS Total,			
-	        ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0) AS SubTotal,
-	        ISNULL((@SubTotal + @TotalFreight + @TotalCharges + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
-			ISNULL(@FinalSalesTaxes,0) AS SalesTax,
-			ISNULL(@FinalOtherTaxes,0) AS OtherTax	
+			IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
+			BEGIN
+				IF NOT EXISTS(SELECT 1 FROM #tmprwoShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId AND [CustomerId]=@CustomerId)
+				BEGIN
+					INSERT INTO #tmprwoShipDetails2 ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[SalesTax],[OtherTax])
+						 SELECT @OriginSiteId,@ShipToSiteId,@CustomerId,@WorkOrderId,ISNULL(@TotalSalesTax,0),ISNULL(@TotalOtherTax,0);
+				END		
+			END		
+			SET @MinId = @MinId + 1
+		END
+	
+		SELECT @TotalRecord2 = COUNT(*), @MinId2 = MIN(ID) FROM #tmprwoShipDetails2    
+
+		WHILE @MinId2 <= @TotalRecord2
+		BEGIN
+			DECLARE @STX DECIMAL(18,2)=0
+			DECLARE @OTX DECIMAL(18,2)=0
+
+			SELECT @STX = [SalesTax],
+				   @OTX = [OtherTax]			  
+			FROM #tmprwoShipDetails2 WHERE ID = @MinId2
+
+			SET @TotalSalesTaxes += @STX
+			SET @TotalOtherTaxes += @OTX
+
+			SET @MinId2 = @MinId2 + 1
+		END	
+			
+		SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprwoShipDetails	
+		
+		SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
+				ISNULL(@TotalCharges,0) AS TotalCharges,
+				ISNULL((@SubTotal),0) AS Total,			
+				ISNULL((@SubTotal + @TotalFreight + @TotalCharges),0) AS SubTotal,
+				ISNULL((@SubTotal + @TotalFreight + @TotalCharges + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
+				ISNULL(@FinalSalesTaxes,0) AS SalesTax,
+				ISNULL(@FinalOtherTaxes,0) AS OtherTax;
+	 END
+	 ELSE IF(@TotalPart > 1)
+	 BEGIN
+		IF(@WorkOrderSettingId > 0)
+		 BEGIN	 
+			INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
+			  SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
+				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+					  
+			SELECT @TotalShippingRecords = COUNT(*) FROM #tmprwoShipDetails  
+		
+			IF(@TotalShippingRecords = 0)
+			BEGIN			
+				INSERT INTO #tmprwoBillingPartDetails ([WorkOrderId],[WorkOrderPartId])				
+				SELECT @WorkOrderId,WOBI.[WorkOrderPartId]
+					   FROM [dbo].[WorkOrderBillingInvoicingItem] WOBI WITH(NOLOCK)	
+				WHERE WOBI.[BillingInvoicingId] = @WoBillingInvoicingId AND WOBI.[IsVersionIncrease] = 0 AND WOBI.[IsActive] = 1 AND WOBI.[IsDeleted] = 0;
+					
+			   SELECT @TotalDirectBillingRecords = COUNT(*),@MinPartId = MIN(ID) FROM #tmprwoBillingPartDetails
+			   IF(@TotalDirectBillingRecords > 0)
+			   BEGIN
+					WHILE @MinPartId <= @TotalDirectBillingRecords
+					BEGIN
+						  DECLARE @BillingOriginSiteId2 BIGINT = 0
+						  DECLARE @BillingShipToSiteId2 BIGINT = 0
+
+						  SELECT @WorkOrderPartId = [WorkOrderPartId] FROM #tmprwoBillingPartDetails WHERE ID = @MinPartId					  
+
+						  EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 
+							   @WorkOrderId,
+							   @WorkOrderPartId,						   
+							   @BillingOriginSiteId = @BillingOriginSiteId2 OUTPUT,
+							   @BillingShipToSiteId = @BillingShipToSiteId2 OUTPUT
+						  print @BillingOriginSiteId2
+						  print @BillingShipToSiteId2
+
+						  INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
+							   SELECT @BillingOriginSiteId2,@BillingShipToSiteId2,@CustomerId,@WorkOrderId,@WorkOrderPartId
+
+						SET @MinPartId = @MinPartId + 1
+					END
+			   END		
+			END
+		 END
+		 ELSE
+		 BEGIN		
+				INSERT INTO #tmprwoShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderPartId])	
+				 SELECT WOS.[OriginSiteId],WOS.[ShipToSiteId],WOS.[CustomerId],WOS.[WorkOrderId],WOSI.[WorkOrderPartNumId]
+				  FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK)	
+				  INNER JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				  INNER JOIN [dbo].[WorkOrderShipping] WOS WITH(NOLOCK) ON WOBI.[WorkOrderShippingId]  = WOS.[WorkOrderShippingId] AND WOBI.[WorkOrderId] = WOS.[WorkOrderId]
+				  INNER JOIN [dbo].[WorkOrderShippingItem] WOSI WITH(NOLOCK) ON WOS.[WorkOrderShippingId]  = WOSI.[WorkOrderShippingId] AND WOBII.[WorkOrderPartId] = WOSI.[WorkOrderPartNumId]
+				  WHERE WOBII.[BillingInvoicingId]  = @WoBillingInvoicingId AND [WOBII].[IsActive] = 1 AND [WOBII].[IsDeleted] = 0;
+		  END		
+														
+		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprwoShipDetails    
+	
+		WHILE @MinId <= @TotalRecord
+		BEGIN
+			SELECT @OriginSiteId = [OriginSiteId],
+				   @ShipToSiteId = [ShipToSiteId],
+				   @CustomerId   = [CustomerId],
+				   @WorkOrderPartId = [WorkOrderPartId]
+			  FROM #tmprwoShipDetails WHERE ID = @MinId
+					
+			EXEC [dbo].[USP_GetCustomerTax_Information_Repair] 
+				 @CustomerId,
+				 @ShipToSiteId,
+				 @OriginSiteId,
+				 @TotalSalesTax = @TotalSalesTax OUTPUT,
+				 @TotalOtherTax = @TotalOtherTax OUTPUT	
+				
+			SELECT @Total = WOBII.[SubTotal] FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK)
+				INNER JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.[BillingInvoicingId]  = WOBI.[BillingInvoicingId] AND WOBI.[IsVersionIncrease] = 0
+				WHERE [WOBI].[WorkOrderId] = @WorkOrderId 
+				  AND [WOBII].[WorkOrderPartId] = @WorkOrderPartId;	
+				  
+			 SET @SubTotal = ISNULL(@Total,0);
+
+			IF(@TotalSalesTax > 0 OR @TotalOtherTax > 0)
+			BEGIN
+				IF NOT EXISTS(SELECT 1 FROM #tmprwoShipDetails2 WHERE [OriginSiteId] = @OriginSiteId AND [ShipToSiteId] = @ShipToSiteId AND [CustomerId]=@CustomerId)
+				BEGIN
+					INSERT INTO #tmprwoShipDetails2 ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[SalesTax],[OtherTax])
+						 SELECT @OriginSiteId,@ShipToSiteId,@CustomerId,@WorkOrderId,ISNULL(@TotalSalesTax,0),ISNULL(@TotalOtherTax,0);
+				END		
+			END		
+			SET @MinId = @MinId + 1
+		END
+	
+		SELECT @TotalRecord2 = COUNT(*), @MinId2 = MIN(ID) FROM #tmprwoShipDetails2    
+
+		WHILE @MinId2 <= @TotalRecord2
+		BEGIN
+			DECLARE @STX2 DECIMAL(18,2)=0
+			DECLARE @OTX2 DECIMAL(18,2)=0
+
+			SELECT @STX2 = [SalesTax],
+				   @OTX2 = [OtherTax]			  
+			FROM #tmprwoShipDetails2 WHERE ID = @MinId2
+
+			SET @TotalSalesTaxes += @STX2
+			SET @TotalOtherTaxes += @OTX2
+
+			SET @MinId2 = @MinId2 + 1
+		END	
+
+		SELECT @FinalSalesTaxes = (ISNULL(@SubTotal,0)  * ISNULL(@TotalSalesTaxes,0) / 100),
+	           @FinalOtherTaxes = (ISNULL(@SubTotal,0)  * ISNULL(@TotalOtherTaxes,0) / 100)
+		
+		SELECT 	ISNULL((@SubTotal),0) AS SubTotal,
+				ISNULL(@FinalSalesTaxes,0) AS SalesTax,
+				ISNULL(@FinalOtherTaxes,0) AS OtherTax;
+	END
+		
   END TRY
 
   BEGIN CATCH

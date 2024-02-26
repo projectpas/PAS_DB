@@ -2812,5 +2812,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_Exchange_Quote.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivedRfqList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO.sql" />
   </ItemGroup>
 </Project>

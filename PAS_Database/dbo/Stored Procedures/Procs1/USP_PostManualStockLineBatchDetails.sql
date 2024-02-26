@@ -17,7 +17,8 @@
     1    14-July-2023		 Devendra Shekh			Created	
 	2    18-July-2023		 Devendra Shekh			getting glaccount details for stock inventory
 	3    21/08/2023          Moin Bloch             Modify(Added Accounting MS Entry)
-	4    14/02/2024          Hemant Saliya          Updated for Use Code insted of Name
+	4    14/02/2024          HEMANT SALIYA          Updated for Use Code insted of Name
+	5    11/26/2023			 HEMANT SALIYA		    Updated Journal Type Id and Name in Batch Details
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -114,11 +115,16 @@ BEGIN
 		)    
 		
 		SELECT @CheckAmount = SUM(ISNULL(UnitCost * Quantity,0)) FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId --AND VendorId = @VendorId
+		SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
+		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')	
 
-		IF(ISNULL(@CheckAmount,0) > 0)
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
 		BEGIN		
-			SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')	
+			
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
@@ -160,6 +166,8 @@ BEGIN
 			BEGIN
 				ROLLBACK TRAN;
 			END
+
+			
 			
 			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 			BEGIN

@@ -15,6 +15,7 @@
 	3    05/06/2023   Satish Gohil  Modify(Calculation issue fixed)
 	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	5    14/02/2023	  Moin Bloch	Updated Used Distribution Setup Code Insted of Name 
+	6    11/26/2023	  HEMANT SALIYA Updated Journal Type Id and Name in Batch Details
 
 **************************************************************/  
 
@@ -66,7 +67,6 @@ BEGIN
 		  DECLARE @CommonJournalBatchDetailId bigint=0;
 		  DECLARE @DistributionMasterId bigint;
 		  DECLARE @DistributionSetupId int=0
-		  DECLARE @IsAccountByPass bit=0
 		  DECLARE @DistributionCode varchar(200);
 		  DECLARE @JournalTypeId int
 		  DECLARE @JournalTypeCode varchar(200) 
@@ -124,7 +124,7 @@ BEGIN
 		  FROM @tbl_StockLineInventoryType
 
 
-		  select top 1  @AccountingPeriodId=AccountingCalendarId,@AccountingPeriod=PeriodName,@CreatedDate = ToDate from AccountingCalendar  WITH(NOLOCK)
+		  SELECT TOP 1  @AccountingPeriodId=AccountingCalendarId,@AccountingPeriod=PeriodName,@CreatedDate = ToDate from AccountingCalendar  WITH(NOLOCK)
 		  WHERE AccountingCalendarId = @AccountcalenderId AND ISNULL(isinventoryStatusName,0)= 1
 		   
 		  IF(ISNULL(@AccountingPeriodId,0) = 0)
@@ -171,7 +171,6 @@ BEGIN
 				------ Update StockLine Accounting --------
 				SELECT @DistributionMasterId =ID from dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('StocklineAdjustment')
 
-				SELECT @IsAccountByPass =IsAccountByPass from dbo.MasterCompany WITH(NOLOCK)  where MasterCompanyId= @MasterCompanyId
 				SELECT @DistributionCode =DistributionCode from dbo.DistributionMaster WITH(NOLOCK)  where ID= @DistributionMasterId
 				SELECT @StatusId =Id,@StatusName=name from dbo.BatchStatus WITH(NOLOCK)  where Name= 'Open'
 				SELECT top 1 @JournalTypeId =JournalTypeId from dbo.DistributionSetup WITH(NOLOCK)  where DistributionMasterId =@DistributionMasterId
@@ -180,7 +179,11 @@ BEGIN
 				SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StockLineId
 				SET @Amount = ISNULL(@QtyAvl,0) * ISNULL(@UnitPrice,0)
 
-				IF((@JournalTypeCode ='ADJ') and @IsAccountByPass=0 AND @Amount > 0)
+				DECLARE @IsRestrict INT;
+
+				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+				IF((@JournalTypeCode ='ADJ') AND ISNULL(@IsRestrict, 0) = 0 AND @Amount > 0)
 				BEGIN
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				    BEGIN 

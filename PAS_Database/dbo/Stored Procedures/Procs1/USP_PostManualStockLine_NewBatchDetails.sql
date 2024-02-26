@@ -19,6 +19,7 @@
     2    18-July-2023		 Devendra Shekh			getting glaccount details for stock inventory
 	3    21/08/2023          Moin Bloch             Modify(Added Accounting MS Entry)
 	4    14/02/2024          Hemant Saliya          Updated for Use Code insted of Name
+	5    11/26/2023			 HEMANT SALIYA		    Updated Journal Type Id and Name in Batch Details
 
 	EXEC USP_PostManualStockLine_NewBatchDetails 177281,'Admin user',280
 
@@ -131,10 +132,15 @@ BEGIN
 		SET @Differece = (ISNULL(@NewUnitCost,0) - ISNULL(@OldUnitCost,0))
 		
 		SELECT @CheckAmount = SUM(ISNULL(Quantity * ABS(@Differece),0)) FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId 
+		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')
 
-		IF(ISNULL(@CheckAmount,0) > 0)
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
 		BEGIN		
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')	
+				
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
@@ -241,7 +247,7 @@ BEGIN
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
-			 from dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
+			 from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
 

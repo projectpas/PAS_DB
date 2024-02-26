@@ -375,7 +375,7 @@ BEGIN
 			   DepositAmount,
 			   IsAllowIncreaseVersionForBillItem
 		FROM #SalesOrderBillingInvoiceChildList
-		ORDER BY partnumber, IsProforma desc, VersionNo desc;
+		ORDER BY partnumber, IsProforma desc, InvoiceNo desc;
    END  
    COMMIT  TRANSACTION  
   END TRY      

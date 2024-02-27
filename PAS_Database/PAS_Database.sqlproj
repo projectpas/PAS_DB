@@ -2813,5 +2813,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_Exchange_Quote.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetReceivedRfqList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_Repair_WO.sql" />
+    <Build Include="dbo\Tables\KitMasterPartHistory.sql" />
+    <Build Include="dbo\Tables\KitMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveKITMasterHistory.sql" />
   </ItemGroup>
 </Project>

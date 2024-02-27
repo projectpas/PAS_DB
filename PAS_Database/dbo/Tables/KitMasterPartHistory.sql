@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[KitMasterPartHistory] (
+    [KitMasterPartHistorytId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [KitItemMasterMappingId]  BIGINT          NOT NULL,
+    [KitId]                   BIGINT          NOT NULL,
+    [ItemMasterId]            BIGINT          NOT NULL,
+    [ManufacturerId]          BIGINT          NOT NULL,
+    [ConditionId]             BIGINT          NOT NULL,
+    [UOMId]                   BIGINT          NOT NULL,
+    [Qty]                     INT             NULL,
+    [UnitCost]                DECIMAL (18, 2) NULL,
+    [StocklineUnitCost]       DECIMAL (18, 2) NULL,
+    [PartNumber]              VARCHAR (250)   NULL,
+    [PartDescription]         VARCHAR (MAX)   NULL,
+    [Manufacturer]            VARCHAR (256)   NULL,
+    [Condition]               VARCHAR (256)   NULL,
+    [UOM]                     VARCHAR (256)   NULL,
+    [MasterCompanyId]         INT             NULL,
+    [CreatedBy]               VARCHAR (256)   NULL,
+    [UpdatedBy]               VARCHAR (256)   NULL,
+    [CreatedDate]             DATETIME2 (7)   CONSTRAINT [DF_KitMasterPartHistory_CreatedDate] DEFAULT (getutcdate()) NULL,
+    [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_KitMasterPartHistory_UpdatedDate] DEFAULT (getutcdate()) NULL,
+    [IsActive]                BIT             CONSTRAINT [DF__KitMasterPartHistory__IsActive] DEFAULT ((1)) NULL,
+    [IsDeleted]               BIT             CONSTRAINT [DF__KitMasterPartHistory__IsDeleted] DEFAULT ((0)) NULL,
+    CONSTRAINT [PK_KitMasterPartHistory] PRIMARY KEY CLUSTERED ([KitMasterPartHistorytId] ASC)
+);
+

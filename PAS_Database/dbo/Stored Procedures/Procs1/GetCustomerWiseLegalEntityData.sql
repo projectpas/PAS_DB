@@ -14,6 +14,7 @@
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4	19/2/2024		Devendra Shekh	REMOVED isperforma Flage for WO
+	5	27/2/2024		AMIT GHEDIYA	REMOVED isperforma Flage for SO
 
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerWiseLegalEntityData] 68,'2022-04-25','2022-04-27'
@@ -30,7 +31,7 @@ BEGIN
 	;WITH CTE AS(
 		select le.LegalEntityId,so.ManagementStructureId,so.CustomerId,LE.[Name],sobi.BillToSiteId AS 'BillToSiteId',aas.UserType AS 'UserType'
 			from SalesOrder so
-			INNER JOIN SalesOrderBillingInvoicing sobi WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0
+			INNER JOIN SalesOrderBillingInvoicing sobi WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId 
 			INNER JOIN SalesOrderManagementStructureDetails soms WITH(NOLOCK) ON soms.EntityMSID = so.ManagementStructureId AND soms.ModuleID=@SOMSModuleID
 			INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 			INNER JOIN LegalEntity le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId

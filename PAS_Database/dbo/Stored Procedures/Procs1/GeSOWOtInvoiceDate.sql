@@ -15,6 +15,7 @@
 	3	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 	4	 01/02/2024	    AMIT GHEDIYA	added isperforma Flage for SO
 	5	 19/02/2024	    Devendra Shekh	removed isperforma and added isinvoiceposted flage for wo
+	6	 27/02/2024	    AMIT GHEDIYA	removed isperforma and added IsBilling flage for so
 
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
@@ -32,7 +33,7 @@ BEGIN
 			SELECT @SOSTDT = MIN(sb.InvoiceDate) 
 			FROM [dbo].[SalesOrderBillingInvoicing] sb WITH(NOLOCK)WHERE sb.RemainingAmount > 0 
 				AND sb.InvoiceStatus = 'Invoiced' 
-				AND ISNULL(sb.IsProforma,0) = 0
+				AND ISNULL(sb.IsBilling,0) = 0
 				AND sb.CustomerId IN((SELECT Item FROM DBO.SPLITSTRING(@CustomerIDS,',')));    
 			
 			SELECT @WOSTDT = MIN(wb.InvoiceDate) 

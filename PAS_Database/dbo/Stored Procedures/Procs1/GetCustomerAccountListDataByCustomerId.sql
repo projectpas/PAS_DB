@@ -19,6 +19,7 @@
 	6	 01/31/2024		   Devendra Shekh  added isperforma Flage for WO
 	7	 01/02/2024	       AMIT GHEDIYA	   added isperforma Flage for SO
 	8	 19/02/2024		   Devendra Shekh  removed isperforma Flage and added isinvoiceposted for WO
+	9	 27/02/2024		   AMIT GHEDIYA    removed isperforma Flage and added IsBilling for SO
 
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
@@ -43,7 +44,7 @@ BEGIN
         SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 		
 		IF(@OpenTransactionsOnly = 1)
-		BEGIN
+		BEGIN 
 		 ;WITH CTEData AS(
 			SELECT ct.CustomerId,
 			       CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
@@ -63,9 +64,9 @@ BEGIN
 				INNER JOIN [dbo].[SalesOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
 				INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 				INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-			WHERE sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND
+			WHERE sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling, 0) = 0 AND
 				 CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
-				AND sobi.BillToSiteId = @SiteId  AND ISNULL(sobi.IsProforma,0) = 0 AND le.LegalEntityId = @LegalEntityId
+				AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
 			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
 			
 			UNION ALL
@@ -172,14 +173,14 @@ BEGIN
 					   MAX(SO.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0
+							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference',
 						    0 AS CM
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 				   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0
+				   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId AND ISNULL(sobi.IsBilling, 0) = 0
 				   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
 				   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
 				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
@@ -267,7 +268,7 @@ BEGIN
 
          END
 		 ELSE
-		 BEGIN
+		 BEGIN 
 			;WITH CTEData AS(
 				SELECT ct.CustomerId,
 						CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
@@ -286,7 +287,7 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = so.SalesOrderId AND soms.ModuleID = @SOMSModuleID
 					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0
+				WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling, 0) = 0
 					AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
 				GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
 			
@@ -387,14 +388,14 @@ BEGIN
 					   MAX(SO.ManagementStructureId) AS ManagementStructureId,
 					   STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId
-							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0
+							WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							FOR XML PATH('')), 1, 1, '')
 							AS 'Reference',
 						0 AS CM
 			   FROM [dbo].[Customer] C WITH (NOLOCK) 
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 			   INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 0
+			   INNER JOIN [dbo].[SalesOrderBillingInvoicing] sobi WITH (NOLOCK) on sobi.SalesOrderId = so.SalesOrderId AND ISNULL(sobi.IsBilling, 0) = 0
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ReferenceID = so.SalesOrderId AND MSD.ModuleID = @SOMSModuleID
 			   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id

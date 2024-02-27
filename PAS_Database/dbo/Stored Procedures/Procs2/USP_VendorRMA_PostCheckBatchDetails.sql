@@ -20,8 +20,8 @@
 	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
 	5    22/08/2023   Amit Ghediya  Added StockLineId in VendorRMAPaymentBatchDetails table.
     6    27/11/2023   Moin Bloch    Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
-	7    02/20/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
-	8    02/26/2024   Bhargav Saliya Resoved Shipping Issue
+	7    02/26/2024   Bhargav Saliya Resoved Shipping Issue
+	8    02/27/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -133,11 +133,12 @@ BEGIN
 			 FROM [DBO].[VendorCreditMemoDetail] WITH(NOLOCK) WHERE VendorCreditMemoId = @tmpVendorRMADetailId;
 		END
 
-		DECLARE @IsRestrict INT;
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
 
-		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF(ISNULL(@ExtAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
+		IF(ISNULL(@ExtAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN 
 			IF(@Module = 'VRMA-CS')  -- RMA Shipping
 			BEGIN

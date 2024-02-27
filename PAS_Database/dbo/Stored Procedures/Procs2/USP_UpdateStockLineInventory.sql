@@ -179,11 +179,12 @@ BEGIN
 				SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StockLineId
 				SET @Amount = ISNULL(@QtyAvl,0) * ISNULL(@UnitPrice,0)
 
-				DECLARE @IsRestrict INT;
+				DECLARE @IsRestrict BIT;
+				DECLARE @IsAccountByPass BIT;
 
-				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-				IF((@JournalTypeCode ='ADJ') AND ISNULL(@IsRestrict, 0) = 0 AND @Amount > 0)
+				IF((@JournalTypeCode ='ADJ') AND ISNULL(@IsAccountByPass, 0) = 0 AND @Amount > 0)
 				BEGIN
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				    BEGIN 

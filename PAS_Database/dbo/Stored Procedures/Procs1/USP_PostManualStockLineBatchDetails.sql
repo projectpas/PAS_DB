@@ -118,11 +118,12 @@ BEGIN
 		SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId
 		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')	
 
-		DECLARE @IsRestrict INT;
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
 
-		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN		
 			
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
@@ -151,7 +152,7 @@ BEGIN
 				INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 				INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  
-				and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+				AND CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -166,8 +167,6 @@ BEGIN
 			BEGIN
 				ROLLBACK TRAN;
 			END
-
-			
 			
 			IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 			BEGIN

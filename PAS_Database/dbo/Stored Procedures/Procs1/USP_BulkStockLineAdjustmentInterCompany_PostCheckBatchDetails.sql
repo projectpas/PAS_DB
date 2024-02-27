@@ -18,7 +18,7 @@
 	2    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	  Modified Added [ReferenceId]
 	4	 16/02/2024   Ekta Chandegra  Pass @newQty instead of @remainingQty in [DBO].[USP_AddUpdateStocklineHistory] call
-
+	5	 26/02/2024   Bhargav Saliya  Resolved management structure Entry Issue
 	EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
 **************************************************************/
@@ -415,7 +415,7 @@ BEGIN
 						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ToManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 						INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
-						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ToManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,0,@EmployeeId)
+						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ToManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@Stockline,@EmployeeId)
 					
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;
@@ -453,7 +453,7 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@FromManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@FromManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,0,@EmployeeId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@FromManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
 					
 					SET @CrDrType =0;
 					SET @DistributionSetupId = 0;

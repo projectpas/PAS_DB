@@ -21,6 +21,7 @@
 	5    22/08/2023   Amit Ghediya  Added StockLineId in VendorRMAPaymentBatchDetails table.
     6    27/11/2023   Moin Bloch    Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
 	7    02/20/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
+	8    02/26/2024   Bhargav Saliya Resoved Shipping Issue
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -80,7 +81,7 @@ BEGIN
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @tmpVendorRMADetailId BIGINT;
-		DECLARE @VendorCreditMemoId BIGINT;
+		DECLARE @VendorCreditMemoId BIGINT = 0;
 
 		SET @DistributionCodeName = 'VendorRMA';
 

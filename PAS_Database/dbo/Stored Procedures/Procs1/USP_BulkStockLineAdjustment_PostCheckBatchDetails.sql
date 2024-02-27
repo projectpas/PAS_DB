@@ -17,7 +17,7 @@
     1    11/10/2023   Amit Ghediya	Created	
 	2    22/11/2023   Moin Bloch	Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
-     
+    4    26/02/2024   Bhargav Saliya  Get the  @StockModule as 'ModuleId' For StockLine History
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -134,6 +134,7 @@ BEGIN
 			
 			SELECT TOP 1 @ManagementStructureId = ManagementStructureId, @stklineId = StockLineId, @qtyAdjustment = QtyAdjustment FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
+			SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'SL';
 
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 

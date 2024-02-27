@@ -16,10 +16,11 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05/25/2021   Hemant Saliya Created
+    1    05/25/2021   Hemant Saliya  Created
 	2	 06/28/2021	  Hemant Saliya  Added Transation & Content Managment
+	3	 02/23/2024	  Moin Bloch     Added WorkOrderId,CustomerId Fields For Tax Info
      
--- EXEC [GetWorkOrderQuoteDetailsForInvioce] 81, 83
+-- EXEC [GetWorkOrderQuoteDetailsForInvioce] 3566, 3596
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
@@ -34,41 +35,46 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN
 				SELECT 
-					 WorkOrderQuoteDetailsId,
-					 WorkOrderQuoteId,
+					 WQD.WorkOrderQuoteDetailsId,
+					 WQD.WorkOrderQuoteId,
 					 WQD.ItemMasterId,
-					 WorkFlowWorkOrderId,
-					 WOPartNoId,
+					 WQD.WorkFlowWorkOrderId,
+					 WQD.WOPartNoId,
 					 IM.PartNumber,
 					 IM.PartDescription,
-					 CASE WHEN BuildMethodId = 1 THEN 'WF' WHEN BuildMethodId = 2 THEN 'WO' WHEN BuildMethodId = 3 THEN 'WF' ELSE 'Third Party' END AS BuildMethod,
-					 BuildMethodId,
-                     MaterialCost,
-					 MaterialBilling,
-					 LaborCost,
-					 LaborBilling,
-					 ChargesCost,
-					 ChargesBilling,
-					 FreightCost,
-					 FreightBilling,
-                     LaborFlatBillingAmount,
-                     MaterialFlatBillingAmount,
-                     ChargesFlatBillingAmount,
-                     FreightFlatBillingAmount,
-                     MaterialBuildMethod,
-                     LaborBuildMethod,
-                     ChargesBuildMethod,
-                     FreightBuildMethod,
-                     MaterialMarkupId,
-                     LaborMarkupId,
-                     ChargesMarkupId,
-                     FreightMarkupId,
-                     ExclusionsMarkupId,
-					 QuoteMethod,
-					 CommonFlatRate
-				FROM DBO.WorkOrderQuoteDetails WQD  WITH(NOLOCK) 
+					 CASE WHEN WQD.BuildMethodId = 1 THEN 'WF' WHEN WQD.BuildMethodId = 2 THEN 'WO' WHEN WQD.BuildMethodId = 3 THEN 'WF' ELSE 'Third Party' END AS BuildMethod,
+					 WQD.BuildMethodId,
+                     WQD.MaterialCost,
+					 WQD.MaterialBilling,
+					 WQD.LaborCost,
+					 WQD.LaborBilling,
+					 WQD.ChargesCost,
+					 WQD.ChargesBilling,
+					 WQD.FreightCost,
+					 WQD.FreightBilling,
+                     WQD.LaborFlatBillingAmount,
+                     WQD.MaterialFlatBillingAmount,
+                     WQD.ChargesFlatBillingAmount,
+                     WQD.FreightFlatBillingAmount,
+                     WQD.MaterialBuildMethod,
+                     WQD.LaborBuildMethod,
+                     WQD.ChargesBuildMethod,
+                     WQD.FreightBuildMethod,
+                     WQD.MaterialMarkupId,
+                     WQD.LaborMarkupId,
+                     WQD.ChargesMarkupId,
+                     WQD.FreightMarkupId,
+                     WQD.ExclusionsMarkupId,
+					 WQD.QuoteMethod,
+					 WQD.CommonFlatRate,
+					 WOQ.MasterCompanyId,
+					 WOQ.WorkOrderId,
+					 WO.CustomerId
+				FROM dbo.WorkOrderQuoteDetails WQD  WITH(NOLOCK) 				
+				LEFT JOIN dbo.WorkOrderQuote WOQ WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId
+				LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId
-				WHERE WorkflowWorkOrderId = @workflowWorkorderId AND WOPartNoId = @WorkOrderPartNoId AND IsVersionIncrease = 0
+				WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND WQD.WOPartNoId = @WorkOrderPartNoId AND WQD.IsVersionIncrease = 0
 			END
 		COMMIT  TRANSACTION
 

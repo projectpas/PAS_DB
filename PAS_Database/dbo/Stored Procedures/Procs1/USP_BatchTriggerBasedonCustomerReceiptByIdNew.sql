@@ -18,6 +18,7 @@
 	4    21/08/2023  Moin Bloch     Modify (Added Accounting MS Entry)
 	5    11/09/2023  Moin Bloch     Modify (Customer Wise Entry Will Store)
 	6    19/09/2023  Hemnat Saliya  Modify (CR/DR Type)
+	7    11/26/2023	 HEMANT SALIYA  Updated Journal Type Id and Name in Batch Details
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew]
@@ -120,7 +121,11 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		IF((@JournalTypeCode ='CRS') AND @IsAccountByPass=0)
+		DECLARE @IsRestrict INT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdatedBy, @IsRestrict OUTPUT;
+
+		IF((@JournalTypeCode ='CRS') AND ISNULL(@IsRestrict, 0) = 0)
 		BEGIN
 			SELECT @ReceiptNo = [ReceiptNo], 
 			       @CurrentManagementStructureId = [ManagementStructureId] 
@@ -712,9 +717,6 @@ BEGIN
 								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,
 								GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 								1, @OtherAdjustmentAmount, 0,
-								--CASE WHEN @CrDrType = 2 THEN 1 ELSE 0 END,
-								--CASE WHEN @CrDrType = 2 THEN @OtherAdjustmentAmount ELSE 0 END,
-								--CASE WHEN @CrDrType = 2 THEN 0 ELSE @OtherAdjustmentAmount END
 								@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 							SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -741,9 +743,6 @@ BEGIN
 								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,
 								GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 								0,0,@OtherAdjustmentAmount,
-								--CASE WHEN @CrDrType = 0 THEN 1 ELSE 0 END,
-								--CASE WHEN @CrDrType = 0 THEN @OtherAdjustmentAmount ELSE 0 END,
-								--CASE WHEN @CrDrType = 0 THEN 0 ELSE @OtherAdjustmentAmount END
 								@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 							SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()

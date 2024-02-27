@@ -25,7 +25,7 @@
 	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
 	9    22/02/2024   AMIT GHEDIYA	Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
      
- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1040, 20751, 1  
+ EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 632, 121, 7  
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
@@ -79,6 +79,8 @@ BEGIN
 			DepositAmount [DECIMAL](18,2) NULL,
 			IsAllowIncreaseVersionForBillItem [BIT] NULL,
 		);
+
+		--SELECT @AllowBillingBeforeShipping
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 		BEGIN 
@@ -181,18 +183,23 @@ BEGIN
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
 				else (SELECT TOP 1 SOS.SalesOrderShippingId FROM DBO.SalesOrderShipping SOS 
 				WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
-				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId) end) AS SalesOrderShippingId,   
+				INNER JOIN DBO.SalesOrderPart SOPA WITH (NOLOCK) on SOPA.SalesOrderId = SOS.SalesOrderId AND SOPA.SalesOrderPartId = SOSI.SalesOrderPartId
+				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPA.ItemMasterId = @SalesOrderPartId AND SOPA.ConditionId = @ConditionId) end) AS SalesOrderShippingId,   
 				sobi.SOBillingInvoicingId,
 				sobi.InvoiceDate,
 				sobi.InvoiceNo AS InvoiceNo,
 				(CASE WHEN sobii.IsVersionIncrease = 1 then (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) WHERE SOS.SalesOrderShippingId = sobii.SalesOrderShippingId) else (SELECT TOP 1 SOS.SOShippingNum FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
-				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId) end) AS SOShippingNum, 
-				(SELECT (CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE (SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
-				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
-				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId) end)				
-				FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK) WHERE SORR.SalesOrderPartId = sop.SalesOrderPartId) as QtyToBill,   
+				INNER JOIN DBO.SalesOrderPart SOPB WITH (NOLOCK) on SOPB.SalesOrderId = SOS.SalesOrderId AND SOPB.SalesOrderPartId = SOSI.SalesOrderPartId
+				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPB.ItemMasterId = @SalesOrderPartId AND SOPB.ConditionId = @ConditionId) end) AS SOShippingNum, 
+				
+				--(SELECT (
+				CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE (SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+				INNER JOIN DBO.SalesOrderPart SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
+				WHERE SOS.SalesOrderId = @SalesOrderId AND SOPI.ItemMasterId = @SalesOrderPartId AND SOPI.ConditionId = @ConditionId AND SOPI.SalesOrderPartId = sop.SalesOrderPartId) end  as QtyToBill, 				
+				
+				--)FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK) WHERE SORR.SalesOrderPartId = sop.SalesOrderPartId ) as QtyToBill, 
+				
+
 				so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 				sl.SerialNumber, cr.[Name] as CustomerName,   
 				sop.StockLineId,  

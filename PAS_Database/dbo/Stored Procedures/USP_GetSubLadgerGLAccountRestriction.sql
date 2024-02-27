@@ -73,8 +73,6 @@ BEGIN
 
 				SELECT @IsAccountByPass = ISNULL(IsAccountByPass, 0) FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 
-				PRINT @IsAccountByPass
-
 				IF(@IsAccountByPass = 0)
 				BEGIN
 				
@@ -119,10 +117,10 @@ BEGIN
 						SET @COUNT = @COUNT - 1
 					END
 				END
-				ELSE
-				BEGIN
-					SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
-				END
+				--ELSE
+				--BEGIN
+				--	SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
+				--END
 
 				SkipProcessing: 
 

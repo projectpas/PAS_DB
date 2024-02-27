@@ -17,6 +17,7 @@
 	12   12/02/2024   Devendra Shekh		duplicate data for proforma Issue resolved
 	13   14/02/2024   Devendra Shekh	    added depositamt field for select
 	14   20/02/2024   Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
+	14   26/02/2024   Devendra Shekh	    added default invoice name for STANDARD
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -119,7 +120,7 @@ BEGIN
 						,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
 						,ISNULL(wop.IsFinishGood,0)IsFinishGood
 						,wobi.Notes
-						,INV.[Description] AS [InvoiceTypeName]
+						,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 						,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 						,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 						,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
@@ -222,7 +223,7 @@ BEGIN
 								,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
 								,ISNULL(wop.IsFinishGood,0)IsFinishGood
 								,wobi.Notes
-								,INV.[Description] AS [InvoiceTypeName]
+								,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 								,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 								,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 								,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]
@@ -323,7 +324,7 @@ BEGIN
 							,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
 							,ISNULL(wop.IsFinishGood,0)IsFinishGood
 							,wobi.Notes
-							,INV.[Description] AS [InvoiceTypeName]
+							,ISNULL(INV.[Description],'STANDARD') AS [InvoiceTypeName]
 							,ISNULL(wobi.[IsInvoicePosted], 0) AS [IsInvoicePosted]
 							,ISNULL(wobi.[DepositAmount], 0) AS [DepositAmount]
 							,ISNULL(wobi.[UsedDeposit], 0) AS [UsedDeposit]

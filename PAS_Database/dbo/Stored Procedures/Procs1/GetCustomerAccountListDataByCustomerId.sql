@@ -21,6 +21,7 @@
 	8	 19/02/2024		   Devendra Shekh  removed isperforma Flage and added isinvoiceposted for WO
 	9	 27/02/2024		   AMIT GHEDIYA    removed isperforma Flage and added IsBilling for SO
 	10	 27/02/2024		   Devendra Shekh  changes for proforma invoice calculation
+	11	 28/02/2024	       Devendra Shekh  changes for amount calculation based on isproforma for wo and so
 
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
@@ -49,15 +50,16 @@ BEGIN
 		 ;WITH CTEData AS(
 			SELECT ct.CustomerId,
 			       CAST(sobi.InvoiceDate AS DATE) AS InvoiceDate,
-				   sobi.GrandTotal,
-				   sobi.RemainingAmount AS RemainingAmount,
+				   CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN sobi.GrandTotal ELSE 0 END AS GrandTotal,  
+				   CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN sobi.RemainingAmount ELSE (0 - (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) END AS RemainingAmount,
 				   DATEDIFF(DAY, CAST(sobi.InvoiceDate AS DATE), GETUTCDATE()) AS dayDiff,
 				   ctm.NetDays,
 				   DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
-				   CAST(sobi.PostedDate AS DATE) AS PostedDate
+				   CAST(sobi.PostedDate AS DATE) AS PostedDate,
+				   ISNULL(sobi.IsProforma, 0) as IsProformaInvoice
 			FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 				INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
 				INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
@@ -68,7 +70,7 @@ BEGIN
 			WHERE sobi.RemainingAmount > 0 AND sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling, 0) = 0 AND
 				 CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) 
 				AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
-			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
+			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code,sobi.IsProforma
 			
 			UNION ALL
 			
@@ -82,7 +84,8 @@ BEGIN
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
-				CAST(wobi.PostedDate AS DATE) AS PostedDate
+				CAST(wobi.PostedDate AS DATE) AS PostedDate,
+				ISNULL(wobi.IsPerformaInvoice, 0) AS IsProformaInvoice
 			FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
@@ -102,12 +105,18 @@ BEGIN
 			), CTECalculation AS(
 			SELECT
 				CustomerId,
-					SUM (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) AS paidbylessthen0days,
-					SUM (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) AS paidby30days,
-					SUM (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) AS paidby60days,
-					SUM (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) AS paidby90days,
-					SUM (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) AS paidby120days,
-					SUM (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) AS paidbymorethan120days
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN RemainingAmount
+								ELSE (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) END)AS paidbylessthen0days,
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
+							ELSE (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) END) AS paidby30days,
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
+							ELSE (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) END) AS paidby60days,
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
+							ELSE (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) END) AS paidby90days,
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
+							ELSE (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) END) AS paidby120days,
+					SUM (CASE WHEN IsProformaInvoice = 1 THEN 0 
+							ELSE (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) END) AS paidbymorethan120days
 			    FROM CTEData c GROUP BY CustomerId
 			),CTE AS(
 					SELECT DISTINCT C.CustomerId,
@@ -117,7 +126,7 @@ BEGIN
 					   MAX(CR.Code) AS  'currencyCode',
 					   SUM(wobi.GrandTotal) AS 'BalanceAmount',
 					   SUM(wobi.GrandTotal - wobi.RemainingAmount) AS 'CurrentlAmount',             
-					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN SUM(wobi.RemainingAmount) ELSE (0 - (SUM(wobi.GrandTotal - wobi.RemainingAmount))) END AS 'PaymentAmount',
+					   SUM(CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - ((wobi.GrandTotal - wobi.RemainingAmount))) END) AS 'PaymentAmount',
 					   SUM(0) AS 'Amountpaidbylessthen0days',      
                        SUM(0) AS 'Amountpaidby30days',      
                        SUM(0) AS 'Amountpaidby60days',
@@ -161,7 +170,8 @@ BEGIN
 					   MAX(CR.Code) AS  'currencyCode',
 					   SUM(sobi.GrandTotal) AS 'BalanceAmount',
 					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',   
-					   SUM(sobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - ((sobi.GrandTotal - sobi.RemainingAmount))) END) AS 'PaymentAmount',
+					   --SUM(sobi.RemainingAmount) AS 'PaymentAmount',
 					   SUM(0) AS 'Amountpaidbylessthen0days',      
                        SUM(0) AS 'Amountpaidby30days',      
                        SUM(0) AS 'Amountpaidby60days',
@@ -282,7 +292,8 @@ BEGIN
 						DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																			WHEN ctm.Code='CIA' THEN -1
 																			WHEN ctm.Code='CreditCard' THEN -1
-																			WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays
+																			WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) AS CreditRemainingDays,
+						 ISNULL(sobi.IsProforma, 0) AS IsProformaInvoice
 				FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 					INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
 					INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = so.CustomerId
@@ -292,7 +303,7 @@ BEGIN
 					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 				WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling, 0) = 0
 					AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)AND sobi.BillToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId
-				GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code
+				GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,sobi.PostedDate,ctm.Code,sobi.IsProforma
 			
 			UNION ALL
 			
@@ -305,7 +316,8 @@ BEGIN
 					DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
-																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
+					ISNULL(wobi.IsPerformaInvoice, 0) AS IsProformaInvoice
 				FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
@@ -321,12 +333,18 @@ BEGIN
 				GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,wobi.PostedDate,ctm.Code,wobi.IsPerformaInvoice
 			
 			), CTECalculation AS(
-			SELECT CustomerId, SUM (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) AS paidbylessthen0days,
-							   SUM (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) AS paidby30days,
-							   SUM (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) AS paidby60days,
-							   SUM (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) AS paidby90days,
-			                   SUM (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) AS paidby120days,
-							   SUM (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) AS paidbymorethan120days
+			SELECT CustomerId, SUM (CASE WHEN IsProformaInvoice = 1 THEN RemainingAmount
+											ELSE (CASE WHEN CreditRemainingDays < 0 THEN RemainingAmount ELSE 0 END) END) AS paidbylessthen0days,
+							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
+											ELSE (CASE WHEN CreditRemainingDays > 0 AND CreditRemainingDays <= 30 THEN RemainingAmount ELSE 0 END) END) AS paidby30days,
+							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
+											ELSE (CASE WHEN CreditRemainingDays > 30 AND CreditRemainingDays <= 60 THEN RemainingAmount ELSE 0 END) END) AS paidby60days,
+							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
+											ELSE (CASE WHEN CreditRemainingDays > 60 AND CreditRemainingDays <= 90 THEN RemainingAmount ELSE 0 END) END) AS paidby90days,
+			                   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
+											ELSE (CASE WHEN CreditRemainingDays > 90 AND CreditRemainingDays <= 120 THEN RemainingAmount ELSE 0 END) END) AS paidby120days,
+							   SUM (CASE WHEN IsProformaInvoice = 1 THEN 0
+											ELSE (CASE WHEN CreditRemainingDays > 120 THEN RemainingAmount ELSE 0 END) END) AS paidbymorethan120days
 			FROM CTEData c GROUP BY CustomerId
 			),CTE AS(
 				SELECT DISTINCT C.CustomerId,
@@ -377,8 +395,8 @@ BEGIN
                        MAX(CT.CustomerTypeName) 'CustomertType' ,
 					   MAX(CR.Code) AS  'currencyCode',
 					   SUM(sobi.GrandTotal) AS 'BalanceAmount',
-					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',   
-					   SUM(sobi.RemainingAmount) AS 'PaymentAmount',
+					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',  
+					   CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN SUM(sobi.RemainingAmount) ELSE (0 - (SUM(sobi.GrandTotal - sobi.RemainingAmount))) END AS 'PaymentAmount',
 					   SUM(0) AS 'Amountpaidbylessthen0days',      
                        SUM(0) AS 'Amountpaidby30days',      
                        SUM(0) AS 'Amountpaidby60days',
@@ -407,7 +425,7 @@ BEGIN
 			   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
 			  WHERE sobi.InvoiceStatus='Invoiced' AND c.CustomerId=@CustomerId AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
 			  AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)	
-			  GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId),
+			  GROUP BY C.CustomerId,SO.CustomerReference,sobi.SOBillingInvoicingId,sobi.IsProforma),
 
 			 
 			Creditmemo AS(

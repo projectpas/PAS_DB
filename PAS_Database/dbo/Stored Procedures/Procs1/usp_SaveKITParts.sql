@@ -15,18 +15,38 @@
  ** --   --------     -------		--------------------------------          
      
 	 2   05-Sep-2023  Bhargav Saliya  Convert Date In UTC
+	 3   28-02-2024   Shrey Chandegara  Update Procedure for HIstory.
      
 -- EXEC RPT_PrintPurchaseOrderDataById 629
 ************************/
-Create    PROCEDURE [dbo].[usp_SaveKITParts]  
+CREATE      PROCEDURE [dbo].[usp_SaveKITParts]  
 @tbl_KITPartType KITPartType READONLY  
 AS  
 BEGIN  
  SET NOCOUNT ON;  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
-  --BEGIN TRY  
+  BEGIN TRY  
   BEGIN TRANSACTION  
-  BEGIN  
+  DECLARE @TotalRecord BIGINT;
+  DECLARE @StartCount BIGINT = 1;
+  DECLARE @OldCost [decimal](18, 2) ;
+  DECLARE @OldConditionId [bigint] ;
+  DECLARE @OldCondition [varchar](100) ;
+  DECLARE @OldQty [int] ;
+  DECLARE @IsEditable [bit]=0 ;
+  DECLARE @NewGeneratedId [bigint];
+  DECLARE @IsNewPartAdd [bit] = 0;
+  DECLARE @MasterCompanyId [int] ;
+  DECLARE @KitItemMasterMappingId [bigint] ;
+  DECLARE @UpdatedBy [varchar](256) ;
+  DECLARE @UpdatedDate [datetime2](7);
+  DECLARE @PartNumber [varchar](100) ;
+  DECLARE @NewCost [decimal](18, 2) ;
+  DECLARE @NewConditionId [bigint] ;
+  DECLARE @NewCondition [varchar](100) ;
+  DECLARE @NewQty [int] ;
+  DECLARE @TempRecId BIGINT = 0;
+  DECLARE @ModuleId BIGINT;
    IF OBJECT_ID(N'tempdb..#KITPartType') IS NOT NULL  
    BEGIN  
     DROP TABLE #KITPartType   
@@ -56,85 +76,250 @@ BEGIN
     [PartDescription] [varchar](MAX) NULL,  
     [Manufacturer] [varchar](100) NULL,  
     [Condition] [varchar](100) NULL,  
-    [UOM] [varchar](100) NULL  
+    [UOM] [varchar](100) NULL,
+	[IsEditable] [bit] NULL,
+	[IsNewItem] [bit] NULL
    )  
       
    INSERT INTO #KITPartType   
    ([KitItemMasterMappingId],[KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],  
    [Qty],[UnitCost],[ExtendedCost],[StocklineUnitCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],  
-   [PartNumber],[PartDescription],[Manufacturer],[Condition],[UOM])  
+   [PartNumber],[PartDescription],[Manufacturer],[Condition],[UOM],[IsEditable],[IsNewItem])  
    SELECT [KitItemMasterMappingId],[KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],  
    [Qty],[UnitCost],ISNULL([UnitCost],0) * ISNULL([Qty],0),[StocklineUnitCost],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],  
-   [PartNumber],[PartDescription],[Manufacturer],[Condition],[UOM]  
+   [PartNumber],[PartDescription],[Manufacturer],[Condition],[UOM],[IsEditable],[IsNewItem]  
    FROM @tbl_KITPartType  
+
+   SET @TotalRecord = (SELECT COUNT(ID) FROM #KITPartType)	
+   print @TotalRecord;
+   WHILE(@TotalRecord >= @StartCount)
+   BEGIN
   
-   INSERT INTO [dbo].[KitItemMasterMapping]  
-      ([KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
-      [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])  
-      SELECT [KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
-      [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]  
-      FROM #KITPartType tmp  
-      WHERE tmp.KitItemMasterMappingId = 0  
-     
-   ---------------------------------Update Kit Item Master Mapping---------------------  
-   UPDATE [dbo].[KitItemMasterMapping]  
-   SET [ItemMasterId] = t.[ItemMasterId]  
-    ,[ManufacturerId] = t.[ManufacturerId]  
-    ,[ConditionId] = t.[ConditionId]  
-    ,[UOMId] = t.[UOMId]  
-    ,[Qty] = t.[Qty]  
-    ,[UnitCost] = t.[UnitCost]  
-    ,[StocklineUnitCost] = t.[StocklineUnitCost]  
-    ,[PartNumber] = t.[PartNumber]  
-    ,[PartDescription] = t.[PartDescription]  
-    ,[Manufacturer] = t.[Manufacturer]  
-    ,[Condition] = t.[Condition]  
-    ,[UOM] = t.[UOM]  
-    ,[MasterCompanyId] = t.MasterCompanyId      
-    ,[UpdatedBy] = t.UpdatedBy       
-    ,[UpdatedDate] = GETUTCDATE()  
-    ,[IsActive] = t.IsActive  
-    ,[IsDeleted] = t.IsDeleted  
-    FROM #KITPartType t  
-    INNER JOIN dbo.KitItemMasterMapping kim WITH (NOLOCK) on kim.KitItemMasterMappingId = t.KitItemMasterMappingId  
-    WHERE t.KitItemMasterMappingId > 0;  
+		print @StartCount;
+		   INSERT INTO [dbo].[KitItemMasterMapping]  
+			  ([KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
+			  [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])  
+			  SELECT [KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
+			  [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]  
+			  FROM #KITPartType tmp  
+			  WHERE tmp.KitItemMasterMappingId =  0 AND tmp.ID = @StartCount AND tmp.IsNewItem = 1;
+
+			SELECT @TempRecId = KitItemMasterMappingId FROM #KITPartType WHERE ID = @StartCount;
+			print @TempRecId;
+			IF(ISNULL(@TempRecId , 0) > 0)
+			BEGIN
+				
+				SELECT @OldCost = O.UnitCost,@OldConditionId = O.ConditionId,@OldCondition  = O.Condition,@OldQty = O.Qty FROM [DBO].[KitItemMasterMapping] O WITH(NOLOCK) WHERE O.KitItemMasterMappingId = @TempRecId;
+
+			END
+			SELECT * FROM #KITPartType WHERE ID = @StartCount;
+
+		   ---------------------------------Update Kit Item Master Mapping---------------------
+		   --SELECT @OldConditionId = O.ConditionId FROM KitItemMasterMapping O WITH (NOLOCK) WHERE O.KitItemMasterMappingId = #KITPartType.KitItemMasterMappingId
+		   
+
+		   UPDATE [dbo].[KitItemMasterMapping]  
+		   SET [ItemMasterId] = t.[ItemMasterId]  
+			,[ManufacturerId] = t.[ManufacturerId]  
+			,[ConditionId] = t.[ConditionId]  
+			,[UOMId] = t.[UOMId]  
+			,[Qty] = t.[Qty]  
+			,[UnitCost] = t.[UnitCost]  
+			,[StocklineUnitCost] = t.[StocklineUnitCost]  
+			,[PartNumber] = t.[PartNumber]  
+			,[PartDescription] = t.[PartDescription]  
+			,[Manufacturer] = t.[Manufacturer]  
+			,[Condition] = t.[Condition]  
+			,[UOM] = t.[UOM]  
+			,[MasterCompanyId] = t.MasterCompanyId      
+			,[UpdatedBy] = t.UpdatedBy       
+			,[UpdatedDate] = GETUTCDATE()  
+			,[IsActive] = t.IsActive  
+			,[IsDeleted] = t.IsDeleted  
+			FROM #KITPartType t  
+			INNER JOIN dbo.KitItemMasterMapping kim WITH (NOLOCK) on kim.KitItemMasterMappingId = t.KitItemMasterMappingId  
+			WHERE t.KitItemMasterMappingId > 0 AND t.IsEditable = 1 AND t.ID = @StartCount;  
+
+			IF(ISNULL(@TempRecId , 0) > 0)
+			BEGIN
+				
+				SELECT @NewCost = N.UnitCost,@NewConditionId = N.ConditionId,@NewCondition  = N.Condition,@NewQty = N.Qty,@UpdatedBy = N.UpdatedBy,@UpdatedDate  = N.UpdatedDate,@MasterCompanyId = N.MasterCompanyId,@KitItemMasterMappingId = N.KitItemMasterMappingId,@PartNumber = N.PartNumber FROM [DBO].[KitItemMasterMapping] N WITH(NOLOCK) WHERE N.KitItemMasterMappingId = @TempRecId-- AND N.IsEditable = 1;
+
+			END
+
+			-- *START*  UPDATE DBO.KitMaster---
   
-   UPDATE KitMaster  
-   SET [UpdatedBy] = t.UpdatedBy       
-      ,[UpdatedDate] = GETUTCDATE()      
-   FROM #KITPartType t  
-   INNER JOIN dbo.KitMaster kim WITH (NOLOCK) on kim.[KitId] = t.[KitId]  
-   WHERE t.KitItemMasterMappingId > 0;  
+		   UPDATE KitMaster  
+		   SET [UpdatedBy] = t.UpdatedBy       
+			  ,[UpdatedDate] = GETUTCDATE()      
+		   FROM #KITPartType t  
+		   INNER JOIN dbo.KitMaster kim WITH (NOLOCK) on kim.[KitId] = t.[KitId]  
+		   WHERE t.KitItemMasterMappingId > 0;  
   
-   DECLARE @KITID BIGINT = 0;  
-   SET @KITID = (SELECT TOP (1) [KitId] FROM #KITPartType);  
+		   DECLARE @KITID BIGINT = 0;  
+		   SET @KITID = (SELECT TOP (1) [KitId] FROM #KITPartType);  
        
-   IF(@KITID > 0)  
-   BEGIN  
-    UPDATE KM SET KM.[KitCost] = (SELECT ISNULL(SUM(ISNULL(KP.[ExtendedCost],0)),0) FROM #KITPartType KP   
-    WHERE [KitId] = @KITID) FROM [dbo].[KitMaster] AS KM WITH (NOLOCK) WHERE [KitId] = @KITID;  
-   END  
-      
-   END  
+		   IF(@KITID > 0)  
+		   BEGIN  
+			UPDATE KM SET KM.[KitCost] = (SELECT ISNULL(SUM(ISNULL(KP.[ExtendedCost],0)),0) FROM #KITPartType KP   
+			WHERE [KitId] = @KITID) FROM [dbo].[KitMaster] AS KM WITH (NOLOCK) WHERE [KitId] = @KITID;  
+		   END
+
+		   -- *END*  UPDATE DBO.KitMaster---
+
+		   -- *START*  ADD History for KitPart IN DBO.History---
+
+		   SET @ModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'KitMaster');
+		   IF @OldConditionId <> @NewConditionId --AND @IsEditable = 1
+		   BEGIN
+		 
+				DECLARE @ReplaceContent NVARCHAR(MAX);
+
+				SET @ReplaceContent = '##Part## Part has been updated with condition: ##Condition##';
+
+				SET @ReplaceContent = REPLACE(@ReplaceContent, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
+
+				SET @ReplaceContent = REPLACE(@ReplaceContent, '##Condition##', CONVERT(NVARCHAR(MAX),@NewCondition));
+				INSERT INTO History ([ModuleId]
+           ,[RefferenceId]
+           ,[OldValue]
+           ,[NewValue]
+           ,[HistoryText]
+           ,[FieldsName]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[SubModuleId]
+           ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCondition, @NewCondition,@ReplaceContent ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+
+		   END
+
+		   IF @OldQty <> @NewQty --AND @IsEditable = 1
+		   BEGIN
+		    
+				DECLARE @ReplaceContentForQty NVARCHAR(MAX);
+
+				SET @ReplaceContentForQty = '##Part## Part has been updated with Qty:##Qty##';
+				SET @ReplaceContentForQty = REPLACE(@ReplaceContentForQty, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
+				
+
+				SET @ReplaceContentForQty = REPLACE(@ReplaceContentForQty, '##Qty##', CONVERT(NVARCHAR(MAX),@NewQty));
+				
+				INSERT INTO History ([ModuleId]
+           ,[RefferenceId]
+           ,[OldValue]
+           ,[NewValue]
+           ,[HistoryText]
+           ,[FieldsName]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[SubModuleId]
+           ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldQty, @NewQty,@ReplaceContentForQty ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+
+		   END
+
+		   IF @OldCost <> @NewCost --AND @IsEditable = 1
+		   BEGIN
+		     
+				DECLARE @ReplaceContentForCost NVARCHAR(MAX);
+
+				SET @ReplaceContentForCost = '##Part## Part has been updated with Cost:##Cost##';
+				SET @ReplaceContentForCost = REPLACE(@ReplaceContentForCost, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
+				
+
+				SET @ReplaceContentForCost = REPLACE(@ReplaceContentForCost, '##Cost##', CONVERT(NVARCHAR(MAX),@NewCost));
+				
+				INSERT INTO History ([ModuleId]
+           ,[RefferenceId]
+           ,[OldValue]
+           ,[NewValue]
+           ,[HistoryText]
+           ,[FieldsName]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[SubModuleId]
+           ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCost, @NewCost,@ReplaceContentForCost ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+
+		   END
+		   --KitItemMasterMapping
+		   SELECT @NewGeneratedId = MN.KitItemMasterMappingId,@IsNewPartAdd = im.IsNewItem  FROM KitItemMasterMapping MN WITH(NOLOCK) 
+		   INNER JOIN #KITPartType im WITH(NOLOCK) on im.ItemMasterId = MN.ItemMasterId AND  im.IsNewItem = 1 AND im.ID = @StartCount
+		  
+		 
+		   IF @NewGeneratedId <> 0 AND @NewGeneratedId > 0 AND @IsNewPartAdd = 1
+		   BEGIN
+		     
+				  DECLARE @ReplaceContentForADD NVARCHAR(MAX);
+				  DECLARE @AddCost [decimal](18, 2) ;
+				  DECLARE @AddCondition [varchar](100) ;
+				  DECLARE @AddQty [int] ;
+				  DECLARE @AddPartNumber [varchar](100) ;
+				  DECLARE @AddUpdatedBy [varchar](256) ;
+				  DECLARE @AddUpdatedDate [datetime2](7);
+				  DECLARE @AddMasterCompanyId [int];
+				  DECLARE @AddKitItemMasterMappingId [bigint]
+				  SELECT @AddCost = Ad.UnitCost,@AddCondition = Ad.Condition,@AddQty = Ad.Qty,@AddPartNumber = Ad.PartNumber,@AddUpdatedDate = Ad.UpdatedDate,@AddUpdatedBy = Ad.UpdatedBy,@AddMasterCompanyId = Ad.MasterCompanyId,@AddKitItemMasterMappingId = Ad.KitItemMasterMappingId FROM [dbo].[KitItemMasterMapping] Ad WHERE Ad.KitItemMasterMappingId = @NewGeneratedId
+				SET @ReplaceContentForADD = '##Part## Part has been added with condition: ##Condition##, Qty:##Qty##, Cost:##Cost##';
+				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Part##', CONVERT(NVARCHAR(MAX), @AddPartNumber));
+				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Cost##', CONVERT(NVARCHAR(MAX),@AddCost));
+				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Qty##', CONVERT(NVARCHAR(MAX),@AddQty));
+				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Condition##', CONVERT(NVARCHAR(MAX),@AddCondition));
+				INSERT INTO History ([ModuleId]
+           ,[RefferenceId]
+           ,[OldValue]
+           ,[NewValue]
+           ,[HistoryText]
+           ,[FieldsName]
+           ,[MasterCompanyId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[SubModuleId]
+           ,[SubRefferenceId])
+				VALUES (@ModuleId,@AddKitItemMasterMappingId, '', '',@ReplaceContentForADD ,'No', @AddMasterCompanyId , NULL, NULL, @AddUpdatedBy, @AddUpdatedDate,NULL,NULL);
+
+		   END
+		    -- *END*  ADD History for KitPart IN DBO.History---
+		   SET @StartCount = @StartCount + 1;
+   END
    COMMIT TRANSACTION  
---  END TRY      
---  BEGIN CATCH        
---   IF @@trancount > 0  
---    PRINT 'ROLLBACK'  
---                    ROLLBACK TRAN;  
---              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
--------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
---              , @AdhocComments     VARCHAR(150)    = 'usp_SaveKITParts'   
---              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''  
---              , @ApplicationName VARCHAR(100) = 'PAS'  
--------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
---              exec spLogException   
---                       @DatabaseName           = @DatabaseName  
---                     , @AdhocComments          = @AdhocComments  
---                     , @ProcedureParameters = @ProcedureParameters  
---                     , @ApplicationName        =  @ApplicationName  
---                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;  
---              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
---              RETURN(1);  
---        END CATCH       
+  END TRY      
+  BEGIN CATCH        
+   IF @@trancount > 0  
+    PRINT 'ROLLBACK'  
+                    ROLLBACK TRAN;  
+					SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
+              , @AdhocComments     VARCHAR(150)    = 'usp_SaveKITParts'   
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''  
+              , @ApplicationName VARCHAR(100) = 'PAS'  
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
+              exec spLogException   
+                       @DatabaseName           = @DatabaseName  
+                     , @AdhocComments          = @AdhocComments  
+                     , @ProcedureParameters = @ProcedureParameters  
+                     , @ApplicationName        =  @ApplicationName  
+                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;  
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
+              RETURN(1);  
+        END CATCH       
 END

@@ -11,16 +11,18 @@
 ** --   --------     -------			--------------------------------              
  1   15/02/2024		Hemant Saliya		Created  
 
-DECLARE @IsRestrict INT 
-EXEC dbo.USP_GetSubLadgerGLAccountRestriction 'ReconciliationPO', 1, 0, 'ADMIN User', @IsRestrict OUTPUT;
-SELECT @IsRestrict
+DECLARE @IsRestrict BIT 
+DECLARE @IsAccountByPass BIT 
+EXEC dbo.USP_GetSubLadgerGLAccountRestriction 'WOMATERIALGRIDTAB', 11, 0, 'ADMIN User', @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+SELECT @IsRestrict, @IsAccountByPass
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](     
  @DistributionCode VARCHAR(100),
  @MasterCompanyId INT,
  @AccountingCalendarId BIGINT = NULL,
  @UpdateBy VARCHAR(200) = NULL,
- @IsRestrict BIT OUTPUT
+ @IsRestrict BIT OUTPUT,
+ @IsAccountByPass BIT OUTPUT
 )  
 AS    
 BEGIN  
@@ -33,7 +35,7 @@ BEGIN
 				DECLARE @SubLedgerIds VARCHAR(MAX);
 				DECLARE @AccountingCalendar VARCHAR(50);
 				DECLARE @ManagementStructureId BIGINT;
-				DECLARE @IsAccountByPass BIT;
+				--DECLARE @IsAccountByPass BIT;
 				DECLARE @IsRestrictAP BIT = 0;
 				DECLARE @IsRestrictAR BIT = 0;
 				DECLARE @IsRestrictASSET BIT = 0;
@@ -115,10 +117,10 @@ BEGIN
 						SET @COUNT = @COUNT - 1
 					END
 				END
-				ELSE
-				BEGIN
-					SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
-				END
+				--ELSE
+				--BEGIN
+				--	SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
+				--END
 
 				SkipProcessing: 
 

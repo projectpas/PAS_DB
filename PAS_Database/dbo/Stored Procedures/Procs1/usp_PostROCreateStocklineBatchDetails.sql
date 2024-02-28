@@ -107,7 +107,6 @@ BEGIN
 					  DECLARE @LastMSLevel varchar(200)
 					  DECLARE @AllMSlevels varchar(max)
 					  DECLARE @DistributionSetupId int=0
-					  DECLARE @IsAccountByPass bit=0
 					  DECLARE @DistributionCode varchar(200)
 					  DECLARE @InvoiceTotalCost decimal(18,2)=0
 					  DECLARE @MaterialCost decimal(18,2)=0
@@ -155,7 +154,7 @@ BEGIN
 					  SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
 					  WHERE UPPER(DistributionCode)= UPPER('ReceivingROStockline')
 					  
-					  SELECT @IsAccountByPass =IsAccountByPass, @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
+					  SELECT @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
 					  SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 					  SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId= @MstCompanyId
 					  SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
@@ -166,13 +165,14 @@ BEGIN
 
 					  SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-					  DECLARE @IsRestrict INT;
+					  DECLARE @IsRestrict BIT;
+					  DECLARE @IsAccountByPass BIT;
 
-					  EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT;
+					  EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 					  
-					  IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
+					  IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 					  BEGIN
-						  IF((@JournalTypeCode ='RRO') and @IsAccountByPass=0)
+						  IF(@JournalTypeCode ='RRO')
 						  BEGIN
 								  SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
 								  FROM EntityStructureSetup est WITH(NOLOCK) 

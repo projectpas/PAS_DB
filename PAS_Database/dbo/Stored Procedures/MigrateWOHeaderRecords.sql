@@ -143,6 +143,7 @@ BEGIN
 
 			DECLARE @CustomerId BIGINT;
 			DECLARE @CustomerName VARCHAR(200);
+			DECLARE @CustomerCode VARCHAR(200);
 			DECLARE @CustomerAffiliationId BIGINT = NULL;
 			DECLARE @StatusId BIGINT;
 			DECLARE @SalesPersonId BIGINT = NULL;
@@ -155,7 +156,7 @@ BEGIN
 			DECLARE @TearDownTypes VARCHAR(500) = '';
 			DECLARE @IsManualForm BIT = NULL;
 
-			SELECT @CustomerId = C.[CustomerId], @CustomerName = C.[Name], @CustomerAffiliationId = c.[CustomerAffiliationId] FROM [dbo].[Customer] C WITH(NOLOCK) WHERE UPPER(C.[CustomerCode]) IN (SELECT UPPER(CMP.[COMPANY_CODE]) FROM [Quantum_Staging].dbo.Customers CMP WHERE CMP.CustomerId = @CMP_AUTO_KEY) AND [MasterCompanyId] = @FromMasterComanyID;
+			SELECT @CustomerId = C.[CustomerId], @CustomerName = C.[Name], @CustomerCode = C.CustomerCode, @CustomerAffiliationId = c.[CustomerAffiliationId] FROM [dbo].[Customer] C WITH(NOLOCK) WHERE UPPER(C.[CustomerCode]) IN (SELECT UPPER(CMP.[COMPANY_CODE]) FROM [Quantum_Staging].dbo.Customers CMP WHERE CMP.CustomerId = @CMP_AUTO_KEY) AND [MasterCompanyId] = @FromMasterComanyID;
 			SELECT @CustomerContactId = C.[CustomerContactId] FROM [dbo].[CustomerContact] C WITH(NOLOCK) WHERE C.[CustomerId] = @CustomerId AND C.[IsDefaultContact] = 1 AND [MasterCompanyId] = @FromMasterComanyID;
 			SELECT @CreditLimit = CF.[CreditLimit], @CreditTermsId = CF.[CreditTermsId] FROM [dbo].[CustomerFinancial] CF WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [MasterCompanyId] = @FromMasterComanyID; 
 			SELECT @StatusId = WS.[Id] FROM [dbo].[WorkOrderStatus] WS WITH(NOLOCK) WHERE UPPER(WS.[Description]) = UPPER('Open');
@@ -200,19 +201,10 @@ BEGIN
 			BEGIN
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderNum] = @SI_NUMBER AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
-					INSERT INTO [dbo].[WorkOrder] ([WorkOrderNum],[IsSinglePN],[WorkOrderTypeId],[OpenDate],[CustomerId],[WorkOrderStatusId]
-						   ,[EmployeeId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId]
-						   ,[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],[CreditLimit]
-						   ,[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm])
-					 SELECT WO.WorkOrderNumber, 1, 1, CASE WHEN WO.EntryDate IS NOT NULL THEN CAST(WO.EntryDate AS datetime2) ELSE GETDATE() END, @CustomerId, @StatusId,
-							@DefaultUserId, @FromMasterComanyID, @UserName, @UserName, CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1, 0, @SalesPersonId,
-							@CsrId, NULL, '', WO.[NOTES], @CustomerContactId, @CustomerName, @CustomerType, @CreditLimit,
-							@TemrsName, @TearDownTypes, NULL, CASE WHEN WO.WarranteeFlag = 'T' THEN 1 ELSE 0 END, NULL, NULL, NULL, @CreditTermsId, @IsManualForm 
-					   FROM #TempWOHeader AS WO WHERE ID = @LoopID;
+					DECLARE @DefaultConditionId BIGINT = 0;
+					DECLARE @InsertedReceivingCustomerWorkId BIGINT = 0;
 
-					SELECT @InsertedWorkOrderId = SCOPE_IDENTITY();
-
-					EXEC [dbo].[UpdateWorkOrderColumnsWithId] @InsertedWorkOrderId;
+					SELECT @DefaultConditionId = [DefaultConditionId] FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID;
 
 					DECLARE @WOS_DESCRIPTION VARCHAR(100) = NULL;
 					DECLARE @WorkScopeId BIGINT = NULL, @WorkScopeName VARCHAR(50) = NULL;
@@ -224,8 +216,10 @@ BEGIN
 					DECLARE @STM_AUTO_KEY BIGINT = NULL, @PCC_AUTO_KEY BIGINT = NULL;
 					DECLARE @STOCK_LINE  VARCHAR(50) = '', @CTRL_ID VARCHAR(50) = '', @CTRL_NUMBER VARCHAR(50) = '';
 					DECLARE @StockLineId BIGINT = NULL;
+					DECLARE @ReceiverNumber VARCHAR(50);
 					DECLARE @ConditionCode VARCHAR(50), @ConditionId BIGINT = 0;
 					DECLARE @IsTraveler BIT;
+					DECLARE @IsSerialized BIT;
 					DECLARE @WorkOrderStageId BIGINT = NULL;
 					DECLARE @WorkOrderStatusId BIGINT = NULL;
 					DECLARE @PriorityId BIGINT = NULL;
@@ -243,9 +237,55 @@ BEGIN
 
 					SELECT @ItemMaster_Id = IM.[ItemMasterId],@OverhaulHours = IM.[OverhaulHours],@RpHours = [RpHours],
 				       @TestHours = [TestHours],@MfgHours = [MfgHours],@IsPma = [IsPma],@IsDER = [IsDER],
-					   @TurnTimeOverhaulHours = [TurnTimeOverhaulHours],@TurnTimeRepairHours = [TurnTimeRepairHours],@turnTimeBenchTest = turnTimeBenchTest
+					   @TurnTimeOverhaulHours = [TurnTimeOverhaulHours],@TurnTimeRepairHours = [TurnTimeRepairHours],@turnTimeBenchTest = turnTimeBenchTest,
+					   @IsSerialized = IM.isSerialized
 					FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc)
 					AND IM.MasterCompanyId = @FromMasterComanyID;
+
+					DECLARE @DefaultSiteId BIGINT;
+					DECLARE @ManagementStructureTypeId BIGINT = 0;
+					DECLARE @Level1 VARCHAR(100) = '';
+
+					SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('MIG') AND MasterCompanyId = @FromMasterComanyID;
+					SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
+					SELECT @ManagementStructureTypeId = MST.TypeID FROM DBO.ManagementStructureType MST WHERE MST.[Description] = 'LE' AND MST.[MasterCompanyId] = @FromMasterComanyID;
+					SELECT @Level1 = (MSL.Code + ' - ' + MSL.[Description]) FROM DBO.ManagementStructureLevel MSL WHERE MSL.TypeID = @ManagementStructureTypeId AND MSL.[MasterCompanyId] = @FromMasterComanyID;
+
+					INSERT INTO [dbo].[ReceivingCustomerWork] ([EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],[ItemMasterId],[RevisePartId],[IsSerialized],[SerialNumber],
+						[Quantity],[ConditionId],[SiteId],[WarehouseId],[LocationId],[Shelfid],[BinId],[OwnerTypeId],[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],
+						[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[IsExpDate],[ExpDate],[IsTimeLife],[TagDate],[TagType],[TagTypeIds],[TimeLifeDate],[TimeLifeOrigin],[TimeLifeCyclesId],
+						[Memo],[PartCertificationNumber],[ManagementStructureId],[StockLineId],[WorkOrderId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+						[IsSkipSerialNo],[IsSkipTimeLife],[Reference],[CertifiedBy],[ReceivedDate],[CustReqDate],[Level1],[Level2],[Level3],[Level4],[EmployeeName],[CustomerName],[WorkScopeId],
+						[CustomerCode],[ManufacturerName],[InspectedById],[CertifiedDate],[ObtainFromName],[OwnerName],[TraceableToName],[PartNumber],[WorkScope],[Condition],[Site],[Warehouse],
+						[Location],[Shelf],[Bin],[InspectedBy],[InspectedDate],[TaggedById],[TaggedBy],[ACTailNum],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],
+						[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],[CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],
+						[RepairOrderPartRecordId],[IsExchangeBatchEntry])
+					SELECT @DefaultUserId, @CustomerId, '', @CustomerContactId, @ItemMaster_Id, NULL, @IsSerialized, NULL,
+						1, @DefaultConditionId, @DefaultSiteId, NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 1,
+						@CustomerId, 0, NULL, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL, '', NULL,
+						NULL, NULL, @ManagementStructureId, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0,
+						0, 0, WO.Notes, NULL, WO.EntryDate, WO.EntryDate, @Level1, NULL, NULL, NULL, NULL, NULL, NULL,
+						@CustomerCode, NULL, NULL, NULL, NULL, NULL, NULL, @Part_NUMBER, NULL, NULL, NULL, NULL,
+						NULL, NULL, NULL, NULL, GETDATE(), NULL, '', NULL, NULL, NULL, NULL, NULL, NULL,
+						'', '', 0, NULL, '', NULL, NULL, NULL, '', '',
+						NULL, 0
+					FROM #TempWOHeader AS WO WHERE ID = @LoopID;
+
+					SELECT @InsertedReceivingCustomerWorkId = SCOPE_IDENTITY();
+
+					INSERT INTO [dbo].[WorkOrder] ([WorkOrderNum],[IsSinglePN],[WorkOrderTypeId],[OpenDate],[CustomerId],[WorkOrderStatusId]
+						   ,[EmployeeId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId]
+						   ,[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],[CreditLimit]
+						   ,[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm])
+					 SELECT WO.WorkOrderNumber, 1, 1, CASE WHEN WO.EntryDate IS NOT NULL THEN CAST(WO.EntryDate AS datetime2) ELSE GETDATE() END, @CustomerId, @StatusId,
+							@DefaultUserId, @FromMasterComanyID, @UserName, @UserName, CAST(WO.EntryDate AS DATETIME2), CAST(WO.EntryDate AS DATETIME2), 1, 0, @SalesPersonId,
+							@CsrId, @InsertedReceivingCustomerWorkId, '', WO.[NOTES], @CustomerContactId, @CustomerName, @CustomerType, @CreditLimit,
+							@TemrsName, @TearDownTypes, NULL, CASE WHEN WO.WarranteeFlag = 'T' THEN 1 ELSE 0 END, NULL, NULL, NULL, @CreditTermsId, @IsManualForm 
+					   FROM #TempWOHeader AS WO WHERE ID = @LoopID;
+
+					SELECT @InsertedWorkOrderId = SCOPE_IDENTITY();
+
+					EXEC [dbo].[UpdateWorkOrderColumnsWithId] @InsertedWorkOrderId;
 
 					SELECT @WorkScopeName = [WorkScopeCode] FROM [dbo].[WorkScope] WS WITH(NOLOCK) WHERE [WorkScopeId] = @WorkScopeId AND [MasterCompanyId] = @FromMasterComanyID;
 
@@ -267,7 +307,7 @@ BEGIN
 						SELECT @PCC_AUTO_KEY = [PCC_AUTO_KEY], @STOCK_LINE = (CAST(ISNULL(STOCK_LINE, '') AS VARCHAR)), @CTRL_ID = (CAST(ISNULL(CTRL_ID, '') AS VARCHAR)), @CTRL_NUMBER = (CAST(ISNULL(CTRL_NUMBER, '') AS VARCHAR))				
 						FROM [Quantum].QCTL_NEW_3.STOCK WHERE [STM_AUTO_KEY] = @STM_AUTO_KEY;
 
-						SELECT @StockLineId = [StockLineId] FROM [dbo].[Stockline] 
+						SELECT @StockLineId = [StockLineId], @ReceiverNumber = ReceiverNumber FROM [dbo].[Stockline] 
 						WHERE UPPER([StockLineNumber])  = UPPER(@STOCK_LINE) AND UPPER([IdNumber])  = UPPER(@CTRL_ID) 
 						AND UPPER([ControlNumber])  = UPPER(@CTRL_NUMBER) 
 						AND [ItemMasterId] = @ItemMaster_Id;
@@ -281,6 +321,12 @@ BEGIN
 
 						IF (@StockLineId > 0)
 						BEGIN
+							UPDATE [dbo].[ReceivingCustomerWork] 
+							SET StockLineId = @StockLineId,
+							ReceivingNumber = @ReceiverNumber
+							WHERE ReceivingCustomerWorkId = @InsertedReceivingCustomerWorkId;
+
+
 							SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
 							
 							SELECT @ConditionId = [ConditionId] FROM [dbo].[Condition] Cond WITH(NOLOCK) WHERE (UPPER(Cond.Code) = UPPER(@ConditionCode)) AND [MasterCompanyId] = @FromMasterComanyID;

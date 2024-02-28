@@ -136,6 +136,21 @@ BEGIN
 			
 			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
 		END
+		IF (@ModuleId = 23) -- Work Order Quote
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(WOQ.WOQHeaderId) FROM Quantum_Staging.DBO.WorkOrderQuoteHeaders WOQ WITH (NOLOCK) WHERE WOQ.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(WOQ.WOQHeaderId) FROM Quantum_Staging.DBO.WorkOrderQuoteHeaders WOQ WITH (NOLOCK)
+			WHERE WOQ.Migrated_Id IS NOT NULL AND WOQ.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(WOQ.WOQHeaderId) FROM Quantum_Staging.DBO.WorkOrderQuoteHeaders WOQ WITH (NOLOCK)
+			WHERE WOQ.Migrated_Id IS NULL AND (WOQ.ErrorMsg IS NOT NULL AND WOQ.ErrorMsg NOT like '%Work Order Quote Header record already exists%') AND WOQ.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(WOQ.WOQHeaderId) FROM Quantum_Staging.DBO.WorkOrderQuoteHeaders WOQ WITH (NOLOCK)
+			WHERE WOQ.ErrorMsg like '%Work Order Quote Header record already exists%' AND WOQ.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
 	END
 	END TRY    
 	BEGIN CATCH      

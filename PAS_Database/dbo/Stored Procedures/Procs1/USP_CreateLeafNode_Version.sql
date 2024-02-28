@@ -15,7 +15,8 @@
 2    06/05/2023  Satish Gohil		Modify(IsParent Column Added)
 3    06/07/2023  Satish Gohil		Modify(Sequence Number Added)
 4	 21/08/2023  Satish Gohil		Modify(Added Gl Account level ispositive flag)
-4	 12/10/2023  Devendra Shekh		set isdefault = 1 for new ReportingStructure
+5	 12/10/2023  Devendra Shekh		set isdefault = 1 for new ReportingStructure
+6    27Feb2024   Rajesh Gami        Add sequence number related chane for [GLAccountLeafNodeMapping]
 ************************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[USP_CreateLeafNode_Version]      
@@ -269,8 +270,8 @@ BEGIN
 			BEGIN       
 				
 				INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,CreatedBy,UpdatedBy      
-				,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive)      
-				SELECT @NewLeafNodeId,ITEM,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,1      
+				,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)      
+				SELECT @NewLeafNodeId,ITEM,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @NewLeafNodeId AND GLM.MasterCompanyId = @MstCompanyId),0) + 1)      
 				FROM SplitString(@GlAccountId,',')      
 
 			END  
@@ -308,15 +309,15 @@ BEGIN
 					BEGIN
 						
 						INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,CreatedBy,UpdatedBy      
-						,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive)      
-						VALUES(@NewLeafNodeId,@GlAccount,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,@IsPositiveGL)
+						,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)      
+						VALUES(@NewLeafNodeId,@GlAccount,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,@IsPositiveGL,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @NewLeafNodeId AND GLM.MasterCompanyId = @MstCompanyId),0) + 1))
 					END
 					ELSE
 					BEGIN
 						
 						INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,CreatedBy,UpdatedBy      
-						,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive)      
-						VALUES(@NewLeafNodeId,@GlAccount,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,1)     
+						,CreatedDate,UpdatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)      
+						VALUES(@NewLeafNodeId,@GlAccount,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @NewLeafNodeId AND GLM.MasterCompanyId = @MstCompanyId),0) + 1))     
 						
 					END
 

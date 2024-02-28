@@ -134,11 +134,12 @@ BEGIN
 		SELECT @CheckAmount = SUM(ISNULL(Quantity * ABS(@Differece),0)) FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @StocklineId 
 		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ManualStockLine')
 
-		DECLARE @IsRestrict INT;
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
 
-		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT;
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsRestrict, 0) = 0)
+		IF(ISNULL(@CheckAmount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN		
 				
 			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'

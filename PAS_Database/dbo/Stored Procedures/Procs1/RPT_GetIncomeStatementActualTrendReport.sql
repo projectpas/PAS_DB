@@ -436,7 +436,7 @@ BEGIN
 	WHERE LF.IsActive = 1 AND LF.IsDeleted = 0 AND LF.MasterCompanyId = @masterCompanyId AND LF.ReportingStructureId =  @ReportingStructureId
 	GROUP BY LF.LeafNodeId, LF.Name,LF.ParentId, LFP.Name, LF.IsLeafNode, 
 			 LF.MasterCompanyId, LF.ReportingStructureId, LF.IsPositive, LF.SequenceNumber
-	ORDER BY ParentId, SequenceNumber
+	ORDER BY ParentId, LF.SequenceNumber
 
 	DECLARE @COUNT1 AS INT;
 	DECLARE @COUNTMAX1 AS INT

@@ -70,7 +70,6 @@ BEGIN
 		DECLARE @LastMSLevel VARCHAR(200)
 		DECLARE @AllMSlevels VARCHAR(max)
 		DECLARE @DistributionSetupId INT=0
-		DECLARE @IsAccountByPass bit=0
 		DECLARE @DistributionCode VARCHAR(200)
 		DECLARE @InvoiceTotalCost decimal(18,2)=0
 		DECLARE @MaterialCost decimal(18,2)=0
@@ -99,7 +98,6 @@ BEGIN
 			   @BankId = BankName
 		 FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId;
 
-		SELECT @IsAccountByPass = IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 		SELECT @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE ID = @DistributionMasterId
 		SELECT @StatusId = Id,@StatusName = [name] FROM dbo.BatchStatus WITH(NOLOCK) WHERE Name = 'Open'
 		SELECT TOP 1 @JournalTypeId = [JournalTypeId] FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId
@@ -121,11 +119,12 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		DECLARE @IsRestrict INT;
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
 
-		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdatedBy, @IsRestrict OUTPUT;
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdatedBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-		IF((@JournalTypeCode ='CRS') AND ISNULL(@IsRestrict, 0) = 0)
+		IF((@JournalTypeCode ='CRS') AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN
 			SELECT @ReceiptNo = [ReceiptNo], 
 			       @CurrentManagementStructureId = [ManagementStructureId] 

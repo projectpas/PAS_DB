@@ -20,6 +20,8 @@
  8    31-JAN-2024  Devendra Shekh	added isperforma Flage for WO
  9	  01/02/2024   AMIT GHEDIYA	    added isperforma Flage for SO
  10	  19/02/2024   Devendra Shekh	removed isperforma and added isinvoiceposted flage for wo
+ 11	  27/02/2024   Devendra Shekh	changes for profoma calculation
+ 12	  28/02/2024   Devendra Shekh  changes for amount calculation based on isproforma for wo and so
 
 
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceDataDateWise] 77,23,'2022-05-12','2022-05-12',1,1,79,2  
@@ -59,7 +61,7 @@ BEGIN
            sobi.InvoiceStatus as InvoiceStatus,  
            STUFF(UPPER((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 			 INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-			 WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0 
+			 WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 			 FOR XML PATH(''))), 1, 1, '')  
            AS 'Reference',  
 		   ctm.[Name] as CreditTerm,     
@@ -67,8 +69,8 @@ BEGIN
 		   ISNULL(sobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
 		   cr.Code AS Currency,  
 		   ISNULL(SUM(CM.Amount),0) AS CM,  
-		   sobi.GrandTotal as InvoiceAmount,  
-		   (sobi.RemainingAmount) AS RemainingAmount,  
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
 		   ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
      FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
 		  INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -83,11 +85,11 @@ BEGIN
 		  INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
           ON CM.InvoiceId = sobi.SOBillingInvoicingId   
   
-   WHERE sobi.RemainingAmount > 0 AND ISNULL(sobi.IsProforma,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND   
+   WHERE sobi.RemainingAmount > 0 AND ISNULL(sobi.IsBilling,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND   
    le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  
    AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND sobi.BillToSiteId=@SiteId  
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount     
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma     
      
    UNION ALL  
      
@@ -106,8 +108,8 @@ BEGIN
     DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(wobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
     cr.Code AS Currency,  
     ISNULL(SUM(CM.Amount),0) AS CM,  
-    wobi.GrandTotal AS InvoiceAmount,  
-    (wobi.RemainingAmount) AS RemainingAmount,  
+	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -127,9 +129,11 @@ BEGIN
     WHERE wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0   
      AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId  
+	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
      
     GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount  
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
     ORDER BY InvoiceDate   
   END  
   ELSE if(@IncludeCredits = 1 AND @OpenTransactionsOnly = 1)  
@@ -141,15 +145,15 @@ BEGIN
           sobi.InvoiceStatus as InvoiceStatus,  
           STUFF(UPPER((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 		   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0  
+		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 		   FOR XML PATH(''))), 1, 1, '')  
           AS 'Reference',  
           ctm.[Name] as CreditTerm,     
           DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(sobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
           cr.Code AS Currency,  
           ISNULL(SUM(CM.Amount),0) AS CM,  
-          sobi.GrandTotal as InvoiceAmount,  
-          (sobi.RemainingAmount) AS RemainingAmount,  
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
           ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
      FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
         INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -164,11 +168,11 @@ BEGIN
         INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
            ON CM.InvoiceId = sobi.SOBillingInvoicingId   
             
-     WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
+     WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
        CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
            AND sobi.BillToSiteId=@SiteId  
           GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-          ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount   
+          ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      
    UNION ALL  
      
@@ -186,8 +190,8 @@ BEGIN
     DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(wobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
     cr.Code AS Currency,  
     ISNULL(SUM(CM.Amount),0) AS CM,  
-    wobi.GrandTotal AS InvoiceAmount,  
-    (wobi.RemainingAmount) AS RemainingAmount,  
+	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount, 
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -207,9 +211,11 @@ BEGIN
     WHERE wobi.InvoiceStatus = 'Invoiced' AND   
     wobi.IsVersionIncrease=0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND wobi.SoldToSiteId = @SiteId  
+	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
      
     GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount  
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
   
    UNION ALL  
      
@@ -308,15 +314,15 @@ BEGIN
           sobi.InvoiceStatus as InvoiceStatus,  
           STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
 		   INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0   
+		   WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 		   FOR XML PATH('')), 1, 1, '')  
           AS 'Reference',  
 	      ctm.[Name] as CreditTerm,     
 	      DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(sobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
 	      cr.Code AS Currency,  
 	      ISNULL(SUM(CM.Amount),0) AS CM,  
-	      sobi.GrandTotal as InvoiceAmount,  
-	      (sobi.RemainingAmount) AS RemainingAmount,  
+	      CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
 	      ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
     INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -333,9 +339,9 @@ BEGIN
      
    WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
     AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
-    AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsProforma,0) = 0   
+    AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsBilling,0) = 0   
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount   
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      
    UNION ALL  
      
@@ -354,8 +360,8 @@ BEGIN
 		  DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(wobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
 		  cr.Code AS Currency,  
 		  ISNULL(SUM(CM.Amount),0) AS CM,  
-		  wobi.GrandTotal AS InvoiceAmount,  
-		  (wobi.RemainingAmount) AS RemainingAmount,  
+		  CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+		  CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
 		  ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -373,9 +379,11 @@ BEGIN
     ON CM.InvoiceId = wobi.BillingInvoicingId  
      
     WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
-     AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND wobi.SoldToSiteId = @SiteId     
+     AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND wobi.SoldToSiteId = @SiteId
+	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
      GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount  
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice 
   
    UNION ALL  
      
@@ -473,15 +481,15 @@ BEGIN
    sobi.InvoiceStatus as InvoiceStatus,  
    STUFF((SELECT ', ' + SO.CustomerReference FROM dbo.SalesOrderBillingInvoicing SI WITH (NOLOCK)  
        INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SI.SalesOrderId = SO.SalesOrderId  
-       WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(SI.IsProforma,0) = 0   
+       WHERE SI.SOBillingInvoicingId = sobi.SOBillingInvoicingId   
        FOR XML PATH('')), 1, 1, '')  
        AS 'Reference',  
    ctm.[Name] as CreditTerm,     
    DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(sobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
    cr.Code AS Currency,  
    ISNULL(SUM(CM.Amount),0) AS CM,  
-   sobi.GrandTotal as InvoiceAmount,  
-   (sobi.RemainingAmount) AS RemainingAmount,  
+	CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+	CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
    ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
     INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -496,11 +504,11 @@ BEGIN
     INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
     ON CM.InvoiceId = sobi.SOBillingInvoicingId   
      
-   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsProforma,0) = 0   AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0   AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
    AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
    AND sobi.BillToSiteId=@SiteId  
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount   
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      
    UNION ALL  
      
@@ -516,8 +524,9 @@ BEGIN
    ctm.[Name] as CreditTerm,     
    DateAdd(Day,ISNULL(ctm.NetDays,0),ISNULL(wobi.InvoiceDate, '01/01/1900 23:59:59.999')) as 'DueDate',  
    cr.Code AS Currency,  
-   ISNULL(SUM(CM.Amount),0) AS CM,     wobi.GrandTotal as InvoiceAmount,  
-   (wobi.RemainingAmount) AS RemainingAmount,  
+   ISNULL(SUM(CM.Amount),0) AS CM,     
+	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
+	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
    ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
     INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -536,9 +545,11 @@ BEGIN
      
    WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease = 0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
    AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND wobi.SoldToSiteId=@SiteId  
+   AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+   OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
      
    GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-   ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount  
+   ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
    ORDER BY InvoiceDate   
     
   END  

@@ -81,7 +81,7 @@ BEGIN
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @tmpVendorRMADetailId BIGINT;
-		DECLARE @VendorCreditMemoId BIGINT = 0;
+		DECLARE @VendorCreditMemoId BIGINT;
 
 		SET @DistributionCodeName = 'VendorRMA';
 
@@ -121,7 +121,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT @ExtAmount = ISNULL(ExtendedCost,0),@VendorRMAId = VendorRMAId FROM [DBO].[VendorRMADetail] WITH(NOLOCK) WHERE  VendorRMADetailId = @VendorRMADetailId;
+			SELECT @ExtAmount = ISNULL(ExtendedCost,0),@VendorCreditMemoId = VendorRMAId FROM [DBO].[VendorRMADetail] WITH(NOLOCK) WHERE  VendorRMADetailId = @VendorRMADetailId;
 		END
 
 		SELECT @MasterCompanyId = MasterCompanyId, @UpdateBy = CreatedBy FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;

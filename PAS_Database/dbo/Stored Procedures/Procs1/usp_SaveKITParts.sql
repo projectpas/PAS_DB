@@ -175,7 +175,7 @@ BEGIN
 		 
 				DECLARE @ReplaceContent NVARCHAR(MAX);
 
-				SET @ReplaceContent = '##Part## Part has been updated with condition: ##Condition##';
+				SET @ReplaceContent = (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'UpdateItemKitCondition');
 
 				SET @ReplaceContent = REPLACE(@ReplaceContent, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
 
@@ -202,7 +202,7 @@ BEGIN
 		    
 				DECLARE @ReplaceContentForQty NVARCHAR(MAX);
 
-				SET @ReplaceContentForQty = '##Part## Part has been updated with Qty:##Qty##';
+				SET @ReplaceContentForQty =  (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'UpdateItemKitQty');
 				SET @ReplaceContentForQty = REPLACE(@ReplaceContentForQty, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
 				
 
@@ -230,7 +230,7 @@ BEGIN
 		     
 				DECLARE @ReplaceContentForCost NVARCHAR(MAX);
 
-				SET @ReplaceContentForCost = '##Part## Part has been updated with Cost:##Cost##';
+				SET @ReplaceContentForCost = (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'UpdateItemKitCost');
 				SET @ReplaceContentForCost = REPLACE(@ReplaceContentForCost, '##Part##', CONVERT(NVARCHAR(MAX), @PartNumber));
 				
 
@@ -270,7 +270,7 @@ BEGIN
 				  DECLARE @AddMasterCompanyId [int];
 				  DECLARE @AddKitItemMasterMappingId [bigint]
 				  SELECT @AddCost = Ad.UnitCost,@AddCondition = Ad.Condition,@AddQty = Ad.Qty,@AddPartNumber = Ad.PartNumber,@AddUpdatedDate = Ad.UpdatedDate,@AddUpdatedBy = Ad.UpdatedBy,@AddMasterCompanyId = Ad.MasterCompanyId,@AddKitItemMasterMappingId = Ad.KitItemMasterMappingId FROM [dbo].[KitItemMasterMapping] Ad WHERE Ad.KitItemMasterMappingId = @NewGeneratedId
-				SET @ReplaceContentForADD = '##Part## Part has been added with condition: ##Condition##, Qty:##Qty##, Cost:##Cost##';
+				SET @ReplaceContentForADD = (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'AddItemKit');
 				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Part##', CONVERT(NVARCHAR(MAX), @AddPartNumber));
 				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Cost##', CONVERT(NVARCHAR(MAX),@AddCost));
 				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Qty##', CONVERT(NVARCHAR(MAX),@AddQty));

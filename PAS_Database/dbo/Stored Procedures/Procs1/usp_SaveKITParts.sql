@@ -163,6 +163,7 @@ BEGIN
 		   BEGIN  
 			UPDATE KM SET KM.[KitCost] = (SELECT ISNULL(SUM(ISNULL(KP.[ExtendedCost],0)),0) FROM #KITPartType KP   
 			WHERE [KitId] = @KITID) FROM [dbo].[KitMaster] AS KM WITH (NOLOCK) WHERE [KitId] = @KITID;  
+			EXEC usp_SaveKITMasterHistory @KITID
 		   END
 
 		   -- *END*  UPDATE DBO.KitMaster---

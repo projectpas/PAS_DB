@@ -39,6 +39,7 @@ BEGIN
 			CASE WHEN ISNULL(GLM.GLAccountLeafNodeMappingId,0) = 0 THEN 0 ELSE glm.GLAccountLeafNodeMappingId END 'GlMappingId',
 			L.IsPositive,
 			L.SequenceNumber,
+			ISNULL(GLM.SequenceNumber,0) GLSequenceNumber,
 			GLM.IsPositive 'GlIsPositive',
 			ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY(SELECT 1)) rownum,
 			--ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY ISNULL(GL.AccountCode, 0)) rowSeq,
@@ -46,6 +47,9 @@ BEGIN
 				CASE WHEN ISNUMERIC(GL.AccountCode) = 1 THEN CONVERT(NUMERIC,GL.AccountCode) END,               
 				CASE WHEN ISNUMERIC(GL.AccountCode) = 0 THEN GL.AccountCode END )
 			rowSeq,
+			ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY			
+				ISNULL(GLM.SequenceNumber,0))
+			rowSeqGl,
 			STUFF((SELECT DISTINCT ', ' + CAST(GLM.GLAccountId AS VARCHAR(50))
 				FROM Dbo.LeafNode LM WITH(NOLOCK) 
 				LEFT JOIN DBO.GLAccountLeafNodeMapping GLM WITH(NOLOCK) ON LM.LeafNodeId = GLM.LeafNodeId
@@ -67,18 +71,25 @@ BEGIN
 			LEFT JOIN dbo.LeafNode LP ON L.ParentId = LP.LeafNodeId
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 
+			--AND (l.LeafNodeId = 124 OR l.ParentId = 124)
 		)
 
 		SELECT
 			L.LeafNodeId,
 			L.Name AS 'FilterName',
-			CASE WHEN l.IsLeafNode = 1 THEN
-				CASE rowSeq
-				WHEN 1 THEN L.Name
-				ELSE ''
+		CASE WHEN l.IsLeafNode = 1 THEN
+				CASE rowSeqGl
+					WHEN 1 THEN L.Name
+					ELSE ''
 				END 
-			ELSE L.Name END
-			AS 'Name',
+			ELSE L.Name END AS 'Name',
+			--	CASE WHEN l.IsLeafNode = 1 THEN
+			--	CASE rowSeq
+			--	WHEN 1 THEN L.Name
+			--	ELSE ''
+			--	END 
+			--ELSE L.Name END
+			--AS 'Old_Name',
 			L.ParentId,
 			L.ParentNodeName,
 			l.IsLeafNode,
@@ -95,9 +106,17 @@ BEGIN
 			L.GlIsPositive,
 			L.GLAccountId,
 			L.AccountCode,
-			L.IsStringData			
+			L.IsStringData,
+			L.GLSequenceNumber,
+			CASE WHEN l.IsLeafNode = 1 THEN
+				CASE rowSeqGl
+					WHEN 1 THEN (Select COUNT(LeafNodeId) from CTE ct where ct.LeafNodeId = L.LeafNodeId)
+					ELSE 0
+				END 
+			ELSE 0 END AS 'LeafNodeGLCount'
 		FROM CTE L
-		ORDER BY L.ParentId,L.SequenceNumber,L.GLRowNumber		
+		WHERE ISNULL(l.IsLeafNode,0) = 0 OR (ISNULL(l.IsLeafNode,0) = 1 AND ISNULL(L.GLAccount,'') != '')
+		ORDER BY L.ParentId,L.SequenceNumber,L.GLSequenceNumber--,L.GLRowNumber		
 	END
 	END TRY
 	BEGIN CATCH

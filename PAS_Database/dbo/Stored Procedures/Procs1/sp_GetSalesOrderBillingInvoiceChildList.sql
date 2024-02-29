@@ -26,7 +26,8 @@
 	9    22/02/2024   AMIT GHEDIYA	Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
 	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
      
- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20847, 20748, 7  
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20849, 11, 7  
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20849,41194,8
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
@@ -92,6 +93,7 @@ BEGIN
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
 		BEGIN 
+		
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -220,10 +222,12 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+		
 			IF EXISTS (SELECT TOP 1 * FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 				INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderId = SOS.SalesOrderId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 				WHERE SOS.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @SalesOrderPartId AND SOP.ConditionId = @ConditionId)
 			BEGIN  
+			
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
@@ -273,8 +277,15 @@ BEGIN
 				--	ELSE sobi.GrandTotal END 
 				--AS TotalUnitCost,
 
-				(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
-
+				(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL((SELECT SUM(ISNULL(SOSI.QtyShipped, 0)) 
+				FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
+				INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+				INNER JOIN DBO.SalesOrderPart SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
+				WHERE SOS.SalesOrderId = @SalesOrderId 
+				AND SOPI.ItemMasterId = @SalesOrderPartId 
+				AND SOPI.ConditionId = @ConditionId 
+				AND SOPI.SalesOrderPartId = sop.SalesOrderPartId), 0)) AS TotalUnitCost,
+			
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 				 WHERE sof.SalesOrderId = @SalesOrderId 					
 					AND sof.ItemMasterId = sop.ItemMasterId 
@@ -323,7 +334,7 @@ BEGIN
 				--ORDER BY sobi.SOBillingInvoicingId DESC
 			END
 			ELSE
-			BEGIN 
+			BEGIN 			
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,

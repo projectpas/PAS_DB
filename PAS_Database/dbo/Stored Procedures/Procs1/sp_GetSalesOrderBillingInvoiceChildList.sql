@@ -158,7 +158,7 @@ BEGIN
 			END 
 			as 'TotalSales',  
 
-			(ISNULL(sop.UnitSalesPricePerUnit, 0) * sosi.QtyShipped) AS TotalUnitCost,
+			(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(sosi.QtyShipped, 0)) AS TotalUnitCost,
 
 			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 			 WHERE sof.SalesOrderId = @SalesOrderId 			  
@@ -269,9 +269,11 @@ BEGIN
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
 				ELSE sobi.GrandTotal END as 'TotalSales',  
-				CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))
-					ELSE sobi.GrandTotal END 
-				AS TotalUnitCost,
+				--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))
+				--	ELSE sobi.GrandTotal END 
+				--AS TotalUnitCost,
+
+				(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
 
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 				 WHERE sof.SalesOrderId = @SalesOrderId 					
@@ -352,8 +354,10 @@ BEGIN
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
 					ELSE sobi.GrandTotal END as 'TotalSales', 
 
-					CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))    
-					ELSE sobi.GrandTotal END AS TotalUnitCost,
+					--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))    
+					--ELSE sobi.GrandTotal END AS TotalUnitCost,
+
+					(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
 
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 					WHERE sof.SalesOrderId = @SalesOrderId 						

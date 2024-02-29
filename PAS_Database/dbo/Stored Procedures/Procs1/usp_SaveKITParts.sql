@@ -147,26 +147,7 @@ BEGIN
 
 			END
 
-			-- *START*  UPDATE DBO.KitMaster---
-  
-		   UPDATE KitMaster  
-		   SET [UpdatedBy] = t.UpdatedBy       
-			  ,[UpdatedDate] = GETUTCDATE()      
-		   FROM #KITPartType t  
-		   INNER JOIN dbo.KitMaster kim WITH (NOLOCK) on kim.[KitId] = t.[KitId]  
-		   WHERE t.KitItemMasterMappingId > 0;  
-  
-		   DECLARE @KITID BIGINT = 0;  
-		   SET @KITID = (SELECT TOP (1) [KitId] FROM #KITPartType);  
-       
-		   IF(@KITID > 0)  
-		   BEGIN  
-			UPDATE KM SET KM.[KitCost] = (SELECT ISNULL(SUM(ISNULL(KP.[ExtendedCost],0)),0) FROM #KITPartType KP   
-			WHERE [KitId] = @KITID) FROM [dbo].[KitMaster] AS KM WITH (NOLOCK) WHERE [KitId] = @KITID;  
-			EXEC usp_SaveKITMasterHistory @KITID
-		   END
-
-		   -- *END*  UPDATE DBO.KitMaster---
+		
 
 		   -- *START*  ADD History for KitPart IN DBO.History---
 
@@ -295,6 +276,27 @@ BEGIN
 		    -- *END*  ADD History for KitPart IN DBO.History---
 		   SET @StartCount = @StartCount + 1;
    END
+
+   	-- *START*  UPDATE DBO.KitMaster---
+  
+		   UPDATE KitMaster  
+		   SET [UpdatedBy] = t.UpdatedBy       
+			  ,[UpdatedDate] = GETUTCDATE()      
+		   FROM #KITPartType t  
+		   INNER JOIN dbo.KitMaster kim WITH (NOLOCK) on kim.[KitId] = t.[KitId]  
+		   WHERE t.KitItemMasterMappingId > 0;  
+  
+		   DECLARE @KITID BIGINT = 0;  
+		   SET @KITID = (SELECT TOP (1) [KitId] FROM #KITPartType);  
+       
+		   IF(@KITID > 0)  
+		   BEGIN  
+			UPDATE KM SET KM.[KitCost] = (SELECT ISNULL(SUM(ISNULL(KP.[ExtendedCost],0)),0) FROM #KITPartType KP   
+			WHERE [KitId] = @KITID) FROM [dbo].[KitMaster] AS KM WITH (NOLOCK) WHERE [KitId] = @KITID;  
+			EXEC usp_SaveKITMasterHistory @KITID
+		   END
+
+		   -- *END*  UPDATE DBO.KitMaster---
    COMMIT TRANSACTION  
   END TRY      
   BEGIN CATCH        

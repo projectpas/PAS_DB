@@ -12,12 +12,14 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------  	
 	1    29/12/2023   Moin Bloch		Created
+	2    29/2/2024    Devendra Shekh	added new param @WOBillingInvoicingId
 
 EXEC DBO.CheckWorkOrderPartShippedOrNot 24,28
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[CheckWorkOrderPartShippedOrNot]
 @WorkOrderId BIGINT,
-@WorkOrderPartId BIGINT
+@WorkOrderPartId BIGINT,
+@WOBillingInvoicingId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -26,7 +28,8 @@ BEGIN
 		   DECLARE @TotalMPN INT = 0;
 		   SELECT @TotalMPN  = COUNT([WorkOrderId]) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
-		   IF(@TotalMPN = 1)
+			
+		   IF(@TotalMPN = 1 AND @WorkOrderPartId > 0)
 		   BEGIN
 			   SELECT WOS.[WorkOrderShippingId],
 					  WOS.[AirwayBill]		          
@@ -36,7 +39,7 @@ BEGIN
 				 JOIN [dbo].[WorkOrderShippingItem] WOSI WITH (NOLOCK) ON WOS.[WorkOrderShippingId] = WOSI.[WorkOrderShippingId]
 				 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId;
 		    END
-			IF(@TotalMPN > 1)
+			IF(@TotalMPN > 1 AND @WorkOrderPartId > 0)
 		    BEGIN
 				DECLARE @Quantity INT = 0;
 				DECLARE @QtyShipped INT = 0;  
@@ -73,7 +76,12 @@ BEGIN
 					 WHERE WOS.[WorkOrderId] = @WorkOrderId AND WOP.[ID] = @WorkOrderPartId AND WOP.[IsActive] = 1 AND WOP.[IsDeleted] = 0;
 				END				
 			END
-		
+			IF(ISNULL(@WOBillingInvoicingId, 0) > 0 AND @WorkOrderPartId = 0)
+			BEGIN
+				SELECT [BillingInvoicingId],
+					   [InvoiceNo] AS [AirwayBill]
+				FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @WOBillingInvoicingId;
+			END
 	END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0

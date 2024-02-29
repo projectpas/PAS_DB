@@ -24,8 +24,9 @@
 	7    02/05/2024   AMIT GHEDIYA	Updated the SP to show Proforma invoice Data.
 	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
 	9    22/02/2024   AMIT GHEDIYA	Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
+	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
      
- EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1069, 20751, 1  
+ EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20847, 20748, 7  
 **************************************************************/
 CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 	 @SalesOrderId  bigint,  
@@ -39,6 +40,8 @@ BEGIN
  BEGIN TRANSACTION  
    BEGIN  
 		DECLARE @AllowBillingBeforeShipping BIT;
+		DECLARE @FreightBilingMethodId INT = 3
+		DECLARE @ChargesBilingMethodId INT = 3	
 		SELECT @AllowBillingBeforeShipping = AllowInvoiceBeforeShipping FROM DBO.SalesOrder SO (NOLOCK) WHERE SO.SalesOrderId = @SalesOrderId;
 
 		--Create Temp Table 
@@ -70,6 +73,11 @@ BEGIN
 			Condition [VARCHAR](250)  NULL,
 			CurrencyCode [VARCHAR](100)  NULL,
 			TotalSales [decimal](18,2) NULL,   
+			TotalUnitCost [decimal](18,2) NULL,  
+			TotalFreight [decimal](18,2) NULL,  
+			TotalFlatFreight [decimal](18,2) NULL,   
+			TotalCharges [decimal](18,2) NULL,  
+			TotalFlatCharges [decimal](18,2) NULL, 
 			InvoiceStatus [VARCHAR](250)  NULL,
 			SmentNo [VARCHAR](250)  NULL,
 			VersionNo [VARCHAR](250)  NULL,
@@ -83,11 +91,11 @@ BEGIN
 		--SELECT @AllowBillingBeforeShipping
 
 		IF (ISNULL(@AllowBillingBeforeShipping, 0) = 0)
-		BEGIN print 's'
+		BEGIN 
 			INSERT INTO #SalesOrderBillingInvoiceChildList(
 			SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId,PartDescription ,
 			StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-			TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem )
+			TotalSales , TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma,DepositAmount,IsAllowIncreaseVersionForBillItem )
 		(
 			SELECT DISTINCT sosi.SalesOrderShippingId,   
 			--(SELECT TOP 1 a.SOBillingInvoicingId FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
@@ -149,6 +157,33 @@ BEGIN
 			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
 			END 
 			as 'TotalSales',  
+
+			(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(sosi.QtyShipped, 0)) AS TotalUnitCost,
+
+			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+			 WHERE sof.SalesOrderId = @SalesOrderId 			  
+				AND sof.ItemMasterId = sop.ItemMasterId 
+				AND sof.ConditionId = @ConditionId 
+				AND sof.IsActive = 1 
+				AND sof.IsDeleted = 0)  AS TotalFreight,
+
+			(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+				WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.FreightBilingMethodId = @FreightBilingMethodId)
+			 AS  TotalFlatFreight,
+
+			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
+			WHERE socg.SalesOrderId = @SalesOrderId 				
+				AND socg.ItemMasterId = sop.ItemMasterId 
+				AND socg.ConditionId = @ConditionId 
+				AND socg.IsActive = 1 
+				AND socg.IsDeleted = 0) 
+			AS TotalCharges,
+			
+			(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+			WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
+			AS TotalFlatCharges,
+
+
 			(SELECT TOP 1 a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 				Where a.SalesOrderId = @SalesOrderId  AND b.ItemMasterId = sop.ItemMasterId 
@@ -192,7 +227,7 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber ,ItemMasterId,ConditionId ,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem )
+					TotalSales, TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges, InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem )
 				(
 				SELECT DISTINCT 
 				(CASE WHEN sobii.IsVersionIncrease = 1 then sobii.SalesOrderShippingId 
@@ -234,6 +269,35 @@ BEGIN
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
 				ELSE sobi.GrandTotal END as 'TotalSales',  
+				--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))
+				--	ELSE sobi.GrandTotal END 
+				--AS TotalUnitCost,
+
+				(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
+
+				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+				 WHERE sof.SalesOrderId = @SalesOrderId 					
+					AND sof.ItemMasterId = sop.ItemMasterId 
+					AND sof.ConditionId = @ConditionId 
+					AND sof.IsActive = 1 
+					AND sof.IsDeleted = 0)  AS TotalFreight,
+
+				(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+					WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.FreightBilingMethodId = @FreightBilingMethodId)
+				 AS  TotalFlatFreight,
+
+				(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
+				WHERE socg.SalesOrderId = @SalesOrderId 					
+					AND socg.ItemMasterId = sop.ItemMasterId 
+					AND socg.ConditionId = @ConditionId 
+					AND socg.IsActive = 1 
+					AND socg.IsDeleted = 0) 
+				AS TotalCharges,
+			
+				(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+				WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
+				AS TotalFlatCharges,
+
 				(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 					INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 					Where a.SalesOrderId = @SalesOrderId AND b.SOBillingInvoicingItemId = sobii.SOBillingInvoicingItemId
@@ -263,7 +327,7 @@ BEGIN
 				INSERT INTO #SalesOrderBillingInvoiceChildList(
 					SalesOrderShippingId,SOBillingInvoicingId ,InvoiceDate , InvoiceNo ,SOShippingNum ,	QtyToBill ,SalesOrderNumber ,partnumber,ItemMasterId ,ConditionId,PartDescription ,
 					StockLineNumber,SerialNumber ,	CustomerName ,	StockLineId ,QtyBilled ,ItemNo,	SalesOrderId ,SalesOrderPartId ,Condition ,	CurrencyCode ,
-					TotalSales ,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem )
+					TotalSales ,TotalUnitCost, TotalFreight,TotalFlatFreight,TotalCharges,TotalFlatCharges,InvoiceStatus ,	SmentNo ,VersionNo ,IsVersionIncrease ,	IsNewInvoice,IsProforma, DepositAmount, IsAllowIncreaseVersionForBillItem )
 				(
 					SELECT DISTINCT 0 AS SalesOrderShippingId,   
 					sobi.SOBillingInvoicingId,
@@ -288,7 +352,36 @@ BEGIN
 					) * ISNULL(sop.TaxPercentage, 0)) / 100) +   
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) WHERE sof.SalesOrderId = @SalesOrderId AND sof.ItemMasterId = sop.ItemMasterId AND sof.ConditionId = @ConditionId AND sof.IsActive = 1 AND sof.IsDeleted = 0) +   
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = @SalesOrderId AND socg.ItemMasterId = sop.ItemMasterId AND socg.ConditionId = @ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0))
-					ELSE sobi.GrandTotal END as 'TotalSales',  
+					ELSE sobi.GrandTotal END as 'TotalSales', 
+
+					--CASE WHEN ISNULL(sobi.SOBillingInvoicingId, 0) = 0 THEN ((ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)))    
+					--ELSE sobi.GrandTotal END AS TotalUnitCost,
+
+					(ISNULL(sop.UnitSalesPricePerUnit, 0) * ISNULL(SOR.QtyToReserve, 0)) AS TotalUnitCost,
+
+					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
+					WHERE sof.SalesOrderId = @SalesOrderId 						
+						AND sof.ItemMasterId = sop.ItemMasterId 
+						AND sof.ConditionId = @ConditionId 
+						AND sof.IsActive = 1 
+						AND sof.IsDeleted = 0)  AS TotalFreight,
+
+					(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+						WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.FreightBilingMethodId = @FreightBilingMethodId)
+					 AS  TotalFlatFreight,
+
+					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) 
+					WHERE socg.SalesOrderId = @SalesOrderId 						
+						AND socg.ItemMasterId = sop.ItemMasterId 
+						AND socg.ConditionId = @ConditionId 
+						AND socg.IsActive = 1 
+						AND socg.IsDeleted = 0) 
+					AS TotalCharges,
+			
+					(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
+					WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
+					AS TotalFlatCharges,					
+
 					(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 						INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 						Where a.SalesOrderId = @SalesOrderId AND b.SOBillingInvoicingItemId = sobii.SOBillingInvoicingItemId
@@ -388,6 +481,11 @@ BEGIN
 			   Condition ,	
 			   CurrencyCode ,
 			   TotalSales ,
+			   ISNULL(TotalUnitCost,0) TotalUnitCost,
+			   ISNULL(TotalFreight,0) TotalFreight,
+			   ISNULL(TotalFlatFreight,0) TotalFlatFreight,
+			   ISNULL(TotalCharges,0) TotalCharges,
+			   ISNULL(TotalFlatCharges,0) TotalFlatCharges,
 			   InvoiceStatus ,	
 			   SmentNo ,
 			   VersionNo ,
@@ -397,7 +495,7 @@ BEGIN
 			   DepositAmount,
 			   IsAllowIncreaseVersionForBillItem
 		FROM #SalesOrderBillingInvoiceChildList
-		ORDER BY partnumber, IsProforma desc,VersionNo DESC, InvoiceNo desc;
+		ORDER BY partnumber, IsProforma DESC,VersionNo DESC, InvoiceNo DESC;
    END  
    COMMIT  TRANSACTION  
   END TRY      

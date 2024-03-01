@@ -25,7 +25,7 @@
 	8    02/19/2024   AMIT GHEDIYA	Updated the SP to get Proforma DepositAmount.
 	9    22/02/2024   AMIT GHEDIYA	Updated the SP to get Proforma IsAllowIncreaseVersionForBillItem.
 	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
-	10   01/03/2024   Devendra Shekh added [IsBilling] to select
+	11   01/03/2024   Devendra Shekh added [IsBilling] to select
      
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20849, 11, 7  
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 20849,41194,8

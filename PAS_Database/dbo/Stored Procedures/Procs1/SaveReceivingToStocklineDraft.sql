@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -21,6 +20,7 @@
 	4    12/20/2023   Vishal Suthar		Fixed non stock issues
 	5    12/26/2023   Vishal Suthar		Modified the SP to set traceableTo and taggedBy field from PO Part into Stockline Draft
 	6    18-01-2024   Shrey Chandegara  update for orderdate
+	7    01-03-2024   Shrey Chandegara  In AssetInventoryDraft SET EnrtyDate is GETUTCDATE() FROM A.EntryDate
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -401,7 +401,7 @@ BEGIN
       0, 0, 0, 0, 0, 0, NULL,    
       0, NULL, NULL, NULL, NULL, NULL, NULL,    
       NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
-      NULL, A.[MasterPartId], A.[EntryDate], 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
+      NULL, A.[MasterPartId], GETUTCDATE(), 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
       A.[IsAmortizable], A.[IsNonAmortizable], '', 0, 0, 0, NULL, 0, NULL, 0,    
       1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    

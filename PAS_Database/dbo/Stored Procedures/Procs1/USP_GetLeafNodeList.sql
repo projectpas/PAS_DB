@@ -73,17 +73,17 @@ BEGIN
 			LEFT JOIN dbo.LeafNode LP ON L.ParentId = LP.LeafNodeId
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 
-			--AND (l.LeafNodeId = 150)
+			--AND (l.LeafNodeId = 156)
 		)
 		SELECT * INTO #LeafTempTbl FROM CTE
 
-		UPDATE #LeafTempTbl SET IsMainLeafNode = 1 WHERE IsLeafNode = 1 AND GLSequenceNumber = 1
-
+		UPDATE #LeafTempTbl SET IsMainLeafNode = 1 WHERE IsLeafNode = 1 AND rowSeqGl = 1
+		--Select * from #LeafTempTbl
 		SELECT * INTO #LeafTempTblMainLeaf FROM #LeafTempTbl WHERE IsMainLeafNode = 1
 
 		UPDATE #LeafTempTblMainLeaf SET IsMainLeafNode = 0 WHERE IsMainLeafNode = 1 
 		Update #LeafTempTbl set GLSequenceNumber = 0,GLAccount = NULL, GlMappingId = 0,GlIsPositive = NULL,GLAccountId = NULL,AccountCode= 0
-		WHERE IsMainLeafNode = 1 AND IsLeafNode = 1 AND GLSequenceNumber = 1 
+		WHERE IsMainLeafNode = 1 AND IsLeafNode = 1 AND rowSeqGl = 1 
 
 		SELECT * INTO #FinalTempTable FROM (SELECT * FROM #LeafTempTbl UNION ALL SELECT * FROM #LeafTempTblMainLeaf) as FinalTemp
 		--Select * from #FinalTempTable			

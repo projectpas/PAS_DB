@@ -17,7 +17,7 @@
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
-Create     PROCEDURE [dbo].[USP_GetReceivedRfqList]
+CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50)=null,
@@ -101,7 +101,7 @@ BEGIN
 							))
 							OR   
 							(@GlobalFilter='' AND (IsNull(@RfqId,'') ='' OR CAST(rfqId AS VARCHAR(20)) like '%' + CAST(@RfqId AS VARCHAR(20)) + '%') and 
-							(IsNull(@RfqCreatedDate,'') ='' OR Cast(RfqcreatedDate as date)=Cast(RfqcreatedDate as date)) and
+							(IsNull(@RfqCreatedDate,'') ='' OR Cast(RfqcreatedDate as date)=Cast(@RfqCreatedDate as date)) and
 							(IsNull(@BuyerName,'') ='' OR rfqFrom like  '%'+@BuyerName+'%') and
 							(IsNull(@Description,'') ='' OR lineDescription like  '%'+@Description+'%') and
 							(IsNull(@PortalType,'') ='' OR PortalType like  '%'+@PortalType+'%') and

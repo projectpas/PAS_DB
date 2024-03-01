@@ -165,6 +165,7 @@ BEGIN
 					(Exchange LIKE '%' +@GlobalFilter+'%') OR   
 					(Description LIKE '%' +@GlobalFilter+'%') OR   
 					(CAST(Qty AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR   
+					(CAST(RequestedQty AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR   
 					(Condition LIKE '%' +@GlobalFilter+'%') OR   
 					(IsEmail LIKE '%' +@GlobalFilter+'%') OR   
 					(IsFax LIKE '%' +@GlobalFilter+'%') OR
@@ -222,6 +223,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Description')  THEN [Description] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='RequestedQty')  THEN RequestedQty END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedQty')  THEN RequestedQty END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IsEmail')  THEN IsEmail END ASC,

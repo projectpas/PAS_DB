@@ -192,7 +192,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.SalesUnitPrice UnitSalesPrice
 				,ltCal.ExtSalesUnitPrice ExtPrice
 				,ltCal.MarginAmount MarginAmt
-				,ltCal.Margin Margin
+				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
+				--,ltCal.Margin Margin
 				,(CASE WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_LOT,' ','')  THEN @LotTransIn 
 					    WHEN REPLACE(ltCal.Type,' ','') = REPLACE(@LOT_TransOut_LOT,' ','')  THEN @LotTransOut
 						WHEN REPLACE(ltCal.Type,' ','')  = REPLACE(@LOT_TransIn_PO,' ','')  THEN @LotPO
@@ -1100,7 +1101,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ISNULL(sl.RepairOrderUnitCost,0) RepairCost
 				,(ISNULL(ltcal.cogs,0.00) + ISNULL(sl.RepairOrderUnitCost,0)) TotalDirectCost
 				,ltCal.MarginAmount MarginAmt
-				,ltCal.Margin Margin				
+				--,ltCal.Margin Margin
+				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
 				--,ro.RepairOrderNumber RoNum
 				,(CASE WHEN ISNULL(SL.RepairOrderId,0) = 0 then ''  ELSE (SELECT TOP 1 rod.RepairOrderNumber FROM dbo.RepairOrder rod WITH(NOLOCK) WHERE rod.RepairOrderId = sl.RepairOrderId) END) RoNum
 				--,wo.WorkOrderNum WoNum
@@ -1817,7 +1819,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ltCal.SalesUnitPrice UnitSalesPrice
 				,ltCal.ExtSalesUnitPrice ExtPrice
 				,ltCal.MarginAmount MarginAmt
-				,ltCal.Margin Margin
+				--,ltCal.Margin Margin
+				,CASE WHEN ISNULL(ltCal.ExtSalesUnitPrice,0) = 0 THEN 0 ELSE CONVERT(DECIMAL(10,2),((100 * ISNULL(ltCal.MarginAmount,0))/ISNULL(ltCal.ExtSalesUnitPrice,1)))END Margin
 				,ISNULL(ltCal.CommissionExpense,0) AS CommissionExpense
 				,So.SalesOrderNumber SoNum
 				,sobi.InvoiceNo InvoiceNum 

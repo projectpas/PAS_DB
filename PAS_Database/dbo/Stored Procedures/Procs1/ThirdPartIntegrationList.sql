@@ -65,9 +65,9 @@ BEGIN
 						where i.IntegrationPortalId in (SELECT Item FROM DBO.SPLITSTRING(tpi.IntegrationIds,','))
 						FOR XML PATH (''))
 						, 1, 1, '')  AS Description,
-					   (ISNULL(Upper(tpi.APIURL),'')) 'APIURL', 
-					   (ISNULL(Upper(tpi.SecretKey),'')) 'SecretKey',   	
-					   (ISNULL(Upper(tpi.AccessKey),'')) 'AccessKey',  
+					   (ISNULL(tpi.APIURL,'')) 'APIURL', 
+					   (ISNULL(tpi.SecretKey,'')) 'SecretKey',   	
+					   (ISNULL(tpi.AccessKey,'')) 'AccessKey',  
 					   tpi.IntegrationIds,
                        tpi.IsActive,
                        tpi.IsDeleted,

@@ -322,7 +322,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId
 					INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId
-					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+					 --LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms
+					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId
 					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] soms WITH(NOLOCK) ON soms.ReferenceID = wop.ID AND soms.ModuleID = @WOMSModuleID
 					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = soms.Level1Id
 					INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
@@ -354,7 +355,7 @@ BEGIN
 					   MAX(CR.Code) AS  'currencyCode',
 					   SUM(wobi.GrandTotal) AS 'BalanceAmount',
 					   SUM(wobi.GrandTotal - wobi.RemainingAmount) AS 'CurrentlAmount',             
-					   CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN SUM(wobi.RemainingAmount) ELSE (0 - (SUM(wobi.GrandTotal - wobi.RemainingAmount))) END AS 'PaymentAmount',
+					   SUM(CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - ((wobi.GrandTotal - wobi.RemainingAmount))) END) AS 'PaymentAmount',
 					   SUM(0) AS 'Amountpaidbylessthen0days',      
                        SUM(0) AS 'Amountpaidby30days',      
                        SUM(0) AS 'Amountpaidby60days',
@@ -396,7 +397,7 @@ BEGIN
 					   MAX(CR.Code) AS  'currencyCode',
 					   SUM(sobi.GrandTotal) AS 'BalanceAmount',
 					   SUM(sobi.GrandTotal - sobi.RemainingAmount) AS 'CurrentlAmount',  
-					   CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN SUM(sobi.RemainingAmount) ELSE (0 - (SUM(sobi.GrandTotal - sobi.RemainingAmount))) END AS 'PaymentAmount',
+					   SUM(CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - ((sobi.GrandTotal - sobi.RemainingAmount))) END) AS 'PaymentAmount',
 					   SUM(0) AS 'Amountpaidbylessthen0days',      
                        SUM(0) AS 'Amountpaidby30days',      
                        SUM(0) AS 'Amountpaidby60days',

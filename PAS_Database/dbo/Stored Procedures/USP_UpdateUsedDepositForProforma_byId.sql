@@ -15,6 +15,7 @@
     3    16/02/2024   Devendra Shekh		modified
     4    19/02/2024   Devendra Shekh		sales tax calculation issue resoleved
     5    20/02/2024   Devendra Shekh		added @UsedDepositAmt to select
+    6    29/02/2024   Devendra Shekh		remaning amount issue resolved
 
 	EXEC  [dbo].[USP_UpdateUsedDepositForProforma_byId] 508
 **************************************************************/ 
@@ -40,6 +41,7 @@ BEGIN
 		@StartTacRec BIGINT = 1,
 		@RemainingAmount DECIMAL(18,2) = 0,
 		@OldUsedDepositAmount DECIMAL(18,2) = 0,
+		@NewGrandTotal DECIMAL(18,2) = 0,
 		@WOProFormaBillingInvoicingId BIGINT = 0;
 
 		DECLARE @SALESTAX DECIMAL(18,2) = 0,
@@ -58,7 +60,7 @@ BEGIN
 			[TaxTypeId] [BIGINT] NULL,
 		)
 
-		SELECT @WorkOrderId = [WorkOrderId], @TotalWorkOrderCostPlus = [SubTotal]
+		SELECT @WorkOrderId = [WorkOrderId], @TotalWorkOrderCostPlus = [SubTotal], @NewGrandTotal = ISNULL(GrandTotal, 0)
 		FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE [BillingInvoicingId] = @BillingInvoicingId;
 
 		SELECT @CustomerId = [CustomerId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId; 
@@ -96,7 +98,7 @@ BEGIN
 		SET @TotalTax = (@TotalWorkOrderCostPlus * @SALESTAX)/ 100 
 		SET @OtherTotalTax = (@TotalWorkOrderCostPlus * @OTHERTAX)/ 100 
 
-		SET @GrandTotal = @TotalWorkOrderCostPlus + @TotalTax + @OtherTotalTax;
+		SET @GrandTotal = @NewGrandTotal;
 		PRINT 'GRANDTOTAL : '  + ' - ' + CAST(@GrandTotal AS VARCHAR)
 
 		--SET @UsedDepositAmt = @GrandTotal - @DepositAmt;

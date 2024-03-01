@@ -55,256 +55,264 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN  
 
- DECLARE @QtyRemaining BIGINT,@WOMPN VARCHAR(150),@WOMitemmasterid BIGINT
-        ,@HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT  
-        ,@TemplateBody NVARCHAR(MAX),@WorkOrderNum VARCHAR(MAX),@StockLineNum VARCHAR(MAX),@WorkFlowWorkOrderId BIGINT
-	    ,@WorkOrderPartNoId BIGINT,@ItemMasterId BIGINT,@partnumber VARCHAR(200),@PNItemMasterId BIGINT,@RevisedItemmasterid BIGINT, @TotalWMSTK BIGINT
-		,@TotalShipQty BIGINT;
+		DECLARE @QtyRemaining BIGINT,@WOMPN VARCHAR(150),@WOMitemmasterid BIGINT
+			,@HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT  
+			,@TemplateBody NVARCHAR(MAX),@WorkOrderNum VARCHAR(MAX),@StockLineNum VARCHAR(MAX),@WorkFlowWorkOrderId BIGINT
+			,@WorkOrderPartNoId BIGINT,@ItemMasterId BIGINT,@partnumber VARCHAR(200),@PNItemMasterId BIGINT,@RevisedItemmasterid BIGINT, @TotalWMSTK BIGINT
+			,@TotalShipQty BIGINT, @WOWorkFlowId BIGINT,@WOPartNoId BIGINT;
 
-   IF(@WOPickTicketId = 0)  
-   BEGIN  
-   IF (@IsMPN = 1)  
-   BEGIN  
+		SET @WOWorkFlowId = (SELECT WorkFlowWorkOrderId FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId);
+		SET @WOPartNoId = (SELECT WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WOWorkFlowId);
 
-    SELECT @QtyRemaining = (ISNULL(wop.Quantity, 0) - @QtyToShip - SUM(ISNULL(wopt.QtyToShip, 0))) 
-	FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
-	LEFT JOIN [dbo].[WOPickTicket] wopt WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkOrderId and wopt.OrderPartId = wop.ID
-	WHERE wop.WorkOrderId = @WorkOrderId GROUP BY wop.Quantity
+		IF(@WOPickTicketId = 0)  
+		BEGIN  
+		   IF (@IsMPN = 1)  
+		   BEGIN  
+				SELECT @QtyRemaining = (ISNULL(wop.Quantity, 0) - @QtyToShip - SUM(ISNULL(wopt.QtyToShip, 0))) 
+				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
+				LEFT JOIN [dbo].[WOPickTicket] wopt WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkOrderId and wopt.OrderPartId = wop.ID
+				WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WOPartNoId GROUP BY wop.Quantity
 
-    INSERT INTO [dbo].[WOPickTicket]  
-       ([PickTicketNumber], [WorkorderId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[WorkFlowWorkOrderId],[OrderPartId],  
-        [Qty],[QtyToShip],[MasterCompanyId],[Status]  
-       ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[QtyRemaining])  
-    VALUES(@WOPickTicketNumber, @WorkOrderId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
-      @Qty, @QtyToShip, @MasterCompanyId, @Status,  
-      @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);  
-   END  
-   ELSE  
-   BEGIN  
+				INSERT INTO [dbo].[WOPickTicket]  
+				   ([PickTicketNumber], [WorkorderId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[WorkFlowWorkOrderId],[OrderPartId],  
+					[Qty],[QtyToShip],[MasterCompanyId],[Status]  
+				   ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[QtyRemaining])  
+				VALUES(@WOPickTicketNumber, @WorkOrderId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
+				  @Qty, @QtyToShip, @MasterCompanyId, @Status,  
+				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);  
+		   END  
+		   ELSE  
+		   BEGIN  
+				IF(@IsKitType = 0)
+				BEGIN
+					SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsId) FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId
+					INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 					 
+					INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.WorkOrderMaterialsId
+				END
+				ELSE
+				BEGIN
+					SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsKitId) FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.WorkOrderMaterialsKitId
+				END
 
-	IF(@IsKitType = 0)
-	BEGIN
-		SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsId) FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId GROUP BY wmsl.WorkOrderMaterialsId
-	END
-	ELSE
-	BEGIN
-		SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsKitId) FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId GROUP BY wmsl.WorkOrderMaterialsKitId
-	END
+				IF(@IsKitType = 0)
+				BEGIN
+					SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
+					FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+					LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId
+				END
+				ELSE
+				BEGIN
+					SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
+					FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+					LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId
+				END
+				IF (@TotalWMSTK > 1)
+				BEGIN
+					IF(@IsKitType = 0)
+					BEGIN
+						;WITH RESULT(QtyRemaining)AS (
+						SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
+						FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+						INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+						INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+						WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId)--GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-	IF(@IsKitType = 0)
-	BEGIN
-		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
-		FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-		LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId
-	END
-	ELSE
-	BEGIN
-		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
-		FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-		LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId
-	END
-	
+						SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+					END
+					ELSE
+					BEGIN
+						;WITH RESULT(QtyRemaining)AS (
+						SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
+						FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+						INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+						WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId)--GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-	IF (@TotalWMSTK > 1)
-	BEGIN
-		IF(@IsKitType = 0)
-		BEGIN
-			;WITH RESULT(QtyRemaining)AS (
-			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-			--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId )--GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
+						SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+					END
+				END
+				ELSE
+				BEGIN
+					IF(@IsKitType = 0)
+					BEGIN
+						;WITH RESULT(QtyRemaining)AS (
+						SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
+						FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+						INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+						INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+						WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-		ELSE
-		BEGIN
-			;WITH RESULT(QtyRemaining)AS (
-			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId )--GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
+						SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+					END
+					ELSE
+					BEGIN
+						;WITH RESULT(QtyRemaining)AS (
+						SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
+						FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+						INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+						WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-	END
-	ELSE
-	BEGIN
-		IF(@IsKitType = 0)
-		BEGIN
-			;WITH RESULT(QtyRemaining)AS (
-			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-			--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
+						SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+					END
+				END
 
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-		ELSE
-		BEGIN
-			;WITH RESULT(QtyRemaining)AS (
-			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0))  - @QtyToShip - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
-
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-	END
-
-    INSERT INTO [dbo].[WorkorderPickTicket]  
-       ([PickTicketNumber], [WorkorderId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[WorkOrderMaterialsId],[OrderPartId],  
-        [Qty],[QtyToShip],[MasterCompanyId],[Status], [StocklineId]  
-       ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[IsKitType], [QtyRemaining])  
-    VALUES(@WOPickTicketNumber, @WorkOrderId,  @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
-      @Qty, @QtyToShip, @MasterCompanyId, @Status, @StocklineId,  
-      @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@IsKitType,@QtyRemaining);  
-   END  
+				INSERT INTO [dbo].[WorkorderPickTicket]  
+				   ([PickTicketNumber], [WorkorderId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[WorkOrderMaterialsId],[OrderPartId],  
+					[Qty],[QtyToShip],[MasterCompanyId],[Status], [StocklineId]  
+				   ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[IsKitType], [QtyRemaining])  
+				VALUES(@WOPickTicketNumber, @WorkOrderId,  @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
+				  @Qty, @QtyToShip, @MasterCompanyId, @Status, @StocklineId,  
+				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@IsKitType,@QtyRemaining);  
+		   END  
      
-   IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  
-   BEGIN  
-    UPDATE DBO.CodePrefixes SET CurrentNummber = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
-   END  
-  END  
-  ELSE IF(@WOPickTicketId > 0 AND @IsConfirmed =0)  
-  BEGIN  
-   IF (@IsMPN = 1)  
-   BEGIN  
-    UPDATE [dbo].[WOPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE PickTicketId = @WOPickTicketId;  
+		   IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  
+		   BEGIN  
+				UPDATE DBO.CodePrefixes SET CurrentNummber = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
+		   END  
+	  END  
+	  ELSE IF(@WOPickTicketId > 0 AND @IsConfirmed =0)  
+	  BEGIN  
+		   IF (@IsMPN = 1)  
+		   BEGIN  
+				UPDATE [dbo].[WOPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE PickTicketId = @WOPickTicketId;  
 
-	SELECT @QtyRemaining = (ISNULL(wop.Quantity, 0) - SUM(ISNULL(wopt.QtyToShip, 0))) 
-	FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
-	LEFT JOIN [dbo].[WOPickTicket] wopt WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkOrderId and wopt.OrderPartId = wop.ID
-	WHERE wop.WorkOrderId = @WorkOrderId GROUP BY wop.Quantity
+				SELECT @QtyRemaining = (ISNULL(wop.Quantity, 0) - SUM(ISNULL(wopt.QtyToShip, 0))) 
+				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)
+				LEFT JOIN [dbo].[WOPickTicket] wopt WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkOrderId and wopt.OrderPartId = wop.ID
+				WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WOPartNoId GROUP BY wop.Quantity
 
-    UPDATE [dbo].[WOPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE PickTicketId = @WOPickTicketId;  
+				UPDATE [dbo].[WOPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE PickTicketId = @WOPickTicketId;  
+		   END  
+		   ELSE  
+		   BEGIN  
+			UPDATE [dbo].[WorkorderPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(),[QtyRemaining] = @QtyRemaining WHERE PickTicketId = @WOPickTicketId;  
+			
+			IF(@IsKitType = 0)
+			BEGIN
+				SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsId) FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+				INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId  
+				INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+				WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.WorkOrderMaterialsId;
+			END
+			ELSE
+			BEGIN
+				SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsKitId) FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+				INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+				WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.WorkOrderMaterialsKitId;
+			END
 
-   END  
-   ELSE  
-   BEGIN  
-    UPDATE [dbo].[WorkorderPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(),[QtyRemaining] = @QtyRemaining WHERE PickTicketId = @WOPickTicketId;  
+			IF(@IsKitType = 0)
+			BEGIN
+				SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
+				FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+				INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+				INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
+				WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId
+			END
+			ELSE
+			BEGIN
+				SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
+				FROM [dbo].WorkOrderPartNumber wop WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+				INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
+				WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId
+			END
 
+			IF(@TotalWMSTK > 1)
+			BEGIN
+				IF(@IsKitType = 0)
+				BEGIN
+					;WITH RESULT(QtyRemaining) AS(
+					SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
+					FROM WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId  
+					INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-	IF(@IsKitType = 0)
-	BEGIN
-		SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsId) FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-		--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId GROUP BY wmsl.WorkOrderMaterialsId;
-	END
-	ELSE
-	BEGIN
-		SELECT @TotalWMSTK = Count(wmsl.WorkOrderMaterialsKitId) FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId GROUP BY wmsl.WorkOrderMaterialsKitId;
-	END
+					SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+				END
+				ELSE
+				BEGIN
+					;WITH RESULT(QtyRemaining) AS(
+					SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
+					FROM WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId 
+					INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-	IF(@IsKitType = 0)
-	BEGIN
-		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
-		FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-		LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId
-	END
-	ELSE
-	BEGIN
-		SELECT @TotalShipQty = SUM(ISNULL(wopt.QtyToShip, 0))
-		FROM WorkOrderPartNumber wop WITH(NOLOCK)
-		INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-		INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-		LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-		WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId
-	END
+					SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+				END
+			END
+			ELSE 
+			BEGIN
+				IF(@IsKitType = 0)
+				BEGIN
+					;WITH RESULT(QtyRemaining) AS(
+					SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) -@TotalShipQty) AS QtyRemaining
+					FROM WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId
+					INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-	IF(@TotalWMSTK > 1)
-	BEGIN
-		IF(@IsKitType = 0)
-		BEGIN
-			;WITH RESULT(QtyRemaining) AS(
-			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-			--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
+					SELECT @QtyRemaining = QtyRemaining FROM RESULT
+				END
+				ELSE
+				BEGIN
+					;WITH RESULT(QtyRemaining) AS(
+					SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) -@TotalShipQty) AS QtyRemaining
+					FROM WorkOrderPartNumber wop WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wowf.WorkFlowWorkOrderId = wom.WorkFlowWorkOrderId
+					INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
+					WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND wop.ID = @WOPartNoId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
 
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-		ELSE
-		BEGIN
-			;WITH RESULT(QtyRemaining) AS(
-			SELECT (SUM(ISNULL(wmsl.QtyReserved, 0)) + SUM(ISNULL(wmsl.QtyIssued, 0)) - @TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId ) --GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
-
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-	END
-	ELSE 
-	BEGIN
-		IF(@IsKitType = 0)
-		BEGIN
-			;WITH RESULT(QtyRemaining) AS(
-			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) -@TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterials] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLine] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId   
-			--LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON wom.WorkOrderId = wopt.WorkOrderId and wom.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId AND wopt.StocklineId = wmsl.StockLineId
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsId = @WorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
-
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT
-		END
-		ELSE
-		BEGIN
-			;WITH RESULT(QtyRemaining) AS(
-			SELECT ((ISNULL(wmsl.QtyReserved, 0)) + (ISNULL(wmsl.QtyIssued, 0)) -@TotalShipQty) AS QtyRemaining
-			FROM WorkOrderPartNumber wop WITH(NOLOCK)
-			INNER JOIN [dbo].[WorkOrderMaterialsKit] wom WITH(NOLOCK) ON wop.WorkOrderId = wom.WorkOrderId 
-			INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] wmsl WITH(NOLOCK) ON wom.WorkOrderMaterialsKitId = wmsl.WorkOrderMaterialsKitId   
-			WHERE wom.WorkOrderId = @WorkOrderId AND wom.WorkOrderMaterialsKitId = @WorkOrderMaterialsId GROUP BY wmsl.QtyReserved,wmsl.QtyIssued)
-
-			SELECT @QtyRemaining = QtyRemaining FROM RESULT;
-		END
-	END
+					SELECT @QtyRemaining = QtyRemaining FROM RESULT;
+				END
+			END
 	
-    UPDATE [dbo].[WorkorderPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = @QtyRemaining WHERE PickTicketId = @WOPickTicketId;  
-   END  
-  END  
-  ELSE IF(@WOPickTicketId > 0 AND @IsConfirmed = 1)  
-  BEGIN  
-   IF (@IsMPN = 1)  
-   BEGIN  
-    UPDATE [dbo].[WOPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId;  
-   END  
-   ELSE  
-   BEGIN  
-    UPDATE [dbo].[WorkorderPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId;  
-   END  
-  END  
+			UPDATE [dbo].[WorkorderPickTicket] SET QtyToShip = @QtyToShip, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = @QtyRemaining WHERE PickTicketId = @WOPickTicketId;  
+		   END  
+	  END  
+	  ELSE IF(@WOPickTicketId > 0 AND @IsConfirmed = 1)  
+	  BEGIN  
+		   IF (@IsMPN = 1)  
+		   BEGIN  
+			UPDATE [dbo].[WOPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId;  
+		   END  
+		   ELSE  
+		   BEGIN  
+			UPDATE [dbo].[WorkorderPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId;  
+		   END  
+	  END  
     
        --Added for WO History   
 	   IF(@IsKitType = 0) -- For check is kit or not.

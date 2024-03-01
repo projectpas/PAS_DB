@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetMultiplePickTicket_ById]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get data for multiple pick tickets   
@@ -117,12 +118,13 @@ BEGIN
 					max(wop.PDFPath) as PDFPath
 				FROM [DBO].[WorkOrderMaterials] wom WITH (NOLOCK) 
 				JOIN [DBO].[WorkorderPickTicket] wop ON wom.WorkOrderMaterialsId = wop.WorkOrderMaterialsId
-				LEFT JOIN [DBO].[WorkOrderPartNumber] wopn ON wom.WorkOrderId  = wopn.WorkOrderId
-				LEFT JOIN [DBO].[WorkOrder] wo ON wopn.WorkOrderId = wo.WorkOrderId
+				JOIN [DBO].[WorkOrderWorkFlow] wowf ON wom.WorkFlowWorkOrderId  = wowf.WorkFlowWorkOrderId
+				JOIN [DBO].[WorkOrderPartNumber] wopn ON wopn.ID  = wowf.WorkOrderPartNoId
+				JOIN [DBO].[WorkOrder] wo ON wopn.WorkOrderId = wo.WorkOrderId
+				JOIN [DBO].[Customer] cu ON wo.CustomerId = cu.CustomerId
 				LEFT JOIN [DBO].[CustomerDomensticShipping] cds ON wo.CustomerId = cds.CustomerId and cds.IsPrimary = 1 
 				LEFT JOIN [DBO].[Address] a ON cds.AddressId = a.AddressId
-				LEFT JOIN [DBO].[Countries] c ON a.CountryId = c.countries_id
-				LEFT JOIN [DBO].[Customer] cu ON wo.CustomerId = cu.CustomerId
+				LEFT JOIN [DBO].[Countries] c ON a.CountryId = c.countries_id				
 				LEFT JOIN [DBO].[Address] ad ON cu.AddressId = ad.AddressId
 				LEFT JOIN [DBO].[Countries] co ON ad.CountryId =  co.countries_id
 				LEFT JOIN [DBO].[CustomerContact] cc ON  wo.CustomerContactId = cc.CustomerContactId
@@ -174,12 +176,13 @@ BEGIN
 					max(wop.PDFPath) as PDFPath
 				FROM [DBO].[WorkOrderMaterialsKit] wom WITH (NOLOCK) 
 				JOIN [DBO].[WorkorderPickTicket] wop ON wom.WorkOrderMaterialsKitId = wop.WorkOrderMaterialsId AND ISNULL(wop.IsKitType, 0) = 1
-				LEFT JOIN [DBO].[WorkOrderPartNumber] wopn ON wom.WorkOrderId  = wopn.WorkOrderId
-				LEFT JOIN [DBO].[WorkOrder] wo ON wopn.WorkOrderId = wo.WorkOrderId
+				JOIN [DBO].[WorkOrderWorkFlow] wowf ON wom.WorkFlowWorkOrderId  = wowf.WorkFlowWorkOrderId
+				JOIN [DBO].[WorkOrderPartNumber] wopn ON wopn.ID  = wowf.WorkOrderPartNoId
+				JOIN [DBO].[WorkOrder] wo ON wopn.WorkOrderId = wo.WorkOrderId
+				JOIN [DBO].[Customer] cu ON wo.CustomerId = cu.CustomerId
 				LEFT JOIN [DBO].[CustomerDomensticShipping] cds ON wo.CustomerId = cds.CustomerId and cds.IsPrimary = 1 
 				LEFT JOIN [DBO].[Address] a ON cds.AddressId = a.AddressId
 				LEFT JOIN [DBO].[Countries] c ON a.CountryId = c.countries_id
-				LEFT JOIN [DBO].[Customer] cu ON wo.CustomerId = cu.CustomerId
 				LEFT JOIN [DBO].[Address] ad ON cu.AddressId = ad.AddressId
 				LEFT JOIN [DBO].[Countries] co ON ad.CountryId =  co.countries_id
 				LEFT JOIN [DBO].[CustomerContact] cc ON  wo.CustomerContactId = cc.CustomerContactId

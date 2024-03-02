@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetAssetInventoryList]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get list of Asset Inventory List   
@@ -101,7 +102,7 @@ BEGIN
 			--BEGIN TRANSACTION
 			--	BEGIN
 						;With Result AS(
-							SELECT	
+							SELECT	DISTINCT
 								asm.AssetRecordId as AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.Name AS Name,

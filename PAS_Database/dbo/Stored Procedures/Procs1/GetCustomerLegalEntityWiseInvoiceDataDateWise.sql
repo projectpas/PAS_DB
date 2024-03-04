@@ -22,6 +22,7 @@
  10	  19/02/2024   Devendra Shekh	removed isperforma and added isinvoiceposted flage for wo
  11	  27/02/2024   Devendra Shekh	changes for profoma calculation
  12	  28/02/2024   Devendra Shekh  changes for amount calculation based on isproforma for wo and so
+ 13	  04/02/2024   Devendra Shekh  changes for amount calculation based on isproforma for wo and so
 
 
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceDataDateWise] 77,23,'2022-05-12','2022-05-12',1,1,79,2  
@@ -85,9 +86,11 @@ BEGIN
 		  INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
           ON CM.InvoiceId = sobi.SOBillingInvoicingId   
   
-   WHERE sobi.RemainingAmount > 0 AND ISNULL(sobi.IsBilling,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND   
+   WHERE ISNULL(sobi.IsBilling,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND  --sobi.RemainingAmount > 0 AND 
    le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  
    AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND sobi.BillToSiteId=@SiteId  
+   AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
+   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
    ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma     
      
@@ -127,10 +130,10 @@ BEGIN
      INNER JOIN [dbo].CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'     
     ON CM.InvoiceId = wobi.BillingInvoicingId  
         
-    WHERE wobi.RemainingAmount > 0 AND wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0   
+    WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0   --wobi.RemainingAmount > 0 AND
      AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId  
-	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
+	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) AND wobi.RemainingAmount > 0) 
 	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
      
     GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
@@ -172,6 +175,8 @@ BEGIN
      WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
        CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
            AND sobi.BillToSiteId=@SiteId  
+			AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
+			OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
           GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
           ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      
@@ -342,6 +347,8 @@ BEGIN
    WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
     AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
     AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsBilling,0) = 0   
+	AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
+	OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
    ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      
@@ -510,6 +517,8 @@ BEGIN
    WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0   AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
    AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
    AND sobi.BillToSiteId=@SiteId  
+   AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
+   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
    ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
      

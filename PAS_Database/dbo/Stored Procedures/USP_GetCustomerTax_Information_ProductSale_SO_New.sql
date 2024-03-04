@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/26/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 20845,11,77
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 638,7,3383
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] 
 @SalesOrderId BIGINT,
@@ -85,7 +85,7 @@ BEGIN
 				   @CustomerId   = [CustomerId]				  
 			  FROM #tmprsoShipDetails WHERE ID = @MinId		
 					
-			EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_Sales] 
+			EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale] 
 					 @CustomerId,
 					 @ShipToSiteId,
 					 @OriginSiteId,

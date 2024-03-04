@@ -50,15 +50,15 @@
     [CreditMemoUsed]                      DECIMAL (18, 2) NULL,
     [RemainingAmount]                     DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicing] PRIMARY KEY CLUSTERED ([SOBillingInvoicingId] ASC),
-    CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_BillToCustomer] FOREIGN KEY ([BillToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_ExchangeSalesOrder] FOREIGN KEY ([ExchangeSalesOrderId]) REFERENCES [dbo].[ExchangeSalesOrder] ([ExchangeSalesOrderId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_InvoiceType] FOREIGN KEY ([InvoiceTypeId]) REFERENCES [dbo].[InvoiceType] ([InvoiceTypeId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_ShipToCustomer] FOREIGN KEY ([ShipToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicing_SoldToCustomer] FOREIGN KEY ([SoldToCustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 GO

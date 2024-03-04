@@ -15,7 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    02/26/2024   Moin Bloch    Created
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 20845,11,77
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 638,983,3383
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] 
 @SalesOrderId BIGINT,
@@ -73,9 +73,10 @@ BEGIN
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
-	         WHERE SO.[SalesOrderId] = @SalesOrderId 
-			  AND SOP.[SalesOrderPartId] NOT IN (SELECT [SalesOrderPartId] FROM #tmprsoShipDetails);
-           											
+	         WHERE SO.[SalesOrderId] = @SalesOrderId
+			   AND SOP.[SalesOrderPartId] = @SalesOrderPartId
+			   AND SOP.[SalesOrderPartId] NOT IN (SELECT [SalesOrderPartId] FROM #tmprsoShipDetails);
+           									
 		SELECT @TotalRecord = MAX(ID), @MinId = MIN(ID) FROM #tmprsoShipDetails    
 	
 		WHILE @MinId <= @TotalRecord
@@ -85,7 +86,7 @@ BEGIN
 				   @CustomerId   = [CustomerId]				  
 			  FROM #tmprsoShipDetails WHERE ID = @MinId		
 					
-			EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_Sales] 
+			EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale] 
 					 @CustomerId,
 					 @ShipToSiteId,
 					 @OriginSiteId,

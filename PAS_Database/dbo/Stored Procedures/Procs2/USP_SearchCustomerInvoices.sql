@@ -25,6 +25,7 @@
 	8   15/02/2024	  AMIT GHEDIYA      added DBO & NO(LOCK)
 	9   19/02/2024	  Devendra Shekh    email validation issue for wo resolved
 	10  20/02/2024	  Devendra Shekh    added remainingamount condition
+	11  04/03/2024	  AMIT GHEDIYA      Multiple data issue in SO.
      
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -270,7 +271,7 @@ BEGIN
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,LMC.LastMSLevel,LMC.AllMSlevels	,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice)
 			,SOResult AS(
-			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
+			SELECT DISTINCT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
@@ -281,23 +282,23 @@ BEGIN
 				CASE WHEN CRM.RMAHeaderId >1 then 1 else  0 end isRMACreate
 				,ISNULL(SOBI.IsProforma, 0) AS IsPerformaInvoice
 			FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId AND ISNULL(SOBII.[IsBilling], 0) != 1
-				LEFT JOIN dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
+				--LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId AND ISNULL(SOBII.[IsBilling], 0) != 1
+				--LEFT JOIN dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				--LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
-			Where SOBI.MasterCompanyId=@MasterCompanyId AND SOBII.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
+			Where SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
 			),
 			SVersionCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
 				A.VersionNo [VersionNoType] 
 				FROM dbo.SalesOrderBillingInvoicing PC WITH (NOLOCK) 
 				LEFT JOIN dbo.SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.[IsBilling], 0) != 1
-				LEFT JOIN dbo.SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
+				--LEFT JOIN dbo.SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(SQ.VersionNumber) >0 then ',' ELSE '' END + SQ.VersionNumber 
@@ -309,7 +310,7 @@ BEGIN
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') VersionNo  
 				) A  
-				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0 AND ISNULL(PC.[IsBilling], 0) != 1
+				WHERE PC.MasterCompanyId=@MasterCompanyId AND PC.IsVersionIncrease=0 AND ISNULL(PC.[IsBilling], 0) != 1 
 				Group By PC.SOBillingInvoicingId, A.VersionNo  
 				),
 			SCRefCTE AS(  
@@ -335,14 +336,14 @@ BEGIN
 				ISNULL(A.SerialNumber,'') [SerialNumberType] 
 				FROM dbo.SalesOrderBillingInvoicing PC WITH (NOLOCK) 
 				LEFT JOIN dbo.SalesOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.SOBillingInvoicingId =PC.SOBillingInvoicingId AND ISNULL(WOBII.[IsBilling], 0) != 1
-				LEFT JOIN dbo.SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
-				LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON STL.StockLineId=WOPN.StockLineId
+				--LEFT JOIN dbo.SalesOrderPart WOPN WITH (NOLOCK) ON WOPN.SalesOrderId =PC.SalesOrderId and WOPN.SalesOrderPartId=WOBII.SalesOrderPartId
+				--LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON STL.StockLineId=WOPN.StockLineId
 				Outer Apply(  
 				 SELECT   
 					STUFF((SELECT CASE WHEN LEN(ST.SerialNumber) >0 then ',' ELSE '' END + ST.SerialNumber 
 					 FROM dbo.SalesOrderBillingInvoicingItem S WITH (NOLOCK)  
 					 Left Join dbo.SalesOrderPart I WITH (NOLOCK) On I.SalesOrderPartId=S.SalesOrderPartId 
-					 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+					 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=I.StockLineId
 					 Where S.SOBillingInvoicingId = PC.SOBillingInvoicingId  AND ISNULL(PC.[IsBilling], 0) != 1
 					 AND S.IsActive = 1 AND S.IsDeleted = 0  
 					 FOR XML PATH('')), 1, 1, '') SerialNumber  
@@ -716,7 +717,7 @@ BEGIN
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt], ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,IM.partnumber [PN], IM.PartDescription [PNDescription],
-				WQ.VersionNo [VersionNo],WQ.QuoteNumber,WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
+				WQ.VersionNo [VersionNo],WQ.QuoteNumber,WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.stocklineid,
 				
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 					 WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'
@@ -750,7 +751,7 @@ BEGIN
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt], ISNULL(SOBI.RemainingAmount, 0) RemainingAmount, IM.partnumber [PN], IM.PartDescription [PNDescription],
-				SQ.VersionNumber [VersionNo],SQ.SalesOrderQuoteNumber [QuoteNumber],SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],
+				SQ.VersionNumber [VersionNo],SQ.SalesOrderQuoteNumber [QuoteNumber],SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.stocklineid,
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 					 WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'
 					 WHEN IM.IsPma = 0 and IM.IsDER = 1 THEN 'DER'
@@ -778,7 +779,7 @@ BEGIN
 				SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 				C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
 				SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
-				SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SOPN.CustomerReference ,ST.SerialNumber ,
+				SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SOPN.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
 				IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId, SOBI.IsProforma
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result)  
 			   SELECT * INTO #TempResults from  Result

@@ -13,6 +13,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    15/02/2024   AMIT GHEDIYA		 Created
+	2    04/03/2024   AMIT GHEDIYA		 Update only for Proforma records.
      
 ************************************************************************/
 
@@ -165,12 +166,12 @@ BEGIN
 				UPDATE SOBN
 				SET SOBN.IsBilling = 1
 				FROM [dbo].[SalesOrderBillingInvoicing] SOBN WITH(NOLOCK)
-				WHERE SOBN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId
+				WHERE SOBN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBN.IsProforma = 1
 
 				UPDATE SOBIN
 				SET SOBIN.IsBilling = 1
 				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBIN WITH(NOLOCK)
-				WHERE SOBIN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId
+				WHERE SOBIN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBIN.IsProforma = 1
 			END
 		END
 	END	

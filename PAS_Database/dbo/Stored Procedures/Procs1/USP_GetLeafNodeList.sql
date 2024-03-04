@@ -17,7 +17,7 @@
 
     USP_GetLeafNodeList 50,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetLeafNodeList](   
+Create     PROCEDURE [dbo].[USP_GetLeafNodeList](   
 	@ReportingStructureId BIGINT,
 	@masterCompanyId INT
 )
@@ -82,7 +82,7 @@ BEGIN
 		SELECT * INTO #LeafTempTblMainLeaf FROM #LeafTempTbl WHERE IsMainLeafNode = 1
 
 		UPDATE #LeafTempTblMainLeaf SET IsMainLeafNode = 0 WHERE IsMainLeafNode = 1 
-		Update #LeafTempTbl set GLSequenceNumber = 0,GLAccount = NULL, GlMappingId = 0,GlIsPositive = NULL,GLAccountId = NULL,AccountCode= 0
+		Update #LeafTempTbl set GLSequenceNumber = 0,GLAccount = NULL, GlMappingId = 0,GlIsPositive = NULL,AccountCode= 0
 		WHERE IsMainLeafNode = 1 AND IsLeafNode = 1 AND rowSeqGl = 1 
 
 		SELECT * INTO #FinalTempTable FROM (SELECT * FROM #LeafTempTbl UNION ALL SELECT * FROM #LeafTempTblMainLeaf) as FinalTemp

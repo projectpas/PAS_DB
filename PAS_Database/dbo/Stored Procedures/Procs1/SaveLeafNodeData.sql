@@ -16,7 +16,7 @@
 3    21/08/2023  Satish Gohil   Modify(ispositive flag add at gl level)
 4    27Feb2024   Rajesh Gami    Add sequence number related chane for [GLAccountLeafNodeMapping]
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[SaveLeafNodeData]    
+Create     PROCEDURE [dbo].[SaveLeafNodeData]    
 (    
 	@LeafNodeId BIGINT,    
 	@Name VARCHAR(50),    
@@ -36,10 +36,30 @@ BEGIN
 		IF OBJECT_ID(N'tempdb..##tmpTbl') IS NOT NULL        
 		BEGIN        
 			DROP TABLE #tmpTbl    
-		END  
+		END 
+		IF OBJECT_ID(N'tempdb..#TempMain') IS NOT NULL        
+		BEGIN        
+			DROP TABLE #TempMain    
+		END 
+		
+		CREATE TABLE #TempMain (
+		ID INT IDENTITY(1,1),
+		Item BIGINT
+		);
+
+		DECLARE @Numbers TABLE (Number INT);
+		INSERT INTO @Numbers (Number)
+		SELECT CAST(Item AS INT) AS Number
+		FROM dbo.SplitString(@GlAccountId, ',');
+		DECLARE @SortedNumbers NVARCHAR(MAX);
+		SELECT @SortedNumbers = COALESCE(@SortedNumbers + ',', '') + CAST(Number AS NVARCHAR(MAX))
+		FROM @Numbers
+		ORDER BY Number;
+		--SELECT @SortedNumbers AS SortedGlAccountId;
+		Set @GlAccountId = @SortedNumbers
 
 		DECLARE @SequenceNumber BIGINT =1, @DeletedLeafNodeId BIGINT = 0;
-  
+		DECLARE @MaxSequenceNumber INT= 0;  
 		CREATE TABLE #tmpTbl(        
 			glAccId VARCHAR(20) null    
 		)       
@@ -47,9 +67,15 @@ BEGIN
 		SELECT @SequenceNumber = (MAX(ISNULL(SequenceNumber,0)) +1) FROM dbo.LeafNode WITH(NOLOCK) 
 		WHERE ReportingStructureId = @ReportingStructureId 
 
+		SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
+		FROM dbo.GLAccountLeafNodeMapping WITH(NOLOCK)
+		WHERE LeafNodeId = @LeafNodeId AND MasterCompanyId = @MasterCompanyId;
+
+
 		IF(ISNULL(@LeafNodeId,0) > 0 )    
 		BEGIN    
 			SELECT * INTO #temp FROM [DBO].SplitString(@GlAccountId, ',')
+			INSERT INTO #TempMain SELECT * FROM [DBO].SplitString(@GlAccountId, ',')
 			------- Update LeafNode Data --------------    
 			UPDATE dbo.LeafNode SET    
 			Name = @Name,ParentId = @ParentId,    
@@ -88,22 +114,20 @@ BEGIN
 			--	EXEC UpdateGLAccountLeafNode @LeafNodeId,@GlAccountId,@ParentId,@IsLeafNode      
 			--END    
 
-
-		
-			  DELETE FROM #temp WHERE ISNULL(Item, '') = ''
+			  DELETE FROM #TempMain WHERE ISNULL(Item, '') = ''
 			  MERGE [dbo].[GLAccountLeafNodeMapping] AS TARGET
-			  USING #temp AS SOURCE ON (TARGET.LeafNodeId = @LeafNodeId AND TARGET.GLAccountId = SOURCE.Item)
+			  USING #TempMain AS SOURCE ON (TARGET.LeafNodeId = @LeafNodeId AND TARGET.GLAccountId = SOURCE.Item)
 			  WHEN MATCHED THEN UPDATE SET TARGET.UpdatedBy = @CreatedBy, TARGET.IsDeleted = 0, TARGET.UpdatedDate = GETUTCDATE()
 			  ,TARGET.SequenceNumber = (CASE WHEN (SELECT TOP 1 SequenceNumber FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.GLAccountLeafNodeMappingId = TARGET.GLAccountLeafNodeMappingId) = TARGET.SequenceNumber THEN TARGET.SequenceNumber ELSE (ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1) END)
 			  WHEN NOT MATCHED BY TARGET THEN 
 			  INSERT (LeafNodeId,GLAccountId,MasterCompanyId,UpdatedBy,CreatedBy,UpdatedDate,CreatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)
-			  VALUES (@LeafNodeId, SOURCE.Item, @MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1);
+			  VALUES (@LeafNodeId, SOURCE.Item, @MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,(SOURCE.Id + @MaxSequenceNumber));
 
 			  UPDATE [dbo].[GLAccountLeafNodeMapping]
 			  SET [IsDeleted] = 1,SequenceNumber = 0
 			  WHERE LeafNodeId = @LeafNodeId
 			  AND [IsDeleted] = 0
-			  AND [GLAccountId] NOT IN (SELECT Item FROM #temp)
+			  AND [GLAccountId] NOT IN (SELECT Item FROM #TempMain)
 			 
     
 		END    
@@ -148,9 +172,17 @@ BEGIN
 					  WHERE LeafNodeId = @DeletedLeafNodeId
 					------- Insert Positive Gl Mapping Data -----------    
 					IF(ISNULL(@GlAccountId,'') <> '')    
-					BEGIN    
+					BEGIN 
+						WITH NumberedSplit AS (
+						SELECT 
+							Item,
+							ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
+						FROM 
+							SplitString(@GlAccountId, ',')
+						)
+
 						INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,UpdatedBy,CreatedBy,UpdatedDate,CreatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)    
-						SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1) FROM SplitString(@GlAccountId,',')   
+						SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,@MaxSequenceNumber+RowNum FROM NumberedSplit    
     
 						EXEC UpdateGLAccountLeafNode @LeafNodeId,@GlAccountId,@ParentId,@IsLeafNode      
     
@@ -181,8 +213,15 @@ BEGIN
 					------- Insert Positive Gl Mapping Data -----------    
 					IF(ISNULL(@GlAccountId,'') <> '')    
 					BEGIN    
+						WITH NumberedSplit AS (
+						SELECT 
+							Item,
+							ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
+							FROM 
+								SplitString(@GlAccountId, ',')
+							)
 						INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,UpdatedBy,CreatedBy,UpdatedDate,CreatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)    
-						SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1) FROM SplitString(@GlAccountId,',')      
+						SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,@MaxSequenceNumber+RowNum FROM NumberedSplit      
     
 						EXEC UpdateGLAccountLeafNode @LeafNodeId,@GlAccountId,@ParentId,@IsLeafNode      
     
@@ -216,8 +255,18 @@ BEGIN
 				------- Insert Positive Gl Mapping Data -----------    
 				IF(ISNULL(@GlAccountId,'') <> '')    
 				BEGIN    
+					WITH NumberedSplit AS (
+						SELECT 
+							Item,
+							ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
+						FROM 
+							SplitString(@GlAccountId, ',')
+					)
 					INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,UpdatedBy,CreatedBy,UpdatedDate,CreatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)    
-					SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1) FROM SplitString(@GlAccountId,',')      
+					SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,@MaxSequenceNumber+RowNum FROM NumberedSplit 
+					
+					--INSERT INTO dbo.GLAccountLeafNodeMapping(LeafNodeId,GLAccountId,MasterCompanyId,UpdatedBy,CreatedBy,UpdatedDate,CreatedDate,IsActive,IsDeleted,IsPositive,SequenceNumber)    
+					--SELECT @LeafNodeId,Item,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,1,(ISNULL((SELECT MAX(ISNULL(SequenceNumber,0)) FROM [dbo].[GLAccountLeafNodeMapping] GLM WITH(NOLOCK) WHERE GLM.LeafNodeId = @LeafNodeId AND GLM.MasterCompanyId = @MasterCompanyId),0) + 1) FROM SplitString(@GlAccountId,',')      
     
 					EXEC UpdateGLAccountLeafNode @LeafNodeId,@GlAccountId,@ParentId,@IsLeafNode       
 				END   

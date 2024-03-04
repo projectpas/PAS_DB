@@ -85,7 +85,7 @@ BEGIN
 				   @CustomerId   = [CustomerId]				  
 			  FROM #tmprsoShipDetails WHERE ID = @MinId		
 					
-			EXEC [dbo].[USP_GetCustomerTax_Information_Repair] 
+			EXEC [dbo].[USP_GetCustomerTax_Information_ProductSale_Sales] 
 					 @CustomerId,
 					 @ShipToSiteId,
 					 @OriginSiteId,

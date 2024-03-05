@@ -39,13 +39,18 @@ BEGIN
 					@PCOUNT AS INT = 0,
 					@SalesOrderId BIGINT = 0,
 					@DepositAmt DECIMAL(18,2) = 0,
+					@OldUsedDepositAmount DECIMAL(18,2) = 0,
 					@TotalSalesOrderCostPlus DECIMAL(18,2) = 0,
 					@UsedDepositAmt DECIMAL(18,2) = 0,
 					@SOProFormaBillingInvoicingId BIGINT = 0,
 					@SOisProforma BIT,
 					@SalesOrderPartNoId BIGINT = 0,
 					@SOProfomaBillingInvoicingId BIGINT = 0,
-					@BillSOBillingInvoicingId BIGINT = 0;
+					@BillSOBillingInvoicingId BIGINT = 0,
+					@proamount DECIMAL(18,2) = 0,
+					@Depositamountpro DECIMAL(18,2) = 0,
+					@RemainingAmount DECIMAL(18,2) = 0,
+					@DepositRemaining DECIMAL(18,2) = 0;
 
 		------------- Update Remaining Deposit -------------------------------------
 			
@@ -55,34 +60,55 @@ BEGIN
 			IF(@SOisProforma != 1)
 			BEGIN
 				--Get deposit from invoiced.
-				SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+				SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+
+				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0)) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
+
+				SELECT TOP 1 @SOProFormaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
 				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
 				--Update Remaining balace
 				IF(@DepositAmt > 0)
-				BEGIN
-					DECLARE @RemainingAmount DECIMAL(18,2) = 0;
+				BEGIN 
+					SELECT @DepositAmt = SUM(ISNULL([DepositAmount], 0)), @OldUsedDepositAmount = SUM(ISNULL(UsedDeposit, 0)) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+					WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+
 					SELECT @RemainingAmount = ISNULL(RemainingAmount,0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
-					IF(@RemainingAmount > @DepositAmt)
-					BEGIN
-						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ISNULL(RemainingAmount ,0) - @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					
+					IF(@RemainingAmount >= @UsedDepositAmt)
+					BEGIN 
+						IF((@DepositAmt - @OldUsedDepositAmount) > @RemainingAmount)
+						BEGIN
+							UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+						END
+						ELSE
+						BEGIN
+							UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = ABS(ISNULL(RemainingAmount ,0) - ABS((@DepositAmt - @OldUsedDepositAmount)))  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+						END
 					END
 					ELSE
+					BEGIN 
+						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
+					END
+				END
+				
+				--Update current billing add deposit amount in ProformaDeposit field
+				UPDATE [dbo].[SalesOrderBillingInvoicing] SET ProformaDeposit = @UsedDepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
+
+				SELECT @proamount = ISNULL(RemainingAmount,0), @Depositamountpro = ISNULL(ProformaDeposit,0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
+				IF(@proamount >= @Depositamountpro)
+				BEGIN
+					SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+					WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+					IF(@DepositAmt > 0)
 					BEGIN
 						UPDATE [dbo].[SalesOrderBillingInvoicing] SET RemainingAmount = 0  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId;
 					END
 				END
 
-				--Update current billing add deposit amount in ProformaDeposit field
-				UPDATE [dbo].[SalesOrderBillingInvoicing] SET ProformaDeposit = @DepositAmt  WHERE [SOBillingInvoicingId] = @sobillingInvoicingId; 
-
-				SET @UsedDepositAmt = CASE WHEN ISNULL(@TotalSalesOrderCostPlus ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@TotalSalesOrderCostPlus ,0) END
-
-				SELECT TOP 1 @SOProFormaBillingInvoicingId = SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-				WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
-
 				IF(ISNULL(@SOProFormaBillingInvoicingId, 0) > 0)
-				BEGIN
+				BEGIN 
 					UPDATE [dbo].[SalesOrderBillingInvoicing]
 					SET [UsedDeposit] = ISNULL(UsedDeposit, 0) + @UsedDepositAmt
 					WHERE [SOBillingInvoicingId] = @SOProFormaBillingInvoicingId
@@ -133,7 +159,7 @@ BEGIN
 					BEGIN 
 						SELECT @SalesOrderPartId = SalesOrderPartId, @SOBillingInvoicingIds = SOBillingInvoicingId, @SalesOrderPartId = SalesOrderPartId 
 						FROM #SalesOrderBillingInvoiceList WITH(NOLOCK) WHERE ID = @COUNT;
-						print @SalesOrderPartId;
+						
 						--Update isbiiling after standdard invoiced post
 						UPDATE DBO.SalesOrderBillingInvoicingItem SET IsBilling = 1 WHERE SalesOrderPartId = @SalesOrderPartId AND IsProforma = 1;
 
@@ -152,8 +178,6 @@ BEGIN
 
 							SET @PCOUNT = @PCOUNT - 1
 						END
-						--print @BillSOBillingInvoicingId;
-						
 
 						SET @COUNT = @COUNT - 1
 					END

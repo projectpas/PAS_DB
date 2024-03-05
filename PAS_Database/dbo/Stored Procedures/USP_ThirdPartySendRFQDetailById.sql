@@ -28,7 +28,7 @@ BEGIN
   BEGIN TRANSACTION
 	BEGIN
 		
-		IF (@ILSRFQPartId >0)
+		IF (@ThirdPartyRFQId >0)
 		BEGIN
 		   	  SELECT DISTINCT
 					   part.ILSRFQPartId ILSRFQPartId,

@@ -18,7 +18,7 @@
   
 ************************************************************************/ 
 
-CREATE      PROCEDURE [dbo].[CopyReportingStructure]
+CREATE        PROCEDURE [dbo].[CopyReportingStructure]
 @ReportingStructureId BIGINT,
 @ReportName VARCHAR(50),  
 @ReportDescription VARCHAR(500),
@@ -101,8 +101,8 @@ BEGIN
 				UPDATE [dbo].[LeafNode] SET [ParentId] = (SELECT [TempLeafNodeId] FROM #tempLeafNodeTable WHERE [LeafNodeId] = @ParentId) WHERE [LeafNodeId] = @NewLeafNodeId;
 			END
 			
-			INSERT INTO GLAccountLeafNodeMapping([LeafNodeId],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPositive],[NewReportingStructureId])
-		    SELECT @NewLeafNodeId,G.[GLAccountId],G.[MasterCompanyId],G.[CreatedBy],G.[UpdatedBy],G.[CreatedDate],G.[UpdatedDate],G.[IsActive],G.[IsDeleted],G.[IsPositive],@updatedReportingStructureId
+			INSERT INTO GLAccountLeafNodeMapping([LeafNodeId],[GLAccountId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPositive],[NewReportingStructureId],SequenceNumber)
+		    SELECT @NewLeafNodeId,G.[GLAccountId],G.[MasterCompanyId],G.[CreatedBy],G.[UpdatedBy],G.[CreatedDate],G.[UpdatedDate],G.[IsActive],G.[IsDeleted],G.[IsPositive],@updatedReportingStructureId,SequenceNumber
 		    FROM [dbo].[GLAccountLeafNodeMapping] G WITH(NOLOCK) 
 		    WHERE [LeafNodeId] = @LeafNodeId;
 

@@ -14,7 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/02/2024   Moin Bloch    Created
-
+	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange_Quote] 368
 **************************************************************/
@@ -85,7 +85,7 @@ BEGIN
 	)
 	
 	INSERT INTO #tmprExchangeDetailsQuote ([OriginSiteId],[ShipToSiteId],[CustomerId],[ExchangeQuoteId],[ExchangeQuotePartId])
-			SELECT ITM.[SiteId],
+			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
 				   SO.[CustomerId],
 				   SO.[ExchangeQuoteId],
@@ -93,6 +93,7 @@ BEGIN
 			  FROM [dbo].[ExchangeQuote] SO WITH(NOLOCK) 
 	    INNER JOIN [dbo].[ExchangeQuotePart] SOP WITH(NOLOCK) ON SO.[ExchangeQuoteId] = SOP.[ExchangeQuoteId] 
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[ExchangeQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @EXSOQModuleId
+ 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[ExchangeQuoteId] = @ExchangeQuoteId

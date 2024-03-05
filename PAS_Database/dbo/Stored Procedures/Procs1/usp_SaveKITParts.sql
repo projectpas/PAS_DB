@@ -42,6 +42,9 @@ BEGIN
   DECLARE @UpdatedDate [datetime2](7);
   DECLARE @PartNumber [varchar](100) ;
   DECLARE @NewCost [decimal](18, 2) ;
+  DECLARE @NewItemId [bigint] ;
+  DECLARE @OldItemId [bigint] ;
+  DECLARE @OldPartNumber [varchar](100) ;
   DECLARE @NewConditionId [bigint] ;
   DECLARE @NewCondition [varchar](100) ;
   DECLARE @NewQty [int] ;
@@ -109,14 +112,10 @@ BEGIN
 			IF(ISNULL(@TempRecId , 0) > 0)
 			BEGIN
 				
-				SELECT @OldCost = O.UnitCost,@OldConditionId = O.ConditionId,@OldCondition  = O.Condition,@OldQty = O.Qty FROM [DBO].[KitItemMasterMapping] O WITH(NOLOCK) WHERE O.KitItemMasterMappingId = @TempRecId;
+				SELECT @OldCost = O.UnitCost,@OldConditionId = O.ConditionId,@OldCondition  = O.Condition,@OldQty = O.Qty,@OldItemId = O.ItemMasterId,@OldPartNumber = O.PartNumber FROM [DBO].[KitItemMasterMapping] O WITH(NOLOCK) WHERE O.KitItemMasterMappingId = @TempRecId;
 
 			END
-			SELECT * FROM #KITPartType WHERE ID = @StartCount;
-
 		   ---------------------------------Update Kit Item Master Mapping---------------------
-		   --SELECT @OldConditionId = O.ConditionId FROM KitItemMasterMapping O WITH (NOLOCK) WHERE O.KitItemMasterMappingId = #KITPartType.KitItemMasterMappingId
-		   
 
 		   UPDATE [dbo].[KitItemMasterMapping]  
 		   SET [ItemMasterId] = t.[ItemMasterId]  
@@ -143,7 +142,8 @@ BEGIN
 			IF(ISNULL(@TempRecId , 0) > 0)
 			BEGIN
 				
-				SELECT @NewCost = N.UnitCost,@NewConditionId = N.ConditionId,@NewCondition  = N.Condition,@NewQty = N.Qty,@UpdatedBy = N.UpdatedBy,@UpdatedDate  = N.UpdatedDate,@MasterCompanyId = N.MasterCompanyId,@KitItemMasterMappingId = N.KitItemMasterMappingId,@PartNumber = N.PartNumber FROM [DBO].[KitItemMasterMapping] N WITH(NOLOCK) WHERE N.KitItemMasterMappingId = @TempRecId-- AND N.IsEditable = 1;
+				SELECT @NewCost = N.UnitCost,@NewConditionId = N.ConditionId,@NewCondition  = N.Condition,@NewQty = N.Qty,@UpdatedBy = N.UpdatedBy,@UpdatedDate  = N.UpdatedDate,@MasterCompanyId = N.MasterCompanyId,@KitItemMasterMappingId = N.KitItemMasterMappingId,@PartNumber = N.PartNumber,
+				@NewItemId = N.ItemMasterId FROM [DBO].[KitItemMasterMapping] N WITH(NOLOCK) WHERE N.KitItemMasterMappingId = @TempRecId-- AND N.IsEditable = 1;
 
 			END
 
@@ -152,6 +152,34 @@ BEGIN
 		   -- *START*  ADD History for KitPart IN DBO.History---
 
 		   SET @ModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'KitMaster');
+
+		   IF @OldItemId <> @NewItemId --AND @IsEditable = 1
+		   BEGIN
+		 
+				DECLARE @ReplaceContentPart NVARCHAR(MAX);
+
+				SET @ReplaceContentPart = (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'UpdateItemKitPart');
+
+				SET @ReplaceContentPart = REPLACE(@ReplaceContentPart, '##Part##', CONVERT(NVARCHAR(MAX), @OldPartNumber));
+
+				SET @ReplaceContentPart = REPLACE(@ReplaceContentPart, '##NewPart##', CONVERT(NVARCHAR(MAX),@PartNumber));
+				INSERT INTO History ([ModuleId]
+			   ,[RefferenceId]
+			   ,[OldValue]
+			   ,[NewValue]
+			   ,[HistoryText]
+			   ,[FieldsName]
+			   ,[MasterCompanyId]
+			   ,[CreatedBy]
+			   ,[CreatedDate]
+			   ,[UpdatedBy]
+			   ,[UpdatedDate]
+			   ,[SubModuleId]
+			   ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldPartNumber, @PartNumber,@ReplaceContentPart ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
+
+		   END
+
 		   IF @OldConditionId <> @NewConditionId --AND @IsEditable = 1
 		   BEGIN
 		 
@@ -163,19 +191,19 @@ BEGIN
 
 				SET @ReplaceContent = REPLACE(@ReplaceContent, '##Condition##', CONVERT(NVARCHAR(MAX),@NewCondition));
 				INSERT INTO History ([ModuleId]
-           ,[RefferenceId]
-           ,[OldValue]
-           ,[NewValue]
-           ,[HistoryText]
-           ,[FieldsName]
-           ,[MasterCompanyId]
-           ,[CreatedBy]
-           ,[CreatedDate]
-           ,[UpdatedBy]
-           ,[UpdatedDate]
-           ,[SubModuleId]
-           ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCondition, @NewCondition,@ReplaceContent ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+			   ,[RefferenceId]
+			   ,[OldValue]
+			   ,[NewValue]
+			   ,[HistoryText]
+			   ,[FieldsName]
+			   ,[MasterCompanyId]
+			   ,[CreatedBy]
+			   ,[CreatedDate]
+			   ,[UpdatedBy]
+			   ,[UpdatedDate]
+			   ,[SubModuleId]
+			   ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCondition, @NewCondition,@ReplaceContent ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
 
 		   END
 
@@ -191,19 +219,19 @@ BEGIN
 				SET @ReplaceContentForQty = REPLACE(@ReplaceContentForQty, '##Qty##', CONVERT(NVARCHAR(MAX),@NewQty));
 				
 				INSERT INTO History ([ModuleId]
-           ,[RefferenceId]
-           ,[OldValue]
-           ,[NewValue]
-           ,[HistoryText]
-           ,[FieldsName]
-           ,[MasterCompanyId]
-           ,[CreatedBy]
-           ,[CreatedDate]
-           ,[UpdatedBy]
-           ,[UpdatedDate]
-           ,[SubModuleId]
-           ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldQty, @NewQty,@ReplaceContentForQty ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+			   ,[RefferenceId]
+			   ,[OldValue]
+			   ,[NewValue]
+			   ,[HistoryText]
+			   ,[FieldsName]
+			   ,[MasterCompanyId]
+			   ,[CreatedBy]
+			   ,[CreatedDate]
+			   ,[UpdatedBy]
+			   ,[UpdatedDate]
+			   ,[SubModuleId]
+			   ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldQty, @NewQty,@ReplaceContentForQty ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
 
 		   END
 
@@ -219,24 +247,26 @@ BEGIN
 				SET @ReplaceContentForCost = REPLACE(@ReplaceContentForCost, '##Cost##', CONVERT(NVARCHAR(MAX),@NewCost));
 				
 				INSERT INTO History ([ModuleId]
-           ,[RefferenceId]
-           ,[OldValue]
-           ,[NewValue]
-           ,[HistoryText]
-           ,[FieldsName]
-           ,[MasterCompanyId]
-           ,[CreatedBy]
-           ,[CreatedDate]
-           ,[UpdatedBy]
-           ,[UpdatedDate]
-           ,[SubModuleId]
-           ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCost, @NewCost,@ReplaceContentForCost ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,NULL);
+			   ,[RefferenceId]
+			   ,[OldValue]
+			   ,[NewValue]
+			   ,[HistoryText]
+			   ,[FieldsName]
+			   ,[MasterCompanyId]
+			   ,[CreatedBy]
+			   ,[CreatedDate]
+			   ,[UpdatedBy]
+			   ,[UpdatedDate]
+			   ,[SubModuleId]
+			   ,[SubRefferenceId])
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCost, @NewCost,@ReplaceContentForCost ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
 
 		   END
-		   --KitItemMasterMapping
-		   SELECT @NewGeneratedId = MN.KitItemMasterMappingId,@IsNewPartAdd = im.IsNewItem  FROM KitItemMasterMapping MN WITH(NOLOCK) 
+
+		   SELECT @IsNewPartAdd = im.IsNewItem  FROM KitItemMasterMapping MN WITH(NOLOCK) 
 		   INNER JOIN #KITPartType im WITH(NOLOCK) on im.ItemMasterId = MN.ItemMasterId AND  im.IsNewItem = 1 AND im.ID = @StartCount
+
+		   SELECT @NewGeneratedId = MAX(MN.KitItemMasterMappingId)  FROM KitItemMasterMapping MN WITH(NOLOCK) 
 		  
 		 
 		   IF @NewGeneratedId <> 0 AND @NewGeneratedId > 0 AND @IsNewPartAdd = 1
@@ -251,7 +281,8 @@ BEGIN
 				  DECLARE @AddUpdatedDate [datetime2](7);
 				  DECLARE @AddMasterCompanyId [int];
 				  DECLARE @AddKitItemMasterMappingId [bigint]
-				  SELECT @AddCost = Ad.UnitCost,@AddCondition = Ad.Condition,@AddQty = Ad.Qty,@AddPartNumber = Ad.PartNumber,@AddUpdatedDate = Ad.UpdatedDate,@AddUpdatedBy = Ad.UpdatedBy,@AddMasterCompanyId = Ad.MasterCompanyId,@AddKitItemMasterMappingId = Ad.KitItemMasterMappingId FROM [dbo].[KitItemMasterMapping] Ad WHERE Ad.KitItemMasterMappingId = @NewGeneratedId
+				  DECLARE @AddKitItemMasterId [bigint]
+				  SELECT @AddCost = Ad.UnitCost,@AddCondition = Ad.Condition,@AddQty = Ad.Qty,@AddPartNumber = Ad.PartNumber,@AddUpdatedDate = Ad.UpdatedDate,@AddUpdatedBy = Ad.UpdatedBy,@AddMasterCompanyId = Ad.MasterCompanyId,@AddKitItemMasterMappingId = Ad.KitItemMasterMappingId,@AddKitItemMasterId = Ad.ItemMasterId FROM [dbo].[KitItemMasterMapping] Ad WHERE Ad.KitItemMasterMappingId = @NewGeneratedId
 				SET @ReplaceContentForADD = (SELECT [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE TemplateCode = 'AddItemKit');
 				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Part##', CONVERT(NVARCHAR(MAX), @AddPartNumber));
 				SET @ReplaceContentForADD = REPLACE(@ReplaceContentForADD, '##Cost##', CONVERT(NVARCHAR(MAX),@AddCost));
@@ -270,7 +301,8 @@ BEGIN
            ,[UpdatedDate]
            ,[SubModuleId]
            ,[SubRefferenceId])
-				VALUES (@ModuleId,@AddKitItemMasterMappingId, '', '',@ReplaceContentForADD ,'No', @AddMasterCompanyId , NULL, NULL, @AddUpdatedBy, @AddUpdatedDate,NULL,NULL);
+
+				VALUES (@ModuleId,@AddKitItemMasterMappingId, '', '',@ReplaceContentForADD ,'No', @AddMasterCompanyId , NULL, NULL, @AddUpdatedBy, @AddUpdatedDate,NULL,@AddKitItemMasterId);
 
 		   END
 		    -- *END*  ADD History for KitPart IN DBO.History---

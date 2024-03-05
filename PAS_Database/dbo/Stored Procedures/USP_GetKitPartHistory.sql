@@ -69,7 +69,8 @@ BEGIN
     FROM History HS WITH (NOLOCK)  
     INNER JOIN KitItemMasterMapping WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
     --LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
-    LEFT JOIN itemmaster IM WITH (NOLOCK) ON WO.ItemMasterId = IM.ItemMasterId  
+    --LEFT JOIN itemmaster IM WITH (NOLOCK) ON WO.ItemMasterId = IM.ItemMasterId  
+    LEFT JOIN itemmaster IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
     WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
     ),  
     FinalResult AS (  
@@ -140,5 +141,5 @@ BEGIN
                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;  
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
             RETURN(1);  
- END CATCH  
+ END CATCH  
 END

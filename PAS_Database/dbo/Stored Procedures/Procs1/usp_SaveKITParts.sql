@@ -50,6 +50,7 @@ BEGIN
   DECLARE @NewQty [int] ;
   DECLARE @TempRecId BIGINT = 0;
   DECLARE @ModuleId BIGINT;
+  DECLARE @ItemMasterModuleId BIGINT;
    IF OBJECT_ID(N'tempdb..#KITPartType') IS NOT NULL  
    BEGIN  
     DROP TABLE #KITPartType   
@@ -152,6 +153,7 @@ BEGIN
 		   -- *START*  ADD History for KitPart IN DBO.History---
 
 		   SET @ModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'KitMaster');
+		    SET @ItemMasterModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'ItemMaster');
 
 		   IF @OldItemId <> @NewItemId --AND @IsEditable = 1
 		   BEGIN
@@ -176,7 +178,7 @@ BEGIN
 			   ,[UpdatedDate]
 			   ,[SubModuleId]
 			   ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldPartNumber, @PartNumber,@ReplaceContentPart ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldPartNumber, @PartNumber,@ReplaceContentPart ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,@ItemMasterModuleId,@NewItemId);
 
 		   END
 
@@ -203,7 +205,7 @@ BEGIN
 			   ,[UpdatedDate]
 			   ,[SubModuleId]
 			   ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCondition, @NewCondition,@ReplaceContent ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCondition, @NewCondition,@ReplaceContent ,'No', @MasterCompanyId , Null, NULL,@UpdatedBy, @UpdatedDate,@ItemMasterModuleId,@NewItemId);
 
 		   END
 
@@ -231,7 +233,7 @@ BEGIN
 			   ,[UpdatedDate]
 			   ,[SubModuleId]
 			   ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldQty, @NewQty,@ReplaceContentForQty ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldQty, @NewQty,@ReplaceContentForQty ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,@ItemMasterModuleId,@NewItemId);
 
 		   END
 
@@ -259,7 +261,7 @@ BEGIN
 			   ,[UpdatedDate]
 			   ,[SubModuleId]
 			   ,[SubRefferenceId])
-				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCost, @NewCost,@ReplaceContentForCost ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,NULL,@NewItemId);
+				VALUES (@ModuleId,@KitItemMasterMappingId, @OldCost, @NewCost,@ReplaceContentForCost ,'No', @MasterCompanyId , NULL, NULL,@UpdatedBy, @UpdatedDate,@ItemMasterModuleId,@NewItemId);
 
 		   END
 
@@ -302,7 +304,7 @@ BEGIN
            ,[SubModuleId]
            ,[SubRefferenceId])
 
-				VALUES (@ModuleId,@AddKitItemMasterMappingId, '', '',@ReplaceContentForADD ,'No', @AddMasterCompanyId , NULL, NULL, @AddUpdatedBy, @AddUpdatedDate,NULL,@AddKitItemMasterId);
+				VALUES (@ModuleId,@AddKitItemMasterMappingId, '', '',@ReplaceContentForADD ,'No', @AddMasterCompanyId , NULL, NULL, @AddUpdatedBy, @AddUpdatedDate,@ItemMasterModuleId,@AddKitItemMasterId);
 
 		   END
 		    -- *END*  ADD History for KitPart IN DBO.History---

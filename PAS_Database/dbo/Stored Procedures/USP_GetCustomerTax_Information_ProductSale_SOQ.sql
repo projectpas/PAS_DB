@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    01/31/2024   Moin Bloch    Created
+	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
      
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 423
 **************************************************************/
@@ -96,13 +97,14 @@ BEGIN
 	)
 
 	INSERT INTO #tmprShipDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[SalesOrderQuoteId],[SalesOrderQuotePartId])
-			SELECT ITM.[SiteId],
+			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
 				   SOQ.[CustomerId],
 				   SOQ.[SalesOrderQuoteId],
 				   SOQP.[SalesOrderQuotePartId]
 			FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
 			INNER JOIN [dbo].[SalesOrderQuotePart] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
+			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQP.[StockLineId] = STK.[StockLineId]
 			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
 			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
 			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1

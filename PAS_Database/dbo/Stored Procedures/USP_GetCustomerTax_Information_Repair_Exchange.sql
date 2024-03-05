@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/02/2024   Moin Bloch    Created
 	2    14-02-2024   Shrey Chandegara Updated for change @TotalFreight and @TotalCharge value.
+	3    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange] 368
 **************************************************************/
@@ -92,7 +93,7 @@ BEGIN
 	                        WHERE ESOS.[ExchangeSalesOrderId] = @ExchangeSalesOrderId;
 	
 	INSERT INTO #tmprExchangeDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[ExchangeSalesOrderId],[ExchangeSalesOrderPartId])
-			SELECT ITM.[SiteId],
+			SELECT CASE WHEN STK.[SiteId] IS NOT NULL THEN STK.[SiteId] ELSE ITM.[SiteId] END,
 			       CASE WHEN AAD.[SiteId] IS NOT NULL THEN AAD.[SiteId] ELSE CDS.CustomerDomensticShippingId END,
 				   SO.[CustomerId],
 				   SO.[ExchangeSalesOrderId],
@@ -100,21 +101,13 @@ BEGIN
 			  FROM [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) 
 	    INNER JOIN [dbo].[ExchangeSalesOrderPart] SOP WITH(NOLOCK) ON SO.[ExchangeSalesOrderId] = SOP.[ExchangeSalesOrderId] 
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[ExchangeSalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @EXSOModuleId
+		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId AND SOP.[ExchangeSalesOrderPartId] NOT IN (SELECT SOSI.[ExchangeSalesOrderPartId] FROM [dbo].[ExchangeSalesOrderShipping] SOS WITH(NOLOCK)  
 							 INNER JOIN [dbo].[ExchangeSalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[ExchangeSalesOrderShippingId]  = SOSI.[ExchangeSalesOrderShippingId]
 	                        WHERE SOS.[ExchangeSalesOrderId] = @ExchangeSalesOrderId);		   
 	     
-	--SELECT @TotalFreight = CASE WHEN ESO.FreightBilingMethodId = @FreightBilingMethodId 
-	--                            THEN ISNULL(ESOF.BillingAmount,0)
-	--							ELSE								
-	--								ISNULL(SUM(ESOF.BillingAmount),0) 
-	--							END			
-	--FROM [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) 
-	--INNER JOIN [dbo].[ExchangeSalesOrderFreight] ESOF WITH(NOLOCK) ON ESO.[ExchangeSalesOrderId] = SOF.[ExchangeSalesOrderId] AND SOF.IsActive = 1 AND SOF.IsDeleted = 0  
- --  	WHERE ESO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId GROUP BY ESO.FreightBilingMethodId,SO.TotalFreight
-
    --------------------------------- Flat Rate Not Included Due TO Flat Rate Functionality Remain in Exchange--------------------------------------------------------
  	
 	--SELECT @TotalFreight = CASE WHEN ISNULL(SUM(ESOF.BillingAmount),0) = 0 THEN ISNULL(ESO.FreightFlatRate,0) ELSE 0 END 							

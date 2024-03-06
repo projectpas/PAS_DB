@@ -197,6 +197,16 @@ BEGIN
 				FROM [dbo].[SalesOrderBillingInvoicingItem] SOBIN WITH(NOLOCK)
 				WHERE SOBIN.[SOBillingInvoicingId] = @SOProfomaBillingInvoicingId AND SOBIN.IsProforma = 1
 			END
+
+			--handle if all deposit used then all proforma need to bill
+			SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+			WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+
+			IF(@DepositAmt = @OldUsedDepositAmount AND @isProforma = 0)
+			BEGIN
+				UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1;
+			END
+
 		END
 	END	
 	COMMIT  TRANSACTION

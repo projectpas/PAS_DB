@@ -92,7 +92,7 @@ BEGIN
 						INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
 						and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
   
-   WHERE sobi.InvoiceStatus = 'Invoiced' AND  --sobi.RemainingAmount > 0 AND ISNULL(sobi.IsBilling,0) = 0 
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0  AND--sobi.RemainingAmount > 0 
    le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  
    AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND sobi.BillToSiteId=@SiteId  
    AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
@@ -123,8 +123,8 @@ BEGIN
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
-     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId --AND ISNULL(wobii.IsInvoicePosted, 0) = 0
-     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
+     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobii.IsInvoicePosted, 0) = 0
+     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID AND ISNULL(wobi.IsInvoicePosted, 0) = 0
      INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId  
      --LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms AND ctm.MasterCompanyId = @MasterCompanyId
 	 LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId AND ctm.MasterCompanyId = @MasterCompanyId
@@ -190,8 +190,8 @@ BEGIN
 					and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
 				
             
-     WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   --AND ISNULL(sobi.IsBilling,0) = 0
-       CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
+     WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND ISNULL(sobi.IsBilling,0) = 0
+       AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
            AND sobi.BillToSiteId=@SiteId  
 			AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
 			OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
@@ -220,8 +220,8 @@ BEGIN
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
-     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId --AND ISNULL(wobii.IsInvoicePosted, 0) = 0
-     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID --AND ISNULL(wobi.IsInvoicePosted, 0) = 0 
+     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobii.IsInvoicePosted, 0) = 0
+     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID AND ISNULL(wobi.IsInvoicePosted, 0) = 0 
      INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId  
      --LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms AND ctm.MasterCompanyId = @MasterCompanyId  
 	 LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId AND ctm.MasterCompanyId = @MasterCompanyId
@@ -375,7 +375,7 @@ BEGIN
      
    WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
     AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
-    AND sobi.BillToSiteId=@SiteId --AND ISNULL(sobi.IsBilling,0) = 0   
+    AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsBilling,0) = 0   
 	AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
 	OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
@@ -404,8 +404,8 @@ BEGIN
 		  ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
-     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId --AND ISNULL(wobii.IsInvoicePosted, 0) = 0
-     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
+     INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobii.IsInvoicePosted, 0) = 0
+     INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID AND ISNULL(wobi.IsInvoicePosted, 0) = 0
      INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId  
       --LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms AND ctm.MasterCompanyId = @MasterCompanyId  
 	  LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId AND ctm.MasterCompanyId = @MasterCompanyId
@@ -554,7 +554,7 @@ BEGIN
 				INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
 				and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
      
-   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId    --AND ISNULL(sobi.IsBilling,0) = 0
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND ISNULL(sobi.IsBilling,0) = 0
    AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
    AND sobi.BillToSiteId=@SiteId  
    AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
@@ -583,8 +583,8 @@ BEGIN
    ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
     INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
-    INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId --AND ISNULL(wobii.IsInvoicePosted, 0) = 0
-    INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID --AND ISNULL(wobi.IsInvoicePosted, 0) = 0
+    INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId AND ISNULL(wobii.IsInvoicePosted, 0) = 0
+    INNER JOIN [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobii.WorkOrderPartId = wop.ID AND ISNULL(wobi.IsInvoicePosted, 0) = 0
     INNER JOIN [dbo].[Customer] ct WITH(NOLOCK) ON ct.CustomerId = wo.CustomerId  
      --LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.[Name] = wo.CreditTerms AND ctm.MasterCompanyId = @MasterCompanyId  
 	 LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = wo.CreditTermId AND ctm.MasterCompanyId = @MasterCompanyId

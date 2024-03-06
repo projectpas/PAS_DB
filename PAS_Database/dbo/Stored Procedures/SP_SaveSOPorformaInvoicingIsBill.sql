@@ -204,9 +204,11 @@ BEGIN
 
 			IF(@DepositAmt = @OldUsedDepositAmount AND @isProforma = 0)
 			BEGIN
-				UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId;
+				UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0);
 
-				UPDATE [dbo].[SalesOrderBillingInvoicingItem] SET IsBilling = 1 WHERE IsVersionIncrease = 0 AND IsProforma = 1;
+				UPDATE [dbo].[SalesOrderBillingInvoicingItem] SET IsBilling = 1 
+					WHERE SOBillingInvoicingId IN(SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] 
+				WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0))
 			END
 		END
 	END	

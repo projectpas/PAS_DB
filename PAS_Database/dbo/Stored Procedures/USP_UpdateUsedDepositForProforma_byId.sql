@@ -102,6 +102,7 @@ BEGIN
 		PRINT 'GRANDTOTAL : '  + ' - ' + CAST(@GrandTotal AS VARCHAR)
 
 		--SET @UsedDepositAmt = @GrandTotal - @DepositAmt;
+		SET @UsedDepositAmt = (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0));
 		SET @UsedDepositAmt = CASE WHEN ISNULL(@GrandTotal ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@GrandTotal ,0) END
 		PRINT 'UsedDepositAmt : '  + ' - ' + CAST(@UsedDepositAmt AS VARCHAR)
 
@@ -120,7 +121,7 @@ BEGIN
 		END
 
 		--Selecting Remaning Amount For BillingInvoice;
-		SET @RemainingAmount = ISNULL(@GrandTotal ,0) - (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0))
+		SET @RemainingAmount = ISNULL(@GrandTotal ,0) - (ISNULL(@DepositAmt,0))
 		SET @RemainingAmount = CASE WHEN @RemainingAmount > 0 THEN @RemainingAmount ELSE 0 END;
 
 		SELECT @RemainingAmount AS RemainingAmount, @UsedDepositAmt as UsedDepositAmt;

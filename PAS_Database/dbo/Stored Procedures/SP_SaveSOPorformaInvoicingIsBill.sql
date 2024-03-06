@@ -199,17 +199,17 @@ BEGIN
 			END
 
 			--handle if all deposit used then all proforma need to bill
-			SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
-			WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
+			--SELECT @DepositAmt = ISNULL(SUM(ISNULL([DepositAmount], 0)),0), @OldUsedDepositAmount = ISNULL(SUM(ISNULL(UsedDeposit, 0)),0) FROM [dbo].[SalesOrderBillingInvoicing] WITH(NOLOCK) 
+			--WHERE [SalesOrderId] = @SalesOrderId AND IsProforma = 1 AND UPPER(InvoiceStatus) = 'INVOICED';
 
-			IF(@DepositAmt = @OldUsedDepositAmount AND @isProforma = 0)
-			BEGIN
-				UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0);
+			--IF(@DepositAmt = @OldUsedDepositAmount AND @isProforma = 0)
+			--BEGIN
+			--	UPDATE [dbo].[SalesOrderBillingInvoicing] SET IsBilling = 1 WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0);
 
-				UPDATE [dbo].[SalesOrderBillingInvoicingItem] SET IsBilling = 1 
-					WHERE SOBillingInvoicingId IN(SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] 
-				WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0))
-			END
+			--	UPDATE [dbo].[SalesOrderBillingInvoicingItem] SET IsBilling = 1 
+			--		WHERE SOBillingInvoicingId IN(SELECT SOBillingInvoicingId FROM [dbo].[SalesOrderBillingInvoicing] 
+			--	WHERE UPPER(InvoiceStatus) = 'INVOICED' AND IsVersionIncrease = 0 AND IsProforma = 1 AND SalesOrderId = @SalesOrderId AND ISNULL(GrandTotal,0) > ISNULL(RemainingAmount,0))
+			--END
 		END
 	END	
 	COMMIT  TRANSACTION

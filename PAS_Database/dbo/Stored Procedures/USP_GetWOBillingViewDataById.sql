@@ -16,6 +16,7 @@
     2    09-02-2024   Devendra Shekh	added isProforma
     3    12-02-2024   Devendra Shekh	added join for ShipToCustomer
 	4    26-02-2024   Moin Bloch  	    added Sales Tax and Other Tax Fields
+	5    06-03-2024   Moin Bloch  	    added SubTotal Field
              
  EXECUTE USP_GetWOBillingViewDataById 410,4000,3488   
 **************************************************************/         
@@ -134,7 +135,8 @@ BEGIN
 			bi.InvoiceTime,
 			ISNULL(bi.IsPerformaInvoice, 0) AS 'IsProformaInvoice',
 			ISNULL(bi.SalesTax,0) SalesTax,
-			ISNULL(bi.OtherTax,0) OtherTax
+			ISNULL(bi.OtherTax,0) OtherTax,
+			ISNULL(bi.SubTotal,0) SubTotal			
 		FROM 
 		    DBO.WorkOrderBillingInvoicing bi WITH(NOLOCK)
 		    JOIN DBO.WorkOrder wo WITH(NOLOCK) ON bi.WorkOrderId = wo.WorkOrderId

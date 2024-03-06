@@ -16,7 +16,6 @@
     4    19/02/2024   Devendra Shekh		sales tax calculation issue resoleved
     5    20/02/2024   Devendra Shekh		added @UsedDepositAmt to select
     6    29/02/2024   Devendra Shekh		remaning amount issue resolved
-	7    06/03/2024   Devendra Shekh		extra deposit amount issue resolved
 
 	EXEC  [dbo].[USP_UpdateUsedDepositForProforma_byId] 508
 **************************************************************/ 
@@ -103,7 +102,6 @@ BEGIN
 		PRINT 'GRANDTOTAL : '  + ' - ' + CAST(@GrandTotal AS VARCHAR)
 
 		--SET @UsedDepositAmt = @GrandTotal - @DepositAmt;
-		SET @DepositAmt = ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0);
 		SET @UsedDepositAmt = CASE WHEN ISNULL(@GrandTotal ,0) > ISNULL(@DepositAmt,0) THEN ISNULL(@DepositAmt,0) ELSE ISNULL(@GrandTotal ,0) END
 		PRINT 'UsedDepositAmt : '  + ' - ' + CAST(@UsedDepositAmt AS VARCHAR)
 
@@ -122,7 +120,7 @@ BEGIN
 		END
 
 		--Selecting Remaning Amount For BillingInvoice;
-		SET @RemainingAmount = ISNULL(@GrandTotal ,0) - (ISNULL(@DepositAmt,0))
+		SET @RemainingAmount = ISNULL(@GrandTotal ,0) - (ISNULL(@DepositAmt,0) - ISNULL(@OldUsedDepositAmount,0))
 		SET @RemainingAmount = CASE WHEN @RemainingAmount > 0 THEN @RemainingAmount ELSE 0 END;
 
 		SELECT @RemainingAmount AS RemainingAmount, @UsedDepositAmt as UsedDepositAmt;

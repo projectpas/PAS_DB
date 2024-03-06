@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    14/02/2024   Moin Bloch    Created
+	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
      
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ] 2169,4106,3596
 **************************************************************/
@@ -88,7 +89,7 @@ BEGIN
 	)
 			
 	INSERT INTO #tmprWorkorderquoteDetails ([OriginSiteId],[ShipToSiteId],[CustomerId],[WorkOrderId],[WorkOrderQuoteId],[WorkOrderPartNumId])
-			SELECT ITM.[SiteId],
+			SELECT STK.[SiteId],
 			       CDS.CustomerDomensticShippingId,
 				   WOQ.[CustomerId],
 				   WOQ.[WorkOrderId],
@@ -96,9 +97,12 @@ BEGIN
 				   WOP.[ID]
 			  FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK) 
 	    INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOQ.[WorkOrderId] = WOP.[WorkOrderId] 
-		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.[ItemMasterId] = ITM.[ItemMasterId]
-		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = WOQ.[CustomerId] AND CDS.[IsPrimary] = 1
-		 WHERE WOQ.[WorkOrderQuoteId] = @WorkOrderQuoteId AND WOP.[ID] = @workOrderPartNoId AND WOQ.[IsActive] = 1 AND WOQ.[IsDeleted] = 0;
+   	    INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WOP.[StockLineId] = STK.[StockLineId]
+		  LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = WOQ.[CustomerId] AND CDS.[IsPrimary] = 1
+		 WHERE WOQ.[WorkOrderQuoteId] = @WorkOrderQuoteId 
+		   AND WOP.[ID] = @workOrderPartNoId 
+		   AND WOQ.[IsActive] = 1 
+		   AND WOQ.[IsDeleted] = 0;
 		 	      
    ---------------------------------Freight--------------------------------------------------------
  	

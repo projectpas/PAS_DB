@@ -16,7 +16,7 @@
 3    21/08/2023  Satish Gohil   Modify(ispositive flag add at gl level)
 4    27Feb2024   Rajesh Gami    Add sequence number related chane for [GLAccountLeafNodeMapping]
 ************************************************************************/ 
-Create     PROCEDURE [dbo].[SaveLeafNodeData]    
+CREATE     PROCEDURE [dbo].[SaveLeafNodeData]    
 (    
 	@LeafNodeId BIGINT,    
 	@Name VARCHAR(50),    
@@ -47,16 +47,15 @@ BEGIN
 		Item BIGINT
 		);
 
-		DECLARE @Numbers TABLE (Number INT);
-		INSERT INTO @Numbers (Number)
-		SELECT CAST(Item AS INT) AS Number
-		FROM dbo.SplitString(@GlAccountId, ',');
-		DECLARE @SortedNumbers NVARCHAR(MAX);
-		SELECT @SortedNumbers = COALESCE(@SortedNumbers + ',', '') + CAST(Number AS NVARCHAR(MAX))
-		FROM @Numbers
-		ORDER BY Number;
-		--SELECT @SortedNumbers AS SortedGlAccountId;
-		Set @GlAccountId = @SortedNumbers
+		--DECLARE @Numbers TABLE (Number INT);
+		--INSERT INTO @Numbers (Number)
+		--SELECT CAST(Item AS INT) AS Number
+		--FROM dbo.SplitString(@GlAccountId, ',');
+		--DECLARE @SortedNumbers NVARCHAR(MAX);
+		--SELECT @SortedNumbers = COALESCE(@SortedNumbers + ',', '') + CAST(Number AS NVARCHAR(MAX))
+		--FROM @Numbers
+		--ORDER BY Number;
+		--Set @GlAccountId = @SortedNumbers
 
 		DECLARE @SequenceNumber BIGINT =1, @DeletedLeafNodeId BIGINT = 0;
 		DECLARE @MaxSequenceNumber INT= 0;  
@@ -171,7 +170,7 @@ BEGIN
 					  SET [IsDeleted] = 1,SequenceNumber = 0
 					  WHERE LeafNodeId = @DeletedLeafNodeId
 					------- Insert Positive Gl Mapping Data -----------    
-					IF(ISNULL(@GlAccountId,'') <> '')    
+					IF(ISNULL(@GlAccountId,'') <> '' )    
 					BEGIN 
 						WITH NumberedSplit AS (
 						SELECT 
@@ -252,10 +251,12 @@ BEGIN
     
 				SET @LeafNodeId = SCOPE_IDENTITY()    
     
-				------- Insert Positive Gl Mapping Data -----------    
+				------- Insert Positive Gl Mapping Data -----------   
+				PRINT @GlAccountId
 				IF(ISNULL(@GlAccountId,'') <> '')    
 				BEGIN    
-					WITH NumberedSplit AS (
+					print 'GL Acccount'
+					;WITH NumberedSplit AS (
 						SELECT 
 							Item,
 							ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
@@ -301,7 +302,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()         
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------        
 		, @AdhocComments     VARCHAR(150)    = 'SaveLeafNodeData'         
-		, @ProcedureParameters VARCHAR(3000)  = '@MstCompanyId = '''+ ISNULL(@MasterCompanyId, '') + ''        
+		, @ProcedureParameters VARCHAR(3000)  = '@Name = '''+ ISNULL(@Name, '') + ''        
 		, @ApplicationName VARCHAR(100) = 'PAS'        
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------        
 		exec spLogException         

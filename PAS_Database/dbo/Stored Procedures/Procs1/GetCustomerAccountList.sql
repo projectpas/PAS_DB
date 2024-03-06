@@ -19,7 +19,7 @@
 	6	 19/02/2024	    Devendra Shekh	   added isinvoiceposted flage for wo
 	7	 27/02/2024	    AMIT GHEDIYA	   added ISBilling flage for SO
 	8	 28/02/2024	    Devendra Shekh	   changes for amount calculation based on isproforma for wo and so
-	9	 06/03/2024	    Devendra Shekh	   removed CustomerReference from group by for WO
+	9    06/03/2024     Devendra Shekh     extra deposit amount issue resolved
 	
     EXEC [dbo].[GetCustomerAccountList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
 ***************************************************************************************************/ 

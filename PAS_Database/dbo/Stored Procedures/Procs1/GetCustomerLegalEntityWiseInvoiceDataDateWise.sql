@@ -23,6 +23,7 @@
  11	  27/02/2024   Devendra Shekh	changes for profoma calculation
  12	  28/02/2024   Devendra Shekh  changes for amount calculation based on isproforma for wo and so
  13	  04/02/2024   Devendra Shekh  changes for amount calculation based on isproforma for wo and so
+ 14	  06/02/2024   Devendra Shekh  extra deposit amount issue resolved
 
 
 -- EXEC [dbo].[GetCustomerLegalEntityWiseInvoiceDataDateWise] 77,23,'2022-05-12','2022-05-12',1,1,79,2  
@@ -71,7 +72,8 @@ BEGIN
 		   cr.Code AS Currency,  
 		   ISNULL(SUM(CM.Amount),0) AS CM,  
 			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
+			 CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
+						CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS RemainingAmount,
 		   ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
      FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
 		  INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -85,14 +87,18 @@ BEGIN
 		   LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
 		  INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
           ON CM.InvoiceId = sobi.SOBillingInvoicingId   
+		  OUTER APPLY (SELECT nwop.SalesOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].SalesOrderPart nwop WITH (NOLOCK)  
+						INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SalesOrderPartId AND ISNULL(nwobii.IsProforma, 0) = 1
+						INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
+						and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
   
-   WHERE ISNULL(sobi.IsBilling,0) = 0  AND sobi.InvoiceStatus = 'Invoiced' AND  --sobi.RemainingAmount > 0 AND 
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0  AND--sobi.RemainingAmount > 0 
    le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId  
    AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND sobi.BillToSiteId=@SiteId  
    AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
-   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
+   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma     
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt     
      
    UNION ALL  
      
@@ -112,7 +118,8 @@ BEGIN
     cr.Code AS Currency,  
     ISNULL(SUM(CM.Amount),0) AS CM,  
 	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
+    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
+		 CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS RemainingAmount,
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -129,15 +136,20 @@ BEGIN
       LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
      INNER JOIN [dbo].CreditMemoApproval CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId  AND CA.StatusName='Approved'     
     ON CM.InvoiceId = wobi.BillingInvoicingId  
+	 OUTER APPLY (SELECT nwop.WorkOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].WorkOrderPartNumber nwop WITH (NOLOCK)  
+				--INNER JOIN [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK) ON NWO.WorkOrderId = nwop.WorkOrderId  
+				INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
+				INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
+				and nwobii.WorkOrderPartId = nwop.ID WHERE WO.WorkOrderId = nwop.WorkOrderId GROUP BY nwop.WorkOrderId) AS DepositData
         
     WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0   --wobi.RemainingAmount > 0 AND
      AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date) AND wobi.SoldToSiteId=@SiteId  
 	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) AND wobi.RemainingAmount > 0) 
-	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
      
     GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
     ORDER BY InvoiceDate   
   END  
   ELSE if(@IncludeCredits = 1 AND @OpenTransactionsOnly = 1)  
@@ -157,7 +169,8 @@ BEGIN
           cr.Code AS Currency,  
           ISNULL(SUM(CM.Amount),0) AS CM,  
 			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
+			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
+				 CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS RemainingAmount,
           ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
      FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
         INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -170,15 +183,20 @@ BEGIN
         INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId     
         LEFT JOIN  [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
         INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
-           ON CM.InvoiceId = sobi.SOBillingInvoicingId   
+           ON CM.InvoiceId = sobi.SOBillingInvoicingId  
+		OUTER APPLY (SELECT nwop.SalesOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].SalesOrderPart nwop WITH (NOLOCK)  
+					INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SalesOrderPartId AND ISNULL(nwobii.IsProforma, 0) = 1
+					INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
+					and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
+				
             
-     WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0 AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND   
-       CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
+     WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND ISNULL(sobi.IsBilling,0) = 0
+       AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
            AND sobi.BillToSiteId=@SiteId  
 			AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
-			OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
+			OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
           GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-          ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
+          ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt       
      
    UNION ALL  
      
@@ -197,7 +215,8 @@ BEGIN
     cr.Code AS Currency,  
     ISNULL(SUM(CM.Amount),0) AS CM,  
 	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount, 
+    CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
+		 CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS RemainingAmount,
     ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -213,16 +232,21 @@ BEGIN
      INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId     
      LEFT JOIN  [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
      INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'     
-    ON CM.InvoiceId = wobi.BillingInvoicingId  
+    ON CM.InvoiceId = wobi.BillingInvoicingId 
+	OUTER APPLY (SELECT nwop.WorkOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK)  
+				--INNER JOIN [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK) ON NWO.WorkOrderId = nwop.WorkOrderId  
+				INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
+				INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
+				and nwobii.WorkOrderPartId = nwop.ID WHERE WO.WorkOrderId = nwop.WorkOrderId GROUP BY nwop.WorkOrderId) AS DepositData
      
     WHERE wobi.InvoiceStatus = 'Invoiced' AND   
     wobi.IsVersionIncrease=0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE) AND wobi.SoldToSiteId = @SiteId  
 	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
-	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
      
     GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
   
    UNION ALL  
      
@@ -329,7 +353,8 @@ BEGIN
 	      cr.Code AS Currency,  
 	      ISNULL(SUM(CM.Amount),0) AS CM,  
 	      CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
+		  CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
+			   CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS RemainingAmount,
 	      ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
     INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -342,15 +367,19 @@ BEGIN
     INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId     
      LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
     INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
-    ON CM.InvoiceId = sobi.SOBillingInvoicingId   
+    ON CM.InvoiceId = sobi.SOBillingInvoicingId  
+	OUTER APPLY (SELECT nwop.SalesOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].SalesOrderPart nwop WITH (NOLOCK)  
+			INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SalesOrderPartId AND ISNULL(nwobii.IsProforma, 0) = 1
+			INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
+			and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
      
    WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
     AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)  
     AND sobi.BillToSiteId=@SiteId AND ISNULL(sobi.IsBilling,0) = 0   
 	AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
-	OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
+	OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
      
    UNION ALL  
      
@@ -370,7 +399,8 @@ BEGIN
 		  cr.Code AS Currency,  
 		  ISNULL(SUM(CM.Amount),0) AS CM,  
 		  CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-		  CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
+		  CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
+			   CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS RemainingAmount,
 		  ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
     FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
      INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -387,13 +417,18 @@ BEGIN
       LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
      INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'     
     ON CM.InvoiceId = wobi.BillingInvoicingId  
+	OUTER APPLY (SELECT nwop.WorkOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK)  
+				--INNER JOIN [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK) ON NWO.WorkOrderId = nwop.WorkOrderId  
+				INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
+				INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
+				and nwobii.WorkOrderPartId = nwop.ID WHERE WO.WorkOrderId = nwop.WorkOrderId GROUP BY nwop.WorkOrderId) AS DepositData
      
     WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease=0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
      AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND wobi.SoldToSiteId = @SiteId
 	 AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
-	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
+	 OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
      GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice 
+    ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
   
    UNION ALL  
      
@@ -499,7 +534,8 @@ BEGIN
    cr.Code AS Currency,  
    ISNULL(SUM(CM.Amount),0) AS CM,  
 	CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-	CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS RemainingAmount,
+	CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
+		 CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS RemainingAmount,
    ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)  
     INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId  
@@ -513,14 +549,18 @@ BEGIN
      LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
     INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'      
     ON CM.InvoiceId = sobi.SOBillingInvoicingId   
+	OUTER APPLY (SELECT nwop.SalesOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].SalesOrderPart nwop WITH (NOLOCK)  
+				INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.SalesOrderPartId = nwobii.SalesOrderPartId AND ISNULL(nwobii.IsProforma, 0) = 1
+				INNER JOIN [dbo].[SalesOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.SOBillingInvoicingId = nwobi.SOBillingInvoicingId AND ISNULL(nwobi.IsProforma, 0) = 1
+				and nwobii.SalesOrderPartId = nwop.SalesOrderPartId WHERE so.SalesOrderId = nwop.SalesOrderId GROUP BY nwop.SalesOrderId) AS DepositData
      
-   WHERE sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling,0) = 0   AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId   
+   WHERE sobi.InvoiceStatus = 'Invoiced' AND le.LegalEntityId = @ManagementStructureId AND so.CustomerId = @CustomerId AND ISNULL(sobi.IsBilling,0) = 0
    AND CAST(sobi.InvoiceDate AS date) BETWEEN CAST(@StartDate as date) and CAST(@EndDate as date)  
    AND sobi.BillToSiteId=@SiteId  
    AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
-   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 ))
+   OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
    GROUP BY  sobi.SOBillingInvoicingId,ct.CustomerId,sobi.InvoiceDate,sobi.InvoiceNo,sobi.InvoiceStatus,so.CustomerReference,  
-   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma   
+   ctm.[Name],ctm.NetDays,sobi.PostedDate,cr.Code,sobi.GrandTotal,sobi.RemainingAmount,sobi.IsProforma,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt   
      
    UNION ALL  
      
@@ -538,7 +578,8 @@ BEGIN
    cr.Code AS Currency,  
    ISNULL(SUM(CM.Amount),0) AS CM,     
 	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.GrandTotal) ELSE 0 END AS InvoiceAmount,  
-	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS RemainingAmount,
+	CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
+		 CASE WHEN DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS RemainingAmount,
    ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)) AS PaidAmount  
    FROM [dbo].[WorkOrder] WO WITH (NOLOCK)  
     INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK) ON WO.WorkOrderId = wop.WorkOrderId  
@@ -555,14 +596,18 @@ BEGIN
      LEFT JOIN [dbo].[CreditMemoDetails] CM WITH(NOLOCK)   
     INNER JOIN [dbo].[CreditMemoApproval] CA WITH(NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId AND CA.StatusName='Approved'     
    ON CM.InvoiceId = wobi.BillingInvoicingId  
+   OUTER APPLY (SELECT nwop.WorkOrderId, SUM(ISNULL(nwobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nwobi.DepositAmount,0)) as OriginalDepositAmt  FROM [dbo].[WorkOrderPartNumber] nwop WITH (NOLOCK)  
+				INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] nwobii WITH(NOLOCK) on nwop.ID = nwobii.WorkOrderPartId AND ISNULL(nwobii.isPerformaInvoice, 0) = 1
+				INNER JOIN [dbo].[WorkOrderBillingInvoicing] nwobi WITH(NOLOCK) on nwobii.BillingInvoicingId = nwobi.BillingInvoicingId AND ISNULL(nwobi.isPerformaInvoice, 0) = 1
+				and nwobii.WorkOrderPartId = nwop.ID WHERE WO.WorkOrderId = nwop.WorkOrderId GROUP BY nwop.WorkOrderId) AS DepositData
      
    WHERE wobi.InvoiceStatus = 'Invoiced' and wobi.IsVersionIncrease = 0 AND le.LegalEntityId = @ManagementStructureId AND WO.CustomerId = @CustomerId  
    AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE) AND wobi.SoldToSiteId=@SiteId  
    AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
-   OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 ))
+   OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DepositData.OriginalDepositAmt - DepositData.UsedDepositAmt != 0))
      
    GROUP BY wobi.BillingInvoicingId,ct.CustomerId,wobi.InvoiceDate,wobi.InvoiceNo,wobi.InvoiceStatus,wop.CustomerReference,ctm.[Name],     
-   ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice
+   ctm.NetDays,wobi.PostedDate,cr.Code,wobi.GrandTotal,wobi.RemainingAmount,wobi.IsPerformaInvoice,DepositData.OriginalDepositAmt,DepositData.UsedDepositAmt
    ORDER BY InvoiceDate   
     
   END  

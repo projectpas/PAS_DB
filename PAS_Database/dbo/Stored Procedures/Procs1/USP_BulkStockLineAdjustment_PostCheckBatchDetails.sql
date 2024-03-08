@@ -18,6 +18,7 @@
 	2    22/11/2023   Moin Bloch	Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
     4    26/02/2024   Bhargav Saliya  Get the  @StockModule as 'ModuleId' For StockLine History
+	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -277,7 +278,7 @@ BEGIN
 					SELECT @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					IF(@DetailQtyAdjustment > 0)
 					BEGIN
-						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment) 
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE() 
 						WHERE StockLineId = @StockLineId;
 
 						SET @ChildUpdateQty = (@QuantityOnHand + @DetailQtyAdjustment);
@@ -287,7 +288,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)) 
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE()
 						WHERE StockLineId = @StockLineId;
 
 						SET @ChildUpdateQty = (@QuantityOnHand - ABS(@DetailQtyAdjustment));

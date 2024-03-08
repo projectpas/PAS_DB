@@ -1,4 +1,5 @@
-﻿/*********************           
+﻿
+/*********************           
  ** File:  [usp_SaveKITParts]           
  ** Author:  
  ** Description: This stored procedure is used to Update Kit Item Master Mapping 
@@ -104,7 +105,7 @@ BEGIN
 			  ([KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
 			  [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])  
 			  SELECT [KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty],[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],  
-			  [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]  
+			  [Condition],[UOM],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted]  
 			  FROM #KITPartType tmp  
 			  WHERE tmp.KitItemMasterMappingId =  0 AND tmp.ID = @StartCount AND tmp.IsNewItem = 1;
 

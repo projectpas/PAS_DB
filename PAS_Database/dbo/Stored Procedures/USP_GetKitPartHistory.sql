@@ -69,11 +69,9 @@ BEGIN
 				 HS.[CreatedDate],  
 				 HS.[UpdatedBy],  
 				 HS.[UpdatedDate]   
-				FROM History HS WITH (NOLOCK)  
-				INNER JOIN KitItemMasterMapping WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
-				--LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
-				--LEFT JOIN itemmaster IM WITH (NOLOCK) ON WO.ItemMasterId = IM.ItemMasterId  
-				LEFT JOIN itemmaster IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
+				FROM DBO.[History] HS WITH (NOLOCK)  
+				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
+				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
 				WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  
@@ -141,11 +139,9 @@ BEGIN
 				 HS.[CreatedDate],  
 				 HS.[UpdatedBy],  
 				 HS.[UpdatedDate]   
-				FROM History HS WITH (NOLOCK)  
-				INNER JOIN KitItemMasterMapping WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
-				--LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
-				--LEFT JOIN itemmaster IM WITH (NOLOCK) ON WO.ItemMasterId = IM.ItemMasterId  
-				LEFT JOIN itemmaster IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
+				FROM DBO.[History] HS WITH (NOLOCK)  
+				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
+				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
 				WHERE wo.KitId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  

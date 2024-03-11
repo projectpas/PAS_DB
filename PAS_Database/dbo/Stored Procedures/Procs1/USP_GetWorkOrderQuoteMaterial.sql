@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/22/2022   Subhash Saliya		Created
+	2	 03/08/2024   Bhargav Saliya     Change Order By Desc to Asc
      
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -156,7 +157,7 @@ BEGIN
 					--LEFT JOIN DBO.MaterialMandatories ms  WITH(NOLOCK) on ms.Id = wom.MaterialMandatoriesId
 					INNER JOIN DBO.WorkOrderWorkFlow wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
 					INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  and wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) order by wom.CreatedDate desc
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  and wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) order by wom.CreatedDate asc
                 
 			END
 		COMMIT  TRANSACTION

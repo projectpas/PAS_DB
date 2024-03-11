@@ -25,6 +25,7 @@
 	13   17/11/2023	  Moin Bloch          Modify(Added Charges Accounting Entry)
 	14   09/01/2024   Moin Bloch          Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 	15   02/20/2024	  HEMANT SALIYA		  Updated for Restrict Accounting Entry by Master Company
+	16   03/09/2024   Moin Bloch          Modify(wrong account payble entry in ReconciliationRO)
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -1068,7 +1069,7 @@ BEGIN
 										     AND DistributionMasterId=@DistributionMasterId 
 											 AND MasterCompanyId = @MasterCompanyId
 									
-									SET @Amount=(ISNULL(@StocklineQtyAvail, 0)* @Amount);
+									--SET @Amount=(ISNULL(@StocklineQtyAvail, 0)* @Amount);
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN

@@ -22,6 +22,8 @@
     6    02-NOV-2023		 Devendra Shekh			added EXEC [USP_AddVendorPaymentDetailsForNonPOById]
     7    09-JAN-2024         Moin Bloch             Modify(Replace Invocedate instead of GETUTCDATE() in Invoice) 
 	8    14/02/2023	         Moin Bloch	            Updated Used Distribution Setup Code Insted of Name 
+	9    03/04/2024			 HEMANT SALIYA	        Updated for Restrict Accounting Entry by Master Company
+
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **************************************************************/
 
@@ -128,11 +130,17 @@ BEGIN
 			)   
 
 			SELECT @CheckAmount = ExtendedPrice, @PartMemo = Memo, @PartGlAccId = GlAccountId FROM #tmpNonPOPartDetails WHERE [ID] = @NonPOPartStart
+			SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy,@InvoiceDate = [InvoiceDate]  FROM dbo.NonPOInvoiceHeader WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
+			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('NonPOInvoice')	
 
-			IF(ISNULL(@CheckAmount,0) <> 0)
+			DECLARE @IsRestrict BIT;
+			DECLARE @IsAccountByPass BIT;
+
+			EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+
+			IF(ISNULL(@CheckAmount,0) <> 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 			BEGIN		
-				SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy,@InvoiceDate = [InvoiceDate]  FROM dbo.NonPOInvoiceHeader WITH(NOLOCK) WHERE NonPOInvoiceId = @NonPOInvoiceId
-				SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('NonPOInvoice')	
+				
 				SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				

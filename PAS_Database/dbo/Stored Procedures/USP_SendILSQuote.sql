@@ -1,10 +1,10 @@
 ﻿
 /*************************************************************           
- ** File:   [USP_SendOneFourtyFiveQuote]           
+ ** File:   [USP_SendILSQuote]           
  ** Author:  Rajesh Gami
- ** Description: This stored procedure is used Send One Fourty Five Quote Data Into Our Database
+ ** Description: This stored procedure is used Send ILS QUOTE Into Our Database
  ** Purpose:         
- ** Date:   05 Mar 2024      
+ ** Date:   06 Mar 2024      
           
  ** RETURN VALUE:           
  **************************************************************           
@@ -12,20 +12,14 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    05 Mar 2024  Rajesh Gami    Created
+    1    06 Mar 2024  Rajesh Gami    Created
      
--- EXEC USP_SendOneFourtyFiveQuote
+-- EXEC USP_SendILSQuote
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SendOneFourtyFiveQuote]
-	@tbl_CustomerRfqQuoteDetailsType CustomerRfqQuoteDetailsType READONLY,
+CREATE   PROCEDURE [dbo].[USP_SendILSQuote]
+	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqId BIGINT,
 	@RfqId BIGINT,
-	@AddComment VARCHAR(250),
-	@IsAddCommentQuote BIT,
-	@FaaEasaRelease VARCHAR(250),
-	@IsFaaEasaReleaseQuote BIT,
-	@RpOh VARCHAR(250),
-	@IsRpOhQuote BIT,
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200)
@@ -37,7 +31,7 @@ BEGIN
 
 					DECLARE @CustomerRfqQuoteId BIGINT, @GetCustomerRfqId BIGINT;
 
-					SELECT @GetCustomerRfqId = CustomerRfqId FROM CustomerRfq WHERE RfqId = @RfqId;
+					SELECT @GetCustomerRfqId = CustomerRfqId FROM CustomerRfq WHERE RfqId = @RfqId AND MasterCompanyId = @MasterCompanyId ;
 
 		--------------------------- Insert into Rfq Quote table --------------------------------------------------
 
@@ -45,56 +39,22 @@ BEGIN
 										   ([CustomerRfqId] ,[RfqId] ,[AddComment] ,[IsAddCommentQuote] ,[FaaEasaRelease] ,[IsFaaEasaReleaseQuote] ,
 											[RpOh] ,[IsRpOhQuote] ,[LegalEntityId] ,[MasterCompanyId] ,	
 											[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
-								VALUES (@GetCustomerRfqId ,@RfqId ,@AddComment ,@IsAddCommentQuote ,@FaaEasaRelease ,@IsFaaEasaReleaseQuote ,
-									   @RpOh ,@IsRpOhQuote ,@LegalEntityId ,@MasterCompanyId ,
-									   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0);
+								VALUES (@GetCustomerRfqId ,@RfqId ,'' ,0 ,'' ,0 ,
+									   '' ,0 ,@LegalEntityId ,@MasterCompanyId ,
+									   @CreatedBy,@CreatedBy  ,GETUTCDATE(),GETUTCDATE()  ,1 ,0);
 
 					SELECT @CustomerRfqQuoteId = SCOPE_IDENTITY();	
 		
 		------------------- Customer RFQ Quote Details add ---------------------------------------------------------
 
-					--IF OBJECT_ID(N'tempdb..#tmpCustomerRfqQuoteDetails') IS NOT NULL
-					--BEGIN
-					--	DROP TABLE #tmpCustomerRfqQuoteDetails
-					--END
-			
-					--CREATE TABLE #tmpCustomerRfqQuoteDetails
-					--(
-					--	ID BIGINT NOT NULL IDENTITY, 
-					--	[ServiceType] [INT] NULL,
-					--	[QuotePrice] [DECIMAL](10,2) NULL,
-					--	[QuoteTat] [DECIMAL](10,2) NULL,
-					--	[Low] [DECIMAL](10,2) NULL,
-					--	[Mid] [DECIMAL](10,2) NULL,
-					--	[High] [DECIMAL](10,2) NULL,
-					--	[AvgTat] [DECIMAL](10,2) NULL,
-					--	[QuoteTatQty] [INT] NULL,
-					--	[QuoteCond] [VARCHAR](150) NULL,
-					--	[QuoteTrace] [VARCHAR](150) NULL,
-					--	[CreatedBy] [VARCHAR](50) NOT NULL,
-					--	[CreatedDate] [datetime2](7) NOT NULL,
-					--	[UpdatedBy] [VARCHAR](50) NOT NULL,
-					--	[UpdatedDate] [DATETIME2](7) NOT NULL,
-					--	[IsActive] [BIT] NOT NULL,
-					--	[IsDeleted] [BIT] NOT NULL,
-					--)
-
-					--INSERT INTO #tmpCustomerRfqQuoteDetails ([ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
-					--			[High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,
-					--			[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
-					--SELECT [ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
-					--	   [High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,
-					--	   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0
-					--FROM @tbl_CustomerRfqQuoteDetailsType;
-
 					INSERT INTO [dbo].[CustomerRfqQuoteDetails]
-							   ([CustomerRfqQuoteId] ,[ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
-								[High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,	
+							   ([CustomerRfqQuoteId] ,[ServiceType] ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
+								IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition,	
 								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
-					SELECT @CustomerRfqQuoteId ,[ServiceType] ,[QuotePrice] ,[QuoteTat] ,[Low] ,[Mid] ,
-						   [High] ,[AvgTat] ,[QuoteTatQty] ,[QuoteCond] ,[QuoteTrace] ,
+					SELECT @CustomerRfqQuoteId ,0 ,IlsQty ,IlsTraceability ,IlsUom ,IlsPrice ,
+								IlsPriceType ,IlsTagDate ,IlsLeadTime ,IlsMinQty ,IlsComment,IlsCondition,	
 						   @CreatedBy, @CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
-					 FROM @tbl_CustomerRfqQuoteDetailsType;
+					 FROM @tbl_IlsRfqQuoteDetailsType;
 
 					 ------- Update Csutomer RFQ for Is Quote added ----------
 					 
@@ -106,7 +66,7 @@ BEGIN
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
-				SELECT  
+			SELECT  
     ERROR_NUMBER() AS ErrorNumber  
     ,ERROR_SEVERITY() AS ErrorSeverity  
     ,ERROR_STATE() AS ErrorState  
@@ -115,7 +75,7 @@ BEGIN
     ,ERROR_MESSAGE() AS ErrorMessage;  
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'USP_SendOneFourtyFiveQuote' 
+            , @AdhocComments     VARCHAR(150)    = 'USP_SendILSQuote' 
             , @ProcedureParameters VARCHAR(3000) = '@CustomerRfqId = ''' + CAST(ISNULL(@CustomerRfqId, '') as varchar(100))
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

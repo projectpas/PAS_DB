@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetReceivedRfqList]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Get Received Rfq List data
@@ -81,14 +79,16 @@ BEGIN
 					RFQ.[IsQuote],
 					RFQ.[Type] AS 'PortalType',
 					RFQ.IntegrationPortalId AS IntegrationPortalId,
-					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy
+					RFQ.CreatedDate, RFQ.UpdatedDate, RFQ.CreatedBy, RFQ.UpdatedBy,
+					RFQ.[AltPartNumber] AS 'AltPartNumber',
+					RFQ.[Quantity] AS 'Quantity',
+					RFQ.[Condition] AS 'Condition'
 				FROM CustomerRfq RFQ WITH (NOLOCK)
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
 				FinalResult AS (
-				SELECT CustomerRfqId, RfqId, RfqcreatedDate, rfqFrom, companyName, country, partNumber, lineDescription, rfqAddress, rfqCity, rfqCountry, rfqState, rfqZip, IsQuote
-					 ,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,IntegrationPortalId,PortalType FROM Result
+				SELECT * FROM Result
 				WHERE (
 					(@GlobalFilter <>'' AND ((RfqId like '%' +@GlobalFilter+'%') OR 
 							(RfqcreatedDate like '%' +@GlobalFilter+'%') OR
@@ -114,9 +114,7 @@ BEGIN
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
 						ResultCount AS (Select COUNT(CustomerRfqId) AS NumberOfItems FROM FinalResult)
-						SELECT CustomerRfqId, RfqId, RfqcreatedDate,rfqFrom, companyName,country, partNumber,lineDescription
-						,rfqAddress,rfqCity,rfqCountry,rfqState,rfqZip,IsQuote,CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,IntegrationPortalId,
-						PortalType,NumberOfItems FROM FinalResult, ResultCount
+						SELECT * FROM FinalResult, ResultCount
 
 					ORDER BY  
 					CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,

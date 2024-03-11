@@ -2821,6 +2821,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeafNodeList_Backup.sql" />
     <Build Include="dbo\Stored Procedures\USP_SendOneFourtyFiveQuote.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWorkOrderQuoteRecords.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetGeneralLadgerGLAccountRestriction.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

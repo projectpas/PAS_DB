@@ -13,6 +13,8 @@
  ** --   --------		-------				--------------------------------            
     1    18/10/2023		Devendra Shekh			 Created  
     2    14/02/2023		Moin Bloch			     Updated Used Distribution Setup Code Insted of Name 
+	3    03/04/2024	    HEMANT SALIYA	         Updated for Restrict Accounting Entry by Master Company
+
  -- exec USP_PostCreditMemo_RefundBatchDetails 
 **********************/   
   
@@ -70,7 +72,6 @@ BEGIN
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 		DECLARE @SumAmount decimal(18,2); 
 
-
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
 			DROP TABLE #tmpCodePrefixes
@@ -88,13 +89,19 @@ BEGIN
 			)   
 
 		SELECT @SumAmount = ABS(SUM(Amount)) FROM [dbo].[CreditMemo] WITH(NOLOCK) WHERE [CustomerRefundId] = @CustomerRefundId
+		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CRFD')	
+		SELECT TOP 1 @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy, @CurrentManagementStructureId =ManagementStructureId FROM dbo.CustomerRefund WITH(NOLOCK) WHERE CustomerRefundId = @CustomerRefundId
 
-		IF(ISNULL(@SumAmount,0) <> 0)
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
+
+		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+
+		IF(ISNULL(@SumAmount,0) <> 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 			BEGIN		
-				SELECT TOP 1 @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy, @CurrentManagementStructureId =ManagementStructureId FROM dbo.CustomerRefund WITH(NOLOCK) WHERE CustomerRefundId = @CustomerRefundId
-				SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CRFD')	
+				
 				SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-				SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 				SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CustomerRefund'
@@ -134,8 +141,8 @@ BEGIN
 				BEGIN
 					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 					BEGIN  
-						set @batch ='001'  
-						set @Currentbatch='001' 
+						SET @batch ='001'  
+						SET @Currentbatch='001' 
 					END
 					ELSE
 					BEGIN 

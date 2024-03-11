@@ -24,7 +24,7 @@ BEGIN
    BEGIN       
 
 	DECLARE @POMSModuleId INT = 0
-	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 	--DECLARE @CPModuleID INT=59;
 
 SELECT CBD.CommonJournalBatchDetailId
@@ -80,7 +80,7 @@ SELECT CBD.CommonJournalBatchDetailId
 		INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId
 		INNER JOIN dbo.BatchHeader BH WITH(NOLOCK) ON BD.JournalBatchHeaderId = BH.JournalBatchHeaderId
 		LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON GL.GLAccountId=CBD.GLAccountId
-		LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND 
+		LEFT JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND 
 					CBD.ManagementStructureId = MSD.EntityMSID AND MSD.ModuleId = @POMSModuleId
 		LEFT JOIN dbo.BatchStatus BS WITH(NOLOCK) ON BD.StatusId = BS.Id  
 		LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID

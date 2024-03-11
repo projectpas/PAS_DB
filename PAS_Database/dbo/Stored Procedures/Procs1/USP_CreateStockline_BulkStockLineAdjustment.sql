@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    10/26/2023   AMIT GHEDIYA		Created
+	2    03/11/2024   ABHISHEK JIRAWLA	Modified - Added updated memo description to the new stockline created
   
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
@@ -654,6 +655,13 @@ BEGIN
 					DECLARE @PreviousStockLineNumber VARCHAR(50);
 					DECLARE @qtyonhand INT;
 					DECLARE @ManagementStructureId BIGINT;
+					DECLARE @MemoStocklineCreate NVARCHAR(MAX);
+					DECLARE @StocklineNumberOld VARCHAR(50);
+
+					SELECT @StocklineNumberOld = StockLineNumber FROM #tmpStockline WHERE StockLineId = @StockLineId;
+
+					SET @MemoStocklineCreate = 'This Stockline is created from existing stockline #StocklineNumber#.';
+					SET @MemoStocklineCreate = REPLACE(@MemoStocklineCreate, '#StocklineNumber#', @StocklineNumberOld);
 
 					SELECT @SelectedStockLineId = StockLineId FROM #tmpStockline WHERE ID = @LoopID;
 					--SELECT @PORequestorId = RequestedBy, @POVendorId = VendorId FROM DBO.PurchaseOrder WHERE PurchaseOrderId = @PurchaseOrderId;
@@ -787,7 +795,7 @@ BEGIN
 					[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],
 					[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],
 					[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],0,[ReceivedDate],@ReceiverNumber,[ReconciliationNumber],0,0,
-					[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],@ManagementStructureId,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),
+					[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],@MemoStocklineCreate,@ManagementStructureId,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),
 					GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],NULL,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],
 					[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],
 					[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],0,

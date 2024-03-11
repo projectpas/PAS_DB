@@ -12,9 +12,9 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
-
+	3	07/03/2024		Moin Bloch  	added Document Type
 ************************************************************************/
--- EXEC SearchCustomerInvoicesPaidForReport 49
+-- EXEC SearchCustomerInvoicesPaidForReport 129
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
 @ReceiptId bigint = null
 AS
@@ -22,6 +22,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+			DECLARE @MiscCustomerId BIGINT = 0
+			DECLARE @MasterCompanyId INT = 0
+
+			SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE [ReceiptId] = @ReceiptId;	
+			SELECT @MiscCustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Name] LIKE '%MISCELLANEOUS%' AND [MasterCompanyId] = @MasterCompanyId;
+
 
 			 IF OBJECT_ID(N'tempdb..#Paymenttemp') IS NOT NULL    
 			 BEGIN    
@@ -98,20 +104,67 @@ BEGIN
 					CASE WHEN [InvoiceType] = 1 THEN SOBI.[RemainingAmount] ELSE WOBI.[RemainingAmount] END AS 'RemainingAmount',						
 					CASE WHEN (CT.[NetDays] - DATEDIFF(DAY, CASt([IP].[InvoiceDate] as date), GETDATE())) < 0 THEN [IP].[RemainingAmount] ELSE 0.00 END AS 'AmountPastDue',						
 					[IP].[PaymentAmount], 					
-					[IP].[NewRemainingBal] AS 'NewRemainingBal'
-
+					[IP].[NewRemainingBal] AS 'NewRemainingBal',					
+					CASE WHEN [InvoiceType] = 1 AND SOBI.[IsProforma] = 1 THEN 'PROFORMA INVOICE' 
+					     WHEN [InvoiceType] = 1 AND ISNULL(SOBI.[IsProforma],0) = 0  THEN 'INVOICE' 
+						 WHEN [InvoiceType] = 2 AND WOBI.[IsPerformaInvoice] = 1 THEN 'PROFORMA INVOICE'
+						 WHEN [InvoiceType] = 2 AND ISNULL(WOBI.IsPerformaInvoice,0) = 0  THEN 'INVOICE' 
+						 WHEN [InvoiceType] = 3 THEN 'CREDIT MEMO' 
+						 WHEN [InvoiceType] = 4 THEN 'STAND ALONE CREDIT MEMO'
+						 WHEN [InvoiceType] = 5 THEN 'MANUAL JOURNAL'
+						 WHEN [InvoiceType] = 6 THEN 'EXCHANGE INVOICE'
+					     END  AS 'DocumentType',
+					0 AS Ismiscellaneous 
 		FROM [dbo].[InvoicePayments] [IP] WITH (NOLOCK) 	
 		INNER JOIN #Paymenttemp [PT] WITH (NOLOCK) ON PT.CustomerId = IP.CustomerId  
 		LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON [IP].CustomerId = CU.CustomerId
 		LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId
 		LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId	
-		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
+		LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId --AND ISNULL(SOBI.IsProforma,0) = 0
 		LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId
-		WHERE 
-		[IP].ReceiptId = @receiptId AND [IP].IsDeleted=0
-		Group By [IP].[PaymentId],CU.[CustomerId],CU.[Name],CU.[CustomerCode],[IP].[DocNum],[IP].[InvoiceDate],[IP].[WOSONum],[IP].[RemainingAmount],		
+		WHERE [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0
+		GROUP BY [IP].[PaymentId],CU.[CustomerId],CU.[Name],CU.[CustomerCode],[IP].[DocNum],[IP].[InvoiceDate],[IP].[WOSONum],[IP].[RemainingAmount],		
 				 [IP].[CurrencyCode],[IP].[OriginalAmount],[IP].[RemainingAmount],[IP].[PaymentAmount], 
-				 [IP].NewRemainingBal,SOBI.RemainingAmount,WOBI.RemainingAmount,[IP].[InvoiceType],[CT].[NetDays],[PT].Amount,PT.[AmountRemaining]     
+				 [IP].NewRemainingBal,SOBI.RemainingAmount,WOBI.RemainingAmount,[IP].[InvoiceType],[CT].[NetDays],[PT].Amount,PT.[AmountRemaining],     
+				 [SOBI].[IsProforma],[WOBI].[IsPerformaInvoice]
+
+		UNION ALL
+
+			 SELECT  0 AS [PaymentId], 										
+					 CASE WHEN ICP.CustomerId IS NOT NULL THEN ICP.CustomerId 
+						  WHEN IWP.CustomerId IS NOT NULL THEN IWP.CustomerId 
+						  WHEN ICCP.CustomerId IS NOT NULL THEN ICCP.CustomerId 
+						  ELSE 0 END AS CustomerId,
+					 CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.[Name] 
+						  WHEN IWP.CustomerId IS NOT NULL THEN CWP.[Name] 
+						  WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.[Name] 
+						  ELSE '' END AS 'CustName',
+					CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.CustomerCode 
+						 WHEN IWP.CustomerId IS NOT NULL THEN CWP.CustomerCode 
+						 WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.CustomerCode 
+						 ELSE '' END AS CustomerCode,
+				    (ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS AppliedAmount,
+					0.00 AppliedRemainingAmount,			  
+					'' AS [DocNum], 					
+					'' AS InvoiceDate,					
+					'' AS [WOSONum],					
+					'' AS [CurrencyCode],				
+					0.00 AS 'OriginalAmount', 				
+					0.00 AS 'RemainingAmount',						
+					0.00 AS 'AmountPastDue',						
+					0.00 AS [PaymentAmount], 					
+					0.00 AS 'NewRemainingBal',					
+					''  AS 'DocumentType',
+					1 AS Ismiscellaneous 
+				 FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
+		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.CustomerId = @MiscCustomerId AND ICP.Ismiscellaneous = 1   
+		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.CustomerId = @MiscCustomerId 
+		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.CustomerId = @MiscCustomerId
+		  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
+		  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  
+		  LEFT JOIN [dbo].[Customer] CCDP WITH (NOLOCK) ON CCDP.CustomerId = ICCP.CustomerId  
+		 WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0)
+
 
 	END TRY    
 	BEGIN CATCH

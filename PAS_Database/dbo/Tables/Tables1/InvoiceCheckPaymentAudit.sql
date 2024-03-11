@@ -4,7 +4,7 @@
     [ReceiptId]           BIGINT          NOT NULL,
     [CustomerId]          BIGINT          NOT NULL,
     [PaymentMethod]       VARCHAR (50)    NULL,
-    [CheckDate]           DATETIME        NOT NULL,
+    [CheckDate]           DATETIME        NULL,
     [Amount]              DECIMAL (20, 2) NOT NULL,
     [CurrencyId]          INT             NOT NULL,
     [CheckNumber]         VARCHAR (50)    NOT NULL,
@@ -23,4 +23,6 @@
     [Ismiscellaneous]     BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_InvoiceCheckPaymentAudit] PRIMARY KEY CLUSTERED ([CheckPaymentAuditId] ASC)
 );
+
+
 

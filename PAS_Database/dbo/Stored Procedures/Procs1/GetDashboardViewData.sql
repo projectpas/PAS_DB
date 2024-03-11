@@ -13,6 +13,7 @@
     1					unknown			Created
 	2	01/31/2024		Devendra Shekh	added isperforma Flage for WO
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	4   03/06/2024      Bhargav Saliya  Convert  Into Temp table SP
 
 -- EXEC GetDashboardViewData 
 ************************************************************************/
@@ -42,20 +43,32 @@ BEGIN
 
 			IF (@DashboardType = 1)
 			BEGIN
-				SELECT rec_cust.PartNumber, item.PartDescription, rec_cust.WorkScope, item.ItemGroup,
-				rec_cust.Quantity, wo.WorkOrderNum, rec_cust.CustomerName, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
-				INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
-				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
-	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
-	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
-				WHERE rec_cust.IsActive = 1 
-				AND rec_cust.IsDeleted = 0 
-				AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 
-				AND rec_cust.MasterCompanyId = @MasterCompanyId
-				ORDER BY WO.WorkOrderId
+					;With TempResults as  (
+					SELECT DISTINCT
+						WO.WorkOrderId,
+						rec_cust.PartNumber, 
+						item.PartDescription, 
+						rec_cust.WorkScope, 
+						item.ItemGroup,
+						rec_cust.Quantity, 
+						wo.WorkOrderNum, 
+						rec_cust.CustomerName, 
+						(emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+					FROM 
+						DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
+						INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
+						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
+						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
+						LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+					WHERE 
+						rec_cust.IsActive = 1 
+						AND rec_cust.IsDeleted = 0 
+						AND CONVERT(DATE, rec_cust.ReceivedDate) = CONVERT(DATE, @Date) 
+						AND rec_cust.MasterCompanyId = @MasterCompanyId
+					)
+					SELECT * FROM TempResults Order by WorkOrderId
 			END
 			ELSE IF (@DashboardType = 2)
 			BEGIN

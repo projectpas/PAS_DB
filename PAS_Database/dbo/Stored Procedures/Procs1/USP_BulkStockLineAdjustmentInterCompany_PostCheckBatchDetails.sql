@@ -19,6 +19,7 @@
 	3    24/11/2023   Moin Bloch	  Modified Added [ReferenceId]
 	4	 16/02/2024   Ekta Chandegra  Pass @newQty instead of @remainingQty in [DBO].[USP_AddUpdateStocklineHistory] call
 	5	 26/02/2024   Bhargav Saliya  Resolved management structure Entry Issue
+	6	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
 **************************************************************/
@@ -292,7 +293,9 @@ BEGIN
 
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
-													 [QuantityAvailable] = @QuantityAvailable - @newqty
+												 [QuantityAvailable] = @QuantityAvailable - @newqty,
+												 [UpdatedBy] = @UpdateBy,
+												 [UpdatedDate] = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;
 
 					--Update Existing Stockline 

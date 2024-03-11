@@ -18,6 +18,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    7    06/14/2023  Devendra Shekh       changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]
    8    10/16/2023  Devendra Shekh    Timelife issue resolved
    9    10/16/2023  Devendra Shekh    update for wopartnoId for insert stockline
+   10	03/05/2024  Bhargav saliya    UTC Date Changes
   
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
@@ -265,7 +266,7 @@ BEGIN
      ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@UnitOfMeasureId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
        @IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
        @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNum, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,@WorkOrderPartNoId,  
-       @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETDATE(),GETDATE(),1,0, @MasterCompanyId, 1,  
+       @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
        @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife);  
        
      SELECT @StockLineId = SCOPE_IDENTITY()  

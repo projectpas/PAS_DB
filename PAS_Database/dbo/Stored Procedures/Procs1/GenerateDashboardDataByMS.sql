@@ -15,6 +15,7 @@
     1    22 Nov 2023	JEVIK RAIYANI              update SQProcessed variable calculation         
 	2	 01/31/2024		Devendra Shekh				added isperforma Flage for WO
 	3	 01/02/2024	    AMIT GHEDIYA	            added isperforma Flage for SO
+	4    03/07/2024     Bhargav Saliya				Fixed duplicate Record Issue
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -43,15 +44,18 @@ BEGIN
 		DECLARE @SalesOrderModuleID AS INT =17
 		DECLARE @SalesOrderQouteModuleID AS INT =18
 		DECLARE @SpeedQouteModuleID AS INT =27
+		DECLARE @EmployeeRoleID AS BIGINT;
 			
 		SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
-		WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+		WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
-		SELECT @Qty = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
+		SELECT TOP 1 @EmployeeRoleID  = RoleId FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
+
+		SELECT  @Qty = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 	    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 	    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) 
+		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId = @EmployeeRoleID
 		AND RC.MasterCompanyId = @MasterCompanyId
 		GROUP BY ReceivedDate
 

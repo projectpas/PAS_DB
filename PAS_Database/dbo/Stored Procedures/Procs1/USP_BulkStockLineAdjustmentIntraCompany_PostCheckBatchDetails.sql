@@ -17,6 +17,7 @@
     1    30/10/2023   Amit Ghediya	  Created	
 	2    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
+	4	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 
 	EXEC USP_BulkStockLineAdjustmentIntraCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -305,7 +306,9 @@ BEGIN
 
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
-													 [QuantityAvailable] = @QuantityAvailable - @newqty
+												 [QuantityAvailable] = @QuantityAvailable - @newqty,
+												 [UpdatedBy] = @UpdateBy,
+												 [UpdatedDate] = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;
 
 					DECLARE @Stockline BIGINT;

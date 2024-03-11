@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodSubWOMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For SUB Finished Good.      
@@ -27,6 +28,7 @@
 10    01/17/2024   Hemant Saliya   Update RepairOrderUnitCost NULL to Zero
 11    01/22/2024   Hemant Saliya   Add For create Sub WO Stockline History
 12    10/16/2023   Devendra Shekh  update revised serialnum close sub wo
+13	  03/06/2023   Bhargav Saliya  Update History When We Close The Sub WO 
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -349,6 +351,16 @@ BEGIN
 	 DECLARE @SubWorkOrderModule AS BIGINT = 16; -- For Sub Work Order
 
 	 EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, 15, 1, @UpdatedBy;
+
+	 --When We Close The Sub WO At That Time Update History
+	 DECLARE @UpdatedQuantityOnHand INT = NULL;
+	 SELECT @UpdatedQuantityOnHand = QuantityOnHand FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0; 
+	 SELECT ActionId fROM StklineHistory_Action wHERE [Type] = 'Close-Sub-WorkOrder' AND [DisplayName] = 'CLOSED SUB WORKORDER'
+	 IF(ISNULL(@UpdatedQuantityOnHand,0) = 0)
+	 BEGIN
+		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, ActionId, 0, @UpdatedBy;
+	 END
+
   
      INSERT INTO [dbo].[StockLineHistoryDetails] ([StocklineId], [ItemMasterId_o], [ItemMasterId_m], [StocklineNum],  
       [PurchaseOrderId], [PONum], [POCost], [ConditionId], [ConditionName], [RepairOrderId], [RONum], [WorkscoprId],[WorkscopeName],  

@@ -12,13 +12,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    01/17/2024   Amit Ghediya	Created	
+ ** PR   Date           Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/17/2024   Amit Ghediya		Created	
+	2    02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
-CREATE       PROCEDURE [dbo].[USP_ManualJournal_PostCheckBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_ManualJournal_PostCheckBatchDetails]
 (
 	@ManualJournalHeaderId BIGINT
 )
@@ -124,7 +125,12 @@ BEGIN
 		FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) 
 		WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
-		IF(ISNULL(@Amount,0) <> 0)
+		DECLARE @IsRestrict BIT;
+		DECLARE @IsAccountByPass BIT;
+
+		EXEC dbo.USP_GetGeneralLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+
+		IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER(@DistributionCodeName)
 			
@@ -140,9 +146,6 @@ BEGIN
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			
-			--SELECT TOP 1 @ManagementStructureId = ManagementStructureId, @stklineId = StockLineId, @qtyAdjustment = QtyAdjustment FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId;
-			--SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
-
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 			FROM [DBO].[CodePrefixes] CP WITH(NOLOCK) JOIN [DBO].[CodeTypes] CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
@@ -152,13 +155,6 @@ BEGIN
 			FROM [DBO].[AccountingCalendar] acc WITH(NOLOCK)
 			WHERE acc.AccountingCalendarId = @AccountingPeriodId AND acc.MasterCompanyId=@MasterCompanyId  
 
-			--SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
-			--FROM [DBO].[EntityStructureSetup] est WITH(NOLOCK) 
-			--INNER JOIN [DBO].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
-			--INNER JOIN [DBO].[AccountingCalendar] acc WITH(NOLOCK) ON msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			--where est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId  
-			--AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
-			
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
 				SELECT 
@@ -275,7 +271,6 @@ BEGIN
 						   @AllMSlevels = [AllMSlevels]
 					FROM #tmpManualJournalDetails WHERE [ID] = @MasterLoopID;
 					
-					--SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					SELECT @GlAccountNumber = AccountCode, @GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId;
 
 					-----ManualJournal-Debit/Credit--------
@@ -338,7 +333,6 @@ BEGIN
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 		END
-
 		
 		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
@@ -346,8 +340,8 @@ BEGIN
 
 		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-		
-		select @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where UPPER([Name]) = UPPER(@StatusPosted)
+
+		SELECT @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where UPPER([Name]) = UPPER(@StatusPosted)
 		--Update  Status to Post
 		UPDATE ManualJournalHeader SET ManualJournalStatusId = @ManualJournalStatusId WHERE ManualJournalHeaderId = @ManualJournalHeaderId;
 		SELECT @ManualJournalHeaderId AS 'ManualJournalHeaderId';

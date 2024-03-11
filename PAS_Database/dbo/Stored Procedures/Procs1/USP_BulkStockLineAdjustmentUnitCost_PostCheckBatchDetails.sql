@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentUnitCost_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment Unit Cost.
@@ -18,6 +19,7 @@
 	2    08/11/2023   Amit Ghediya	Updated for unitcost in child stockline.	
 	3    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
 	4    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
+	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
      
 **************************************************************/
 
@@ -398,7 +400,9 @@ BEGIN
 					UPDATE [dbo].[Stockline] SET [FreightAdjustment] = (@FreightAdjustment + @tmpFreightAdjustment),
 												 [TaxAdjustment] = (@TaxAdjustment + @tmpTaxAdjustment),
 												 [Adjustment] = (@Adjustment + @UnitCostAdjustment),
-												 [UnitCost] = @tmpUnitCost
+												 [UnitCost] = @tmpUnitCost,
+												 UpdatedBy = @UpdateBy,
+												 UpdatedDate = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;
 
 					--Child stockline

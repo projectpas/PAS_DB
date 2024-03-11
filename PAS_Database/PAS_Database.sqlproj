@@ -68,6 +68,7 @@
     <Folder Include="dbo\Stored Procedures\Procs2\" />
     <Folder Include="Database Triggers\" />
     <Folder Include="dbo\User Defined Types\" />
+    <Folder Include="Snapshots" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Tables\Tables1\__EFMigrationsHistory.sql" />
@@ -1745,7 +1746,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\getStocklineforAdjustment.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetStocklineHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetStocklineIdsForReceivingPO.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\GetSubWOAssetList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWOMaterialsPickTicketApproveList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWOMaterialsPickTicketChildList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWorkOrderChargesAuditList.sql" />
@@ -2821,5 +2821,13 @@
     <Build Include="dbo\Stored Procedures\USP_GetLeafNodeList_Backup.sql" />
     <Build Include="dbo\Stored Procedures\USP_SendOneFourtyFiveQuote.sql" />
     <Build Include="dbo\Stored Procedures\MigrateWorkOrderQuoteRecords.sql" />
+    <Build Include="dbo\Tables\CustomerCreditPaymentDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdaetCustomerCreditPayment_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCustomerCreditPaymentDetails_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditPaymentList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetGeneralLadgerGLAccountRestriction.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />
   </ItemGroup>
 </Project>

@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/22/2022   Hemant Saliya Created
+	2    03/08/2024   Bhargav Saliya  In WokOrder DashBoard  Count Issue Resolved
      
 -- EXEC [GetWODashboardDataCount] 1,2,'internal'
 **************************************************************/
@@ -92,7 +93,7 @@ BEGIN
 				UPDATE #tmpWorkOrderStage 
 					SET Counts = ISNULL(T2.StageCount, 0)
 				FROM #tmpWorkOrderStage AS WOS INNER JOIN (
-				SELECT DISTINCT ISNULL(COUNT(DISTINCT WO.WorkOrderId), 0) AS StageCount, WorkOrderStageId  
+				SELECT DISTINCT ISNULL(COUNT(DISTINCT WOP.ID), 0) AS StageCount, WorkOrderStageId  
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 				JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
 				JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId

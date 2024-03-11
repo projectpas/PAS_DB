@@ -16,6 +16,7 @@
  ** --   --------     -------		  --------------------------------          
     1    30/10/2023   BHARGAV SALIYA	  Created	
 	2    22/12/2023   Bhargav Salya		  Modified
+	3	 01/03/2024   Bhargav Saliya      Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 
      
 **************************************************************/
@@ -303,13 +304,15 @@ BEGIN
 
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) < 0 THEN 0 ELSE (@QuantityOnHand - @newqty) END,
-													 [QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END
+												 [QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
+												 [UpdatedBy] = @UpdateBy,
+												 [UpdatedDate] = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;
 					DECLARE @Stockline BIGINT;
 					--Create New Stockline  Need to create new
 					EXEC dbo.USP_CreateStockline_For_CustStockTransfer @StockLineId,@BulkStockLineAdjustmentDetailsId,@UpdateBy,@MasterCompanyId,@Stockline OUTPUT;
 
-					UPDATE dbo.Stockline set UnitCost = @NewUnitCostTotransfer WHERE StockLineId = @Stockline
+					UPDATE dbo.Stockline set UnitCost = @NewUnitCostTotransfer,UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE() WHERE StockLineId = @Stockline
 					UPDATE dbo.ChildStockline set UnitCost = @NewUnitCostTotransfer WHERE ParentId = @Stockline
 					----- START: Inventory-Stock--------
 					SELECT TOP 1 @DistributionSetupId=ID,

@@ -1,5 +1,5 @@
 ﻿/*************************************************************               
-** File:   [GetGlAccountList]              
+** File:   [USP_GetGeneralLadgerGLAccountRestriction]              
 ** Author:   Hemant Saliya  
 ** Description: This procedre is used to display GL Account List  
 ** Purpose:             
@@ -13,10 +13,10 @@
 
 DECLARE @IsRestrict BIT 
 DECLARE @IsAccountByPass BIT 
-EXEC dbo.USP_GetSubLadgerGLAccountRestriction 'WOMATERIALGRIDTAB', 1, 0, 'ADMIN User', @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+EXEC dbo.USP_GetGeneralLadgerGLAccountRestriction 'WOMATERIALGRIDTAB', 11, 0, 'ADMIN User', @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 SELECT @IsRestrict, @IsAccountByPass
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[USP_GetSubLadgerGLAccountRestriction](     
+CREATE   PROCEDURE [dbo].[USP_GetGeneralLadgerGLAccountRestriction](     
  @DistributionCode VARCHAR(100),
  @MasterCompanyId INT,
  @AccountingCalendarId BIGINT = NULL,
@@ -106,7 +106,7 @@ BEGIN
 						FROM dbo.AccountingCalendar AC WITH(NOLOCK)  
 						WHERE AccountingCalendarId = @AccountingCalendarId
 
-						IF(ISNULL(@IsRestrictAR, 0) > 0 OR ISNULL(@IsRestrictAP, 0) > 0 OR ISNULL(@IsRestrictASSET, 0) > 0 OR ISNULL(@IsRestrictINV, 0) > 0 OR ISNULL(@IsRestrictGEN, 0) > 0)
+						IF(ISNULL(@IsRestrictGEN, 0) > 0)
 						BEGIN
 							SET @IsRestrict = 1
 							GOTO SkipProcessing;
@@ -116,10 +116,6 @@ BEGIN
 						SET @COUNT = @COUNT - 1
 					END
 				END
-				--ELSE
-				--BEGIN
-				--	SELECT @IsRestrict = 1 --IF Restrict at Master Complany Level
-				--END
 
 				SkipProcessing: 
 

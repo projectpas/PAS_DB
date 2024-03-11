@@ -1745,7 +1745,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\getStocklineforAdjustment.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetStocklineHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetStocklineIdsForReceivingPO.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\GetSubWOAssetList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWOMaterialsPickTicketApproveList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWOMaterialsPickTicketChildList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetSubWorkOrderChargesAuditList.sql" />

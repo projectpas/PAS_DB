@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:  [RPT_PrintPurchaseOrderDataById]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to Get Print PurchaseOrder Data By PurchaseOrderId
@@ -107,15 +106,15 @@ BEGIN
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
 			   THEN 
-					CASE WHEN LEN(ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],'')) < 25
-						THEN ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],'')
-					ELSE
-						LEFT(ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],''),25) + '....'
-					END					
+					ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],'')
+					--CASE WHEN LEN(ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],'')) < 25
+					--	THEN ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],'')
+					--ELSE
+					--	LEFT(ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],''),25) + '....'
+					--END					
 			   ELSE
 					''
 			   END  AS 'ShipAddCommon',
-			   --LEFT(ISNULL(Ad.[Line1],'') +' '+ ISNULL(Ad.[Line2],''),15) + '....' AS 'ShipAddCommon',
 
 			   ISNULL(Ad.[City],'') AS 'ShipToCity',
 			   ISNULL(Ad.[StateOrProvince],'') AS 'ShipToState',
@@ -123,11 +122,12 @@ BEGIN
 			   CASE
 			   WHEN Ad.[City] !='' OR Ad.[StateOrProvince] !='' OR Ad.[PostalCode] != '' 
 			   THEN 
-					CASE WHEN LEN(ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],'')) < 25
-						THEN ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],'')
-					ELSE
-						LEFT(ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],''),25) + '....'
-					END
+					ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],'')
+					--CASE WHEN LEN(ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],'')) < 25
+					--	THEN ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],'')
+					--ELSE
+					--	LEFT(ISNULL(Ad.[City],'') +' '+ ISNULL(Ad.[StateOrProvince],'') +', ' + ISNULL(Ad.[PostalCode],''),25) + '....'
+					--END
 			   ELSE
 					''
 			   END  AS 'ShipCommon',
@@ -165,16 +165,16 @@ BEGIN
 
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
-			   THEN 
-					CASE WHEN LEN(ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],'')) < 25
-						THEN ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],'')
-					ELSE
-						LEFT(ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],''),25) + '....'
-					END						
+			   THEN
+					ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],'')
+					--CASE WHEN LEN(ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],'')) < 25
+					--	THEN ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],'')
+					--ELSE
+					--	LEFT(ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],''),25) + '....'
+					--END						
 			   ELSE
 					''
 			   END  AS 'BillAddCommon',
-			   --LEFT(ISNULL(ADB.[Line1],'') +' '+ ISNULL(ADB.[Line2],''),15) + '....' AS 'BillAddCommon',
 
 			   ISNULL(ADB.[City],'') AS 'BillToCity',
 			   ISNULL(ADB.[StateOrProvince],'') AS 'BillToState',
@@ -182,16 +182,16 @@ BEGIN
 
 			   CASE
 			   WHEN ADB.[City] !='' OR ADB.[StateOrProvince] !='' OR ADB.[PostalCode] != '' 
-			   THEN 
-					CASE WHEN LEN(ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],'')) < 25
-						THEN ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],'')
-					ELSE
-						LEFT(ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],''),25) + '....'
-					END					
+			   THEN
+					ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],'')
+					--CASE WHEN LEN(ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],'')) < 25
+					--	THEN ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],'')
+					--ELSE
+					--	LEFT(ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],''),25) + '....'
+					--END					
 			   ELSE
 					''
 			   END  AS 'BillCommon',
-			   --LEFT(ISNULL(ADB.[City],'') +' '+ ISNULL(ADB.[StateOrProvince],'') +', ' + ISNULL(ADB.[PostalCode],''),20) + '....' AS 'BillCommon',
 
 			   ISNULL(ADB.[Country],'') AS 'BillToCountry',
 			

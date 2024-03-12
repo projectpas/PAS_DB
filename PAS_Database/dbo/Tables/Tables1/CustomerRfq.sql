@@ -14,6 +14,9 @@
     [BuyerZip]            VARCHAR (50)  NULL,
     [LinePartNumber]      VARCHAR (250) NULL,
     [LineDescription]     VARCHAR (250) NULL,
+    [AltPartNumber]       VARCHAR (250) NULL,
+    [Quantity]            INT           NULL,
+    [Condition]           VARCHAR (50)  NULL,
     [MasterCompanyId]     INT           NOT NULL,
     [CreatedBy]           VARCHAR (50)  NOT NULL,
     [CreatedDate]         DATETIME2 (7) CONSTRAINT [DF_CustomerRfq_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
@@ -25,6 +28,8 @@
     CONSTRAINT [PK_CustomerRfq] PRIMARY KEY CLUSTERED ([CustomerRfqId] ASC),
     CONSTRAINT [FK_CustomerRfq_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

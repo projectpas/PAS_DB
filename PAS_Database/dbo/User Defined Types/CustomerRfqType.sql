@@ -12,7 +12,12 @@
     [BuyerState]          VARCHAR (50)  NULL,
     [BuyerZip]            VARCHAR (50)  NULL,
     [LinePartNumber]      VARCHAR (250) NULL,
-    [LineDescription]     VARCHAR (250) NULL);
+    [LineDescription]     VARCHAR (250) NULL,
+    [AltPartNumber]       VARCHAR (250) NULL,
+    [Quantity]            INT           NULL,
+    [Condition]           VARCHAR (50)  NULL);
+
+
 
 
 

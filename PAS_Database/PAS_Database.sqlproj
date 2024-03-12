@@ -2826,6 +2826,8 @@
     <Build Include="dbo\Stored Procedures\USP_SaveCustomerCreditPaymentDetails_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditPaymentList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGeneralLadgerGLAccountRestriction.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SendILSQuote.sql" />
+    <Build Include="dbo\User Defined Types\IlsRfqQuoteDetailsType.sql" />
     <Build Include="dbo\Stored Procedures\USP_DELETE_VendorReadyToPayChecks.sql" />
   </ItemGroup>
   <ItemGroup>

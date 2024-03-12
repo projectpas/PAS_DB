@@ -27,6 +27,7 @@
 	11   31/10/2023   Devendra Shekh  Changes for nonpo details
 	12   02/11/2023   Devendra Shekh  Changes for nonpo details
 	13   15/11/2023   Moin Bloch      added DueDate and Days Past Due
+	14   07/03/2024   AMIT GHEDIYA    Update Status Name as per PN-6767
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -377,7 +378,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END  
-    ELSE IF(@CurrentStatus = 'ReadytoPay')
+    ELSE IF(@CurrentStatus = 'ReadyforSelection')
     BEGIN  
     ;WITH Result AS (  
 		 SELECT DISTINCT 
@@ -567,7 +568,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END  
-	ELSE IF(@CurrentStatus = 'SelectedtobePaid')  
+	ELSE IF(@CurrentStatus = 'CheckRegister')  
     BEGIN  
     ;WITH Result AS (        
 		SELECT ReceivingReconciliationId,

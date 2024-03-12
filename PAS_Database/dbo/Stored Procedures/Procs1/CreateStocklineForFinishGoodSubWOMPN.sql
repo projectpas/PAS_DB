@@ -354,11 +354,10 @@ BEGIN
 
 	 --When We Close The Sub WO At That Time Update History
 	 DECLARE @UpdatedQuantityOnHand INT = NULL;
-	 SELECT @UpdatedQuantityOnHand = QuantityOnHand FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0; 
-	 SELECT ActionId fROM StklineHistory_Action wHERE [Type] = 'Close-Sub-WorkOrder' AND [DisplayName] = 'CLOSED SUB WORKORDER'
+	 SELECT @UpdatedQuantityOnHand = QuantityOnHand FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0;	 
 	 IF(ISNULL(@UpdatedQuantityOnHand,0) = 0)
 	 BEGIN
-		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, ActionId, 0, @UpdatedBy;
+		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, 16, 0, @UpdatedBy;
 	 END
 
   

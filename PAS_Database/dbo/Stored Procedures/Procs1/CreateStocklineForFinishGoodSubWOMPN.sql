@@ -102,6 +102,7 @@ BEGIN
 	DECLARE @laborType varchar(200)='434'
 	DECLARE @WorkFlowWorkOrderId BIGINT = 0; 
 	DECLARE @RevisedSerialNumber VARCHAR(50) = '';
+	DECLARE @ActionId INT = 0;
   
     SET @MSModuleID = 2; -- Stockline Module ID  
   
@@ -354,10 +355,11 @@ BEGIN
 
 	 --When We Close The Sub WO At That Time Update History
 	 DECLARE @UpdatedQuantityOnHand INT = NULL;
-	 SELECT @UpdatedQuantityOnHand = QuantityOnHand FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0;	 
+	 SELECT @UpdatedQuantityOnHand = QuantityOnHand FROM [dbo].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0; 
+	 SELECT @ActionId  = ActionId fROM StklineHistory_Action wHERE [Type] = 'Close-Sub-WorkOrder' AND [DisplayName] = 'CLOSED SUB WORKORDER'
 	 IF(ISNULL(@UpdatedQuantityOnHand,0) = 0)
 	 BEGIN
-		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, 16, 0, @UpdatedBy;
+		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, @ActionId, 0, @UpdatedBy;
 	 END
 
   
@@ -458,7 +460,7 @@ BEGIN
          FROM [dbo].[StockLine] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @NewStocklineId;  
 
 
-		DECLARE @ActionId INT = 0;
+		
 		SET @ActionId = 4; -- Issue
 		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @SubWOQuantity, @UpdatedBy = @UpdatedBy;
 

@@ -25,13 +25,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON    
  BEGIN TRY    
-    
-	DECLARE @MiscCustomerId BIGINT = 0
-	DECLARE @MasterCompanyId INT = 0
-
-	SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE [ReceiptId] = @ReceiptId;	
-	SELECT @MiscCustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Name] LIKE '%MISCELLANEOUS%' AND [MasterCompanyId] = @MasterCompanyId;
-
+    	
   ;WITH myCTE(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS    
   (SELECT DISTINCT IPS.ReceiptId, C.CustomerId, C.Name, C.CustomerCode,     
   LTRIM(RTRIM(A.PaymentRef)) PaymentRef, 
@@ -109,9 +103,9 @@ BEGIN
 		0 AmountRemaining,
 		(ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS 'AmtApplied'	
    FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
-  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.CustomerId = @MiscCustomerId AND ICP.Ismiscellaneous = 1   
-  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.CustomerId = @MiscCustomerId 
-  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.CustomerId = @MiscCustomerId
+  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.Ismiscellaneous = 1   
+  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.Ismiscellaneous = 1  
+  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.Ismiscellaneous = 1  
   LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
   LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  
   LEFT JOIN [dbo].[Customer] CCDP WITH (NOLOCK) ON CCDP.CustomerId = ICCP.CustomerId  
@@ -119,9 +113,9 @@ BEGIN
 	   SELECT DISTINCT  ((ISNULL(ICP1.CheckNumber,'')) + (CASE WHEN IWP1.ReferenceNo IS NOT NULL THEN ' ' + IWP1.ReferenceNo ELSE '' END) +     
 	   (CASE WHEN ICCP1.Reference IS NOT NULL THEN ' ' + ICCP1.Reference ELSE '' END)) AS 'PaymentRef'    
 	   FROM [dbo].[CustomerPayments] CP1 WITH (NOLOCK)
-	   LEFT JOIN [dbo].[InvoiceCheckPayment] ICP1 WITH (NOLOCK)  ON ICP1.ReceiptId = CP1.ReceiptId AND ICP1.CustomerId = @MiscCustomerId  
-	   LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP1 WITH (NOLOCK) ON IWP1.ReceiptId = CP1.ReceiptId AND IWP1.CustomerId = @MiscCustomerId   
-	   LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND ICCP1.CustomerId = @MiscCustomerId  
+	   LEFT JOIN [dbo].[InvoiceCheckPayment] ICP1 WITH (NOLOCK)  ON ICP1.ReceiptId = CP1.ReceiptId AND ICP1.Ismiscellaneous = 1  
+	   LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP1 WITH (NOLOCK) ON IWP1.ReceiptId = CP1.ReceiptId AND IWP1.Ismiscellaneous = 1  
+	   LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND ICCP1.Ismiscellaneous = 1  
 	   WHERE CP.ReceiptId = CP1.ReceiptId 
   ) A  
   WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0)

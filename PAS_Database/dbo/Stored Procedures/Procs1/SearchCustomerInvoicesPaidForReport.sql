@@ -22,13 +22,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-			DECLARE @MiscCustomerId BIGINT = 0
-			DECLARE @MasterCompanyId INT = 0
-
-			SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE [ReceiptId] = @ReceiptId;	
-			SELECT @MiscCustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Name] LIKE '%MISCELLANEOUS%' AND [MasterCompanyId] = @MasterCompanyId;
-
-
+			
 			 IF OBJECT_ID(N'tempdb..#Paymenttemp') IS NOT NULL    
 			 BEGIN    
 				DROP TABLE #Paymenttemp
@@ -157,9 +151,9 @@ BEGIN
 					''  AS 'DocumentType',
 					1 AS Ismiscellaneous 
 				 FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
-		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.CustomerId = @MiscCustomerId AND ICP.Ismiscellaneous = 1   
-		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.CustomerId = @MiscCustomerId 
-		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.CustomerId = @MiscCustomerId
+		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.Ismiscellaneous = 1   
+		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.Ismiscellaneous = 1   
+		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.Ismiscellaneous = 1   
 		  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
 		  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  
 		  LEFT JOIN [dbo].[Customer] CCDP WITH (NOLOCK) ON CCDP.CustomerId = ICCP.CustomerId  
@@ -171,7 +165,7 @@ BEGIN
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
         , @AdhocComments     VARCHAR(150)    = 'SearchCustomerInvoicesPaidForReport' 
-        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReceiptId AS VARCHAR(10)), '') + ''
+        , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReceiptId AS VARCHAR(100)), '') + ''
         , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         exec spLogException 

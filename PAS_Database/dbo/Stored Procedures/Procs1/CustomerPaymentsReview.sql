@@ -13,8 +13,9 @@
 	1                  unknown			Created	
 	2    20/02/2024    Devendra Shekh	added isDeleted flage
 	3    07/03/2024    Moin Bloch	    added AmtApplied Field	
+	4    11/03/2024    Moin Bloch	    check misc customer
 
-	EXEC [dbo].[CustomerPaymentsReview]  127
+	EXEC [dbo].[CustomerPaymentsReview]  132
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[CustomerPaymentsReview]    
@@ -123,7 +124,7 @@ BEGIN
 	   LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND ICCP1.CustomerId = @MiscCustomerId  
 	   WHERE CP.ReceiptId = CP1.ReceiptId 
   ) A  
-  WHERE CP.[ReceiptId] = @ReceiptId;
+  WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0)
 
  END TRY        
   BEGIN CATCH    

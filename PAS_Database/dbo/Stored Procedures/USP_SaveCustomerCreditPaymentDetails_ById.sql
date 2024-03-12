@@ -12,10 +12,12 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    03/04/2024		Devendra Shekh		created
+   2    12/03/2024      Moin Bloch          added missing AmtApplied
 
+	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 132,1,'ADMIN User'
 *****************************************************************************/  
 
-Create   PROCEDURE [dbo].[USP_SaveCustomerCreditPaymentDetails_ById]
+CREATE   PROCEDURE [dbo].[USP_SaveCustomerCreditPaymentDetails_ById]
 @ReceiptId BIGINT,
 @MasterCompanyId BIGINT,
 @UserName VARCHAR(50)
@@ -71,6 +73,7 @@ BEGIN
 					[PaymentRef] [VARCHAR](100) NULL,
 					[Amount] [DECIMAL](18,2) NULL,
 					[AmountRemaining] [DECIMAL](18,2) NULL,
+					[AmtApplied] [DECIMAL](18,2) NULL,
 				)
 
 				INSERT INTO #CustomerPayment (ReceiptId, CustomerId, VendorId, IsCheckPayment, IsWireTransfer, IsCCDCPayment, ReferenceNumber) 
@@ -79,7 +82,7 @@ BEGIN
 				INNER JOIN [DBO].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CP.ReceiptId = CPD.ReceiptId
  				WHERE CP.ReceiptId = @ReceiptId;
 
-				INSERT INTO #CustomerAmountDetails
+				INSERT INTO #CustomerAmountDetails([ReceiptId],[CustomerId],[Name],[CustomerCode],[PaymentRef],[Amount],[AmountRemaining],[AmtApplied])
 				EXEC [CustomerPaymentsReview] @ReceiptId;
 
 				UPDATE CP
@@ -135,8 +138,8 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_SaveCustomerCreditPaymentDetails_ById' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceiptId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_SaveCustomerCreditPaymentDetails_ById'              
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ReceiptId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

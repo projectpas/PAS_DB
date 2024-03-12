@@ -17,7 +17,19 @@
     [UpdatedDate]               DATETIME2 (7)   CONSTRAINT [DF_CustomerRfqQuoteDetails_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [DF_CustomerRfqQuoteDetailsIsActi_59FA5E80] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_CustomerRfqQuoteDetailsIsDele_5AEE82B9] DEFAULT ((0)) NOT NULL,
+    [IlsQty]                    INT             NULL,
+    [IlsTraceability]           VARCHAR (50)    NULL,
+    [IlsUom]                    VARCHAR (50)    NULL,
+    [IlsPrice]                  DECIMAL (18, 2) NULL,
+    [IlsPriceType]              VARCHAR (50)    NULL,
+    [IlsTagDate]                DATETIME2 (7)   NULL,
+    [IlsLeadTime]               VARCHAR (50)    NULL,
+    [IlsMinQty]                 INT             NULL,
+    [IlsComment]                VARCHAR (MAX)   NULL,
+    [IlsCondition]              VARCHAR (50)    NULL,
     CONSTRAINT [PK_CustomerRfqQuoteDetails] PRIMARY KEY CLUSTERED ([CustomerRfqQuoteDetailsId] ASC),
     CONSTRAINT [FK_CustomerRfqQuoteDetails_CustomerRfqQuote] FOREIGN KEY ([CustomerRfqQuoteId]) REFERENCES [dbo].[CustomerRfqQuote] ([CustomerRfqQuoteId])
 );
+
+
 

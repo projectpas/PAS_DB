@@ -18,7 +18,7 @@
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
 	@tbl_CustomerRfqType CustomerRfqType READONLY,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200)
@@ -59,18 +59,21 @@ BEGIN
 						[UpdatedBy] [VARCHAR](50) NOT NULL,
 						[UpdatedDate] [DATETIME2](7) NOT NULL,
 						[IsActive] [BIT] NOT NULL,
-						[IsDeleted] [BIT] NOT NULL
+						[IsDeleted] [BIT] NOT NULL,
+						[AltPartNumber] [VARCHAR](250) NULL,
+						[Quantity] [int] NULL,
+							[Condition] [varchar](50) NULL
 					)
 					print 'STEP 1'
 					INSERT INTO #tmpCustomerRfq ([RfqId] ,[RfqCreatedDate] ,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 						[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy] ,[CreatedDate] ,[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],Condition)
 					SELECT [RfqId] 
 					,RfqCreatedDate
 					--,CASE WHEN [RfqCreatedDate] IS NOT NULL AND [RfqCreatedDate] != '' THEN CAST([RfqCreatedDate] AS DATETIME2) ELSE NULL END 
 					,[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
-						   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0
+						   @CreatedBy ,GETUTCDATE() ,@CreatedBy ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition
 					FROM @tbl_CustomerRfqType;
 				print 'STEP 2'
 	  ------------------------------Delete record if exists---------------------------------------------------------------------
@@ -85,11 +88,11 @@ BEGIN
 							   ([RfqId] ,[RfqCreatedDate],[IntegrationPortalId] ,[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 								[BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] , 
 								[MasterCompanyId] ,		
-								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+								[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[AltPartNumber],[Quantity],Condition)
 					SELECT [RfqId] ,[RfqCreatedDate],[IntegrationPortalId],[Type] ,[Notes] ,[BuyerName] ,[BuyerCompanyName] ,[BuyerAddress] ,[BuyerCity] ,
 						   [BuyerCountry] ,[BuyerState] ,[BuyerZip] ,[LinePartNumber] ,[LineDescription] ,
 						   @MasterCompanyId ,
-						   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0
+						   @CreatedBy,@CreatedBy ,GETUTCDATE() ,GETUTCDATE() ,1 ,0,AltPartNumber,Quantity,Condition
 					 FROM #tmpCustomerRfq;
 							print 'STEP 4'
 					SELECT @CustomerRfqId = SCOPE_IDENTITY();

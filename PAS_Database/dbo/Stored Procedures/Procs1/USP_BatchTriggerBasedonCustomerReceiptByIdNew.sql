@@ -830,7 +830,7 @@ BEGIN
 							INSERT INTO [dbo].[CustomerReceiptBatchDetails]
 								(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ModuleId],[ReferenceId] ,[ReferenceNumber],[ReferenceInvId],[ReferenceInvNumber],[DocumentId],[DocumentNumber],ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
 							VALUES
-								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,0,@ReceiptId,@ReceiptNo ,@SOBillingInvoicingId,@InvoiceNo,@SOBillingInvoicingId,@DocumentNumber,NULL,NULL,@CommonJournalBatchDetailId)
+								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,0,@ReceiptId,@ReceiptNo ,@SOBillingInvoicingId,@InvoiceNo,@SOBillingInvoicingId,'Unapplied Payment',NULL,NULL,@CommonJournalBatchDetailId)
 						END
 						-----Suspense------
 

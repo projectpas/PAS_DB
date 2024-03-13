@@ -27,6 +27,7 @@
 	11   31/10/2023   Devendra Shekh  Changes for nonpo details
 	12   02/11/2023   Devendra Shekh  Changes for nonpo details
 	13   15/11/2023   Moin Bloch      added DueDate and Days Past Due
+	14   07/03/2024   AMIT GHEDIYA    Update Status Name as per PN-6767 (Filter param added)
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -51,7 +52,13 @@ CREATE   PROCEDURE [dbo].[VendorPaymentList]
 @MasterCompanyId int = null,  
 @EmployeeId bigint  ,
 @BankName varchar(50)=null, 
-@BankAccountNumber varchar(50)=null 
+@BankAccountNumber varchar(50)=null,
+@PaymentHold varchar(50) = NULL,
+@ReadyToPaymentMade varchar(50)=null,
+@DiscountToken varchar(50)=null,
+@DifferenceAmount varchar(50)=null,
+@PaymentMethod varchar(50)=null,
+@PaymentRef varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -345,7 +352,12 @@ BEGIN
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
 	   (DaysPastDue LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%')  OR
+	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
+	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
+	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -357,7 +369,13 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR [RRTotal] LIKE '%'+@RRTotal+'%') AND  	   
        (ISNULL(@InvoiceTotal,'') ='' OR [InvoiceTotal] LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR [VendorName] LIKE '%'+ @VendorName +'%') AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%'))  
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
+	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') AND
+	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
+	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))  
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate, DueDate, DaysPastDue,  
@@ -377,7 +395,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END  
-    ELSE IF(@CurrentStatus = 'ReadytoPay')
+    ELSE IF(@CurrentStatus = 'ReadyforSelection')
     BEGIN  
     ;WITH Result AS (  
 		 SELECT DISTINCT 
@@ -536,7 +554,12 @@ BEGIN
        (OriginalTotal LIKE '%' +@GlobalFilter+'%') OR  
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%')  OR
+	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
+	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
+	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -548,7 +571,13 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%')) 
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
+	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') ANd
+	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
+	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%')) 
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,DueDate, DaysPastDue ,
@@ -567,7 +596,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END  
-	ELSE IF(@CurrentStatus = 'SelectedtobePaid')  
+	ELSE IF(@CurrentStatus = 'CheckRegister')  
     BEGIN  
     ;WITH Result AS (        
 		SELECT ReceivingReconciliationId,
@@ -694,7 +723,12 @@ BEGIN
        (OriginalTotal LIKE '%' +@GlobalFilter+'%') OR  
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%') OR
+	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
+	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
+	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -704,7 +738,13 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%'))   
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
+	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') ANd
+	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
+	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))   
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  
@@ -837,7 +877,12 @@ BEGIN
        (OriginalTotal LIKE '%' +@GlobalFilter+'%') OR  
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR	
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%') OR
+	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
+	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
+	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -849,7 +894,13 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%'))   
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
+	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') AND
+	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
+	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))   
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,ReadyToPaymentMade,DueDate,DaysPastDue, 
@@ -1031,7 +1082,8 @@ BEGIN
 	   (ISNULL(@BankName,'') ='' OR BankName LIKE '%'+ @BankName+'%') AND 
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%'))     
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%'))     
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  
@@ -1246,7 +1298,7 @@ BEGIN
 	   (BankName LIKE '%' +@GlobalFilter+'%') OR  
        (BankAccountNumber LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%') 
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -1259,7 +1311,8 @@ BEGIN
 	   (ISNULL(@BankName,'') ='' OR BankName LIKE '%'+ @BankName+'%') AND 
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%')AND
-	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%'))   
+	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%'))   
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  

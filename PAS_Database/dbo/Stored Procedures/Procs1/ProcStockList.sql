@@ -78,7 +78,8 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@QuantityReserved varchar(50)=null,        
 	@WorkOrderStage varchar(50)=null,        
 	@IsECStock bit,        
-	@IsCStock bit,    
+	@IsCStock bit,  
+	@Site varchar(100) = NULL,    
 	@Location varchar(100) = NULL,    
 	@IsALTStock bit NULL,  
 	@WorkOrderNumber  varchar(50) = NULL,
@@ -188,7 +189,9 @@ BEGIN
 		stl.SubWorkOrderId,        
 		stl.WorkOrderNumber,        
 	   stl.Location,      
-	   stl.LocationId,    
+	   stl.LocationId,
+	   Stl.Site,
+	   Stl.SiteId,
 	   lot.LotNumber,
 	   (ISNULL(ct.Name,'')) 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId,    
@@ -228,7 +231,8 @@ BEGIN
 		  (TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		  (IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (Condition LIKE '%' +@GlobalFilter+'%') OR        
-		  (Location LIKE '%' +@GlobalFilter+'%') OR     
+		  (Location LIKE '%' +@GlobalFilter+'%') OR  
+		  (Site LIKE '%' +@GlobalFilter+'%') OR   
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
 		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
@@ -262,7 +266,8 @@ BEGIN
 		  (ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
-		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND     
+		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND    
+		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -363,6 +368,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,    
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
@@ -428,6 +435,8 @@ BEGIN
 		stl.Location,    
 		stl.LocationId,   
 		lot.LotNumber,
+		Stl.Site,
+		Stl.SiteId,
 		(ISNULL(ct.Name,'')) 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,    
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
@@ -468,7 +477,8 @@ BEGIN
 		(TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		(IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(Condition LIKE '%' +@GlobalFilter+'%') OR        
-		(Location LIKE '%' +@GlobalFilter+'%') OR        
+		(Location LIKE '%' +@GlobalFilter+'%') OR 
+		(Site LIKE '%' +@GlobalFilter+'%') OR   
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
 		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
@@ -502,6 +512,7 @@ BEGIN
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
+		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
@@ -603,6 +614,8 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,        
@@ -671,6 +684,8 @@ BEGIN
 	   stl.Location,      
 	   stl.LocationId,
 	   lot.LotNumber,
+	    Stl.Site,
+	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,    
 		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
    
@@ -710,7 +725,8 @@ BEGIN
 		  (TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		  (IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (Condition LIKE '%' +@GlobalFilter+'%') OR        
-		  (Location LIKE '%' +@GlobalFilter+'%') OR     
+		  (Location LIKE '%' +@GlobalFilter+'%') OR
+		  (Site LIKE '%' +@GlobalFilter+'%') OR   
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
 		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
@@ -744,7 +760,8 @@ BEGIN
 		  (ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		  (ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		  (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
-		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND     
+		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND   
+		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
 		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
@@ -846,6 +863,8 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='ownerName')  THEN ownerName END DESC,    
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC     
             
@@ -909,6 +928,8 @@ BEGIN
 		stl.Location,    
 		stl.LocationId,    
 		lot.LotNumber,
+		Stl.Site,
+		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,    
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
 	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
@@ -951,7 +972,8 @@ BEGIN
 		(TraceableToName LIKE '%' +@GlobalFilter+'%') OR             
 		(IdNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(Condition LIKE '%' +@GlobalFilter+'%') OR        
-		(Location LIKE '%' +@GlobalFilter+'%') OR        
+		(Location LIKE '%' +@GlobalFilter+'%') OR  
+		(Site LIKE '%' +@GlobalFilter+'%') OR   
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
 		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
@@ -984,7 +1006,8 @@ BEGIN
 		(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND             
 		(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND        
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
-		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
+		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND  
+		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
@@ -1087,6 +1110,8 @@ BEGIN
 	   CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='Location')  THEN Location END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Location')  THEN Location END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='Site')  THEN Site END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='Site')  THEN Site END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTimeLife')  THEN IsTimeLife END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTimeLife')  THEN IsTimeLife END DESC 
             

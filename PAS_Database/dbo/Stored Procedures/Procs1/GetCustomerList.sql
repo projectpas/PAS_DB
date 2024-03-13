@@ -18,6 +18,8 @@
  ** --   --------     -------		--------------------------------          
     1    12/14/2020   Hemant Saliya Created
 	2    12/17/2020   Updated Like for General Filter
+    3    03/13/2024   Ekta Chandegra Add master company on join
+
      
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/ 
@@ -92,7 +94,7 @@ BEGIN
 					CT.CustomerTypeName AS AccountType,
 					STUFF((SELECT ', ' + CC.Description
 							FROM dbo.ClassificationMapping cm WITH (NOLOCK)
-							INNER JOIN dbo.CustomerClassification CC WITH (NOLOCK) ON CC.CustomerClassificationId=CM.ClasificationId
+							INNER JOIN dbo.CustomerClassification CC WITH (NOLOCK) ON CC.CustomerClassificationId=CM.ClasificationId AND CC.MasterCompanyId = @MasterCompanyId
 							WHERE cm.ReferenceId=C.CustomerId AND cm.ModuleId=@CustomerModule
 							FOR XML PATH('')), 1, 1, '') 'CustomerClassification',
 					A.City,

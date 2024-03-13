@@ -11,6 +11,7 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
+	2    13-03-2024     Abhishek Jirawla		Modified
 ************************************************************************/ 
 --[dbo].[GetManualJournalBatchAccountingDetailsById] 328
 -- =============================================

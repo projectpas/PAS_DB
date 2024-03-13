@@ -20,6 +20,9 @@
     [IsActive]            BIT             NOT NULL,
     [IsDeleted]           BIT             NOT NULL,
     [PageIndex]           INT             NULL,
+    [Ismiscellaneous]     BIT             NULL,
     CONSTRAINT [PK_InvoiceWireTransferAudit] PRIMARY KEY CLUSTERED ([WireTransferAuditId] ASC)
 );
+
+
 

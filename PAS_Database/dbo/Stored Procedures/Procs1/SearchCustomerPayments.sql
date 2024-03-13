@@ -1,4 +1,25 @@
-﻿-- =============================================    
+﻿
+/*************************************************************           
+ ** File:   [SearchCustomerPayments]           
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to retrieve Customer Payments Information   
+ ** Purpose:         
+ ** Date:   12/23/2020        
+          
+ ** PARAMETERS: @UserType varchar(60)   
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    12/23/2022   Unknown        Created
+	2    03/06/2024   Moin Bloch     Modified Added PostedDate
+
+--EXEC SearchCustomerPayments
+**************************************************************/
+-- =============================================    
 -- =============================================    
 CREATE   PROCEDURE [dbo].[SearchCustomerPayments]    
  @PageNumber int,    
@@ -11,7 +32,8 @@ CREATE   PROCEDURE [dbo].[SearchCustomerPayments]
  @Status varchar(50)=null,    
  @BankAcct varchar(50)=null,    
  @OpenDate datetime=null,    
- @DepositDate datetime=null,    
+ @DepositDate datetime=null,   
+ @PostedDate datetime=null,   
  @AcctingPeriod varchar(50)=null,    
  @Reference varchar(50)=null,    
  @Amount varchar(50)=null,    
@@ -57,8 +79,8 @@ BEGIN
   End    
   --SET @SortOrder=-1;    
     
-  ;With Result AS(    
-  SELECT     
+  ;WITH Result AS(    
+  SELECT DISTINCT     
    CP.ReceiptID,     
    CP.ReceiptNo AS 'ReceiptNo',     
    S.Name AS 'Status',     
@@ -76,34 +98,35 @@ BEGIN
    MSD.LastMSLevel,    
    MSD.AllMSlevels,    
    CP.CreatedDate,  
-    CASE WHEN ISNULL(ic.CurrencyId,0) > 0 then ic.CurrencyId  
-  WHEN ISNULL(iw.CurrencyId,0) > 0 then iw.CurrencyId   
-  WHEN ISNULL(icd.CurrencyId,0) > 0 then icd.CurrencyId   
-  ELSE 0 END 'CurrencyId'  
-  FROM DBO.CustomerPayments CP WITH (NOLOCK)    
-   INNER JOIN dbo.CustomerManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId    
-   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId    
-   INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId    
-   LEFT JOIN dbo.LegalEntityBankingLockBox LEB WITH (NOLOCK) ON LEB.LegalEntityBankingLockBoxId = CP.BankName    
-   LEFT JOIN DBO.MasterCustomerPaymentStatus S WITH (NOLOCK) ON S.Id = CP.StatusId    
-   LEFT JOIN DBO.AccountingCalendar AP WITH (NOLOCK) ON AP.AccountingCalendarId = CP.AcctingPeriod  
-   LEFT JOIN (  
- select ReceiptId,MAX(CurrencyId) 'CurrencyId' from InvoiceCheckPayment iv  
- group by ReceiptId  
- )ic on CP.ReceiptId = ic.ReceiptId  
+   CASE WHEN ISNULL(ic.CurrencyId,0) > 0 THEN ic.CurrencyId  
+	    WHEN ISNULL(iw.CurrencyId,0) > 0 THEN iw.CurrencyId   
+        WHEN ISNULL(icd.CurrencyId,0) > 0 THEN icd.CurrencyId   
+  ELSE 0 END 'CurrencyId',  
+  CP.PostedDate
+  FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)    
+   INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId    
+   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId    
+   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId    
+    LEFT JOIN [dbo].[LegalEntityBankingLockBox] LEB WITH(NOLOCK) ON LEB.LegalEntityBankingLockBoxId = CP.BankName    
+    LEFT JOIN [dbo].[MasterCustomerPaymentStatus] S WITH(NOLOCK) ON S.Id = CP.StatusId    
+    LEFT JOIN [dbo].[AccountingCalendar] AP WITH(NOLOCK) ON AP.AccountingCalendarId = CP.AcctingPeriod  
+    LEFT JOIN (  
+ SELECT ReceiptId,MAX(CurrencyId) 'CurrencyId' FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   
+ GROUP BY ReceiptId  
+ )ic ON CP.ReceiptId = ic.ReceiptId  
    LEFT JOIN(  
- select ReceiptId,MAX(CurrencyId) 'CurrencyId' from InvoiceWireTransferPayment iv  
- group by ReceiptId  
- )iw on CP.ReceiptId = iw.ReceiptId  
+ SELECT ReceiptId,MAX(CurrencyId) 'CurrencyId' FROM [dbo].[InvoiceWireTransferPayment] iv WITH(NOLOCK)   
+ GROUP BY ReceiptId  
+ )iw ON CP.ReceiptId = iw.ReceiptId  
    LEFT JOIN (  
- select ReceiptId,MAX(CurrencyId) 'CurrencyId' from InvoiceCreditDebitCardPayment iv  
- group by ReceiptId  
+ SELECT ReceiptId,MAX(CurrencyId) 'CurrencyId' FROM [dbo].[InvoiceCreditDebitCardPayment] iv WITH(NOLOCK)  
+ GROUP BY ReceiptId  
  )icd on CP.ReceiptId = icd.ReceiptId  
    ),    
   
   FinalResult AS (    
   SELECT C.Code 'Currency' ,R.* FROM Result R  
-  LEFT JOIN Currency C ON R.CurrencyId = C.CurrencyId  
+  LEFT JOIN [dbo].[Currency] C WITH(NOLOCK) ON R.CurrencyId = C.CurrencyId  
   Where (    
    (@GlobalFilter <>'' AND ((ReceiptNo like '%' + @GlobalFilter +'%') OR    
    (Status like '%' + @GlobalFilter +'%') OR    
@@ -124,7 +147,8 @@ BEGIN
    (IsNull(@Status,'') ='' OR Status like '%'+ @Status +'%') and    
    (IsNull(@BankAcct,'') ='' OR BankAcct like  '%'+@BankAcct+'%') and    
    (@OpenDate is  null or Cast(OpenDate as date)=Cast(@OpenDate as date)) and    
-   (@DepositDate is  null or Cast(DepositDate as date)=Cast(@DepositDate as date)) and    
+   (@DepositDate is  null or Cast(DepositDate as date)=Cast(@DepositDate as date)) and  
+   (@PostedDate is  null or Cast(PostedDate as date)=Cast(@PostedDate as date)) and    
    (IsNull(@AcctingPeriod,'') ='' OR AcctingPeriod like '%'+ @AcctingPeriod+'%') and    
    (IsNull(@Reference,'') ='' OR Reference like '%'+ @Reference +'%') and    
    (ISNULL(@Amount,'') ='' or CAST(Amount AS varchar(50)) LIKE '%' + @Amount + '%') and    
@@ -143,7 +167,8 @@ BEGIN
   CASE WHEN (@SortOrder=1 and @SortColumn='STATUS') THEN Status END ASC,    
   CASE WHEN (@SortOrder=1 and @SortColumn='BANKACCT') THEN BankAcct END ASC,    
   CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE') THEN OpenDate END ASC,    
-  CASE WHEN (@SortOrder=1 and @SortColumn='DEPOSITDATE') THEN DepositDate END ASC,    
+  CASE WHEN (@SortOrder=1 and @SortColumn='DEPOSITDATE') THEN DepositDate END ASC,  
+  CASE WHEN (@SortOrder=1 and @SortColumn='POSTEDDATE') THEN PostedDate END ASC,   
   CASE WHEN (@SortOrder=1 and @SortColumn='ACCTINGPERIOD') THEN AcctingPeriod END ASC,    
   CASE WHEN (@SortOrder=1 and @SortColumn='REFERENCE') THEN Reference END ASC,    
   CASE WHEN (@SortOrder=1 and @SortColumn='AMOUNT') THEN CAST(Amount AS varchar(50)) END ASC,    
@@ -159,7 +184,8 @@ BEGIN
   CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,    
   CASE WHEN (@SortOrder=-1 and @SortColumn='BANKACCT')  THEN BankAcct END Desc,    
   CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END Desc,    
-  CASE WHEN (@SortOrder=-1 and @SortColumn='DEPOSITDATE')  THEN DepositDate END Desc,    
+  CASE WHEN (@SortOrder=-1 and @SortColumn='DEPOSITDATE')  THEN DepositDate END Desc, 
+  CASE WHEN (@SortOrder=-1 and @SortColumn='POSTEDDATE') THEN PostedDate END Desc, 
   CASE WHEN (@SortOrder=-1 and @SortColumn='ACCTINGPERIOD')  THEN AcctingPeriod END Desc,    
   CASE WHEN (@SortOrder=-1 and @SortColumn='REFERENCE')  THEN Reference END Desc,    
   CASE WHEN (@SortOrder=-1 and @SortColumn='AMOUNT')  THEN CAST(Amount AS varchar(50)) END Desc,    
@@ -171,7 +197,6 @@ BEGIN
   CASE WHEN (@SortOrder=-1 and @SortColumn='BANKACCOUNTNUMBER')  THEN BankAccountNumber END Desc    
   OFFSET @RecordFrom ROWS     
   FETCH NEXT @PageSize ROWS ONLY    
-  Print @SortOrder    
  END TRY        
  BEGIN CATCH    
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     

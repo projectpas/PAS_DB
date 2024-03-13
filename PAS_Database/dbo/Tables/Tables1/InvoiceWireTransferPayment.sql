@@ -19,11 +19,14 @@
     [IsActive]        BIT             CONSTRAINT [DF__InvoiceWi__IsAct__5DF53E60] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT             CONSTRAINT [DF__InvoiceWi__IsDel__5EE96299] DEFAULT ((0)) NOT NULL,
     [PageIndex]       INT             NULL,
+    [Ismiscellaneous] BIT             NULL,
     CONSTRAINT [PK_InvoiceWireTransfer] PRIMARY KEY CLUSTERED ([WireTransferId] ASC),
     CONSTRAINT [FK_InvoiceWireTransferPayment_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_InvoiceWireTransferPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceWireTransferPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

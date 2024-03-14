@@ -26,6 +26,7 @@
 	9   19/02/2024	  Devendra Shekh    email validation issue for wo resolved
 	10  20/02/2024	  Devendra Shekh    added remainingamount condition
 	11  04/03/2024	  AMIT GHEDIYA      Multiple data issue in SO.
+	12  14/03/2024	  Moin Bloch        added AmountPaid
      
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -57,6 +58,7 @@ CREATE   PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @ViewType varchar(10),
 @EmployeeId bigint=1,
 @RemainingAmount decimal=null,
+@AmountPaid decimal=null,
 @LastMSLevel varchar(50)=null,
 @Status varchar(50)=null
 AS
@@ -86,6 +88,7 @@ BEGIN
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				WOBI.GrandTotal [InvoiceAmt],
 				ISNULL(WOBI.RemainingAmount,0) RemainingAmount,
+				ISNULL(ISNULL(WOBI.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,
 				WQ.QuoteNumber,
 				IsWorkOrder=1,IsExchange=0,
 				WOBI.WorkOrderId AS [ReferenceId],C.CustomerId,--WOWF.WorkFlowWorkOrderId, --0 as WorkFlowWorkOrderId,
@@ -250,7 +253,7 @@ BEGIN
 				Group By PC.WorkOrderId,PC.BillingInvoicingId,WOFN.WorkFlowWorkOrderId
 				),
 				Results AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN [PN],PD.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PT.PN [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder,M.IsExchange,
@@ -266,7 +269,7 @@ BEGIN
 					LEFT JOIN WorkFlowData WOFD  on WOFD.BillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,PN,PD.PNDescription,
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				VC.VersionNo,VC.VersionNoType,M.QuoteNumber,LMC.LastMSLevel,LMC.AllMSlevels	,
 				CR.CustomerReference,CR.CustomerReferenceType,SRC.SerialNumber,SRC.SerialNumberType,M.IsWorkOrder, M.ReferenceId,M.CustomerId,M.IsExchange,WOFD.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice)
@@ -276,6 +279,7 @@ BEGIN
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
 				ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
+				ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
 				SQ.SalesOrderQuoteNumber [QuoteNumber],
 				IsWorkOrder=0,IsExchange=0,
 				SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,
@@ -404,7 +408,7 @@ BEGIN
 				Group By PC.SOBillingInvoicingId, A.StockType  
 				),
 				SOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN [PN],PD.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, M.AmountPaid, PT.PN [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				--M.VersionNo,
 				SVC.VersionNo,SVC.VersionNoType,
@@ -419,7 +423,7 @@ BEGIN
 					LEFT JOIN SVersionCTE SVC on SVC.SOBillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PN,PD.PNDescription,
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				SVC.VersionNo,SVC.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				CR.CustomerReference,ISNULL(SRC.SerialNumber,''),M.IsWorkOrder,CR.CustomerReferenceType,SRC.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice
@@ -432,6 +436,7 @@ BEGIN
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt],
 				ISNULL(SOBI.GrandTotal,0) RemainingAmount,
+				ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
 				--SQ.ExchangeSalesOrderQuoteNumber [QuoteNumber],
 				'' as [QuoteNumber],
 				'' as CustomerReference,
@@ -561,7 +566,7 @@ BEGIN
 				Group By PC.SOBillingInvoicingId, A.StockType  
 				),
 				ExchSOResults AS( SELECT M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PT.PN as [PN],PD.PNDescription [PNDescription],
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid,PT.PN as [PN],PD.PNDescription [PNDescription],
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				--M.VersionNo,
 				SVC.VersionNo,SVC.VersionNoType,
@@ -580,7 +585,7 @@ BEGIN
 					LEFT JOIN ExchSVersionCTE SVC on SVC.SOBillingInvoicingId=M.InvoicingId
 					group by 
 					M.InvoicingId,M.InvoiceNo,M.InvoiceStatus,M.InvoiceDate,M.OrderNumber,
-				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount, PN,PD.PNDescription,
+				M.CustomerName,M.CustomerType,M.InvoiceAmt,M.RemainingAmount,M.AmountPaid, PN,PD.PNDescription,
 				PT.PartNumberType,PD.PartDescriptionType,SC.StockType,SC.StocktypeType,
 				SVC.VersionNo,SVC.VersionNoType,M.QuoteNumber,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				--SVC.VersionNo,SVC.VersionNoType,M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
@@ -593,33 +598,33 @@ BEGIN
 
 					, FinalResult AS(
 					SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt, RemainingAmount, [PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt, RemainingAmount, AmountPaid ,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice
 				FROM Results
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount, AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber ,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice
 					UNION ALL 
 				SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice
 				FROM SOResults
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				CustomerReference,SerialNumber,IsWorkOrder,CustomerReferenceType,SerialNumberType, ReferenceId,CustomerId,IsExchange,WorkFlowWorkOrderId,isRMACreate,IsPerformaInvoice
 					UNION ALL 
 				SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid, [PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				--VersionNo,VersionNoType,LastMSLevel,AllMSlevels,
@@ -628,7 +633,7 @@ BEGIN
 				FROM ExchSOResults
 				GROUP BY 
 				InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
-				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,[PN], [PNDescription],
+				CustomerName,CustomerType,InvoiceAmt,RemainingAmount,AmountPaid,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
 				VersionNo,VersionNoType,QuoteNumber,LastMSLevel,AllMSlevels,
 				--VersionNo,VersionNoType,LastMSLevel,AllMSlevels,
@@ -661,6 +666,7 @@ BEGIN
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
       (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
       (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
+	  (IsNull(CAST( @AmountPaid as varchar),'') ='' OR Cast(AmountPaid as varchar) like '%' + CAST(@AmountPaid as varchar)+'%') AND  
       (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%') AND  
       (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
       (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND 
@@ -682,6 +688,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerName')  THEN CustomerName END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmt')  THEN InvoiceAmt END ASC,  
+				   CASE WHEN (@SortOrder=1 and @SortColumn='AmountPaid')  THEN AmountPaid END ASC,  				   
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PN')  THEN PN END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PNDescription')  THEN PNDescription END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='VersionNo')  THEN VersionNo END ASC, 
@@ -698,6 +705,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerName')  THEN CustomerName END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerType')  THEN CustomerType END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmt')  THEN InvoiceAmt END DESC,  
+				   CASE WHEN (@SortOrder=-1 and @SortColumn='AmountPaid')  THEN AmountPaid END DESC, 
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PN')  THEN PN END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PNDescription')  THEN PNDescription END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='VersionNo')  THEN VersionNo END DESC, 
@@ -716,7 +724,10 @@ BEGIN
 				SELECT WOBI.BillingInvoicingId [InvoicingId],WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				WOBI.GrandTotal [InvoiceAmt], ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,IM.partnumber [PN], IM.PartDescription [PNDescription],
+				WOBI.GrandTotal [InvoiceAmt], 
+				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
+				ISNULL(ISNULL(WOBI.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
+				IM.partnumber [PN], IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],WQ.QuoteNumber,WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.stocklineid,
 				
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -750,7 +761,10 @@ BEGIN
 			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				SOBI.GrandTotal [InvoiceAmt], ISNULL(SOBI.RemainingAmount, 0) RemainingAmount, IM.partnumber [PN], IM.PartDescription [PNDescription],
+				SOBI.GrandTotal [InvoiceAmt], 
+				ISNULL(SOBI.RemainingAmount, 0) RemainingAmount,
+				ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,						
+				IM.partnumber [PN], IM.PartDescription [PNDescription],
 				SQ.VersionNumber [VersionNo],SQ.SalesOrderQuoteNumber [QuoteNumber],SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.stocklineid,
 				CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
 					 WHEN IM.IsPma = 1 and IM.IsDER = 0 THEN 'PMA'
@@ -807,6 +821,7 @@ BEGIN
 				  (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
 				  (IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
 				  (IsNull(CAST( @InvoiceAmt as varchar),'') ='' OR Cast(InvoiceAmt as varchar) like '%' + CAST(@InvoiceAmt as varchar)+'%') AND  
+				  (IsNull(CAST( @AmountPaid as varchar),'') ='' OR Cast(AmountPaid as varchar) like '%' + CAST(@AmountPaid as varchar)+'%') AND 
 				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%') AND  
 				  (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
 				  (IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND   
@@ -828,6 +843,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerName')  THEN CustomerName END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceAmt')  THEN InvoiceAmt END ASC,  
+				   CASE WHEN (@SortOrder=1 and @SortColumn='AmountPaid')  THEN AmountPaid END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PN')  THEN PN END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PNDescription')  THEN PNDescription END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='VersionNo')  THEN VersionNo END ASC, 
@@ -843,7 +859,8 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='orderNumber')  THEN OrderNumber END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerName')  THEN CustomerName END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerType')  THEN CustomerType END DESC,  
-				   CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmt')  THEN InvoiceAmt END DESC,  
+				   CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceAmt')  THEN InvoiceAmt END DESC, 
+				   CASE WHEN (@SortOrder=-1 and @SortColumn='AmountPaid')  THEN AmountPaid END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PN')  THEN PN END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PNDescription')  THEN PNDescription END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='VersionNo')  THEN VersionNo END DESC, 

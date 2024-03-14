@@ -12,10 +12,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
-  ** S NO   Date            Author          Change Description              
-  ** --   --------         -------          --------------------------------            
-     1    27-April-2022  Mahesh Sorathiya   Created 
-	 2    20-JUNE-203     Devendra Shekh        made changes for total 
+  ** S NO   Date            Author				Change Description              
+  ** --   --------			-------				--------------------------------            
+     1    27-APR-2022		Mahesh Sorathiya	Created 
+	 2    20-JUN-2023		Devendra Shekh		made changes for total 
+	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
        
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -103,8 +104,10 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
 				UPPER(STL.Quantity) 'qtyrcvd',  
-				UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(POP.ExtendedCost) 'extcost',  
+				--UPPER(POP.UnitCost) 'unitcost',  
+				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				--UPPER(POP.ExtendedCost) 'extcost',  
+				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
@@ -164,8 +167,10 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
 				UPPER(STL.Quantity) 'qtyrcvd',  
-				UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(POP.ExtendedCost) 'extcost',  
+				--UPPER(POP.UnitCost) 'unitcost',  
+				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				--UPPER(POP.ExtendedCost) 'extcost',  
+				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
 				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
@@ -235,8 +240,10 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-		ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(POP.ExtendedCost, 0) 'extcost',   
+		--ISNULL(POP.UnitCost, 0) 'unitcost',  
+		ISNULL(STL.UnitCost, 0) 'unitcost',  
+        --ISNULL(POP.ExtendedCost, 0) 'extcost',   
+        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',   
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
@@ -299,8 +306,10 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-        ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(POP.ExtendedCost, 0) 'extcost',  
+        --ISNULL(POP.UnitCost, 0) 'unitcost',  
+        ISNULL(STL.UnitCost, 0) 'unitcost',  
+        --ISNULL(POP.ExtendedCost, 0) 'extcost',  
+        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  

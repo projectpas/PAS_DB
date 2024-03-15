@@ -190,7 +190,7 @@ BEGIN
 			   INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 		 	   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = wobi.CurrencyId
-			   INNER JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
+			   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
 			  WHERE ((ISNULL(C.IsDeleted,0)=0) AND (@IsActive IS NULL OR C.IsActive=@IsActive))			     
 					AND C.MasterCompanyId=@MasterCompanyId AND wobi.InvoiceStatus = 'Invoiced'	GROUP BY C.CustomerId
 					,wobi.IsPerformaInvoice

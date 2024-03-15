@@ -12,6 +12,7 @@ EXEC [USP_GetCustomerCreditPaymentList]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    03/04/2024		Devendra Shekh		created
+** 2    03/15/2024		Devendra Shekh		added vendorcode, SuspenseUnappliedNumber
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
@@ -34,6 +35,7 @@ CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
 @CreatedDate datetime = NULL,
 @ReceiveDate  datetime = NULL,
 @UpdatedBy  varchar(50) = NULL,
+@SuspenseUnappliedNumber varchar(30) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
 @MasterCompanyId bigint = NULL
@@ -89,7 +91,9 @@ BEGIN
 						CCP.[StatusId],
 						ISNULL(CCP.Memo, '') AS 'Memo',
 						ISNULL(VA.VendorName, '') AS 'VendorName',
-						ISNULL(CCP.VendorId, 0) AS 'VendorId'
+						ISNULL(CCP.VendorId, 0) AS 'VendorId',
+						ISNULL(VA.VendorCode, '') AS 'VendorCode',
+						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber'
 					FROM dbo.CustomerCreditPaymentDetail CCP WITH (NOLOCK)
 					LEFT JOIN dbo.[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = CCP.ReceiptId
 					LEFT JOIN [dbo].[Vendor] VA WITH(NOLOCK) ON VA.VendorId = CCP.VendorId
@@ -105,6 +109,7 @@ BEGIN
 					(ReceiptNo LIKE '%' +@GlobalFilter+'%') OR
 					(Memo LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
+					(SuspenseUnappliedNumber LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%'))) OR   
 					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName+'%') AND 
@@ -116,6 +121,7 @@ BEGIN
 					(ISNULL(@ReceiptNo,'') ='' OR ReceiptNo LIKE '%' + @ReceiptNo + '%') AND	
 					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND	
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND	
+					(ISNULL(@SuspenseUnappliedNumber,'') ='' OR SuspenseUnappliedNumber LIKE '%' + @SuspenseUnappliedNumber + '%') AND	
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND 
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@ReceiveDate,'') ='' OR CAST(ReceiveDate AS Date)=CAST(@ReceiveDate AS date)) AND
@@ -144,6 +150,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC,	
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='SuspenseUnappliedNumber')  THEN SuspenseUnappliedNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SuspenseUnappliedNumber')  THEN SuspenseUnappliedNumber END DESC,	
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,

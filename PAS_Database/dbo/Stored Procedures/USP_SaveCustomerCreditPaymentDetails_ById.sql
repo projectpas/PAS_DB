@@ -13,6 +13,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
 ** --   --------		-------				--------------------------------  
 ** 1    03/04/2024		Devendra Shekh		created
    2    12/03/2024      Moin Bloch          added missing AmtApplied
+   3    15/03/2024      Devendra Shekh      added CodePrefix for SuspenseAndUnapplied
 
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 132,1,'ADMIN User'
 *****************************************************************************/  
@@ -39,6 +40,12 @@ BEGIN
 				@IsCheckPayment BIT = 0,
 				@IsWireTransger BIT = 0,
 				@IsCCDCPayment BIT = 0;
+
+				DECLARE @IdCodeTypeId BIGINT;
+				DECLARE @CurrentNumber AS BIGINT;
+				DECLARE @SuspenseAndUnsuppliedNumber AS VARCHAR(50);
+
+				SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'SuspenseAndUnapplied';
 
 				IF OBJECT_ID('tempdb..#CustomerPayment') IS NOT NULL
 					DROP TABLE #CustomerPayment
@@ -114,14 +121,51 @@ BEGIN
 						SELECT TOP 1 @CheckNumber = Reference, @PaymentId = CreditDebitPaymentId FROM [dbo].[InvoiceCreditDebitCardPayment] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND CustomerId = @CustomerId;
 					END
 
+					/*************** Prefixes ***************/		   			
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+					BEGIN
+						DROP TABLE #tmpCodePrefixes
+					END
+	
+					CREATE TABLE #tmpCodePrefixes
+					(
+							ID BIGINT NOT NULL IDENTITY, 
+							CodePrefixId BIGINT NULL,
+							CodeTypeId BIGINT NULL,
+							CurrentNumber BIGINT NULL,
+							CodePrefix VARCHAR(50) NULL,
+							CodeSufix VARCHAR(50) NULL,
+							StartsFrom BIGINT NULL,
+					)
+
+					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
+					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
+					WHERE CT.CodeTypeId = @IdCodeTypeId
+					AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+					IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))
+					BEGIN
+						SELECT @CurrentNumber = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) ELSE CAST(StartsFrom AS BIGINT) END 
+						FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId
+					
+						SET @SuspenseAndUnsuppliedNumber = (SELECT * FROM dbo.[udfGenerateCodeNumberWithOutDash](
+										@CurrentNumber,
+										(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),
+										(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
+					END
+					/*****************End Prefixes*******************/	
+
 					INSERT INTO [CustomerCreditPaymentDetail]([CustomerId], [CustomerName], [CustomerCode], [ReceiptId], [StatusId], [PaymentId], [ReceiveDate], [ReferenceNumber], 
 								[TotalAmount], [PaidAmount], [RemainingAmount], [RefundAmount], [CheckNumber], [CheckDate], [IsCheckPayment], [IsWireTransfer], [IsCCDCPayment], [IsProcessed], [Memo], [VendorId],
-								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SuspenseUnappliedNumber])
 					SELECT  CustomerId, CustomerName, CustomerCode, ReceiptId, 1, @PaymentId ,GETUTCDATE(), ReferenceNumber, 
 								TotalAmount, PaidAmount, RemainingAmount, 0, @CheckNumber, @CheckDate, IsCheckPayment, IsWireTransfer, IsCCDCPayment, 0, '', [VendorId], 
-								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
+								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0, @SuspenseAndUnsuppliedNumber
 					FROM #CustomerPayment 
 					WHERE Id = @PayMentStartCount AND ISNULL(RemainingAmount, 0) > 0;
+
+					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
 					SET @PayMentStartCount = @PayMentStartCount + 1;
 				

@@ -27,6 +27,7 @@
     [UpdatedDate]                   DATETIME2 (7)   CONSTRAINT [DF_CustomerCreditPaymentDetail_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                      BIT             CONSTRAINT [DF__CustomerCreditPaymentDetail__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                     BIT             CONSTRAINT [DF__CustomerCreditPaymentDetail__IsDeleted] DEFAULT ((0)) NOT NULL,
+    [SuspenseUnappliedNumber]       VARCHAR (30)    NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
 

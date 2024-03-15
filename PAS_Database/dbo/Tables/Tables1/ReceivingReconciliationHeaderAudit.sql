@@ -25,6 +25,10 @@
     [InvoiceDate]                    DATETIME2 (7)   NULL,
     [AccountingCalendarId]           BIGINT          NULL,
     [IsInvoiceOnHold]                BIT             NULL,
+    [ManagementStructureId]          BIGINT          NULL,
+    [LegalEntityId]                  BIGINT          NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeaderAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationId] ASC)
 );
+
+
 

@@ -13,9 +13,10 @@
  **************************************************************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
-    1    09/o5/2023		Devendra Shekh			Created  
+    1    09/05/2023		Devendra Shekh			Created  
+	2    14/03/2024		Moin Bloch			    Modified(Added CntrlNum)
        
--- exec USP_GetCustomerReceipt_AccountingDetailsById 81  
+-- exec USP_GetCustomerReceipt_AccountingDetailsById 10152  
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetCustomerReceipt_AccountingDetailsById]    
 @ReferenceId bigint    
@@ -86,12 +87,13 @@ BEGIN
 		  ,CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] AS level8
 		  ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		  ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
+		  ,CP.CntrlNum
    FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 		INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId = BD.JournalBatchDetailId    
 		INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId = JBH.JournalBatchHeaderId    
 		LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRB WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = CRB.CommonJournalBatchDetailId  
-		--LEFT JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CPModuleID AND MSD.ReferenceID = CRB.ReferenceId  
+		LEFT JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = CRB.ReferenceId
 		LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON CRB.CustomerId=C.CustomerId  
 		LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId   
 		LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = MSD.[ReferenceId] AND 

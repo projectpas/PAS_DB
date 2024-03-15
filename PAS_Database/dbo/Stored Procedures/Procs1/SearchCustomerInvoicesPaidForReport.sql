@@ -13,6 +13,7 @@
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	3	07/03/2024		Moin Bloch  	added Document Type
+	4   13/03/2024      Moin Bloch       Modify(makes Exchange Invoice to Invoice)
 ************************************************************************/
 -- EXEC SearchCustomerInvoicesPaidForReport 129
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
@@ -106,7 +107,7 @@ BEGIN
 						 WHEN [InvoiceType] = 3 THEN 'CREDIT MEMO' 
 						 WHEN [InvoiceType] = 4 THEN 'STAND ALONE CREDIT MEMO'
 						 WHEN [InvoiceType] = 5 THEN 'MANUAL JOURNAL'
-						 WHEN [InvoiceType] = 6 THEN 'EXCHANGE INVOICE'
+						 WHEN [InvoiceType] = 6 THEN 'INVOICE'
 					     END  AS 'DocumentType',
 					0 AS Ismiscellaneous 
 		FROM [dbo].[InvoicePayments] [IP] WITH (NOLOCK) 	

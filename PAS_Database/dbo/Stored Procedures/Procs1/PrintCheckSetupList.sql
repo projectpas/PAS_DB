@@ -13,6 +13,7 @@
  ** --   --------         -------          --------------------------------   
 	1                      unknown         Created            
 	2    21-SEP-2023       Moin Bloch      Modified (Formated The SP AND ADDED MASTER COMPANY WISE DATA )
+	3    15-MARCH-2024     AMIT GHEDIYA    Modified ( GET LE data)
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[PrintCheckSetupList]
 @PageSize int,
@@ -31,7 +32,8 @@ CREATE   PROCEDURE [dbo].[PrintCheckSetupList]
 @MasterCompanyId int = null,
 @EmployeeId bigint,
 @APGLAccount varchar(50)=null,
-@LastMSLevel varchar(50)=null
+@LastMSLevel varchar(50)=null,
+@LegalEntity varchar(100) = NULL
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -81,8 +83,11 @@ BEGIN
 					   CONCAT(G.AccountCode,' - ',G.AccountName)AS APGLAccount,
 					   MSD.LastMSLevel,
 					   MSD.AllMSlevels,
-					   RRH.ManagementStructureId
-				   FROM [dbo].[PrintCheckSetup] RRH WITH (NOLOCK)						
+					   RRH.ManagementStructureId,
+					   RRH.LegalEntityId,
+					   LD.Name as 'LegalEntity'
+				   FROM [dbo].[PrintCheckSetup] RRH WITH (NOLOCK)		
+						LEFT JOIN dbo.LegalEntity LD WITH(NOLOCK) on RRH.LegalEntityId = LD.LegalEntityId
 						LEFT JOIN [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK) on RRH.BankId=lebl.LegalEntityBankingLockBoxId
 						LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON lebl.GLAccountId = G.GLAccountId and lebl.AccountTypeId=2
 						LEFT JOIN [dbo].[AccountingManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = RRH.PrintingId
@@ -92,7 +97,7 @@ BEGIN
 						FinalResult AS (
 						SELECT PrintingId, StartNum, [ConfirmStartNum], BankId, BankName, BankAccountId,BankAccountNumber, GLAccountId, GlAccount, ConfirmBankAccInfo,BankRef,CcardPaymentRef,
 								Type, TypeName, MasterCompanyId, CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,APGLAccount,LastMSLevel,
-						AllMSlevels,ManagementStructureId FROM Result
+						AllMSlevels,ManagementStructureId,LegalEntityId,LegalEntity FROM Result
 						WHERE ((@GlobalFilter <>'' AND ((StartNum LIKE '%' +@GlobalFilter+'%' ) OR 
 							  ([BankName] LIKE '%' +@GlobalFilter+'%') OR
 							  (BankAccountNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -100,6 +105,7 @@ BEGIN
 							  (APGLAccount LIKE '%' +@GlobalFilter+'%') OR
 							  (LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
 							  (BankRef LIKE '%' +@GlobalFilter+'%') OR
+							  (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
 							  (CcardPaymentRef LIKE '%'+@GlobalFilter+'%')))
 							  OR   
 							  (@GlobalFilter='' AND (ISNULL(@StartNum,'') ='' OR StartNum LIKE  '%'+ @StartNum+'%') AND 
@@ -109,12 +115,13 @@ BEGIN
 							  (ISNULL(@GlAccount,'') ='' OR GlAccount LIKE '%'+ @GlAccount+'%') AND
 							  (ISNULL(@APGLAccount,'') ='' OR APGLAccount LIKE '%'+ @APGLAccount+'%') AND
 							  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%'+ @LastMSLevel+'%') AND
+							  (ISNULL(@LegalEntity,'') ='' OR LegalEntity LIKE '%'+ @LegalEntity+'%') AND
 							  (ISNULL(@BankRef,'') ='' OR BankRef LIKE '%'+ @BankRef +'%')))),
 									
 						ResultCount AS (SELECT COUNT(PrintingId) AS NumberOfItems FROM FinalResult)
 								SELECT PrintingId, StartNum, [ConfirmStartNum], BankId, BankName, BankAccountId,BankAccountNumber, GLAccountId, GlAccount, ConfirmBankAccInfo,BankRef,CcardPaymentRef,
 								Type, TypeName, MasterCompanyId, CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,APGLAccount,LastMSLevel,
-								AllMSlevels,ManagementStructureId, NumberOfItems FROM FinalResult, ResultCount
+								AllMSlevels,ManagementStructureId,LegalEntityId,LegalEntity, NumberOfItems FROM FinalResult, ResultCount
 
 							ORDER BY  
 							CASE WHEN (@SortOrder=1 AND @SortColumn='PRINTINGID') THEN PrintingId END DESC,
@@ -125,6 +132,7 @@ BEGIN
 							CASE WHEN (@SortOrder=1 AND @SortColumn='BANKREF')  THEN BankRef END ASC,
 							CASE WHEN (@SortOrder=1 AND @SortColumn='APGLAccount')  THEN APGLAccount END ASC,
 							CASE WHEN (@SortOrder=1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
+							CASE WHEN (@SortOrder=1 AND @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
 
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='PRINTINGID')  THEN PrintingId END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='STARTNUM')  THEN StartNum END DESC,
@@ -133,7 +141,8 @@ BEGIN
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='APGLAccount')  THEN APGLAccount END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='BANKACCOUNTNUMBER')  THEN BankAccountNumber END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
-							CASE WHEN (@SortOrder=-1 AND @SortColumn='BANKREF')  THEN BankRef END DESC
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='BANKREF')  THEN BankRef END DESC,
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntity')  THEN LegalEntity END DESC
 							OFFSET @RecordFrom ROWS 
 							FETCH NEXT @PageSize ROWS ONLY
 						END

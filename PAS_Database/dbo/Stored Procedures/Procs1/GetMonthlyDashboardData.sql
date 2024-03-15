@@ -16,6 +16,7 @@
     2    19 Jan 2024   Bhargav Saliya               Utc Date Changes                  
 	3	 31 jan 2024   Devendra Shekh				added isperforma Flage for WO
 	4	 01 jan 2024   AMIT GHEDIYA					added isperforma Flage for SO
+	5    14 March 2024 Bhargav Saliya				Resolved Count Issue in Dashboard Graph 
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
@@ -37,6 +38,8 @@ BEGIN
 			DECLARE @RecevingModuleID AS INT =1
 			DECLARE @wopartModuleID AS INT =12
 			DECLARE @SalesOrderModuleID AS INT =17
+			DECLARE @EmployeeRoleID AS BIGINT;
+			SELECT TOP 1 @EmployeeRoleID  = RoleId FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
 
 			SET @Month = MONTH(GETDATE());
 			SET @Day = DAY(GETDATE());
@@ -86,11 +89,11 @@ BEGIN
 			BEGIN
 				DECLARE @SelectedDate DateTime;
 				SELECT @SelectedDate = DateOfMonth FROM #tmpDateOfMonth WHERE ID = @MasterLoopID;
-
+				
 				IF (@ChartType = 1)
 				BEGIN
 					DECLARE @Cnts INT = 0;
-
+					print @SelectedDate
 					SELECT @Cnts = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 	                INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
@@ -99,7 +102,7 @@ BEGIN
 					INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
 					INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 					--WHERE Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date) = CONVERT(DATE, @SelectedDate) 
-					WHERE Cast(RC.ReceivedDate as Date) = CONVERT(DATE, @SelectedDate) 
+					WHERE Cast(RC.ReceivedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId = @EmployeeRoleID
 					AND RC.MasterCompanyId = @MasterCompanyId
 					GROUP BY RC.ReceivedDate
 

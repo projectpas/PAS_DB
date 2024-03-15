@@ -12,10 +12,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
-  ** S NO   Date            Author          Change Description              
-  ** --   --------         -------          --------------------------------            
-     1    27-April-2022  Mahesh Sorathiya   Created 
-	 2    20-JUNE-203     Devendra Shekh        made changes for total 
+  ** S NO   Date            Author				Change Description              
+  ** --   --------			-------				--------------------------------            
+     1    27-APR-2022		Mahesh Sorathiya	Created 
+	 2    20-JUN-2023		Devendra Shekh		made changes for total 
+	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
        
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -103,11 +104,13 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
 				UPPER(STL.Quantity) 'qtyrcvd',  
-				UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(POP.ExtendedCost) 'extcost',  
+				--UPPER(POP.UnitCost) 'unitcost',  
+				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				--UPPER(POP.ExtendedCost) 'extcost',  
+				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
-				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
+				UPPER(STL.CreatedBy) 'receivedby',  
 				UPPER(PO.Requisitioner) 'requestor',  
 				UPPER(PO.approvedby) 'approver',  
 				UPPER(STL.Site) 'site',  
@@ -164,11 +167,13 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',  
 				UPPER(POP.QuantityOrdered) 'qtyord',  
 				UPPER(STL.Quantity) 'qtyrcvd',  
-				UPPER(POP.UnitCost) 'unitcost',  
-				UPPER(POP.ExtendedCost) 'extcost',  
+				--UPPER(POP.UnitCost) 'unitcost',  
+				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
+				--UPPER(POP.ExtendedCost) 'extcost',  
+				UPPER(ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
 				UPPER(POP.QuantityRejected) 'qtyrej',  
 				POP.QuantityBackOrdered 'qtyonbacklog',  
-				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
+				UPPER(STL.CreatedBy) 'receivedby',  
 				UPPER(PO.Requisitioner) 'requestor',  
 				UPPER(PO.approvedby) 'approver',  
 				UPPER(STL.Site) 'site',  
@@ -215,7 +220,7 @@ BEGIN
 
 	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, 
 					manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-					lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
+					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
 SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
   SELECT 
         UPPER(POP.partnumber) 'pn',  
@@ -235,11 +240,13 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-		ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(POP.ExtendedCost, 0) 'extcost',   
+		--ISNULL(POP.UnitCost, 0) 'unitcost',  
+		ISNULL(STL.UnitCost, 0) 'unitcost',  
+        --ISNULL(POP.ExtendedCost, 0) 'extcost',   
+        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',   
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
-        FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
+        UPPER(STL.CreatedBy) 'receivedby',  
         UPPER(PO.Requisitioner) 'requestor',  
         UPPER(PO.approvedby) 'approver',  
         UPPER(STL.Site) 'site',  
@@ -299,11 +306,13 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.itemtype) 'itemtype',  
         UPPER(POP.QuantityOrdered) 'qtyord',  
         UPPER(STL.Quantity) 'qtyrcvd',  
-        ISNULL(POP.UnitCost, 0) 'unitcost',  
-        ISNULL(POP.ExtendedCost, 0) 'extcost',  
+        --ISNULL(POP.UnitCost, 0) 'unitcost',  
+        ISNULL(STL.UnitCost, 0) 'unitcost',  
+        --ISNULL(POP.ExtendedCost, 0) 'extcost',  
+        (ISNULL(STL.Quantity, 0) * ISNULL(STL.UnitCost, 0)) 'extcost',  
         UPPER(POP.QuantityRejected) 'qtyrej',  
         POP.QuantityBackOrdered 'qtyonbacklog',  
-        FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'lastrcvddate',  
+        UPPER(STL.CreatedBy) 'receivedby',  
         UPPER(PO.Requisitioner) 'requestor',  
         UPPER(PO.approvedby) 'approver',  
         UPPER(STL.Site) 'site',  
@@ -344,9 +353,9 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
    ) T )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-				lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
+				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
 			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-				lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
+				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
 
 			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost ) 
 			  AS (SELECT masterCompanyId, 
@@ -358,7 +367,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
 					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
-					qtyrej, qtyonbacklog, lastrcvddate, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+					qtyrej, qtyonbacklog, receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 					level9, level10,
 					WC.TotalUnitCost,
 					WC.TotalExtCost

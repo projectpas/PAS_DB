@@ -20,9 +20,11 @@
     [IsActive]              BIT           CONSTRAINT [DF_PrintCheckSetup_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [DF_PrintCheckSetup_IsDeleted] DEFAULT ((0)) NOT NULL,
     [ManagementStructureId] BIGINT        NULL,
-    [LedgerId]              BIGINT        NULL,
+    [LegalEntityId]         BIGINT        NULL,
     CONSTRAINT [PK_PrintCheckSetup] PRIMARY KEY CLUSTERED ([PrintingId] ASC)
 );
+
+
 
 
 

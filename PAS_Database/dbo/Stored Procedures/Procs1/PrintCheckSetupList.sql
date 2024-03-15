@@ -84,10 +84,10 @@ BEGIN
 					   MSD.LastMSLevel,
 					   MSD.AllMSlevels,
 					   RRH.ManagementStructureId,
-					   RRH.LedgerId,
+					   RRH.LegalEntityId,
 					   LD.Name as 'LegalEntity'
 				   FROM [dbo].[PrintCheckSetup] RRH WITH (NOLOCK)		
-						LEFT JOIN dbo.LegalEntity LD WITH(NOLOCK) on RRH.LedgerId = LD.LegalEntityId
+						LEFT JOIN dbo.LegalEntity LD WITH(NOLOCK) on RRH.LegalEntityId = LD.LegalEntityId
 						LEFT JOIN [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK) on RRH.BankId=lebl.LegalEntityBankingLockBoxId
 						LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON lebl.GLAccountId = G.GLAccountId and lebl.AccountTypeId=2
 						LEFT JOIN [dbo].[AccountingManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = RRH.PrintingId
@@ -97,7 +97,7 @@ BEGIN
 						FinalResult AS (
 						SELECT PrintingId, StartNum, [ConfirmStartNum], BankId, BankName, BankAccountId,BankAccountNumber, GLAccountId, GlAccount, ConfirmBankAccInfo,BankRef,CcardPaymentRef,
 								Type, TypeName, MasterCompanyId, CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,APGLAccount,LastMSLevel,
-						AllMSlevels,ManagementStructureId,LedgerId,LegalEntity FROM Result
+						AllMSlevels,ManagementStructureId,LegalEntityId,LegalEntity FROM Result
 						WHERE ((@GlobalFilter <>'' AND ((StartNum LIKE '%' +@GlobalFilter+'%' ) OR 
 							  ([BankName] LIKE '%' +@GlobalFilter+'%') OR
 							  (BankAccountNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -121,7 +121,7 @@ BEGIN
 						ResultCount AS (SELECT COUNT(PrintingId) AS NumberOfItems FROM FinalResult)
 								SELECT PrintingId, StartNum, [ConfirmStartNum], BankId, BankName, BankAccountId,BankAccountNumber, GLAccountId, GlAccount, ConfirmBankAccInfo,BankRef,CcardPaymentRef,
 								Type, TypeName, MasterCompanyId, CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,APGLAccount,LastMSLevel,
-								AllMSlevels,ManagementStructureId,LedgerId,LegalEntity, NumberOfItems FROM FinalResult, ResultCount
+								AllMSlevels,ManagementStructureId,LegalEntityId,LegalEntity, NumberOfItems FROM FinalResult, ResultCount
 
 							ORDER BY  
 							CASE WHEN (@SortOrder=1 AND @SortColumn='PRINTINGID') THEN PrintingId END DESC,

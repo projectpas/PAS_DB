@@ -15,20 +15,20 @@
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
+CREATE     PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50)=null,
 	@SortOrder INT,
 	@GlobalFilter VARCHAR(50) = null,
-	@RfqId VARCHAR(20),
+	@RfqId VARCHAR(20) = null,
 	@RfqCreatedDate DATETIME=null,
-	@BuyerCompanyName [VARCHAR](250) NULL,
-	@BuyerName [VARCHAR](250) NULL,
-	@BuyerCountry [VARCHAR](50) NULL,
-	@LinePartNumber [VARCHAR](250) NULL,
-	@Description [VARCHAR](250) NULL,
-	@PortalType [VARCHAR](50) NULL,
+	@BuyerCompanyName [VARCHAR](250)= NULL,
+	@BuyerName [VARCHAR](250) = NULL,
+	@BuyerCountry [VARCHAR](50) = NULL,
+	@LinePartNumber [VARCHAR](250) = NULL,
+	@Description [VARCHAR](250) = NULL,
+	@PortalType [VARCHAR](50) = NULL,
 	@MasterCompanyId INT,
 	@CreatedDate DATETIME=null,
     @UpdatedDate  DATETIME=null,
@@ -114,8 +114,10 @@ BEGIN
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
 						ResultCount AS (Select COUNT(CustomerRfqId) AS NumberOfItems FROM FinalResult)
-						SELECT * FROM FinalResult, ResultCount
 
+
+					SELECT * INTO #resultTemp 
+					FROM FinalResult, ResultCount
 					ORDER BY  
 					CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQID')  THEN RfqId END ASC,
@@ -146,6 +148,68 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PortalType')  THEN PortalType END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
+
+					Select * from #resultTemp
+
+					SELECT  
+							crq.[CustomerRfqQuoteId],
+							crq.[CustomerRfqId],
+							crq.[RfqId],
+							crq.[AddComment],
+							crq.[IsAddCommentQuote],
+							crq.[FaaEasaRelease],
+							crq.[IsFaaEasaReleaseQuote],
+							crq.[RpOh],
+							crq.[IsRpOhQuote],
+							crq.[LegalEntityId],
+							crq.Note,
+							csd.[CustomerRfqQuoteDetailsId],
+							csd.[ServiceType],
+							csd.[QuotePrice],
+							csd.[QuoteTat],
+							csd.[Low],
+							csd.[Mid],
+							csd.[High],
+							csd.[AvgTat],
+							csd.[QuoteTatQty],
+							csd.[QuoteCond],
+							csd.[QuoteTrace],
+							csd.[IlsQty],
+							csd.[IlsTraceability],
+							csd.[IlsUom],
+							csd.[IlsPrice],
+							csd.[IlsPriceType],
+							csd.[IlsTagDate],
+							csd.[IlsLeadTime],
+							csd.[IlsMinQty],
+							csd.[IlsComment],
+							csd.[IlsCondition],
+
+							res.[CustomerRfqId],
+							res.[RfqId], 
+							res.RfqcreatedDate,
+							res.rfqFrom,
+							res.companyName,
+							res.country,
+							res.partNumber,
+							res.lineDescription,
+							res.rfqAddress,
+							res.rfqCity,
+							res.rfqCountry,
+							res.rfqState,
+							res.rfqZip,
+							res.[IsQuote],
+							res.PortalType,
+							res.IntegrationPortalId AS IntegrationPortalId,
+							res.CreatedDate, res.UpdatedDate, res.CreatedBy, res.UpdatedBy,
+							res.AltPartNumber,
+							res.Quantity,
+							res.Condition
+
+					FROM dbo.CustomerRfqQuote crq WITH(NOLOCK)
+					INNER JOIN #resultTemp res on crq.CustomerRfqId = res.CustomerRfqId
+					INNER JOIN  dbo.CustomerRfqQuoteDetails csd WITH(NOLOCK) on crq.CustomerRfqQuoteId = csd.CustomerRfqQuoteId
+					WHERE ISNULL(crq.IsDeleted,0) = 0 AND ISNULL(csd.IsDeleted,0) = 0
 				END
 				COMMIT  TRANSACTION
     END TRY    

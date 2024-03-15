@@ -14,7 +14,7 @@
  ** --   --------    ---------		--------------------------------          
     1   08/Feb/2024    Rajesh Gami    Created
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
+CREATE     PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@tbl_ILSRFQPartType ILSRFQPartType READONLY,
 	@ThirdPartyRFQId BIGINT =NULL,
 	@RFQId varchar(50) = NULL,
@@ -44,7 +44,7 @@ BEGIN
 			DECLARE @TypeName varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationRFQType WITH(NOLOCK) WHERE IntegrationRFQTypeId = @TypeId);
 			DECLARE @StatusName varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationRFQStatus WITH(NOLOCK) WHERE IntegrationRFQStatusId = @StatusId)
 			DECLARE @IntegrationPortal varchar(50) = (SELECT TOP 1 [Description] FROM DBO.IntegrationPortal WITH(NOLOCK) WHERE IntegrationPortalId = @IntegrationPortalId)
-			SET @Priority = (SELECT TOP 1 [Description] FROM DBO.[Priority] WITH(NOLOCK) WHERE PriorityId = @PriorityId);
+			SET @Priority = CASE WHEN @PriorityId = NULL or @PriorityId = 0 THEN @Priority ELSE (SELECT TOP 1 [Description] FROM DBO.[Priority] WITH(NOLOCK) WHERE PriorityId = @PriorityId) END;
 
 
 			IF(@ThirdPartyRFQId >0)

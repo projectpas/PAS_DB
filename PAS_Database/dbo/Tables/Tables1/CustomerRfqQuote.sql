@@ -18,7 +18,8 @@
     [IsDeleted]             BIT           CONSTRAINT [DF_CustomerRfqQuoteIsDele_5AEE82B9] DEFAULT ((0)) NOT NULL,
     [Note]                  VARCHAR (300) NULL,
     CONSTRAINT [PK_CustomerRfqQuote] PRIMARY KEY CLUSTERED ([CustomerRfqQuoteId] ASC),
-    CONSTRAINT [FK_CustomerRfqQuote_CustomerRfq] FOREIGN KEY ([CustomerRfqId]) REFERENCES [dbo].[CustomerRfq] ([CustomerRfqId]),
     CONSTRAINT [FK_CustomerRfqQuote_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

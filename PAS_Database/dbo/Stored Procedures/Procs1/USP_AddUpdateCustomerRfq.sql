@@ -18,7 +18,7 @@
      
 -- EXEC USP_AddUpdateCustomerRfq
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateCustomerRfq]
 	@tbl_CustomerRfqType CustomerRfqType READONLY,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(200)
@@ -96,6 +96,18 @@ BEGIN
 					 FROM #tmpCustomerRfq;
 							print 'STEP 4'
 					SELECT @CustomerRfqId = SCOPE_IDENTITY();
+
+					--------------------------------Update record if exists---------------------------------------------------------------------
+					UPDATE rfqq SET rfqq.CustomerRfqId = rfq.CustomerRfqId
+						FROM [dbo].[CustomerRfqQuote] rfqq WITH(NOLOCK)
+						INNER JOIN [CustomerRfq] rfq  ON rfqq.RfqId=rfq.RfqId 
+						WHERE rfqq.MasterCompanyId = @MasterCompanyId
+
+					UPDATE rfq SET rfq.IsQuote = 1
+						FROM [dbo].[CustomerRfq] rfq WITH(NOLOCK)
+						INNER JOIN [CustomerRfqQuote] rfqq  ON rfqq.RfqId=rfq.RfqId 
+						WHERE rfqq.MasterCompanyId = @MasterCompanyId AND ISNULL(rfqq.IsDeleted,0) = 0
+
 					COMMIT;
     END TRY    
 	BEGIN CATCH      

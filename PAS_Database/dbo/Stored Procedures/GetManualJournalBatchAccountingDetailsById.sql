@@ -12,6 +12,7 @@
  ** --   --------		 -------			--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
 	2    13-03-2024     Abhishek Jirawla		Modified
+	3    13-03-2024     Abhishek Jirawla		Added journal number
 ************************************************************************/ 
 --[dbo].[GetManualJournalBatchAccountingDetailsById] 328
 -- =============================================
@@ -37,7 +38,8 @@ SELECT CBD.CommonJournalBatchDetailId
 			,CBD.[TransactionDate]  
 			,CBD.[EntryDate] 
 			,CBD.[JournalTypeId]  
-            ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(MJH.JournalNumber)) as JournalTypeName  
+            ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(MJH.JournalNumber)) as JournalTypeName
+			,UPPER(MJH.JournalNumber) as JournalNumber
             ,CBD.[IsDebit]  
             ,CBD.[DebitAmount]  
             ,CBD.[CreditAmount]

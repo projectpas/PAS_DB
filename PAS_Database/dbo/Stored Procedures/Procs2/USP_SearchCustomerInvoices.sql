@@ -63,25 +63,25 @@ CREATE   PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @Status varchar(50)=null
 AS
 BEGIN
-	  DECLARE @RecordFrom int; 
-	  DECLARE @ModuleID varchar(500) ='12'
-	  DECLARE @SOModuleID varchar(500) ='17'
-	  DECLARE @ExchSOModuleID varchar(500) ='19'
-	  Declare @IsActive bit = 1  
-	  Declare @Count Int;  
+	  DECLARE @RecordFrom INT; 
+	  DECLARE @ModuleID VARCHAR(500) ='12'
+	  DECLARE @SOModuleID VARCHAR(500) ='17'
+	  DECLARE @ExchSOModuleID VARCHAR(500) ='19'
+	  DECLARE @IsActive BIT = 1  
+	  DECLARE @Count INT;  
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
-	  IF @SortColumn is null  
-	  Begin  
-	   Set @SortColumn = Upper('InvoiceDate')  
-	  End   
-	  Else  
-	  Begin   
-	   Set @SortColumn = Upper(@SortColumn)  
-	  End
+	  IF @SortColumn IS NULL  
+	  BEGIN  
+	   SET @SortColumn = UPPER('InvoiceDate')  
+	  END   
+	  ELSE  
+	  BEGIN   
+	   SET @SortColumn = UPPER(@SortColumn)  
+	  END
 
-	IF (@ViewType ='invoice')
-	BEGIN
+	  IF(@ViewType ='invoice')
+	  BEGIN
 				;WITH Result AS(
 				SELECT WOBI.BillingInvoicingId [InvoicingId],WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
@@ -431,19 +431,20 @@ BEGIN
 
 
 				ExchSOResult AS(
-			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
-				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.ExchangeSalesOrderNumber [OrderNumber],
-				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
-				SOBI.GrandTotal [InvoiceAmt],
-				ISNULL(SOBI.GrandTotal,0) RemainingAmount,
-				ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
+			SELECT SOBI.SOBillingInvoicingId [InvoicingId],
+			       SOBI.InvoiceNo [InvoiceNo],
+				   SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.ExchangeSalesOrderNumber [OrderNumber],
+				   C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
+				   SOBI.GrandTotal [InvoiceAmt],
+				   ISNULL(SOBI.GrandTotal,0) RemainingAmount,
+				   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
 				--SQ.ExchangeSalesOrderQuoteNumber [QuoteNumber],
-				'' as [QuoteNumber],
-				'' as CustomerReference,
-				'' as CustomerReferenceType,
-				IsWorkOrder=0,IsExchange=1,
-				SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ExchangeSalesOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,1 as isRMACreate
-				,0 AS IsPerformaInvoice
+				   '' as [QuoteNumber],
+				   SO.CustomerReference as CustomerReference,
+				   '' as CustomerReferenceType,
+				   IsWorkOrder=0,IsExchange=1,
+				   SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ExchangeSalesOrderId AS [ReferenceId],C.CustomerId,0 as WorkFlowWorkOrderId,1 as isRMACreate
+				   ,0 AS IsPerformaInvoice
 			FROM dbo.ExchangeSalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.ExchangeSalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId
 				LEFT JOIN dbo.ExchangeSalesOrderPart SOPN WITH (NOLOCK) ON SOPN.ExchangeSalesOrderId =SOBI.ExchangeSalesOrderId
@@ -574,7 +575,7 @@ BEGIN
 				'' as QuoteNumber,
 				M.LastMSLevel,M.AllMSlevels, M.ReferenceId, 
 				--CR.CustomerReference,ISNULL(SRC.SerialNumber,'') [SerialNumber],M.IsWorkOrder,CR.CustomerReferenceType,SRC.SerialNumberType,M.CustomerId
-				'' as CustomerReference,'' as CustomerReferenceType,
+				M.CustomerReference,'' as CustomerReferenceType,
 				ISNULL(SRC.SerialNumber,'') [SerialNumber],M.IsWorkOrder,SRC.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice
 				FROM ExchSOResult M   
 					Left Join ExchSOPartCTE PT On M.InvoicingId = PT.SOBillingInvoicingId  
@@ -593,10 +594,7 @@ BEGIN
 				M.CustomerReference,ISNULL(SRC.SerialNumber,''),M.IsWorkOrder,M.CustomerReferenceType,SRC.SerialNumberType,M.CustomerId,M.IsExchange,M.WorkFlowWorkOrderId,M.isRMACreate,M.IsPerformaInvoice
 				--ISNULL(SRC.SerialNumber,''),M.IsWorkOrder,SRC.SerialNumberType,M.CustomerId
 					)
-
-
-
-					, FinalResult AS(
+			   , FinalResult AS(
 					SELECT InvoicingId,InvoiceNo,InvoiceStatus,invoiceDate,OrderNumber,
 				CustomerName,CustomerType,InvoiceAmt, RemainingAmount, AmountPaid ,[PN], [PNDescription],
 				PartNumberType,PartDescriptionType,StockType,StocktypeType,
@@ -720,7 +718,7 @@ BEGIN
    END
    ELSE
    BEGIN
-				;WITH Result AS(
+			;WITH Result AS(
 				SELECT WOBI.BillingInvoicingId [InvoicingId],WOBI.InvoiceNo [InvoiceNo],
 				WOBI.InvoiceStatus [InvoiceStatus],WOBI.InvoiceDate [InvoiceDate],WO.WorkOrderNum [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
@@ -758,7 +756,8 @@ BEGIN
 
 			UNION ALL
 
-			SELECT SOBI.SOBillingInvoicingId [InvoicingId],SOBI.InvoiceNo [InvoiceNo],
+			SELECT SOBI.SOBillingInvoicingId [InvoicingId],
+			    SOBI.InvoiceNo [InvoiceNo],
 				SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber [OrderNumber],
 				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
 				SOBI.GrandTotal [InvoiceAmt], 

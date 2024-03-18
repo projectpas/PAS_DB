@@ -15,7 +15,7 @@
 	3	07/03/2024		Moin Bloch  	added Document Type
 	4   13/03/2024      Moin Bloch       Modify(makes Exchange Invoice to Invoice)
 ************************************************************************/
--- EXEC SearchCustomerInvoicesPaidForReport 129
+-- EXEC SearchCustomerInvoicesPaidForReport 10156
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
 @ReceiptId bigint = null
 AS
@@ -91,7 +91,7 @@ BEGIN
 					[CU].[CustomerCode], 	
 					[PT].[Amount] as AppliedAmount,
 					[PT].[AmountRemaining] as AppliedRemainingAmount,
-					[IP].[DocNum], 					
+					UPPER([IP].[DocNum]) AS DocNum, 					
 					FORMAT([IP].[InvoiceDate], 'MM/dd/yyyy') AS InvoiceDate,					
 					[IP].[WOSONum],					
 					[IP].[CurrencyCode],				

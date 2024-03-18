@@ -24,8 +24,14 @@
     [IsVersionIncrease]             BIT             NULL,
     [IsPerformaInvoice]             BIT             NULL,
     [IsInvoicePosted]               BIT             NULL,
+    [MaterialCost]                  DECIMAL (18, 2) NULL,
+    [LaborCost]                     DECIMAL (18, 2) NULL,
+    [OtherTaxRate]                  DECIMAL (18, 2) NULL,
+    [GrandTotal]                    DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_WorkOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditWOBillingInvoicingItemId] ASC)
 );
+
+
 
 
 

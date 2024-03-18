@@ -174,7 +174,7 @@ BEGIN
 				   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
 				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
 				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				   INNER JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
+				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
 			  WHERE wobi.InvoiceStatus = 'Invoiced'  
 					AND c.CustomerId = @CustomerId 
 					AND wobi.SoldToSiteId = @SiteId AND le.LegalEntityId = @LegalEntityId 
@@ -414,7 +414,7 @@ BEGIN
 				   INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = WOF.WorkOrderPartNoId
 				   INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON msl.ID = MSD.Level1Id
 				   INNER JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = msl.LegalEntityId
-				   INNER JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
+				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = wobi.WorkOrderId
 			  WHERE wobi.InvoiceStatus = 'Invoiced' AND c.CustomerId=@CustomerId AND wobi.SoldToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
 					AND CAST(wobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)	
 			  GROUP BY C.CustomerId,wobi.IsPerformaInvoice

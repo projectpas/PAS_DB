@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_AddUpdate_VendorCrediMemo]             
  ** Author:   Devendra Shekh    
  ** Description: to add / update the vendor credit memo   
@@ -18,6 +17,7 @@
     1    22-June-2022	Devendra Shekh		Created  
     2    21-July-2022	Devendra Shekh		UpdateVendorCreditmemo issue resolved  
     3    07-Nov-2023	Devendra Shekh		added new columns for add/update 
+    4    15-March-2024	Devendra Shekh		added new columns for add/@VendorCreditMemoTypeId,@CustomerCreditPaymentDetailId
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
@@ -38,8 +38,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
 @VendorId BIGINT = NULL,
 @OpenDate DATETIME2 = NULL,
 @Notes VARCHAR(MAX) = NULL,
-@RequestedBy BIGINT = NULL
-
+@RequestedBy BIGINT = NULL,
+@VendorCreditMemoTypeId INT = NULL,
+@CustomerCreditPaymentDetailId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -59,9 +60,9 @@ BEGIN
 				BEGIN
 
        				INSERT INTO [dbo].[VendorCreditMemo]([VendorCreditMemoNumber] ,[VendorRMAId] ,[RMANum] ,[VendorCreditMemoStatusId] ,[CurrencyId] ,[OriginalAmt] ,[ApplierdAmt] , [RefundAmt], [RefundDate], [MasterCompanyId],
-					   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] , [IsDeleted], [VendorId], [OpenDate], [Notes], [RequestedBy])
+					   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] , [IsDeleted], [VendorId], [OpenDate], [Notes], [RequestedBy], [VendorCreditMemoTypeId], [CustomerCreditPaymentDetailId])
 					VALUES(@VendorCreditMemoNumber , @VendorRMAId, @RMANum, @VendorCreditMemoStatusId, @CurrencyId, @OriginalAmt, @ApplierdAmt, @RefundAmt, @RefundDate, @MasterCompanyId,
-					   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId, @OpenDate, @Notes, @RequestedBy)
+					   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId, @OpenDate, @Notes, @RequestedBy, @VendorCreditMemoTypeId, @CustomerCreditPaymentDetailId)
 
 					SET  @VendorCreditMemoId = @@IDENTITY;  
 					INSERT INTO #tmpReturnVendorCreditMemoId ([VendorCreditMemoId]) VALUES (@VendorCreditMemoId);  

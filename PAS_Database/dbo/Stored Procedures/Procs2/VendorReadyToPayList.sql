@@ -193,9 +193,9 @@ BEGIN
 					VendorReadyToPayDetailsTypeId = 2,
 					NonPOInvoiceId = 0
 				FROM [dbo].[CreditMemo] CMD WITH(NOLOCK)  
-				JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = CMD.ManagementStructureId
-				JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
-				JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+				JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CMD.ManagementStructureId
+				JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+				JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
 				INNER JOIN [dbo].[CustomerRefund] CRF WITH(NOLOCK) ON CMD.CustomerRefundId = CRF.CustomerRefundId  
 				INNER JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH(NOLOCK) ON CMD.CreditMemoHeaderId = RFCM.CreditMemoHeaderId  
 				--INNER JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH(NOLOCK) ON CMBD.ReferenceId = CRF.CustomerRefundId AND CMBD.ModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerRefund')
@@ -260,9 +260,9 @@ BEGIN
 					NPH.NonPOInvoiceId
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId	
-				 JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = NPH.ManagementStructureId
-				 JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
-				 JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = NPH.ManagementStructureId
+				 JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+				 JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
 				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
 				  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
 				  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  

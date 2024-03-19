@@ -38,6 +38,15 @@
     [Reason]                  VARCHAR (500)   NULL,
     [CreditTermId]            INT             NULL,
     [IsManualForm]            BIT             NULL,
+    [PercentId]               DECIMAL (18, 2) NULL,
+    [Days]                    INT             NULL,
+    [NetDays]                 INT             NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
+
+
+
+
 

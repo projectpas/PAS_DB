@@ -100,9 +100,9 @@ BEGIN
 					CASE WHEN (CT.[NetDays] - DATEDIFF(DAY, CASt([IP].[InvoiceDate] as date), GETDATE())) < 0 THEN [IP].[RemainingAmount] ELSE 0.00 END AS 'AmountPastDue',						
 					[IP].[PaymentAmount], 					
 					[IP].[NewRemainingBal] AS 'NewRemainingBal',					
-					CASE WHEN [InvoiceType] = 1 AND SOBI.[IsProforma] = 1 THEN 'PROFORMA INVOICE' 
+					CASE WHEN [InvoiceType] = 1 AND SOBI.[IsProforma] = 1 THEN 'INVOICE' 
 					     WHEN [InvoiceType] = 1 AND ISNULL(SOBI.[IsProforma],0) = 0  THEN 'INVOICE' 
-						 WHEN [InvoiceType] = 2 AND WOBI.[IsPerformaInvoice] = 1 THEN 'PROFORMA INVOICE'
+						 WHEN [InvoiceType] = 2 AND WOBI.[IsPerformaInvoice] = 1 THEN 'INVOICE'
 						 WHEN [InvoiceType] = 2 AND ISNULL(WOBI.IsPerformaInvoice,0) = 0  THEN 'INVOICE' 
 						 WHEN [InvoiceType] = 3 THEN 'CREDIT MEMO' 
 						 WHEN [InvoiceType] = 4 THEN 'STAND ALONE CREDIT MEMO'

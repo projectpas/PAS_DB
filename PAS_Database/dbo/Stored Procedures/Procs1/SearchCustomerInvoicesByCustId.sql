@@ -56,7 +56,7 @@ BEGIN
     
 		SELECT SOBI.SalesOrderId AS 'Id',      
 	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
-		      CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
+		      CASE WHEN SOBI.IsProforma = 1 THEN 'Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
 			  SOBI.InvoiceNo AS 'DocNum',       
 			  SOBI.InvoiceDate,       
 			  SOBI.GrandTotal AS 'OriginalAmount',       
@@ -122,7 +122,7 @@ BEGIN
       
 		SELECT WOBI.WorkOrderId AS 'Id',      
 			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   
-			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Invoice' ELSE 'Invoice' END AS 'DocumentType',
 			 WOBI.InvoiceNo AS 'DocNum',      
 			 WOBI.InvoiceDate,      
 			 WOBI.GrandTotal AS 'OriginalAmount',      

@@ -59,7 +59,7 @@ BEGIN
 		AND RC.MasterCompanyId = @MasterCompanyId
 		GROUP BY ReceivedDate
 
-		SELECT @WOBillingAmt = SUM(GrandTotal) FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+		SELECT @WOBillingAmt = SUM(WOBI.GrandTotal) FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
 		LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 		INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID

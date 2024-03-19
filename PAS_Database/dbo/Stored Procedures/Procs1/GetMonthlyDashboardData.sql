@@ -113,7 +113,7 @@ BEGIN
 				BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 
-					SELECT @Amt = SUM(GrandTotal)
+					SELECT @Amt = SUM(WOBI.GrandTotal)
 					FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
 					LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
 					INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId

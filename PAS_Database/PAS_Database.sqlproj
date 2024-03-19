@@ -2835,6 +2835,7 @@
     <Build Include="dbo\Tables\VendorPaymentSettingMaster.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetARAgingAsOfNowReport.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorReadyToPayDetailsByLEId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSalesOrderBillingInvoicingItemDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -19,6 +19,7 @@
     1    12/29/2020   Hemant Saliya Created
 	2    04/28/2021   Hemant Saliya Added Content Managment for DB Logs
 	3    01/01/2021   Hemant Saliya Added Delete And IsActive Condition
+	4    03/19/2024   Hemant Saliya Updated Cust Refrence as RO Number
      
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
@@ -112,7 +113,8 @@ BEGIN
 						 ELSE WO.OpenDate
 					END AS WOOpenDate,
 					WO.WorkOrderNum AS WONumber,
-					RO.RepairOrderNumber AS RONumber,
+					--RO.RepairOrderNumber AS RONumber,
+					RC.Reference AS RONumber,
 					ROP.RepairOrderPartRecordId,
 					RC.EmployeeName AS ReceivedBy,
 					RC.ManagementStructureId AS Ids,

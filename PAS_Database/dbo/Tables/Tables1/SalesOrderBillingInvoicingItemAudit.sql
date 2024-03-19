@@ -20,9 +20,20 @@
     [IsVersionIncrease]             BIT             NULL,
     [IsProforma]                    BIT             NULL,
     [IsBilling]                     BIT             NULL,
+    [PartCost]                      DECIMAL (18, 2) NULL,
+    [MiscCharges]                   DECIMAL (18, 2) NULL,
+    [Freight]                       DECIMAL (18, 2) NULL,
+    [SubTotal]                      DECIMAL (18, 2) NULL,
+    [OtherTaxPercent]               BIGINT          NULL,
+    [SalesTaxPercent]               BIGINT          NULL,
+    [GrandTotal]                    DECIMAL (18, 2) NULL,
+    [OtherTax]                      DECIMAL (18, 2) NULL,
+    [SalesTax]                      DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_SalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_SalesOrderBillingInvoicingItemAudit_SalesOrderBillingInvoicingItem] FOREIGN KEY ([SOBillingInvoicingItemId]) REFERENCES [dbo].[SalesOrderBillingInvoicingItem] ([SOBillingInvoicingItemId])
 );
+
+
 
 
 

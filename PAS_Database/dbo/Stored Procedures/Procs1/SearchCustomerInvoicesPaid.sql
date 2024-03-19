@@ -13,6 +13,8 @@
 	1                  unknown			Created	
 	2    16/10/2023    MOIN BLOCH		Modify(Added INVOICE TYPE FOR Stand Alone Credit Memo / Manual Journal)
 	3    22/11/2023    AMIT GHEDIYA     Modify(Added INVOICE TYPE FOR Exchange Invoice)
+	4    18/03/2024    Moin Bloch       Modify(Changed DSO Logic)
+
 
 	EXEC [dbo].[SearchCustomerInvoicesPaid]  1,1
 **************************************************************/  
@@ -24,42 +26,69 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
+	DECLARE @SOInvoiceType INT = 1
+	DECLARE @WOInvoiceType INT = 2
+	DECLARE	@CREDITMEMO INT = 3
+	DECLARE	@STANDALONECREDITMEMO INT = 4
+	DECLARE	@MANUALJOURNAL INT = 5
+	DECLARE	@ESOInvoiceType INT = 6
+	
     SELECT [IP].PaymentId,   
-     --CASE WHEN IP.InvoiceType = 3 THEN 'Credit Memo' ELSE 'Invoice' END AS 'DocumentType',   
-	 CASE WHEN IP.InvoiceType = 1 THEN 'Invoice' 
-	      WHEN IP.InvoiceType = 2 THEN 'Invoice'  
-		  WHEN IP.InvoiceType = 3 THEN 'Credit Memo'  
-		  WHEN IP.InvoiceType = 4 THEN 'Stand Alone Credit Memo' 
-		  WHEN IP.InvoiceType = 5 THEN 'Manual Journal' 
-		  WHEN IP.InvoiceType = 6 THEN 'Exchange Invoice'
+	 CASE WHEN IP.InvoiceType = @SOInvoiceType THEN 'INVOICE' 
+	      WHEN IP.InvoiceType = @WOInvoiceType THEN 'INVOICE'  
+		  WHEN IP.InvoiceType = @CREDITMEMO THEN 'CREDIT MEMO'  
+		  WHEN IP.InvoiceType = @STANDALONECREDITMEMO THEN 'STAND ALONE CREDIT MEMO' 
+		  WHEN IP.InvoiceType = @MANUALJOURNAL THEN 'MANUAL JOURNAL' 
+		  WHEN IP.InvoiceType = @ESOInvoiceType THEN 'INVOICE'
 	  END AS 'DocumentType', 
      C.Name AS 'CustName',   
      C.CustomerCode,   
      [IP].SOBillingInvoicingId,   
-     [IP].DocNum,   
+     UPPER([IP].DocNum) AS DocNum,   
      [IP].InvoiceDate,  
-     --S.SalesOrderNumber AS 'WOSONum',  
-     [IP].WOSONum,  
-     --S.CustomerReference,   
-     --Curr.Code AS 'CurrencyCode',   
+     UPPER([IP].WOSONum) AS WOSONum,  
      [IP].CurrencyCode,  
      0 AS 'FxRate',   
      [IP].OriginalAmount AS 'OriginalAmount',   
-     --[IP].RemainingAmount AS 'RemainingAmount',  
-     CASE WHEN InvoiceType = 1 THEN SOBI.RemainingAmount WHEN InvoiceType = 2 THEN WOBI.RemainingAmount WHEN InvoiceType = 6 THEN ESOBI.RemainingAmount ELSE 0 END AS 'RemainingAmount',  
-     GETDATE() AS 'InvDueDate',   
-     CASE WHEN IP.InvoiceType = 3 THEN 0 ELSE DATEDIFF(DAY, [IP].InvoiceDate, GETDATE()) END AS 'DSI',       
-     CASE WHEN IP.InvoiceType = 3 THEN 0 ELSE (CT.NetDays - DATEDIFF(DAY, CASt([IP].InvoiceDate as date), GETDATE())) END AS 'DSO',  
-     CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt([IP].InvoiceDate as date), GETDATE())) < 0 THEN [IP].RemainingAmount ELSE 0.00 END AS 'AmountPastDue',    
-     --[IP].AmountPastDue AS 'AmountPastDue',   
+     CASE WHEN InvoiceType = @SOInvoiceType THEN SOBI.RemainingAmount WHEN InvoiceType = @WOInvoiceType THEN WOBI.RemainingAmount WHEN InvoiceType = @ESOInvoiceType THEN ESOBI.RemainingAmount ELSE 0 END AS 'RemainingAmount',  
+     GETUTCDATE() AS 'InvDueDate',   
+     CASE WHEN (IP.InvoiceType = @CREDITMEMO OR IP.InvoiceType = @STANDALONECREDITMEMO OR IP.InvoiceType = @MANUALJOURNAL)
+	      THEN 0 
+		  ELSE CASE WHEN IP.InvoiceType = @SOInvoiceType AND SOBI.IsProforma = 1 
+				    THEN 0 
+				    WHEN IP.InvoiceType = @SOInvoiceType AND ISNULL(SOBI.IsProforma,0) = 0
+				    THEN DATEDIFF(DAY, [IP].InvoiceDate, GETUTCDATE())
+				    WHEN IP.InvoiceType = @WOInvoiceType AND WOBI.IsPerformaInvoice = 1 
+				    THEN 0 
+				    WHEN IP.InvoiceType = @WOInvoiceType AND ISNULL(WOBI.IsPerformaInvoice,0 ) = 0
+				    THEN DATEDIFF(DAY, [IP].InvoiceDate, GETUTCDATE())
+				    WHEN IP.InvoiceType = @ESOInvoiceType
+				    THEN DATEDIFF(DAY, [IP].InvoiceDate, GETUTCDATE())
+			END
+	  END AS 'DSI', 
+	  CASE WHEN (IP.InvoiceType = @CREDITMEMO OR IP.InvoiceType = @STANDALONECREDITMEMO OR IP.InvoiceType = @MANUALJOURNAL)
+	      THEN 0 
+		  ELSE CASE WHEN IP.InvoiceType = @SOInvoiceType AND SOBI.IsProforma = 1 
+				    THEN 0 
+				    WHEN IP.InvoiceType = @SOInvoiceType AND ISNULL(SOBI.IsProforma,0) = 0
+				    THEN CASE WHEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
+			                  THEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) ELSE 0 END
+				    WHEN IP.InvoiceType = @WOInvoiceType AND WOBI.IsPerformaInvoice = 1 
+				    THEN 0 
+				    WHEN IP.InvoiceType = @WOInvoiceType AND ISNULL(WOBI.IsPerformaInvoice,0 ) = 0
+				    THEN CASE WHEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
+			                  THEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) ELSE 0 END
+				    WHEN IP.InvoiceType = @ESOInvoiceType
+				    THEN CASE WHEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
+			                  THEN (DATEDIFF(DAY, IP.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) ELSE 0 END
+			END
+	 END AS 'DSO', 		
+	 CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt([IP].InvoiceDate as date), GETUTCDATE())) < 0 THEN [IP].RemainingAmount ELSE 0.00 END AS 'AmountPastDue',    
      ([IP].RemainingAmount - [IP].PaymentAmount) AS 'ARBalance',   
-     --ISNULL([IP].CreditLimit, 0) AS 'ARBalance',  
      ISNULL([IP].CreditLimit, 0) AS 'CreditLimit',   
      [IP].CreditTermName,  
-     --(Select COUNT(SOBI.InvoiceNo) AS NumberOfItems) 'NumberOfItems',   
      [IP].LastMSLevel,  
      [IP].AllMSlevels,  
-     --SOBI.Level1, SOBI.Level2, SOBI.Level3, SOBI.Level4,  
      [IP].PaymentAmount,   
      [IP].DiscAmount,   
      [IP].DiscType,   
@@ -79,16 +108,16 @@ FROM [dbo].[InvoicePayments] [IP] WITH (NOLOCK)
 	  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON [IP].CustomerId = C.CustomerId  
 	  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON [IP].CustomerId = CF.CustomerId  
 	  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId   
-	  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId 
-	  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId  
+	  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId AND IP.InvoiceType = @SOInvoiceType  
+	  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = [IP].SOBillingInvoicingId  AND IP.InvoiceType = @WOInvoiceType 
 	  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = [IP].SOBillingInvoicingId  
 WHERE [IP].CustomerId = @customerId AND [IP].ReceiptId = @receiptId AND [IP].IsDeleted=0  
 	  GROUP BY [IP].PaymentId, C.Name, C.CustomerCode, [IP].SOBillingInvoicingId,[IP].DocNum,[IP].InvoiceDate,[IP].WOSONum,[IP].RemainingAmount,    
      [IP].CurrencyCode,[IP].OriginalAmount,[IP].RemainingAmount,[IP].ARBalance,[IP].CreditLimit,[IP].CreditTermName,[IP].PaymentAmount,   
      [IP].DiscAmount,[IP].DiscType,[IP].BankFeeAmount,[IP].BankFeeType,[IP].OtherAdjustAmt,[IP].Reason,[IP].NewRemainingBal,  
      [IP].Status,[IP].CtrlNum,[IP].LastMSLevel,[IP].AllMSlevels,[IP].InvoiceType,[IP].Id,[IP].ReceiptId,[IP].GLARAccount,[CT].NetDays,  
-     [IP].AmountPastDue,[IP].CreatedDate,SOBI.RemainingAmount,WOBI.RemainingAmount,ESOBI.RemainingAmount  
-  
+     [IP].AmountPastDue,[IP].CreatedDate,SOBI.RemainingAmount,WOBI.RemainingAmount,ESOBI.RemainingAmount,  
+     SOBI.IsProforma,WOBI.IsPerformaInvoice
         -- OLD SP  
   --SELECT [IP].PaymentId, 'Invoice' AS 'DocumentType', C.Name AS 'CustName', C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo AS 'DocNum', SOBI.InvoiceDate, S.SalesOrderNumber AS 'WOSONum',  
   --S.CustomerReference, Curr.Code AS 'CurrencyCode', 0 AS 'FxRate', SOBI.GrandTotal AS 'OriginalAmount', SOBI.GrandTotal AS 'RemainingAmount',  

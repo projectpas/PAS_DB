@@ -14,7 +14,8 @@
  ** PR   Date         Author    Change Description              
  ** --   --------     -------    --------------------------------            
     1    19/06/2023   Vishal Suthar   Created  
-  
+    2    03/19/2024   Ekta Chandegra IsEditable field is retrieve
+
 ************************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_EmployeeFieldMaster_AddEdit]  
 (  
@@ -46,7 +47,7 @@ BEGIN
     --ELSE  
     --BEGIN  
     INSERT INTO [DBO].[EmployeeFieldMaster] (ModuleId, EmployeeId, FieldMasterId, FieldName, HeaderName, FieldWidth, FieldType, FieldAlign, FieldFormate,  
-    FieldSortOrder, IsMultiValue, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted, IsToolTipShow, IsNumString,IsRequired)  
+    FieldSortOrder, IsMultiValue, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted, IsToolTipShow, IsNumString,IsRequired , IsEditable)  
     (SELECT  
         @ModuleId,  
         @EmployeeId,  
@@ -68,7 +69,8 @@ BEGIN
         F.IsDeleted,  
         F.IsToolTipShow,  
 		F.IsNumString,
-		F.IsRequired
+		F.IsRequired,
+		F.IsEditable
     FROM @fieldList FL INNER JOIN [DBO].[FieldMaster] F WITH (NOLOCK) ON F.FieldMasterId = FL.FieldMasterId)  
     --END  
   END TRY  

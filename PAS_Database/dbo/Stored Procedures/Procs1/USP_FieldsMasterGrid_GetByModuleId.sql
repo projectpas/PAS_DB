@@ -10,6 +10,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/19/2023   Vishal Suthar Created
+    2    03/19/2024   Ekta Chandegra IsEditable field is retrieve
 
  EXECUTE USP_FieldsMasterGrid_GetByModuleId 1, 0, 0, 0, 0
 **************************************************************/ 
@@ -29,12 +30,12 @@ SET NOCOUNT ON;
   BEGIN  
    IF (@ShowAll = 0)  
    BEGIN 
-    SELECT EmployeeFieldMasterId, FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, [IsRequired], [IsHidden], FieldAlign, IsNumString   
+    SELECT EmployeeFieldMasterId, FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, [IsRequired], [IsHidden], FieldAlign, IsNumString , IsEditable
     FROM [dbo].[EmployeeFieldMaster] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId AND EmployeeId = @EmployeeId AND IsActive = 1 ORDER BY FieldSortOrder  
    END  
    ELSE  
    BEGIN  
-    SELECT EmployeeFieldMasterId, FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, [IsRequired], [IsHidden], FieldAlign, IsNumString   
+    SELECT EmployeeFieldMasterId, FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, [IsRequired], [IsHidden], FieldAlign, IsNumString , IsEditable   
     FROM [dbo].[EmployeeFieldMaster] WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId AND EmployeeId = @EmployeeId ORDER BY FieldSortOrder  
    END  
   END  
@@ -42,12 +43,12 @@ SET NOCOUNT ON;
   BEGIN  
    IF (@ShowAll = 0)  
    BEGIN  
-    SELECT FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldAlign, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, IsRequired, IsHidden, IsNumString  
+    SELECT FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldAlign, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, IsRequired, IsHidden, IsNumString , IsEditable  
     FROM dbo.FieldMaster WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId AND IsActive = 1 ORDER BY FieldSortOrder  
    END  
    ELSE  
    BEGIN  
-    SELECT FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldAlign, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, IsRequired, IsHidden, IsNumString  
+    SELECT FieldMasterId, ModuleId, FieldName, HeaderName, FieldWidth, FieldType, FieldAlign, FieldFormate, IsMultiValue, FieldSortOrder, IsActive, IsToolTipShow, IsRequired, IsHidden, IsNumString, IsEditable  
     FROM dbo.FieldMaster WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId ORDER BY FieldSortOrder  
    END  
   END  

@@ -14,7 +14,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
 ** 1    03/04/2024		Devendra Shekh		created
    2    12/03/2024      Moin Bloch          added missing AmtApplied
    3    15/03/2024      Devendra Shekh      added CodePrefix for SuspenseAndUnapplied
-   4    15/03/2024      Devendra Shekh      added added new childTable and modified insert 
+   4    20/03/2024      Devendra Shekh      added added new childTable and modified insert 
 
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 132,1,'ADMIN User'
 *****************************************************************************/  
@@ -229,7 +229,7 @@ BEGIN
 							SELECT	[CustomerCreditPaymentDetailId], PaymentId, [ChildTotalAmount], [ChildPaidAmount], [ChildRemainingAmount], 0, CheckNumber, CheckDate, 
 									[IsCheckPayment], [IsWireTransfer], [IsCCDCPayment], @MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0
 							FROM #CustomerPaymentChild 
-							WHERE [ChildId] = @ChildPayMentStartCount AND ISNULL([ChildRemainingAmount], 0) > 0;
+							WHERE [ChildId] = @ChildPayMentStartCount;
 
 							SET @ChildPayMentStartCount = @ChildPayMentStartCount + 1;
 

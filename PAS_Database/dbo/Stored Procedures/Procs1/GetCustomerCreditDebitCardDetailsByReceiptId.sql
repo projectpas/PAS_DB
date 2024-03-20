@@ -1,4 +1,22 @@
-﻿
+﻿/*****************************************************************************     
+** Author:  <Unknown>    
+** Create date: <>    
+** Description: <Get Customer CreditDebitCardDetails ByReceiptId>    
+    
+EXEC [GetCustomerCreditDebitCardDetailsByReceiptId]   
+**********************   
+** Change History   
+**********************     
+
+	  (mm/dd/yyyy)
+** PR   Date			Author				Change Description    
+** --   --------		-------				--------------------------------  
+** 1					Unknown				created
+** 2   03/20/2024		Devendra Shekh		added CustomerPaymentDetailsId
+
+-- EXEC GetCustomerCreditDebitCardDetailsByReceiptId 90,0,2
+*****************************************************************************/  
+
 CREATE   PROCEDURE [dbo].[GetCustomerCreditDebitCardDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,
@@ -36,6 +54,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,ISNULL([PostalCode], '') AS [PostalCode]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceCreditDebitCardPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -66,6 +85,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,ISNULL([PostalCode], '') AS [PostalCode]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceCreditDebitCardPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

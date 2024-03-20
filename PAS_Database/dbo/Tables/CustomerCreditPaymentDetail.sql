@@ -5,7 +5,7 @@
     [CustomerName]                  VARCHAR (100)   NULL,
     [CustomerCode]                  VARCHAR (100)   NULL,
     [StatusId]                      INT             NULL,
-    [PaymentId]                     BIGINT          NOT NULL,
+    [PaymentId]                     BIGINT          NULL,
     [ReceiveDate]                   DATETIME2 (7)   NULL,
     [ReferenceNumber]               VARCHAR (100)   NULL,
     [TotalAmount]                   DECIMAL (18, 2) NULL,
@@ -30,4 +30,6 @@
     [SuspenseUnappliedNumber]       VARCHAR (30)    NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
+
+
 

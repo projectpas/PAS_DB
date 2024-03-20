@@ -68,7 +68,7 @@
     [LotId]                      BIGINT          NULL,
     [IsLotAssigned]              BIT             NULL,
     [AllowInvoiceBeforeShipping] BIT             NULL,
-    [PercentId]                  DECIMAL (18, 2) NULL,
+    [PercentId]                  BIGINT          NULL,
     [Days]                       INT             NULL,
     [NetDays]                    INT             NULL,
     CONSTRAINT [PK_SalesOrder] PRIMARY KEY CLUSTERED ([SalesOrderId] ASC),
@@ -86,6 +86,8 @@
     CONSTRAINT [FK_SalesOrder_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id])
 );
+
+
 
 
 

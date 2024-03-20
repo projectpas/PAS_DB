@@ -32,18 +32,20 @@ BEGIN
 				CREATE TABLE #SalesOrderBillingInvoiceChildList(
 					SalesOrderPartId [BIGINT] NOT NULL,
 					ItemMasterId [BIGINT] NULL,
-					UnitPrice [DECIMAL](18,2) NULL,
+					ConditionId [BIGINT] NULL,
+					StocklineId [BIGINT] NULL,
+					UnitPrice [DECIMAL](18,2) NULL
 				);
 
-				SELECT SOP.UnitSalesPricePerUnit AS UnitPrice,
-					   SOP.ItemMasterId
+				INSERT INTO #SalesOrderBillingInvoiceChildList(SalesOrderPartId, ItemMasterId, ConditionId, StocklineId, UnitPrice)
+				SELECT SOP.SalesOrderPartId, SOP.ItemMasterId, SOP.ConditionId, SOP.StockLineId, SOP.UnitSalesPricePerUnit AS UnitPrice					   
 				FROM dbo.SalesOrder SO WITH(NOLOCK) 
 					JOIN dbo.SalesOrderPart SOP WITH(NOLOCK) ON  SO.SalesOrderId = SOP.SalesOrderId
 					LEFT JOIN dbo.SalesOrderFreight SOF WITH(NOLOCK) ON  SOP.SalesOrderPartId = SOP.SalesOrderPartId
 					LEFT JOIN dbo.SalesOrderCharges SOC WITH(NOLOCK) ON  SOP.SalesOrderPartId = SOP.SalesOrderPartId
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId
 
-
+				SELECT * FROM #SalesOrderBillingInvoiceChildList
 
 			END
 			 

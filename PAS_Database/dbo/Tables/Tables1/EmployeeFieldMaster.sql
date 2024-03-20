@@ -22,6 +22,9 @@
     [UpdatedDate]           DATETIME2 (7)  CONSTRAINT [EmployeeFieldMaster_DC_UD] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]              BIT            CONSTRAINT [EmployeeFieldMaster_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT            CONSTRAINT [EmployeeFieldMaster_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [IsEditable]            BIT            DEFAULT ('FALSE') NULL,
     CONSTRAINT [PK_EmployeeFieldMaster] PRIMARY KEY CLUSTERED ([EmployeeFieldMasterId] ASC)
 );
+
+
 

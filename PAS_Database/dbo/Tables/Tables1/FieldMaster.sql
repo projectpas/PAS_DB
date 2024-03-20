@@ -20,6 +20,11 @@
     [UpdatedDate]     DATETIME2 (7)  CONSTRAINT [FieldMaster_DC_UD] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]        BIT            CONSTRAINT [FieldMaster_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]       BIT            CONSTRAINT [FieldMaster_DC_Delete] DEFAULT ((0)) NOT NULL,
+    [IsEditable]      BIT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_FieldMaster] PRIMARY KEY CLUSTERED ([FieldMasterId] ASC)
 );
+
+
+
+
 

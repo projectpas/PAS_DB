@@ -17,6 +17,7 @@
      1    27-APR-2022		Mahesh Sorathiya	Created 
 	 2    20-JUN-2023		Devendra Shekh		made changes for total 
 	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
+	 4    20-MAR-2024		Vishal Suthar		fixed an issue with join for repair order records
        
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -193,7 +194,7 @@ BEGIN
 				UPPER(MSD.Level10Name) AS level10  
 			  FROM DBO.RepairOrder PO WITH (NOLOCK)  
 				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
-				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
+				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
 				LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 				WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
@@ -333,7 +334,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		PO.MasterCompanyId
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
-        INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
+        INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
 		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  

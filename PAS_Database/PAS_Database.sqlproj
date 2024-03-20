@@ -1723,7 +1723,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\GetReceivingReconciliationHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetReceivingReconciliationPoData.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetReceivingReconciliationPopupData.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\GetRecevingCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetReleaseStockLineQty.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetReleaseStockLineQtyFromSO.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\GetRepairOrderChargesList.sql" />
@@ -2836,6 +2835,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetARAgingAsOfNowReport.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorReadyToPayDetailsByLEId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderBillingInvoicingItemDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetReceivingCustomerList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

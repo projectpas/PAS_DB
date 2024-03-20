@@ -24,7 +24,7 @@
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetRecevingCustomerList]
+CREATE PROCEDURE [dbo].[GetReceivingCustomerList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,

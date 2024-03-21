@@ -2837,6 +2837,15 @@
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingCustomerList.sql" />
     <Build Include="dbo\Tables\CustomerCreditPaymentDetailChild.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_RepairedUnit.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_QuotedUnit.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_LMarginUnitUnit.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_HMarginUnitUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_HMarginUnitUnit.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_RepairedUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_QuotedUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_LMarginUnitUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_HMarginUnitUnitByIMId.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

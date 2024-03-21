@@ -25,7 +25,7 @@ CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@id2 VARCHAR(100),
 	@id3 bit,
 	@id5 VARCHAR(MAX),
-	@id6 VARCHAR(MAX),
+	@id6 BIGINT,
 	@strFilter VARCHAR(MAX) = NULL
 AS
 BEGIN
@@ -97,6 +97,11 @@ BEGIN
 	SELECT @binId = Sites FROM #TempLocationDataFilter WHERE ID = 5 
 
     DECLARE @ModuleID INT = 2; -- MS Module ID 
+
+	IF @id6 = 0
+	BEGIN
+		SET @id6 = NULL
+	END
 
 	IF OBJECT_ID(N'tempdb..#TEMPOriginalStocklineRecords') IS NOT NULL    
 	BEGIN    
@@ -262,7 +267,7 @@ BEGIN
 	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
 	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	 AND  (ISNULL(@id6,'') ='' OR @id6 = UPPER(im.ItemMasterId))
+	 AND  (@id6 IS NULL OR im.ItemMasterId=@id6)
 
 	/* Reduce Received Items from AsOfNow till Today */
 	IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    

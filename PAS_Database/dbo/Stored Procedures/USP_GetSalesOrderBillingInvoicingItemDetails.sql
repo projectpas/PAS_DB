@@ -11,7 +11,7 @@
 ** --   --------     -------			--------------------------------              
  1   18/03/2024		Hemant Saliya		Created 
  
-EXEC USP_GetSalesOrderBillingInvoicingItemDetails 10
+EXEC USP_GetSalesOrderBillingInvoicingItemDetails 1039
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingItemDetails](    
@@ -41,8 +41,8 @@ BEGIN
 				SELECT SOP.SalesOrderPartId, SOP.ItemMasterId, SOP.ConditionId, SOP.StockLineId, SOP.UnitSalesPricePerUnit AS UnitPrice					   
 				FROM dbo.SalesOrder SO WITH(NOLOCK) 
 					JOIN dbo.SalesOrderPart SOP WITH(NOLOCK) ON  SO.SalesOrderId = SOP.SalesOrderId
-					LEFT JOIN dbo.SalesOrderFreight SOF WITH(NOLOCK) ON  SOP.SalesOrderPartId = SOP.SalesOrderPartId
-					LEFT JOIN dbo.SalesOrderCharges SOC WITH(NOLOCK) ON  SOP.SalesOrderPartId = SOP.SalesOrderPartId
+					LEFT JOIN dbo.SalesOrderFreight SOF WITH(NOLOCK) ON  SOF.SalesOrderPartId = SOP.SalesOrderPartId
+					LEFT JOIN dbo.SalesOrderCharges SOC WITH(NOLOCK) ON  SOC.SalesOrderPartId = SOP.SalesOrderPartId
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId
 
 				SELECT * FROM #SalesOrderBillingInvoiceChildList

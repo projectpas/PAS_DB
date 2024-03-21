@@ -27,8 +27,11 @@
     [PageIndex]                 INT             NULL,
     [PostalCode]                VARCHAR (50)    NULL,
     [Ismiscellaneous]           BIT             NULL,
+    [CustomerPaymentDetailsId]  BIGINT          NULL,
     CONSTRAINT [PK_InvoiceCreditDebitCardPaymentAudit] PRIMARY KEY CLUSTERED ([CreditDebitPaymentAuditId] ASC)
 );
+
+
 
 
 

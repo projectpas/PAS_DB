@@ -1,5 +1,22 @@
-﻿-- EXEC GetCustomerCheckDetailsByReceiptId 90,0,2
-CREATE PROCEDURE [dbo].[GetCustomerCheckDetailsByReceiptId]
+﻿/*****************************************************************************     
+** Author:  <Unknown>    
+** Create date: <>    
+** Description: <Get Customer CheckDetails ByReceiptId>    
+    
+EXEC [GetCustomerCheckDetailsByReceiptId]   
+**********************   
+** Change History   
+**********************     
+
+	  (mm/dd/yyyy)
+** PR   Date			Author				Change Description    
+** --   --------		-------				--------------------------------  
+** 1					Unknown				created
+** 2   03/20/2024		Devendra Shekh		added CustomerPaymentDetailsId
+
+	EXEC GetCustomerCheckDetailsByReceiptId 90,0,2
+*****************************************************************************/  
+CREATE   PROCEDURE [dbo].[GetCustomerCheckDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,
 @Opr int = NULL
@@ -31,6 +48,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,[Ismiscellaneous]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceCheckPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -56,6 +74,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,[Ismiscellaneous]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceCheckPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetRecevingCustomerList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Receving Customer List    
@@ -20,11 +19,11 @@
 	2    04/28/2021   Hemant Saliya Added Content Managment for DB Logs
 	3    01/01/2021   Hemant Saliya Added Delete And IsActive Condition
 	4    03/19/2024   Hemant Saliya Updated Cust Refrence as RO Number
-     
+    5    20-03-2024   Shrey Chandegara  Add Reference 
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetReceivingCustomerList]
+CREATE  PROCEDURE [dbo].[GetReceivingCustomerList]
 	-- Add the parameters for the stored procedure here	
 	@PageSize int,
 	@PageNumber int,
@@ -113,8 +112,8 @@ BEGIN
 						 ELSE WO.OpenDate
 					END AS WOOpenDate,
 					WO.WorkOrderNum AS WONumber,
-					--RO.RepairOrderNumber AS RONumber,
-					RC.Reference AS RONumber,
+					RO.RepairOrderNumber AS RONumber,
+					RC.Reference AS Reference,
 					ROP.RepairOrderPartRecordId,
 					RC.EmployeeName AS ReceivedBy,
 					RC.ManagementStructureId AS Ids,

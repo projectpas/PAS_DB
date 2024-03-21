@@ -16,6 +16,7 @@
 	2	 01/31/2024		Devendra Shekh				added isperforma Flage for WO
 	3	 01/02/2024	    AMIT GHEDIYA	            added isperforma Flage for SO
 	4    03/07/2024     Bhargav Saliya				Fixed duplicate Record Issue
+	6    19 March 2024 Bhargav Saliya				Resolved Count Issue in MRO Dashboard 
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -44,20 +45,25 @@ BEGIN
 		DECLARE @SalesOrderModuleID AS INT =17
 		DECLARE @SalesOrderQouteModuleID AS INT =18
 		DECLARE @SpeedQouteModuleID AS INT =27
-		DECLARE @EmployeeRoleID AS BIGINT;
+		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
 			
 		SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 		WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
-		SELECT TOP 1 @EmployeeRoleID  = RoleId FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
-
-		SELECT  @Qty = SUM(Quantity) FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
+		SET @EmployeeRoleID = STUFF((SELECT DISTINCT ',' + CAST(RoleId AS VARCHAR(100))
+							FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
+							FOR XML PATH('')), 1, 1, '')
+							
+		SELECT DISTINCT RC.ReceivingCustomerWorkId 
+		INTO #tmpReceivingCustomerWork
+		FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
 	    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
 	    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId = @EmployeeRoleID
+		WHERE CONVERT(DATE, ReceivedDate) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 		AND RC.MasterCompanyId = @MasterCompanyId
-		GROUP BY ReceivedDate
+
+		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork
 
 		SELECT @WOBillingAmt = SUM(WOBI.GrandTotal) FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
 		LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0

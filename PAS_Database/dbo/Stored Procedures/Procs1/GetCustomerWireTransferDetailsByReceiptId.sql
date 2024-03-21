@@ -1,5 +1,23 @@
-﻿-- EXEC GetCustomerWireTransferDetailsByReceiptId 90,0,2
-CREATE PROCEDURE [dbo].[GetCustomerWireTransferDetailsByReceiptId]
+﻿/*****************************************************************************     
+** Author:  <Unknown>    
+** Create date: <>    
+** Description: <Get Customer WireTransferDetails ByReceiptId>    
+    
+EXEC [GetCustomerWireTransferDetailsByReceiptId]   
+**********************   
+** Change History   
+**********************     
+
+	  (mm/dd/yyyy)
+** PR   Date			Author				Change Description    
+** --   --------		-------				--------------------------------  
+** 1					Unknown				created
+** 2   03/20/2024		Devendra Shekh		added CustomerPaymentDetailsId
+
+-- EXEC GetCustomerWireTransferDetailsByReceiptId 90,0,2
+*****************************************************************************/  
+
+CREATE   PROCEDURE [dbo].[GetCustomerWireTransferDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,
 @Opr int = NULL
@@ -30,6 +48,7 @@ BEGIN
 			  ,[IsActive]
 			  ,[IsDeleted]
 			  ,[PageIndex]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceWireTransferPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -54,6 +73,7 @@ BEGIN
 			  ,[IsActive]
 			  ,[IsDeleted]
 			  ,[PageIndex]
+			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
 	      FROM [dbo].[InvoiceWireTransferPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

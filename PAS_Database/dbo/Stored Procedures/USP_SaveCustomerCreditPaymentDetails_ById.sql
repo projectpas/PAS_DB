@@ -16,7 +16,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    3    15/03/2024      Devendra Shekh      added CodePrefix for SuspenseAndUnapplied
    4    20/03/2024      Devendra Shekh      added added new childTable and modified insert 
 
-	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 132,1,'ADMIN User'
+	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 175,1,'ADMIN User'
 *****************************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_SaveCustomerCreditPaymentDetails_ById]
@@ -190,7 +190,7 @@ BEGIN
 					FROM #CustomerPayment 
 					WHERE Id = @PayMentStartCount AND ISNULL(RemainingAmount, 0) > 0;
 
-					SET @CustomerCreditPaymentDetailId = SCOPE_IDENTITY(); 
+					SET @CustomerCreditPaymentDetailId = CASE WHEN @@ROWCOUNT > 0 THEN SCOPE_IDENTITY() ELSE 0 END;
 
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 

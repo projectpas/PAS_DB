@@ -26,10 +26,11 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
 	
-		DECLARE @CreditCardPaymentMethodId INT, @IsEnforceApproval INT, @ApproveStatus INT = 2;
+		DECLARE @CreditCardPaymentMethodId INT, @IsEnforceApproval INT, @ApproveStatus INT = 2, @MasterComapnyId BIGINT;
 
+		SELECT @MasterComapnyId = LE.MasterCompanyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) WHERE LE.LegalEntityId = @LegalEntityId;
 		SELECT @CreditCardPaymentMethodId = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE [Description] ='Credit Card';
-		SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM [dbo].[vendorPaymentSettingMaster] WITH(NOLOCK);
+		SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM [dbo].[vendorPaymentSettingMaster] WITH(NOLOCK) WHERE MasterCompanyId = @MasterComapnyId;
 
 		SELECT VRTPD.[ReadyToPayDetailsId]  
 				  ,VRTPD.[ReadyToPayId]  

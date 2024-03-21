@@ -2819,7 +2819,6 @@
     <Build Include="dbo\Stored Procedures\USP_GetCustomerTax_Information_ProductSale_SO_New.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLeafNodeList_Backup.sql" />
     <Build Include="dbo\Stored Procedures\USP_SendOneFourtyFiveQuote.sql" />
-    <Build Include="dbo\Stored Procedures\MigrateWorkOrderQuoteRecords.sql" />
     <Build Include="dbo\Tables\CustomerCreditPaymentDetail.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdaetCustomerCreditPayment_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveCustomerCreditPaymentDetails_ById.sql" />

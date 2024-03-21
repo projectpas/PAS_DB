@@ -65,7 +65,7 @@
     [ChargeFlatRate]           DECIMAL (18, 2) NULL,
     [IsFreightFlatRateInsert]  BIT             NULL,
     [IsChargeFlatRateInsert]   BIT             NULL,
-    [PercentId]                DECIMAL (18, 2) NULL,
+    [PercentId]                BIGINT          NULL,
     [Days]                     INT             NULL,
     [NetDays]                  INT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrder_1] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderId] ASC),
@@ -80,6 +80,8 @@
     CONSTRAINT [FK_ExchangeSalesOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeSalesOrder_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

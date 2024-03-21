@@ -19,7 +19,7 @@
 	7	28/02/2024	    Devendra Shekh	changes for amount calculation based on isproforma for wo and so
 	8   07/03/2024	    Devendra Shekh	Amount Calculation issue resolved
 	9   07/03/2024	    Hemant Saliya	Verify SP and Joins
-
+	10  19/03/2024      Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 -- EXEC GeSOWOtInvoiceDate '74'  
 ************************************************************************/
 -- EXEC [dbo].[GetCustomerAccountDatabyCustId] 13
@@ -89,7 +89,7 @@ BEGIN
 				   LEFT JOIN NEWDepositAmt DSA ON  DSA.Id = wobi.WorkOrderId
 				   OUTER APPLY (SELECT DATEDIFF(DAY, CAST(CAST(wobi.PostedDate AS datetime) + (CASE 
 										WHEN ctm.Code IN ('COD', 'CIA', 'CreditCard', 'PREPAID') THEN -1 
-										ELSE ISNULL(ctm.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
+										ELSE ISNULL(WO.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
 				   OUTER APPLY (SELECT CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) 
 										ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END AS InvoiceRemainingAmount) AS RemainAmountData
 				WHERE  wobi.InvoiceStatus = 'Invoiced' 		     
@@ -140,7 +140,7 @@ BEGIN
 				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = sobi.SalesOrderId
 				   OUTER APPLY (SELECT DATEDIFF(DAY, CAST(CAST(sobi.PostedDate AS datetime) + (CASE 
 										WHEN ctm.Code IN ('COD', 'CIA', 'CreditCard', 'PREPAID') THEN -1 
-										ELSE ISNULL(ctm.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
+										ELSE ISNULL(SO.NetDays, 0) END) AS date), GETUTCDATE()) AS CreditRemainingDays) AS DaysData
 				   OUTER APPLY (SELECT CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) 
 										ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END AS InvoiceRemainingAmount) AS RemainAmountData
 			  WHERE   sobi.InvoiceStatus = 'Invoiced' AND ISNULL(sobi.IsBilling, 0) = 0	     

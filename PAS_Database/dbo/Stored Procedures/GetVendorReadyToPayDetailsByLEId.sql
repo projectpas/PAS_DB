@@ -18,7 +18,7 @@
      
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
+CREATE    PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
 @LegalEntityId bigint
 AS  
 BEGIN  
@@ -26,118 +26,141 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
 	
-	SELECT ReceivingReconciliationId,
-		       RRH.InvoiceNum,
-			   'Selected to be Paid' AS [Status],
-			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
-			   ISNULL(RRTotal,0) AS RRTotal,
-			   ISNULL(PaymentMade,0) AS InvoiceTotal,
-			   RRH.RemainingAmount AS 'DifferenceAmount',  
-			   VN.VendorName,
-			   ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
-			   RRH.DueDate AS 'EntryDate',
-			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
-			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   '' AS 'DateProcessed',
-			   '' AS 'CheckCrashed',
-			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
-			   '' AS BankName,
-			   '' AS BankAccountNumber,
-			   Tab.ReadyToPayId,
-			   Tab.ReadyToPayDetailsId,
-			   RRH.VendorId,
-			   RRH.CreatedDate
-		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
-			   LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDHM WITH(NOLOCK) ON RRH.ReadyToPayId = VRTPDHM.ReadyToPayId
-               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  
-	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
-							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
-							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE VRTPDHM.LegalEntityId = @LegalEntityId 
+		DECLARE @CreditCardPaymentMethodId INT, @IsEnforceApproval INT, @ApproveStatus INT = 2, @MasterComapnyId BIGINT;
 
-		 UNION ALL
+		SELECT @MasterComapnyId = LE.MasterCompanyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) WHERE LE.LegalEntityId = @LegalEntityId;
+		SELECT @CreditCardPaymentMethodId = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE [Description] ='Credit Card';
+		SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM [dbo].[vendorPaymentSettingMaster] WITH(NOLOCK) WHERE MasterCompanyId = @MasterComapnyId;
 
-		 SELECT 0 AS ReceivingReconciliationId,
-				CMD.CreditMemoNumber AS [InvoiceNum],
-				--CMD.[Status],
-				'Selected to be Paid' AS [Status],
-				ABS(ISNULL(Amount,0)) AS OriginalTotal,
-				0 AS RRTotal,
-				0 AS InvoiceTotal,
-				0 AS 'DifferenceAmount',  
-				C.Name as [VendorName],
-				0 AS 'PaymentHold',
-				CMD.InvoiceDate AS 'InvociedDate',
-				CMD.InvoiceDate AS 'EntryDate',
-				'' AS 'PaymentMethod',
-				'' AS 'PaymentRef',
-				'' AS 'DateProcessed',
-				'' AS 'CheckCrashed',
-				ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-				ISNULL(Tab.ReadyToPaymentMade,0) AS 'ReadyToPaymentMade',
-				'' AS BankName,
-				'' AS BankAccountNumber,
-				Tab.ReadyToPayId,
-				Tab.ReadyToPayDetailsId,
-				CRF.CustomerId AS [VendorId],
-				CMD.CreatedDate
-			FROM [dbo].[CreditMemo] CMD WITH(NOLOCK)  
-				JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CMD.ManagementStructureId
-				JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
-				JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
-				INNER JOIN [dbo].[CustomerRefund] CRF WITH(NOLOCK) ON CMD.CustomerRefundId = CRF.CustomerRefundId  
-				INNER JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH(NOLOCK) ON CMD.CreditMemoHeaderId = RFCM.CreditMemoHeaderId  
-				INNER JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH(NOLOCK) ON CMBD.ReferenceId = CRF.CustomerRefundId AND CMBD.ModuleId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerRefund')
-				INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON CMD.CustomerId = C.CustomerId  
-				OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,max(PM.Description) as PaymentMethod,Max(VRTPDH.PrintCheck_Wire_Num) as PaymentRef,VRTPDH.ReadyToPayId
-							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							WHERE ISNULL(VD.CreditMemoHeaderId,0) = CMD.CreditMemoHeaderId AND VD.CheckNumber IS NULL
-			    GROUP BY VD.VendorPaymentDetailsId, VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE LE.LegalEntityId = @LegalEntityId
-		  GROUP BY CMD.CreditMemoNumber, CMD.[Status], Amount, C.Name, CMD.InvoiceDate, Tab.DiscountToken, Tab.ReadyToPaymentMade, CRF.CustomerId, CMD.CreatedDate, Tab.ReadyToPayDetailsId, Tab.ReadyToPayId
+		SELECT VRTPD.[ReadyToPayDetailsId]  
+				  ,VRTPD.[ReadyToPayId]  
+				  ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
+				  ,VRTPD.[VendorId]  
+				  ,VRTPD.[VendorName]  
+				  ,VRTPD.[PaymentMethodId]           
+				  ,VPM.[Description] AS [PaymentMethodName]
+				  ,VRTPD.[ReceivingReconciliationId]  
+				  ,VRTPD.[InvoiceNum]  
+				  ,VRTPD.[CurrencyId]  
+				  ,VRTPD.[CurrencyName]  
+				  ,VRTPD.[FXRate]  
+				  ,VRTPD.[OriginalAmount]  
+				  ,VRTPD.[PaymentMade]  
+				  ,VRTPD.[AmountDue]  
+				  ,VRTPD.[DaysPastDue]  
+				  ,VRTPD.[DiscountDate]  
+				  ,VRTPD.[DiscountAvailable]  
+				  ,VRTPD.[DiscountToken]
+				  ,VRTPD.[VendorPaymentDetailsId]
+				  ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId = vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted=0)
+				  ,IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
+				  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',
+				  0 AS [CreditMemoHeaderId],
+				  VRTPD.[CheckNumber],
+				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
+				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  @IsEnforceApproval AS 'IsEnforce',
+				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
+			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
+			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId
 
-	UNION ALL
+			  UNION
 
-		SELECT ReceivingReconciliationId,
-		       RRH.InvoiceNum,
-			   'Selected to be Paid' AS [Status],
-			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
-			   ISNULL(RRTotal,0) AS RRTotal,
-			   ISNULL(PaymentMade,0) AS InvoiceTotal,
-			   RRH.RemainingAmount AS 'DifferenceAmount',  
-			   VN.VendorName,
-			   ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
-			   RRH.DueDate AS 'EntryDate',
-			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
-			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   '' AS 'DateProcessed',
-			   '' AS 'CheckCrashed',
-			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
-			   '' AS BankName,
-			   '' AS BankAccountNumber,
-			   Tab.ReadyToPayId,
-			   Tab.ReadyToPayDetailsId,
-			   RRH.VendorId,
-			   RRH.CreatedDate
-		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
-			   LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDHF WITH(NOLOCK) ON RRH.ReadyToPayId = VRTPDHF.ReadyToPayId
-               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
-	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
-							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
-							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE VRTPDHF.LegalEntityId = @LegalEntityId
+			 SELECT VRTPD.[ReadyToPayDetailsId]  
+				  ,VRTPD.[ReadyToPayId]  
+				  ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
+				  ,VRTPD.[VendorId]  
+				  ,VRTPD.[VendorName]  
+				  ,VRTPD.[PaymentMethodId]  
+				  ,VPM.[Description] AS [PaymentMethodName]
+				  ,VRTPD.[ReceivingReconciliationId]  
+				  ,VRTPD.[InvoiceNum]  
+				  ,VRTPD.[CurrencyId]  
+				  ,VRTPD.[CurrencyName]  
+				  ,VRTPD.[FXRate]  
+				  ,VRTPD.[OriginalAmount]  
+				  ,VRTPD.[PaymentMade]  
+				  ,VRTPD.[AmountDue]  
+				  ,VRTPD.[DaysPastDue]  
+				  ,VRTPD.[DiscountDate]  
+				  ,VRTPD.[DiscountAvailable]  
+				  ,VRTPD.[DiscountToken]
+				  ,VRTPD.[VendorPaymentDetailsId]
+				  ,IsCheckPayment =   1
+				  ,IsDomesticWirePayment = 0
+				  ,IsInternationlWirePayment = 0
+				  ,IsACHTransferPayment = 0
+				  ,IsCreditCardPayment = 0
+				  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo'
+				  ,ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount'
+				  ,ISNULL(VRTPD.CreditMemoHeaderId, 0) AS [CreditMemoHeaderId]
+				  ,VRTPD.[CheckNumber]
+				  ,ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId
+				  ,ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  @IsEnforceApproval AS 'IsEnforce',
+				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+				INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
+				INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
+			WHERE VRTPDH.LegalEntityId = @LegalEntityId
+   
+		   UNION
+
+				 SELECT VRTPD.[ReadyToPayDetailsId]  
+				  ,VRTPD.[ReadyToPayId]  
+				  ,ISNULL(VRTPD.[DueDate],'') AS 'DueDate'
+				  ,VRTPD.[VendorId]  
+				  ,VRTPD.[VendorName]  
+				  ,VRTPD.[PaymentMethodId]           
+				  ,VPM.[Description] AS [PaymentMethodName]
+				  ,VRTPD.[ReceivingReconciliationId]  
+				  ,VRTPD.[InvoiceNum]  
+				  ,VRTPD.[CurrencyId]  
+				  ,VRTPD.[CurrencyName]  
+				  ,VRTPD.[FXRate]  
+				  ,VRTPD.[OriginalAmount]  
+				  ,VRTPD.[PaymentMade]  
+				  ,VRTPD.[AmountDue]  
+				  ,VRTPD.[DaysPastDue]  
+				  ,VRTPD.[DiscountDate]  
+				  ,VRTPD.[DiscountAvailable]  
+				  ,VRTPD.[DiscountToken]
+				  ,VRTPD.[VendorPaymentDetailsId]
+				  ,IsCheckPayment = (SELECT CASE WHEN COUNT(ch.CheckPaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId = vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted=0)
+				  ,IsDomesticWirePayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsInternationlWirePayment = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsACHTransferPayment = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,IsCreditCardPayment = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0)
+				  ,ISNULL(VRTPD.IsCreditMemo,0) AS 'IsCreditMemo',
+				  ISNULL(VRTPD.CreditMemoAmount,0) AS 'CreditMemoAmount',
+				  0 AS [CreditMemoHeaderId],
+				  VRTPD.[CheckNumber],
+				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
+				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  @IsEnforceApproval AS 'IsEnforce',
+				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK) 
+			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
+			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
+			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId;
+  
   
     END TRY  
  BEGIN CATCH        
@@ -145,7 +168,7 @@ BEGIN
    PRINT 'ROLLBACK'  
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            , @AdhocComments     VARCHAR(150)    = 'GetVendorReadyToPayDetailsById'   
+            , @AdhocComments     VARCHAR(150)    = 'GetVendorReadyToPayDetailsByLEId'   
             , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@LegalEntityId, '') + ''  
             , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  

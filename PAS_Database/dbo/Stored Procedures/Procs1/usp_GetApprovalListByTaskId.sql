@@ -13,7 +13,8 @@
  ** --   --------     -------		--------------------------------          
     1    06/08/2023  Amit Ghediya    Select CommonFlatRate 
 	2    11/09/2023  Amit Ghediya    Update for Stand Alone CreditMemo approve. 
-	2    11/09/2023  Amit Ghediya    Update for nonPoInvoice
+	3    11/09/2023					 Update for nonPoInvoice
+	4    19/03/2023  Amit Ghediya    Update for Check Register
      
 --exec [dbo].[usp_GetApprovalListByTaskId] 9, 3
 ************************************************************************/
@@ -250,6 +251,22 @@ BEGIN TRY
 		  FROM dbo.NonPOInvoiceHeader po  WITH(NOLOCK)
 		   WHERE po.NonPOInvoiceId = @ID
 
+	END
+
+	ELSE IF @TaskType = 'Vendor Payment Approval'
+	BEGIN
+		 SET @TotalCostText = 'Total Check Register Amount'
+		 SELECT @TotalCost = SUM(ISNULL(VRTPD.PaymentMade, 0))	 
+			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			   WHERE VRTPDH.LegalEntityId = @ID
+
+		 SELECT TOP 1 @MSID = VRTPDH.ManagementStructureId,
+			   @EID = VRTPD.VendorId,	   
+				@MasterCompanyID = VRTPD.MasterCompanyId
+			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
+		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			  WHERE VRTPDH.LegalEntityId = @ID
 	END
 
 	SET @TotalCost  = ISNULL(@TotalCost,0)

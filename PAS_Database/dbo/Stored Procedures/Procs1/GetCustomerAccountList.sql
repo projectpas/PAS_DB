@@ -21,6 +21,7 @@
 	8	 28/02/2024	    Devendra Shekh	   changes for amount calculation based on isproforma for wo and so
 	9    07/03/2024	    Devendra Shekh	   Amount Calculation issue resolved
 	10   07/03/2024	    Hemant Saliya	   Verify SP and Joins
+	11   19/03/2024     Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 	
     EXEC [dbo].[GetCustomerAccountList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
 ***************************************************************************************************/ 
@@ -107,11 +108,11 @@ BEGIN
 			CASE WHEN ISNULL(sobi.IsProforma, 0) = 0 THEN (sobi.RemainingAmount) ELSE 
 				 CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(sobi.GrandTotal,0) - (ISNULL(sobi.RemainingAmount,0)))) END END AS RemainingAmount,
 			DATEDIFF(DAY, CAST(sobi.PostedDate as date), GETUTCDATE()) AS dayDiff,
-			ctm.NetDays,
+			so.NetDays,
 			DATEDIFF(DAY, CAST(CAST(sobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(so.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
 			ISNULL(sobi.IsProforma, 0) AS IsPerformaInvoice
 			FROM [dbo].[SalesOrderBillingInvoicing] sobi WITH(NOLOCK)
 				INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sobi.SalesOrderId
@@ -122,7 +123,7 @@ BEGIN
 				AND ISNULL(sobi.IsBilling, 0) = 0
 				AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0))) 
 				OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
-			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code,sobi.IsProforma,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
+			GROUP BY sobi.InvoiceDate,ct.CustomerId,sobi.GrandTotal,sobi.RemainingAmount,so.NetDays,PostedDate,ctm.Code,sobi.IsProforma,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
 			
 			UNION ALL
 			
@@ -131,11 +132,11 @@ BEGIN
 			CASE WHEN ISNULL(wobi.IsPerformaInvoice, 0) = 0 THEN (wobi.RemainingAmount) ELSE 
 						CASE WHEN DSA.OriginalDepositAmt - DSA.UsedDepositAmt = 0 THEN 0 ELSE (0 - (ISNULL(wobi.GrandTotal,0) - (ISNULL(wobi.RemainingAmount,0)))) END END AS RemainingAmount,
 			DATEDIFF(DAY, CAST(wobi.PostedDate as date), GETUTCDATE()) AS dayDiff,
-			ctm.NetDays,
+			wo.NetDays,
 			DATEDIFF(DAY, CAST(CAST(wobi.PostedDate as datetime) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(wo.NetDays,0) END) as date), GETUTCDATE()) AS CreditRemainingDays,
 			ISNULL(wobi.IsPerformaInvoice, 0) AS IsPerformaInvoice
 			FROM [dbo].[WorkOrderBillingInvoicing] wobi WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wobi.WorkOrderId
@@ -146,7 +147,7 @@ BEGIN
 				AND ISNULL(wobi.IsInvoicePosted, 0) = 0
 				AND ((ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0)) = (ISNULL(wobi.GrandTotal,0) - ISNULL(wobi.RemainingAmount,0))) 
 				OR (ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND (ISNULL(wobi.GrandTotal, 0) - ISNULL(wobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
-			GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,ctm.NetDays,PostedDate,ctm.Code,wobi.IsPerformaInvoice,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
+			GROUP BY wobi.InvoiceDate,ct.CustomerId,wobi.GrandTotal,wobi.RemainingAmount,wo.NetDays,PostedDate,ctm.Code,wobi.IsPerformaInvoice,DSA.OriginalDepositAmt,DSA.UsedDepositAmt
 			
 			), CTECalculation AS(
 			select

@@ -2848,6 +2848,7 @@
     <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_HMarginUnitUnitByIMId.sql" />
     <Build Include="dbo\Tables\VendorReadyToPayApproval.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorPaymentTotalCost.sql" />
+    <Build Include="dbo\Stored Procedures\UpdatevendorReadyToPayHeader.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

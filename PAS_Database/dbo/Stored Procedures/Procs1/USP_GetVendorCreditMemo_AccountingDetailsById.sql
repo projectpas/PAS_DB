@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_GetVendorCreditMemo_AccountingDetailsById]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used to GetJournalBatchDetailsById for vendor credit memo
@@ -16,10 +15,11 @@
  ** --   --------		 -------			--------------------------------            
     1    09/11/2023		Devendra Shekh			Created  
     3    20/10/2023     Bhargav Saliya         Export Data Convert Into Upper Case   
--- exec USP_GetVendorCreditMemo_AccountingDetailsById 66
+	4    20-03-2024     Shrey Chandegara       Add @VendorCMIds
+-- exec USP_GetVendorCreditMemo_AccountingDetailsById 90
 ************************************************************************/   
  CREATE      PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
-@ReferenceId bigint    
+@ReferenceId bigint
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -29,6 +29,14 @@ BEGIN
 
 	DECLARE @AccountMSModuleId INT = 0
 	SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+	DECLARE @VendorCMIds VARCHAR(50) = '';
+
+	SELECt @VendorCMIds = STUFF(
+		 (SELECT ',' + CAST(VendorCreditMemoId AS VARCHAR) FROM [dbo].[VendorCreditMemo] VCM
+		  WHERE VCM.VendorRMAId = VRM.VendorRMAId FOR XML PATH ('')), 1, 1, '') 
+		  FROM [dbo].[VendorRMA] VRM
+		  WHERE VRM.VendorRMAId = @ReferenceId
+		  GROUP BY vrm.VendorRMAId
 
      SELECT JBD.CommonJournalBatchDetailId  
 		  ,VPBD.VendorRMAPaymentBatchDetilsId
@@ -103,7 +111,7 @@ BEGIN
 		LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON MSL1.LegalEntityId = LET.LegalEntityId  
 		LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = VDR.CurrencyId  
-     WHERE VPBD.ReferenceID = @ReferenceId     
+     WHERE VPBD.ReferenceID IN (SELECT value FROM STRING_SPLIT(@VendorCMIds, ',')) OR VPBD.ReferenceID = @ReferenceId
   END    
   END TRY    
  BEGIN CATCH          

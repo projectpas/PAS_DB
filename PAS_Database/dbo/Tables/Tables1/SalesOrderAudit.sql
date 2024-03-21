@@ -69,12 +69,14 @@
     [LotId]                      BIGINT          NULL,
     [IsLotAssigned]              BIT             NULL,
     [AllowInvoiceBeforeShipping] BIT             NULL,
-    [PercentId]                  DECIMAL (18, 2) NULL,
+    [PercentId]                  BIGINT          NULL,
     [Days]                       INT             NULL,
     [NetDays]                    INT             NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrderAudit_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 

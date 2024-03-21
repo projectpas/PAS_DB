@@ -1,4 +1,4 @@
-﻿
+﻿-- EXEC [dbo].[GetMenuPermission] '27,1'
 CREATE Procedure [dbo].[GetMenuPermission] 
 	@RoleId varchar(max),
 	@IsPermissionData bit = 0
@@ -29,6 +29,7 @@ Begin
 			 ModuleId int null,
 			 DisplayOrder int null,
 			 IsReport bit null,
+			 ShowAsTopMenu bit null
 			)
 
 
@@ -52,7 +53,7 @@ Begin
 
 				--SELECT distinct MenuName+'.'+PermissionName as Name,M.IsPage,M.DisplayOrder,M.ModuleCode,M.Id,M.ModuleIcon,M.RouterLink,M.ParentId,M.IsMenu FROM MenuSettings1
 				--Inner Join dbo.ModuleHierarchyMaster M on MenuSettings1.ParentID=M.Id and M.ParentId is null
-				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport
+				SELECT distinct M.PermissionConstant + '.' + P.PermissionName as Name, M.IsPage, M.DisplayOrder, M.ModuleCode, M.Id, M.ModuleIcon, M.RouterLink, M.ParentId, M.IsMenu,DisplayOrder,M.IsReport,M.ShowAsTopMenu
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					Inner Join dbo.PermissionMaster P WITH (NOLOCK) on R.PermissionID = P.PermissionID
@@ -61,15 +62,16 @@ Begin
 			End
 			Else
 			Begin
-				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport)
+				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu)
 				AS
 				(
-					SELECT M.ID,M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, R.PermissionID, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport
+					SELECT M.ID,M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, R.PermissionID, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,
+					M.ShowAsTopMenu
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					WHERE R.UserRoleId in (Select * from [dbo].[SplitString](@RoleId, ','))
 					UNION ALL 
-					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport
+					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK) 
 					INNER JOIN MenuSettings1 M1 ON M1.ParentID = M.ID
 				)
@@ -82,7 +84,7 @@ Begin
 				SELECT id FROM #TempTable T WHERE CreateMenu = 1  
 						 AND (SELECT count(id) FROM #TempTable where ISNULL(ModuleId, 0) = T.ModuleId AND  PermissionID = 1) > 0)
 
-				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport
+				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu
 				FROM  #TempTable Order By DisplayOrder
 			End
 

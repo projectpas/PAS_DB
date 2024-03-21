@@ -2836,6 +2836,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorReadyToPayDetailsByLEId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSalesOrderBillingInvoicingItemDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingCustomerList.sql" />
+    <Build Include="dbo\Tables\CustomerCreditPaymentDetailChild.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_RepairedUnit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_QuotedUnit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_LMarginUnitUnit.sql" />

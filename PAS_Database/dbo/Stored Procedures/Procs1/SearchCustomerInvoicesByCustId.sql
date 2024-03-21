@@ -29,6 +29,7 @@
 	17   08/03/2024   Moin Bloch       Modify(makes DSO 0 when it goes negaitive)
 	18   13/03/2024   Moin Bloch       Modify(makes Exchange Invoice to Invoice)
 	19   15/03/2024   Moin Bloch       Modify(Changed DSO Logic)
+	20   19/03/2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
@@ -56,7 +57,7 @@ BEGIN
     
 		SELECT SOBI.SalesOrderId AS 'Id',      
 	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
-		      CASE WHEN SOBI.IsProforma = 1 THEN 'Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
+		      CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
 			  SOBI.InvoiceNo AS 'DocNum',       
 			  SOBI.InvoiceDate,       
 			  SOBI.GrandTotal AS 'OriginalAmount',       
@@ -70,15 +71,15 @@ BEGIN
 			  'Open' AS 'Status',      
 			  CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) END AS 'DSI',        
 			  --CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE CASE WHEN (ISNULL(CT.NetDays,0) - DATEDIFF(DAY, CAST(SOBI.InvoiceDate AS DATE), GETUTCDATE())) > 0 THEN (CT.NetDays - DATEDIFF(DAY, CAST(SOBI.InvoiceDate AS DATE), GETUTCDATE())) ELSE 0 END END AS 'DSO', 			  
-			  CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
-			        THEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0))
+			  CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(S.NetDays,0)) > 0 
+			        THEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(S.NetDays,0))
 					ELSE 0
 			 		END END AS 'DSO', 	
-			  CASE WHEN SOBI.IsProforma = 1 THEN NULL ELSE CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END END AS DiscountDate,      			 			 
-			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(SOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN SOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',        
-			  CASE WHEN DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
+			  CASE WHEN SOBI.IsProforma = 1 THEN NULL ELSE CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(S.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(S.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END END AS DiscountDate,      			 			 
+			  CASE WHEN (S.NetDays - DATEDIFF(DAY, CASt(SOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN SOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',        
+			  CASE WHEN DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(S.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(S.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			  CASE WHEN ISNULL(SOBI.IsProforma,0 ) = 0 THEN
-					CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
+					CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate AS DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
 					ELSE 0 END AS DiscountAvailable,      
 			  C.CustomerId,      
 			  C.[Name] AS 'CustName',      
@@ -100,9 +101,9 @@ BEGIN
 			  JOIN [dbo].[SalesOrder] S WITH (NOLOCK) ON SOBI.SalesOrderId = S.SalesOrderId      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId      
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId      
-			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0        
+			  --LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON S.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0        
 			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId      
-			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId AS INT) = p.PercentId 
+			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(S.PercentId AS INT) = p.PercentId 
 	          INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId-- AND MSD.Level1Id = @legalEntityId 
 			  INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = S.MasterCompanyId
@@ -114,15 +115,15 @@ BEGIN
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
 			  AND SOBI.CustomerId = @customerId 
 			  AND SOBI.IsBilling = 0 AND SOBI.RemainingAmount > 0 
-		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, CT.Days, SOBI.PostedDate, S.SalesOrderNumber,      
+		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma--,SOBI.CreditMemoUsed      
+			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma--,SOBI.CreditMemoUsed      
       
 		UNION ALL    
       
 		SELECT WOBI.WorkOrderId AS 'Id',      
 			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   
-			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Invoice' ELSE 'Invoice' END AS 'DocumentType',
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
 			 WOBI.InvoiceNo AS 'DocNum',      
 			 WOBI.InvoiceDate,      
 			 WOBI.GrandTotal AS 'OriginalAmount',      
@@ -136,15 +137,15 @@ BEGIN
 			 'Open' AS 'Status',      
 			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) END AS  'DSI',                    
 			 --CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE CASE WHEN (CT.NetDays - DATEDIFF(DAY, CAST(WOBI.InvoiceDate AS DATE), GETUTCDATE())) > 0 THEN (CT.NetDays - DATEDIFF(DAY, CAST(WOBI.InvoiceDate AS DATE), GETUTCDATE())) ELSE 0 END END AS 'DSO',      
-			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
-			      THEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0))
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(WO.NetDays,0)) > 0 
+			      THEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(WO.NetDays,0))
 				  ELSE 0
 			  END END AS 'DSO', 	
-			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN NULL ELSE CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END END AS DiscountDate,      			 
-			 CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(WOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN WOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',           
-			 CASE WHEN DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN NULL ELSE CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END END AS DiscountDate,      			 
+			 CASE WHEN (WO.NetDays - DATEDIFF(DAY, CASt(WOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN WOBI.RemainingAmount ELSE 0.00 END AS 'AmountPastDue',           
+			 CASE WHEN DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(WO.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(WO.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
 			 CASE WHEN ISNULL(WOBI.isPerformaInvoice,0 ) = 0 THEN
-				  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
+				  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate AS DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END
 				  ELSE 0 END AS DiscountAvailable,         
 			 C.CustomerId,      
 			 C.Name AS 'CustName',      
@@ -168,9 +169,9 @@ BEGIN
 			 LEFT JOIN  [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId        
 			 LEFT JOIN  [dbo].[Customer] C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId      
 			 LEFT JOIN  [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId      
-			 LEFT JOIN  [dbo].[CreditTerms] CT WITH (NOLOCK) ON WO.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0      
+			 --LEFT JOIN  [dbo].[CreditTerms] CT WITH (NOLOCK) ON WO.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0      
 			 LEFT JOIN  [dbo].[Currency] Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId      
-			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.PercentId AS INT) = p.PercentId      
+			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = p.PercentId      
 			 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId  --AND MSD.Level1Id = @legalEntityId  
 			 INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			 INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = WO.MasterCompanyId
@@ -181,9 +182,9 @@ BEGIN
 			 ) H      
 		WHERE WOBI.InvoiceStatus = 'Invoiced' AND WOBI.CustomerId = @customerId AND WOBI.RemainingAmount > 0 
 		AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
-		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, CT.Days, WOBI.PostedDate, WO.WorkOrderNum,      
+		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,
-			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice--,WOBI.CreditMemoUsed      
+			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,WO.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice--,WOBI.CreditMemoUsed      
       
 		UNION ALL    
     
@@ -312,14 +313,14 @@ BEGIN
 			  'Open' AS 'Status',      
 			  DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',        
 			 -- CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) > 0 THEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) ELSE 0 END AS 'DSO', 
-			  CASE WHEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0)) > 0 
-			      THEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(CT.NetDays,0))
+			  CASE WHEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(ES.NetDays,0)) > 0 
+			      THEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(ES.NetDays,0))
 				  ELSE 0
 			  END AS 'DSO',
-			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN CASE WHEN ISNULL(CT.[Days],0) > 0 THEN DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE NULL END ELSE DATEADD(DAY, ISNULL(CT.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,   
-			  CASE WHEN (CT.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN ISNULL(ESOBI.RemainingAmount,0) ELSE 0.00 END AS 'AmountPastDue',        
-			  CASE WHEN DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(CT.Days,0)), GETUTCDATE()), 0) <= 0 THEN CASE WHEN ISNULL(CT.NetDays,0) > 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END ELSE 0 END AS DiscountAvailable,
+			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN CASE WHEN ISNULL(ES.[Days],0) > 0 THEN DATEADD(DAY, ISNULL(ES.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE NULL END ELSE DATEADD(DAY, ISNULL(ES.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,   
+			  CASE WHEN (ES.NetDays - DATEDIFF(DAY, CASt(ESOBI.InvoiceDate AS DATE), GETUTCDATE())) < 0 THEN ISNULL(ESOBI.RemainingAmount,0) ELSE 0.00 END AS 'AmountPastDue',        
+			  CASE WHEN DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(ES.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(ES.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,      
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate AS DATETIME) + ISNULL(ES.Days,0)), GETUTCDATE()), 0) <= 0 THEN CASE WHEN ISNULL(ES.NetDays,0) > 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END ELSE 0 END AS DiscountAvailable,
 			  C.CustomerId,      
 			  C.[Name] AS 'CustName',      
 			  C.CustomerCode,       
@@ -340,9 +341,9 @@ BEGIN
 			 INNER JOIN [dbo].[ExchangeSalesOrder] ES WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ES.ExchangeSalesOrderId      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON ESOBI.CustomerId = C.CustomerId      
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON ESOBI.CustomerId = CF.CustomerId      
-			  LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON ES.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0 
+			  --LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON ES.CreditTermId = CT.CreditTermsId AND CT.PercentId > 0 
 			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON ESOBI.CurrencyId = Curr.CurrencyId      
-			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CT.[PercentId] AS INT) = p.PercentId 
+			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ES.[PercentId] AS INT) = p.PercentId 
 	         INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ExSOMSModuleID AND MSD.ReferenceID = ESOBI.ExchangeSalesOrderId
 			 INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			 INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = ES.MasterCompanyId
@@ -354,9 +355,9 @@ BEGIN
 		WHERE ESOBI.InvoiceStatus = 'Invoiced'     
 			  AND ES.IsVendor = 0
 			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
-		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, CT.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
+		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, ES.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
 			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,CT.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId   
+			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId   
     
  END TRY          
  BEGIN CATCH      

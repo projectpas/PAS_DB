@@ -38,9 +38,7 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
 @VendorId BIGINT = NULL,
 @OpenDate DATETIME2 = NULL,
 @Notes VARCHAR(MAX) = NULL,
-@RequestedBy BIGINT = NULL,
-@VendorCreditMemoTypeId INT = NULL,
-@CustomerCreditPaymentDetailId BIGINT = NULL
+@RequestedBy BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -60,9 +58,9 @@ BEGIN
 				BEGIN
 
        				INSERT INTO [dbo].[VendorCreditMemo]([VendorCreditMemoNumber] ,[VendorRMAId] ,[RMANum] ,[VendorCreditMemoStatusId] ,[CurrencyId] ,[OriginalAmt] ,[ApplierdAmt] , [RefundAmt], [RefundDate], [MasterCompanyId],
-					   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] , [IsDeleted], [VendorId], [OpenDate], [Notes], [RequestedBy], [VendorCreditMemoTypeId], [CustomerCreditPaymentDetailId])
+					   [CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] , [IsDeleted], [VendorId], [OpenDate], [Notes], [RequestedBy])
 					VALUES(@VendorCreditMemoNumber , @VendorRMAId, @RMANum, @VendorCreditMemoStatusId, @CurrencyId, @OriginalAmt, @ApplierdAmt, @RefundAmt, @RefundDate, @MasterCompanyId,
-					   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId, @OpenDate, @Notes, @RequestedBy, @VendorCreditMemoTypeId, @CustomerCreditPaymentDetailId)
+					   @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @VendorId, @OpenDate, @Notes, @RequestedBy)
 
 					SET  @VendorCreditMemoId = @@IDENTITY;  
 					INSERT INTO #tmpReturnVendorCreditMemoId ([VendorCreditMemoId]) VALUES (@VendorCreditMemoId);  

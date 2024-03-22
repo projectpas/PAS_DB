@@ -72,7 +72,7 @@ BEGIN
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL
 
 			  UNION
 
@@ -115,7 +115,7 @@ BEGIN
 				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 				INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
-			WHERE VRTPDH.LegalEntityId = @LegalEntityId
+			WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL
    
 		   UNION
 
@@ -159,7 +159,7 @@ BEGIN
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId;
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL;
   
   
     END TRY  

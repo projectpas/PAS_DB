@@ -23,7 +23,8 @@
  5    20/07/2023   AYESHA SULTANA CREDIT MEMO DATA CORRESPONDING TO WORK ORDER GROSS MARGIN IF ANY updated - revenue changes  
  6    24/08/2023   BHARGAV SALIYA Convert Dates UTC To LegalEntity Time Zone
  7    04/09/2023   HEMANT SALIYA  Corrected Revenue Balance
- 8    01/31/2024   Devendra Shekh	added isperforma Flage for WO
+ 8    01/31/2024   Devendra Shekh added isperforma Flage for WO
+ 7    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -123,7 +124,7 @@ BEGIN
 				 LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CsrId = E1.EmployeeId    
 			   WHERE CAST(WOBI.invoicedate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
 				 AND WO.customerid=ISNULL(@customername,WO.customerid)       
-				 AND WO.mastercompanyid = @mastercompanyid      
+				 AND WO.mastercompanyid = @mastercompanyid AND WO.IsDeleted = 0      
 				 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
 				 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 				 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -156,7 +157,7 @@ BEGIN
 			   WHERE CAST(CM.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
 				 AND CM.customerid=ISNULL(@customername,CM.customerid)      
 				 AND CM.mastercompanyid = @mastercompanyid      
-				 AND ISNULL(CM.IsWorkOrder,0) = 1  
+				 AND ISNULL(CM.IsWorkOrder,0) = 1 AND ISNULL(CM.IsDeleted,0) = 0 
 				 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
 				 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 				 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -241,7 +242,7 @@ BEGIN
 						 LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 					WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
 						 AND WO.customerid=ISNULL(@customername,WO.customerid)      
-						 AND WO.mastercompanyid = @mastercompanyid      
+						 AND WO.mastercompanyid = @mastercompanyid AND ISNULL(WO.IsDeleted,0) = 0       
 						 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
 						 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 						 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -332,7 +333,7 @@ BEGIN
 		   WHERE CAST(CM.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)      
 				 AND CM.customerid=ISNULL(@customername,CM.customerid)      
 				 AND CM.mastercompanyid = @mastercompanyid      
-				 AND ISNULL(CM.IsWorkOrder,0) = 1  
+				 AND ISNULL(CM.IsWorkOrder,0) = 1  AND ISNULL(CM.IsDeleted,0) = 0 
 				 AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))      
 				 AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 				 AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      

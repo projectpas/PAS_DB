@@ -15,8 +15,9 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    2    12/03/2024      Moin Bloch          added missing AmtApplied
    3    15/03/2024      Devendra Shekh      added CodePrefix for SuspenseAndUnapplied
    4    20/03/2024      Devendra Shekh      added added new childTable and modified insert 
+   5    20/03/2024      Devendra Shekh      added [IsMiscellaneous] 
 
-	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 175,1,'ADMIN User'
+	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_SaveCustomerCreditPaymentDetails_ById]
@@ -76,6 +77,7 @@ BEGIN
 					[PaidAmount] [DECIMAL](18,2) NULL,
 					[ReferenceNumber] [VARCHAR](100) NULL,
 					[PaymentRef] [VARCHAR](100) NULL,
+					[IsMiscellaneous] [BIT] NULL,
 				)
 
 				CREATE TABLE #CustomerAmountDetails
@@ -107,18 +109,20 @@ BEGIN
 					[CheckDate] [DATETIME2] NULL,
 				)
 
-				INSERT INTO #CustomerPayment (ReceiptId, CustomerId, VendorId, ReferenceNumber) 
-				SELECT CP.ReceiptId, CustomerId, 0, CP.ReceiptNo
+				INSERT INTO #CustomerPayment (ReceiptId, CustomerId, VendorId, ReferenceNumber, IsMiscellaneous) 
+				SELECT CP.ReceiptId, CustomerId, 0, CP.ReceiptNo, CPD.Ismiscellaneous
 				FROM dbo.CustomerPayments CP WITH(NOLOCK) 
 				INNER JOIN [DBO].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CP.ReceiptId = CPD.ReceiptId
  				WHERE CP.ReceiptId = @ReceiptId
-				GROUP BY CP.ReceiptId, CustomerId, CP.ReceiptNo;
+				GROUP BY CP.ReceiptId, CustomerId, CP.ReceiptNo,CPD.Ismiscellaneous;
 
 				INSERT INTO #CustomerAmountDetails([ReceiptId],[CustomerId],[Name],[CustomerCode],[PaymentRef],[Amount],[AmountRemaining],[AmtApplied])
 				EXEC [CustomerPaymentsReview] @ReceiptId;
 
 				UPDATE CP
-				SET CP.RemainingAmount = CA.AmountRemaining, CP.[TotalAmount] = CA.Amount, CP.[PaidAmount] = ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0),
+				SET CP.RemainingAmount = CASE WHEN CP.IsMiscellaneous = 1 THEN CA.Amount ELSE CA.AmountRemaining END,
+					CP.[TotalAmount] = CA.Amount,
+					CP.[PaidAmount] = CASE WHEN CP.IsMiscellaneous = 1 THEN 0 ELSE ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0) END,
 					CP.CustomerName = CA.[Name], CP.CustomerCode = CA.CustomerCode, CP.[PaymentRef] = CA.[PaymentRef],
 					CP.VendorId = VA.VendorId
 				FROM #CustomerPayment CP 
@@ -183,10 +187,10 @@ BEGIN
 
 					INSERT INTO [CustomerCreditPaymentDetail]([CustomerId], [CustomerName], [CustomerCode], [ReceiptId], [StatusId], [PaymentId], [ReceiveDate], [ReferenceNumber], 
 								[TotalAmount], [PaidAmount], [RemainingAmount], [RefundAmount], [CheckNumber], [CheckDate], [IsCheckPayment], [IsWireTransfer], [IsCCDCPayment], [IsProcessed], [Memo], [VendorId],
-								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SuspenseUnappliedNumber])
+								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SuspenseUnappliedNumber], [IsMiscellaneous])
 					SELECT  CustomerId, CustomerName, CustomerCode, ReceiptId, 1, NULL ,GETUTCDATE(), ReferenceNumber, 
 								TotalAmount, PaidAmount, RemainingAmount, 0, [PaymentRef], NULL, NULL, NULL, NULL, 0, '', [VendorId], 
-								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0, @SuspenseAndUnsuppliedNumber
+								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0, @SuspenseAndUnsuppliedNumber, [IsMiscellaneous]
 					FROM #CustomerPayment 
 					WHERE Id = @PayMentStartCount AND ISNULL(RemainingAmount, 0) > 0;
 

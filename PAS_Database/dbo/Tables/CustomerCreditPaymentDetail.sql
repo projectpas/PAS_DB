@@ -28,8 +28,13 @@
     [IsActive]                      BIT             CONSTRAINT [DF__CustomerCreditPaymentDetail__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                     BIT             CONSTRAINT [DF__CustomerCreditPaymentDetail__IsDeleted] DEFAULT ((0)) NOT NULL,
     [SuspenseUnappliedNumber]       VARCHAR (30)    NULL,
+    [IsMiscellaneous]               BIT             NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
+
+
+
+
 
 
 

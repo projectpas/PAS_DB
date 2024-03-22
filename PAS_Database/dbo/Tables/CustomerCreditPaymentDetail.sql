@@ -29,8 +29,12 @@
     [IsDeleted]                     BIT             CONSTRAINT [DF__CustomerCreditPaymentDetail__IsDeleted] DEFAULT ((0)) NOT NULL,
     [SuspenseUnappliedNumber]       VARCHAR (30)    NULL,
     [IsMiscellaneous]               BIT             NULL,
+    [CreditMemoHeaderId]            BIGINT          NULL,
+    [ProcessedDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
+
+
 
 
 

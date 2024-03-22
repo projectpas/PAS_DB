@@ -116,9 +116,10 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			UPPER(WS.WorkScopeCode) 'workscopes',  
-			CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-				ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount ,0) ,0) END 'revenue',  
+			UPPER(WS.WorkScopeCode) 'workscope',  
+			ISNULL(WOBIT.GrandTotal,0) AS revenue,
+			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
+			--	ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount ,0) ,0) END 'revenue',  
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -129,23 +130,30 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
-			WOQ.opendate as 'quoteDate',
+			--WOQ.opendate as 'quoteDate',
 			wo.WorkOrderId,
-			UPPER(Wo.WorkOrderNum) as workOrderNum,
+			--UPPER(Wo.WorkOrderNum) as workOrderNum,
 			WOQ.WorkOrderQuoteId,
-			WOQ.QuoteNumber,
-			wo.WorkOrderTypeId
+			--WOQ.QuoteNumber,
+			UPPER(Wo.WorkOrderNum) as quoteNumber,
+			WO.opendate as 'quoteDate',
+			wo.WorkOrderTypeId,
+			WBI.InvoiceDate,
+			ISNULL(wos.Code,'') + '-' + ISNULL(wos.Stage,'') as woStage
        FROM DBO.WorkOrderPartNumber WOPN WITH (NOLOCK)
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 			INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
 			INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId
+			INNER JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId
+			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
 			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
+			LEFT JOIN dbo.WorkOrderStage wos WITH (NOLOCK) ON  WOPN.WorkOrderStageId = wos.WorkOrderStageId
 		  
-		  WHERE WOQ.QuoteStatusId = @woqApprovedId AND ISNULL(WOQ.IsDeleted,0) = 0 AND
+		  WHERE WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WOQ.IsDeleted,0) = 0 AND
 				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 				AND WOPN.itemmasterId=ISNULL(@selectedItemMasterId,WOPN.itemmasterId)  
 					AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid

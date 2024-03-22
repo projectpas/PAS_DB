@@ -47,7 +47,8 @@ BEGIN
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
-		@woqApprovedId int = (SELECT TOP 1 WorkOrderQuoteStatusId FROM DBO.WorkOrderQuoteStatus WITH(NOLOCK) WHERE Description = 'Approved')
+		@woqApprovedId int = (SELECT TOP 1 WorkOrderQuoteStatusId FROM DBO.WorkOrderQuoteStatus WITH(NOLOCK) WHERE Description = 'Approved'),
+		@totalResult int = 0
 
   
   BEGIN TRY  
@@ -113,8 +114,9 @@ BEGIN
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(WS.WorkScopeCode) 'workscopes',  
-			CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
-				ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount+ WOQD.FreightFlatBillingAmount,0) ,0) END 'revenue',  
+			ISNULL(WOBIT.GrandTotal,0) AS revenue,
+			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
+			--	ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount+ WOQD.FreightFlatBillingAmount,0) ,0) END 'revenue',  
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -131,13 +133,15 @@ BEGIN
 			INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
 			INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId
+			INNER JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId
+			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
 			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  
 		  WHERE 
-				WOQ.QuoteStatusId = @woqApprovedId AND ISNULL(WOQ.IsDeleted,0) = 0 AND
+				WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced'  AND ISNULL(WOQ.IsDeleted,0) = 0 AND
 				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 					AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
@@ -161,8 +165,8 @@ BEGIN
 		 (SELECT workscope,MAX(Row_Number) AS timesQuoted,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(revenue)/MAX(Row_Number))) as averageRevenue,pn,pnDescription,ItemMasterId
 		 
 		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,workscope,ItemMasterId) as result
-		
-		Select TOP 25 * from #tmpFinalResult ORDER by timesQuoted DESC
+		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesQuoted DESC
 
   END TRY  
   

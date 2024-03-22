@@ -30,7 +30,7 @@
 	18   13/03/2024   Moin Bloch       Modify(makes Exchange Invoice to Invoice)
 	19   15/03/2024   Moin Bloch       Modify(Changed DSO Logic)
 	20   19/03/2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
-
+	21   13/03/2024   Moin Bloch       Modify(makes Performa Invoice to Invoice)
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
@@ -56,8 +56,8 @@ BEGIN
 	 SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     
 		SELECT SOBI.SalesOrderId AS 'Id',      
-	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
-		      CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',      
+	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       		     
+			  CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',    
 			  SOBI.InvoiceNo AS 'DocNum',       
 			  SOBI.InvoiceDate,       
 			  SOBI.GrandTotal AS 'OriginalAmount',       
@@ -122,7 +122,7 @@ BEGIN
 		UNION ALL    
       
 		SELECT WOBI.WorkOrderId AS 'Id',      
-			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   
+			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   			
 			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
 			 WOBI.InvoiceNo AS 'DocNum',      
 			 WOBI.InvoiceDate,      

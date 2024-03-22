@@ -62,7 +62,7 @@ BEGIN
 				   ELSE '' END      
 		 ,(ISNULL(ICP.Amount, 0)) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId  
+	  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ISNULL(ICP.Ismiscellaneous,0) = 0  
 	  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId 	 
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0
@@ -81,7 +81,7 @@ BEGIN
 				   ELSE '' END      
 		 ,ISNULL(IWP.Amount, 0) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId   
+	  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND ISNULL(IWP.Ismiscellaneous,0) = 0     
 	  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId 
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0	 
@@ -100,7 +100,7 @@ BEGIN
 				   ELSE '' END      
 		 , ISNULL(ICCP.Amount, 0) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId     
+	  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ISNULL(ICCP.Ismiscellaneous,0) = 0         
 	  LEFT JOIN [dbo].[Customer] CDP WITH (NOLOCK) ON CDP.CustomerId = ICCP.CustomerId     
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0	

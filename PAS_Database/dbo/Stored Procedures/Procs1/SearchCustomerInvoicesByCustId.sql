@@ -56,8 +56,8 @@ BEGIN
 	 SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     
 		SELECT SOBI.SalesOrderId AS 'Id',      
-	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       
-		      'Invoice' AS 'DocumentType',      
+	         SOBI.SOBillingInvoicingId AS 'SOBillingInvoicingId',       		     
+			  CASE WHEN SOBI.IsProforma = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END  AS 'DocumentType',    
 			  SOBI.InvoiceNo AS 'DocNum',       
 			  SOBI.InvoiceDate,       
 			  SOBI.GrandTotal AS 'OriginalAmount',       
@@ -122,8 +122,8 @@ BEGIN
 		UNION ALL    
       
 		SELECT WOBI.WorkOrderId AS 'Id',      
-			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   
-			 'Invoice' AS 'DocumentType',
+			 WOBI.BillingInvoicingId AS 'SOBillingInvoicingId',   			
+			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 'Proforma Invoice' ELSE 'Invoice' END AS 'DocumentType',
 			 WOBI.InvoiceNo AS 'DocNum',      
 			 WOBI.InvoiceDate,      
 			 WOBI.GrandTotal AS 'OriginalAmount',      

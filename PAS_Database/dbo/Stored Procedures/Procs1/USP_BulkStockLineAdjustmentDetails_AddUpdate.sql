@@ -15,9 +15,10 @@
 	3    24/10/2023   AMIT GHEDIYA     added Intra Company adjustment.
 	4    20/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
 	5    22/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
+	6    20/03/2024   Abhishek Jirawla Added reserve Quantity and history when a stock is transfered Inter/Intra company and transfer Customer Stock
 
 *******************************************************************************/
-Create      PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
+CREATE      PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -52,9 +53,12 @@ BEGIN
 				@StockLineAdjustmentTypeId INT,
 				@NewUnitCostTotransfer DECIMAL(18,2),
 				@QuantityOnHand DECIMAL(18,2),
-				@UnitOfMeasure VARCHAR(100);
+				@UnitOfMeasure VARCHAR(100),
+				@BulkStockAdjusmentStocklineId BIGINT,
+				@BulkStockModuleId INT;
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='BulkStocklineAdjustmnet';
+		SELECT @BulkStockModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName='BulkStockAdjustments';
 
 	    IF OBJECT_ID(N'tempdb..#tmpBulkStockLineAdjustmentDetails') IS NOT NULL
 		BEGIN
@@ -121,7 +125,7 @@ BEGIN
 			
 			IF(@BulkStockLineAdjustmentDetailsId = 0)
 			BEGIN 
-				IF(@StockLineAdjustmentTypeId = 1 OR @StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4) -- For Quntity
+				IF(@StockLineAdjustmentTypeId = 1) -- For Quntity
 				BEGIN
 					INSERT INTO [dbo].[BulkStockLineAdjustmentDetails]([BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],
 																[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
@@ -141,7 +145,27 @@ BEGIN
 											[ManagementStructureId],[LastMSLevel],[AllMSlevels]
 									FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 				END
+				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4)  -- For Quantity and Inter/Intra Company transfer
+				BEGIN
+					INSERT INTO [dbo].[BulkStockLineAdjustmentDetails]([BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],
+																[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+																[ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels])
+										SELECT [BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],
+												@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
+												[ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels]
+										FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;					
 
+					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
+
+					UPDATE Stockline
+					SET QuantityReserved = QuantityReserved + @NewQty,
+						QuantityOnHand = QuantityOnHand - @NewQty
+					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
+
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
+					
+					
+				END
 
 				ELSE IF(@StockLineAdjustmentTypeId = 5) -- For Customer Stock
 				BEGIN
@@ -152,6 +176,17 @@ BEGIN
 											@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
 											[ManagementStructureId],[FromManagementStructureId],[ToManagementStructureId],[LastMSLevel],[AllMSlevels],[NewUnitCostTotransfer],[QuantityOnHand],[UnitOfMeasure]
 									FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
+
+					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
+
+					UPDATE Stockline
+					SET QuantityReserved = QuantityReserved + @NewQty,
+						QuantityOnHand = QuantityOnHand - @NewQty
+					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
+
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
+
+					
 				END
 
 
@@ -162,7 +197,7 @@ BEGIN
 			END
 			ELSE IF(@BulkStockLineAdjustmentDetailsId > 0)
 			BEGIN 
-				IF(@StockLineAdjustmentTypeId = 1 OR @StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4) -- For Quntity
+				IF(@StockLineAdjustmentTypeId = 1) -- For Quntity
 				BEGIN
 					UPDATE [dbo].[BulkStockLineAdjustmentDetails] 
 					SET [NewQty] = @NewQty,
@@ -192,7 +227,31 @@ BEGIN
 						[AllMSlevels] = @AllMSlevels
 					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 				END
+				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4) -- For Quantity and Inter/Intra Company transfer
+				BEGIN
+					UPDATE [dbo].[BulkStockLineAdjustmentDetails] 
+					SET [NewQty] = @NewQty,
+						[QtyAdjustment] = @QtyAdjustment,
+						[AdjustmentAmount] = @AdjustmentAmount,
+						[UpdatedBy] = @UpdatedBy,
+						[UpdatedDate] = GETUTCDATE(),
+						[ManagementStructureId] = @ManagementStructureId,
+						[FromManagementStructureId] = @FromManagementStructureId,
+						[ToManagementStructureId] = @ToManagementStructureId,
+						[LastMSLevel] = @LastMSLevel,
+						[AllMSlevels] = @AllMSlevels
+					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 
+					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+
+					UPDATE Stockline
+					SET QuantityReserved = QuantityReserved + @NewQty,
+						QuantityOnHand = QuantityOnHand - @NewQty
+					WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
+					
+				END
 
 				ELSE IF(@StockLineAdjustmentTypeId = 5)-- For CustomerStock
 				BEGIN
@@ -205,6 +264,15 @@ BEGIN
 						[LastMSLevel] = @LastMSLevel,
 						[AllMSlevels] = @AllMSlevels
 					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+
+					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+
+					UPDATE Stockline
+					SET QuantityReserved = QuantityReserved + @NewQty,
+						QuantityOnHand = QuantityOnHand - @NewQty
+					WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
 				END
 
 

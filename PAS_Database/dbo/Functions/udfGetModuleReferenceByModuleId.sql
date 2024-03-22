@@ -1,4 +1,24 @@
-﻿CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
+﻿
+/*************************************************************             
+ ** File:   [udfGetModuleReferenceByModuleId]            
+ ** Author:   Unknown
+ ** Description: This function is used to get reference number based on ModuleId and ReferenceId 
+ ** Purpose:           
+ ** Date:   Unknown
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History             
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			-----------------------
+    1    Unknown     Unknown		    Created
+	2    20-03-2024  Abhishek Jirawla   Adding detail regarding BulStockAdjustment Module
+**************************************************************/
+CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
 (  
    @ModuleId BIGINT = NULL,
    @ReferenceId BIGINT = NULL,
@@ -66,6 +86,10 @@ BEGIN
 		IF (@ModuleName = 'ReceivingVendorRMA')
 		BEGIN
 			SELECT @ReferenceNumber = RMA.[RMANumber] FROM [dbo].[VendorRMA] RMA WITH (NOLOCK) WHERE RMA.VendorRMAId = @ReferenceId;
+		END
+		IF (@ModuleName = 'BulkStockAdjustments')
+		BEGIN
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
 		END
 	END
 

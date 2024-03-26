@@ -2850,6 +2850,7 @@
     <Build Include="dbo\Stored Procedures\UpdatevendorReadyToPayHeader.sql" />
     <Build Include="dbo\Tables\EvidenceAudit.sql" />
     <Build Include="dbo\Tables\Evidence.sql" />
+    <Build Include="dbo\Stored Procedures\GetUpdateVendorCheckNumber.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

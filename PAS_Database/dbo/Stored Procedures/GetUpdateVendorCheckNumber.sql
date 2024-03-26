@@ -27,10 +27,17 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
+	
+	DECLARE @StartNumber INT;
+
 	IF(@IsUpdate = 1)
 	BEGIN
-		UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
-		WHERE PrintingId = @PrintingId;
+		SELECT @StartNumber = StartNum FROM [dbo].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
+		IF(@StartNumber != (@UpdatedNumber -1))
+		BEGIN
+			UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
+			WHERE PrintingId = @PrintingId;
+		END
 	END
 	ELSE
 	BEGIN

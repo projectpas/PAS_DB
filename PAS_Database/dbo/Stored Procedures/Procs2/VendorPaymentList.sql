@@ -28,6 +28,7 @@
 	12   02/11/2023   Devendra Shekh  Changes for nonpo details
 	13   15/11/2023   Moin Bloch      added DueDate and Days Past Due
 	14   07/03/2024   AMIT GHEDIYA    Update Status Name as per PN-6767 (Filter param added)
+	15   26/03/2024   AMIT GHEDIYA    Update to get partial payment also show in Print Check
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -960,7 +961,8 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0			
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate

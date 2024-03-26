@@ -37,6 +37,9 @@
     [IsCheckPrinted]                BIT             NULL,
     [VendorReadyToPayDetailsTypeId] INT             NULL,
     [NonPOInvoiceId]                BIGINT          NULL,
+    [IsGenerated]                   BIT             NULL,
     CONSTRAINT [PK_VendorReadyToPayDetailsAudit] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsAuditId] ASC)
 );
+
+
 

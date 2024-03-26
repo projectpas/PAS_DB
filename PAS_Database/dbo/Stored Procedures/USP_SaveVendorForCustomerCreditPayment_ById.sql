@@ -1,9 +1,9 @@
 ﻿/*****************************************************************************     
 ** Author:  <Devendra Shekh>    
 ** Create date: <03/04/2024>    
-** Description: <used to update Customer CreditPayment ById>    
+** Description: <used to Save Vendor For Customer CreditPayment ById>    
     
-EXEC [USP_UpdateCustomerCreditPayment_ById]   
+EXEC [USP_SaveVendorForCustomerCreditPayment_ById]   
 **********************   
 ** Change History   
 **********************     
@@ -12,20 +12,20 @@ EXEC [USP_UpdateCustomerCreditPayment_ById]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    03/08/2024		Devendra Shekh		created
-** 2    03/22/2024		Devendra Shekh		changed StatusId to 3 and updated 
 
 *****************************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_UpdateCustomerCreditPayment_ById]
-@CreditMemoHeaderId BIGINT,
-@CustomerCreditPaymentDetailId BIGINT
+CREATE   PROCEDURE [dbo].[USP_SaveVendorForCustomerCreditPayment_ById]
+@CustomerCreditPaymentDetailId BIGINT,
+@VendorId BIGINT,
+@MasterCompanyId INT,
+@UserName VARCHAR(50),
+@IsProcessed BIT = 0
 AS
 BEGIN	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 
-		DECLARE @MEMO VARCHAR(500) = '',
-		@CreditMemoNumber VARCHAR(50) = '';
 		/**
 		StatusId
 		1 - Open
@@ -33,22 +33,23 @@ BEGIN
 		3 - Processed
 		**/
 
-		SELECT @CreditMemoNumber = CreditMemoNumber FROM [dbo].[CreditMemo] WITH(NOLOCK) WHERE [CreditMemoHeaderId] = @CreditMemoHeaderId;
-
-		SET @MEMO = 'Created Stand Alone Credit Memo. CreditMemoNumber: ' + CAST(@CreditMemoNumber AS VARCHAR);
-
 		UPDATE CCPD
-		SET CCPD.[Memo] = @MEMO , CCPD.[StatusId] = 3, CCPD.IsProcessed = 1, CCPD.[CreditMemoHeaderId] = @CreditMemoHeaderId, [ProcessedDate] = GETUTCDATE()
+		SET CCPD.[StatusId] = CASE WHEN @IsProcessed = 1 THEN 3 ELSE CCPD.[StatusId] END, 
+			CCPD.IsProcessed = @IsProcessed, 
+			CCPD.[ProcessedDate] = CASE WHEN @IsProcessed = 1 THEN GETUTCDATE() ELSE CCPD.[ProcessedDate] END,
+			CCPD.UpdatedDate = GETUTCDATE(),
+			CCPD.VendorId = @VendorId,
+			CCPD.UpdatedBy = @UserName
 		FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)
-		WHERE CCPD.[CustomerCreditPaymentDetailId] = @CustomerCreditPaymentDetailId;
+		WHERE CCPD.[CustomerCreditPaymentDetailId] = @CustomerCreditPaymentDetailId AND CCPD.MasterCompanyId = @MasterCompanyId;
 
 	END TRY    
 	BEGIN CATCH      
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'USP_UpdateCustomerCreditPayment_ById'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@CreditMemoHeaderId, '') AS varchar(100))
+			,@AdhocComments VARCHAR(150) = 'USP_SaveVendorForCustomerCreditPayment_ById'
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@CustomerCreditPaymentDetailId, '') AS varchar(100))
 			   + '@Parameter2 = ''' + CAST(ISNULL(@CustomerCreditPaymentDetailId, '') AS varchar(100)) 
 			   		                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'

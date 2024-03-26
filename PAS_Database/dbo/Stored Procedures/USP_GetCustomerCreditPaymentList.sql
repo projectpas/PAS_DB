@@ -13,6 +13,8 @@ EXEC [USP_GetCustomerCreditPaymentList]
 ** --   --------		-------				--------------------------------  
 ** 1    03/04/2024		Devendra Shekh		created
 ** 2    03/15/2024		Devendra Shekh		added vendorcode, SuspenseUnappliedNumber
+** 3    03/21/2024		Devendra Shekh		ADDED new param @RecordTypeId
+** 4    03/22/2024		Devendra Shekh		ADDED IsMiscellaneous to select
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
@@ -38,7 +40,8 @@ CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
 @SuspenseUnappliedNumber varchar(30) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@RecordTypeId int = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -48,6 +51,7 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @IsMiscellaneous bit;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -65,6 +69,19 @@ BEGIN
 		IF(ISNULL(@StatusId,0) = 0)
 		BEGIN
 			SET @StatusId = NULL;
+		END
+
+		IF(ISNULL(@RecordTypeId, 0) = 0)
+		BEGIN
+			SET @IsMiscellaneous = NULL;
+		END
+		ELSE IF(ISNULL(@RecordTypeId, 0) = 1)
+		BEGIN
+			SET @IsMiscellaneous = 1;
+		END
+		ELSE IF(ISNULL(@RecordTypeId, 0) = 2)
+		BEGIN
+			SET @IsMiscellaneous = 0;
 		END
 
 		;WITH Result AS(
@@ -85,7 +102,8 @@ BEGIN
 						CCP.ReceiveDate,
 						CP.ReceiptNo,
 						CP.CntrlNum AS 'ControlNum',
-						CASE WHEN UPPER(CCP.CustomerName) = 'MISCELLANEOUS' OR UPPER(CCP.CustomerName) = 'MISCELLANEOUS CUSTOMER' THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
+						--CASE WHEN UPPER(CCP.CustomerName) = 'MISCELLANEOUS' OR UPPER(CCP.CustomerName) = 'MISCELLANEOUS CUSTOMER' THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
+						CASE WHEN ISNULL(CCP.IsMiscellaneous, '') = 1 THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
 						Upper(CCP.CreatedBy) CreatedBy,
 						Upper(CCP.UpdatedBy) UpdatedBy,
 						CCP.[StatusId],
@@ -93,11 +111,13 @@ BEGIN
 						ISNULL(VA.VendorName, '') AS 'VendorName',
 						ISNULL(CCP.VendorId, 0) AS 'VendorId',
 						ISNULL(VA.VendorCode, '') AS 'VendorCode',
-						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber'
+						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber',
+						ISNULL(CCP.IsMiscellaneous, '') AS 'IsMiscellaneous'
 					FROM dbo.CustomerCreditPaymentDetail CCP WITH (NOLOCK)
 					LEFT JOIN dbo.[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = CCP.ReceiptId
 					LEFT JOIN [dbo].[Vendor] VA WITH(NOLOCK) ON VA.VendorId = CCP.VendorId
-		 	  WHERE (CCP.[StatusId]=@StatusId OR @StatusId IS NULL) AND CCP.MasterCompanyId=@MasterCompanyId	
+		 	  WHERE (CCP.[StatusId]=@StatusId OR @StatusId IS NULL) AND CCP.MasterCompanyId=@MasterCompanyId
+					AND (ISNULL(CCP.IsMiscellaneous, 0)=@IsMiscellaneous OR @IsMiscellaneous IS NULL) 
 			), ResultCount AS(SELECT COUNT(CustomerCreditPaymentDetailId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((CustomerName LIKE '%' +@GlobalFilter+'%') OR

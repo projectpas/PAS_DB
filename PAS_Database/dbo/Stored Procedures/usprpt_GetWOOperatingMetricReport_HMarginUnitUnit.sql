@@ -46,7 +46,8 @@ BEGIN
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
-		@IsDownload BIT = NULL
+		@IsDownload BIT = NULL,
+		@totalResult int = 0
 
   
   BEGIN TRY  
@@ -115,11 +116,11 @@ BEGIN
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(WS.WorkScopeCode) 'workscopes',  
 			ISNULL(WOBIT.GrandTotal,0) AS totalRevenues,
-			ISNULL(WOBIT.MaterialCost,0) AS partsCosts,
-			ISNULL(WOBIT.LaborCost,0) AS laborOverheads,
-			(ISNULL(WOBIT.MiscCharges,0) + ISNULL(WOBIT.Freight,0)) AS otherCosts,
-			(ISNULL(WOBIT.MaterialCost,0) + ISNULL(WOBIT.LaborCost,0) + ISNULL(WOBIT.MiscCharges,0) + ISNULL(WOBIT.Freight,0) ) AS totalCosts,
-			(ISNULL(WOBIT.GrandTotal,0) - (ISNULL(WOBIT.MaterialCost,0) + ISNULL(WOBIT.LaborCost,0) + ISNULL(WOBIT.MiscCharges,0) + ISNULL(WOBIT.Freight,0) ) ) as marginAmounts,
+			ISNULL(CST.PartsCost,0) AS partsCosts,
+			ISNULL(CST.LaborCost,0) AS laborOverheads,
+			(ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0)) AS otherCosts,
+			(ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) ) AS totalCosts,
+			(ISNULL(WOBIT.GrandTotal,0) - (ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) + ISNULL(WOBIT.SalesTax,0)+ ISNULL(WOBIT.OtherTax,0)) ) as marginAmounts,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -137,6 +138,7 @@ BEGIN
 			INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) on WBI.WorkOrderId = WO.WorkOrderId
 			INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIT.WorkOrderPartId = WOPN.ID  
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
+			INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON WOBIT.WorkOrderPartId = CST.WOPartNoId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
@@ -189,7 +191,8 @@ BEGIN
 		 FROM #tmpBeforeFinalResult) as result
 
 		/********** Get data from high margin to low margin***********/
-		Select TOP 25 * from #tmpFinalResult ORDER by marginAmount DESC
+		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by marginAmount DESC
 
   END TRY  
   

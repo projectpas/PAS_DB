@@ -46,7 +46,8 @@ BEGIN
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
-		@IsDownload BIT = NULL
+		@IsDownload BIT = NULL,
+		@totalResult int = 0
 
   
   BEGIN TRY  
@@ -163,8 +164,8 @@ BEGIN
 		 (SELECT workscope,MAX(Row_Number) AS timesRepaired,SUM(GrandTotal) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(GrandTotal)/MAX(Row_Number))) as averageRevenue,pn,pnDescription,ItemMasterId 
 		 
 		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,workscope,ItemMasterId) as result
-		
-		Select TOP 25 * from #tmpFinalResult ORDER by timesRepaired DESC
+		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesRepaired DESC
 
   END TRY  
   

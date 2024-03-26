@@ -2850,6 +2850,7 @@
     <Build Include="dbo\Stored Procedures\UpdatevendorReadyToPayHeader.sql" />
     <Build Include="dbo\Tables\EvidenceAudit.sql" />
     <Build Include="dbo\Tables\Evidence.sql" />
+    <Build Include="dbo\Stored Procedures\GetUpdateVendorCheckNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveVendorForCustomerCreditPayment_ById.sql" />
   </ItemGroup>
   <ItemGroup>

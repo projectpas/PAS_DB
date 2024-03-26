@@ -14,6 +14,7 @@ EXEC [USP_GetCustomerCreditPaymentList]
 ** 1    03/04/2024		Devendra Shekh		created
 ** 2    03/15/2024		Devendra Shekh		added vendorcode, SuspenseUnappliedNumber
 ** 3    03/21/2024		Devendra Shekh		ADDED new param @RecordTypeId
+** 4    03/22/2024		Devendra Shekh		ADDED IsMiscellaneous to select
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
@@ -101,7 +102,8 @@ BEGIN
 						CCP.ReceiveDate,
 						CP.ReceiptNo,
 						CP.CntrlNum AS 'ControlNum',
-						CASE WHEN UPPER(CCP.CustomerName) = 'MISCELLANEOUS' OR UPPER(CCP.CustomerName) = 'MISCELLANEOUS CUSTOMER' THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
+						--CASE WHEN UPPER(CCP.CustomerName) = 'MISCELLANEOUS' OR UPPER(CCP.CustomerName) = 'MISCELLANEOUS CUSTOMER' THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
+						CASE WHEN ISNULL(CCP.IsMiscellaneous, '') = 1 THEN 'SUSPENSE' ELSE 'UNAPPLIED' END AS 'CustomerType',
 						Upper(CCP.CreatedBy) CreatedBy,
 						Upper(CCP.UpdatedBy) UpdatedBy,
 						CCP.[StatusId],
@@ -109,7 +111,8 @@ BEGIN
 						ISNULL(VA.VendorName, '') AS 'VendorName',
 						ISNULL(CCP.VendorId, 0) AS 'VendorId',
 						ISNULL(VA.VendorCode, '') AS 'VendorCode',
-						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber'
+						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber',
+						ISNULL(CCP.IsMiscellaneous, '') AS 'IsMiscellaneous'
 					FROM dbo.CustomerCreditPaymentDetail CCP WITH (NOLOCK)
 					LEFT JOIN dbo.[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = CCP.ReceiptId
 					LEFT JOIN [dbo].[Vendor] VA WITH(NOLOCK) ON VA.VendorId = CCP.VendorId

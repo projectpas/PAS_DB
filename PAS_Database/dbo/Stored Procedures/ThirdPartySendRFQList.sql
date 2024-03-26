@@ -46,7 +46,8 @@ CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@StatusFilter varchar(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -67,6 +68,7 @@ BEGIN
 		END 
 		ELSE
 		BEGIN 
+			Set @SortColumn = (CASE WHEN UPPER(@SortColumn) = UPPER('CreatedByFilter') THEN 'CreatedBy' ELSE @SortColumn END)
 			Set @SortColumn=UPPER(@SortColumn)
 		END	
 		IF(@IntegrationPortalId = 0)
@@ -114,7 +116,7 @@ BEGIN
 					   tr.IntegrationPortalId IntegrationPortalId,
 					   tr.IntegrationPortal,
 					   tr.IntegrationRFQStatusId IntegrationRFQStatusId,
-					   tr.Status Status,
+					   tr.Status StatusFilter,
 					   ISNULL(ird.PriorityId,0) PriorityId,
 					   ird.Priority,
 					   ISNULL(part.RequestedQty,0) RequestedQty,
@@ -137,6 +139,7 @@ BEGIN
 					   part.CreatedDate,
                        part.UpdatedDate,
 					   Upper(part.CreatedBy) CreatedBy,
+					   Upper(part.CreatedBy) CreatedByFilter,
                        Upper(part.UpdatedBy) UpdatedBy
 			   FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
@@ -155,7 +158,7 @@ BEGIN
 					(Name LIKE '%' +@GlobalFilter+'%') OR
 					(TypeName LIKE '%' +@GlobalFilter+'%') OR
 					(IntegrationPortal LIKE '%' +@GlobalFilter+'%') OR
-					(Status LIKE '%' +@GlobalFilter+'%') OR
+					(StatusFilter LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(QuoteWithinDays AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR
 					(DeliverByDate LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
@@ -176,7 +179,7 @@ BEGIN
 					(ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name + '%') AND	
 					(ISNULL(@TypeName,'') ='' OR TypeName LIKE '%' + @TypeName + '%') AND
 					(ISNULL(@IntegrationPortal,'') ='' OR IntegrationPortal LIKE '%' + @IntegrationPortal + '%') AND	
-					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND	
+					(ISNULL(@StatusFilter,'') ='' OR StatusFilter LIKE '%' + @StatusFilter + '%') AND	
 					(ISNULL(@DeliverByDate,'') ='' OR CAST(DeliverByDate AS Date)=CAST(@DeliverByDate AS date)) AND
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
 					(ISNULL(@AltPartNumber,'') ='' OR AltPartNumber LIKE '%' + @AltPartNumber + '%') AND	
@@ -206,8 +209,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TypeName')  THEN TypeName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='IntegrationPortal')  THEN IntegrationPortal END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationPortal')  THEN IntegrationPortal END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN [Status] END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Status')  THEN [Status] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='StatusFilter')  THEN [StatusFilter] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='StatusFilter')  THEN [StatusFilter] END DESC,
 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Priority')  THEN [Priority] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN [Priority] END DESC,

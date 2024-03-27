@@ -159,7 +159,7 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
 					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
@@ -181,7 +181,7 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
 					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
@@ -246,7 +246,7 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
 					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
@@ -269,7 +269,7 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
 					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;

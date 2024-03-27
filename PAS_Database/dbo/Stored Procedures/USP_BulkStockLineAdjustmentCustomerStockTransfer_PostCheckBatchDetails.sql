@@ -289,7 +289,8 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
+					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) <0 THEN 0 ELSE @QuantityOnHand - @newqty END,
+												 --[QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
 												 [QuantityReserved] = CASE WHEN (@QuantityReserved - @newqty) < 0 THEN 0 ELSE (@QuantityReserved - @newqty) END,
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()

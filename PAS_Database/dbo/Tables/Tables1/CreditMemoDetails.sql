@@ -32,8 +32,12 @@
     [IsDeleted]              BIT             CONSTRAINT [DF_CreditMemoDetails_IsDeleted] DEFAULT ((0)) NOT NULL,
     [RMADeatilsId]           BIGINT          NULL,
     [BillingInvoicingItemId] BIGINT          NULL,
+    [SalesTax]               DECIMAL (18, 2) NULL,
+    [OtherTax]               DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_CreditMemoDetails] PRIMARY KEY CLUSTERED ([CreditMemoDetailId] ASC)
 );
+
+
 
 
 GO

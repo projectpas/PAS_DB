@@ -63,6 +63,7 @@ BEGIN
 				  VRTPD.[CheckNumber],
 				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
 				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
@@ -107,6 +108,7 @@ BEGIN
 				  ,VRTPD.[CheckNumber]
 				  ,ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId
 				  ,ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
@@ -150,6 +152,7 @@ BEGIN
 				  VRTPD.[CheckNumber],
 				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
 				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)

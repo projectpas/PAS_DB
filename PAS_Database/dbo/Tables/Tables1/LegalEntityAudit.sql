@@ -38,8 +38,15 @@
     [TimeZoneId]              BIGINT        NULL,
     [IsPrintCheckNumber]      BIT           NULL,
     [IsTurnOffMgmt]           BIT           NULL,
+    [CurrencyFormatId]        BIGINT        NULL,
+    [DecimalPrecisionId]      BIGINT        NULL,
+    [ShortDateTimeFormatId]   BIGINT        NULL,
+    [LongDateTimeFormatId]    BIGINT        NULL,
+    [TextTransformId]         BIGINT        NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
 
 
 

@@ -14,7 +14,7 @@
     1    23/01/2024  Rajesh Gami	Created
      
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
 	@PartNumber varchar(200),
 	@PartDescription varchar(MAX),
 	@RepairStation varchar(100)=NULL,
@@ -70,8 +70,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					SET @IntegrationPortalId = @OneFourtyIntegrationPortalId;
 					IF((SELECT COUNT (1) FROM DBO.IntegrationMaster WITH (NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND MasterCompanyId = @MasterCompanyId) > 0)
 					BEGIN
-						DELETE FROM DBO.OneFourtyFiveChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK)  WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId)
-						DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId
+						DELETE FROM DBO.OneFourtyFiveChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK)  WHERE PartNumber = @PartNumber AND RepairStation = @RepairStation AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId)
+						DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND RepairStation = @RepairStation AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId
 					END
 				
 					/******* Insert into IntegrationMaster Table ********/
@@ -286,8 +286,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				BEGIN
 					IF((SELECT COUNT (1) FROM DBO.IntegrationMaster WITH (NOLOCK) WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId AND MasterCompanyId = @MasterCompanyId) > 0)
 					BEGIN
-						DELETE FROM DBO.OneFourtyFiveChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK)  WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId)
-						DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId
+						DELETE FROM DBO.OneFourtyFiveChildPartDetail WHERE IntegrationMasterId in (SELECT IntegrationMasterId FROM DBO.IntegrationMaster WITH(NOLOCK)  WHERE PartNumber = @PartNumber AND RepairStation = @RepairStation AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId)
+						DELETE FROM DBO.IntegrationMaster WHERE PartNumber = @PartNumber AND RepairStation = @RepairStation AND IntegrationPortalId = @IntegrationPortalId  AND MasterCompanyId = @MasterCompanyId
 					END
 				
 					/******* Insert into IntegrationMaster Table ********/

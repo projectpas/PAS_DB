@@ -1,4 +1,6 @@
 ﻿
+
+
 /********************************************************************             
  ** File:  PROCEDURE [dbo.GetWOOperatingMetricReport_HMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
@@ -121,8 +123,8 @@ BEGIN
 			ISNULL(WOBIT.GrandTotal,0) AS totalRevenues,
 			ISNULL(CST.PartsCost,0) AS partsCosts,
 			ISNULL(CST.LaborCost,0) AS laborOverheads,
-			(ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0)) AS otherCosts,
-			(ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) ) AS totalCosts,
+			(ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) + ISNULL(WOBIT.SalesTax,0)+ ISNULL(WOBIT.OtherTax,0)) AS otherCosts,
+			(ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0)+ ISNULL(WOBIT.SalesTax,0)+ ISNULL(WOBIT.OtherTax,0) ) AS totalCosts,
 			(ISNULL(WOBIT.GrandTotal,0) - (ISNULL(CST.PartsCost,0) + ISNULL(CST.LaborCost,0) + ISNULL(CST.ChargesCost,0) + ISNULL(CST.FreightCost,0) + ISNULL(WOBIT.SalesTax,0)+ ISNULL(WOBIT.OtherTax,0)) ) as marginAmounts,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -170,7 +172,7 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
-		--Select * from #TempWOOperating
+		Select * from #TempWOOperating
 		SELECT * INTO #tmpBeforeFinalResult FROM
 		 (SELECT woStage,InvoiceDate,WorkOrderId,openDate,workOrderNum,WorkOrderTypeId,customer, workscopes as workscope ,pn,pnDescription,ItemMasterId ,totalRevenues AS totalRevenue,partsCosts AS partsCost,laborOverheads AS laborOverhead,otherCosts AS otherCost,totalCosts AS totalCost,marginAmounts AS marginAmount
 		 FROM #TempWOOperating) as result

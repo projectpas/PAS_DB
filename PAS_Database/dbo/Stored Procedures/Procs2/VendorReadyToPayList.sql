@@ -29,7 +29,8 @@
 	12   06/11/2023   AMIT GHEDIYA      Update Status Approved To Posted for VendorCreditMemo.
 	13   05/01/2024   Moin Bloch        Replaced PercentId at CreditTermsId
 	14   15/03/2023   AMIT GHEDIYA      Add LegalEntityId wise filter.
-	15   26/03/2024   Devendra Shekh   added temp table and removed union
+	15   26/03/2024   Devendra Shekh    added temp table and removed union
+	16   27/03/2024   Devendra Shekh    changes for customer credit payment and added vendor for creditmemo
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -84,7 +85,7 @@ BEGIN
 		[PaymentMethodName] VARCHAR(100) NULL,
 		[ReceivingReconciliationId] BIGINT NOT NULL,
 		[InvoiceNum] VARCHAR(100),
-		[CurrencyId] INT NOT NULL,
+		[CurrencyId] INT NULL,
 		[CurrencyName] VARCHAR(50) NULL,
 		[FXRate] NUMERIC(9,4) NULL,
 		[OriginalAmount] DECIMAL(18, 2) NULL,
@@ -233,8 +234,8 @@ BEGIN
 	    SELECT DISTINCT 0 AS VendorPaymentDetailsId,
 					0 AS ReadyToPayId,  
 					DATEADD(Day, ISNULL(ctm.NetDays,0), CMD.InvoiceDate) AS [DueDate],  
-					CMD.CustomerId AS [VendorId],
-					CMD.CustomerName AS [VendorName],
+					CRF.VendorId AS [VendorId],
+					V.VendorName AS [VendorName],
 					0 AS PaymentMethodId,
 					'' AS PaymentMethodName,  
                     0 AS ReceivingReconciliationId,
@@ -279,11 +280,15 @@ BEGIN
 				--INNER JOIN [dbo].[CommonBatchDetails] CBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = CMBD.CommonJournalBatchDetailId  
 				--INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId  
 				--INNER JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BS.Id = BD.StatusId  
-				INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON CMD.CustomerId = C.CustomerId  
-				INNER JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId  
-				INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CF.CurrencyId = CU.CurrencyId  
-				 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = CF.CreditTermsId  
-				 LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
+				INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON CRF.VendorId = V.VendorId  
+				LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
+				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
+				LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId  
+				--INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON CMD.CustomerId = C.CustomerId  
+				--INNER JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = C.CustomerId  
+				--INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CF.CurrencyId = CU.CurrencyId  
+				 --LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = CF.CreditTermsId  
+				 --LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.PercentId AS INT) = p.PercentId  
 				WHERE CMD.[MasterCompanyId] = @MasterCompanyId AND CMD.[CustomerRefundId] IS NOT NULL AND ISNULL(CMD.IsUsedInVendorPayment,0) <> 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR DATEADD(Day, ISNULL(ctm.NetDays,0), CMD.InvoiceDate) BETWEEN @StartDate AND @EndDate)
 				AND LE.LegalEntityId = @LegalEntityId
@@ -378,7 +383,7 @@ BEGIN
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
 					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId])
-		SELECT	CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.VendorPaymentDetailsId END AS VendorPaymentDetailsId,
+		SELECT	DISTINCT CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.VendorPaymentDetailsId END AS VendorPaymentDetailsId,
 				CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.ReadyToPayId END AS ReadyToPayId,  
 				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS [DueDate],  
 				CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN CCPD.VendorId ELSE VPD.VendorId END AS VendorId,  
@@ -433,7 +438,7 @@ BEGIN
 					LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId  
 					LEFT JOIN [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) ON VPD.[CustomerCreditPaymentDetailId] = CCPD.[CustomerCreditPaymentDetailId]	
 		   WHERE CCPD.[MasterCompanyId] = @MasterCompanyId 
-		        --AND CCPD.[RemainingAmount] > 0
+		        AND [VPD].[RemainingAmount] > 0
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ISNULL(CCPD.IsProcessed,0) = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)

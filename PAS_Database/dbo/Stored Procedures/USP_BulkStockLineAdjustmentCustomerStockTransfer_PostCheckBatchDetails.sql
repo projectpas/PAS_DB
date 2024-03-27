@@ -17,6 +17,7 @@
     1    30/10/2023   BHARGAV SALIYA	  Created	
 	2    22/12/2023   Bhargav Salya		  Modified
 	3	 01/03/2024   Bhargav Saliya      Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	4    26/03/2024   Abhishek Jirawla	  Removing Reserved quantity saved at the time of bulk stockline adjustment.
 
      
 **************************************************************/
@@ -88,6 +89,7 @@ BEGIN
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
 		DECLARE @QuantityOnHand DECIMAL(18,2);
 		DECLARE @QuantityAvailable DECIMAL(18,2);
+		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
 		DECLARE @tmpTaxAdjustment DECIMAL(18,2);
 		DECLARE @Adjustment DECIMAL(18,2);
@@ -281,6 +283,18 @@ BEGIN
 					SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
+					--Update Stockline table 
+					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],@QuantityReserved = [QuantityReserved]
+						FROM [DBO].[Stockline] WITH(NOLOCK) 
+					WHERE StockLineId = @StockLineId;
+
+					--Update existing stockline
+					UPDATE [dbo].[Stockline] SET [QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
+												 [QuantityReserved] = CASE WHEN (@QuantityReserved - @newqty) < 0 THEN 0 ELSE (@QuantityReserved - @newqty) END,
+												 [UpdatedBy] = @UpdateBy,
+												 [UpdatedDate] = GETUTCDATE()
+					WHERE StockLineId = @StockLineId;
+
 					--Update Existing Stockline 
 					DECLARE @OrderModule AS BIGINT = 22; /**** Stockline ****/
 					DECLARE @remainingQty AS INT;
@@ -297,17 +311,6 @@ BEGIN
 						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, @ActionId, @newqty, @UpdateBy;
 					END
 
-				--Update Stockline table 
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable]
-						FROM [DBO].[Stockline] WITH(NOLOCK) 
-					WHERE StockLineId = @StockLineId;
-
-					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) < 0 THEN 0 ELSE (@QuantityOnHand - @newqty) END,
-												 [QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
-												 [UpdatedBy] = @UpdateBy,
-												 [UpdatedDate] = GETUTCDATE()
-					WHERE StockLineId = @StockLineId;
 					DECLARE @Stockline BIGINT;
 					--Create New Stockline  Need to create new
 					EXEC dbo.USP_CreateStockline_For_CustStockTransfer @StockLineId,@BulkStockLineAdjustmentDetailsId,@UpdateBy,@MasterCompanyId,@Stockline OUTPUT;

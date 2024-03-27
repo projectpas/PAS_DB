@@ -12,6 +12,7 @@ EXEC [USP_SaveVendorForCustomerCreditPayment_ById]
 ** PR   Date			Author				Change Description    
 ** --   --------		-------				--------------------------------  
 ** 1    03/08/2024		Devendra Shekh		created
+** 2    03/26/2024		Devendra Shekh		aded new sp call AddVendorPaymentDetails
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_SaveVendorForCustomerCreditPayment_ById]
@@ -42,6 +43,11 @@ BEGIN
 			CCPD.UpdatedBy = @UserName
 		FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)
 		WHERE CCPD.[CustomerCreditPaymentDetailId] = @CustomerCreditPaymentDetailId AND CCPD.MasterCompanyId = @MasterCompanyId;
+
+		IF(ISNULL(@IsProcessed, 0) = 1)
+		BEGIN
+			EXEC [USP_AddVendorPaymentDetails_ForCustomerCreditPaymentDetailById] @CustomerCreditPaymentDetailId, @VendorId, @MasterCompanyId, @UserName
+		END
 
 	END TRY    
 	BEGIN CATCH      

@@ -20,7 +20,7 @@
     3    08/10/2023   Devendra Shekh			modified the sp
 	4    09/01/2023   Hemant Saliya				Added MS Filters	 
 	5    01/25/2024   Hemant Saliya				Remove Manual Journal from Reports
-	6    03/22/2024   Hemant Saliya				Added Management Structure Filters
+	6    03/22/2024   Hemant Saliya				Added Management Structure Filters & Also Get AC Based on LE
      
 --EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134',2,@xmlFilter=N'
 <?xml version="1.0" encoding="utf-16"?>
@@ -83,6 +83,10 @@ BEGIN
 		
 		DECLARE @BatchMSModuleId BIGINT; 
 		DECLARE @PostedBatchStatusId BIGINT;
+		DECLARE @LegalEntityId BIGINT;
+		DECLARE @PeriodName VARCHAR(100);
+		DECLARE @AccountingCalendarId BIGINT;
+		
 
 		DECLARE   
 		@level1 VARCHAR(MAX) = NULL,  
@@ -141,6 +145,14 @@ BEGIN
 			DROP TABLE #Temptbl
 		END 
 
+		SELECT @LegalEntityId = MSL.LegalEntityId FROM dbo.EntityStructureSetup EST WITH(NOLOCK) 
+			JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID 
+		WHERE EST.EntityStructureId = @managementStructureId
+
+		SELECT @PeriodName = PeriodName FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE AccountingCalendarId = @id
+
+		SELECT @AccountingCalendarId = AccountingCalendarId FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE PeriodName = @PeriodName AND LegalEntityId = @LegalEntityId
+
 		SELECT cbd.GlAccountId, (GL.AccountCode + ' - ' +	GL.AccountName) AS 'GlAccount',
 			ISNULL(SUM(cbd.CreditAmount),0) AS 'Credit' ,ISNULL(SUM(cbd.DebitAmount),0) AS 'Debit',bd.AccountingPeriod AS 'PeriodName',
 			bd.JournalTypeNumber AS 'JournalNumber'
@@ -148,7 +160,7 @@ BEGIN
 			INNER JOIN dbo.BatchDetails bd WITH(NOLOCK) ON cbd.JournalBatchDetailId = bd.JournalBatchDetailId AND bd.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
 			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId
-		WHERE bd.AccountingPeriodId = @id AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
+		WHERE bd.AccountingPeriodId = @AccountingCalendarId AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
 			AND cbd.IsDeleted = 0 AND BD.IsDeleted = 0 
 			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  

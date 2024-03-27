@@ -20,6 +20,7 @@
     2    01/19/2024		Devendra Shekh		qty base tender stk changes
     3    01/23/2024		Devendra Shekh		serial Number issue resolved    
 	4    01/29/2024		Hemant Saliya		Resolved Error 
+	5 	 22/03/2024     Moin Bloch          Added New Field @EvidenceId
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=4185,@WorkFlowWorkOrderId=3646,@WorkOrderMaterialsId=16481
 **************************************************************/
@@ -75,6 +76,7 @@ BEGIN
 				@IsKitType BIT = 0,  
 				@Unitcost DECIMAL(18,2) = 0,
 				@ProvisionId INT = 0 ,
+				@EvidenceId INT = 0,  
 				@TearDownWO INT = 0 ,
 				@WOTypeId BIGINT = 0 ,
 				@SelectedCustomerAffiliation BIGINT,
@@ -301,7 +303,7 @@ BEGIN
 						1, @IsSerialized, @SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName,
 						@TraceableToTypeId, @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate,
 						@ReceiverNumber, @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @MasterCompanyId, @UpdatedBy,
-						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId
+						@WorkOrderMaterialsId, @IsKitType, @Unitcost, @ProvisionId, @EvidenceId
 					
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@Nummber AS BIGINT) WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
 					

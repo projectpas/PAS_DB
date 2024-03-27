@@ -1104,7 +1104,8 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0			
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate

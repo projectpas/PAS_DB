@@ -17,6 +17,9 @@
     [ManagementStructureId]             BIGINT          NULL,
     [LastMSLevel]                       VARCHAR (200)   NULL,
     [AllMSlevels]                       VARCHAR (MAX)   NULL,
+    [CustomerCreditPaymentDetailId]     BIGINT          NULL,
     CONSTRAINT [PK_StandAloneCreditMemoDetailsAudit] PRIMARY KEY CLUSTERED ([StandAloneCreditMemoDetailAuditId] ASC)
 );
+
+
 

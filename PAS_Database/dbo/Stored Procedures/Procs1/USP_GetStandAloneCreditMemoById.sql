@@ -19,11 +19,12 @@
 	4    05/09/2023     AMIT GHEDIYA			Get Reason for details view.
 	5    11/09/2023     AMIT GHEDIYA			Get IsEnforce field for approved process.
 	6    12/09/2023     AMIT GHEDIYA			Get LE field for Item List.
+	7    22/03/2023     Devendra Shekh			added CustomerCreditPaymentDetailId for standAloneCM
        
 -- EXEC USP_GetStandAloneCreditMemoById 8  
   
 ************************************************************************/  
-CREATE        PROCEDURE [dbo].[USP_GetStandAloneCreditMemoById]  
+CREATE   PROCEDURE [dbo].[USP_GetStandAloneCreditMemoById]  
 	@CreditMemoHeaderId BIGINT,
 	@Opr INT
 AS  
@@ -77,6 +78,7 @@ BEGIN
 			  ,CMD.[ManagementStructureId]
 			  ,CMD.[LastMSLevel]
 			  ,CMD.[AllMSlevels]
+			  ,ISNULL(CMD.CustomerCreditPaymentDetailId,0) CustomerCreditPaymentDetailId
 	   FROM [dbo].[StandAloneCreditMemoDetails] CMD WITH (NOLOCK)   
 	   LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON CMD.GlAccountId = GL.GLAccountId
 	   WHERE CMD.CreditMemoHeaderId = @CreditMemoHeaderId AND CMD.IsActive = 1; 

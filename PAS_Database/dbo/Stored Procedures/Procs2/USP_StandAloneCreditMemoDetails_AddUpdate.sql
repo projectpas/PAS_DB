@@ -15,9 +15,10 @@
 	3    09/12/2023   AMIT GHEDIYA     Updated for add LE in details table.
 	4    09/15/2023   AMIT GHEDIYA     Updated for add for ManagementStructureDetails.
 	5    09/25/2023   AMIT GHEDIYA     Updated for Clear PDF path when new Item added.
+	6    03/25/2023   Devendra Shekh   added CustomerCreditPaymentDetailId
 
 *******************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_StandAloneCreditMemoDetails_AddUpdate]
+CREATE   PROCEDURE [dbo].[USP_StandAloneCreditMemoDetails_AddUpdate]
 	@CreditMemoHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -48,7 +49,8 @@ BEGIN
 				@StatusName VARCHAR(50),
 				@PendingStatusId INT,
 				@PendingStatusName VARCHAR(50),
-				@ModuleId INT;
+				@ModuleId INT,
+				@CustomerCreditPaymentDetailId BIGINT = NULL;
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='StandAloneCreditMemoDetails';
 
@@ -73,13 +75,14 @@ BEGIN
 			[IsDeleted] [bit] NOT NULL,
 			[ManagementStructureId] [bigint] NULL,
 			[LastMSLevel] [varchar](256) NULL,
-			[AllMSlevels] [varchar](256) NULL
+			[AllMSlevels] [varchar](256) NULL,
+			[CustomerCreditPaymentDetailId] [bigint] NULL,
 		)
 
 		INSERT INTO #tmpStandAloneCreditMemoDetails ([StandAloneCreditMemoDetailId],[GlAccountId],[Reason],[Qty],[Rate],[Amount],[IsDeleted],
-													 [ManagementStructureId],[LastMSLevel],[AllMSlevels])
+													 [ManagementStructureId],[LastMSLevel],[AllMSlevels],[CustomerCreditPaymentDetailId])
 		SELECT [StandAloneCreditMemoDetailId],[GlAccountId],[Reason],[Qty],[Rate],[Amount],[IsDeleted], 
-													[ManagementStructureId],[LastMSLevel],[AllMSlevels] FROM @StandAloneCreditMemoDetails;
+													[ManagementStructureId],[LastMSLevel],[AllMSlevels],[CustomerCreditPaymentDetailId] FROM @StandAloneCreditMemoDetails;
 
 		SELECT  @MasterLoopID = MAX(ID) FROM #tmpStandAloneCreditMemoDetails
 
@@ -94,7 +97,8 @@ BEGIN
 				   @IsDeleted = IsDeleted,
 				   @ManagementStructureId = ManagementStructureId,
 				   @LastMSLevel = LastMSLevel,
-				   @AllMSlevels = AllMSlevels
+				   @AllMSlevels = AllMSlevels,
+				   @CustomerCreditPaymentDetailId = [CustomerCreditPaymentDetailId]
 			FROM #tmpStandAloneCreditMemoDetails WHERE [ID] = @MasterLoopID;
 			
 			IF(@StandAloneCreditMemoDetailId = 0)
@@ -110,10 +114,10 @@ BEGIN
 
 				INSERT INTO [dbo].[StandAloneCreditMemoDetails]([CreditMemoHeaderId],[GlAccountId],[Reason],[Qty],[Rate],[Amount]
 															,[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
-															[ManagementStructureId],[LastMSLevel],[AllMSlevels])
+															[ManagementStructureId],[LastMSLevel],[AllMSlevels], [CustomerCreditPaymentDetailId])
 							        SELECT @CreditMemoHeaderId,@GlAccountId,@Reason,@Qty,@Rate,@Amount
 											,@MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
-											@ManagementStructureId,@LastMSLevel,@AllMSlevels;
+											@ManagementStructureId,@LastMSLevel,@AllMSlevels,@CustomerCreditPaymentDetailId;
 
 				SELECT @StandAloneCreditMemoDetailsId = SCOPE_IDENTITY();
 

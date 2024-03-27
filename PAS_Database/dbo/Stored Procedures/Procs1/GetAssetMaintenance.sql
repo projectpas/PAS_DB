@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <07/30/2021>  
 ** Description: <GetAssetMaintenance>  
@@ -8,9 +7,10 @@ Exec [ReverseWorkOrder]
 ************************************************************** 
 ** Change History 
 **************************************************************   
-** PR   Date        Author          Change Description  
-** --   --------    -------         --------------------------------
-** 1    07/04/2022  Hemant Saliya    GetAssetMaintenance
+** PR   Date           Author          Change Description  
+** --   --------       -------         --------------------------------
+** 1    07/04/2022     Hemant Saliya    GetAssetMaintenance
+   2	26 March 2024  Bhargav Saliya   Resolved Default Vendor Binding Issue
 
 EXEC GetAssetMaintenance 128
 
@@ -92,7 +92,7 @@ AS
 			ISNULL(magl.AccountCode + '-' + magl.AccountName,'') as MaintenanceGlAccount,
 			ISNULL(mav.VendorName, '') as MaintenanceVendor,
 			ISNULL(wagl.AccountCode + '-' + wagl.AccountName,'') as WarrantyGlACoount,
-			ISNULL(mav.VendorName, '') as WarrantyVendor,
+			ISNULL(wav.VendorName, '') as WarrantyVendor,
 			CASE WHEN ISNULL(ascal.CalibrationProvider,'') = '' THEN 'Vendor' ELSE ascal.CalibrationProvider END as CalibrationProvider,
 			CASE WHEN ISNULL(ascal.CertificationProvider,'') = '' THEN 'Vendor' ELSE ascal.CertificationProvider END as CertificationProvider,
 			CASE WHEN ISNULL(ascal.InspectionProvider,'') = '' THEN 'Vendor' ELSE ascal.InspectionProvider END as InspectionProvider,

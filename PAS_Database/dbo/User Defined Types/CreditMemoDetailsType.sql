@@ -11,6 +11,8 @@
     [SerialNumber]           VARCHAR (100)   NULL,
     [Qty]                    INT             NULL,
     [UnitPrice]              DECIMAL (18, 2) NULL,
+    [SalesTax]               DECIMAL (18, 2) NULL,
+    [OtherTax]               DECIMAL (18, 2) NULL,
     [Amount]                 DECIMAL (18, 2) NULL,
     [ReasonId]               INT             NULL,
     [Reason]                 VARCHAR (500)   NULL,
@@ -32,4 +34,6 @@
     [IsDeleted]              BIT             NULL,
     [RMADeatilsId]           BIGINT          NULL,
     [BillingInvoicingItemId] BIGINT          NULL);
+
+
 

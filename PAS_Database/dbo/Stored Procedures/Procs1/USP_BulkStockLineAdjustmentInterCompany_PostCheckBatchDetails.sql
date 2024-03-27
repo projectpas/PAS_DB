@@ -20,6 +20,7 @@
 	4	 16/02/2024   Ekta Chandegra  Pass @newQty instead of @remainingQty in [DBO].[USP_AddUpdateStocklineHistory] call
 	5	 26/02/2024   Bhargav Saliya  Resolved management structure Entry Issue
 	6	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	7    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
 **************************************************************/
@@ -88,6 +89,7 @@ BEGIN
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
 		DECLARE @QuantityOnHand DECIMAL(18,2);
+		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @QuantityAvailable DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
 		DECLARE @tmpTaxAdjustment DECIMAL(18,2);
@@ -287,12 +289,12 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table Adjustment & Freight,Tax
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable]
+					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable], @QuantityReserved = [QuantityReserved]
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
+					UPDATE [dbo].[Stockline] SET [QuantityReserved] = @QuantityReserved - @newqty,
 												 [QuantityAvailable] = @QuantityAvailable - @newqty,
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()

@@ -2852,6 +2852,8 @@
     <Build Include="dbo\Tables\Evidence.sql" />
     <Build Include="dbo\Stored Procedures\GetUpdateVendorCheckNumber.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveVendorForCustomerCreditPayment_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_PostInternalWorkOrderTearDownBatchDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddVendorPaymentDetails_ForCustomerCreditPaymentDetailById.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

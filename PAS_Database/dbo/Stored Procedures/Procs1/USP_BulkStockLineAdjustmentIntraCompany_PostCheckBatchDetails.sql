@@ -18,6 +18,7 @@
 	2    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
 	3    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
 	4	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	5    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
 
 	EXEC USP_BulkStockLineAdjustmentIntraCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -88,6 +89,7 @@ BEGIN
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
 		DECLARE @QuantityOnHand DECIMAL(18,2);
+		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @QuantityAvailable DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
 		DECLARE @tmpTaxAdjustment DECIMAL(18,2);
@@ -286,30 +288,30 @@ BEGIN
 					SELECT @GlAccountId = GLAccountId FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
+					--Update Stockline table 
+					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable], @QuantityReserved = [QuantityReserved]
+						FROM [DBO].[Stockline] WITH(NOLOCK) 
+					WHERE StockLineId = @StockLineId;
+
+					--Update existing stockline
+					UPDATE [dbo].[Stockline] SET [QuantityAvailable] = @QuantityAvailable - @newqty,
+												 [QuantityReserved] = @QuantityReserved - @newqty,
+												 [UpdatedBy] = @UpdateBy,
+												 [UpdatedDate] = GETUTCDATE()
+					WHERE StockLineId = @StockLineId;
+
 					--Update Existing Stockline 
 					DECLARE @OrderModule AS BIGINT = 22;
 					DECLARE @remainingQty AS INT;
 					SET @remainingQty = @QuantityOnHand - @newqty;
 					IF(@remainingQty > 0)
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @remainingQty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
 					END
 					ELSE
 					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @remainingQty, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
 					END
-
-				--Update Stockline table 
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable]
-						FROM [DBO].[Stockline] WITH(NOLOCK) 
-					WHERE StockLineId = @StockLineId;
-
-					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
-												 [QuantityAvailable] = @QuantityAvailable - @newqty,
-												 [UpdatedBy] = @UpdateBy,
-												 [UpdatedDate] = GETUTCDATE()
-					WHERE StockLineId = @StockLineId;
 
 					DECLARE @Stockline BIGINT;
 					--Create New Stockline

@@ -13,7 +13,7 @@
  ** --   --------     -------		  --------------------------------          
     1    04/20/2022   Subhash Saliya  Created
 	2	 02/1/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
-	3    03/21/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
+	3    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
 	
  -- exec sp_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
@@ -33,7 +33,7 @@ BEGIN
 			BEGIN 
 			IF(@Ispopup =1)
 			BEGIN
-				IF(@isWorkOrder =0)
+				IF(@isWorkOrder = 0)
 				BEGIN
 					SELECT SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
 						SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
@@ -41,6 +41,9 @@ BEGIN
 						SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,SOBII.NoofPieces as Qty,
 						--SOBII.UnitPrice as UnitPrice,
+						SOBII.PartCost As [PartsRevenue], 0 AS [LaborRevenue], SOBII.MiscCharges AS [MiscRevenue], SOBII.Freight AS [FreightRevenue],
+						SOPN.UnitSalesPricePerUnit AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
+						SOPN.UnitSalesPricePerUnit AS [COGSInventory],
 						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
 						(SOBII.NoofPieces * SOBII.UnitPrice) as Amount,
 						IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
@@ -79,6 +82,8 @@ BEGIN
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+						LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
+						LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
@@ -94,6 +99,9 @@ BEGIN
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.NoofPieces as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount,
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
 						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId],
+						WOBII.MaterialCost As [PartsRevenue], WOBII.LaborCost AS [LaborRevenue], WOBII.MiscCharges AS [MiscRevenue], WOBII.Freight AS [FreightRevenue],
+						WOMPN.PartsCost AS [COGSParts], WOMPN.LaborCost AS [COGSLabor] , WOMPN.OverHeadCost As [COGSOverHeadCost], 
+						(ISNULL(WOMPN.PartsCost,0) + ISNULL(WOMPN.LaborCost,0) + ISNULL(WOMPN.OverHeadCost,0)) AS [COGSInventory],
 						WOBII.SubTotal,WOBII.SalesTax, WOBII.OtherTax, WOBII.GrandTotal, WOBII.GrandTotal [InvoiceAmt],
 						'0' as [RMADeatilsId],
 						'0' as [RMAHeaderId],
@@ -126,7 +134,8 @@ BEGIN
 						) 
 					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOMPN.WOPartNoId
 						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1

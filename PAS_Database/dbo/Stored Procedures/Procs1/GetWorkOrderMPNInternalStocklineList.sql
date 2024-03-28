@@ -11,6 +11,7 @@ EXEC [GetWorkOrderMPNInternalStocklineList]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    06/02/2023  HEMANT SALIYA    Get Work Order MPN details for INternal Customer
+   2    28/03/2024  Moin Bloch       Resolved IsCustomerStock filter issue.
 
 exec GetWorkOrderMPNInternalStocklineList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,
 @ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@EmployeeId=2,@MasterCompanyId=1,
@@ -40,7 +41,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderMPNInternalStocklineList]
 @ItemMasterId BIGINT = NULL,  
 @ConditionId BIGINT = NULL,  
 @WorkOrderTypeId INT = NULL,
-@CustomerId BIGINT = NULL
+@CustomerId BIGINT = NULL,
+@IsCustomerStock VARCHAR(20) = NULL  
 AS  
 BEGIN   
      SET NOCOUNT ON;  
@@ -86,7 +88,8 @@ BEGIN
 					 stl.MasterCompanyId,   
 					 stl.CreatedDate,  
 					 0 AS Isselected,  
-					 ISNULL(stl.IsCustomerStock, 0) AS IsCustomerStock  
+				   --ISNULL(stl.IsCustomerStock, 0) AS IsCustomerStock  
+					 CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock
 			  FROM  [dbo].[StockLine] stl WITH (NOLOCK)  
 					INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 					INNER JOIN [dbo].[UnitOfMeasure] um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 
@@ -106,6 +109,7 @@ BEGIN
 					(UnitOfMeasure LIKE '%' +@GlobalFilter+'%') OR   
 				    (QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR  
 				    (QuantityAvailable LIKE '%' +@GlobalFilter+'%') OR  
+					(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR
 				    (UnitCost LIKE '%' +@GlobalFilter+'%')))
 					OR     
 				    (@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND  
@@ -118,6 +122,7 @@ BEGIN
 				    (ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber + '%') AND   
 				    (ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND  
 				    (ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND  
+				    (ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND
 				    (ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%')))  
 			   
 			SELECT @Count = COUNT(StockLineId) FROM #TempResults     
@@ -146,7 +151,9 @@ BEGIN
 			  CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,  
 			  CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,   
 			  CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,  
-			  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC   
+			  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,   
+			  CASE WHEN (@SortOrder=1  AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END ASC,
+			  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC 
         
 			 OFFSET @RecordFrom ROWS   
 			 FETCH NEXT @PageSize ROWS ONLY  

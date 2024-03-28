@@ -34,8 +34,19 @@
     [BillingInvoicingItemId] BIGINT          NULL,
     [SalesTax]               DECIMAL (18, 2) NULL,
     [OtherTax]               DECIMAL (18, 2) NULL,
+    [PartsRevenue]           DECIMAL (18, 2) NULL,
+    [LaborRevenue]           DECIMAL (18, 2) NULL,
+    [MiscRevenue]            DECIMAL (18, 2) NULL,
+    [FreightRevenue]         DECIMAL (18, 2) NULL,
+    [RestockingFee]          DECIMAL (18, 2) NULL,
+    [CogsParts]              DECIMAL (18, 2) NULL,
+    [CogsLabor]              DECIMAL (18, 2) NULL,
+    [CogsOverHeadCost]       DECIMAL (18, 2) NULL,
+    [CogsInventory]          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_CreditMemoDetails] PRIMARY KEY CLUSTERED ([CreditMemoDetailId] ASC)
 );
+
+
 
 
 

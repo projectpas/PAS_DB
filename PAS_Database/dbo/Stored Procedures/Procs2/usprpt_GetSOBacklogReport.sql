@@ -16,7 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    05-May-2022  Mahesh Sorathiya   Created  
 	2    20-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
-
+	3    28-MARCH-2024  Ekta Chandegra     IsActive and IsDelete flag is added 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -97,6 +97,7 @@ BEGIN
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 		  WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		        AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid  
+				AND SO.IsActive = 1 AND SO.IsDeleted = 0
 				AND  
 				(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -161,6 +162,7 @@ BEGIN
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
       WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		    AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid
+			AND SO.IsActive = 1 AND SO.IsDeleted = 0
 			AND  
 			(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

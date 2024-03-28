@@ -19,6 +19,7 @@
     3   11-JULY-2023  AYESHA SULTANA    CREDIT MEMO DATA CORRESPONDING TO SALES ORDER BILLING REPORT IF ANY  
 	4   19-JULY-2023  SHREY CHANDEGARA  Changes for revenue Issue
 	5	01-FEB-2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	6	28-MARCH-2024    Ekta Chandegra	IsDeleted and IsActive flag is added
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -108,7 +109,7 @@ select
    LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid            
     WHERE SOBI.customerid=ISNULL(@name, SOBI.customerid) AND  
     CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
-    SO.mastercompanyid = @mastercompanyid    
+    SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1
    AND    
     (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
     AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -136,7 +137,7 @@ select
   
     WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  
       CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
-       SO.mastercompanyid = @mastercompanyid    
+       SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1 
 	   AND ISNULL(CM.IsWorkOrder,0) = 0
       AND    
        (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
@@ -201,7 +202,7 @@ select
         LEFT JOIN dbo.condition CDTN WITH (NOLOCK) ON SOP.conditionid = CDTN.conditionid    
       WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  
   CAST(SOBI.invoicedate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
-   SO.mastercompanyid = @mastercompanyid    
+   SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1    
      AND    
    (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
     AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -262,7 +263,7 @@ select
   
     WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  
       CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
-       SO.mastercompanyid = @mastercompanyid    
+       SO.mastercompanyid = @mastercompanyid  AND SO.IsDeleted = 0 AND SO.IsActive = 1    
 	   AND ISNULL(CM.IsWorkOrder,0) = 0
       AND    
        (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  

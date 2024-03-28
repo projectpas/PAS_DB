@@ -34,8 +34,11 @@
     [IsDeleted]                     BIT             CONSTRAINT [DF_VendorPaymentDetailsAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [NonPOInvoiceId]                BIGINT          NULL,
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
+    [CreditMemoHeaderId]            BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditVendorPaymentId] ASC)
 );
+
+
 
 
 

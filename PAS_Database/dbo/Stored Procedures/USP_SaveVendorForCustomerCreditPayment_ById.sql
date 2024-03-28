@@ -13,6 +13,7 @@ EXEC [USP_SaveVendorForCustomerCreditPayment_ById]
 ** --   --------		-------				--------------------------------  
 ** 1    03/08/2024		Devendra Shekh		created
 ** 2    03/26/2024		Devendra Shekh		aded new sp call AddVendorPaymentDetails
+** 3    03/26/2024		Devendra Shekh		aded CASE for vendorId update
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_SaveVendorForCustomerCreditPayment_ById]
@@ -39,7 +40,7 @@ BEGIN
 			CCPD.IsProcessed = @IsProcessed, 
 			CCPD.[ProcessedDate] = CASE WHEN @IsProcessed = 1 THEN GETUTCDATE() ELSE CCPD.[ProcessedDate] END,
 			CCPD.UpdatedDate = GETUTCDATE(),
-			CCPD.VendorId = @VendorId,
+			CCPD.VendorId = CASE WHEN ISNULL(CCPD.VendorId, 0) = 0 THEN @VendorId ELSE CCPD.VendorId END,
 			CCPD.UpdatedBy = @UserName
 		FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)
 		WHERE CCPD.[CustomerCreditPaymentDetailId] = @CustomerCreditPaymentDetailId AND CCPD.MasterCompanyId = @MasterCompanyId;

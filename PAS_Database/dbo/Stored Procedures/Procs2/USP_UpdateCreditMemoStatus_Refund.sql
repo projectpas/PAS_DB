@@ -15,6 +15,7 @@
     2    18/10/2023		Devendra Shekh        MOdified to insert data for customer-refund  
     3    20/10/2023		Devendra Shekh        added mslevel data for customerrefund 
     4    27/10/2023		Devendra Shekh        changed refund to Refund Requested
+    5    27/03/2024		Devendra Shekh        added vendorId
    
  -- exec USP_UpdateCreditMemoStatus_Refund 
 **********************/   
@@ -24,7 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateCreditMemoStatus_Refund]
 	@MasterCompanyId BIGINT,
 	@ManagementStructureId BIGINT,
 	@RefundReqDate DATETIME2,
-	@UserName VARCHAR(100)
+	@UserName VARCHAR(100),
+	@VendorId BIGINT
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -66,8 +68,8 @@ BEGIN
 
 		SELECT @CustomerCode = CustomerCode FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId
 
-		INSERT INTO [dbo].[CustomerRefund]([CustomerId],[CustomerCode],[RefundRequestDate],[Status],[MasterCompanyId],[ManagementStructureId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
-		VALUES (@CustomerId,@CustomerCode,@RefundReqDate,@CustRefStatus,@MasterCompanyId,@ManagementStructureId,@UserName,GETUTCDATE(),@UserName,GETUTCDATE(),1,0)
+		INSERT INTO [dbo].[CustomerRefund]([CustomerId],[CustomerCode],[RefundRequestDate],[Status],[MasterCompanyId],[ManagementStructureId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[VendorId])
+		VALUES (@CustomerId,@CustomerCode,@RefundReqDate,@CustRefStatus,@MasterCompanyId,@ManagementStructureId,@UserName,GETUTCDATE(),@UserName,GETUTCDATE(),1,0,@VendorId)
 
 		SELECT @CustRefundId = SCOPE_IDENTITY()    
 

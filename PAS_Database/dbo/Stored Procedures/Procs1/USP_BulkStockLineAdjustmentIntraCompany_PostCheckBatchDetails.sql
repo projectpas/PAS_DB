@@ -294,7 +294,8 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityAvailable] = @QuantityAvailable - @newqty,
+					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
+												 --[QuantityAvailable] = @QuantityAvailable - @newqty,
 												 [QuantityReserved] = @QuantityReserved - @newqty,
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()

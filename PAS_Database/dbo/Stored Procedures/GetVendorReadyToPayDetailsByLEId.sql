@@ -14,11 +14,13 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------		-------------------------------- 
-	2    18/03/2024   AMIT GHEDIYA		Created
+	1    18/03/2024   AMIT GHEDIYA		Created
+	2    27/03/2024   Devendra Shekh	IsCreditMemo added to where
+	3    27/03/2024   AMIT GHEDIYA		Update to get LE
      
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
+CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
 @LegalEntityId bigint
 AS  
 BEGIN  
@@ -63,16 +65,19 @@ BEGIN
 				  VRTPD.[CheckNumber],
 				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
 				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
-				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
+				  LE.[Name] AS 'LegalEntityName'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
 
 			  UNION
 
@@ -107,12 +112,15 @@ BEGIN
 				  ,VRTPD.[CheckNumber]
 				  ,ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId
 				  ,ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
-				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
+				  LE.[Name] AS 'LegalEntityName'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+				LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 				INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL
@@ -150,16 +158,19 @@ BEGIN
 				  VRTPD.[CheckNumber],
 				  ISNULL(VRTPD.VendorReadyToPayDetailsTypeId, 0) AS VendorReadyToPayDetailsTypeId,
 				  ISNULL(VRTPD.NonPOInvoiceId, 0) AS NonPOInvoiceId,
+				  ISNULL(VRTPD.CustomerCreditPaymentDetailId, 0) AS CustomerCreditPaymentDetailId,
 				  @IsEnforceApproval AS 'IsEnforce',
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
-				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved'
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
+				  LE.[Name] AS 'LegalEntityName'
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK) 
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
+			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL;
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL; --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
   
   
     END TRY  

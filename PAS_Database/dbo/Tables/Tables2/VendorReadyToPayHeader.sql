@@ -19,8 +19,12 @@
     [IsDeleted]             BIT             CONSTRAINT [DF_VendorReadyToPayHeader_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PrintCheck_Wire_Num]   VARCHAR (50)    NULL,
     [LegalEntityId]         BIGINT          NULL,
+    [CheckBatchNum]         VARCHAR (200)   NULL,
+    [CheckBatchDate]        DATETIME        NULL,
     CONSTRAINT [PK_VendorReadyToPayHeader] PRIMARY KEY CLUSTERED ([ReadyToPayId] ASC)
 );
+
+
 
 
 

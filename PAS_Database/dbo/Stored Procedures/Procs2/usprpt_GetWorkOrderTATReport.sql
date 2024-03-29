@@ -17,6 +17,7 @@
  1 30-APR-2022  Hemant  Convert to Angular Reports  
  2 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone      
  3 01/31/2024   Devendra Shekh	added isperforma Flage for WO 
+ 4 03/29/2024   Ekta Chandegra	IsDeleted and IsActive flag is added
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -117,7 +118,8 @@ BEGIN
    LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
   WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
-    AND WO.mastercompanyid = @mastercompanyid  
+    AND WO.mastercompanyid = @mastercompanyid 
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1
     AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
@@ -180,6 +182,7 @@ BEGIN
   WHERE CAST(WOPN.estimatedshipdate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
     AND WO.customerid=ISNULL(@customername,WO.customerid)  
     AND WO.mastercompanyid = @mastercompanyid  
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1
     AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  

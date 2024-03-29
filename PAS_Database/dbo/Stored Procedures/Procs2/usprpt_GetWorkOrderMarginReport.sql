@@ -24,7 +24,7 @@
  6    24/08/2023   BHARGAV SALIYA Convert Dates UTC To LegalEntity Time Zone
  7    04/09/2023   HEMANT SALIYA  Corrected Revenue Balance
  8    01/31/2024   Devendra Shekh added isperforma Flage for WO
- 7    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
+ 9    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  

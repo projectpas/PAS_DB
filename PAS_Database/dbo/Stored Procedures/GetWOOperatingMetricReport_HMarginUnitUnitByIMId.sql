@@ -172,7 +172,7 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
-		Select * from #TempWOOperating
+		--Select * from #TempWOOperating
 		SELECT * INTO #tmpBeforeFinalResult FROM
 		 (SELECT woStage,InvoiceDate,WorkOrderId,openDate,workOrderNum,WorkOrderTypeId,customer, workscopes as workscope ,pn,pnDescription,ItemMasterId ,totalRevenues AS totalRevenue,partsCosts AS partsCost,laborOverheads AS laborOverhead,otherCosts AS otherCost,totalCosts AS totalCost,marginAmounts AS marginAmount
 		 FROM #TempWOOperating) as result

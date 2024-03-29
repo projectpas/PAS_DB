@@ -25,6 +25,7 @@
 	9    07/05/2023   Moin Bloch		    added VendorRMAStatusId.
 	10   07/07/2023   Amit Ghediya		    Removed Duplicated populated items.
 	11   07/07/2023   Moin Bloch            Addred Receiving Qty Field
+	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
@@ -127,6 +128,7 @@ BEGIN
 			RMAD.[UnitCost] AS 'UnitCostType',
 			RMAD.[ExtendedCost] AS 'ExtendedCostType',
 			RMAD.[ReferenceId] AS 'ReferenceIdType',
+			RMAD.RevisedStocklineId,
 			'' AS 'ReplacementDate',
 			'' AS 'ReceiverID',
 			'' AS 'RefundedDate',
@@ -170,7 +172,7 @@ BEGIN
 		),
     FinalResult AS (  
     SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, RMAStatusType, VendorRMAReturnReasonId, ReasonType, ShippedDate, ShipRefrence,   
-      ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType, 
+      ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType,RevisedStocklineId, 
       ReplacementDate, ReceiverID, RefundedDate, RefundedRef, MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, VendorRMADetailStatus, 
 	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,Condition, QuantityReceived FROM Result  
     WHERE  (  
@@ -229,7 +231,7 @@ BEGIN
       ResultCount AS (Select COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
 
       SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, RMAStatusType, VendorRMAReturnReasonId, ReasonType, ShippedDate, ShipRefrence,   
-      ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType, 
+      ReferenceNumberType, IsPORO, ItemMasterId, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType,RevisedStocklineId, 
       ReplacementDate, ReceiverID, RefundedDate, RefundedRef, MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, VendorRMADetailStatus 
 	  VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived, Condition, NumberOfItems FROM FinalResult, ResultCount  
   

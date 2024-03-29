@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    20/02/2024   Moin Bloch     Created
+	2	 29/03/2024   Bhargav Saliya  Get CreditTermsName and NetDays From SO instead of CreditTerms
      
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 10383
 ************************************************************************/
@@ -120,7 +121,7 @@ BEGIN
 			bi.CreatedBy AS PreparedBy,
 			ISNULL(CONVERT(VARCHAR(10), bi.PrintDate, 121),'') AS DatePrinted,
 			ISNULL(saos.[Weight], 0) AS 'Weight',
-			ct.Name AS CreditTerms,
+			so.[CreditTermName] AS CreditTerms,
 			ISNULL(cur.Code, '') AS Currency,
 			so.SalesOrderNumber AS SONum,
 			ISNULL(CONVERT(VARCHAR(10), so.OpenDate, 121),'') AS OrderDate,
@@ -137,7 +138,7 @@ BEGIN
 			so.CustomerReference AS CustomerReference,
 			so.UpdatedDate AS UpdatedDate,
 			ISNULL(cust.CustomerPhone, '') AS CustomerPhone,
-			CASE WHEN bi.PostedDate IS NOT NULL THEN CONVERT(VARCHAR(10), DATEADD(DAY, ct.NetDays, bi.InvoiceDate), 121)
+			CASE WHEN bi.PostedDate IS NOT NULL THEN CONVERT(VARCHAR(10), DATEADD(DAY, so.NetDays, bi.InvoiceDate), 121)
 				 ELSE ''
 			END AS DueDate,
 			bi.InvoiceDate AS NewDateAndTime,
@@ -173,7 +174,7 @@ BEGIN
 		 LEFT JOIN  [dbo].[Employee] AS sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId
 		 LEFT JOIN  [dbo].[Countries] AS cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 		 LEFT JOIN  [dbo].[Currency] AS cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
-		 LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
+		 --LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
 		 LEFT JOIN  [dbo].[SalesOrderBillingInvoicingItem] AS sabi WITH(NOLOCK) ON bi.SOBillingInvoicingId = sabi.SOBillingInvoicingId
 		 LEFT JOIN  [dbo].[SalesOrderShipping] AS saos WITH(NOLOCK) ON sabi.SalesOrderShippingId = saos.SalesOrderShippingId AND saos.SalesOrderId = @SalesOrderId

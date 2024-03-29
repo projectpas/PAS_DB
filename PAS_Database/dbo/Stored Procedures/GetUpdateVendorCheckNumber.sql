@@ -35,7 +35,7 @@ BEGIN
 		SELECT @StartNumber = StartNum FROM [dbo].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
 		IF(@StartNumber != (@UpdatedNumber -1))
 		BEGIN
-			UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber
+			UPDATE [dbo].[PrintCheckSetup] SET StartNum = @UpdatedNumber - 1
 			WHERE PrintingId = @PrintingId;
 		END
 	END

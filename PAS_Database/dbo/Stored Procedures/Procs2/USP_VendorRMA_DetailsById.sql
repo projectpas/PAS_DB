@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_VendorRMA_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Details
@@ -12,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/15/2023   Moin Bloch     Created
+	2    29-03-2024   Shrey Chandegara            Add RevisedStocklineId
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
@@ -47,6 +47,7 @@ BEGIN
 				  ,VD.[VendorRMAId]
 				  ,VD.[RMANum]
 				  ,VD.[StockLineId]
+				  ,VD.[RevisedStocklineId]
 				  ,SL.[StockLineNumber]
 				  ,SL.[IdNumber]
 				  ,SL.[ControlNumber]

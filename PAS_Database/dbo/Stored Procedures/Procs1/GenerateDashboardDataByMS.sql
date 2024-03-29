@@ -65,20 +65,14 @@ BEGIN
 		AND RC.MasterCompanyId = @MasterCompanyId
 
 		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork
-
-		SELECT DISTINCT wop.ID,WOBI.GrandTotal
-		INTO #tmpWorkOrderBillingInvoicing		
+		SELECT DISTINCT WOBI.GrandTotal
+		INTO #tmpWorkOrderBillingInvoicing
 		FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-		INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-		LEFT JOIN DBO.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId
-		LEFT JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = WO.WorkOrderId
-		LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
-		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ',')) AND EUR.EmployeeId = @EmployeeId
 		WHERE WOBI.IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) 
 		AND WOBI.MasterCompanyId = @MasterCompanyId
-		SELECT @WOBillingAmt = SUM(GrandTotal) FROM #tmpWorkOrderBillingInvoicing		
+
+		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
 		SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 		INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId

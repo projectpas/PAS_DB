@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
 	1	 02-MAY-2022   Hemant				Added Updated for Upper Case
 	2    16-JUNE-2023   Devendra Shekh        made changes TO DO TOTAL
+	3    29-MARCH-2024  Ekta Chandegra     IsDeleted and IsActive flag is added
 	
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -112,6 +113,7 @@ BEGIN
 					  AND CAST(PO.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  					  
 					  AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 					  AND PO.mastercompanyid = @mastercompanyid
+					  AND PO.IsDeleted = 0 AND PO.IsActive = 1
 					  AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))
 					  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -173,6 +175,7 @@ BEGIN
 				AND CAST(PO.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
 				AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 				AND PO.mastercompanyid = @mastercompanyid
+				AND PO.IsDeleted = 0 AND PO.IsActive = 1
 				AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))
 				AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))

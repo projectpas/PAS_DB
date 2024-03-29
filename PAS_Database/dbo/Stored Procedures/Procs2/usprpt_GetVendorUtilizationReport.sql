@@ -14,7 +14,8 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------     -------			--------------------------------          
 	1
-	2    16-JUNE-203   Devendra Shekh        made changes TO DO TOTAL
+	2    16-JUNE-2023   Devendra Shekh        made changes TO DO TOTAL
+	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	
 **************************************************************/
 
@@ -104,6 +105,7 @@ BEGIN
    AND CAST(PO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
    AND (PO.StatusId IN (SELECT value FROM String_split(@status, ',')) OR ISNULL(@status,'') = '')   
    AND PO.mastercompanyid = @mastercompanyid AND   
+   PO.IsDeleted = 0 AND PO.IsActive =1 AND
    (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
     AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
@@ -187,7 +189,8 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
       WHERE PO.VendorId = ISNULL(@vendorname,PO.VendorId)   
   AND CAST(PO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
   AND (PO.StatusId IN (SELECT value FROM String_split(@status, ',')) OR ISNULL(@status,'') = '')   
-  AND PO.mastercompanyid = @mastercompanyid AND   
+  AND PO.mastercompanyid = @mastercompanyid AND  
+  PO.IsDeleted = 0 AND PO.IsActive =1 AND
   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
    AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
    AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  

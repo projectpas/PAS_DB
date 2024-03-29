@@ -42,6 +42,7 @@ BEGIN
           ,CM.[Amount]	
 		  ,CM.[SalesTax]
 		  ,CM.[OtherTax]
+		  ,CM.[PartsUnitCost]
 		  ,CM.[PartsRevenue]
 		  ,CM.[LaborRevenue]
 		  ,CM.[MiscRevenue]

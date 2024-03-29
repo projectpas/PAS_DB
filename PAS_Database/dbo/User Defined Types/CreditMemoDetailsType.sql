@@ -34,6 +34,7 @@
     [IsDeleted]              BIT             NULL,
     [RMADeatilsId]           BIGINT          NULL,
     [BillingInvoicingItemId] BIGINT          NULL,
+    [PartsUnitCost]          DECIMAL (18, 2) NULL,
     [PartsRevenue]           DECIMAL (18, 2) NULL,
     [LaborRevenue]           DECIMAL (18, 2) NULL,
     [MiscRevenue]            DECIMAL (18, 2) NULL,
@@ -43,6 +44,8 @@
     [CogsLabor]              DECIMAL (18, 2) NULL,
     [CogsOverHeadCost]       DECIMAL (18, 2) NULL,
     [CogsInventory]          DECIMAL (18, 2) NULL);
+
+
 
 
 

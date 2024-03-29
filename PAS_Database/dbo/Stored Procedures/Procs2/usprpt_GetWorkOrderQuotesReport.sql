@@ -15,8 +15,10 @@
  ** S NO   Date            Author          Change Description                
  ** --   --------         -------          --------------------------------              
     1    09-May-2022  Mahesh Sorathiya   Created    
- 2    30-June-2023  Devendra Shekh      Made changes for total    
- 3    04-Sep-2023   Bhargav Saliya      Excel Data Order By Issue REsolved Using [OrderByDate] Field
+	2    30-June-2023  Devendra Shekh      Made changes for total    
+	3    04-Sep-2023   Bhargav Saliya      Excel Data Order By Issue REsolved Using [OrderByDate] Field
+	4    29-MARCH-2024  Ekta Chandegra     IsActive and IsDeleted flag is added
+
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderQuotesReport]   
 @PageNumber int = 1,  
@@ -102,6 +104,7 @@ BEGIN
    LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  
     WHERE WOQ.CustomerId=ISNULL(@customerid,WOQ.CustomerId)    
     AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WOQ.MasterCompanyId = @mastercompanyid  
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1
     AND    
     (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
      AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -180,7 +183,8 @@ BEGIN
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  
       WHERE WOQ.CustomerId=ISNULL(@customerid,WOQ.CustomerId)    
       AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WOQ.MasterCompanyId = @mastercompanyid  
-   AND    
+   	AND WO.IsDeleted = 0 AND WO.IsActive = 1
+   AND  
    (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))  
     AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  

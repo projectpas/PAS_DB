@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    06-May-2022  Mahesh Sorathiya   Created  
     2    31-JAN-2024   Devendra Shekh	added isperforma Flage for WO
+    3    29-MARCH-2024 Ekta Chandegra	IsDeleted and IsActive flag is added
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
@@ -103,6 +104,7 @@ BEGIN
 			LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 
 		  WHERE WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 				AND CAST(WOS.ShipDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
+				AND WO.IsDeleted = 0 AND WO.IsActive = 1
 				AND  
 				(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -163,6 +165,7 @@ BEGIN
         LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 
       WHERE WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 		    AND CAST(WOS.ShipDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
+			AND WO.IsDeleted = 0 AND WO.IsActive = 1
 			AND  
 			(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

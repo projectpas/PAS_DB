@@ -30,7 +30,8 @@ Begin
 			 DisplayOrder int null,
 			 IsReport bit null,
 			 ShowAsTopMenu bit null,
-			 NewModuleIcon varchar(200) null
+			 NewModuleIcon varchar(200) null,
+			 NewMenuName varchar(1000) null
 			)
 
 
@@ -63,16 +64,16 @@ Begin
 			End
 			Else
 			Begin
-				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon)
+				;WITH MenuSettings1(ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID, CreateMenu, ModuleID, DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName)
 				AS
 				(
 					SELECT M.ID,M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, R.PermissionID, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,
-					M.ShowAsTopMenu,M.NewModuleIcon
+					M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK)
 					INNER JOIN dbo.RolePermission R WITH (NOLOCK) ON R.ModuleHierarchyMasterId = M.Id
 					WHERE R.UserRoleId in (Select * from [dbo].[SplitString](@RoleId, ','))
 					UNION ALL 
-					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon
+					SELECT M.ID, M.Name as MenuName, M.ParentID, M.IsMenu, M.ModuleIcon, M.RouterLink, M1.PermissionId, M.IsCreateMenu, M.Moduleid, M.DisplayOrder,M.IsReport,M.ShowAsTopMenu,M.NewModuleIcon,M.NewMenuName
 					FROM dbo.ModuleHierarchyMaster M WITH (NOLOCK) 
 					INNER JOIN MenuSettings1 M1 ON M1.ParentID = M.ID
 				)
@@ -85,7 +86,7 @@ Begin
 				SELECT id FROM #TempTable T WHERE CreateMenu = 1  
 						 AND (SELECT count(id) FROM #TempTable where ISNULL(ModuleId, 0) = T.ModuleId AND  PermissionID = 1) > 0)
 
-				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon
+				SELECT ID, Name, ParentID, IsMenu, ModuleIcon, RouterLink, PermissionID,DisplayOrder,IsReport,ShowAsTopMenu,NewModuleIcon,NewMenuName
 				FROM  #TempTable Order By DisplayOrder
 			End
 

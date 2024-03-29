@@ -17,6 +17,7 @@
 	1    18/03/2024   AMIT GHEDIYA		Created
 	2    27/03/2024   Devendra Shekh	IsCreditMemo added to where
 	3    27/03/2024   AMIT GHEDIYA		Update to get LE
+	4    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
      
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
@@ -70,7 +71,8 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  LE.[Name] AS 'LegalEntityName'
+				  LE.[Name] AS 'LegalEntityName',
+				  VRTPD.CreatedDate
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
@@ -78,6 +80,7 @@ BEGIN
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
 			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
+			 
 
 			  UNION
 
@@ -117,7 +120,8 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  LE.[Name] AS 'LegalEntityName'
+				  LE.[Name] AS 'LegalEntityName',
+				  VRTPD.CreatedDate
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 				LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 				LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
@@ -163,15 +167,16 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  LE.[Name] AS 'LegalEntityName'
+				  LE.[Name] AS 'LegalEntityName',
+				  VRTPD.CreatedDate
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK) 
 			 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			 LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL; --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
-  
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
+			 ORDER BY VRTPD.CreatedDate desc
   
     END TRY  
  BEGIN CATCH        

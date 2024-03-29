@@ -16,7 +16,8 @@
 	2	 01/31/2024		Devendra Shekh				added isperforma Flage for WO
 	3	 01/02/2024	    AMIT GHEDIYA	            added isperforma Flage for SO
 	4    03/07/2024     Bhargav Saliya				Fixed duplicate Record Issue
-	6    19 March 2024 Bhargav Saliya				Resolved Count Issue in MRO Dashboard 
+	6    19 March 2024  Bhargav Saliya				Resolved Count Issue(MRO Inputs) in MRO Dashboard 
+	7	 28 March 2024  Bhargav Saliya				Resolve Snapshot: MRO Billing amount issue
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -64,16 +65,14 @@ BEGIN
 		AND RC.MasterCompanyId = @MasterCompanyId
 
 		SELECT @Qty = COUNT(ReceivingCustomerWorkId) FROM #tmpReceivingCustomerWork
-
-		SELECT @WOBillingAmt = SUM(WOBI.GrandTotal) FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-		LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-		INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-		INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+		SELECT DISTINCT WOBI.GrandTotal
+		INTO #tmpWorkOrderBillingInvoicing
+		FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId IN (SELECT item FROM dbo.SplitString(@EmployeeRoleID, ',')) AND EUR.EmployeeId = @EmployeeId
 		WHERE WOBI.IsVersionIncrease = 0 AND CONVERT(DATE, InvoiceDate) = CONVERT(DATE, @SelectedDate) 
 		AND WOBI.MasterCompanyId = @MasterCompanyId
-		GROUP BY CAST(InvoiceDate AS DATE)
+
+		Select @WOBillingAmt = SUM(GrandTotal) from #tmpWorkOrderBillingInvoicing	
 
 		SELECT @PartsSaleBillingAmt = SUM(GrandTotal) FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
 		INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId

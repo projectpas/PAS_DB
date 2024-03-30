@@ -54,6 +54,7 @@ BEGIN
 				TARGET.[FreightRevenue] = SOURCE.FreightRevenue,  
 				TARGET.[RestockingFee] = SOURCE.RestockingFee,  
 				TARGET.[CogsParts] = SOURCE.CogsParts,  
+				TARGET.[COGSPartsUnitCost] = SOURCE.COGSPartsUnitCost,  
 				TARGET.[CogsLabor] = SOURCE.CogsLabor,  
 				TARGET.[CogsOverHeadCost] = SOURCE.CogsOverHeadCost,  
 				TARGET.[CogsInventory] = SOURCE.CogsInventory,  
@@ -76,13 +77,13 @@ BEGIN
 			WHEN NOT MATCHED BY TARGET  
 			THEN  
 			INSERT([CreditMemoHeaderId],[RMAHeaderId],[InvoiceId],[ItemMasterId],[PartNumber],  
-				[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],[Qty],[UnitPrice],[SalesTax], [OtherTax], [PartsUnitCost],  
+				[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],[Qty],[UnitPrice],[SalesTax], [OtherTax], [PartsUnitCost], [COGSPartsUnitCost],  
 				[PartsRevenue],[LaborRevenue],[MiscRevenue], [FreightRevenue], [RestockingFee], [CogsParts], [CogsLabor], [CogsOverHeadCost], [CogsInventory],
 				[Amount],[ReasonId],[Reason],[StocklineId],[StocklineNumber],[ControlNumber],[ControlId],  
 				[ReferenceId],[ReferenceNo],[SOWONum],[Notes],[IsWorkOrder],[MasterCompanyId],[CreatedBy],  
 				[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId],BillingInvoicingItemId)  
 			VALUES(SOURCE.CreditMemoHeaderId,SOURCE.RMAHeaderId,SOURCE.InvoiceId,SOURCE.ItemMasterId,SOURCE.PartNumber,  
-				SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice, SOURCE.SalesTax, SOURCE.OtherTax , SOURCE.PartsUnitCost,
+				SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice, SOURCE.SalesTax, SOURCE.OtherTax , SOURCE.PartsUnitCost, SOURCE.COGSPartsUnitCost,
 				SOURCE.PartsRevenue,SOURCE.LaborRevenue,SOURCE.MiscRevenue,SOURCE.FreightRevenue,SOURCE.RestockingFee,SOURCE.CogsParts,SOURCE.CogsLabor,SOURCE.CogsOverHeadCost,SOURCE.CogsInventory,   
 				SOURCE.Amount,SOURCE.ReasonId,SOURCE.Reason,SOURCE.StocklineId,SOURCE.StocklineNumber,SOURCE.ControlNumber,SOURCE.ControlId,  
 				SOURCE.ReferenceId,SOURCE.ReferenceNo,SOURCE.SOWONum,SOURCE.Notes,SOURCE.IsWorkOrder,SOURCE.MasterCompanyId,SOURCE.CreatedBy,  

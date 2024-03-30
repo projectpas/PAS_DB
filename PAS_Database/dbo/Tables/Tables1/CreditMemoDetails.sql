@@ -44,8 +44,11 @@
     [CogsOverHeadCost]       DECIMAL (18, 2) NULL,
     [CogsInventory]          DECIMAL (18, 2) NULL,
     [PartsUnitCost]          DECIMAL (18, 2) NULL,
+    [COGSPartsUnitCost]      DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_CreditMemoDetails] PRIMARY KEY CLUSTERED ([CreditMemoDetailId] ASC)
 );
+
+
 
 
 

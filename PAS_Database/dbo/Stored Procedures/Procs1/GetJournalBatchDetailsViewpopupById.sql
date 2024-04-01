@@ -42,6 +42,8 @@
  26	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
  27	  18/01/2024  AMIT GHEDIYA           added MJE For Manual Journal
  28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE
+ 
+ 29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -828,16 +830,25 @@ BEGIN
 				DECLARE @WOBModuleId BIGINT;  
 				DECLARE @IsStandAloneCM BIGINT; 
 				DECLARE @SACMModuleId BIGINT;
+				DECLARE @SuspenseMSModuleId BIGINT;
+				DECLARE @iSCustomerCreditPayment BIGINT;
 				--PRINT 'CMDA'
 
 				SELECT @WOBModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
 				SELECT @SOBModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SalesOrder';
 				SELECT @SACMModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='StandAloneCreditMemoDetails';
+				SELECT @SuspenseMSModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SuspenseAndUnAppliedPayment';
 
 				--Check is from Stand alone CM.
 				SELECT TOP 1  @IsStandAloneCM = CM.StandAloneCreditMemoDetailId FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)
 				LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] SBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SBD.[CommonJournalBatchDetailId] 
 				LEFT JOIN [dbo].[StandAloneCreditMemoDetails] CM WITH (NOLOCK) ON SBD.[ReferenceId] = CM.[StandAloneCreditMemoDetailId]
+				WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = 0;
+
+				--Check is from Customer Credit Payment.
+				SELECT TOP 1  @iSCustomerCreditPayment = CCPD.[CustomerCreditPaymentDetailId] FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)
+				LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SUPBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SUPBD.[CommonJournalBatchDetailId] 
+				LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH (NOLOCK) ON SUPBD.[ReferenceId] = CCPD.[CustomerCreditPaymentDetailId]
 				WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = 0;
 
 				IF(@IsStandAloneCM IS NOT NULL)
@@ -893,6 +904,67 @@ BEGIN
 						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
 						 LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] SBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SBD.[CommonJournalBatchDetailId] 
 						 LEFT JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @SACMModuleId AND SBD.[ReferenceId] = MSD.[ReferenceID]
+						 LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]  
+						 LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GLA.GLAccountTypeId 
+						 LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]
+						 LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.[Level1Id] = msl.[ID]  
+						 LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON msl.[LegalEntityId] = LET.[LegalEntityId] 
+						 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BTD.StatusId = BS.Id
+					WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = 0;
+				END
+				ELSE IF(@iSCustomerCreditPayment IS NOT NULL)
+				BEGIN
+					SELECT JBD.CommonJournalBatchDetailId  
+					  ,JBD.[JournalBatchDetailId]  
+					  ,JBH.[JournalBatchHeaderId]  
+					  ,JBH.[BatchName]  
+					  ,JBD.[LineNumber]  
+					  ,JBD.[GlAccountId]  
+					  ,JBD.[GlAccountNumber]  
+					  ,JBD.[GlAccountName] 
+					  ,GLC.[GLAccountClassName]
+					  ,JBD.[TransactionDate]  
+					  ,JBD.[EntryDate]  
+					  ,JBD.[JournalTypeId]  
+					  ,JBD.[JournalTypeName]  
+					  ,JBD.[IsDebit]  
+					  ,JBD.[DebitAmount]  
+					  ,JBD.[CreditAmount]  
+					  ,'' AS [ARControlNum]  
+					  ,JBD.[ManagementStructureId]  
+					  ,JBD.[ModuleName]                 
+					  ,JBD.[MasterCompanyId]  
+					  ,JBD.[CreatedBy]  
+					  ,JBD.[UpdatedBy]  
+					  ,JBD.[CreatedDate]  
+					  ,JBD.[UpdatedDate]  
+					  ,JBD.[IsActive]  
+					  ,JBD.[IsDeleted]  
+					  ,GLA.[AllowManualJE]  
+					  ,JBD.[LastMSLevel]  
+					  ,JBD.[AllMSlevels]  
+					  ,JBD.[IsManualEntry]  
+					  ,JBD.[DistributionSetupId]  
+					  ,JBD.[DistributionName]  
+					  ,LET.[CompanyName] AS LegalEntityName  
+					  ,BTD.[JournalTypeNumber]  
+					  ,BTD.[CurrentNumber]  
+					  ,BS.Name AS 'Status',
+					  UPPER(MSD.Level1Name) AS level1, 
+					  UPPER(MSD.Level2Name) AS level2,
+					  UPPER(MSD.Level3Name) AS level3,
+					  UPPER(MSD.Level4Name) AS level4,
+					  UPPER(MSD.Level5Name) AS level5,
+					  UPPER(MSD.Level6Name) AS level6,
+					  UPPER(MSD.Level7Name) AS level7,
+					  UPPER(MSD.Level8Name) AS level8,
+					  UPPER(MSD.Level9Name) AS level9,
+					  UPPER(MSD.Level10Name) AS level10
+					FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
+						 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
+						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
+						 LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SUPBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SUPBD.[CommonJournalBatchDetailId] 
+						 LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @SuspenseMSModuleId AND SUPBD.[ReferenceId] = MSD.[ReferenceID]
 						 LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]  
 						 LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GLA.GLAccountTypeId 
 						 LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]

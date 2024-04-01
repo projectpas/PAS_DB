@@ -14,6 +14,7 @@
     2    12/29/2021   Devendra Shekh			changes to get kit stk as well
     3    01/01/2021   Devendra Shekh			changes for stockline joins
 	4    27/03/2021   Moin Bloch			    Added new Field IsGenerateReleaseForm
+	5    28/03/2021   Moin Bloch			    Added new Field ConditionId	
      
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
@@ -107,7 +108,8 @@ BEGIN
 						SL.UpdatedDate,
 						Upper(SL.CreatedBy) CreatedBy,
 						Upper(SL.UpdatedBy) UpdatedBy,
-						ISNULL(SL.IsGenerateReleaseForm,0) IsGenerateReleaseForm
+						ISNULL(SL.IsGenerateReleaseForm,0) IsGenerateReleaseForm,
+						SL.ConditionId
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId

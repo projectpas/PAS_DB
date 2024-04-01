@@ -60,7 +60,8 @@ CREATE   PROCEDURE [dbo].[VendorPaymentList]
 @DiscountToken varchar(50)=null,
 @DifferenceAmount varchar(50)=null,
 @PaymentMethod varchar(50)=null,
-@PaymentRef varchar(50)=null
+@PaymentRef varchar(50)=null,
+@CheckCrashed varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -465,7 +466,8 @@ BEGIN
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
-	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
+	   (CheckCrashed LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -483,7 +485,8 @@ BEGIN
 	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') AND
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
-	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))  
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
+	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%'))  
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate, DueDate, DaysPastDue,  
@@ -727,7 +730,8 @@ BEGIN
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
-	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
+	   (CheckCrashed LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -745,7 +749,8 @@ BEGIN
 	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') ANd
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
-	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%')) 
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
+	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%')) 
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,DueDate, DaysPastDue ,
@@ -1196,7 +1201,8 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate
@@ -1241,7 +1247,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1288,7 +1294,8 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate
@@ -1332,7 +1339,8 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
-	     AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
+	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate

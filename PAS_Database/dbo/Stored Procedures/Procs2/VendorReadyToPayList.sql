@@ -441,6 +441,7 @@ BEGIN
 				NonPOInvoiceId = 0,
 				CCPD.[CustomerCreditPaymentDetailId]
 			FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)  
+					LEFT JOIN [dbo].[VendorReadyToPayDetails] VRPD WITH(NOLOCK) ON CCPD.[CustomerCreditPaymentDetailId] = VRPD.[CustomerCreditPaymentDetailId]  
 					INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = CCPD.ReceiptId	
 					INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON CCPD.VendorId = V.VendorId  
 					LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
@@ -451,6 +452,7 @@ BEGIN
 		        AND [VPD].[RemainingAmount] > 0
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ISNULL(CCPD.IsProcessed,0) = 1
+				AND  CCPD.IsMiscellaneous = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND CP.LegalEntityId = @LegalEntityId
 

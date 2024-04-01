@@ -9,6 +9,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    01/31/2024   AMIT GHEDIYA	Created
+	2    04/01/2024   Bhargav Saliya  CreditTerms Changes
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
 	@SalesOrderPartId BIGINT,
@@ -34,7 +35,7 @@ SET NOCOUNT ON;
 					   so.SalesPersonId, 
 					   cf.CreditLimit, 
 					   cf.CreditTermsId, 
-					   ct.[Name] AS CreditTerm, 
+					   so.[CreditTermName] AS CreditTerm, 
 					   cf.CurrencyId,
 					   so.TypeId, 
 					   sotype.[Name] AS RevType, 
@@ -45,7 +46,7 @@ SET NOCOUNT ON;
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
 				LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
-				INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
+				--INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
@@ -70,7 +71,7 @@ SET NOCOUNT ON;
 				   so.SalesPersonId, 
 				   cf.CreditLimit, 
 				   cf.CreditTermsId, 
-				   ct.[Name] AS CreditTerm, 
+				   so.[CreditTermName] AS CreditTerm, 
 				   cf.CurrencyId,
 				   so.TypeId, 
 				   sotype.[Name] AS RevType, 
@@ -81,7 +82,7 @@ SET NOCOUNT ON;
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
 			LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
-			INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
+			--INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
 			LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 			LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 			INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId

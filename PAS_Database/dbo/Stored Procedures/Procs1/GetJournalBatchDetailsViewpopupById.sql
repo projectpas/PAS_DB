@@ -41,6 +41,7 @@
  25	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
  26	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
  27	  18/01/2024  AMIT GHEDIYA           added MJE For Manual Journal
+ 28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -1191,7 +1192,7 @@ BEGIN
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 				 ORDER BY DS.DisplayNumber ASC;  
 			END 
-			IF(UPPER(@Module) = UPPER('SADJ-INTERCOTRANS-LE') OR UPPER(@Module) = UPPER('SADJ-INTRACOTRANS-DIV'))  
+			IF(UPPER(@Module) = UPPER('INTERCOTRANS-LE') OR UPPER(@Module) = UPPER('INTRACOTRANS-DIV'))  
 			BEGIN  
 				DECLARE @blkSTKLEModuleID INT = 2; 
 				DECLARE @ManagementStructureModuleLEId BIGINT = 0;   

@@ -43,7 +43,10 @@
     [CogsParts]              DECIMAL (18, 2) NULL,
     [CogsLabor]              DECIMAL (18, 2) NULL,
     [CogsOverHeadCost]       DECIMAL (18, 2) NULL,
-    [CogsInventory]          DECIMAL (18, 2) NULL);
+    [CogsInventory]          DECIMAL (18, 2) NULL,
+    [COGSPartsUnitCost]      DECIMAL (18, 2) NULL);
+
+
 
 
 

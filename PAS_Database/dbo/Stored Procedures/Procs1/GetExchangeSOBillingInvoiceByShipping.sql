@@ -3,6 +3,12 @@
  ** Author:   Deep Patel
  ** Description: Get Billing Data based on Shipping id.
  ** Date:   11-July-2021
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date			  Author					Change Description            
+ ** --   --------		 -------				--------------------------------          
+    2	 29-MAR-2024	Bhargav Saliya		Get CreditTermName from [ExchangeSalesOrder] table 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetExchangeSOBillingInvoiceByShipping]
 	@ExchangeSalesOrderShippingId bigint
@@ -15,7 +21,7 @@ BEGIN
 	BEGIN
 		SELECT sop.ExchangeSalesOrderId, sop.ExchangeSalesOrderPartId, sos.ExchangeSalesOrderShippingId, sos.ShipDate, so.ExchangeSalesOrderNumber, CONCAT(emp.FirstName, ' ', emp.LastName) as EmployeeName,
 		so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
-		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, ct.[Name] as CreditTerm, cf.CurrencyId,
+		so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
 		so.TypeId, sotype.[Name] AS RevType, sosi.QtyShipped as NoofPieces
 		FROM DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) 
 		INNER JOIN DBO.ExchangeSalesOrderPart sop WITH (NOLOCK) ON sop.ExchangeSalesOrderId = sos.ExchangeSalesOrderId
@@ -23,7 +29,7 @@ BEGIN
 		INNER JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) ON so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 		INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId
-		INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
+		--INNER JOIN DBO.CreditTerms ct WITH (NOLOCK) ON ct.CreditTermsId = cf.CreditTermsId
 		LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 		LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 		INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype ON sotype.Id = so.TypeId

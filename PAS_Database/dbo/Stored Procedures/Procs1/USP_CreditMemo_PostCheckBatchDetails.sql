@@ -24,8 +24,9 @@
 	8    11/21/2023   HEMANT SALIYA		Updated Journal Type Id and Name in Batch Details
 	9    11/23/2023   Moin Bloch		Modify(LastMSLevel,AllMSlevels Issue Resolved)
 	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
+	11   11/21/2023   HEMANT SALIYA		Updated for Accounting Entry Changes
 
-	EXEC USP_CreditMemo_PostCheckBatchDetails 216
+	EXEC USP_CreditMemo_PostCheckBatchDetails 156
      
 **************************************************************/
 
@@ -62,53 +63,33 @@ BEGIN
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @Distributionname VARCHAR(200) 
 		DECLARE @GlAccountId INT
-		DECLARE @StartsFrom VARCHAR(200)='00'
 		DECLARE @GlAccountName VARCHAR(200) 
 		DECLARE @GlAccountNumber VARCHAR(200) 
-		DECLARE @ExtAmount DECIMAL(18,2)
-		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId BIGINT
 		DECLARE @LastMSLevel VARCHAR(200)
 		DECLARE @AllMSlevels VARCHAR(MAX)
-		DECLARE @ModuleId INT
 		DECLARE @TotalDebit DECIMAL(18, 2) =0;
 		DECLARE @TotalCredit DECIMAL(18, 2) =0;
 		DECLARE @TotalBalance DECIMAL(18, 2) =0;
-		DECLARE @ExtNumber VARCHAR(20);
-		DECLARE @VendorName VARCHAR(50);
+		DECLARE @DocumentNumber VARCHAR(20);
 		DECLARE @ExtDate DATETIME;
-		DECLARE @stklineId BIGINT;
 		DECLARE @DistributionCodeName VARCHAR(100);
 		DECLARE @CrDrType INT=0;
 		DECLARE @CodePrefix VARCHAR(50);
-		DECLARE @FinalSaleAsset DECIMAL(18,2)=0;
-		DECLARE @BenifitAmount DECIMAL(18,2)=0;
-		DECLARE @IsSaleAssetDRCR INT = 0;
-		DECLARE @SaleAssetDRCR INT = 1;
-		DECLARE @AssetInventoryName VARCHAR(100);
 		DECLARE @IsWorkOrder INT;
-		DECLARE @InvoiceNumber VARCHAR(100);
 		DECLARE @MasterLoopID AS INT;
-		DECLARE @CommonJournalBatchDetailId BIGINT;
 		DECLARE @InvoiceReferenceId BIGINT;
-		DECLARE @IsWorkOrdermnt INT;
-		DECLARE @InvoiceNumbermnt VARCHAR(100);
-		DECLARE @JournalBatchDetailIdmnt BIGINT;
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @AppModuleId INT = 0;
-		DECLARE @InvoiceId BIGINT;
-		DECLARE @WorkFlowWorkOrderId  BIGINT;
-		DECLARE  @temptotaldebitcount DECIMAL(18,2)=0,@temptotalcreditcount DECIMAL(18,2)=0;
+		DECLARE @CreditMemoDetailId BIGINT;
+		DECLARE @temptotaldebitcount DECIMAL(18,2)=0;
+		DECLARE @temptotalcreditcount DECIMAL(18,2)=0;
 		
 		SELECT @ApprovedStatusId = Id, @ApprovedStatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Posted';
-
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
-
-		SET @DistributionCodeName = 'CMDA';
-
 		SELECT @CodeTypeId = CodeTypeId FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE CodeType = 'JournalType';
 
-		--tmpCodePrefixes table.
+		--TMPCODEPREFIXES TABLE.
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpCodePrefixes
@@ -125,41 +106,13 @@ BEGIN
 			StartsFrom BIGINT NULL,
 		)    
 
-		--Reading ManagementStructureId from condition base.
-		SELECT @UpdateBy = CreatedBy,@InvoiceNumbermnt = InvoiceNumber,@IsWorkOrdermnt = IsWorkOrder,
-		      @MasterCompanyId = MasterCompanyId 
-		FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
-		
-		IF(@IsWorkOrdermnt = 0)
-		BEGIN 
-			--PRINT 'SO'
-			SELECT TOP 1 @JournalBatchDetailIdmnt = JournalBatchDetailId FROM [DBO].[SalesOrderBatchDetails] WITH(NOLOCK) 
-			WHERE DocumentNumber = @InvoiceNumbermnt;
-
-			SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) 
-			WHERE JournalBatchDetailId = @JournalBatchDetailIdmnt;
-
-			SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
-			SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
-		END
-		ELSE IF(@IsWorkOrdermnt = 1)
-		BEGIN
-			--PRINT 'WO'
-			SELECT TOP 1 @JournalBatchDetailIdmnt = JournalBatchDetailId FROM [DBO].[WorkOrderBatchDetails] WITH(NOLOCK) 
-			WHERE InvoiceName = @InvoiceNumbermnt;
-
-			SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) 
-			WHERE JournalBatchDetailId = @JournalBatchDetailIdmnt;
-
-			SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
-			SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
-		END
-
-		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('CMDISACC');
-		SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
-		SELECT @JournalTypeId = ID, @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
-		SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
-		SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+		--READING MANAGEMENTSTRUCTUREID FROM CONDITION BASE.
+		SELECT @UpdateBy = CreatedBy, @IsWorkOrder = ISNULL(IsWorkOrder, 0), @DocumentNumber = CreditMemoNumber , @MasterCompanyId = MasterCompanyId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+		SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode) = UPPER('CMDISACC');
+		SELECT @StatusId = Id, @StatusName = [name] FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
+		SELECT @JournalTypeId = ID, @JournalTypeCode = JournalTypeCode, @JournalTypename = JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
+		SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId = @StatusId
+		SELECT @CurrentManagementStructureId = ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) AND MasterCompanyId = @MasterCompanyId
 		
 		DECLARE @IsRestrict INT;
 		DECLARE @IsAccountByPass BIT;
@@ -196,10 +149,6 @@ BEGIN
 				END
 
 	--------------------------------------------------------------------------------------------------------------------------
-		
-			--Get BatchDetails from tables.
-			SELECT @IsWorkOrder = IsWorkOrder, @InvoiceNumber = InvoiceNumber, @InvoiceId = InvoiceId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
-		
 			--tmpCommonJournalBatchDetail table.
 			IF OBJECT_ID(N'tempdb..#tmpCommonJournalBatchDetail') IS NOT NULL
 			BEGIN
@@ -210,11 +159,11 @@ BEGIN
 			CREATE TABLE #tmpCommonJournalBatchDetail
 			(
 				ID BIGINT NOT NULL IDENTITY, 
-				CommonJournalBatchDetailId BIGINT NULL,
-				InvoiceReferenceId BIGINT NULL,
+				CreditMemoHeaderId BIGINT NULL,
+				CreditMemoDetailId BIGINT NULL,
 			)
 
-			--tmpCommonBatchDetails table.
+			--#TMPCOMMONBATCHDETAILS TABLE.
 			IF OBJECT_ID(N'tempdb..#tmpCommonBatchDetails') IS NOT NULL
 			BEGIN
 				DROP TABLE #tmpCommonBatchDetails
@@ -233,46 +182,268 @@ BEGIN
 				JournalTypeId BIGINT NULL,
 				JournalTypeName VARCHAR(100) NULL,
 				DistributionSetupId BIGINT NULL,
-				DistributionName VARCHAR(100) NULL
+				DistributionName VARCHAR(100) NULL,
+				BillingInvoicingItemId BIGINT NULL,
+				InvoiceReferenceId BIGINT NULL,
+				LastMSLevel VARCHAR(MAX) NULL,
+				AllMSlevels VARCHAR(MAX) NULL
 			)
 
-			--insert records in tmpCommonJournalBatchDetail if records are availables.
+			--INSERT RECORDS IN #TMPCOMMONJOURNALBATCHDETAIL IF RECORDS ARE AVAILABLES.
 			IF(@IsWorkOrder = 0)
 			BEGIN
-				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SalesOrder';
-
-				INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
-				SELECT CommonJournalBatchDetailId,SalesOrderId FROM [DBO].[SalesOrderBatchDetails] WITH(NOLOCK) WHERE DocumentNumber = @InvoiceNumber;
+				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='Stockline';
 			END
 			ELSE IF(@IsWorkOrder = 1)
 			BEGIN
 				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
-
-				INSERT INTO #tmpCommonJournalBatchDetail(CommonJournalBatchDetailId,InvoiceReferenceId)
-				SELECT CommonJournalBatchDetailId,ReferenceId FROM [DBO].[WorkOrderBatchDetails] WITH(NOLOCK) WHERE InvoiceName = @InvoiceNumber;
 			END
-			print 1
 
-			--Check records are availables.
+			INSERT INTO #tmpCommonJournalBatchDetail(CreditMemoHeaderId, CreditMemoDetailId)
+			SELECT CreditMemoHeaderId, CreditMemoDetailId FROM [DBO].[CreditMemoDetails] WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+
+			SELECT * FROM #tmpCommonJournalBatchDetail
+
+			--CHECK RECORDS ARE AVAILABLES.
 			IF EXISTS(SELECT * FROM #tmpCommonJournalBatchDetail)
 			BEGIN
 				SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonJournalBatchDetail
 				WHILE(@MasterLoopID > 0)
 				BEGIN
-					SELECT @CommonJournalBatchDetailId = CommonJournalBatchDetailId , @InvoiceReferenceId = InvoiceReferenceId FROM #tmpCommonJournalBatchDetail
+					DECLARE @ARTAmount DECIMAL(18,2) = 0;
+					DECLARE @ARTRESTOCKINGFEESAmount DECIMAL(18,2) = 0;
+					DECLARE @COGSPARTSAmount DECIMAL(18,2) = 0;
+					DECLARE @COGSLABORAmount DECIMAL(18,2) = 0;
+					DECLARE @COGSOHAmount DECIMAL(18,2) = 0;
+					DECLARE @INVTOBILLAmount DECIMAL(18,2) = 0;
+					DECLARE @REVENUEAmount DECIMAL(18,2) = 0;
+					DECLARE @REVENUEMISCCHARGEAmount DECIMAL(18,2) = 0;
+					DECLARE @REVRESTOCKINGFEESAmount DECIMAL(18,2) = 0;
+					DECLARE @REVENUEFREIGHTAmount DECIMAL(18,2) = 0;
+					DECLARE @SALESTAXAmount DECIMAL(18,2) = 0;
+					DECLARE @OTHERTAXAmount DECIMAL(18,2) = 0;
+					DECLARE @BillingInvoicingItemId BIGINT = NULL;
+
+					SELECT @CreditMemoDetailId = CreditMemoDetailId FROM #tmpCommonJournalBatchDetail
 					WHERE ID  = @MasterLoopID;
 
-					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName)
-					SELECT GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,ManagementStructureId,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName
-						FROM [DBO].[CommonBatchDetails] WITH(NOLOCK)
-					WHERE CommonJournalBatchDetailId = @CommonJournalBatchDetailId; 
+					SELECT @ARTAmount = ISNULL(UnitPrice, 0), @ARTRESTOCKINGFEESAmount = ISNULL(RestockingFee, 0), @COGSPARTSAmount = ISNULL(CogsParts, 0), 
+						   @COGSLABORAmount = ISNULL(CogsLabor, 0), @COGSOHAmount = ISNULL(CogsOverHeadCost, 0), @INVTOBILLAmount = ISNULL(CogsInventory, 0), 
+						   @REVENUEAmount = (ABS(ISNULL(UnitPrice, 0)) - (ISNULL(MiscRevenue, 0) + ISNULL(FreightRevenue, 0) + ISNULL(SalesTax, 0) + ISNULL(OtherTax, 0))),
+						   @REVENUEMISCCHARGEAmount = ISNULL(MiscRevenue, 0), @REVENUEFREIGHTAmount = ISNULL(FreightRevenue, 0), @SALESTAXAmount = ISNULL(SalesTax, 0),
+						   @OTHERTAXAmount = ISNULL(OtherTax, 0), @REVRESTOCKINGFEESAmount = ISNULL(RestockingFee, 0), @BillingInvoicingItemId = BillingInvoicingItemId
+					FROM [DBO].[CreditMemoDetails] WITH(NOLOCK)
+					WHERE CreditMemoDetailId = @CreditMemoDetailId; 
+
+					IF(@IsWorkOrder = 0)
+					BEGIN
+						SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
+						FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
+							JOIN [dbo].[SalesOrderPart] SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+							JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
+						WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
+
+						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+					END
+					ELSE IF(@IsWorkOrder = 1)
+					BEGIN
+						SELECT @InvoiceReferenceId = WorkOrderPartId, @ManagementStructureId = WOP.ManagementStructureId  
+						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
+							JOIN [dbo].[WorkOrderPartNumber]  WOP ON WOP.ID = WOBII.WorkOrderPartId
+						WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+
+						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+					END
+
+					-----START Account Recevable Trade--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0 --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+					IF(@ARTAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @ARTAmount ELSE 0 END As DebitAmount, CASE WHEN @CrDrType = 1 THEN 0 ELSE @ARTAmount END As CreditAmount,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----END Account Recevable--------
+
+					-----RESTOCKING FEES Account Recevable Trade--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = 1--CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@ARTRESTOCKINGFEESAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @ARTRESTOCKINGFEESAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @ARTRESTOCKINGFEESAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----RESTOCKING FEES Account Recevable--------
+
+					-----COGS - PARTS--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMCOGSPARTS' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@COGSPARTSAmount> 0)
+					BEGIN
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @COGSPARTSAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSPARTSAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----COGS - PARTS--------
+
+					-----COGS - DIRECT LABOR--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMCOGSLABOR' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@COGSLABORAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @COGSLABORAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSLABORAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----COGS - DIRECT LABOR--------
+
+					-----COGS - OVERHEAD--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMCOGSOH' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@COGSOHAmount> 0)
+					BEGIN
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @COGSOHAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSOHAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----COGS - OVERHEAD--------
+
+					-----INVENTORY TO BILL--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMINVBL' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@INVTOBILLAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @INVTOBILLAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @INVTOBILLAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----INVENTORY TO BILL--------
+
+					-----REVENUE - WO/SO--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMREVENUE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@REVENUEAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @REVENUEAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----REVENUE - WO/SO--------
+
+					-----REVENUE - MISC CHARGE--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMREVENUEMC' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@REVENUEMISCCHARGEAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @REVENUEMISCCHARGEAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEMISCCHARGEAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----REVENUE - MISC CHARGE--------
+
+					-----MISC REVENUE - RESTOCKING FEES--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMRESFEES' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@REVRESTOCKINGFEESAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @REVRESTOCKINGFEESAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVRESTOCKINGFEESAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----MISC REVENUE - RESTOCKING FEES--------
+
+					-----REVENUE - FREIGHT--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMREVENUEFRE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@REVENUEFREIGHTAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @REVENUEFREIGHTAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @REVENUEFREIGHTAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----REVENUE - FREIGHT--------
+
+					-----SALES TAX PAYABLE--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMSALESTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@SALESTAXAmount> 0)
+					BEGIN
+						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @SALESTAXAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @SALESTAXAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----SALES TAX PAYABLE--------
+
+					-----TAX PAYABLE - OTHER--------
+					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType = CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+					WHERE DistributionSetupCode = 'CMOTHERTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
+
+					IF(@OTHERTAXAmount> 0)
+					BEGIN
+					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
+						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
+							   CASE WHEN @CrDrType = 1 THEN @OTHERTAXAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @OTHERTAXAmount END,
+							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
+					END
+					-----TAX PAYABLE - OTHER--------
 
 					SET @MasterLoopID = @MasterLoopID - 1;
 				END
 			END
 				
-			SELECT @temptotaldebitcount =SUM(ISNULL(DebitAmount,0)),@temptotalcreditcount =SUM(ISNULL(CreditAmount,0))  
-				FROM #tmpCommonBatchDetails;
+			SELECT @temptotaldebitcount = SUM(ISNULL(DebitAmount,0)), @temptotalcreditcount = SUM(ISNULL(CreditAmount,0))  
+			FROM #tmpCommonBatchDetails;
+
+			SELECT * FROM #tmpCommonBatchDetails
 					
 			IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
 			BEGIN
@@ -343,11 +514,14 @@ BEGIN
 		
 				SET @JournalBatchDetailId = SCOPE_IDENTITY();
 
-				--Reding data from existing gl data & insert for creditmemo
+				--REDING DATA FROM EXISTING GL DATA & INSERT FOR CREDITMEMO
 				SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonBatchDetails
 				WHILE(@MasterLoopID > 0)
 				BEGIN			
-					SELECT @ManagementStructureId = ManagementStructureId FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
+					
+					SELECT @ManagementStructureId = ManagementStructureId, @LastMSLevel = LastMSLevel, @AllMSlevels = AllMSlevels , @BillingInvoicingItemId = BillingInvoicingItemId, 
+						   @InvoiceReferenceId = InvoiceReferenceId
+					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -365,32 +539,26 @@ BEGIN
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
 
-				-----  Accounting MS Entry  -----
+					-----  Accounting MS Entry  -----
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 				
-					IF(@IsWorkOrder = 1) -- For get Workorder partnumber for refrenceId
-					BEGIN
-						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId  FROM [dbo].[WorkOrderBillingInvoicing] WITH(NOLOCK) WHERE BillingInvoicingId = @InvoiceId;
-						SELECT @InvoiceReferenceId = WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
-					END
-
 					INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@ExtNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId);
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@DocumentNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId);
 
 					SET @MasterLoopID = @MasterLoopID - 1;
 				END
 			
-	--------------------------------------------------------------------------------------------------------------------------
+				--------------------------------------------------------------------------------------------------------------------------
 			
 				SET @TotalDebit=0;
 				SET @TotalCredit=0;
-				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
-				Update [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+				SELECT @TotalDebit = SUM(DebitAmount), @TotalCredit = SUM(CreditAmount) FROM [DBO].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
+				UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit, CreditAmount = @TotalCredit, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdateBy  WHERE JournalBatchDetailId = @JournalBatchDetailId
 
-				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
-				WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
-				SET @TotalBalance =@TotalDebit-@TotalCredit
+				SELECT @TotalDebit = SUM(DebitAmount), @TotalCredit = SUM(CreditAmount) FROM [DBO].[BatchDetails] WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted=0 
+
+				SET @TotalBalance = ISNULL(@TotalDebit, 0) - ISNULL(@TotalCredit,0)
 
 				UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 				UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId

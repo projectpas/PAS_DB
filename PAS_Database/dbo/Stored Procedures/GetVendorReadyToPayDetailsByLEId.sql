@@ -17,7 +17,8 @@
 	1    18/03/2024   AMIT GHEDIYA		Created
 	2    27/03/2024   Devendra Shekh	IsCreditMemo added to where
 	3    27/03/2024   AMIT GHEDIYA		Update to get LE
-	4    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
+	4    29/03/2024   Devendra Shekh	duplicate record issue resolved
+	5    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
      
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
@@ -79,8 +80,7 @@ BEGIN
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
-			 
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.[CreditMemoHeaderId], 0) = 0--AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
 
 			  UNION
 
@@ -175,8 +175,9 @@ BEGIN
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
-			 ORDER BY VRTPD.CreatedDate desc
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.[CreditMemoHeaderId], 0) = 0
+			 ORDER BY VRTPD.CreatedDate desc; --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
+  
   
     END TRY  
  BEGIN CATCH        

@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/23/2023  Subhash Saliya     Created
 	2    08/10/2023  Moin Bloch         Format SP And Added WITH (NOLOCK)
+	3    03/26/2024  Abhishek Jirawla   Added distinct in the SP
 	
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -66,7 +67,7 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @Currency varchar(50) = null,
 @DepreciationMethod varchar(50) = null,
 @LegalentityId varchar(500) = null,
-@LastMSLevel varchar(50) = null 
+@LastMSLevel varchar(50) = null
 AS
 BEGIN
 
@@ -120,7 +121,7 @@ BEGIN
 			--BEGIN TRANSACTION
 				BEGIN
 						;With Result AS(
-						SELECT	asm.AssetRecordId AS AssetRecordId,
+						SELECT DISTINCT	asm.AssetRecordId AS AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.[Name], 
 								asm.AssetId,

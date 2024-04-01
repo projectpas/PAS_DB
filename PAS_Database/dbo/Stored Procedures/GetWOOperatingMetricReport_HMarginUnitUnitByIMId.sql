@@ -1,7 +1,4 @@
-﻿
-
-
-/********************************************************************             
+﻿/********************************************************************             
  ** File:  PROCEDURE [dbo.GetWOOperatingMetricReport_HMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report Highest Margin to Low Margin
@@ -20,7 +17,7 @@
     1    19-Mar-2024  Rajesh Gami   Created  
 
 ***********************************************************************/  
-CREATE   PROCEDURE [dbo].[GetWOOperatingMetricReport_HMarginUnitUnitByIMId] 
+CREATE     PROCEDURE [dbo].[GetWOOperatingMetricReport_HMarginUnitUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -36,6 +33,7 @@ BEGIN
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
 		@searchWOType varchar(10) = NULL,
+		@marginSortBy varchar(50) = NULL,
 		@isCustomerWO bit = NULL,
 		@woTypeIds varchar(200) = NULL,
 		@level1 VARCHAR(MAX) = NULL,
@@ -73,6 +71,8 @@ BEGIN
 
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
+		@marginSortBy=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='marginSortBy' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @marginSortBy end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
@@ -203,7 +203,14 @@ BEGIN
 		 FROM #tmpBeforeFinalResult) as result
 
 		/********** Get data from high margin to low margin***********/
-		Select TOP 25 * from #tmpFinalResult ORDER by marginAmount DESC
+		IF(@marginSortBy = 'marginPer')
+		BEGIN
+			Select * from #tmpFinalResult ORDER by margin DESC
+		END
+		ELSE
+		BEGIN
+			Select * from #tmpFinalResult ORDER by marginAmount DESC
+		END
 
   END TRY  
   

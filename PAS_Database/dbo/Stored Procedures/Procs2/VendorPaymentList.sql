@@ -1201,6 +1201,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1247,6 +1248,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
@@ -1294,6 +1296,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1339,6 +1342,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,

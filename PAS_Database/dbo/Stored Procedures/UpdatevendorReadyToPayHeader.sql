@@ -29,12 +29,21 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
 	
+	DECLARE @PrintingIds BIGINT,
+			@StartNums BIGINT,
+			@UpdateNums BIGINT;
+
+	IF(@PrintingId > 0)
+	BEGIN
+		 SELECT @StartNums = StartNum FROM [DBO].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
+	END
+
 	--Update PrintCheckSetup
-	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNum 
+	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums + 1 
 	WHERE PrintingId = @PrintingId;
 
 	--update checknumber in VendorReadyToPayHeader table
-	UPDATE [dbo].[VendorReadyToPayHeader] SET PrintCheck_Wire_Num = @PrintCheck_Wire_Num 
+	UPDATE [dbo].[VendorReadyToPayHeader] SET PrintCheck_Wire_Num = @StartNums 
 	WHERE ReadyToPayId = @ReadyToPayId;
   
  END TRY  

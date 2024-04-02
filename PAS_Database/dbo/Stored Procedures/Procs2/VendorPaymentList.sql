@@ -558,6 +558,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
+		 AND RRH.PaymentMade = 0
 		 AND ISNULL(RRC.IsInvoiceOnHold,0) = 0 --WHERE StatusId=3 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
 		
@@ -607,6 +608,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
+		 AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
 		 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
 		 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0
@@ -659,6 +661,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
+		 AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
 
 		 -- CustomerCreditPayment DETAILS
@@ -667,7 +670,7 @@ BEGIN
 		[ReadyToPayId], [VendorId], [CreatedDate])
 		  SELECT 0 AS ReceivingReconciliationId,
 				CCPD.SuspenseUnappliedNumber AS [InvoiceNum],
-				'Pending Payment' [Status],
+				'Ready to Pay' [Status],
 				ISNULL(CCPD.RemainingAmount,0) AS OriginalTotal,
 				0 AS RRTotal,
 				0 AS InvoiceTotal,
@@ -694,7 +697,7 @@ BEGIN
 				CCPD.[VendorId] AS [VendorId],
 				CCPD.CreatedDate
 			FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)  
-				LEFT JOIN [dbo].[VendorReadyToPayDetails] VPD WITH(NOLOCK) ON CCPD.[CustomerCreditPaymentDetailId] = VPD.[CustomerCreditPaymentDetailId]  
+				LEFT JOIN [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) ON VPD.[CustomerCreditPaymentDetailId] = CCPD.[CustomerCreditPaymentDetailId]	  
 				LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON CCPD.VendorId = V.VendorId  
 				LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = V.CreditTermsId  
 				LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(CTM.PercentId AS INT) = p.PercentId  
@@ -711,7 +714,7 @@ BEGIN
 							WHERE ISNULL(VD.[CustomerCreditPaymentDetailId],0) = CCPD.[CustomerCreditPaymentDetailId] AND VD.IsVoidedCheck = 0
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 	      WHERE CCPD.MasterCompanyId = @MasterCompanyId 
-				AND CCPD.IsProcessed = 1 AND CCPD.IsMiscellaneous = 1 AND RemainingAmount > 0
+				AND CCPD.IsProcessed = 1 AND CCPD.IsMiscellaneous = 1 AND VPD.RemainingAmount > 0 
     --),  
     ;WITH FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate,EntryDate, DueDate, DaysPastDue,
@@ -1201,6 +1204,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1247,6 +1251,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
@@ -1294,6 +1299,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1339,6 +1345,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
+		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,

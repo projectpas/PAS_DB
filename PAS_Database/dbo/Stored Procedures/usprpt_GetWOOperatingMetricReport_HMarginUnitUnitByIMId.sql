@@ -33,6 +33,7 @@ BEGIN
 		@fromdate datetime,  
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
+		@marginSortBy varchar(50) = NULL,
 		@searchWOType varchar(10) = NULL,
 		@isCustomerWO bit = NULL,
 		@woTypeIds varchar(200) = NULL,
@@ -71,6 +72,8 @@ BEGIN
 
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
+		@marginSortBy=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='marginSortBy' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @marginSortBy end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
@@ -187,7 +190,15 @@ BEGIN
 		 FROM #tmpBeforeFinalResult) as result
 
 		/********** Get data from high margin to low margin***********/
-		Select TOP 25 * from #tmpFinalResult ORDER by marginAmount DESC
+		print @marginSortBy
+		IF(@marginSortBy = 'marginPer')
+		BEGIN
+			Select * from #tmpFinalResult ORDER by margin DESC
+		END
+		ELSE
+		BEGIN
+			Select * from #tmpFinalResult ORDER by marginAmount DESC
+		END
 
   END TRY  
   

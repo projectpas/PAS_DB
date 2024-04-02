@@ -14,6 +14,7 @@ EXEC [USP_SaveVendorForCustomerCreditPayment_ById]
 ** 1    03/08/2024		Devendra Shekh		created
 ** 2    03/26/2024		Devendra Shekh		aded new sp call AddVendorPaymentDetails
 ** 3    03/26/2024		Devendra Shekh		aded CASE for vendorId update
+** 4    04/01/2024		Devendra Shekh		aded INERTING accouting entry while updating flage to IsProcessed
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_SaveVendorForCustomerCreditPayment_ById]
@@ -48,6 +49,7 @@ BEGIN
 		IF(ISNULL(@IsProcessed, 0) = 1)
 		BEGIN
 			EXEC [USP_AddVendorPaymentDetails_ForCustomerCreditPaymentDetailById] @CustomerCreditPaymentDetailId, @VendorId, @MasterCompanyId, @UserName
+			EXEC [USP_BatchTriggerBasedonSupenseId] @CustomerCreditPaymentDetailId;
 		END
 
 	END TRY    

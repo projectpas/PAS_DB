@@ -116,6 +116,7 @@ BEGIN
 		[VendorReadyToPayDetailsTypeId] INT NULL,
 		[NonPOInvoiceId] BIGINT NULL,
 		[CustomerCreditPaymentDetailId] BIGINT NULL,
+		[CreatedDate] DATETIME2 NULL
 		) 
 
 	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId])
@@ -146,7 +147,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId]) --as (
+					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate]) --as (
 
     SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
@@ -198,7 +199,8 @@ BEGIN
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 1,
 					NonPOInvoiceId = 0,
-					[CustomerCreditPaymentDetailId] = 0
+					[CustomerCreditPaymentDetailId] = 0,
+					VPD.CreatedDate
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 			     INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 				 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.VendorId = V.VendorId  
@@ -231,7 +233,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId])
+					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 	    SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -277,7 +279,8 @@ BEGIN
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 2,
 					ISNULL(VPD.NonPOInvoiceId,0) AS NonPOInvoiceId,
-					[CustomerCreditPaymentDetailId] = 0
+					[CustomerCreditPaymentDetailId] = 0,
+					VPD.CreatedDate
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON VPD.CreditMemoHeaderId = CM.CreditMemoHeaderId	
 				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CM.ManagementStructureId
@@ -309,7 +312,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId])
+					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 		SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -357,7 +360,8 @@ BEGIN
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 3,
 					NPH.NonPOInvoiceId,
-					[CustomerCreditPaymentDetailId] = 0
+					[CustomerCreditPaymentDetailId] = 0,
+					VPD.CreatedDate
 			FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId	
 				 JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = NPH.ManagementStructureId
@@ -392,7 +396,7 @@ BEGIN
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
 					,DaysPastDue, DiscountDate, DiscountAvailable, DiscountToken, StatusId, [Status], MasterCompanyId, ReadyToPaymentMade
 					,DefaultPaymentMethod, IsCheckPayment, IsDomesticWirePayment, IsInternationlWirePayment, IsACHTransferPayment, IsCreditCardPayment, IsCreditMemo
-					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId])
+					,SelectedforPayment, IsCustomerCreditMemo, CreditMemoHeaderId, VendorReadyToPayDetailsTypeId, NonPOInvoiceId, [CustomerCreditPaymentDetailId], [CreatedDate])
 		SELECT	DISTINCT CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.VendorPaymentDetailsId END AS VendorPaymentDetailsId,
 				CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN 0 ELSE VPD.ReadyToPayId END AS ReadyToPayId,  
 				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS [DueDate],  
@@ -439,7 +443,8 @@ BEGIN
 				ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 				VendorReadyToPayDetailsTypeId = 4,
 				NonPOInvoiceId = 0,
-				CCPD.[CustomerCreditPaymentDetailId]
+				CCPD.[CustomerCreditPaymentDetailId],
+				VPD.CreatedDate
 			FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)  
 					LEFT JOIN [dbo].[VendorReadyToPayDetails] VRPD WITH(NOLOCK) ON CCPD.[CustomerCreditPaymentDetailId] = VRPD.[CustomerCreditPaymentDetailId]  
 					INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = CCPD.ReceiptId	
@@ -467,7 +472,7 @@ BEGIN
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 4 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
 				--)
-				select * from #TempVendorReadyToPayList order by Id 
+				SELECT * FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
 
   END TRY      
   BEGIN CATCH        

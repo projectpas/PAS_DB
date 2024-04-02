@@ -1,5 +1,4 @@
-﻿
-/********************************************************************             
+﻿/********************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_LMarginUnitUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report Low Margin to Highest Margin
@@ -34,6 +33,7 @@ BEGIN
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
 		@searchWOType varchar(10) = NULL,
+		@marginSortBy varchar(50) = NULL,
 		@isCustomerWO bit = NULL,
 		@woTypeIds varchar(200) = NULL,
 		@level1 VARCHAR(MAX) = NULL,
@@ -65,7 +65,8 @@ BEGIN
 		
 		@workscopeIds=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Work Scope' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @workscopeIds end,
-
+		@marginSortBy=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='marginSortBy' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @marginSortBy end,
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
 
@@ -192,7 +193,17 @@ BEGIN
 
 		/********** Get data from low margin to high margin***********/
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
-		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by marginAmount ASC
+
+		IF(@marginSortBy = 'marginPer')
+		BEGIN
+			Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by Margin ASC
+		END
+		ELSE
+		BEGIN
+			Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by marginAmount ASC
+		END
+		
+
 
   END TRY  
   

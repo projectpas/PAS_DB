@@ -31,8 +31,11 @@
     [IsMiscellaneous]               BIT             NULL,
     [CreditMemoHeaderId]            BIGINT          NULL,
     [ProcessedDate]                 DATETIME2 (7)   NULL,
+    [ManagementStructureId]         BIGINT          NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
+
+
 
 
 

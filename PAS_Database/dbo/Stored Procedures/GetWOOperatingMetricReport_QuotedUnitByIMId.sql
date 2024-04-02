@@ -18,7 +18,7 @@
     1    19-Mar-2024  Rajesh Gami   Created  
 
 **************************************************************/  
-CREATE   PROCEDURE Dbo.[GetWOOperatingMetricReport_QuotedUnitByIMId] 
+CREATE   PROCEDURE [dbo].[GetWOOperatingMetricReport_QuotedUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -117,7 +117,7 @@ BEGIN
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(WS.WorkScopeCode) 'workscope',  
-			ISNULL(WOBIT.GrandTotal,0) AS revenue,
+			CASE WHEN WOBIT.WOBillingInvoicingItemId IS NULL THEN 0 ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
 			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
 			--	ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount ,0) ,0) END 'revenue',  
 			UPPER(MSD.Level1Name) AS level1,  
@@ -144,17 +144,19 @@ BEGIN
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 			INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
+			INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON WOPN.ID = CST.WOPartNoId  
 			INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId
-			INNER JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId
-			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId
+			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.InvoiceStatus = 'Invoiced' 
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
 			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 			LEFT JOIN dbo.WorkOrderStage wos WITH (NOLOCK) ON  WOPN.WorkOrderStageId = wos.WorkOrderStageId
 		  
-		  WHERE WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WOQ.IsDeleted,0) = 0 AND
-				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
+		  WHERE 
+				--WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced' AND 
+				ISNULL(WOQ.IsDeleted,0) = 0 AND	WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 				AND WOPN.itemmasterId=ISNULL(@selectedItemMasterId,WOPN.itemmasterId)  
 					AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))

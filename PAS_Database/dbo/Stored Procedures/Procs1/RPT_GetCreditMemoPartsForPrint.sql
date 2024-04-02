@@ -11,8 +11,9 @@
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
+	3	 04/01/2024	  HEMANT SALIYA	  added isperforma Flage for SO
 	
- --  EXEC RPT_GetCreditMemoPartsForPrint 131,0,13
+ --  EXEC RPT_GetCreditMemoPartsForPrint 488,0,157
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
@@ -40,13 +41,13 @@ BEGIN
 					   CM.Qty,
 					   CM.UnitPrice,
 					   CM.Amount						
-				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)						
-					LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
-					LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-					LEFT JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId
+				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)		
+					LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CM.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
+					LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
+					LEFT JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
-					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
-				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId;
+					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId = IM.ItemMasterId
+				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId;
 		END
 		ELSE 
 		BEGIN
@@ -65,12 +66,12 @@ BEGIN
 					   CM.UnitPrice,
 					   CM.Amount
 				 FROM dbo.CreditMemoDetails CM WITH (NOLOCK)  
-					LEFT JOIN dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON CM.InvoiceId = WOBI.BillingInvoicingId
-					LEFT JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-					LEFT JOIN  dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId AND CM.StocklineId = WOPN.StockLineId				
+					LEFT JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.WOBillingInvoicingItemId = CM.BillingInvoicingItemId
+					LEFT JOIN dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId
+					LEFT JOIN  dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId AND CM.StocklineId = WOPN.StockLineId				
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.ConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
-				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId;
+				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId;
 		END
 	END TRY    
 	BEGIN CATCH      

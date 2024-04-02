@@ -18,7 +18,7 @@
     1    22/04/2022   Moin Bloch      Created
 	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
      
--- EXEC GetRMADetailsById 1
+-- EXEC GetRMADetailsById 36
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRMADetailsById]
 @RMAHeaderId bigint
@@ -69,9 +69,9 @@ BEGIN
 			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount,
 			  SOBII.SubTotal,SOBII.SalesTax, SOBII.OtherTax, SOBII.GrandTotal, SOBII.GrandTotal [InvoiceAmt]
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
-				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.InvoiceId
-				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.InvoiceId AND SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 				LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId

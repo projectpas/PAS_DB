@@ -16,6 +16,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    3    15/03/2024      Devendra Shekh      added CodePrefix for SuspenseAndUnapplied
    4    20/03/2024      Devendra Shekh      added added new childTable and modified insert 
    5    20/03/2024      Devendra Shekh      added [IsMiscellaneous] 
+   6    04/01/2024      Devendra Shekh      added [ManagementStructureId] 
 
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
@@ -23,7 +24,8 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
 CREATE   PROCEDURE [dbo].[USP_SaveCustomerCreditPaymentDetails_ById]
 @ReceiptId BIGINT,
 @MasterCompanyId BIGINT,
-@UserName VARCHAR(50)
+@UserName VARCHAR(50),
+@ManagementStructureId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -45,6 +47,9 @@ BEGIN
 				@CustomerCreditPaymentDetailId BIGINT = 0,
 				@ChildPayMentStartCount BIGINT = 1,
 				@TotalChildPaymentRec BIGINT = 0;
+
+				DECLARE @ModuleID INT = 0;
+				SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'SuspenseAndUnAppliedPayment')
 
 				DECLARE @IdCodeTypeId BIGINT;
 				DECLARE @CurrentNumber AS BIGINT;
@@ -187,16 +192,18 @@ BEGIN
 
 					INSERT INTO [CustomerCreditPaymentDetail]([CustomerId], [CustomerName], [CustomerCode], [ReceiptId], [StatusId], [PaymentId], [ReceiveDate], [ReferenceNumber], 
 								[TotalAmount], [PaidAmount], [RemainingAmount], [RefundAmount], [CheckNumber], [CheckDate], [IsCheckPayment], [IsWireTransfer], [IsCCDCPayment], [IsProcessed], [Memo], [VendorId],
-								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SuspenseUnappliedNumber], [IsMiscellaneous])
+								[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [SuspenseUnappliedNumber], [IsMiscellaneous],[ManagementStructureId])
 					SELECT  CustomerId, CustomerName, CustomerCode, ReceiptId, 1, NULL ,GETUTCDATE(), ReferenceNumber, 
 								TotalAmount, PaidAmount, RemainingAmount, 0, [PaymentRef], NULL, NULL, NULL, NULL, 0, '', [VendorId], 
-								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0, @SuspenseAndUnsuppliedNumber, [IsMiscellaneous]
+								@MasterCompanyId, @UserName, GETUTCDATE(), @UserName, GETUTCDATE(), 1, 0, @SuspenseAndUnsuppliedNumber, [IsMiscellaneous], @ManagementStructureId
 					FROM #CustomerPayment 
 					WHERE Id = @PayMentStartCount AND ISNULL(RemainingAmount, 0) > 0;
 
 					SET @CustomerCreditPaymentDetailId = CASE WHEN @@ROWCOUNT > 0 THEN SCOPE_IDENTITY() ELSE 0 END;
 
 					UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
+
+					EXEC [USP_SaveSuspenseAndUnAppliedPaymenttMSDetails] @ModuleID,@CustomerCreditPaymentDetailId,@ManagementStructureId,@MasterCompanyId,@UserName
 
 					IF(ISNULL(@CustomerCreditPaymentDetailId, 0) > 0)
 					BEGIN

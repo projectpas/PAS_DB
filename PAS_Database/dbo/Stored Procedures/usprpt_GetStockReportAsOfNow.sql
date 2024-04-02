@@ -16,8 +16,9 @@
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
 	2    18-03-2024     ABHISHEK JIRAWLA    Modified Added and filtered using id5 and id6 for Location details and partnumber respectively
+	3    02-04-2024     RAJESH GAMI    Modified Added and filtered using id5 and id6 for Location details and partnumber respectively
      
-exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'1/29/2024',@id2=N'', @id3=0, @id5='17!1,10!1!1!16', @id6=514, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
+exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'03/27/2024',@id2=N'', @id3=0, @id5='', @id6=41207, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -316,6 +317,71 @@ BEGIN
 	 StkOriginal.Qty_Available = StkOriginal.Qty_Available - StkReceived.QTY_OH
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineReceivedDate StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
+
+
+
+
+
+
+	 /* Add Removed From OH from AsOfNow till Today */
+	IF OBJECT_ID(N'tempdb..#TEMPStocklineRemovedFromOH') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TEMPStocklineRemovedFromOH
+	END
+
+	CREATE TABLE #TEMPStocklineRemovedFromOH (        
+		ID BIGINT IDENTITY(1,1),        
+		StocklineId BIGINT NULL,
+		QTY_OH INT NULL,
+		MasterCompanyId INT NULL
+	)
+
+	INSERT INTO #TEMPStocklineRemovedFromOH (StocklineId, QTY_OH, MasterCompanyId)
+	SELECT StkHistory.StockLineId AS StocklineId,    
+        SUM(StkHistory.QtyOnAction) 'QTY_OH',    
+        stl.MasterCompanyId
+      FROM DBO.stockline stl WITH (NOLOCK)    
+	INNER JOIN dbo.Stkline_History StkHistory WITH (NOLOCK) ON StkHistory.StockLineId = stl.StockLineId AND StkHistory.ActionId = 6  -- Removed OH
+	INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+	LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
+    WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
+	AND (CAST(StkHistory.UpdatedDate AS DATE) > CAST(@id AS DATE) AND CAST(StkHistory.UpdatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
+	 AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
+	 AND (ISNULL(@id2,'') = '' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
+	 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
+	 AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
+	 AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
+	 AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
+	 AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
+	 AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
+	 AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
+	 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
+	 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
+	 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	 AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
+	 AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
+	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
+	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
+	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 GROUP BY StkHistory.StockLineId, stl.MasterCompanyId
+
+	 UPDATE StkOriginal
+	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkReceived.QTY_OH,
+	 StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkReceived.QTY_OH
+	 FROM #TEMPOriginalStocklineRecords StkOriginal
+	 INNER JOIN #TEMPStocklineRemovedFromOH StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
+
+
+
+
+
+
+
+
+
+
+
+
 
 	/* Add Sold Items from AsOfNow till Today */
 	IF OBJECT_ID(N'tempdb..#TEMPStocklineSoldDate') IS NOT NULL    

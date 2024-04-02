@@ -28,9 +28,9 @@
 	12   02/11/2023   Devendra Shekh  Changes for nonpo details
 	13   15/11/2023   Moin Bloch      added DueDate and Days Past Due
 	14   07/03/2024   AMIT GHEDIYA    Update Status Name as per PN-6767 (Filter param added)
-	15   26/03/2024   Devendra Shekh   added temp table and removed union
-	16   28/03/2024   Devendra Shekh    table changes for creditMemo(changed to same as nonPO)
-	17   02/04/2024   AMIT GHEDIYA     filter update
+	15   26/03/2024   Devendra Shekh  added temp table and removed union
+	16   28/03/2024   Devendra Shekh  table changes for creditMemo(changed to same as nonPO)
+	17   02/04/2024   AMIT GHEDIYA    filter update
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -80,12 +80,14 @@ BEGIN
     DECLARE @InternationalWire INT;
     DECLARE @ACHTransfer INT;
     DECLARE @CreditCard INT;
- 
-	SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
-	SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
-	SELECT @InternationalWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
-	SELECT @ACHTransfer = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'ACH Transfer';
-	SELECT @CreditCard = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Credit Card';
+	DECLARE @NonPOInvoiceHeaderStatusId INT;
+
+	SELECT @NonPOInvoiceHeaderStatusId = NonPOInvoiceHeaderStatusId FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted';
+	SELECT @Check = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
+	SELECT @DomesticWire = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
+	SELECT @InternationalWire = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
+	SELECT @ACHTransfer = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'ACH Transfer';
+	SELECT @CreditCard = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Credit Card';
     
     IF @SortColumn IS NULL  
     BEGIN  
@@ -348,6 +350,7 @@ BEGIN
 							WHERE VD.NonPOInvoiceId = NPH.NonPOInvoiceId
 			    GROUP BY VD.NonPOInvoiceId) AS part
 	      WHERE NPH.MasterCompanyId = @MasterCompanyId AND part.ExtendedPrice > 0  AND VPD.CheckNumber IS NULL AND NPH.PostedDate IS NULL
+				AND NPHS.NonPOInvoiceHeaderStatusId = @NonPOInvoiceHeaderStatusId
 
 		--UNION ALL
 		-- VendorPayment -NonPOInvoice DETAILS
@@ -387,7 +390,7 @@ BEGIN
 			   '' AS BankAccountNumber,
 			   RRH.VendorId
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
-		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId	
+		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId 	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 			   OUTER APPLY (SELECT VD.VendorPaymentDetailsId,
@@ -402,6 +405,7 @@ BEGIN
 							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		        AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 	    --CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -672,6 +676,7 @@ BEGIN
 		 AND RemainingAmount > 0 
 		 AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		 AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 		 -- CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -1067,6 +1072,7 @@ BEGIN
 		  AND RRH.PaymentMade > 0 
 		  AND RRH.RemainingAmount > 0 
 		  AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		  AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 		--VendorPayment -CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],

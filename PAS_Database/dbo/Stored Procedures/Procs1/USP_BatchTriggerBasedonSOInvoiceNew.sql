@@ -22,6 +22,7 @@
 	8    11/12/2023  Moin Bloch     Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
 	9    08/01/2024  Moin Bloch     Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
     10	 01/02/2024	 AMIT GHEDIYA	added isperforma Flage for SO
+	11   02/04/2024  HEMANT SALIYA  Added LE Params to Get Correct Accounting Cal Id
      
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,
@@ -47,7 +48,8 @@ CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoiceNew]
 @Amount DECIMAL(18,2),
 @ModuleName VARCHAR(200),
 @MasterCompanyId INT,
-@UpdateBy VARCHAR(200) 
+@UpdateBy VARCHAR(200),
+@LegalEntityId BIGINT=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -134,7 +136,7 @@ BEGIN
 	    SELECT top 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId
 	    SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 	    SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-		SELECT @CurrentManagementStructureId =ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
+		SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId = @MasterCompanyId
 		SELECT @ManagementModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'SalesOrder'
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -174,10 +176,15 @@ BEGIN
 			  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = STK.LotId  
 			  WHERE StockLineId=@StockLineId
 
-			SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
-			INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
-			INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+			SELECT TOP 1 @AccountingPeriodId = AccountingCalendarId, @AccountingPeriod = PeriodName 
+			FROM dbo.AccountingCalendar WITH(NOLOCK) 
+			WHERE IsDeleted = 0 AND LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId AND CAST(GETUTCDATE() as date) >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+
+			--SELECT TOP 1 @AccountingPeriodId = acc.AccountingCalendarId, @AccountingPeriod = PeriodName 
+			--FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
+			--INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
+			--INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
+			--WHERE est.EntityStructureId = @CurrentManagementStructureId AND acc.MasterCompanyId = @MasterCompanyId  and CAST(GETUTCDATE() as date) >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 		             
 			SET @ReferencePartId=@partId	
 			SELECT @InvoiceNo=InvoiceNo  FROM 

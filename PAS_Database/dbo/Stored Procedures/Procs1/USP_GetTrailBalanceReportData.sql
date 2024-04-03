@@ -24,6 +24,7 @@
 	8    01/25/2024   Hemant Saliya  Remove Manual Journal from Reports
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
+exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=5,@AccountingPeriodId=194,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'5!8!11,10!12'
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetTrailBalanceReportData]
@@ -239,6 +240,13 @@ BEGIN
 				AND IsDeleted = 0 AND CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@PeriodEndDate AS DATE) 
 				AND ISNULL(IsAdjustPeriod, 0) = 0 AND FiscalYear = @FiscalYear
 		ORDER BY FiscalYear, [Period]
+
+		INSERT INTO #AccPeriodTable_All (AccountcalID, LegalEntityId, FiscalYear, PeriodName, FromDate, ToDate)
+		SELECT AccountingCalendarId, tmpAC.LegalEntityId, @FiscalYear, AC.PeriodName , AC.FromDate, AC.ToDate
+		FROM dbo.AccountingCalendar AC WITH(NOLOCK) 
+		JOIN #AccPeriodTable_All tmpAC ON tmpAC.PeriodName =  AC.PeriodName
+
+		SELECT * FROM #AccPeriodTable_All
 
 		;WITH RESULT AS(
 			SELECT DISTINCT CB.GlAccountId 'GlAccountId', MSD.EntityMSID AS EntityStructureId, CB.[MasterCompanyId],  SUM(ISNULL(CB.CreditAmount,0)) 'Credit', SUM(ISNULL(CB.DebitAmount,0)) 'Debit',

@@ -28,8 +28,9 @@
 	12   02/11/2023   Devendra Shekh  Changes for nonpo details
 	13   15/11/2023   Moin Bloch      added DueDate and Days Past Due
 	14   07/03/2024   AMIT GHEDIYA    Update Status Name as per PN-6767 (Filter param added)
-	15   26/03/2024   Devendra Shekh   added temp table and removed union
-	16   28/03/2024   Devendra Shekh    table changes for creditMemo(changed to same as nonPO)
+	15   26/03/2024   Devendra Shekh  added temp table and removed union
+	16   28/03/2024   Devendra Shekh  table changes for creditMemo(changed to same as nonPO)
+	17   02/04/2024   AMIT GHEDIYA    filter update
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -79,12 +80,14 @@ BEGIN
     DECLARE @InternationalWire INT;
     DECLARE @ACHTransfer INT;
     DECLARE @CreditCard INT;
- 
-	SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
-	SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
-	SELECT @InternationalWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
-	SELECT @ACHTransfer = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'ACH Transfer';
-	SELECT @CreditCard = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Credit Card';
+	DECLARE @NonPOInvoiceHeaderStatusId INT;
+
+	SELECT @NonPOInvoiceHeaderStatusId = NonPOInvoiceHeaderStatusId FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted';
+	SELECT @Check = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
+	SELECT @DomesticWire = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
+	SELECT @InternationalWire = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
+	SELECT @ACHTransfer = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'ACH Transfer';
+	SELECT @CreditCard = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Credit Card';
     
     IF @SortColumn IS NULL  
     BEGIN  
@@ -110,7 +113,7 @@ BEGIN
 		[InvoiceTotal] DECIMAL(18, 2) NULL,
 		[DifferenceAmount] DECIMAL(18, 2) NULL,
 		[VendorName] VARCHAR(100) NULL,
-		[PaymentHold] BIT NULL,
+		[PaymentHold] VARCHAR(100) NULL,
 		[InvociedDate] DATETIME2 NULL,
 		[EntryDate] DATETIME2 NULL,
 		[DueDate] DATETIME2 NULL,
@@ -155,7 +158,7 @@ BEGIN
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-			   ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
+			   CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',			   			  
 			   --DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',   
@@ -207,7 +210,8 @@ BEGIN
 			   0 AS InvoiceTotal,
 			   ISNULL(RRH.InvoiceTotal,0) AS 'DifferenceAmount', 
 			   VN.VendorName,
-			   ISNULL(RRH.IsInvoiceOnHold,0) AS 'PaymentHold',
+			   --ISNULL(RRH.IsInvoiceOnHold,0) AS 'PaymentHold',
+			   CASE WHEN RRH.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.InvoiceDate AS 'InvociedDate',
 			   RRH.InvoiceDate AS 'EntryDate',
 			   --DATEADD(DAY, ctm.NetDays,RRH.InvoiceDate) AS 'DueDate',  
@@ -250,7 +254,8 @@ BEGIN
 			   ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   0 AS 'PaymentHold',
+			  -- 0 AS 'PaymentHold',
+			  'NO' AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -301,7 +306,8 @@ BEGIN
 				0 AS InvoiceTotal,
 				0 AS 'DifferenceAmount',  
 				NPH.VendorName,
-				0 AS 'PaymentHold',
+				--0 AS 'PaymentHold',
+				'NO' AS 'PaymentHold',
 				NPH.UpdatedDate AS 'InvociedDate',
 				NPH.UpdatedDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate', 
@@ -344,6 +350,7 @@ BEGIN
 							WHERE VD.NonPOInvoiceId = NPH.NonPOInvoiceId
 			    GROUP BY VD.NonPOInvoiceId) AS part
 	      WHERE NPH.MasterCompanyId = @MasterCompanyId AND part.ExtendedPrice > 0  AND VPD.CheckNumber IS NULL AND NPH.PostedDate IS NULL
+				AND NPHS.NonPOInvoiceHeaderStatusId = @NonPOInvoiceHeaderStatusId
 
 		--UNION ALL
 		-- VendorPayment -NonPOInvoice DETAILS
@@ -360,7 +367,8 @@ BEGIN
 			   ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   0 AS 'PaymentHold',
+			   --0 AS 'PaymentHold',
+			   'NO' AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			  --DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
@@ -382,7 +390,7 @@ BEGIN
 			   '' AS BankAccountNumber,
 			   RRH.VendorId
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
-		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId	
+		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId 	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 			   OUTER APPLY (SELECT VD.VendorPaymentDetailsId,
@@ -397,6 +405,7 @@ BEGIN
 							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		        AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 	    --CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -412,7 +421,8 @@ BEGIN
 			   ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   0 AS 'PaymentHold',
+			   --0 AS 'PaymentHold',
+			   'NO' AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -480,7 +490,7 @@ BEGIN
        (ISNULL(@InvoiceTotal,'') ='' OR [InvoiceTotal] LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR [VendorName] LIKE '%'+ @VendorName +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
-	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@PaymentHold,'') ='' OR [PaymentHold] LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
 	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') AND
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
@@ -524,7 +534,8 @@ BEGIN
 				RRH.RemainingAmount AS 'DifferenceAmount',  
 				VN.VendorName,
 				--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-				ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
+				--ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
+				CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 				RRH.DueDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',  
@@ -576,7 +587,8 @@ BEGIN
 				ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 				RRH.RemainingAmount AS 'DifferenceAmount',  
 				VN.VendorName,
-				0 AS 'PaymentHold',
+				--0 AS 'PaymentHold',
+				'NO' AS 'PaymentHold',
 				RRH.DueDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -627,7 +639,8 @@ BEGIN
 				ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 				RRH.RemainingAmount AS 'DifferenceAmount',  
 				VN.VendorName,
-				0 AS 'PaymentHold',
+				--0 AS 'PaymentHold',
+				'NO' AS 'PaymentHold',
 				RRH.DueDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
@@ -663,6 +676,7 @@ BEGIN
 		 AND RemainingAmount > 0 
 		 AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		 AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 		 -- CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -676,7 +690,8 @@ BEGIN
 				0 AS InvoiceTotal,
 				0 AS 'DifferenceAmount',  
 				V.VendorName as [VendorName],
-				0 AS 'PaymentHold',
+				--0 AS 'PaymentHold',
+				'NO' AS 'PaymentHold',
 				CCPD.ProcessedDate AS 'InvociedDate',
 				CCPD.ProcessedDate AS 'EntryDate',				
 				CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -788,7 +803,8 @@ BEGIN
 			   ISNULL(PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			   CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
@@ -826,7 +842,8 @@ BEGIN
 			   ISNULL(PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			   CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
@@ -867,7 +884,8 @@ BEGIN
 			   ISNULL(PaymentMade,0) AS InvoiceTotal,
 			   RRH.RemainingAmount AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			  -- ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+			   CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
@@ -962,7 +980,8 @@ BEGIN
 			   ISNULL(RemainingAmount,0) AS 'DifferenceAmount',  
 			   VN.VendorName,
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
-			   ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
+			   --ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
+			   CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -1014,7 +1033,8 @@ BEGIN
 			   ISNULL(RRH.PaymentMade,0) AS InvoiceTotal,
 			   ISNULL(RemainingAmount,0) AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   0 AS 'PaymentHold',
+			   --0 AS 'PaymentHold',
+			   'NO' AS 'PaymentHold',
 			   RRH.DueDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -1052,6 +1072,7 @@ BEGIN
 		  AND RRH.PaymentMade > 0 
 		  AND RRH.RemainingAmount > 0 
 		  AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
+		  AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 
 		--VendorPayment -CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -1065,7 +1086,8 @@ BEGIN
 			   ISNULL(VPD.PaymentMade,0) AS InvoiceTotal,
 			   ISNULL(VPD.RemainingAmount,0) AS 'DifferenceAmount',  
 			   VN.VendorName,
-			   0 AS 'PaymentHold',
+			   --0 AS 'PaymentHold',
+			   'NO' AS 'PaymentHold',
 			   VPD.DueDate AS 'InvociedDate',
 			   VPD.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -1177,7 +1199,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1224,7 +1247,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',	
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1272,7 +1296,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',	
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1318,7 +1343,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1414,7 +1440,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1477,7 +1504,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',	
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1541,7 +1569,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',
@@ -1603,7 +1632,8 @@ BEGIN
 		0 AS 'DifferenceAmount',  
 		VRTPD.VendorId,
 		VN.VendorName,
-		ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',		
+		CASE WHEN VN.IsVendorOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		CheckDate AS 'InvociedDate',
 		CheckDate AS 'EntryDate',		
 		'' AS 'PaymentMethod',

@@ -2874,6 +2874,7 @@
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_GetListData.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTenderStocklineDetail.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateTenderStocklineAttachmentDetail.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckTenderStocklineIsGeneratedReleaseForm.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

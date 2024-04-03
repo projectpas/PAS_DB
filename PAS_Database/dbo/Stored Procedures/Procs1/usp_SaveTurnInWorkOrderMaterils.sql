@@ -20,6 +20,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    9    10/16/2023  Devendra Shekh    update for wopartnoId for insert stockline
    10	03/05/2024  Bhargav saliya    UTC Date Changes
    11	22/03/2024  Moin Bloch        Added New Field @EvidenceId
+   12	02/04/2024  Moin Bloch        Updated Inventory History Notes Turn in to Tendered   
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -326,7 +327,8 @@ BEGIN
      END;  
 	 
 	 DECLARE @ActionId INT = 0;
-     SET @ActionId = 7; -- Tender
+     --SET @ActionId = 7; -- Tender
+	 SELECT @ActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type] = 'Tendered'
 	 DECLARE @HistoryModuleId INT = 0;
 	 SELECT @HistoryModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder';
 	 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @Quantity, @UpdatedBy = @UpdatedBy;

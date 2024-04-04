@@ -32,6 +32,7 @@
 	15   26/03/2024   Devendra Shekh    added temp table and removed union
 	16   27/03/2024   Devendra Shekh    changes for customer credit payment and added vendor for creditmemo
 	17   28/03/2024   Devendra Shekh    table changes for creditMemo(changed to same as nonPO)
+	18   04/04/2024   Devendra Shekh    discount removed from credit memo and suspense record
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -254,7 +255,8 @@ BEGIN
 					ISNULL(p.[PercentValue],0) AS [Percentage],   
                     CASE WHEN DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
                    DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DiscountDate, 
-				   (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				   --(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.DueDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.InvoiceTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				   0 AS DiscountAvailable,
 				   0 'DiscountToken',
 				   VPD.StatusId,
 				   VPD.[Status],
@@ -299,7 +301,7 @@ BEGIN
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
 					DiscountToken = ISNULL(discNewData.DiscountToken,0), ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
-				FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
+				FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,0 as DiscountToken, VD.InvoiceNum
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.CreditMemoHeaderId = VD.CreditMemoHeaderId	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
@@ -417,8 +419,9 @@ BEGIN
 				ISNULL(p.[PercentValue],0) AS [Percentage],   
 				CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
 				DATEADD(Day, ISNULL(ctm.NetDays,0), CCPD.ProcessedDate) AS DiscountDate,  
-				(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 
-					  THEN CAST((CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN CCPD.RemainingAmount ELSE ISNULL(VPD.InvoiceTotal,0) END * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				--(CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.Days,0)), GETUTCDATE()), 0) <= 0 
+					 --THEN CAST((CASE WHEN ISNULL(VPD.VendorPaymentDetailsId, 0) = 0 THEN CCPD.RemainingAmount ELSE ISNULL(VPD.InvoiceTotal,0) END * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS DiscountAvailable,  
+				0 AS DiscountAvailable,  
 				0 'DiscountToken',
 				CCPD.StatusId,
 				'Processed' as [Status],
@@ -464,7 +467,7 @@ BEGIN
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
 					DiscountToken = ISNULL(discNewData.DiscountToken,0), ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
-				FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
+				FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,0 AS DiscountToken, VD.InvoiceNum
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							   LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = VD.[ReceivingReconciliationId]	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId

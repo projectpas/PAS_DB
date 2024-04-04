@@ -32,8 +32,11 @@
     [CreditMemoHeaderId]            BIGINT          NULL,
     [ProcessedDate]                 DATETIME2 (7)   NULL,
     [ManagementStructureId]         BIGINT          NULL,
+    [MappingCustomerId]             BIGINT          NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
+
+
 
 
 

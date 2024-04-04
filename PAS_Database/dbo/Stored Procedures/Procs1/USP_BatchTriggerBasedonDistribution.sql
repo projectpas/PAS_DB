@@ -105,7 +105,7 @@ BEGIN
 		DECLARE @InvoiceLaborCost decimal(18,2)=0
 		DECLARE @RevenuWO decimal(18,2)=0
 		DECLARE @FinishGoodAmount decimal(18,2)=0
-		DECLARE @CurrentManagementStructureId bigint=0
+		--DECLARE @CurrentManagementStructureId bigint=0
 		DECLARE @JournalBatchDetailId bigint=0
 		DECLARE @CommonJournalBatchDetailId bigint=0;
 		DECLARE @WopJounralTypeid bigint=0;
@@ -120,7 +120,7 @@ BEGIN
 	    SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId
 	    SELECT @JournalTypeCode = JournalTypeCode,@JournalTypename = JournalTypeName FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 	    SELECT @WopJounralTypeid = ID FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'WIP'
-		SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId		
+		--SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId		
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 		
 		DECLARE @currentNo AS BIGINT = 0;
@@ -168,17 +168,17 @@ BEGIN
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@partId
 
-			IF(@CurrentManagementStructureId =0)
-			BEGIN
-				SET @CurrentManagementStructureId=@ManagementStructureId
-			END
+			--IF(@CurrentManagementStructureId = 0)
+			--BEGIN
+			--	SET @CurrentManagementStructureId = @ManagementStructureId
+			--END
 
 			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,
 			              @AccountingPeriod=PeriodName 
-				     FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
+			FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
 			INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
-			WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
+			WHERE est.EntityStructureId = @ManagementStructureId and acc.MasterCompanyId=@MasterCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 		    
 			SET @ReferencePartId=@partId	
 

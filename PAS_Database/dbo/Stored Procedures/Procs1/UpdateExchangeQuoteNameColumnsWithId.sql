@@ -1,9 +1,24 @@
-﻿-- =============================================
--- Author:		Deep Patel
--- Create date: 31-March-2021
--- Description:	Update name columns into corrosponding reference Id values from respective master table
--- =============================================
+﻿/*************************************************************             
+ ** File:   [UpdateExchangeQuoteNameColumnsWithId]
+ ** Author:   Deep Patel
+ ** Description:	Update name columns into corrosponding reference Id values from respective master table
+ ** Purpose:           
+ ** Date:   31-March-2021
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			-----------------------
+    1    31-March-2021   Deep Patel		Created
+	3	 04/04/2024	  Bhargav Saliya   Credit terms Changes
+
 --  EXEC [dbo].[UpdateExchangeQuoteNameColumnsWithId] 5
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateExchangeQuoteNameColumnsWithId]
 	@ExchangeQuoteId int
 AS
@@ -21,7 +36,7 @@ BEGIN
 		CustomerName = C.Name,
 		CustomerCode = C.CustomerCode,
 		SalesPersonName = (SP.FirstName + ' ' + SP.LastName),
-		CreditTermName = CTerm.Name,
+		CreditTermName =  CASE WHEN ISNULL(EQ.CreditTermName,'') != '' THEN EQ.CreditTermName ELSE CTerm.[Name] END,
 		VersionNumber = dbo.GenearteVersionNumber(EQ.Version),
 		StatusName = eqs.[Name],
 		CustomerContactName = customContact.FirstName +' '+ customContact.LastName + '-' +  customContact.WorkPhone,

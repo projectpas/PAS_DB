@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    06/01/2021   Deep Patel		Created
     2    02/22/2024   Vishal Suthar		Modified to update values based on IsVendor flag
+	3	 04/04/2024	  Bhargav Saliya   Credit terms Changes
 
 --  EXEC [dbo].[UpdateExchangeSONameColumnsWithId] 338
 **************************************************************/
@@ -39,7 +40,7 @@ BEGIN
 		CurrencyName = Curr.Code,
 		CustomerWarningName = CW.WarningMessage,
 		ManagementStructureName = (MS.Code + ' - ' + MS.Name),
-		CreditTermName = CTerm.Name,
+		CreditTermName = CASE WHEN ISNULL(ESO.CreditTermName,'') != '' THEN ESO.CreditTermName ELSE CTerm.[Name] END,
 		VersionNumber = dbo.GenearteVersionNumber(ESO.Version)
 		FROM [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK)
 		LEFT JOIN DBO.CustomerType CT WITH (NOLOCK) ON CustomerTypeId = ESO.AccountTypeId

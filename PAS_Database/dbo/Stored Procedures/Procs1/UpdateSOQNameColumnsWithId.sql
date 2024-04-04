@@ -1,9 +1,21 @@
-﻿-- =============================================
--- Author:		Vishal Suthar
--- Create date: 23-Dec-2020
--- Description:	Update name columns into corrosponding reference Id values from respective master table
+﻿
 -- =============================================
---  EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
+-- Author:		Vishal Suthar
+/*************************************************************           
+ ** File:  [UpdateSONameColumnsWithId]           
+ ** Author:   Vishal Suthar
+ ** Description: Update name columns into corrosponding reference Id values from respective master table               
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    23-Dec-2020   Vishal Suthar   Created         
+    2    04-Apr-2024   Bhargav Saliya	Credit Terms Changes
+
+	EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
+**************************************************************/ 
 CREATE PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
 	@SalesOrderQuoteId int
 AS
@@ -21,7 +33,7 @@ BEGIN
 		CustomerServiceRepName = (CSR.FirstName + ' ' + CSR.LastName),
 		ProbabilityName = P.PercentValue,
 		LeadSourceName = L.LeadSources,
-		CreditTermName = CTerm.Name,
+		CreditTermName = CASE WHEN ISNULL( SOQ.CreditTermName,'') != ''  THEN SOQ.CreditTermName ELSE CTerm.[Name] END,
 		EmployeeName = (Ename.FirstName + ' ' + Ename.LastName),
 		CurrencyName = Curr.Code,
 		CustomerWarningName = CW.WarningMessage,

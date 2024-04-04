@@ -85,7 +85,7 @@ BEGIN
 		CurrencyName = Curr.Code,
 		CustomerWarningName = CW.WarningMessage,
 		ManagementStructureName = (MS.Code + ' - ' + MS.Name),
-		CreditTermName = SO.CreditTermName,
+		CreditTermName = CASE WHEN ISNULL( SO.CreditTermName,'') != ''  THEN SO.CreditTermName ELSE CTerm.[Name] END,
 		SO.Level1 = PMS.Level1,
 		SO.Level2 = PMS.Level2,
 		SO.Level3 = PMS.Level3,
@@ -102,7 +102,7 @@ BEGIN
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SO.CurrencyId
 		LEFT JOIN DBO.CustomerWarning CW WITH (NOLOCK) ON CW.CustomerWarningId = SO.CustomerWarningId
 		LEFT JOIN DBO.ManagementStructure MS WITH (NOLOCK) ON MS.ManagementStructureId = SO.ManagementStructureId
-		--LEFT JOIN DBO.CreditTerms CTerm WITH (NOLOCK) ON CTerm.CreditTermsId = SO.CreditTermId
+		LEFT JOIN DBO.CreditTerms CTerm WITH (NOLOCK) ON CTerm.CreditTermsId = SO.CreditTermId
 		Where SO.SalesOrderId = @SalesOrderId
 
 		Update SOP

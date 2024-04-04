@@ -20,7 +20,8 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    9    10/16/2023  Devendra Shekh    update for wopartnoId for insert stockline
    10	03/05/2024  Bhargav saliya    UTC Date Changes
    11	22/03/2024  Moin Bloch        Added New Field @EvidenceId
-   12	02/04/2024  Moin Bloch        Updated Inventory History Notes Turn in to Tendered   
+   12	02/04/2024  Moin Bloch        Updated Inventory History Notes Turn in to Tendered  
+   13	04/04/2024  Moin Bloch        Updated CurrentSerialNumber Issue 
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -300,8 +301,14 @@ BEGIN
      END  
   
      IF(@IsSerialized =1 AND @SerialNumber IS NOT NULL AND @SerialNumber != '')  
-     BEGIN  
-      UPDATE WorkOrderPartNumber SET CurrentSerialNumber=ISNULL(CurrentSerialNumber,0)+1 WHERE ID=@WorkOrderPartNoId       
+     BEGIN
+		DECLARE @CurrentSerialNumber INT = 0; 
+		SELECT @CurrentSerialNumber = ISNULL([CurrentSerialNumber],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
+		IF(@CurrentSerialNumber = 0)
+		BEGIN
+			SET @CurrentSerialNumber = 1;
+		END
+		UPDATE [dbo].[WorkOrderPartNumber] SET [CurrentSerialNumber] = ISNULL(@CurrentSerialNumber,0) + 1 WHERE ID = @WorkOrderPartNoId;       
      END  
      --FOR STOCK LINE HISTORY  
      WHILE @count >= @slcount  

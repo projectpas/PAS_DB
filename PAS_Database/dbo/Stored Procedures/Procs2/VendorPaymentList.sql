@@ -606,7 +606,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
-		 AND RRH.PaymentMade = 0
+		 --AND RRH.PaymentMade = 0
 		 AND ISNULL(RRC.IsInvoiceOnHold,0) = 0 --WHERE StatusId=3 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
 		
@@ -657,7 +657,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
-		 AND RRH.PaymentMade = 0
+		 --AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
 		 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
 		 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0
@@ -711,7 +711,7 @@ BEGIN
 							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId) AS Tab
 		 WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		 AND RemainingAmount > 0 
-		 AND RRH.PaymentMade = 0
+		 --AND RRH.PaymentMade = 0
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
 		 AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
 

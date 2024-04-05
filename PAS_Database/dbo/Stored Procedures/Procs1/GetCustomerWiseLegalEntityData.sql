@@ -15,9 +15,11 @@
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4	19/2/2024		Devendra Shekh	REMOVED isperforma Flage for WO
 	5	27/2/2024		AMIT GHEDIYA	REMOVED isperforma Flage for SO
+	6	05/4/2024		Devendra Shekh	duplicate LegalEntity issue resolved
 
 ************************************************************************/
--- EXEC [dbo].[GetCustomerWiseLegalEntityData] 68,'2022-04-25','2022-04-27'
+-- EXEC [dbo].[GetCustomerWiseLegalEntityData] 3398,'2024-03-26','2024-04-05'
+-- EXEC [dbo].[GetCustomerWiseLegalEntityData] 3401,'2024-03-26','2024-04-05'
 CREATE   PROCEDURE [dbo].[GetCustomerWiseLegalEntityData]
 @CustomerId bigint = null,
 @StartDate datetime=null,
@@ -54,9 +56,9 @@ BEGIN
 	--Select LegalEntityId AS ManagementStructureId,[Name] AS LegalEntityName,BillToSiteId,UserType from CTE
 	--where CTE.CustomerId = @CustomerId
 	--group by LegalEntityId,[Name],BillToSiteId,UserType
-	Select LegalEntityId,ManagementStructureId,[Name] AS LegalEntityName,BillToSiteId,UserType from CTE
+	Select LegalEntityId,MAX(ManagementStructureId) AS ManagementStructureId,[Name] AS LegalEntityName,BillToSiteId,UserType from CTE
 	where CTE.CustomerId = @CustomerId
-	group by LegalEntityId,ManagementStructureId,[Name],BillToSiteId,UserType
+	group by LegalEntityId,[Name],BillToSiteId,UserType
 
 	END TRY    
 	BEGIN CATCH

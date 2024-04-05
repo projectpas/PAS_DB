@@ -26,7 +26,7 @@
 	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
 	11   11/21/2023   HEMANT SALIYA		Updated for Accounting Entry Changes
 
-	EXEC USP_CreditMemo_PostCheckBatchDetails 156
+	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
 **************************************************************/
 
@@ -227,11 +227,11 @@ BEGIN
 					SELECT @CreditMemoDetailId = CreditMemoDetailId FROM #tmpCommonJournalBatchDetail
 					WHERE ID  = @MasterLoopID;
 
-					SELECT @ARTAmount = ISNULL(UnitPrice, 0), @ARTRESTOCKINGFEESAmount = ISNULL(RestockingFee, 0), @COGSPARTSAmount = ISNULL(CogsParts, 0), 
-						   @COGSLABORAmount = ISNULL(CogsLabor, 0), @COGSOHAmount = ISNULL(CogsOverHeadCost, 0), @INVTOBILLAmount = ISNULL(CogsInventory, 0), 
-						   @REVENUEAmount = (ABS(ISNULL(UnitPrice, 0)) - (ISNULL(MiscRevenue, 0) + ISNULL(FreightRevenue, 0) + ISNULL(SalesTax, 0) + ISNULL(OtherTax, 0))),
-						   @REVENUEMISCCHARGEAmount = ISNULL(MiscRevenue, 0), @REVENUEFREIGHTAmount = ISNULL(FreightRevenue, 0), @SALESTAXAmount = ISNULL(SalesTax, 0),
-						   @OTHERTAXAmount = ISNULL(OtherTax, 0), @REVRESTOCKINGFEESAmount = ISNULL(RestockingFee, 0), @BillingInvoicingItemId = BillingInvoicingItemId
+					SELECT @ARTAmount = ABS(ISNULL(UnitPrice, 0)), @ARTRESTOCKINGFEESAmount = ABS(ISNULL(RestockingFee, 0)), @COGSPARTSAmount = ABS(ISNULL(CogsParts, 0)), 
+						   @COGSLABORAmount = Abs(ISNULL(CogsLabor, 0)), @COGSOHAmount = Abs(ISNULL(CogsOverHeadCost, 0)), @INVTOBILLAmount = ABS(ISNULL(CogsInventory, 0)), 
+						   @REVENUEAmount = (ABS(ISNULL(UnitPrice, 0)) - ABS((ISNULL(MiscRevenue, 0) + ISNULL(FreightRevenue, 0) + ISNULL(SalesTax, 0) + ISNULL(OtherTax, 0)))),
+						   @REVENUEMISCCHARGEAmount = ABS(ISNULL(MiscRevenue, 0)), @REVENUEFREIGHTAmount = ABS(ISNULL(FreightRevenue, 0)), @SALESTAXAmount = ABS(ISNULL(SalesTax, 0)),
+						   @OTHERTAXAmount = ABS(ISNULL(OtherTax, 0)), @REVRESTOCKINGFEESAmount = ABS(ISNULL(RestockingFee, 0)), @BillingInvoicingItemId = BillingInvoicingItemId
 					FROM [DBO].[CreditMemoDetails] WITH(NOLOCK)
 					WHERE CreditMemoDetailId = @CreditMemoDetailId; 
 
@@ -262,7 +262,7 @@ BEGIN
 								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0 --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
-					IF(@ARTAmount> 0)
+					IF(ISNULL(@ARTAmount,0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -277,7 +277,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@ARTRESTOCKINGFEESAmount> 0)
+					IF(ISNULL(@ARTRESTOCKINGFEESAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -292,11 +292,12 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSPARTS' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@COGSPARTSAmount> 0)
+					IF(ISNULL(@COGSPARTSAmount, 0) != 0)
 					BEGIN
 					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
-							   CASE WHEN @CrDrType = 1 THEN @COGSPARTSAmount ELSE 0 END, CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSPARTSAmount END,
+							   CASE WHEN @CrDrType = 1 THEN @COGSPARTSAmount ELSE 0 END, 
+							   CASE WHEN @CrDrType = 1 THEN 0 ELSE @COGSPARTSAmount END,
 							   @InvoiceReferenceId, @ManagementStructureId, @LastMSLevel, @AllMSlevels, @JournalTypeId, @JournalTypename, @DistributionSetupId, @DistributionName, @BillingInvoicingItemId
 					END
 					-----COGS - PARTS--------
@@ -307,7 +308,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSLABOR' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@COGSLABORAmount> 0)
+					IF(ISNULL(@COGSLABORAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -322,7 +323,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMCOGSOH' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@COGSOHAmount> 0)
+					IF(ISNULL(@COGSOHAmount, 0) != 0)
 					BEGIN
 					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -337,7 +338,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMINVBL' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@INVTOBILLAmount> 0)
+					IF(ISNULL(@INVTOBILLAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -352,7 +353,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@REVENUEAmount> 0)
+					IF(ISNULL(@REVENUEAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -367,7 +368,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUEMC' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@REVENUEMISCCHARGEAmount> 0)
+					IF(ISNULL(@REVENUEMISCCHARGEAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -382,7 +383,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMRESFEES' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@REVRESTOCKINGFEESAmount> 0)
+					IF(ISNULL(@REVRESTOCKINGFEESAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -397,7 +398,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMREVENUEFRE' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@REVENUEFREIGHTAmount> 0)
+					IF(ISNULL(@REVENUEFREIGHTAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -412,7 +413,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMSALESTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@SALESTAXAmount> 0)
+					IF(ISNULL(@SALESTAXAmount, 0) != 0)
 					BEGIN
 						INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -427,7 +428,7 @@ BEGIN
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMOTHERTAX' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 
-					IF(@OTHERTAXAmount> 0)
+					IF(ISNULL(@OTHERTAXAmount, 0) != 0)
 					BEGIN
 					INSERT INTO #tmpCommonBatchDetails(GlAccountId,GlAccountNumber,GlAccountName,IsDebit,DebitAmount,CreditAmount,InvoiceReferenceId,ManagementStructureId,LastMSLevel,AllMSlevels,JournalTypeId,JournalTypeName,DistributionSetupId,DistributionName, BillingInvoicingItemId)
 						SELECT @GlAccountId,@GlAccountNumber,@GlAccountName,@CrDrType,
@@ -530,9 +531,10 @@ BEGIN
 							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 					SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
 							,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-							CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
-							CreditAmount,
+							--CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
+							IsDebit,
 							DebitAmount,
+							CreditAmount,
 							ManagementStructureId ,'CreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0
 					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;

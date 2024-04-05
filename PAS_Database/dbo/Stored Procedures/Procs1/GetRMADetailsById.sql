@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    22/04/2022   Moin Bloch      Created
 	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
+	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
      
 -- EXEC GetRMADetailsById 36
 ************************************************************************/
@@ -62,12 +63,19 @@ BEGIN
 			  ,IM.ManufacturerName
 			  ,CRD.BillingInvoicingItemId,
 			  SOBII.NoofPieces as Qty, SOBII.UnitPrice As [PartsUnitCost],
-			  SOBII.PartCost As [PartsRevenue], 0 AS [LaborRevenue], SOBII.MiscCharges AS [MiscRevenue], SOBII.Freight AS [FreightRevenue],
+			 (SOBII.PartCost * -1) As [PartsRevenue], 
+			  0 AS [LaborRevenue], 
+			  (SOBII.MiscCharges * -1) AS [MiscRevenue], 
+			  (SOBII.Freight * -1) AS [FreightRevenue],
+			  SOBII.SubTotal,
+			  (SOBII.SalesTax * -1) As SalesTax, 
+			  (SOBII.OtherTax * -1) As OtherTax, 
+			  (SOBII.GrandTotal * -1) AS GrandTotal, 
+			  (SOBII.GrandTotal * -1) AS [InvoiceAmt],
 			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
 			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSInventory], ISNULL(SOPN.UnitSalesPricePerUnit, 0) AS [COGSPartsUnitCost],
 			  CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount,
-			  SOBII.SubTotal,SOBII.SalesTax, SOBII.OtherTax, SOBII.GrandTotal, SOBII.GrandTotal [InvoiceAmt]
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
@@ -99,16 +107,20 @@ BEGIN
 			  ,WOBII.GrandTotal as UnitPrice
 			  ,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount
 			  ,WOBII.MaterialCost As [PartsUnitCost]
-			  ,WOBII.MaterialCost As [PartsRevenue]
-			  ,WOBII.LaborCost AS [LaborRevenue] 
-			  ,WOBII.MiscCharges AS [MiscRevenue] 
-			  ,WOBII.Freight AS [FreightRevenue]
+			  ,(WOBII.MaterialCost * -1) As [PartsRevenue]
+			  ,(WOBII.LaborCost * -1) AS  [LaborRevenue] 
+			  ,(WOBII.MiscCharges * -1) AS [MiscRevenue] 
+			  ,(WOBII.Freight * -1) AS [FreightRevenue]
+			  ,WOBII.SubTotal
+			  ,(WOBII.SalesTax * -1) AS SalesTax 
+			  ,(WOBII.OtherTax * -1) AS OtherTax 
+			  ,(WOBII.GrandTotal * -1) AS GrandTotal 
+			  ,(WOBII.GrandTotal * -1) AS [InvoiceAmt]
 			  ,WOMPN.PartsCost AS [COGSParts] 
 			  ,WOMPN.LaborCost AS [COGSLabor] 
 			  ,WOMPN.OverHeadCost As [COGSOverHeadCost]
 			  ,(ISNULL(WOMPN.PartsCost,0) + ISNULL(WOMPN.LaborCost,0) + ISNULL(WOMPN.OverHeadCost,0)) AS [COGSInventory]
 			  ,ISNULL(WOMPN.PartsCost, 0) AS [COGSPartsUnitCost]
-			  ,WOBII.SubTotal, WOBII.SalesTax, WOBII.OtherTax, WOBII.GrandTotal, WOBII.GrandTotal [InvoiceAmt]
 			  ,[RMAReasonId]
 			  ,[RMAReason]
 			  ,[Notes]

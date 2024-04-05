@@ -17,6 +17,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    4    20/03/2024      Devendra Shekh      added added new childTable and modified insert 
    5    20/03/2024      Devendra Shekh      added [IsMiscellaneous] 
    6    04/01/2024      Devendra Shekh      added [ManagementStructureId] 
+   7    04/05/2024      Devendra Shekh      able to add suspense with known customer without any invoices
 
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
@@ -125,14 +126,18 @@ BEGIN
 				EXEC [CustomerPaymentsReview] @ReceiptId;
 
 				UPDATE CP
-				SET CP.RemainingAmount = CASE WHEN CP.IsMiscellaneous = 1 THEN CA.Amount ELSE CA.AmountRemaining END,
+				SET CP.RemainingAmount = CASE WHEN CP.IsMiscellaneous = 1 THEN CA.Amount ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN CA.AmountRemaining ELSE CA.Amount END END,
 					CP.[TotalAmount] = CA.Amount,
-					CP.[PaidAmount] = CASE WHEN CP.IsMiscellaneous = 1 THEN 0 ELSE ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0) END,
+					CP.[PaidAmount] = CASE WHEN CP.IsMiscellaneous = 1 THEN 0 ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0) ELSE 0 END END,
 					CP.CustomerName = CA.[Name], CP.CustomerCode = CA.CustomerCode, CP.[PaymentRef] = CA.[PaymentRef],
 					CP.VendorId = VA.VendorId
 				FROM #CustomerPayment CP 
 				INNER JOIN #CustomerAmountDetails CA ON CA.[CustomerId] = CP.CustomerId
 				LEFT JOIN [dbo].[Vendor] VA WITH(NOLOCK) ON VA.[RelatedCustomerId] = CP.CustomerId
+				OUTER APPLY (
+					SELECT COUNT(PaymentId) AS TotalInvoies FROM [dbo].[InvoicePayments] INV WITH(NOLOCK) WHERE INV.ReceiptId = CP.ReceiptId AND INV.CustomerId = CP.CustomerId
+				) AS InvoiceData
+
 
 				SELECT @TotalPaymentRec = MAX(Id) FROM #CustomerPayment;
 

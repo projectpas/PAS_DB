@@ -1229,7 +1229,8 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		RRH.[Status],
+		--RRH.[Status],
+		'Partially Paid' AS 'Status',
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1279,7 +1280,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		RRH.[Status],
+		'Partially Paid' AS 'Status',
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1330,7 +1331,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		RRH.[Status],
+		'Partially Paid' AS 'Status',
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1379,7 +1380,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		RRH.[Status],
+		'Partially Paid' AS 'Status',
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1478,7 +1479,8 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		RRH.[Status],
+		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
+			   ELSE 'Full Payment' END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1537,7 +1539,7 @@ BEGIN
 		-- AND (CASE WHEN VRTPD.PaymentMethodId = @Check THEN CASE WHEN VRTPD.IsCheckPrinted = 1 THEN VRTPD.IsCheckPrinted END END = 1 OR  VRTPD.PaymentMethodId <> @Check )
 
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
-		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,RRH.[Status],VN.IsVendorOnHold,
+		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,
 				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId		 
 

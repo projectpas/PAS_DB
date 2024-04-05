@@ -10,6 +10,7 @@
  ** PR   Date         Author  	Change Description              
  ** --   --------     -------		--------------------------------            
     1    04/02/2024   Vishal Suthar	 Created
+	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SingleScreen_AddUpdateData]    
  @ID int = NULL,    
@@ -156,36 +157,29 @@ BEGIN
     ELSE    
     BEGIN	  
 	  --EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
-    
       SET @Query = 'SELECT * FROM [' + @PageName + '] WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS varchar(100))    
     
       SELECT    
         @FieldValue = COALESCE(@FieldValue + '  ' + (CASE    
           WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
-          WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE    
-              WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,'    
-              ELSE '0,'    
-            END)    
+          WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,'  END)    
           WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' THEN FieldName + ' = ' + FieldValue + ','    
-          ELSE ''    
-        END), (CASE    
-          WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
-          WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE    
-              WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,'    
-              ELSE '0,'    
-            END)    
-          WHEN LOWER(FieldType) = 'datetime' OR    
-            LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + REPLACE(FieldValue, '''', '''''') + ','    
-          ELSE ''    
-        END))    
+          WHEN FieldType = 'integer' THEN FieldName + ' = ' + FieldValue + ',' ELSE CASE
+									 WHEN FieldType = 'number' THEN FieldName + ' = ' + FieldValue + ',' ELSE '' end
+		  END)
+		  , 
+		  (CASE WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
+				WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,' END)    
+				WHEN	LOWER(FieldType) = 'datetime' OR    
+						LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
+				WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + REPLACE(FieldValue, '''', '''''') + ','    
+				ELSE '' END))    
       FROM @Fields WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') = ''    
     
-      SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)    
+      SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)  
     
       SET @Query = 'UPDATE [' + @PageName + '] SET ' + @FieldValue + ' , UpDatedDate = GETUTCDATE() WHERE ' + @PrimaryKey + '=' + CAST(@ID AS varchar(100))    
-       
+
       EXEC (@Query)    
     
       IF (ISNULL(@ReferenceTable, '') != '')    

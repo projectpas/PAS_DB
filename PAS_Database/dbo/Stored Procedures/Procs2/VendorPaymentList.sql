@@ -31,6 +31,7 @@
 	15   26/03/2024   Devendra Shekh  added temp table and removed union
 	16   28/03/2024   Devendra Shekh  table changes for creditMemo(changed to same as nonPO)
 	17   02/04/2024   AMIT GHEDIYA    filter update
+	18   05/04/2024   AMIT GHEDIYA    Update status for Print Check & Paid in full.
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -1230,7 +1231,8 @@ BEGIN
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		--RRH.[Status],
-		'Partially Paid' AS 'Status',
+		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
+			   ELSE 'Full Payment' END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1272,7 +1274,7 @@ BEGIN
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
-				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId
+				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue
 				
 		-- UNION ALL
 		--VendorPayment -CreditMemo DETAILS
@@ -1280,7 +1282,8 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		'Partially Paid' AS 'Status',
+		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
+			   ELSE 'Full Payment' END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1323,7 +1326,7 @@ BEGIN
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
-				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId
+				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue
 
 	 --UNION ALL
 	 --VendorPayment -NonPO DETAILS
@@ -1331,7 +1334,8 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		'Partially Paid' AS 'Status',
+		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
+			   ELSE 'Full Payment' END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1373,14 +1377,15 @@ BEGIN
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
-				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId
+				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue
 
 		--VendorPayment -CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		'Partially Paid' AS 'Status',
+		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
+			   ELSE 'Full Payment' END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,
@@ -1422,7 +1427,7 @@ BEGIN
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
-				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId
+				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue
 	--),  
     ;WITH FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate,EntryDate,DiscountToken,  

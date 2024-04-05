@@ -16,13 +16,15 @@
  ** --   --------     -------		--------------------------------          
     1    08/11/2023   Moin Bloch	Created	
 	2    09/22/2023   AMIT GHEDIYA	Added for creditmemo pay for vendorpayment.	
+	3    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorPaymentBatchDetails]
-@ReadyToPayId BIGINT
+@ReadyToPayId BIGINT,
+@ReadyToPayDetailsId BIGINT
 AS
 BEGIN 
 	BEGIN TRY
@@ -204,7 +206,7 @@ BEGIN
 				   ,CAST([CheckDate] AS DATE) [CheckDate]
 				   ,[ReceivingReconciliationId]
 				   ,CASE WHEN ISNULL([CreditMemoAmount],0) > 0 THEN 1 ELSE 0 END
-			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId AND [PaymentMethodId] <> @Check
+			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId AND [PaymentMethodId] <> @Check
 			   GROUP BY [VendorId],[PaymentMethodId],[CheckNumber],CAST([CheckDate] AS DATE),[ReceivingReconciliationId],[CreditMemoAmount]
 
 		INSERT INTO #tmpVendorReadyToPayDetail
@@ -224,7 +226,7 @@ BEGIN
 				   ,CAST([CheckDate] AS DATE) [CheckDate]
 				   ,[ReceivingReconciliationId]
 				   ,CASE WHEN ISNULL([CreditMemoAmount],0) > 0 THEN 1 ELSE 0 END
-			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId
+			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId
 			   GROUP BY [VendorId],[PaymentMethodId],[CheckNumber],CAST([CheckDate] AS DATE),[ReceivingReconciliationId],[CreditMemoAmount]
 
 		SELECT  @MasterLoopID = MAX(ID) FROM #tmpVendorReadyToPayDetails
@@ -562,7 +564,7 @@ BEGIN
 							   ,[CommonJournalBatchDetailId])
 					     VALUES(@JournalBatchHeaderId
 							   ,@JournalBatchDetailId
-							   ,@ReadyToPayId
+							   ,@ReadyToPayDetailsId
 							   ,@CheckNumber
 							   ,@VendorId
 							   ,@CheckDate
@@ -666,7 +668,7 @@ BEGIN
 						 VALUES
 							   (@JournalBatchHeaderId
 							   ,@JournalBatchDetailId
-							   ,@ReadyToPayId
+							   ,@ReadyToPayDetailsId
 							   ,@CheckNumber
 							   ,@VendorId
 							   ,@CheckDate
@@ -769,7 +771,7 @@ BEGIN
 							       ,[CommonJournalBatchDetailId])
 							 VALUES(@JournalBatchHeaderId
 							       ,@JournalBatchDetailId
-							       ,@ReadyToPayId
+							       ,@ReadyToPayDetailsId
 							       ,@CheckNumber
 							       ,@VendorId
 							       ,@CheckDate

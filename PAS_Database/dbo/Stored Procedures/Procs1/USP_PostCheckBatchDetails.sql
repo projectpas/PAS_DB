@@ -18,10 +18,12 @@
 	2    07/06/2023   Satish Gohil  Batch detail table insert value added
 	3    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
 	4    08/14/2023   Moin Bloch    Added Check Payment Method to check only check payments
-	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry)     
+	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry) 
+	6    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
 @ReadyToPayId BIGINT,
+@ReadyToPayDetailsId BIGINT,
 @VendorId BIGINT
 AS
 BEGIN 
@@ -97,7 +99,7 @@ BEGIN
 		)    
 		
 		SELECT @CheckAmount = SUM(ISNULL(PaymentMade,0)),@DiscountAmount = SUM(ISNULL(DiscountToken,0)),@TotalAmount = SUM(ISNULL(PaymentMade,0)) + SUM(ISNULL(DiscountToken,0)),@CheckNumber = MAX(CheckNumber),@CheckDate = MAX(CheckDate)
-		FROM VendorReadyToPayDetails WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId AND VendorId = @VendorId AND [PaymentMethodId] = @Check; 	 		
+		FROM VendorReadyToPayDetails WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId AND VendorId = @VendorId AND [PaymentMethodId] = @Check; 	 		
 
 		SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy from dbo.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
 		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode from DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CheckPayment')	
@@ -254,7 +256,7 @@ BEGIN
 				EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 								
 				INSERT INTO [dbo].[VendorPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
-				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
+				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 
 			 -----Account Payable--------
 
@@ -293,7 +295,7 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 				END
 			 -----Bank Account--------
 
@@ -326,7 +328,7 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 								
 					INSERT INTO [dbo].VendorPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ReadyToPayDetailsId,@CheckNumber,@VendorId,@CheckDate,@CommonBatchDetailId)
 				END
 			 -----Discount Taken--------
 

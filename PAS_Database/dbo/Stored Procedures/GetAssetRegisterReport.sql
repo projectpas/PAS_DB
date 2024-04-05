@@ -3,13 +3,32 @@
 -- Create date: <10-JAN-2024>
 -- Description:	<This SP to get all the Asset Register Reports>
 -- =============================================
+/*************************************************************           
+ ** File:   [usprpt_GetStockReportAsOfNow]           
+ ** Author:   Ayesha Sultana
+ ** Description: This SP to get all the Asset Register Reports 
+ ** Purpose:         
+ ** Date:   10-JAN-2024    
+          
+ ** PARAMETERS:           
+   
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date         Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	 10-01-2024		Ayesha Sultana		Created
+	2    02-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed
+     
+**************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
-@AssetClass VARCHAR(30) = NULL,
-@AssetStatus VARCHAR(30) = NULL,
-@AssetInventoryStatus VARCHAR(30) = NULL,
-@MasterCompanyId INT,
-@ManagementStructureId INT,
-@xmlFilter  VARCHAR(MAX) = NULL 
+@mastercompanyid INT,
+@id INT = NULL,
+@id2 INT= NULL,
+@id3 INT= NULL,
+@strFilter VARCHAR(MAX) = NULL
 AS
 BEGIN
 	BEGIN TRY
@@ -29,7 +48,7 @@ BEGIN
 				) 
 
 			INSERT INTO #TEMPMSFilter(LevelIds)
-			SELECT Item FROM DBO.SPLITSTRING(@xmlFilter,'!')
+			SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
 
 			DECLARE   
 			@level1 VARCHAR(MAX) = NULL,  
@@ -112,10 +131,10 @@ BEGIN
 				LEFT JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
 				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 		
 
-		WHERE ((ISNULL(@AssetClass,0) = 0 OR AI.AssetAttributeTypeId IN (@AssetClass,0)))			
-			  AND ((ISNULL(@AssetStatus,0) = 0 OR AI.AssetStatusId IN (@AssetStatus,0)))		 
-			  AND ((ISNULL(@AssetInventoryStatus,0) = 0 OR AI.InventoryStatusId IN (@AssetInventoryStatus,0)))	 
-			  AND AI.MasterCompanyId = @MasterCompanyId
+		WHERE ((ISNULL(@id,0) = 0 OR AI.AssetAttributeTypeId IN (@id,0)))			
+			  AND ((ISNULL(@id2,0) = 0 OR AI.AssetStatusId IN (@id2,0)))		 
+			  AND ((ISNULL(@id3,0) = 0 OR AI.InventoryStatusId IN (@id3,0)))	 
+			  AND AI.MasterCompanyId = @mastercompanyid
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
 			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
@@ -134,9 +153,9 @@ BEGIN
 		DECLARE @ErrorLogID INT ,@DatabaseName VARCHAR(100) = db_name()      
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------      
 		,@AdhocComments VARCHAR(150) = 'GetAssetRegisterReport'      
-		,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@AssetClass, '') AS varchar(100))      
-											+ '@Parameter2 = ''' + CAST(ISNULL(@AssetStatus, '') AS varchar(100))       
-											+ '@Parameter3 = ''' + CAST(ISNULL(@AssetInventoryStatus, '') AS varchar(100))      
+		,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@id, '') AS varchar(100))      
+											+ '@Parameter2 = ''' + CAST(ISNULL(@id2, '') AS varchar(100))       
+											+ '@Parameter3 = ''' + CAST(ISNULL(@id3, '') AS varchar(100))      
 		,@ApplicationName VARCHAR(100) = 'PAS'      
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------      
 		EXEC spLogException @DatabaseName = @DatabaseName      

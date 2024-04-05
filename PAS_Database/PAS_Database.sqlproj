@@ -2878,6 +2878,13 @@
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_UpdateMasterSettings.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_GetSingleScreenDataById.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_GetDropdownlistData.sql" />
+    <Build Include="dbo\Views\vw_CustomerClassificationAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SingleScreen_DeleteAndRestoreRecord.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertAuditDataForSingleScreen.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GenerateFieldNameValueList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Common_Audit_GetData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_Audit_AuditHistory.sql" />
+    <Build Include="dbo\User Defined Types\AuditFields.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -24,7 +24,7 @@
 	8    11/21/2023   HEMANT SALIYA		Updated Journal Type Id and Name in Batch Details
 	9    11/23/2023   Moin Bloch		Modify(LastMSLevel,AllMSlevels Issue Resolved)
 	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
-	11   11/21/2023   HEMANT SALIYA		Updated for Accounting Entry Changes
+	11   04/05/2024   HEMANT SALIYA		Updated for Accounting Entry Changes
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -202,7 +202,7 @@ BEGIN
 			INSERT INTO #tmpCommonJournalBatchDetail(CreditMemoHeaderId, CreditMemoDetailId)
 			SELECT CreditMemoHeaderId, CreditMemoDetailId FROM [DBO].[CreditMemoDetails] WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 
-			SELECT * FROM #tmpCommonJournalBatchDetail
+			--SELECT * FROM #tmpCommonJournalBatchDetail
 
 			--CHECK RECORDS ARE AVAILABLES.
 			IF EXISTS(SELECT * FROM #tmpCommonJournalBatchDetail)
@@ -444,7 +444,7 @@ BEGIN
 			SELECT @temptotaldebitcount = SUM(ISNULL(DebitAmount,0)), @temptotalcreditcount = SUM(ISNULL(CreditAmount,0))  
 			FROM #tmpCommonBatchDetails;
 
-			SELECT * FROM #tmpCommonBatchDetails
+			--SELECT * FROM #tmpCommonBatchDetails
 					
 			IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
 			BEGIN

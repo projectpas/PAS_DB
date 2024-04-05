@@ -1539,6 +1539,7 @@ BEGIN
 		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0	
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
+		 AND ISNULL(VRTPD.IsCheckPrinted,0)  = 1
 		-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	
 		 -- AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
 		-- AND (CASE WHEN VRTPD.PaymentMethodId = @Check THEN CASE WHEN VRTPD.IsCheckPrinted = 1 THEN VRTPD.IsCheckPrinted END END = 1 OR  VRTPD.PaymentMethodId <> @Check )

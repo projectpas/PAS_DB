@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWODashboardData]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to Get WO list By Stage
@@ -19,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/22/2022   Hemant Saliya Created
 	2    05/03/2022   Hemant Saliya Remove Duplicate Records
+	3	 04/04/2024	  Bhargav saliya Resolved WO open Count issue in WO DashBoard(More Info)
 
 exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@WOTypeId=N'ALL',@GlobalFilter=N'',
 @WorkOrderStageId=18,@WorkOrderNum=NULL,@PartNumber=NULL,@PartDescription=NULL,@Customer=NULL,@SerialNumber=NULL,
@@ -108,7 +107,8 @@ BEGIN
 					 EstCost DECIMAL(18,2) NULL,
 					 EstMargin DECIMAL(18,2) NULL,
 					 RONumber VARCHAR(200) NULL,
-					 PONumber VARCHAR(200) NULL
+					 PONumber VARCHAR(200) NULL,
+					 WOpartId BIGINT NULL
 				)
 
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
@@ -125,7 +125,7 @@ BEGIN
 				SELECT @RecStageCode = StageCode FROM dbo.WorkOrderStage WOSG WITH (NOLOCK) WHERE WorkOrderStageId = @WorkOrderStageId
 
 				INSERT INTO #tmpWorkOrderData (WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
-				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber)
+				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId)
 				SELECT DISTINCT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, 
 					CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType,
@@ -133,7 +133,8 @@ BEGIN
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
 					ISNULL(WOC.TotalCost, 0) AS EstCost, ISNULL(WOC.ActualMargin, 0) AS EstMargin,
-					''  AS PONumber, WOP.CustomerReference AS RONumber
+					''  AS PONumber, WOP.CustomerReference AS RONumber,
+					WOP.ID AS WOpartId
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
 					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
@@ -154,7 +155,7 @@ BEGIN
 					0 AS EstRevenue, 
 					0 AS EstCost,
 					0 AS EstMargin,
-					''  AS PONumber, RC.Reference AS RONumber
+					''  AS PONumber, RC.Reference AS RONumber,0 AS WOpartId
 				FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK) 
 					JOIN dbo.Customer C ON C.CustomerId = RC.CustomerId
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
@@ -170,7 +171,7 @@ BEGIN
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
 					--CASE WHEN ISNULL(WOC.ActualRevenue, 0) != 0 THEN ISNULL(WOC.ActualRevenue, 0) ELSE ISNULL(WOC.Revenue, 0) END AS EstRevenue, 
 					ISNULL(WOC.TotalCost, 0) AS EstCost, ISNULL(WOC.ActualMargin, 0) AS EstMargin,
-					''  AS PONumber, WOP.CustomerReference AS RONumber
+					''  AS PONumber, WOP.CustomerReference AS RONumber,WOP.ID AS WOpartId
 				FROM dbo.WorkOrder WO WITH (NOLOCK) 
 					JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId				
 					JOIN dbo.Customer C ON c.CustomerId = WO.CustomerId
@@ -191,7 +192,8 @@ BEGIN
 					0 AS EstRevenue, 
 					0 AS EstCost,
 					0 AS EstMargin,
-					''  AS PONumber, RC.Reference AS RONumber
+					''  AS PONumber, RC.Reference AS RONumber,
+					0 AS WOpartId
 				FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK) 
 					JOIN dbo.Customer C ON C.CustomerId = RC.CustomerId
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
@@ -201,11 +203,11 @@ BEGIN
 
 				;With Result AS(
 					SELECT DISTINCT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
-						[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber FROM #tmpWorkOrderData
+						[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId FROM #tmpWorkOrderData
 					),
 				FinalResult AS (
 				SELECT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
-				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber FROM Result
+				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId FROM Result
 				WHERE (
 					(@GlobalFilter <> '' AND ((WorkOrderNum like '%' + @GlobalFilter +'%' ) OR 
 							(OpenDate like '%' + @GlobalFilter +'%') OR
@@ -245,7 +247,7 @@ BEGIN
 					ResultCount AS (Select COUNT(WorkOrderNum) AS NumberOfItems FROM FinalResult)
 
 					SELECT WorkOrderNum, PartNumber, PartDescription, Customer,SerialNumber, WOStage, [Priority], WOType,
-					 Techname, OpenDate, CustReqDate,EstRevenue, EstCost,  EstMargin, PONumber, RONumber, NumberOfItems FROM FinalResult, ResultCount
+					 Techname, OpenDate, CustReqDate,EstRevenue, EstCost,  EstMargin, PONumber, RONumber, NumberOfItems,WOpartId FROM FinalResult, ResultCount
 					ORDER BY  
 					CASE WHEN (@SortOrder = 1 AND @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,
 					CASE WHEN (@SortOrder = 1 AND @SortColumn='OPENDATE')  THEN OpenDate END ASC,

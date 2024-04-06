@@ -246,7 +246,7 @@ BEGIN
 		FROM dbo.AccountingCalendar AC WITH(NOLOCK) 
 		JOIN #AccPeriodTable_All tmpAC ON tmpAC.PeriodName =  AC.PeriodName
 
-		SELECT * FROM #AccPeriodTable_All
+		--SELECT * FROM #AccPeriodTable_All
 
 		;WITH RESULT AS(
 			SELECT DISTINCT CB.GlAccountId 'GlAccountId', MSD.EntityMSID AS EntityStructureId, CB.[MasterCompanyId],  SUM(ISNULL(CB.CreditAmount,0)) 'Credit', SUM(ISNULL(CB.DebitAmount,0)) 'Debit',

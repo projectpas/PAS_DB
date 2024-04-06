@@ -16,6 +16,8 @@
 	4    27/03/2024   Moin Bloch			    Added new Field IsGenerateReleaseForm
 	5    28/03/2024   Moin Bloch			    Added new Field ConditionId	 
 	6    02/04/2024   Moin Bloch			    Added new Field AttachmentId
+	7    05/04/2024   Moin Bloch			    Added new Field Condition	 
+
      
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
@@ -118,7 +120,8 @@ BEGIN
 						ISNULL((SELECT TOP 1 ATT.AttachmentId FROM [dbo].[Attachment] ATT WITH (NOLOCK) 
 				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId AND DOC.[DocumentTypeId] = @DocumentTypeId
 				               WHERE ATT.ReferenceId = SL.StockLineId 
-							     AND ATT.ModuleId = @AttStockLineModuleId),0) AS AttachmentId
+							     AND ATT.ModuleId = @AttStockLineModuleId),0) AS AttachmentId,
+						SL.Condition
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId

@@ -26,6 +26,7 @@
     13   07/03/2024	       Devendra Shekh  Amount Calculation issue resolved
 	14   07/03/2024		   Hemant Saliya   Verify SP and Joins
 	15   19/03/2024        Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
+	16   19/03/2024        Devendra Shekh  amount mismatch issue resolved
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
 	@CustomerId BIGINT = NULL,
@@ -221,7 +222,7 @@ BEGIN
 				AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) and CAST(@EndDate AS DATE)	
 				AND ((ISNULL(sobi.IsProforma, 0) = 0 AND (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) = (ISNULL(sobi.GrandTotal,0) - ISNULL(sobi.RemainingAmount,0)) AND sobi.RemainingAmount > 0) 
 				OR (ISNULL(sobi.IsProforma, 0) = 1 AND (ISNULL(sobi.GrandTotal, 0) - ISNULL(sobi.RemainingAmount, 0)) > 0 AND DSA.OriginalDepositAmt - DSA.UsedDepositAmt != 0))
-			  GROUP BY C.CustomerId,SO.CustomerReference
+			  GROUP BY C.CustomerId--,SO.CustomerReference
 			)
 
 		   ,Creditmemo AS(
@@ -453,7 +454,8 @@ BEGIN
 				   LEFT JOIN NEWDepositAmt DSA ON DSA.Id = sobi.SalesOrderId
 			  WHERE sobi.InvoiceStatus='Invoiced' AND c.CustomerId=@CustomerId AND sobi.BillToSiteId=@SiteId AND le.LegalEntityId = @LegalEntityId 
 				   AND CAST(sobi.InvoiceDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)	
-			  GROUP BY C.CustomerId,SO.CustomerReference,sobi.IsProforma),
+			  GROUP BY C.CustomerId--,SO.CustomerReference,sobi.IsProforma
+			  ),
 				
 			 Creditmemo AS(
 				SELECT CGL.CustomerId AS CustomerId, 

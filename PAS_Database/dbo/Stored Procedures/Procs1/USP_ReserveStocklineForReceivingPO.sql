@@ -17,8 +17,9 @@
     1    09/11/2023   Vishal Suthar		Created
     2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
     3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
-	4    19 DEC 2023  Rajesh Gami		Change the SOPart status(Fulfilled) when PO reserve where SO mapped with same PO
+	4    12/19/2023   Rajesh Gami		Change the SOPart status(Fulfilled) when PO reserve where SO mapped with same PO
 	5    12/21/2023   Devendra Shekh	changes for sub for kit and multiple material
+	6    04/08/2024   Vishal Suthar		Modified the condition to fix the issue with partial qty reservation
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2309,@SelectedPartsToReserve=N'905',@UpdatedBy=N'ADMIN User'
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -270,7 +271,7 @@ BEGIN
 
 							--IF (@Quantity > (@QuantityReserved + @QuantityIssued))
 							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0 AND (@Quantity >= (@OriginalQuantity - (@QuantityReserved + @QuantityIssued))))
-							IF ((@Quantity - (@QuantityReserved + @QuantityIssued)) > 0)
+							IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
 							BEGIN
 								PRINT 'INSIDE WOM @Quantity'
 								IF (@SelectedWorkOrderMaterialsId > 0)

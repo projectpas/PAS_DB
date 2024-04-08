@@ -83,7 +83,8 @@ BEGIN
     DECLARE @ACHTransfer INT;
     DECLARE @CreditCard INT;
 	DECLARE @NonPOInvoiceHeaderStatusId INT;
-	DECLARE @StatusId VARCHAR(50) = '3,6,10';
+	DECLARE @StatusId VARCHAR(50) = '3,6';
+	DECLARE @PrintFullStatusId VARCHAR(50) = '3,10';
 
 	SELECT @NonPOInvoiceHeaderStatusId = NonPOInvoiceHeaderStatusId FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted';
 	SELECT @Check = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
@@ -1318,7 +1319,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		 AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
+		 AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
@@ -1370,7 +1371,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		  AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
+		  AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
@@ -1423,7 +1424,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
+		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,

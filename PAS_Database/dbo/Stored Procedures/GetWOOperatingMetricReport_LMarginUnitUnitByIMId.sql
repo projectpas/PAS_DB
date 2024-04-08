@@ -1,5 +1,4 @@
-﻿
-/********************************************************************             
+﻿/********************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_LMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report Low Margin To Highest Margin  By ItemMaster Id
@@ -119,7 +118,8 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			UPPER(WS.WorkScopeCode) 'workscopes',  
+			--UPPER(WS.WorkScopeCode) 'workscopes', 
+			UPPER(CN.Description) 'workscopes',
 			ISNULL(WOBIT.GrandTotal,0) AS totalRevenues,
 			ISNULL(CST.PartsCost,0) AS partsCosts,
 			ISNULL(CST.LaborCost,0) AS laborOverheads,
@@ -153,14 +153,16 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
+			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
+			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 			LEFT JOIN dbo.WorkOrderStage wos WITH (NOLOCK) ON  WOPN.WorkOrderStageId = wos.WorkOrderStageId
 		  
 		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND
 				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  AND WOPN.itemmasterId=ISNULL(@selectedItemMasterId,WOPN.itemmasterId)  
 					AND CAST(WBI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
-					AND (ISNULL(@workscopeIds,'')='' OR WOPN.WorkOrderScopeId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+					--AND (ISNULL(@workscopeIds,'')='' OR WOPN.WorkOrderScopeId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

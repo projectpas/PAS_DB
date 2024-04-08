@@ -39,9 +39,11 @@
     [NonPOInvoiceId]                BIGINT          NULL,
     [IsGenerated]                   BIT             NULL,
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
-    [VPControlNum]                  VARCHAR (250)   NULL,
+    [ControlNumber]                 VARCHAR (250)   NULL,
     CONSTRAINT [PK_VendorReadyToPayDetailsAudit] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsAuditId] ASC)
 );
+
+
 
 
 

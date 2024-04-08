@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/24/2023   Subhash Saliya		Created
 	2    06/07/2023   MOIN BLOCH            REMOVED TRANSACTION AND MAKES CAPITAL RESERVED KEY WORDS  
+	3    06/07/2023   MOIN BLOCH            Added IsDeleted Flag
      
 -- EXEC [USP_GetInternalWorkorderDeatils] 2940
 **************************************************************/
@@ -44,7 +45,7 @@ BEGIN
                FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) 
                 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOPC WITH(NOLOCK) ON WOP.ID = WOPC.WOPartNoId
                INNER JOIN [dbo].[ItemMaster]  IM WITH(NOLOCK) ON WOP.ItemMasterId=IM.ItemMasterId
-               INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId               
+               INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId AND SL.isDeleted = 0             
                WHERE WOP.ID = @WorkOrderPartNoId;
                 
 		--	END

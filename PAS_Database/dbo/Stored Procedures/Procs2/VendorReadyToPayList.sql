@@ -33,6 +33,7 @@
 	16   27/03/2024   Devendra Shekh    changes for customer credit payment and added vendor for creditmemo
 	17   28/03/2024   Devendra Shekh    table changes for creditMemo(changed to same as nonPO)
 	18   04/04/2024   Devendra Shekh    discount removed from credit memo and suspense record
+	19   08/04/2023   Devendra Shekh	added conditon for amount for SelectedforPayment
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -195,7 +196,8 @@ BEGIN
 						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
 						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
-					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId),
+					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 1,
@@ -276,7 +278,8 @@ BEGIN
 						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
 						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
-					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId),
+					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsCustomerCreditMemo = 1,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 2,
@@ -357,7 +360,8 @@ BEGIN
 						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
 						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
-					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId),
+					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsCustomerCreditMemo = 0,
 					ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 					VendorReadyToPayDetailsTypeId = 3,
@@ -441,7 +445,8 @@ BEGIN
 						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
 						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
-					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId),
+					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 				IsCustomerCreditMemo = 0,
 				ISNULL(VPD.CreditMemoHeaderId,0) AS CreditMemoHeaderId,
 				VendorReadyToPayDetailsTypeId = 4,

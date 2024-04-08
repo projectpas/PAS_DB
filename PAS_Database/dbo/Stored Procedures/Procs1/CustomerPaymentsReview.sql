@@ -15,6 +15,7 @@
 	3    07/03/2024    Moin Bloch	    added AmtApplied Field	
 	4    11/03/2024    Moin Bloch	    check misc customer
 	5    20/03/2024    Moin Bloch	    changed same customer logic
+	6    08/04/2024    Devendra Shekh	remaining amt issue for known customer without invoices resolved
 
 	EXEC [dbo].[CustomerPaymentsReview]  10169
 **************************************************************/  
@@ -135,15 +136,16 @@ BEGIN
 
 	  SELECT C.ReceiptId, 
 			 C.CustomerId, 
-			 [Name], 
-			 CustomerCode,     
+			 C.[Name], 
+			 C.CustomerCode,     
 			 REPLACE(PaymentRef, '~' ,'') AS PaymentRef,
 			 Amount, 
-			(Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0))  AS AmountRemaining,
+			 CASE WHEN ISNULL(IPS.PaymentId, 0) = 0 AND ISNULL(CU.Ismiscellaneous, 0) = 0 THEN Amount ELSE (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0))  END AS AmountRemaining,
 			(Amount - (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0)))  AS AmtApplied  
 		  FROM myCTE3 C          
 	  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId    
-	  GROUP BY C.ReceiptId, C.CustomerId, Name, CustomerCode, Amount, PaymentRef  
+	  LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = C.CustomerId    
+	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, Amount, PaymentRef, IPS.PaymentId, CU.Ismiscellaneous
   
 	  UNION ALL
 

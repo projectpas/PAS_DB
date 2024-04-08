@@ -191,8 +191,6 @@ BEGIN
 			   '' AS BankName,
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
-			   --VPControlNum = (SELECT ISNULL(VD.VPControlNum,'') FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1)
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
@@ -299,8 +297,6 @@ BEGIN
 			   '' AS BankName,
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
-			   --VPControlNum = (SELECT ISNULL(VD.VPControlNum,'') FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1)
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON RRH.CreditMemoHeaderId = CM.CreditMemoHeaderId	
@@ -436,8 +432,6 @@ BEGIN
 			   '' AS BankName,
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
-			   --VPControlNum = (SELECT ISNULL(VD.VPControlNum,'') FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1)
 			    ISNULL(TAB.ControlNumber,'') AS 'ControlNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId 	
@@ -494,8 +488,6 @@ BEGIN
 			   '' AS BankName,
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
-			   --VPControlNum = (SELECT ISNULL(VD.VPControlNum,'') FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1)
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON RRH.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId	

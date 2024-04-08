@@ -113,8 +113,12 @@ BEGIN
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
 			UPPER(IM.PartDescription) 'pnDescription',  
-			UPPER(WS.WorkScopeCode) 'workscopes',  
-			CASE WHEN WOBIT.WOBillingInvoicingItemId IS NULL THEN 0 ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
+			--UPPER(WS.WorkScopeCode) 'workscopes',
+			UPPER(CN.Description) 'workscopes',
+			CASE WHEN WOBIT.WOBillingInvoicingItemId IS NULL THEN 
+				CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL(WOQD.CommonFlatRate , 0) ELSE  
+			    ISNULL(ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount,0) + ISNULL(WOQD.LaborFlatBillingAmount,0) + ISNULL(WOQD.ChargesFlatBillingAmount,0)+ ISNULL(WOQD.FreightFlatBillingAmount,0),0) ,0) END
+			ELSE ISNULL(WOBIT.GrandTotal,0) END AS revenue,
 			--CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
 			--	ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount+ WOQD.FreightFlatBillingAmount,0) ,0) END 'revenue',  
 			UPPER(MSD.Level1Name) AS level1,  
@@ -139,14 +143,16 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
+			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId
+			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
 		  
 		  WHERE 
 				--WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced'  AND 
 				ISNULL(WOQ.IsDeleted,0) = 0 AND	WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
 					AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
-					AND (ISNULL(@workscopeIds,'')='' OR WOPN.WorkOrderScopeId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+					--AND (ISNULL(@workscopeIds,'')='' OR WOPN.WorkOrderScopeId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -160,7 +166,7 @@ BEGIN
 		) as a
 
 		SELECT * INTO #TempWOOperatingFinal FROM
-		 (SELECT (CASE WHEN (SELECT TOP 1 Row_Number FROM #TempWOOperating tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN 'Multiple' ELSE workscopes END) AS 'workscope',* FROM #TempWOOperating main) as res
+		 (SELECT (CASE WHEN (SELECT TOP 1 Row_Number FROM #TempWOOperating tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.workscopes FROM #TempWOOperating tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE workscopes END) AS 'workscope',* FROM #TempWOOperating main) as res
 
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT workscope,MAX(Row_Number) AS timesQuoted,SUM(revenue) AS totalRevenue, CONVERT(DECIMAL(10,2),(SUM(revenue)/MAX(Row_Number))) as averageRevenue,pn,pnDescription,ItemMasterId

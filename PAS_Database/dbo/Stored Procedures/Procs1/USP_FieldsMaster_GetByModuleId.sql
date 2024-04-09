@@ -110,7 +110,7 @@ SET NOCOUNT ON;
 			CLOSE tablefeildcursor  
 			DEALLOCATE tablefeildcursor 
 
-			SELECT AutoId,[ModuleId], [LabelName], [FieldType], [Sequnse], [TableName], [IDName], [ValueName], [IsActive],IsRequired
+			SELECT AutoId,[ModuleId], [LabelName], [FieldType], [Sequnse], [TableName], [IDName], [ValueName], [IsActive],IsRequired,IsDeniedFutureDate
 			,CASE WHEN isnull(TableName,'')!='' then 
 			(SELECT TT.Value,TT.Label FROM #TempTable TT WHERE TT.AutoId=GF.AutoId FOR JSON PATH )  ELSE '' END 
 			AS FilterListValue

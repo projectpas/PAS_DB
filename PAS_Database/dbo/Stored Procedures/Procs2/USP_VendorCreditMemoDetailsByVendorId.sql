@@ -103,7 +103,7 @@ BEGIN
 			   MJH.ManualJournalStatusId,MJS.[Name],MJH.MasterCompanyId,MJD.ReferenceId, 
 			   VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
 			   )
-			   SELECT * FROM Result WHERE Amount > 0
+			   SELECT * FROM Result WHERE Amount <> 0
 	
  END TRY      
   BEGIN CATCH        

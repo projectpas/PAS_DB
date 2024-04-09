@@ -2892,6 +2892,8 @@
     <Build Include="dbo\Stored Procedures\usp_GetReportUrlParamsData_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetExternalCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateMPNTenderStocklineDetail.sql" />
+    <Build Include="dbo\Tables\AssetDepreciationMonthRemoval.sql" />
+    <Build Include="dbo\Stored Procedures\SaveAssetDepreciationMonthRemovalData.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

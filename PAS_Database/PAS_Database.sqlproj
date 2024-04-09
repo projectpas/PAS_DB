@@ -2859,6 +2859,7 @@
     <Build Include="dbo\Tables\LongDateTimeFormat.sql" />
     <Build Include="dbo\Tables\DecimalPrecision.sql" />
     <Build Include="dbo\Tables\CurrencyFormat.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateTenderStocklineDetail.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

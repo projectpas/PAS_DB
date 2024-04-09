@@ -15,6 +15,7 @@
 	2    11/09/2023  Amit Ghediya    Update for Stand Alone CreditMemo approve. 
 	3    11/09/2023					 Update for nonPoInvoice
 	4    19/03/2023  Amit Ghediya    Update for Check Register
+	5    19/03/2023  Amit Ghediya    Update for Check Register filter
      
 --exec [dbo].[usp_GetApprovalListByTaskId] 9, 3
 ************************************************************************/
@@ -259,14 +260,14 @@ BEGIN TRY
 		 SELECT @TotalCost = SUM(ISNULL(VRTPD.PaymentMade, 0))	 
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
-			   WHERE VRTPDH.LegalEntityId = @ID
+			   WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
 
 		 SELECT TOP 1 @MSID = VRTPDH.ManagementStructureId,
 			   @EID = VRTPD.VendorId,	   
 				@MasterCompanyID = VRTPD.MasterCompanyId
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
-			  WHERE VRTPDH.LegalEntityId = @ID
+			  WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
 	END
 
 	SET @TotalCost  = ISNULL(@TotalCost,0)

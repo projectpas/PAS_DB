@@ -15,7 +15,8 @@
  ** S NO		Date			Author				Change Description              
  ** --		--------		-------------		--------------------------------            
     1		15-APR-2022		HEMANT SALIYA			Created  
-	2		16-JUNE-203     Devendra Shekh			made changes to do total
+	2		16-JUNE-2023     Devendra Shekh			made changes to do total
+	3		29-MARCH-2024    Ekta Chandegra			IsActive and IsDeleted flag is added
   
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -114,7 +115,9 @@ BEGIN
     LEFT JOIN DBO.Employee AS E2 WITH (NOLOCK) ON WO.CsrId = E2.EmployeeId  
      WHERE CAST(RCW.receiveddate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)        
       AND RCW.customerid=ISNULL(@customername,WO.customerid)   
-      AND RCW.mastercompanyid = @MasterCompanyId AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
+      AND RCW.mastercompanyid = @MasterCompanyId 
+	  AND WO.IsDeleted = 0 AND WO.IsActive = 1
+	  AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
       AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
       AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
       AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  
@@ -170,7 +173,9 @@ BEGIN
    LEFT JOIN DBO.Employee AS E2 WITH (NOLOCK) ON WO.CsrId = E2.EmployeeId  
     WHERE CAST(RCW.receiveddate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
     AND RCW.customerid=ISNULL(@customername,WO.customerid)  
-    AND RCW.mastercompanyid = @MasterCompanyId AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
+    AND RCW.mastercompanyid = @MasterCompanyId
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1
+	AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
     AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
     AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))  

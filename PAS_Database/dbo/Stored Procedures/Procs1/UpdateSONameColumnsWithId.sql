@@ -1,10 +1,18 @@
-﻿
--- =============================================
--- Author:		Vishal Suthar
--- Create date: 23-Dec-2020
--- Description:	Update name columns into corrosponding reference Id values from respective master table
--- =============================================
---  EXEC [dbo].[UpdateSONameColumnsWithId] 5
+﻿/*************************************************************           
+ ** File:  [UpdateSONameColumnsWithId]           
+ ** Author:   Vishal Suthar
+ ** Description: Update name columns into corrosponding reference Id values from respective master table                 
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    23-Dec-2020   Vishal Suthar   Created         
+    2    03-Apr-2024   Bhargav Saliya	Credit Terms Changes
+
+	EXEC [dbo].[UpdateSONameColumnsWithId] 5
+**************************************************************/ 
 CREATE PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
 AS
@@ -77,7 +85,7 @@ BEGIN
 		CurrencyName = Curr.Code,
 		CustomerWarningName = CW.WarningMessage,
 		ManagementStructureName = (MS.Code + ' - ' + MS.Name),
-		CreditTermName = CTerm.Name,
+		CreditTermName = CASE WHEN ISNULL( SO.CreditTermName,'') != ''  THEN SO.CreditTermName ELSE CTerm.[Name] END,
 		SO.Level1 = PMS.Level1,
 		SO.Level2 = PMS.Level2,
 		SO.Level3 = PMS.Level3,

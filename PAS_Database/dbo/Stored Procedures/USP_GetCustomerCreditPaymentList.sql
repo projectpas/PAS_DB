@@ -15,6 +15,7 @@ EXEC [USP_GetCustomerCreditPaymentList]
 ** 2    03/15/2024		Devendra Shekh		added vendorcode, SuspenseUnappliedNumber
 ** 3    03/21/2024		Devendra Shekh		ADDED new param @RecordTypeId
 ** 4    03/22/2024		Devendra Shekh		ADDED IsMiscellaneous to select
+** 5    04/03/2024		Devendra Shekh		ADDED MappingCustomer Data to select(Mapped for Customer Receipt)
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetCustomerCreditPaymentList]
@@ -112,10 +113,14 @@ BEGIN
 						ISNULL(CCP.VendorId, 0) AS 'VendorId',
 						ISNULL(VA.VendorCode, '') AS 'VendorCode',
 						ISNULL(CCP.SuspenseUnappliedNumber, '') AS 'SuspenseUnappliedNumber',
-						ISNULL(CCP.IsMiscellaneous, '') AS 'IsMiscellaneous'
+						ISNULL(CCP.IsMiscellaneous, '') AS 'IsMiscellaneous',
+						ISNULL(CCP.MappingCustomerId, '') AS 'MappingCustomerId',
+						ISNULL(CA.[Name], '') AS 'MappedCustomerName',
+						ISNULL(CA.CustomerCode, '') AS 'MappedCustomerCode'
 					FROM dbo.CustomerCreditPaymentDetail CCP WITH (NOLOCK)
 					LEFT JOIN dbo.[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = CCP.ReceiptId
 					LEFT JOIN [dbo].[Vendor] VA WITH(NOLOCK) ON VA.VendorId = CCP.VendorId
+					LEFT JOIN [dbo].[Customer] CA WITH(NOLOCK) ON CA.CustomerId = CCP.MappingCustomerId
 		 	  WHERE (CCP.[StatusId]=@StatusId OR @StatusId IS NULL) AND CCP.MasterCompanyId=@MasterCompanyId
 					AND (ISNULL(CCP.IsMiscellaneous, 0)=@IsMiscellaneous OR @IsMiscellaneous IS NULL) 
 			), ResultCount AS(SELECT COUNT(CustomerCreditPaymentDetailId) AS totalItems FROM Result)

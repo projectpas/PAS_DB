@@ -15,11 +15,12 @@
 	2    04/18/2022   Happy             Updated 
 	3    09/04/2023   AMIT GHEDIYA      Updated to get from standaloneCM.
 	4    09/15/2023   AMIT GHEDIYA      Updated to Cast.
+	5    04/04/2024   Devendra Shekh    added vendorid to select
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
   
-CREATE    PROCEDURE [dbo].[SearchCreditMemoData]  
+CREATE   PROCEDURE [dbo].[SearchCreditMemoData]  
 	@PageSize int=NULL,  
 	@PageNumber int=NULL,  
 	@SortColumn varchar(50)=NULL,   
@@ -124,11 +125,13 @@ BEGIN
                   ,CM.[CreatedDate] AS IssueDate  
                   ,CM.[ReturnDate]
 				  ,CM.IsStandAloneCM
+				  ,ISNULL(VR.VendorId, 0) AS VendorId
         FROM dbo.CreditMemo CM WITH (NOLOCK)           
             --LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = CM.CreditMemoHeaderId    
            INNER JOIN dbo.[RMACreditMemoManagementStructureDetails] MS WITH (NOLOCK) ON  MS.ReferenceID = CM.CreditMemoHeaderId AND MS.ModuleID = @ModuleID  
               INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON CM.ManagementStructureId = RMS.EntityStructureId  
               INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
+              LEFT JOIN dbo.Vendor VR WITH (NOLOCK) ON VR.RelatedCustomerId = CM.CustomerId
   
         WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID))    
    ),  
@@ -234,6 +237,7 @@ BEGIN
            ,MF.ManufacturerName  
            ,MF.ManufacturerNameType,
 		   M.IsStandAloneCM
+		   ,M.VendorId
            FROM Result M     
      LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = M.CreditMemoHeaderId
 	 LEFT JOIN dbo.StandAloneCreditMemoDetails SACD WITH (NOLOCK)  ON SACD.CreditMemoHeaderId = M.CreditMemoHeaderId AND SACD.IsActive = 1
@@ -262,7 +266,7 @@ BEGIN
            UC.UnitPriceType,  
            CD.ReferenceNo,  
            CD.IsWorkOrder,  
-           CD.[ReferenceId],MF.ManufacturerName ,MF.ManufacturerNameType,M.IsStandAloneCM
+           CD.[ReferenceId],MF.ManufacturerName ,MF.ManufacturerNameType,M.IsStandAloneCM,M.VendorId
     ),ResultCount AS(SELECT COUNT(CreditMemoHeaderId) AS totalItems FROM Results)    
     SELECT * INTO #TempResult2 from  Results  
      WHERE ((@GlobalFilter <>'' AND (    

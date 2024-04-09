@@ -1,4 +1,12 @@
-﻿CREATE Procedure [dbo].[usp_GetAllAddEditID]
+﻿/************************************************************* 
+ Change History           
+ **************************************************************           
+ ** PR   Date         Author		  Change Description            
+ ** --   --------     -------		  --------------------------------          
+    1    
+    2    04/04/2024   Ekta Chandegra   Retrieve company records for CustomerPMA 
+**************************************************************/
+CREATE Procedure [dbo].[usp_GetAllAddEditID]
 @poID  bigint,
 @ModuleID int
 AS
@@ -118,8 +126,10 @@ BEGIN
 		IF @ModuleID = 37
 		BEGIN
 			INSERT INTO #POEditList ([Value],Label)
-			SELECT ISNULL(CRMA.CustomerId,0), 'CUST_ADDID' from dbo.CustomerRMAHeader CRMA WITH(NOLOCK)
-			WHERE RMAHeaderId = @poID
+			SELECT ISNULL(EMS.LegalEntityId,0), 'MSCOMPANYID' from dbo.CustomerRMAHeader CRMA WITH(NOLOCK) 			
+			 INNER JOIN dbo.RMACreditMemoManagementStructureDetails MSD  WITH (NOLOCK) ON MSD.EntityMSID = CRMA.ManagementStructureId AND MSD.ModuleID=62
+			 INNER JOIN dbo.ManagementStructureLevel EMS WITH (NOLOCK) ON MSD.Level1Id = EMS.ID
+			 WHERE CRMA.RMAHeaderId = @poID
 		END
 
 		select * FROM #POEditList

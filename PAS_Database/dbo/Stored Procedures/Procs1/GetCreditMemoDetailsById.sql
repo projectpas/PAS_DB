@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    25/04/2022  Moin Bloch     Created
+	2    28/03/2024  HEMANT SALIYA  Updated for Add Billing Level Details
      
 -- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
@@ -38,7 +39,20 @@ BEGIN
           ,CM.[SerialNumber]
           ,CM.[Qty]
           ,CM.[UnitPrice]
-          ,CM.[Amount]
+          ,CM.[Amount]	
+		  ,CM.[SalesTax]
+		  ,CM.[OtherTax]
+		  ,CM.[PartsUnitCost]
+		  ,CM.[PartsRevenue]
+		  ,CM.[LaborRevenue]
+		  ,CM.[MiscRevenue]
+		  ,CM.[FreightRevenue]
+		  ,CM.[RestockingFee]
+		  ,CM.[CogsParts]		  
+		  ,CM.[CogsPartsUnitCost]
+		  ,CM.[CogsLabor]
+		  ,CM.[CogsOverHeadCost]
+		  ,(ISNULL(CM.[CogsParts], 0) + ISNULL(CM.[CogsLabor], 0) + ISNULL(CM.[CogsOverHeadCost], 0)) AS [CogsInventory]
           ,CM.[ReasonId]
           ,CM.[Reason]
           ,CM.[StocklineId]
@@ -60,10 +74,10 @@ BEGIN
 		  ,CM.[BillingInvoicingItemId]
 		  ,CASE WHEN CA.ActionId = 5 THEN 1 ELSE 0 END  'IsApproved'
 		  ,IM.ManufacturerName
-  FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
+	FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
 	   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
-	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
+	WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    
 	BEGIN CATCH

@@ -13,6 +13,11 @@
     1    12/28/2021   Devendra Shekh			Created
     2    12/29/2021   Devendra Shekh			changes to get kit stk as well
     3    01/01/2021   Devendra Shekh			changes for stockline joins
+	4    27/03/2024   Moin Bloch			    Added new Field IsGenerateReleaseForm
+	5    28/03/2024   Moin Bloch			    Added new Field ConditionId	 
+	6    02/04/2024   Moin Bloch			    Added new Field AttachmentId
+	7    05/04/2024   Moin Bloch			    Added new Field Condition	 
+
      
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
@@ -54,7 +59,11 @@ BEGIN
 	    SET NOCOUNT ON;
 	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 		BEGIN TRY
-
+		DECLARE @DocumentTypeId INT;
+		DECLARE @AttStockLineModuleId INT;	
+		SELECT  @AttStockLineModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine'
+		SELECT  @DocumentTypeId = [DocumentTypeId] FROM [dbo].[DocumentType] WITH(NOLOCK) WHERE [Name] = 'FAA 8130' AND [MasterCompanyId] = @MasterCompanyId;
+		
 		DECLARE @RecordFrom INT;		
 		DECLARE @Count INT;
 		DECLARE @IsActive bit;
@@ -105,14 +114,19 @@ BEGIN
 						SL.CreatedDate,
 						SL.UpdatedDate,
 						Upper(SL.CreatedBy) CreatedBy,
-						Upper(SL.UpdatedBy) UpdatedBy
+						Upper(SL.UpdatedBy) UpdatedBy,
+						ISNULL(SL.IsGenerateReleaseForm,0) IsGenerateReleaseForm,
+						SL.ConditionId,
+						ISNULL((SELECT TOP 1 ATT.AttachmentId FROM [dbo].[Attachment] ATT WITH (NOLOCK) 
+				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId AND DOC.[DocumentTypeId] = @DocumentTypeId
+				               WHERE ATT.ReferenceId = SL.StockLineId 
+							     AND ATT.ModuleId = @AttStockLineModuleId),0) AS AttachmentId,
+						SL.Condition
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
-				--INNER JOIN [dbo].[WorkOrderWorkFlow] WOF WITH (NOLOCK) ON WO.WorkOrderId = WOF.WorkOrderId AND WOF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-				--INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId AND WOM.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-				--INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+				
 		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
 					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND

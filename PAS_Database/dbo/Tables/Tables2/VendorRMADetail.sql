@@ -24,6 +24,7 @@
     [QuantityRejected]        INT             NULL,
     [ModuleId]                INT             NULL,
     [QtyShipped]              INT             NULL,
+    [RevisedStocklineId]      BIGINT          NULL,
     CONSTRAINT [PK_VendorRMADetail] PRIMARY KEY CLUSTERED ([VendorRMADetailId] ASC),
     CONSTRAINT [FK_VendorRMADetail_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_VendorRMADetail_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
@@ -31,4 +32,6 @@
     CONSTRAINT [FK_VendorRMADetail_VendorRMAReturnReason] FOREIGN KEY ([VendorRMAReturnReasonId]) REFERENCES [dbo].[VendorRMAReturnReason] ([VendorRMAReturnReasonId]),
     CONSTRAINT [FK_VendorRMADetail_VendorRMAStatus] FOREIGN KEY ([VendorRMAStatusId]) REFERENCES [dbo].[VendorRMAStatus] ([VendorRMAStatusId])
 );
+
+
 

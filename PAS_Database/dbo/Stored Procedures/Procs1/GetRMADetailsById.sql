@@ -15,9 +15,11 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    22/04/2022  Moin Bloch     Created
+    1    22/04/2022   Moin Bloch      Created
+	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
+	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
      
--- EXEC GetRMADetailsById 1
+-- EXEC GetRMADetailsById 36
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRMADetailsById]
 @RMAHeaderId bigint
@@ -27,39 +29,121 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY	
 
-SELECT [RMADeatilsId]
-      ,[RMAHeaderId]
-      ,CRD.[ItemMasterId]
-      ,CRD.[PartNumber]
-      ,CRD.[PartDescription]
-      ,[AltPartNumber]
-      ,[CustPartNumber]
-      ,[SerialNumber]
-      ,[StocklineId]
-      ,[StocklineNumber]
-      ,[ControlNumber]
-      ,[ControlId]
-      ,[ReferenceId]
-      ,[ReferenceNo]
-      ,[Qty]
-      ,[UnitPrice]
-      ,[Amount]
-      ,[RMAReasonId]
-      ,[RMAReason]
-      ,[Notes]
-      ,[isWorkOrder]
-	  ,CRD.[MasterCompanyId]
-	  ,CRD.[CreatedBy]
-	  ,CRD.[UpdatedBy]
-	  ,CRD.[CreatedDate]
-	  ,CRD.[UpdatedDate]
-	  ,CRD.[IsActive]
-	  ,CRD.[IsDeleted]
-	  ,IM.ManufacturerName
-	  ,CRD.BillingInvoicingItemId
-  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
-  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CRD.ItemMasterId=IM.ItemMasterId
-  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
+	DECLARE @IsWorkOrder BIT;
+
+	SELECT @IsWorkOrder = isWorkOrder FROM [dbo].[CustomerRMAHeader] CRD WITH (NOLOCK)  WHERE RMAHeaderId = @RMAHeaderId
+
+	IF(@isWorkOrder = 0)
+	BEGIN
+		SELECT [RMADeatilsId]
+			  ,[RMAHeaderId]
+			  ,CRD.[ItemMasterId]
+			  ,CRD.[PartNumber]
+			  ,CRD.[PartDescription]
+			  ,[AltPartNumber]
+			  ,[CustPartNumber]
+			  ,[SerialNumber]
+			  ,CRD.[StocklineId]
+			  ,[StocklineNumber]
+			  ,CRD.[ControlNumber]
+			  ,[ControlId]
+			  ,[ReferenceId]
+			  ,[ReferenceNo]
+			  ,[RMAReasonId]
+			  ,[RMAReason]
+			  ,CRD.[Notes]
+			  ,[isWorkOrder]
+			  ,CRD.[MasterCompanyId]
+			  ,CRD.[CreatedBy]
+			  ,CRD.[UpdatedBy]
+			  ,CRD.[CreatedDate]
+			  ,CRD.[UpdatedDate]
+			  ,CRD.[IsActive]
+			  ,CRD.[IsDeleted]
+			  ,IM.ManufacturerName
+			  ,CRD.BillingInvoicingItemId,
+			  SOBII.NoofPieces as Qty, SOBII.UnitPrice As [PartsUnitCost],
+			 (SOBII.PartCost * -1) As [PartsRevenue], 
+			  0 AS [LaborRevenue], 
+			  (SOBII.MiscCharges * -1) AS [MiscRevenue], 
+			  (SOBII.Freight * -1) AS [FreightRevenue],
+			  SOBII.SubTotal,
+			  (SOBII.SalesTax * -1) As SalesTax, 
+			  (SOBII.OtherTax * -1) As OtherTax, 
+			  (SOBII.GrandTotal * -1) AS GrandTotal, 
+			  (SOBII.GrandTotal * -1) AS [InvoiceAmt],
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSInventory], ISNULL(SOPN.UnitSalesPricePerUnit, 0) AS [COGSPartsUnitCost],
+			  CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
+		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
+				LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.InvoiceId AND SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+				LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
+		  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
+	END
+	ELSE
+	BEGIN
+		SELECT [RMADeatilsId]
+			  ,[RMAHeaderId]
+			  ,CRD.[ItemMasterId]
+			  ,CRD.[PartNumber]
+			  ,CRD.[PartDescription]
+			  ,[AltPartNumber]
+			  ,[CustPartNumber]
+			  ,[SerialNumber]
+			  ,CRD.[StocklineId]
+			  ,[StocklineNumber]
+			  ,[ControlNumber]
+			  ,[ControlId]
+			  ,[ReferenceId]
+			  ,[ReferenceNo]			  		  
+			  ,[Amount]
+			  ,WOBII.NoofPieces as Qty
+			  ,WOBII.GrandTotal as UnitPrice
+			  ,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount
+			  ,WOBII.MaterialCost As [PartsUnitCost]
+			  ,(WOBII.MaterialCost * -1) As [PartsRevenue]
+			  ,(WOBII.LaborCost * -1) AS  [LaborRevenue] 
+			  ,(WOBII.MiscCharges * -1) AS [MiscRevenue] 
+			  ,(WOBII.Freight * -1) AS [FreightRevenue]
+			  ,WOBII.SubTotal
+			  ,(WOBII.SalesTax * -1) AS SalesTax 
+			  ,(WOBII.OtherTax * -1) AS OtherTax 
+			  ,(WOBII.GrandTotal * -1) AS GrandTotal 
+			  ,(WOBII.GrandTotal * -1) AS [InvoiceAmt]
+			  ,WOMPN.PartsCost AS [COGSParts] 
+			  ,WOMPN.LaborCost AS [COGSLabor] 
+			  ,WOMPN.OverHeadCost As [COGSOverHeadCost]
+			  ,(ISNULL(WOMPN.PartsCost,0) + ISNULL(WOMPN.LaborCost,0) + ISNULL(WOMPN.OverHeadCost,0)) AS [COGSInventory]
+			  ,ISNULL(WOMPN.PartsCost, 0) AS [COGSPartsUnitCost]
+			  ,[RMAReasonId]
+			  ,[RMAReason]
+			  ,[Notes]
+			  ,[isWorkOrder]
+			  ,CRD.[MasterCompanyId]
+			  ,CRD.[CreatedBy]
+			  ,CRD.[UpdatedBy]
+			  ,CRD.[CreatedDate]
+			  ,CRD.[UpdatedDate]
+			  ,CRD.[IsActive]
+			  ,CRD.[IsDeleted]
+			  ,IM.ManufacturerName
+			  ,CRD.BillingInvoicingItemId
+		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
+			  LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
+			  LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.WOBillingInvoicingItemId = CRD.BillingInvoicingItemId
+			  LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.ID = WOBII.WorkOrderPartId
+			  LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOPN.WorkOrderId AND WOBII.WorkOrderPartId = WOMPN.WOPartNoId
+		  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;
+
+	END
+
+
 
 END TRY    
 	BEGIN CATCH

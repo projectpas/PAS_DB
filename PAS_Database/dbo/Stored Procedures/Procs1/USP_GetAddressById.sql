@@ -24,8 +24,9 @@
  ** --   --------     -------		--------------------------------          
     1    12/28/2020   Deep Patel	Changes related to AllAddress Common table.
 	2    06/29/2023   Amit Ghediya	Changes related to get Vendor Address of VendorRMA Bill/Ship Address.
+	3	 03/04/2024   Bhargav Saliya Resolved Ship-To address issue in Shipping (Single Part) 
      
- EXECUTE [USP_GetAddressById] 175
+exec dbo.USP_GetAddressById @Id=111,@AddressType=N'VendorRMA',@ModuleID=0
 **************************************************************/ 
     
 CREATE       PROCEDURE [dbo].[USP_GetAddressById]
@@ -100,10 +101,10 @@ BEGIN
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
 				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM PurchaseOrder PO WITH (NOLOCK)
-			LEFT JOIN AllAddress POA WITH (NOLOCK) ON PO.PurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress POAS WITH (NOLOCK) ON PO.PurchaseOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.PurchaseOrderId and POSV.ModuleId = @ModuleID
+		FROM [DBO].PurchaseOrder PO WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.PurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress POAS WITH (NOLOCK) ON PO.PurchaseOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.PurchaseOrderId and POSV.ModuleId = @ModuleID
 		WHERE PO.PurchaseOrderId = @Id
 		END
 
@@ -162,10 +163,10 @@ BEGIN
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
 				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM SalesOrderQuote SOQ WITH (NOLOCK)
-			LEFT JOIN AllAddress SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress SOQAS WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = SOQ.SalesOrderQuoteId and SOQSV.ModuleId = @ModuleID
+		FROM [DBO].SalesOrderQuote SOQ WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = SOQ.SalesOrderQuoteId and SOQSV.ModuleId = @ModuleID
 		WHERE SOQ.SalesOrderQuoteId = @Id
 		END
 
@@ -224,10 +225,10 @@ BEGIN
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
 				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM SalesOrder SO WITH (NOLOCK)
-			LEFT JOIN AllAddress SOQA WITH (NOLOCK) ON SO.SalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress SOQAS WITH (NOLOCK) ON SO.SalesOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = SO.SalesOrderId and SOQSV.ModuleId = @ModuleID
+		FROM [DBO].SalesOrder SO WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON SO.SalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON SO.SalesOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = SO.SalesOrderId and SOQSV.ModuleId = @ModuleID
 		WHERE SO.SalesOrderId = @Id
 		END
 	
@@ -286,10 +287,10 @@ BEGIN
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
 				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM RepairOrder RO WITH (NOLOCK)
-			LEFT JOIN AllAddress ROQA WITH (NOLOCK) ON RO.RepairOrderId = ROQA.ReffranceId AND ROQA.IsShippingAdd = 1 and ROQA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress SOQAS WITH (NOLOCK) ON RO.RepairOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = RO.RepairOrderId and SOQSV.ModuleId = @ModuleID
+		FROM [DBO].RepairOrder RO WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress ROQA WITH (NOLOCK) ON RO.RepairOrderId = ROQA.ReffranceId AND ROQA.IsShippingAdd = 1 and ROQA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON RO.RepairOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = RO.RepairOrderId and SOQSV.ModuleId = @ModuleID
 		WHERE RO.RepairOrderId = @Id
 		END
 
@@ -348,10 +349,10 @@ BEGIN
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
 				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM ExchangeQuote EQ WITH (NOLOCK)
-			LEFT JOIN AllAddress SOQA WITH (NOLOCK) ON EQ.ExchangeQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress SOQAS WITH (NOLOCK) ON EQ.ExchangeQuoteId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = EQ.ExchangeQuoteId and SOQSV.ModuleId = @ModuleID
+		FROM [DBO].ExchangeQuote EQ WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON EQ.ExchangeQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON EQ.ExchangeQuoteId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = EQ.ExchangeQuoteId and SOQSV.ModuleId = @ModuleID
 		WHERE EQ.ExchangeQuoteId = @Id
 		END
 
@@ -410,10 +411,10 @@ BEGIN
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
 				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
 			
-			FROM ExchangeSalesOrder ExchSO WITH (NOLOCK)
-				LEFT JOIN AllAddress SOQA WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
-				LEFT JOIN AllAddress SOQAS WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
-				LEFT JOIN AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = ExchSO.ExchangeSalesOrderId and SOQSV.ModuleId = @ModuleID
+			FROM [DBO].ExchangeSalesOrder ExchSO WITH (NOLOCK)
+				LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
+				LEFT JOIN [DBO].AllAddress SOQAS WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = SOQAS.ReffranceId AND SOQAS.IsShippingAdd = 0 and SOQAS.ModuleId = @ModuleID
+				LEFT JOIN [DBO].AllShipVia SOQSV WITH (NOLOCK) ON SOQSV.ReferenceId = ExchSO.ExchangeSalesOrderId and SOQSV.ModuleId = @ModuleID
 			WHERE ExchSO.ExchangeSalesOrderId = @Id;
 		END
 
@@ -470,10 +471,10 @@ BEGIN
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
 				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)
-			LEFT JOIN AllAddress POA WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQPurchaseOrderId and POSV.ModuleId = @ModuleID
+		FROM [DBO].VendorRFQPurchaseOrder PO WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQPurchaseOrderId and POSV.ModuleId = @ModuleID
 		WHERE PO.VendorRFQPurchaseOrderId = @Id;
 		END
 
@@ -530,10 +531,10 @@ BEGIN
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
 				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM VendorRFQRepairOrder PO WITH (NOLOCK)
-			LEFT JOIN AllAddress POA WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQRepairOrderId and POSV.ModuleId = @ModuleID
+		FROM [DBO].VendorRFQRepairOrder PO WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress POAS WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POAS.ReffranceId AND POAS.IsShippingAdd = 0 and POAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia POSV WITH (NOLOCK) ON POSV.ReferenceId = PO.VendorRFQRepairOrderId and POSV.ModuleId = @ModuleID
 		WHERE PO.VendorRFQRepairOrderId = @Id;
 	    END
 		ELSE IF(@AddressType = 'RMA')
@@ -591,37 +592,62 @@ BEGIN
 				ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
 				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
 			
-		FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
-			LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID
-			LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleID
-			LEFT JOIN AllShipVia RMASV WITH (NOLOCK) ON RMASV.ReferenceId = CRMA.RMAHeaderId and RMASV.ModuleId = @ModuleID
+		FROM [DBO].CustomerRMAHeader CRMA  WITH (NOLOCK)
+			LEFT JOIN [DBO].AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleID
+			LEFT JOIN [DBO].AllShipVia RMASV WITH (NOLOCK) ON RMASV.ReferenceId = CRMA.RMAHeaderId and RMASV.ModuleId = @ModuleID
 		WHERE CRMA.RMAHeaderId = @Id
 		END
 
 		ELSE IF(@AddressType = 'VendorRMA')
 		BEGIN
+			DECLARE @RMADetailCount INT = 0;
 			--Get Vendor id get from vendorrma table.
-			SELECT @vendorID = VendorId FROM VendorRMA WITH (NOLOCK) WHERE VendorRMAId = @Id;
+			SELECT @vendorID = VendorId FROM [DBO].VendorRMA WITH (NOLOCK) WHERE VendorRMAId = @Id;
+			SELECT @RMADetailCount = COUNT(VendorRMADetailId) FROM [DBO].VendorRMADetail CVRMA WITH (NOLOCK) 
+				   JOIN [DBO].VendorRMA VRMA WITH (NOLOCK) ON VRMA.VendorRMAId = CVRMA.VendorRMAId
+			WHERE VRMA.VendorRMAId = @Id;
 
 			SELECT DISTINCT V.VendorId,V.VendorName,V.VendorCode,V.MasterCompanyId,V.IsActive,V.IsDeleted,V.CreatedDate,V.UpdatedDate,V.CreatedBy,V.UpdatedBy,
-				   VSA.AddressId AS ShipAddressId,VSA.SiteName AS ShipSiteName,
-				   SAD.Line1 AS ShipLine1,SAD.Line2 AS ShipLine2,SAD.Line3 AS ShipLine3,SAD.City AS ShipCity,SAD.StateOrProvince AS ShipStateOrProvince,SAD.PostalCode AS ShipPostalCode,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN ARD.VendorShippingAddressId ELSE VSA.AddressId END AS ShipAddressId,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIPVSA.SiteName ELSE VSA.SiteName END AS ShipSiteName,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.Line1 ELSE SAD.Line1 END AS ShipLine1,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.Line2 ELSE SAD.Line2 END AS ShipLine2,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.Line3 ELSE SAD.Line3 END AS ShipLine3,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.City ELSE SAD.City END AS ShipCity,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.StateOrProvince ELSE SAD.StateOrProvince END AS ShipStateOrProvince,
+				   CASE WHEN ISNULL(ARD.VendorShippingAddressId ,0) > 0 AND @RMADetailCount = 1 THEN SHIP.PostalCode ELSE SAD.PostalCode END AS ShipPostalCode,
+
+				   --VSA.AddressId AS ShipAddressId,
+				   --VSA.SiteName AS ShipSiteName,
+				   --SAD.Line1 AS ShipLine1,
+				   --SAD.Line2 AS ShipLine2,
+				   --SAD.Line3 AS ShipLine3,
+				   --SAD.City AS ShipCity,
+				   --SAD.StateOrProvince AS ShipStateOrProvince,
+				   --SAD.PostalCode AS ShipPostalCode,
+
 				   SCO.countries_name AS Shipcountries_name,SCO.nice_name AS Shipnice_name,SCO.countries_isd_code AS Shipcountries_isd_code,SCO.countries_iso3 AS Shipcountries_iso3,	  
 				   VBA.AddressId AS BillAddressId,
 				   VBA.SiteName AS BillSiteName,
 				   BAD.Line1 AS BillLine1,BAD.Line2 AS BillLine2,BAD.Line3 AS BillLine3,BAD.City AS BillCity,BAD.StateOrProvince AS BillStateOrProvince,BAD.PostalCode AS BillPostalCode,
 				   BCO.countries_id AS countries_id,BCO.countries_name AS Billcountries_name,BCO.nice_name AS Billnice_name,BCO.countries_isd_code AS Billcountries_isd_code,BCO.countries_iso3 AS Billcountries_iso3,
 				   SV.ShippingViaId, SV.Name,VS.ShippingAccountinfo,Vs.ShippingId,VS.IsPrimary
-		FROM Vendor V WITH (NOLOCK)
-				LEFT JOIN VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
-				LEFT JOIN ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
-				LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 AND VSA.IsPrimary = 1
-				LEFT JOIN VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 AND VBA.IsPrimary = 1
-				LEFT JOIN Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
-				LEFT JOIN Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
-				LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
-				LEFT JOIN Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
-			WHERE V.VendorId = @vendorID;
+		FROM [DBO].Vendor V WITH (NOLOCK)
+				LEFT JOIN [DBO].VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
+				LEFT JOIN [DBO].VendorRMA VR with (nolock) on VR.VendorId = V.VendorId
+				LEFT JOIN [DBO].VendorRMADetail ARD WITH (NOLOCK) ON ARD.VendorRMAId = VR.VendorRMAId
+				LEFT JOIN [DBO].ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
+				LEFT JOIN [DBO].VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 AND VSA.IsPrimary = 1
+				LEFT JOIN [DBO].VendorBillingAddress VBA WITH (NOLOCK) ON V.VendorId = VBA.VendorId AND VBA.IsActive = 1 AND VBA.IsPrimary = 1
+				LEFT JOIN [DBO].Address SHIP WITH (NOLOCK) ON SHIP.AddressId = ARD.VendorShippingAddressId AND SHIP.IsActive = 1
+				LEFT JOIN [DBO].VendorShippingAddress SHIPVSA WITH (NOLOCK) ON V.VendorId = SHIPVSA.VendorId AND VSA.IsActive = 1 AND VSA.AddressId = ARD.VendorShippingAddressId
+				LEFT JOIN [DBO].Address SAD WITH (NOLOCK) ON SAD.AddressId = VSA.AddressId AND SAD.IsActive = 1
+				LEFT JOIN [DBO].Address BAD WITH (NOLOCK) ON BAD.AddressId = VBA.AddressId AND BAD.IsActive = 1
+				LEFT JOIN [DBO].Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
+				LEFT JOIN [DBO].Countries BCO WITH (NOLOCK) ON BAD.CountryId = BCO.countries_id AND BCO.IsActive = 1
+			WHERE V.VendorId = @vendorID AND VR.VendorRMAId = @Id; 
+			---WHERE V.VendorId = @vendorID;
 		END
 
 

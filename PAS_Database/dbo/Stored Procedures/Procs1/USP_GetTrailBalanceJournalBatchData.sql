@@ -20,7 +20,7 @@
     3    08/10/2023   Devendra Shekh			modified the sp
 	4    09/01/2023   Hemant Saliya				Added MS Filters	 
 	5    01/25/2024   Hemant Saliya				Remove Manual Journal from Reports
-	6    03/22/2024   Hemant Saliya				Added Management Structure Filters & Also Get AC Based on LE
+	6    04/08/2024   Hemant Saliya				Added Management Structure Filters & Also Get AC Based on LE
      
 --EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134',2,@xmlFilter=N'
 <?xml version="1.0" encoding="utf-16"?>
@@ -86,7 +86,6 @@ BEGIN
 		DECLARE @LegalEntityId BIGINT;
 		DECLARE @PeriodName VARCHAR(100);
 		DECLARE @AccountingCalendarId BIGINT;
-		
 
 		DECLARE   
 		@level1 VARCHAR(MAX) = NULL,  
@@ -134,16 +133,20 @@ BEGIN
 		   THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end  
   
 		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby) 
-		
 
-		IF OBJECT_ID(N'tempdb..#TEMP') IS NOT NULL    
-		BEGIN    
-			DROP TABLE #TEMP
-		END 
-		IF OBJECT_ID(N'tempdb..#Temptbl') IS NOT NULL    
-		BEGIN    
-			DROP TABLE #Temptbl
-		END 
+		IF OBJECT_ID(N'tempdb..#AccPeriodTable') IS NOT NULL
+		BEGIN
+		  DROP TABLE #AccPeriodTable
+		END
+
+		CREATE TABLE #AccPeriodTable (
+		  ID bigint NOT NULL IDENTITY (1, 1),
+		  AccountingCalendarId BIGINT NOT NULL,
+		  PeriodName VARCHAR(100) NULL,
+		  FromDate DATETIME NULL,
+		  ToDate DATETIME NULL,
+		  FiscalYear INT NULL		 
+		)
 
 		SELECT @LegalEntityId = MSL.LegalEntityId FROM dbo.EntityStructureSetup EST WITH(NOLOCK) 
 			JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID 
@@ -151,7 +154,15 @@ BEGIN
 
 		SELECT @PeriodName = PeriodName FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE AccountingCalendarId = @id
 
-		SELECT @AccountingCalendarId = AccountingCalendarId FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE PeriodName = @PeriodName AND LegalEntityId = @LegalEntityId
+		INSERT INTO #AccPeriodTable (AccountingCalendarId, PeriodName, FromDate, ToDate) 
+		SELECT DISTINCT AccountingCalendarId, REPLACE(PeriodName,' - ',''), MIN(FromDate), MAX(ToDate)
+		FROM dbo.AccountingCalendar WITH(NOLOCK)
+		WHERE PeriodName = @PeriodName AND LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0  
+		GROUP BY AccountingCalendarId, REPLACE(PeriodName,' - ',''), [Period]
+
+		--SELECT PeriodName FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE AccountingCalendarId = @id
+		--SELECT  AccountingCalendarId FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE PeriodName = @PeriodName AND LegalEntityId = @LegalEntityId
+		--SELECT @AccountingCalendarId = AccountingCalendarId FROM dbo.AccountingCalendar AC WITH(NOLOCK) WHERE PeriodName = @PeriodName AND LegalEntityId = @LegalEntityId
 
 		SELECT cbd.GlAccountId, (GL.AccountCode + ' - ' +	GL.AccountName) AS 'GlAccount',
 			ISNULL(SUM(cbd.CreditAmount),0) AS 'Credit' ,ISNULL(SUM(cbd.DebitAmount),0) AS 'Debit',bd.AccountingPeriod AS 'PeriodName',
@@ -160,7 +171,8 @@ BEGIN
 			INNER JOIN dbo.BatchDetails bd WITH(NOLOCK) ON cbd.JournalBatchDetailId = bd.JournalBatchDetailId AND bd.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
 			INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON  cbd.GlAccountId = GL.GLAccountId
-		WHERE bd.AccountingPeriodId = @AccountingCalendarId AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
+		WHERE BD.AccountingPeriodId IN (SELECT AccountingCalendarId FROM #AccPeriodTable) --bd.AccountingPeriodId = @AccountingCalendarId 
+			AND cbd.GlAccountId = @GlAccId AND cbd.MasterCompanyId = @masterCompanyId AND cbd.ManagementStructureId = @managementStructureId 
 			AND cbd.IsDeleted = 0 AND BD.IsDeleted = 0 
 			AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  

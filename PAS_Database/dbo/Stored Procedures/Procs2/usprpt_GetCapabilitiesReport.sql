@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    26-April-2022  Mahesh Sorathiya   Created 
 	2    04-SEPT-2023   Ekta Chandegra     Convert text into uppercase
+	3    29-MARCH-2024  Ekta Chandegra     IsActive and IsDeleted flag is added
        
 EXECUTE   [dbo].[usprpt_GetCapabilitiesReport] '','2',3,'','1','10','0'  
 **************************************************************/  
@@ -141,6 +142,7 @@ BEGIN
       AND IMC.mastercompanyid = @mastercompanyid 
       AND (IMC.isverified =  CASE WHEN @isverified = 1 THEN 1 ELSE CASE WHEN @isverified = 2 THEN 0 END  END  OR (@isverified = 3  
       AND IMC.isverified IS NOT NULL AND IMC.mastercompanyid = @mastercompanyid))
+	  AND IMC.IsActive = 1 AND IMC.IsDeleted = 0
 	  AND  
 			(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

@@ -16,9 +16,9 @@
 	4    20/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
 	5    22/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
 	6    20/03/2024   Abhishek Jirawla Added reserve Quantity and history when a stock is transfered Inter/Intra company and transfer Customer Stock
-
+	7    01/04/2024   Abhishek Jirawla Added unreserve the quantity when deleted is true
 *******************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
+CREATE PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -55,7 +55,9 @@ BEGIN
 				@QuantityOnHand DECIMAL(18,2),
 				@UnitOfMeasure VARCHAR(100),
 				@BulkStockAdjusmentStocklineId BIGINT,
-				@BulkStockModuleId INT;
+				@BulkStockModuleId INT, 
+				@OldQuantity INT,
+				@UpdatedQuantity INT;
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='BulkStocklineAdjustmnet';
 		SELECT @BulkStockModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName='BulkStockAdjustments';
@@ -145,7 +147,7 @@ BEGIN
 											[ManagementStructureId],[LastMSLevel],[AllMSlevels]
 									FROM #tmpBulkStockLineAdjustmentDetails WHERE [ID] = @MasterLoopID;
 				END
-				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4)  -- For Quantity and Inter/Intra Company transfer
+				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4)  -- For Inter/Intra Company transfer
 				BEGIN
 					INSERT INTO [dbo].[BulkStockLineAdjustmentDetails]([BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[AdjustmentAmount],[FreightAdjustment],[TaxAdjustment],[StockLineAdjustmentTypeId],
 																[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
@@ -159,12 +161,10 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
 					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
-					
-					
 				END
 
 				ELSE IF(@StockLineAdjustmentTypeId = 5) -- For Customer Stock
@@ -181,12 +181,10 @@ BEGIN
 
 					UPDATE Stockline
 					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
+						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
-					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
-
-					
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;					
 				END
 
 
@@ -227,8 +225,18 @@ BEGIN
 						[AllMSlevels] = @AllMSlevels
 					WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 				END
-				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4) -- For Quantity and Inter/Intra Company transfer
+				ELSE IF(@StockLineAdjustmentTypeId = 3 OR @StockLineAdjustmentTypeId = 4) -- For Inter/Intra Company transfer
 				BEGIN
+					SELECT @OldQuantity = [NewQty] FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+					IF @OldQuantity > @NewQty
+					BEGIN
+						SET @UpdatedQuantity = @OldQuantity - @NewQty;
+					END
+					IF @OldQuantity < @NewQty
+					BEGIN
+						SET @UpdatedQuantity = @NewQty - @OldQuantity;
+					END
+
 					UPDATE [dbo].[BulkStockLineAdjustmentDetails] 
 					SET [NewQty] = @NewQty,
 						[QtyAdjustment] = @QtyAdjustment,
@@ -244,17 +252,41 @@ BEGIN
 
 					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 
-					UPDATE Stockline
-					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
-					WHERE StockLineId = @BulkStockAdjusmentStocklineId
+					IF @OldQuantity <> @NewQty
+					BEGIN
+						IF @OldQuantity < @NewQty
+						BEGIN 
+							UPDATE Stockline
+							SET QuantityReserved = QuantityReserved + @UpdatedQuantity,
+								QuantityAvailable = QuantityAvailable - @UpdatedQuantity
+							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
-					
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
+						END
+						IF @OldQuantity > @NewQty
+						BEGIN
+							UPDATE Stockline
+							SET QuantityReserved = QuantityReserved - @UpdatedQuantity,
+								QuantityAvailable = QuantityAvailable + @UpdatedQuantity
+							WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
+						END
+					END
 				END
 
 				ELSE IF(@StockLineAdjustmentTypeId = 5)-- For CustomerStock
 				BEGIN
+					SELECT @OldQuantity = [NewQty] FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+					IF @OldQuantity > @NewQty
+					BEGIN
+						SET @UpdatedQuantity = @OldQuantity - @NewQty;
+					END
+					IF @OldQuantity < @NewQty
+					BEGIN
+						SET @UpdatedQuantity = @NewQty - @OldQuantity;
+					END
+
 					UPDATE [dbo].[BulkStockLineAdjustmentDetails] 
 					SET [NewQty] = @NewQty,
 						[NewUnitCostTotransfer] = @NewUnitCostTotransfer,
@@ -267,12 +299,27 @@ BEGIN
 
 					SELECT @BulkStockAdjusmentStocklineId = StocklineId FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
 
-					UPDATE Stockline
-					SET QuantityReserved = QuantityReserved + @NewQty,
-						QuantityOnHand = QuantityOnHand - @NewQty
-					WHERE StockLineId = @BulkStockAdjusmentStocklineId
+					IF @OldQuantity <> @NewQty
+					BEGIN
+						IF @OldQuantity < @NewQty
+						BEGIN 
+							UPDATE Stockline
+							SET QuantityReserved = QuantityReserved + @UpdatedQuantity,
+								QuantityAvailable = QuantityAvailable - @UpdatedQuantity
+							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
+						END
+						IF @OldQuantity > @NewQty
+						BEGIN
+							UPDATE Stockline
+							SET QuantityReserved = QuantityReserved - @UpdatedQuantity,
+								QuantityAvailable = QuantityAvailable + @UpdatedQuantity
+							WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
+						END
+					END
 				END
 
 
@@ -289,6 +336,17 @@ BEGIN
 			BEGIN
 				UPDATE [dbo].[BulkStockLineAdjustmentDetails] SET IsActive = 0,IsDeleted = 1 
 				WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+
+				DECLARE @DeletedQty INT
+
+				SELECT @BulkStockAdjusmentStocklineId = StocklineId, @DeletedQty = NewQty FROM [dbo].[BulkStockLineAdjustmentDetails] WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId;
+
+				UPDATE Stockline
+				SET QuantityReserved = QuantityReserved - @NewQty,
+					QuantityAvailable = QuantityAvailable + @NewQty
+				WHERE StockLineId = @BulkStockAdjusmentStocklineId
+
+				EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @NewQty, @UpdatedBy;
 			END
 
 			SET @MasterLoopID = @MasterLoopID - 1;

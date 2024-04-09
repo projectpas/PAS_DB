@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -10,8 +11,9 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
+** 2    09/04/2024  Shrey Chandegara  Updated For ItemNo (Add outer Apply for That.)
 
-EXEC RPT_GetSalesOrderPrintPdfHeaderData 806
+EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
@@ -24,7 +26,8 @@ BEGIN
   BEGIN TRY              
    BEGIN            
 		SELECT TOP 1
-			sop.ItemNo,
+			--COUNT(sop.ItemNo) AS 'ItemNo',
+			PartCount.ItemNo,
 			so.CustomerId,
 			UPPER(ISNULL(cust.Name, '')) AS ClientName,
 			UPPER(ISNULL(cust.Email, '')) AS CustEmail,
@@ -85,8 +88,8 @@ BEGIN
 			LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON sop.StockLineId = qs.StockLineId
 			LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
+			OUTER APPLY (SELECT COUNT(SP.ItemNo) AS 'ItemNo' FROM DBO.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderId = so.SalesOrderId GROUP BY SP.SalesOrderId) PartCount
 		WHERE so.SalesOrderId = @salesOrderId AND so.IsActive = 1 AND so.IsDeleted = 0
-         
    END              
   END TRY                  
   BEGIN CATCH                    

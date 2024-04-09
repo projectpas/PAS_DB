@@ -10,16 +10,17 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    21/09/2023   AMIT GHEDIYA  Created
-	2    04/10/2023   Moin Bloch    Added Manual Journal List
-	3    06/11/2023   AMIT GHEDIYA  Update Status Approved To Posted for VendorCreditMemo.
-	4    07/11/2023   AMIT GHEDIYA  Update Amount select Orignalamount to ApplierdAmt.
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    21/09/2023   AMIT GHEDIYA		Created
+	2    04/10/2023   Moin Bloch		Added Manual Journal List
+	3    06/11/2023   AMIT GHEDIYA		Update Status Approved To Posted for VendorCreditMemo.
+	4    07/11/2023   AMIT GHEDIYA		Update Amount select Orignalamount to ApplierdAmt.
+	5    08/04/2023   Devendra Shekh	added result temp table and conditon for amount
      
 -- EXEC USP_VendorCreditMemoDetailsByVendorId 1,1287,0 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_VendorCreditMemoDetailsByVendorId]  
+CREATE   PROCEDURE [dbo].[USP_VendorCreditMemoDetailsByVendorId]  
 @MasterCompanyId INT = NULL,  
 @VendorId BIGINT = NULL ,
 @VendorPaymentDetailsId BIGINT = NULL
@@ -34,6 +35,8 @@ BEGIN
       SELECT @VendorCreditMemoStatusId = [Id] FROM [CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 	  SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
 
+
+	;WITH Result(VendorCreditMemoId , VendorCreditMemoNumber, VendorId, VendorName, CurrencyName, Amount, StatusId, Status, MasterCompanyId, IsCreditMemo, VendorPaymentDetailsId, IsAlreadyUsed, SelectedforPayment, InvoiceType, PaymentType) AS(
      SELECT DISTINCT VCM.VendorCreditMemoId,
 					 VCM.VendorCreditMemoNumber,
 					 VendorId = (CASE WHEN V.VendorId IS NOT NULL THEN V.VendorId ELSE VE.VendorId END),
@@ -99,6 +102,8 @@ BEGIN
 	  GROUP BY MJH.ManualJournalHeaderId,MJH.JournalNumber,VED.VendorId,VED.VendorName,CR.Code,
 			   MJH.ManualJournalStatusId,MJS.[Name],MJH.MasterCompanyId,MJD.ReferenceId, 
 			   VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
+			   )
+			   SELECT * FROM Result WHERE Amount <> 0
 	
  END TRY      
   BEGIN CATCH        

@@ -15,8 +15,9 @@
  ** S NO   Date         Author      Change Description              
  ** --   --------     -------      --------------------------------      
 	1   24-Aug-2023  Bhargav Saliya   Convert Dates UTC To LegalEntity Time Zone
-    2   25-AUG-2023  Ekta Chandegra  Convert text into uppercase
+    2   25-AUG-2023  Ekta Chandegra   Convert text into uppercase
 	3   31-JAN-2024   Devendra Shekh      changes for performInvoice
+	4   29-MARCH-2024  Ekta Chandegra  Add IsDeleted and IsActive flag  
  
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
@@ -126,6 +127,7 @@ BEGIN
     WHERE CAST(WOBI.invoicedate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) AND WOBI.IsVersionIncrease = 0  
      AND WO.customerid=ISNULL(@customername,WO.customerid)   
      AND WO.mastercompanyid = @mastercompanyid  
+	 AND WO.IsDeleted = 0 AND WO.IsActive = 1
      AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
      AND (ISNULL(@Status,'') ='' OR IVS.InvoiceStatusId IN(SELECT value FROM String_split(ISNULL(@Status,IVS.InvoiceStatusId), ',')))  
      AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  
@@ -244,6 +246,7 @@ BEGIN
    WHERE CAST((select [dbo].[ConvertUTCtoLocal] (WOBI.InvoiceDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)   
     AND WO.customerid=ISNULL(@customername,WO.customerid)   
     AND WO.mastercompanyid = @mastercompanyid  
+	AND WO.IsDeleted = 0 AND WO.IsActive = 1
     AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))  
     AND (ISNULL(@Status,'') ='' OR IVS.InvoiceStatusId IN(SELECT value FROM String_split(ISNULL(@Status,IVS.InvoiceStatusId), ',')))  
     AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))  

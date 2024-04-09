@@ -13,7 +13,8 @@
  ** --   --------     -------		  --------------------------------          
     1    04/20/2022   Subhash Saliya  Created
 	2	 02/1/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
-	3    03/21/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
+	3    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
+	4    04/04/2024   Hemant Saliya   Updated for -Ve for CM
 	
  -- exec sp_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
@@ -33,19 +34,30 @@ BEGIN
 			BEGIN 
 			IF(@Ispopup =1)
 			BEGIN
-				IF(@isWorkOrder =0)
+				IF(@isWorkOrder = 0)
 				BEGIN
 					SELECT SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
 						SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
-						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,SOBII.NoofPieces as Qty,
-						--SOBII.UnitPrice as UnitPrice,
+						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.NoofPieces as Qty, SOBII.UnitPrice As [PartsUnitCost],
+						(SOBII.PartCost * -1) As [PartsRevenue], 
+						0 AS [LaborRevenue], 
+						(SOBII.MiscCharges * -1) AS [MiscRevenue], 
+						(SOBII.Freight * -1) AS [FreightRevenue],
+						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSParts], 
+						0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
+						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSInventory], 
+						ISNULL(SOPN.UnitSalesPricePerUnit, 0) AS [COGSPartsUnitCost],
 						CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
-						(SOBII.NoofPieces * SOBII.UnitPrice) as Amount,
+						(ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount,
 						IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
-						SOBII.SubTotal,SOBII.SalesTax, SOBII.OtherTax, SOBII.GrandTotal, SOBII.GrandTotal [InvoiceAmt],
+						SOBII.SubTotal,
+						(SOBII.SalesTax * -1) As SalesTax, 
+						(SOBII.OtherTax * -1) As OtherTax, 
+						(SOBII.GrandTotal * -1) AS GrandTotal, 
+						(SOBII.GrandTotal * -1) AS [InvoiceAmt],
 						'0' as [RMADeatilsId],
 						'0' as [RMAHeaderId],
 						'' as [Notes],
@@ -79,6 +91,8 @@ BEGIN
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+						LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
+						LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
@@ -93,8 +107,19 @@ BEGIN
 						WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.NoofPieces as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount,
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
-						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId],
-						WOBII.SubTotal,WOBII.SalesTax, WOBII.OtherTax, WOBII.GrandTotal, WOBII.GrandTotal [InvoiceAmt],
+						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId], WOBII.MaterialCost As [PartsUnitCost],
+						(WOBII.MaterialCost * -1) As [PartsRevenue], 
+						(WOBII.LaborCost * -1) AS  [LaborRevenue], 
+						(WOBII.MiscCharges * -1) AS [MiscRevenue], 
+						(WOBII.Freight * -1) AS [FreightRevenue],
+						WOBII.SubTotal,
+						(WOBII.SalesTax * -1) AS SalesTax, 
+						(WOBII.OtherTax * -1) AS OtherTax, 
+						(WOBII.GrandTotal * -1) AS GrandTotal, 
+						(WOBII.GrandTotal * -1) AS [InvoiceAmt],
+						WOMPN.PartsCost AS [COGSParts], WOMPN.LaborCost AS [COGSLabor] , WOMPN.OverHeadCost As [COGSOverHeadCost], 
+						(ISNULL(WOMPN.PartsCost,0) + ISNULL(WOMPN.LaborCost,0) + ISNULL(WOMPN.OverHeadCost,0)) AS [COGSInventory],
+						ISNULL(WOMPN.PartsCost, 0) AS [COGSPartsUnitCost],						
 						'0' as [RMADeatilsId],
 						'0' as [RMAHeaderId],
 						'' as [Notes],
@@ -126,7 +151,8 @@ BEGIN
 						) 
 					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
-						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId
+						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOMPN.WOPartNoId
 						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
@@ -154,6 +180,8 @@ BEGIN
 					   ,CRM.[MasterCompanyId] ,CRM.[CreatedBy],CRM.[UpdatedBy],CRM.[CreatedDate] ,CRM.[UpdatedDate] ,CRM.[IsActive]
 					   ,CRM.[IsDeleted] ,CRM.[ReturnDate] ,CRM.[WorkOrderNum],CRM.[ReceiverNum] ,ST.isSerialized ,CRM.InvoiceId ,@InvoiceStatus as InvoiceStatus
 					   ,CRM.BillingInvoicingItemId ,CRH.InvoiceNo,CRM.CustomerReference,CRM.InvoiceQty ,IM.ManufacturerName
+					   ,0 SubTotal, 0 As SalesTax, 0 AS OtherTax, 0 GrandTotal, 0 PartsUnitCost,0 As PartsRevenue, 0 As LaborRevenue, 0 MiscRevenue
+					   ,0 AS FreightRevenue, 0 As COGSParts, 0 AS COGSPartsUnitCost, 0 COGSLabor, 0 As COGSOverHeadCost, 0 As COGSInventory
 					   ,AltPartNumber=(  
 						SELECT TOP 1  
 							A.PartNumber [AltPartNumberType] from [dbo].[CustomerRMADeatils] SOBIIA WITH (NOLOCK) 

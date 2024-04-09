@@ -1,5 +1,22 @@
-﻿  
-CREATE     PROCEDURE [dbo].[PROCInsertCreditMemoDetails](@TableCreditMemoDetailsType CreditMemoDetailsType READONLY)    
+﻿/*********************
+ ** File:   [PROCInsertCreditMemoDetails]        
+ ** Author:   HEMANT SALIYA
+ ** Description: This stored procedure is used Save CM Details
+ ** Purpose:         
+ ** Date:   28 MAR 2024     
+          
+ ** RETURN VALUE:           
+  
+ **********************           
+  ** Change History           
+ **********************           
+ ** PR   Date             Author		         Change Description            
+ ** --   --------         -------		     ----------------------------   
+    1    28 MAR 2024	HEMANT SALIYA         Update For Details Level         
+
+**********************/
+
+CREATE    PROCEDURE [dbo].[PROCInsertCreditMemoDetails](@TableCreditMemoDetailsType CreditMemoDetailsType READONLY)    
 AS    
 BEGIN    
  SET NOCOUNT ON;  
@@ -30,6 +47,17 @@ BEGIN
                 TARGET.[Amount] = SOURCE.Amount,  
 				TARGET.[SalesTax] = SOURCE.SalesTax,  
 				TARGET.[OtherTax] = SOURCE.OtherTax,  
+				TARGET.[PartsUnitCost] = SOURCE.PartsUnitCost,  
+				TARGET.[PartsRevenue] = SOURCE.PartsRevenue,  
+				TARGET.[LaborRevenue] = SOURCE.LaborRevenue,  
+				TARGET.[MiscRevenue] = SOURCE.MiscRevenue,  
+				TARGET.[FreightRevenue] = SOURCE.FreightRevenue,  
+				TARGET.[RestockingFee] = SOURCE.RestockingFee,  
+				TARGET.[CogsParts] = SOURCE.CogsParts,  
+				TARGET.[COGSPartsUnitCost] = SOURCE.COGSPartsUnitCost,  
+				TARGET.[CogsLabor] = SOURCE.CogsLabor,  
+				TARGET.[CogsOverHeadCost] = SOURCE.CogsOverHeadCost,  
+				TARGET.[CogsInventory] = SOURCE.CogsInventory,  
                 TARGET.[ReasonId] = SOURCE.ReasonId,  
                 TARGET.[Reason] = SOURCE.Reason,  
                 TARGET.[StocklineId] = SOURCE.StocklineId,  
@@ -49,12 +77,14 @@ BEGIN
 			WHEN NOT MATCHED BY TARGET  
 			THEN  
 			INSERT([CreditMemoHeaderId],[RMAHeaderId],[InvoiceId],[ItemMasterId],[PartNumber],  
-				[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],[Qty],[UnitPrice],[SalesTax], [OtherTax],  
+				[PartDescription],[AltPartNumber],[CustPartNumber],[SerialNumber],[Qty],[UnitPrice],[SalesTax], [OtherTax], [PartsUnitCost], [COGSPartsUnitCost],  
+				[PartsRevenue],[LaborRevenue],[MiscRevenue], [FreightRevenue], [RestockingFee], [CogsParts], [CogsLabor], [CogsOverHeadCost], [CogsInventory],
 				[Amount],[ReasonId],[Reason],[StocklineId],[StocklineNumber],[ControlNumber],[ControlId],  
 				[ReferenceId],[ReferenceNo],[SOWONum],[Notes],[IsWorkOrder],[MasterCompanyId],[CreatedBy],  
 				[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId],BillingInvoicingItemId)  
 			VALUES(SOURCE.CreditMemoHeaderId,SOURCE.RMAHeaderId,SOURCE.InvoiceId,SOURCE.ItemMasterId,SOURCE.PartNumber,  
-				SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice, SOURCE.SalesTax, SOURCE.OtherTax ,
+				SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice, SOURCE.SalesTax, SOURCE.OtherTax , SOURCE.PartsUnitCost, SOURCE.COGSPartsUnitCost,
+				SOURCE.PartsRevenue,SOURCE.LaborRevenue,SOURCE.MiscRevenue,SOURCE.FreightRevenue,SOURCE.RestockingFee,SOURCE.CogsParts,SOURCE.CogsLabor,SOURCE.CogsOverHeadCost,SOURCE.CogsInventory,   
 				SOURCE.Amount,SOURCE.ReasonId,SOURCE.Reason,SOURCE.StocklineId,SOURCE.StocklineNumber,SOURCE.ControlNumber,SOURCE.ControlId,  
 				SOURCE.ReferenceId,SOURCE.ReferenceNo,SOURCE.SOWONum,SOURCE.Notes,SOURCE.IsWorkOrder,SOURCE.MasterCompanyId,SOURCE.CreatedBy,  
 				SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.RMADeatilsId,SOURCE.BillingInvoicingItemId);   

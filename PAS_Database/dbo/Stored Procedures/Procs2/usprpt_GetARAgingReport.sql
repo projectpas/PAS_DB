@@ -34,6 +34,7 @@
 	18   31-JAN-2024   Devendra Shekh      changes for performInvoice
 	19	 01/02/2024	   AMIT GHEDIYA	       added isperforma Flage for SO
 	19	 08-MAR-2024   Hemant Saliya       Started to Review Changes
+	20   29-Mar-2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingReport]       
@@ -374,37 +375,37 @@ BEGIN
                     wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)  AS 'PaymentAmount',      
                     UPPER(wobi.InvoiceNo) AS 'InvoiceNo',      
                     wobi.InvoiceDate AS InvoiceDate,      
-                    ISNULL(ctm.NetDays,0) AS NetDays,   
+                    ISNULL(WO.NetDays,0) AS NetDays,   
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(wop.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
 					UPPER(wop.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(emp.FirstName,'Unassigned')) AS 'Salesperson',      
-					UPPER(ctm.Name) AS 'Terms',      
+					UPPER(WO.CreditTerms) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
 					wobi.GrandTotal AS 'InvoiceAmount',      
 					--B.CMAmount AS 'CMAmount', 
@@ -412,7 +413,7 @@ BEGIN
 					B.CMAmount AS CreditMemoAmount,
 					ISNULL(wobi.CreditMemoUsed,0) AS CreditMemoUsed,
 					(CASE WHEN ISNULL((wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)+ ISNULL(B.CMAmount,0)),0) > 0 THEN (CASE WHEN ISNULL(@exludedebit,2) =1 THEN  1 ELSE 2 END) ELSE 2 END) AS 'FROMDebit',      
-					DATEADD(DAY, ctm.NetDays,wobi.InvoiceDate) AS 'DueDate',      
+					DATEADD(DAY, WO.NetDays,wobi.InvoiceDate) AS 'DueDate',      
 					UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,       
@@ -490,44 +491,44 @@ BEGIN
 					sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) AS 'PaymentAmount',      
 					UPPER(sobi.InvoiceNo) AS 'InvoiceNo',      
 					sobi.InvoiceDate AS InvoiceDate,      
-					ISNULL(ctm.NetDays,0) AS NetDays,      						
+					ISNULL(SO.NetDays,0) AS NetDays,      						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(SO.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
 					UPPER(sop.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
-					UPPER(ctm.[Name]) AS 'Terms',      
+					UPPER(SO.[CreditTermName]) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
 					sobi.GrandTotal AS 'InvoiceAmount',      
 					0 AS 'CMAmount',   
 					B.CMAmount AS CreditMemoAmount,
 					sobi.CreditMemoUsed,
 					(CASE WHEN ISNULL((sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) + Isnull(B.CMAmount,0)),0) > 0 THEN (CASE WHEN isnull(@exludedebit,2) =1 THEN  1 ELSE 2 END) ELSE 2 END) AS 'FROMDebit',      
-					DATEADD(DAY, ctm.NetDays,sobi.InvoiceDate) AS 'DueDate',      
+					DATEADD(DAY, SO.NetDays,sobi.InvoiceDate) AS 'DueDate',      
 					UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,       
@@ -604,37 +605,37 @@ BEGIN
                     wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)  AS 'PaymentAmount',      
                     UPPER(CM.CreditMemoNumber) AS 'InvoiceNo',      
                     wobi.InvoiceDate AS InvoiceDate,      
-                    ISNULL(ctm.NetDays,0) AS NetDays,      
+                    ISNULL(WO.NetDays,0) AS NetDays,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
 					UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('Credit-Memo') AS 'DocType',      
 					UPPER(wop.CustomerReference) AS 'CustomerRef',      
 					UPPER(isnull(emp.FirstName,'Unassigned')) AS 'Salesperson',      
-					ctm.Name AS 'Terms',  
+					WO.[CreditTerms] AS 'Terms',  
 					--'-' AS 'Terms',  
 					'0.000000' AS 'FixRateAmount',      
 					--wobi.GrandTotal AS 'InvoiceAmount',  
@@ -725,37 +726,37 @@ BEGIN
 					sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) AS 'PaymentAmount',      
 					UPPER(CM.CreditMemoNumber) AS 'InvoiceNo',      
 					sobi.InvoiceDate AS InvoiceDate,      
-					ISNULL(ctm.NetDays,0) AS NetDays,  
+					ISNULL(SO.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,					
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,					
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('Credit-Memo') AS 'DocType',        
 					UPPER(sop.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
-					ctm.[Name] AS 'Terms',  
+					SO.[CreditTermName] AS 'Terms',  
 					--'-' AS 'Terms',  
 					'0.000000' AS 'FixRateAmount',      
 					--sobi.GrandTotal AS 'InvoiceAmount',  
@@ -1058,44 +1059,44 @@ BEGIN
 				 (ESOBI.[RemainingAmount] + ISNULL(ESOBI.[CreditMemoUsed],0)) AS 'PaymentAmount', 				 
 				 (ESOBI.[InvoiceNo]) AS 'InvoiceNo',
 				 (ESOBI.[InvoiceDate]) AS 'InvoiceDate',
-				 ISNULL(CTM.[NetDays],0) AS NetDays,   
+				 ISNULL(ESO.[NetDays],0) AS NetDays,   
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN ctm.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) <= 0 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS AmountpaidbylessTHEN0days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) <= 0 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS AmountpaidbylessTHEN0days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 30 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby30days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 30 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby30days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 60 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby60days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 60 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby60days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 				 	   WHEN CTM.[Code]='CreditCard' THEN -1
-				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 90 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby90days,
+				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 90 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby90days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 				 	   WHEN CTM.[Code]='CreditCard' THEN -1
-				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby120days,
+				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby120days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidbymorethan120days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidbymorethan120days,
 				  UPPER(ESO.UpdatedBy) AS UpdatedBy, 
 				  ESO.[ManagementStructureId] AS ManagementStructureId, 
 				  UPPER('Exchange Invoice') AS 'DocType',
 				  UPPER(ESO.[CustomerReference]) AS 'CustomerRef',   
 				  UPPER(ISNULL(ESO.[SalesPersonName],'Unassigned')) AS 'Salesperson',    
-				  UPPER(CTM.[Name]) AS 'Terms', 
+				  UPPER(ESO.[CreditTermName]) AS 'Terms', 
 				  '0.000000' AS 'FixRateAmount',
 				  ESOBI.[GrandTotal] AS 'InvoiceAmount', 
 				  0 AS 'CMAmount', 
 				  0 AS 'CreditMemoAmount',
 				  0 AS 'CreditMemoUsed',
 				  1 AS 'FROMDebit',   
-				  DATEADD(DAY, CTM.[NetDays],ESOBI.[InvoiceDate]) AS 'DueDate', 
+				  DATEADD(DAY, ESO.[NetDays],ESOBI.[InvoiceDate]) AS 'DueDate', 
 				  UPPER(MSD.[Level1Name]) AS 'level1',        
 				  UPPER(MSD.[Level2Name]) AS 'level2',       
 				  UPPER(MSD.[Level3Name]) AS 'level3',       
@@ -1331,38 +1332,38 @@ BEGIN
                     wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)  AS 'PaymentAmount',      
                     UPPER(wobi.InvoiceNo) AS 'InvoiceNo',      
                     wobi.InvoiceDate AS InvoiceDate,      
-                    ISNULL(ctm.NetDays,0) AS NetDays,      
+                    ISNULL(WO.NetDays,0) AS NetDays,      
 						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(wobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(wop.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
 					UPPER(wop.CustomerReference) AS 'CustomerRef',      
 					UPPER(isnull(emp.FirstName,'Unassigned')) AS 'Salesperson',      
-					UPPER(ctm.Name) AS 'Terms',      
+					UPPER(WO.[CreditTerms]) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
 					wobi.GrandTotal AS 'InvoiceAmount',      
 					--B.CMAmount AS 'CMAmount', 
@@ -1370,7 +1371,7 @@ BEGIN
 					B.CMAmount AS CreditMemoAmount,
 					ISNULL(wobi.CreditMemoUsed,0) AS CreditMemoUsed,
 					(CASE WHEN ISNULL((wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)+ Isnull(B.CMAmount,0)),0) > 0 THEN (CASE WHEN isnull(@exludedebit,2) =1 THEN  1 ELSE 2 END) ELSE 2 END) AS 'FROMDebit',      
-					DATEADD(DAY, ctm.NetDays,wobi.InvoiceDate) AS 'DueDate',      
+					DATEADD(DAY, WO.NetDays,wobi.InvoiceDate) AS 'DueDate',      
 					UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,       
@@ -1448,44 +1449,44 @@ BEGIN
 					sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) AS 'PaymentAmount',      
 					UPPER(sobi.InvoiceNo) AS 'InvoiceNo',      
 					sobi.InvoiceDate AS InvoiceDate,      
-					ISNULL(ctm.NetDays,0) AS NetDays,      						
+					ISNULL(SO.NetDays,0) AS NetDays,      						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(sobi.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(SO.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
 					UPPER(sop.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
-					UPPER(ctm.[Name]) AS 'Terms',      
+					UPPER(SO.[CreditTermName]) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
 					sobi.GrandTotal AS 'InvoiceAmount',      
 					0 AS 'CMAmount',   
 					B.CMAmount AS CreditMemoAmount,
 					sobi.CreditMemoUsed,
 					(CASE WHEN ISNULL((sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) + Isnull(B.CMAmount,0)),0) > 0 THEN (CASE WHEN isnull(@exludedebit,2) =1 THEN  1 ELSE 2 END) ELSE 2 END) AS 'FROMDebit',      
-					DATEADD(DAY, ctm.NetDays,sobi.InvoiceDate) AS 'DueDate',      
+					DATEADD(DAY, SO.NetDays,sobi.InvoiceDate) AS 'DueDate',      
 					UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,       
@@ -1563,31 +1564,31 @@ BEGIN
                     wobi.RemainingAmount + ISNULL(wobi.CreditMemoUsed,0)  AS 'PaymentAmount',      
                     UPPER(CM.CreditMemoNumber) AS 'InvoiceNo',      
                     wobi.InvoiceDate AS InvoiceDate,      
-                    ISNULL(ctm.NetDays,0) AS NetDays,      
+                    ISNULL(WO.NetDays,0) AS NetDays,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN wobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(WO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(WO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN wobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
 					UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      					
 					UPPER('Credit-Memo') AS 'DocType',    
@@ -1684,32 +1685,32 @@ BEGIN
 					sobi.RemainingAmount + ISNULL(sobi.CreditMemoUsed,0) AS 'PaymentAmount',      
 					UPPER(CM.CreditMemoNumber) AS 'InvoiceNo',      
 					sobi.InvoiceDate AS InvoiceDate,      
-					ISNULL(ctm.NetDays,0) AS NetDays,      
+					ISNULL(SO.NetDays,0) AS NetDays,      
 						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,					
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN sobi.RemainingAmount ELSE 0 END) AS AmountpaidbylessTHEN0days,					
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby30days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby60days,      
 				    (CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby90days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + ISNULL(SO.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidby120days,      
 					(CASE WHEN DATEDIFF(DAY, CASt(CAST(CM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 							 WHEN ctm.Code='CIA' THEN -1      
 							 WHEN ctm.Code='CreditCard' THEN -1      
-							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
+							 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(SO.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN sobi.RemainingAmount ELSE 0 END) AS Amountpaidbymorethan120days,      
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      					 
 					UPPER('Credit-Memo') AS 'DocType',    
@@ -2018,44 +2019,44 @@ BEGIN
 				 (ESOBI.[RemainingAmount] + ISNULL(ESOBI.[CreditMemoUsed],0)) AS 'PaymentAmount', 				 
 				 (ESOBI.[InvoiceNo]) AS 'InvoiceNo',
 				 (ESOBI.[InvoiceDate]) AS 'InvoiceDate',
-				 ISNULL(CTM.[NetDays],0) AS NetDays,   
+				 ISNULL(ESO.[NetDays],0) AS NetDays,   
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN ctm.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) <= 0 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS AmountpaidbylessTHEN0days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) <= 0 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS AmountpaidbylessTHEN0days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 30 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby30days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 30 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby30days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 					   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 60 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby60days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 60 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby60days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 				 	   WHEN CTM.[Code]='CreditCard' THEN -1
-				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 90 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby90days,
+				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 90 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby90days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 				 	   WHEN CTM.[Code]='CreditCard' THEN -1
-				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)  AS DATE), GETUTCDATE()) <= 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby120days,
+				 	   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + ISNULL(ESO.[NetDays],0)  AS DATE), GETUTCDATE()) <= 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidby120days,
 				 (CASE WHEN DATEDIFF(DAY, CAST(CAST(ESOBI.[InvoiceDate] AS DATETIME) + (CASE WHEN CTM.[Code] = 'COD' THEN -1
 				 	   WHEN CTM.[Code]='CIA' THEN -1
 					   WHEN CTM.[Code]='CreditCard' THEN -1
-					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(CTM.[NetDays],0) END) AS DATE), GETUTCDATE()) > 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidbymorethan120days,
+					   WHEN CTM.[Code]='PREPAID' THEN -1 ELSE ISNULL(ESO.[NetDays],0) END) AS DATE), GETUTCDATE()) > 120 THEN ESOBI.[RemainingAmount] ELSE 0 END) AS Amountpaidbymorethan120days,
 				  UPPER(ESO.UpdatedBy) AS UpdatedBy, 
 				  ESO.[ManagementStructureId] AS ManagementStructureId, 
 				  UPPER('Exchange Invoice') AS 'DocType',
 				  UPPER(ESO.[CustomerReference]) AS 'CustomerRef',   
 				  UPPER(ISNULL(ESO.[SalesPersonName],'Unassigned')) AS 'Salesperson',    
-				  UPPER(CTM.[Name]) AS 'Terms', 
+				  UPPER(ESO.[CreditTermName]) AS 'Terms', 
 				  '0.000000' AS 'FixRateAmount',
 				  ESOBI.[GrandTotal] AS 'InvoiceAmount', 
 				  0 AS 'CMAmount', 
 				  0 AS 'CreditMemoAmount',
 				  0 AS 'CreditMemoUsed',
 				  1 AS 'FROMDebit',   
-				  DATEADD(DAY, CTM.[NetDays],ESOBI.[InvoiceDate]) AS 'DueDate', 
+				  DATEADD(DAY, ESO.[NetDays],ESOBI.[InvoiceDate]) AS 'DueDate', 
 				  UPPER(MSD.[Level1Name]) AS 'level1',        
 				  UPPER(MSD.[Level2Name]) AS 'level2',       
 				  UPPER(MSD.[Level3Name]) AS 'level3',       

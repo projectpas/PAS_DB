@@ -18,6 +18,7 @@
 	 2    20-JUN-2023		Devendra Shekh		made changes for total 
 	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
 	 4    20-MAR-2024		Vishal Suthar		fixed an issue with join for repair order records
+	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
        
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -137,7 +138,8 @@ BEGIN
 			  WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND 
+			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -200,7 +202,8 @@ BEGIN
 				WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
-			   AND 
+			   AND PO.IsDeleted = 0  AND PO.IsActive = 1
+			   AND
 			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -276,6 +279,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
       WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
+	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -340,6 +344,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		WHERE (POP.partnumber like '%'+@partnumber+'%' OR ISNULL(@partnumber, '') = '')  
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
+	   AND PO.IsDeleted = 0  AND PO.IsActive = 1
 	   AND 
 	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

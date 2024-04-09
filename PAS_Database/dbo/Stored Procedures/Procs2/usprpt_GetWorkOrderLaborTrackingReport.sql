@@ -15,6 +15,7 @@
  ** S NO   Date         Author  	Change Description            
  ** --   --------     -------		--------------------------------          
 	1	25-AUG-2023	 Ekta Chandegra	 Convert text into uppercase
+	2	29-MARCH-2024 Ekta Chandegra  IaDeleted and IsActive flag is added
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -112,6 +113,7 @@ BEGIN
 
 				WHERE (CAST(WOT.StartTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) OR CAST(WOT.EndTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE))
 					AND WO.mastercompanyid = @mastercompanyid
+					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
 					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -180,6 +182,7 @@ BEGIN
 					--(CAST(WOT.StartTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) OR CAST(WOT.EndTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND
 					WO.mastercompanyid = @mastercompanyid
+					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
 					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -241,6 +244,7 @@ BEGIN
 					--(CAST(WOL.StartDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) OR CAST(WOL.EndDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND							
 					WO.mastercompanyid = @mastercompanyid
+					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOL.EmployeeId = @employeeName)
 					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

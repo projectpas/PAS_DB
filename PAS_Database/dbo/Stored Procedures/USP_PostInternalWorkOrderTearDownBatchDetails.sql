@@ -15,6 +15,7 @@
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				--------------------------------          
 	1    26/03/2024          Moin Bloch          Created
+	2    04/04/2024          Moin Bloch          changed logic for unit cost
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -94,16 +95,25 @@ BEGIN
 		)    
 		
 		-- Only Tear Down WO Type Batch Entry
+			
+		SELECT @UnitCost = ((ISNULL(WOP.StocklineCost,0) + ISNULL(WOPC.PartsCost,0) + ISNULL(WOPC.LaborCost,0) + ISNULL(WOPC.OtherCost,0)) - ISNULL(wop.TendorStocklineCost,0)),
+               @WorkOrderTypeId = WO.[WorkOrderTypeId]     
+            FROM [dbo].[WorkOrder] WO WITH(NOLOCK)			   
+			INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WO.[WorkOrderId] = WOP.WorkOrderId  
+             LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOPC WITH(NOLOCK) ON WOP.ID = WOPC.WOPartNoId
+            INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId               
+            WHERE WOP.ID = @WorkOrderPartNoId;
 
-		SELECT @UnitCost = sl.[UnitCost],
-			   @WorkOrderTypeId = wo.[WorkOrderTypeId]
-		   FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
-		  JOIN [dbo].[WorkOrderPartNumber] wpn WITH(NOLOCK) ON wo.[WorkOrderId] = wpn.WorkOrderId  
-		  JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON wpn.StockLineId = sl.StockLineId
-		  WHERE wpn.ID = @workOrderPartNoId;
+		SELECT @WorkOrderNumber = wo.WorkOrderNum,
+			   @CustomerId=CustomerId,
+			   @CustomerName= CustomerName 
+			FROM [dbo].[WorkOrder] wo WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
 		
 		IF(ISNULL(@UnitCost,0) > 0 AND @WorkOrderTypeId = @TeardownType)
-		BEGIN	
+		BEGIN
+			IF(NOT EXISTS (SELECT 1 FROM dbo.WorkOrderBatchDetails WHERE [ReferenceId] = @WorkOrderId AND [MPNPartId] = @WorkOrderPartNoId AND [UnitPrice] = @UnitCost AND [ReferenceName] = @WorkOrderNumber ))
+			BEGIN 
+
 		    SELECT @MasterCompanyId = [MasterCompanyId], @UpdateBy = [CreatedBy],@CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNoId;			
 			SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('InternalWorkOrderTeardown');
 			SELECT @StatusId = [Id],@StatusName = [name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('Open');
@@ -112,12 +122,7 @@ BEGIN
 			SELECT @JournalTypeCode = [JournalTypeCode],@JournalTypename = [JournalTypeName] FROM [dbo].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeId;						
 		   		   
 		    SELECT @ModuleId = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='WorkOrderMPN');
-
-			SELECT @WorkOrderNumber = wo.WorkOrderNum,
-			       @CustomerId=CustomerId,
-				   @CustomerName= CustomerName 
-			FROM [dbo].[WorkOrder] wo WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
-									
+				
 		    SELECT @LastMSLevel = LastMSLevel,
 			       @AllMSlevels = AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
@@ -598,6 +603,7 @@ BEGIN
 				   [UpdatedDate] = GETUTCDATE(),
 				   [UpdatedBy] = @UpdateBy
 		     WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
+		  END
 		END
 		
 		SELECT @TotalDebit = SUM([DebitAmount]),

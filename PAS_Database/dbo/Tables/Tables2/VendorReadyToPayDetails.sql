@@ -38,8 +38,13 @@
     [NonPOInvoiceId]                BIGINT          NULL,
     [IsGenerated]                   BIT             NULL,
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
+    [ControlNumber]                 VARCHAR (250)   NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+
+
+
+
 
 
 

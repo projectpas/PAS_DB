@@ -20,8 +20,10 @@
 	6    19/09/2023  Hemnat Saliya  Modify (CR/DR Type)
 	7    11/26/2023	 HEMANT SALIYA  Updated Journal Type Id and Name in Batch Details
 	8    03/12/2024  Moin Bloch     Modify (Added Suspense Entry)
+	9    04/03/2024  Devendra Shekh Modify (changed entry to suspense from AR for customer)
+	10    04/04/2024  Devendra Shekh Modify (added both entry suspense and AR for known customer)
 
-	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,10131
+	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew]
@@ -329,6 +331,7 @@ BEGIN
 				DECLARE @AapliedAmount DECIMAL(18,2)=0;
 				DECLARE @InvoiceAmount DECIMAL(18,2)=0;
 				DECLARE @InvoiceAmountDiffeence DECIMAL(18,2)=0;
+				DECLARE @RemainingAmount DECIMAL(18,2)=0;
 						 
 				DECLARE @InvoiceType VARCHAR(50);
 				DECLARE @SOBillingInvoicingId BIGINT=0;
@@ -396,7 +399,8 @@ BEGIN
 					
 					SELECT @CaseAmount = SUM(ISNULL(Amount,0)) ,
 				           @AapliedAmount = SUM(ISNULL(AppliedAmount,0)),
-					       @InvoiceAmount = SUM(ISNULL(InvoiceAmount,0)) 
+					       @InvoiceAmount = SUM(ISNULL(InvoiceAmount,0)) ,
+					       @RemainingAmount = SUM(ISNULL(AmountRem,0))
 				      FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK) 
 					 WHERE [ReceiptId] = @ReceiptId AND [CustomerId] = @CustomerId 
 					   AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,1) = 1;			  
@@ -419,13 +423,14 @@ BEGIN
 
 					--SELECT @miscellaneousAmount = SUM(ISNULL([AppliedAmount],0)),
 					SELECT @miscellaneousAmount = ISNULL(SUM([Amount]),0),  					
-				           @Ismiscellaneous = 1 
+				           @Ismiscellaneous = ISNULL([Ismiscellaneous],0) 
 				      FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK)					 
 				     WHERE [ReceiptId] = @ReceiptId 
 				       AND [CustomerId] = @CustomerId  
 				       AND ISNULL([Ismiscellaneous],0)=1 
 				       AND ISNULL(IsDeleted,0)=0 
-					   AND ISNULL([IsActive],1)=1;
+					   AND ISNULL([IsActive],1)=1
+					   GROUP BY [Ismiscellaneous];
 
 					SELECT @InvoiceAmountDiffeence = ISNULL(SUM(ISNULL([AppliedAmount],0)) - SUM(ISNULL([InvoiceAmount],0)),0)
 				      FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK)
@@ -474,7 +479,9 @@ BEGIN
 					   AND [CustomerId] = @CustomerId  
 					   AND IVP.IsDeleted=0;
 
-					SET @AccountReceivablesAmount = @CaseAmount + @EarlyDiscAmount +@NotEarlyDiscAmount + @OtherDiscAmount + @WireBankFeesAmount + @FXFeesAmount + @OtherAdjustmentAmount
+					SET @AccountReceivablesAmount = @CaseAmount + @EarlyDiscAmount +@NotEarlyDiscAmount + @OtherDiscAmount + @WireBankFeesAmount + @FXFeesAmount + @OtherAdjustmentAmount - @RemainingAmount
+
+					SET @miscellaneousAmount = CASE WHEN ISNULL(@Ismiscellaneous, 0) = 0 THEN @RemainingAmount ELSE @miscellaneousAmount END;
 
 					IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND [IsManualText] = 0 AND ISNULL(GlAccountId,0) = 0)
 					BEGIN
@@ -500,7 +507,7 @@ BEGIN
 					IF(@ValidDistribution = 1)
 					BEGIN
 						-----Account Receivables------		
-						IF(@AccountReceivablesAmount > 0 AND @miscellaneousAmount = 0)
+						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0)
 						BEGIN	
 							SELECT top 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,
@@ -796,7 +803,7 @@ BEGIN
 						-----Deposit/Unearned Revenue------
 
 						-----Suspense------						
-						IF(@Ismiscellaneous = 1 AND @miscellaneousAmount >0)
+						IF(@miscellaneousAmount >0)
 						BEGIN					
 							SELECT TOP 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,

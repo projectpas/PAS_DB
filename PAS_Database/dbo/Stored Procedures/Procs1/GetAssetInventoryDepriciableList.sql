@@ -14,6 +14,8 @@
  ** --   --------     -------		--------------------------------          
     1    01/23/2023  Subhash Saliya     Created
 	2    08/10/2023  Moin Bloch         Format SP And Added WITH (NOLOCK)
+	3    03/26/2024  Abhishek Jirawla   Added distinct in the SP
+	4    04/08/2024  Abhishek Jirawla   Added Selected Accounting Period Id to the sp
 	
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -66,7 +68,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @Currency varchar(50) = null,
 @DepreciationMethod varchar(50) = null,
 @LegalentityId varchar(500) = null,
-@LastMSLevel varchar(50) = null 
+@LastMSLevel varchar(50) = null,
+@SelectedAccountingPeriodId int = null
 AS
 BEGIN
 
@@ -85,6 +88,8 @@ BEGIN
 		DECLARE @DeprFrequencyYEARLY VARCHAR(50) ='YEARLY,YRLY'
 		DECLARE @ReduceResidualPerc DECIMAL(18,2);
 		DECLARE @ResidualPercentage DECIMAL(18,2);
+		DECLARE @LastDateOfSelectedAccountingPeriod Date = NULL;
+		DECLARE @CurrentDateAccountingPeriod VARCHAR(200) = NULL;
 
 		SELECT TOP 1  @AssetStatusid = [AssetStatusid] FROM [dbo].[AssetStatus] WITH (NOLOCK)  WHERE UPPER([name]) ='DEPRECIATING' AND [MasterCompanyId] = @MasterCompanyId
 		
@@ -116,11 +121,21 @@ BEGIN
 			SET @IsActive = NULL
 		END 
 
+		IF @SelectedAccountingPeriodId IS NOT NULL OR @SelectedAccountingPeriodId <> 0
+		BEGIN
+			SELECT @LastDateOfSelectedAccountingPeriod = ToDate FROM AccountingCalendar WHERE AccountingCalendarId = @SelectedAccountingPeriodId;
+		END
+		ELSE
+		BEGIN
+			SELECT @CurrentDateAccountingPeriod = STRING_AGG(AccountingCalendarId, ',') FROM AccountingCalendar WHERE (IsDeleted = 0) AND (GETUTCDATE() BETWEEN FromDate AND ToDate);
+		END
+
 		BEGIN TRY
 			--BEGIN TRANSACTION
 				BEGIN
-						;With Result AS(
-						SELECT	asm.AssetRecordId AS AssetRecordId,
+				
+					;With Result AS(
+						SELECT DISTINCT	asm.AssetRecordId AS AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.[Name], 
 								asm.AssetId,
@@ -192,15 +207,15 @@ BEGIN
 								LEFT JOIN [dbo].EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
 								LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 								LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
-
-								OUTER APPLY      
+								LEFT JOIN [dbo].AssetDepreciationMonthRemoval admr WITH(NOLOCK) ON admr.AssetInventoryId = asm.AssetInventoryId AND (AccountingCalenderId IN (@SelectedAccountingPeriodId) OR AccountingCalenderId IN (SELECT Item FROM DBO.SPLITSTRING(@CurrentDateAccountingPeriod,',')))
+									OUTER APPLY      
 									 (      
 										SELECT DISTINCT STRING_AGG(ISNULL(ADH.AccountingCalenderId,0), ',')  AS 'AccountingCalenderId'
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
 									 ) A
 
-									  OUTER APPLY      
+									 OUTER APPLY      
 									 (      
 										SELECT TOP 1 ADH.DepreciationAmount,
 														ADH.AccumlatedDepr,
@@ -212,10 +227,10 @@ BEGIN
 									 ) B
 
 
-							WHERE (((asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), GETUTCDATE(), 112) != CONVERT(VARCHAR(6), asm.EntryDate, 112)) ) OR
-							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 3 =0))  OR
-									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE)))  AS INT)) % 12 =0))) 
-							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(GETUTCDATE() AS DATE))) <= asm.AssetLife)
+							WHERE (((asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyMonthly,',')) AND (CONVERT(VARCHAR(6), ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()), 112) != CONVERT(VARCHAR(6), asm.EntryDate, 112)) ) OR
+							        (asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyQUATERLY,',')) AND (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE)))  AS INT)) % 3 =0))  OR
+									(asm.DepreciationFrequencyName IN (SELECT Item FROM DBO.SPLITSTRING(@DeprFrequencyYEARLY,',')) AND  (ABS(CAST((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE)))  AS INT)) % 12 =0))) 
+							                                    AND ((DATEDIFF(MONTH, CAST(asm.EntryDate AS DATE),CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE))) <= asm.AssetLife)
 																-- AND (B.NetBookValue IS NOT NULL AND B.NetBookValue > ASM.ResidualPercentage)
 																-- AND (B.NetBookValue IS NULL OR ISNULL(B.NetBookValue,0) > ASM.ResidualPercentage)
 																AND (asm.IsDeleted = @IsDeleted) 
@@ -225,9 +240,10 @@ BEGIN
 																AND (asm.AssetStatusId = @AssetStatusid) 			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
 																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
+																AND (admr.AssetInventoryId IS NULL)
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 																AND (LE.LegalEntityId IN (SELECT Item FROM DBO.SPLITSTRING(@LegalentityId,',')))
-																AND ( ASM.DepreciationStartDate <= CAST(GETUTCDATE() AS DATE) )
+																AND ( ASM.DepreciationStartDate <= CAST(ISNULL(@LastDateOfSelectedAccountingPeriod, GETUTCDATE()) AS DATE) )
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult FROM  Result
 					WHERE (
@@ -301,6 +317,8 @@ BEGIN
 								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') AND
 								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') 
 								))
+				
+						
 						
 					SELECT @Count = COUNT(AssetInventoryId) FROM #TempResult			
 

@@ -20,7 +20,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 10-01-2024		Ayesha Sultana		Created
-	2    02-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed
+	2    09-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed and added some more return values.
      
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]

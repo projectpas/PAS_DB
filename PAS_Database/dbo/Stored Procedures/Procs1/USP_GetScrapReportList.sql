@@ -16,9 +16,11 @@
  ** --   --------     -------  --------------------------------            
  1 18-Nov-2022  Subhash Saliya  Update to Angular Reports  
  2 25/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone       
+ 3 08/04/2024   Devendra Shekh   added customerReference     
+ 
 EXECUTE   [dbo].[USP_GetScrapReportList] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
-Create    PROCEDURE [dbo].[USP_GetScrapReportList]   
+CREATE   PROCEDURE [dbo].[USP_GetScrapReportList]   
 @PageNumber INT = 1,  
 @PageSize INT = NULL,  
 @mastercompanyid INT,  
@@ -134,6 +136,7 @@ BEGIN
    CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (SC.CreatedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (SC.CreatedDate,TZ.Description)), 107) END 'createdDate',   
    CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (SC.updatedDate,TZ.Description)), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (SC.updatedDate,TZ.Description)), 107) END 'updatedDate',   
    UPPER(MSD.Level1Name) AS level1,      UPPER(MSD.Level2Name) AS level2,     UPPER(MSD.Level3Name) AS level3,     UPPER(MSD.Level4Name) AS level4,     UPPER(MSD.Level5Name) AS level5,     UPPER(MSD.Level6Name) AS level6,     UPPER(MSD.Level7Name) AS level7,     UPPER(MSD.Level8Name) AS level8,     UPPER(MSD.Level9Name) AS level9,     UPPER(MSD.Level10Name) AS level10   
+  ,ISNULL(WOPN.CustomerReference, '') AS 'customerReference'
   INTO #tmpBilling  
   FROM dbo.WorkOrder WO WITH (NOLOCK)  
     INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId  

@@ -17,6 +17,7 @@ Exec [ReverseWorkOrder]
 ** 6    08/11/2023  Devendra Shekh		 added Isvalue_NA for updating WorkOrderSettlementDetails
 ** 7    08/11/2023  Devendra Shekh		 added isperforma Flage for WO  
 ** 8    02/19/2024	HEMANT SALIYA	     Updated for Restrict Accounting Entry by Master Company
+** 9    04/09/2024	Devendra Shekh	     Updated for QuantityReserved for Stockline instead of QuantityAvailable
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -71,8 +72,9 @@ AS
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done */
 					UPDATE Stockline SET 
-						QuantityAvailable = CASE WHEN QuantityAvailable = 0 THEN ISNULL(QuantityAvailable, 0) + 1 ELSE QuantityAvailable END, 
+						--QuantityAvailable = CASE WHEN QuantityAvailable = 0 THEN ISNULL(QuantityAvailable, 0) + 1 ELSE QuantityAvailable END, 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
+						QuantityReserved = CASE WHEN QuantityReserved = 0 THEN ISNULL(QuantityReserved, 0) + 1 ELSE QuantityReserved END,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE StockLineId=@StockLineId
 				END

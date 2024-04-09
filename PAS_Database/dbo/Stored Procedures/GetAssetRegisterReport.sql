@@ -20,7 +20,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 10-01-2024		Ayesha Sultana		Created
-	2    02-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed
+	2    09-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed and added some more return values.
      
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
@@ -79,12 +79,14 @@ BEGIN
 
 		SELECT  AI.AssetInventoryId,
 				'TANGIBLE' AS AssetCategory,
+				AI.AssetId AS InternalPN,
 				UPPER(ASTS.[Name]) AS AssetStatus,
 				UPPER(ASTIS.[Status]) AS InventoryStatus,
 				UPPER(ASAT.AssetAttributeTypeName) AS AssetClass,
 				AI.InventoryNumber,
 				UPPER(AI.PartNumber) AS PartNumber,
 				AI.AlternateAssetRecordId,
+				AAR.AssetId AS AlternateAssetRecordName,
 				UPPER(AST.MANUFACTURERPN) AS ManufacturerPN,
 				-- AST.[Name] AS AssetName,
 				UPPER(AI.[Name]) AS AssetName,
@@ -121,6 +123,7 @@ BEGIN
 
 		FROM AssetInventory AI WITH (NOLOCK)
 				LEFT JOIN Asset AST WITH (NOLOCK) ON AST.AssetId = AI.AssetId
+				LEFT JOIN Asset AAR WITH (NOLOCK) ON AAR.AssetRecordId = AI.AlternateAssetRecordId
 				LEFT JOIN AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId
 				LEFT JOIN Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
 				LEFT JOIN AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId

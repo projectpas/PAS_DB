@@ -18,7 +18,7 @@
 	1    11/03/2024   AMIT GHEDIYA		Crated
 	2    05/04/2024   AMIT GHEDIYA		Update to delete CM as well.
      
--- EXEC USP_DELETE_VendorReadyToPayChecks 133,115 
+-- EXEC USP_DELETE_VendorReadyToPayChecks 356,271 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[USP_DELETE_VendorReadyToPayChecks]  
 @ReadyToPayDetailsId BIGINT = NULL,  
@@ -31,11 +31,10 @@ BEGIN
 
 	DECLARE @VendorPaymentDetailsId BIGINT,@VendorId BIGINT,@VendorCreditMemoId BIGINT;
 
-	DELETE [DBO].[VendorReadyToPayDetails] WHERE ReadyToPayDetailsId = @ReadyToPayDetailsId AND ReadyToPayId = @ReadyToPayId;
-
-	SELECT @VendorPaymentDetailsId = VendorPaymentDetailsId, @VendorId =VendorId FROM [DBO].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE ReadyToPayDetailsId = @ReadyToPayDetailsId;
+	SELECT @VendorPaymentDetailsId = VendorPaymentDetailsId FROM [DBO].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE ReadyToPayDetailsId = @ReadyToPayDetailsId;
+	
 	If(@VendorPaymentDetailsId > 0)
-	BEGIN
+	BEGIN 
 		SELECT @VendorCreditMemoId = VendorCreditMemoId FROM [DBO].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
 		IF(@VendorCreditMemoId > 0)
 		BEGIN
@@ -43,6 +42,8 @@ BEGIN
 			DELETE [DBO].[VendorCreditMemoMapping] WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
 		END
 	END
+
+	DELETE [DBO].[VendorReadyToPayDetails] WHERE ReadyToPayDetailsId = @ReadyToPayDetailsId AND ReadyToPayId = @ReadyToPayId;
 
   END TRY      
   BEGIN CATCH        

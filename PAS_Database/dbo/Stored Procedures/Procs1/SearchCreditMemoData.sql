@@ -16,6 +16,7 @@
 	3    09/04/2023   AMIT GHEDIYA      Updated to get from standaloneCM.
 	4    09/15/2023   AMIT GHEDIYA      Updated to Cast.
 	5    04/04/2024   Devendra Shekh    added vendorid to select
+	6    04/10/2024   HEMANT            Updated Status Id 
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -73,11 +74,11 @@ BEGIN
    Begin     
     Set @SortColumn = UPPER(@SortColumn)    
    End  
-   IF (@StatusID=6 AND @Status='All')  
+   IF (@StatusID=11 AND @Status='All')  
    BEGIN     
    SET @Status = ''  
    END  
-   IF (@StatusID=6 OR @StatusID=0)  
+   IF (@StatusID=11 OR @StatusID=0)  
    BEGIN  
    SET @StatusID = NULL     
       END             

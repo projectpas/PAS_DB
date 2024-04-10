@@ -22,7 +22,7 @@ CREATE PROCEDURE [dbo].[USP_UpdateTenderStocklineDetail]
 @StocklineId  BIGINT,
 @ConditionId BIGINT,
 @SerialrNumber varchar(50),
-@UnitCost DECIMAL(18,2),
+@UnitCost DECIMAL(18,2) NULL = 0,
 @Opr INT
 AS
 BEGIN

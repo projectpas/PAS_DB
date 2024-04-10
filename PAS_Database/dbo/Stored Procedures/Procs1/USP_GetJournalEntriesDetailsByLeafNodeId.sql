@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_GetJournalEntriesDetailsByLeafNodeId]             
  ** Author: Hemant Saliya  
  ** Description: This stored procedure is used to Get income statement(actual) report Journal Entry Data 
@@ -430,7 +431,10 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN 'CHEQUE' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 'ASSET'
 											--WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR RMA'
-											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR CREDIT MEMO'											
+											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR CREDIT MEMO'	
+											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN 'VENDOR RMA - SHIPPING'
+											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN 'VENDOR CREDIT MEMO'
+											WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN 'VENDOR-RMA-PRODUCT-REPLACED'
 											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 'STOCKLINE'
 											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN 'CASH RECEIPT'
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 'STKADJ'
@@ -456,6 +460,9 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN '' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN '' --SD.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN V.VendorName
+											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN V.VendorName
+											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN V.VendorName
+											WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN V.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJH.JournalNumber	
 											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN ''		
 											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.CustomerName
@@ -488,6 +495,9 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN VRBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN VRBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN VRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 0		
 											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0

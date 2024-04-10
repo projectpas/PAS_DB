@@ -2894,6 +2894,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateMPNTenderStocklineDetail.sql" />
     <Build Include="dbo\Tables\AssetDepreciationMonthRemoval.sql" />
     <Build Include="dbo\Stored Procedures\SaveAssetDepreciationMonthRemovalData.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportNew.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

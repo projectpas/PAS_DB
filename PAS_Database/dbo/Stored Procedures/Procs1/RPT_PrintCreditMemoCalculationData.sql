@@ -110,8 +110,8 @@ BEGIN
 	SET @tmpTotal = (ISNULL(@tmpSubTotals,0.00) + ISNULL(@tmpSiteTax,0.00) + ISNULL(@tmpOtherSiteTax,0.00));     
     
     
-	SELECT ISNULL(@tmpAwb,'') AS Awb, ISNULL(@tmpNotes,'') AS Notes, ISNULL(@tmpdescription,'') AS description, ISNULL(@tmpTotal,0.00) AS Total, ISNULL(@tmpSubTotals,0.00) AS SubTotal, ISNULL(@tmpSiteTax,0.00) AS SalesTax, ISNULL(@tmpOtherSiteTax,0.00) AS OtherTax,    
-		ISNULL(@tmpTotalFreight,0.00) AS Freight, ISNULL(@tmpTotalCharges,0.00) AS Charges, @tmpTotal +(CASE WHEN @tmpTotalFreight > 0 THEN @tmpTotalFreight ELSE 0 END) + (CASE WHEN @tmpTotalCharges > 0 THEN @tmpTotalCharges ELSE 0 END) AS FinalTotal;    
+	SELECT ISNULL(@tmpAwb,'') AS Awb, ISNULL(@tmpNotes,'') AS Notes, ISNULL(@tmpdescription,'') AS description, ISNULL(@tmpTotal,0.00) AS Total, ABS(ISNULL(@tmpSubTotals,0.00)) AS SubTotal, ISNULL(@tmpSiteTax,0.00) AS SalesTax, ISNULL(@tmpOtherSiteTax,0.00) AS OtherTax,    
+		ISNULL(@tmpTotalFreight,0.00) AS Freight, ISNULL(@tmpTotalCharges,0.00) AS Charges, ABS(@tmpTotal + (CASE WHEN @tmpTotalFreight > 0 THEN @tmpTotalFreight ELSE 0 END) + (CASE WHEN @tmpTotalCharges > 0 THEN @tmpTotalCharges ELSE 0 END)) AS FinalTotal;    
     
 	END TRY        
 	BEGIN CATCH          

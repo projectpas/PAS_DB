@@ -18,6 +18,7 @@
 	1	 02-MAY-2022   Hemant				Added Updated for Upper Case
 	2    16-JUNE-2023   Devendra Shekh        made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra     IsDeleted and IsActive flag is added
+	4    10-APRL-2024   Shrey Chandegara   poage changes   ( DATEDIFF(DAY, PO.OpenDate, GETDATE()) to DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) )
 	
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -141,7 +142,7 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',
 				UPPER(POP.stocktype) 'stocktype',
 				UPPER(PO.status) 'status',
-				DATEDIFF(DAY, PO.OpenDate, GETDATE()) 'poage',
+				DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) AS 'poage',
 				UPPER(PO.VendorName) 'vendorname',
 				UPPER(PO.VendorCode) 'vendorcode',
 				UPPER(POP.unitofmeasure) 'uom',

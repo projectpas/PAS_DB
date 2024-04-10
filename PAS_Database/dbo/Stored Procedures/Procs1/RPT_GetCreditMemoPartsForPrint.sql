@@ -13,7 +13,7 @@
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3	 04/01/2024	  HEMANT SALIYA	  added isperforma Flage for SO
 	
- --  EXEC RPT_GetCreditMemoPartsForPrint 488,0,157
+ --  EXEC RPT_GetCreditMemoPartsForPrint 426,1,182
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
@@ -39,8 +39,10 @@ BEGIN
 					   SOPN.CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
-					   CM.UnitPrice,
-					   CM.Amount						
+					   ABS(CM.UnitPrice) UnitPrice,
+					   ABS(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
+					   CM.RestockingFee,
+					   ABS(CM.Amount) Amount						
 				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)		
 					LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CM.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
 					LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
@@ -63,8 +65,10 @@ BEGIN
 					   WOPN.CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
-					   CM.UnitPrice,
-					   CM.Amount
+					   ABS(CM.UnitPrice) UnitPrice,
+					   ABS(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
+					   CM.RestockingFee,
+					   ABS(CM.Amount) Amount	
 				 FROM dbo.CreditMemoDetails CM WITH (NOLOCK)  
 					LEFT JOIN  dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.WOBillingInvoicingItemId = CM.BillingInvoicingItemId
 					LEFT JOIN dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId

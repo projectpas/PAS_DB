@@ -29,17 +29,54 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY  
 
-	DECLARE @VendorPaymentDetailsId BIGINT,@VendorId BIGINT,@VendorCreditMemoId BIGINT;
+	DECLARE @VendorPaymentDetailsId BIGINT,
+			@VendorId BIGINT,
+			@VendorCreditMemoId BIGINT,
+			@MasterLoopID INT;
 
 	SELECT @VendorPaymentDetailsId = VendorPaymentDetailsId FROM [DBO].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE ReadyToPayDetailsId = @ReadyToPayDetailsId;
 	
 	If(@VendorPaymentDetailsId > 0)
 	BEGIN 
-		SELECT @VendorCreditMemoId = VendorCreditMemoId FROM [DBO].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
-		IF(@VendorCreditMemoId > 0)
+		--SELECT @VendorCreditMemoId = VendorCreditMemoId, @VendorId = VendorId FROM [DBO].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
+		
+		IF OBJECT_ID(N'tempdb..#tmpVendorCreditMemoMapping') IS NOT NULL
 		BEGIN
-			UPDATE [DBO].[VendorCreditMemo] set IsVendorPayment = null WHERE VendorCreditMemoId = @VendorCreditMemoId;
-			DELETE [DBO].[VendorCreditMemoMapping] WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
+			DROP TABLE #tmpVendorCreditMemoMapping
+		END
+				
+		CREATE TABLE #tmpVendorCreditMemoMapping
+		(
+			[ID] INT IDENTITY,
+			[VendorCreditMemoId] BIGINT NULL,
+			[VendorId] BIGINT NULL
+		)
+
+		INSERT INTO #tmpVendorCreditMemoMapping ([VendorCreditMemoId],[VendorId])
+				SELECT  [VendorCreditMemoId],[VendorId]
+		FROM [DBO].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId AND ISNULL(IsPosted,0) = 0;
+		
+		SELECT  @MasterLoopID = MAX(ID) FROM #tmpVendorCreditMemoMapping
+		WHILE(@MasterLoopID > 0)
+		BEGIN
+			SELECT @VendorCreditMemoId = [VendorCreditMemoId] , @VendorId = VendorId
+				FROM #tmpVendorCreditMemoMapping WHERE [ID] = @MasterLoopID;
+
+			IF(@VendorCreditMemoId > 0)
+			BEGIN
+				UPDATE [DBO].[VendorCreditMemo] set IsVendorPayment = NULL 
+				WHERE VendorCreditMemoId = @VendorCreditMemoId;
+				
+				DELETE [DBO].[VendorCreditMemoMapping] 
+				WHERE VendorCreditMemoId = @VendorCreditMemoId;
+
+				UPDATE [DBO].[ManualJournalDetails] set IsVendorPayment = NULL 
+				WHERE ManualJournalHeaderId = @VendorCreditMemoId AND ReferenceId = @VendorId;
+			END
+
+			SET @VendorCreditMemoId = 0;
+			SET @VendorId = 0;
+			SET @MasterLoopID = @MasterLoopID - 1;
 		END
 	END
 

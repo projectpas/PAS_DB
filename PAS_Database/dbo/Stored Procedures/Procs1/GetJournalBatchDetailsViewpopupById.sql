@@ -44,7 +44,7 @@
  28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE
  
  29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
- 29	  01/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
+ 30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 

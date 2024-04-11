@@ -20,8 +20,11 @@
     [ReferenceTypeId]             INT             NULL,
     [IsClosed]                    BIT             NULL,
     [IsReferenceChecked]          BIT             NULL,
+    [IsVendorPayment]             BIT             NULL,
     CONSTRAINT [PK_ManualJournalDetailsAudit] PRIMARY KEY CLUSTERED ([AuditManualJournalDetailsId] ASC)
 );
+
+
 
 
 

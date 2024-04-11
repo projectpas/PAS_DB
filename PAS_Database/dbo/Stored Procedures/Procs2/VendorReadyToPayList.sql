@@ -50,11 +50,18 @@ BEGIN
  BEGIN TRY  
 
 	DECLARE @CreditCardPaymentMethodId INT,@CreditMemoLoopID AS INT,
-			@VendorCreditMemoId BIGINT,@VendorPaymentDetailsId BIGINT,
+			@VendorCreditMemoId BIGINT,
+			@VendorId BIGINT,
+			@VendorPaymentDetailsId BIGINT,
 			@IsVendorPayment BIT,
-			@VendorCreditMemoStatusId INT;;
+			@VendorCreditMemoStatusId INT,
+			@ManualJRefrenceTypeId INT = 2,
+			@ManualJStatusId INT,
+			@IsVendorPaymentMJ BIT; 
 
 	SELECT @VendorCreditMemoStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
+
+	SELECT @ManualJStatusId = ManualJournalStatusId FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 
 	SELECT @CreditCardPaymentMethodId = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE [Description] ='Credit Card';
 
@@ -69,7 +76,8 @@ BEGIN
 		[ID] INT IDENTITY,
 		[VendorCreditMemoMappingId] INT,
 		[VendorCreditMemoId] BIGINT NULL,
-		[VendorPaymentDetailsId] BIGINT NULL
+		[VendorPaymentDetailsId] BIGINT NULL,
+		[VendorId] BIGINT NULL,
 	)
 
 	IF OBJECT_ID(N'tempdb..#TempVendorReadyToPayList') IS NOT NULL    
@@ -121,24 +129,49 @@ BEGIN
 		[CreatedDate] DATETIME2 NULL
 		) 
 
-	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId])
-		SELECT [VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId]
-	FROM [dbo].[VendorCreditMemoMapping] WITH (NOLOCK);
+	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId])
+		SELECT [VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId]
+	FROM [dbo].[VendorCreditMemoMapping] WITH (NOLOCK) WHERE ISNULL(IsPosted,0) = 0;
 
 	SELECT  @CreditMemoLoopID = MAX(ID) FROM #tmpVendorCreditMemoMapping
 	WHILE(@CreditMemoLoopID > 0)
 	BEGIN
-		SELECT @VendorCreditMemoId = [VendorCreditMemoId] , @VendorPaymentDetailsId = [VendorPaymentDetailsId]
+		SELECT @VendorCreditMemoId = [VendorCreditMemoId] , 
+			   @VendorPaymentDetailsId = [VendorPaymentDetailsId],
+			   @VendorId = [VendorId]
 		FROM #tmpVendorCreditMemoMapping WHERE ID  = @CreditMemoLoopID;
 
-		SELECT @IsVendorPayment = ISNULL(IsVendorPayment,0) FROM [dbo].[VendorCreditMemo] WITH (NOLOCK) WHERE VendorCreditMemoId = @VendorCreditMemoId 
-
-		IF(@IsVendorPayment = 0)
+		DECLARE @ID BIGINT;
+		SELECT @ID = ReadyToPayDetailsId FROM [dbo].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId AND CheckNumber IS NULL;
+		IF(@ID IS NULL)
 		BEGIN
-			DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId AND VendorCreditMemoId = @VendorCreditMemoId;
+			UPDATE [dbo].[VendorCreditMemo] SET IsVendorPayment = NULL
+			WHERE VendorCreditMemoId = @VendorCreditMemoId;
+
+			----Reserve ManualJournalDetails for Used
+			UPDATE [dbo].[ManualJournalDetails] SET IsVendorPayment = NULL
+			WHERE ManualJournalHeaderId = @VendorCreditMemoId AND ReferenceId = @VendorId;
+
+			DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorCreditMemoId = @VendorCreditMemoId;
 		END
 
+		--SELECT @IsVendorPayment = ISNULL(IsVendorPayment,0) FROM [dbo].[VendorCreditMemo] WITH (NOLOCK) WHERE VendorCreditMemoId = @VendorCreditMemoId;
+		
+		--SELECT @IsVendorPaymentMJ = ISNULL(IsVendorPayment,0) FROM [dbo].[ManualJournalDetails] WITH (NOLOCK) WHERE ManualJournalHeaderId = @VendorCreditMemoId AND ReferenceId =  @VendorId;
+
+		--IF(@IsVendorPayment = 0)
+		--BEGIN
+		--	DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId AND VendorCreditMemoId = @VendorCreditMemoId AND ISNULL(IsPosted,0) = 0;
+		--END
+
+		--IF(@IsVendorPaymentMJ = 0)
+		--BEGIN
+		--	DELETE [dbo].[VendorCreditMemoMapping]  WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId AND VendorCreditMemoId = @VendorCreditMemoId AND ISNULL(IsPosted,0) = 0;
+		--END
+
 		SET @VendorCreditMemoId = 0;
+		SET @VendorPaymentDetailsId = 0;
+		SET @VendorId = 0;
 		SET @CreditMemoLoopID = @CreditMemoLoopID - 1;
 	END
 	  
@@ -478,6 +511,16 @@ BEGIN
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
 							   AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 4 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
+
+				--Update for MJ is addd for Vendor
+				UPDATE  #TempVendorReadyToPayList 
+				SET SelectedforPayment = mjNewData.SelectedforPayment
+				FROM(SELECT CASE WHEN ReferenceId > 0 THEN 1 ELSE 0 END As SelectedforPayment, ReferenceId AS VendorId
+							   FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
+							JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId
+							LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH(NOLOCK) ON VCMM.VendorCreditMemoId = MJD.ManualJournalHeaderId AND VCMM.VendorId = MJD.ReferenceId --AND ISNULL(VCMM.IsPosted,0) = 0 
+					 WHERE ReferenceTypeId = @ManualJRefrenceTypeId AND MJH.ManualJournalStatusId = @ManualJStatusId AND VCMM.IsPosted IS NULL AND ISNULL(MJD.IsVendorPayment,0) = 0
+				) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0
 
 				--)
 				SELECT * FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;

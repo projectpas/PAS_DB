@@ -23,7 +23,7 @@ BEGIN
   BEGIN TRY    
 	BEGIN TRANSACTION
 
-		DECLARE @VendorCreditMemoId BIGINT;
+		DECLARE @VendorCreditMemoId BIGINT,@MasterLoopID INT,@VendorId BIGINT;
 
 		IF OBJECT_ID(N'tempdb..#tmpVendorCreditMemoMapping') IS NOT NULL
 		BEGIN
@@ -48,7 +48,8 @@ BEGIN
 			[InvoiceType] INT NULL
 		)
 
-		DECLARE @VendorCreditMemoMappingId BIGINT,@VendorPaymentDetailsId BIGINT;
+		DECLARE @VendorCreditMemoMappingId BIGINT,
+				@VendorPaymentDetailsId BIGINT;
 
 		SELECT @VendorPaymentDetailsId = VendorPaymentDetailsId, @VendorCreditMemoId = VendorCreditMemoId FROM @tbl_VendorCreditMemoMapping;
 
@@ -88,16 +89,57 @@ BEGIN
 						[IsActive],
 						[IsDeleted],
 						[InvoiceType]
-				   FROM @tbl_VendorCreditMemoMapping;
+				  FROM @tbl_VendorCreditMemoMapping;
 
 			SET  @VendorCreditMemoMappingId = @@IDENTITY;
 
-			--SELECT @VendorCreditMemoId = [VendorCreditMemoId] FROM [dbo].[VendorCreditMemoMapping] WITH (NOLOCK) 
-			--WHERE VendorCreditMemoMappingId = @VendorCreditMemoMappingId;
+			INSERT INTO #tmpVendorCreditMemoMapping ([VendorCreditMemoId],
+					    [VendorPaymentDetailsId],
+						[VendorId],
+						[Amount],
+						[MasterCompanyId],
+						[CreatedBy],
+						[CreatedDate],
+						[UpdatedBy],
+						[UpdatedDate],
+						[IsActive],
+						[IsDeleted],
+						[InvoiceType])
+				SELECT  [VendorCreditMemoId],
+				        [VendorPaymentDetailsId],
+						[VendorId],
+						[Amount],
+						[MasterCompanyId],
+						[CreatedBy],
+						[CreatedDate],
+						[UpdatedBy],
+						[UpdatedDate],
+						[IsActive],
+						[IsDeleted],
+						[InvoiceType]
+				FROM @tbl_VendorCreditMemoMapping
 
-			----Reserve CreditMemo for Used
-			--UPDATE [dbo].[VendorCreditMemo] SET IsVendorPayment = 1
-			--WHERE VendorCreditMemoId = @VendorCreditMemoId;
+
+			SELECT  @MasterLoopID = MAX(ID) FROM #tmpVendorCreditMemoMapping
+			WHILE(@MasterLoopID > 0)
+			BEGIN
+				SELECT @VendorCreditMemoId = [VendorCreditMemoId] , @VendorId = VendorId
+				FROM #tmpVendorCreditMemoMapping WHERE [ID] = @MasterLoopID;
+				--[dbo].[VendorCreditMemoMapping] WITH (NOLOCK) 
+				--WHERE VendorCreditMemoMappingId = @VendorCreditMemoMappingId;
+
+				----Reserve CreditMemo for Used
+				--UPDATE [dbo].[VendorCreditMemo] SET IsVendorPayment = 1
+				--WHERE VendorCreditMemoId = @VendorCreditMemoId;
+
+				----Reserve ManualJournalDetails for Used
+				--UPDATE [dbo].[ManualJournalDetails] SET IsVendorPayment = 1
+				--WHERE ManualJournalHeaderId = @VendorCreditMemoId AND ReferenceId = @VendorId;
+
+				SET @VendorCreditMemoId = 0;
+				SET @VendorId = 0;
+				SET @MasterLoopID = @MasterLoopID - 1;
+			END
 		END
 
 		SELECT [VendorCreditMemoId]

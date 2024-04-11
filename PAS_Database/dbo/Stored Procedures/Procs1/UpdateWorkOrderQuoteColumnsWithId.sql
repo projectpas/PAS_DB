@@ -35,7 +35,7 @@ BEGIN
 					WOQ.CustomerName = C.Name,
 					WOQ.CustomerContact = CO.FirstName + ' ' + CO.LastName,
 					WOQ.CreditLimit = CF.CreditLimit,
-					WOQ.CreditTerms = CASE WHEN ISNULL(WO.CreditTerms,0) != '' THEN  WO.CreditTerms ELSE CT.[Name] END
+					WOQ.CreditTerms = CASE WHEN ISNULL(WO.CreditTerms,'') != '' THEN  WO.CreditTerms ELSE CT.[Name] END
 				FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
 					INNER JOIN dbo.Customer C WITH(NOLOCK) ON WOQ.CustomerId = C.CustomerId
 					LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND IsDefaultContact = 1					

@@ -14,6 +14,7 @@
  ** --   --------     -------			--------------------------------            
     1    01/05/2024   AMIT GHEDIYA		Created  
     2    02/05/2024   VISHAL SUTHAR		Modified to fix WOQ Print issues
+	3	 11-Apr-2024  Bhargav Saliya  creditTerms Changes
 
 --EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
 **************************************************************/  
@@ -70,7 +71,7 @@ BEGIN
             CustomerRef = cust.ContractReference,
             ARBalance = woq.AccountsReceivableBalance,
             CreditLimit = ISNULL(cf.CreditLimit,0),
-            CreditTerms = UPPER(ISNULL(ct.Name,'')),
+            CreditTerms = CASE WHEN ISNULL(woq.CreditTerms,'') != '' THEN UPPER(woq.CreditTerms) ELSE UPPER(ISNULL(ct.Name,'')) END,
             SalesPerson = UPPER(ISNULL(sp.FirstName,'') + ' ' + ISNULL(sp.LastName,'')),
             CSR = ISNULL(csr.FirstName,'') + ' ' + ISNULL(csr.LastName,''),
             Employee = ISNULL(emp.FirstName,'') + ' ' + ISNULL(emp.LastName,''),

@@ -17,6 +17,7 @@
 	3    06/11/2023   AMIT GHEDIYA		Update Status Approved To Posted for VendorCreditMemo.
 	4    07/11/2023   AMIT GHEDIYA		Update Amount select Orignalamount to ApplierdAmt.
 	5    08/04/2023   Devendra Shekh	added result temp table and conditon for amount
+	6    08/04/2023   AMIT GHEDIYA		modify for get MJ is not payed in vendor payment.
      
 -- EXEC USP_VendorCreditMemoDetailsByVendorId 1,1287,0 
 **************************************************************/
@@ -97,6 +98,7 @@ BEGIN
     WHERE MJH.MasterCompanyId = @MasterCompanyId  
       AND MJD.ReferenceId = @VendorId 
       AND MJD.ReferenceTypeId = 2 
+	  AND ISNULL(MJD.IsVendorPayment,0) = 0
       AND MJH.[ManualJournalStatusId] = @PostStatusId
 	  AND ISNULL(MJD.IsClosed,0) = 0
 	  GROUP BY MJH.ManualJournalHeaderId,MJH.JournalNumber,VED.VendorId,VED.VendorName,CR.Code,

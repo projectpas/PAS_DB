@@ -14,6 +14,7 @@
     1    04/18/2022   Moin Bloch		Created
 	2    09/04/2023   AMIT GHEDIYA      Updated to get from standaloneCM.
 	3    09/15/2023   AMIT GHEDIYA      Updated to Cast.
+	4    09/15/2024   HEAMNT SALIYA     Updated Status ID.
 	
  -- exec SearchCreditMemoPNViewData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1	
 **************************************************************/ 
@@ -73,11 +74,11 @@ BEGIN
 	  Begin   
 	   Set @SortColumn = Upper(@SortColumn)  
 	  End
-	  IF (@StatusID=6 AND @Status='All')
+	  IF (@StatusID=11 AND @Status='All')
 	  BEGIN			
 			SET @Status = ''
 	  END
-	  IF (@StatusID=6 OR @StatusID=0)
+	  IF (@StatusID=11 OR @StatusID=0)
 	  BEGIN
 			SET @StatusID = NULL			
       END	

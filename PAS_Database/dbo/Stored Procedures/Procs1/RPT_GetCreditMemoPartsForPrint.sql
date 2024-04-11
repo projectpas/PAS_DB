@@ -12,6 +12,7 @@
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3	 04/01/2024	  HEMANT SALIYA	  added isperforma Flage for SO
+	4    04/10/2024   HEMANT            Updated Status Id 
 	
  --  EXEC RPT_GetCreditMemoPartsForPrint 426,1,182
 **************************************************************/ 

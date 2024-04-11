@@ -27,7 +27,6 @@
 	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
 	11   01/03/2024   Devendra Shekh added [IsBilling] to select
 	11   20/03/2024   HEMANT SALIYA Convert to Temp Table for handle Duplicate Values
-    12   09/04/2024   Shrey Chandegara   InvoiceStatus changes
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 657,41190,7
 **************************************************************/
@@ -171,13 +170,12 @@ BEGIN
 			(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 			WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 			AS TotalFlatCharges,
-			--(SELECT TOP 1 a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
-			--	INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-			--	Where a.SalesOrderId = @SalesOrderId  AND b.ItemMasterId = sop.ItemMasterId 
-			--	AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
-			--	AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0 ) 
-			--AS InvoiceStatus,
-			sobi.InvoiceStatus,
+			(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
+				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
+				Where a.SalesOrderId = @SalesOrderId  AND b.ItemMasterId = sop.ItemMasterId 
+				AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
+				AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0 ) 
+			AS InvoiceStatus,
 			sos.SmentNum AS 'SmentNo',
 			sobii.VersionNo,
 			(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,

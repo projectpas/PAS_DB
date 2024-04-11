@@ -20,7 +20,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 10-01-2024		Ayesha Sultana		Created
-	2    09-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed and added some more return values.
+	2    11-04-2024     ABHISHEK JIRAWLA    Modified it according to the parameters passed and added some more return values. Also added some modification to Depreciation calculations.
      
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetRegisterReport]
@@ -73,11 +73,14 @@ BEGIN
 			SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
 			SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10
 
-		DECLARE @AssetModuleID varchar(500);
-		--DECLARE @xmlFilter XML;
-		SELECT @AssetModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName ='AssetInventoryTangible'
+			DECLARE @AssetStatusID varchar(500);
+			SELECT @AssetStatusID = AssetStatusID FROM AssetStatus WHERE Name ='DEPRECIATING' and MasterCompanyId = @mastercompanyid;
 
-		SELECT  AI.AssetInventoryId,
+			DECLARE @AssetModuleID varchar(500);
+			--DECLARE @xmlFilter XML;
+			SELECT @AssetModuleID = ManagementStructureModuleId FROM ManagementStructureModule WHERE ModuleName ='AssetInventoryTangible'
+
+		SELECT DISTINCT AI.AssetInventoryId,
 				'TANGIBLE' AS AssetCategory,
 				AI.AssetId AS InternalPN,
 				UPPER(ASTS.[Name]) AS AssetStatus,
@@ -100,14 +103,22 @@ BEGIN
 				AI.ReceivedDate,
 				AI.DepreciationStartDate, -- CHANGE IT TO DEPR START DATE
 				UPPER(AI.DepreciationFrequencyName) AS DepreciationFrequencyName,
-				-- ASTS.[Name],
 				AI.TotalCost,
-				ADH.AccumlatedDepr,
-				ADH.NetBookValue,
-				ADH.DepreciationAmount,
+				CASE 
+					WHEN ASTS.AssetStatusId = @AssetStatusID THEN ISNULL(ADH.AccumlatedDepr, 0)
+					ELSE NULL
+				END AS AccumlatedDepr,
+				CASE 
+					WHEN ASTS.AssetStatusId = @AssetStatusID THEN ISNULL(ADH.NetBookValue, AI.TotalCost)
+					ELSE NULL
+				END AS NetBookValue,
+				CASE 
+					WHEN ASTS.AssetStatusId = @AssetStatusID THEN ISNULL(ADH.DepreciationAmount, (AI.TotalCost - (AI.TotalCost * AI.ResidualPercentage)/100)/NULLIF(AI.AssetLife, 0))
+					ELSE NULL
+				END AS DepreciationAmount,
 				ADH.LastDeprRunPeriod AS LastDeprDate,
-				'' AS NumOfDeprPeriod,
-				'' AS DeprPeriodRemaining,
+				(SELECT COUNT(*) FROM AssetDepreciationHistory AS ADRH WHERE ADRH.AssetInventoryId = AI.AssetInventoryId and ADRH.IsDelete = 0) AS NumOfDeprPeriod,
+				AI.AssetLife - (SELECT COUNT(*) FROM AssetDepreciationHistory AS ADRH WHERE ADRH.AssetInventoryId = AI.AssetInventoryId and ADRH.IsDelete = 0)  AS DeprPeriodRemaining,
 				UPPER(AI.SerialNo) AS SerialNo,
 				UPPER(AI.StklineNumber) AS StklineNumber,
 				UPPER(MSD.Level1Name) AS level1,        
@@ -120,11 +131,10 @@ BEGIN
 				UPPER(MSD.Level8Name) AS level8,       
 				UPPER(MSD.Level9Name) AS level9,       
 				UPPER(MSD.Level10Name) AS level10
-
 		FROM AssetInventory AI WITH (NOLOCK)
 				LEFT JOIN Asset AST WITH (NOLOCK) ON AST.AssetId = AI.AssetId
 				LEFT JOIN Asset AAR WITH (NOLOCK) ON AAR.AssetRecordId = AI.AlternateAssetRecordId
-				LEFT JOIN AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId
+				LEFT JOIN AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE AssetInventoryId = AI.AssetInventoryId AND IsDelete = 0)
 				LEFT JOIN Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
 				LEFT JOIN AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId
 				LEFT JOIN AssetAcquisitionType AAT WITH(NOLOCK) ON AAT.AssetAcquisitionTypeId = AI.AssetAcquisitionTypeId
@@ -138,6 +148,8 @@ BEGIN
 			  AND ((ISNULL(@id2,0) = 0 OR AI.AssetStatusId IN (@id2,0)))		 
 			  AND ((ISNULL(@id3,0) = 0 OR AI.InventoryStatusId IN (@id3,0)))	 
 			  AND AI.MasterCompanyId = @mastercompanyid
+			  AND AI.IsActive = 1
+			  AND AI.IsDeleted = 0
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
 			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
@@ -147,7 +159,48 @@ BEGIN
 			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  			
+			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+			  
+		--GROUP BY AI.AssetInventoryId,
+		--		AI.AssetId,
+		--		ASTS.[Name],
+		--		UPPER(ASTIS.[Status]),
+		--		UPPER(ASAT.AssetAttributeTypeName),
+		--		AI.InventoryNumber,
+		--		UPPER(AI.PartNumber),
+		--		AI.AlternateAssetRecordId,
+		--		AAR.AssetId,
+		--		UPPER(AST.MANUFACTURERPN),
+		--		-- AST.[Name] AS AssetName,
+		--		UPPER(AI.[Name]),
+		--		UPPER(AI.ManufactureName),
+		--		AI.ManufacturerId,
+		--		UPPER(AI.Model),
+		--		-- ASTIS.[Status], 
+		--		AI.AssetLife,
+		--		UPPER(AI.DepreciationMethodName),
+		--		UPPER(AAT.[Name]),
+		--		AI.ReceivedDate,
+		--		AI.DepreciationStartDate, -- CHANGE IT TO DEPR START DATE
+		--		UPPER(AI.DepreciationFrequencyName),
+		--		-- ASTS.[Name],
+		--		AI.TotalCost,
+		--		ADH.AccumlatedDepr,
+		--		ADH.NetBookValue,
+		--		ADH.DepreciationAmount,
+		--		ADH.LastDeprRunPeriod,
+		--		UPPER(AI.SerialNo),
+		--		UPPER(AI.StklineNumber),
+		--		UPPER(MSD.Level1Name),        
+		--		UPPER(MSD.Level2Name),       
+		--		UPPER(MSD.Level3Name),       
+		--		UPPER(MSD.Level4Name),       
+		--		UPPER(MSD.Level5Name),       
+		--		UPPER(MSD.Level6Name),       
+		--		UPPER(MSD.Level7Name),       
+		--		UPPER(MSD.Level8Name),       
+		--		UPPER(MSD.Level9Name),       
+		--		UPPER(MSD.Level10Name)
 	END	
 	END TRY  
 	BEGIN CATCH  

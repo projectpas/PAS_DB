@@ -13,13 +13,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/29/2020   Hemant Saliya Created
-	2    04/28/2021   Hemant Saliya Added Content Managment for DB Logs
-	3    01/01/2021   Hemant Saliya Added Delete And IsActive Condition
-	4    03/19/2024   Hemant Saliya Updated Cust Refrence as RO Number
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/29/2020   Hemant Saliya		Created
+	2    04/28/2021   Hemant Saliya		Added Content Managment for DB Logs
+	3    01/01/2021   Hemant Saliya		Added Delete And IsActive Condition
+	4    03/19/2024   Hemant Saliya		Updated Cust Refrence as RO Number
     5    20-03-2024   Shrey Chandegara  Add Reference 
+	6    20-03-2024   AMIT GHEDIYA      Update Reference filter.
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -51,7 +52,9 @@ CREATE  PROCEDURE [dbo].[GetReceivingCustomerList]
 	@EmployeeId bigint,
 	@StocklineNumber varchar(50)=null,
 	@ControlNumber varchar(50)=null,
-	@IdNumber varchar(50)=null
+	@IdNumber varchar(50)=null,
+	@Reference varchar(100)=null,
+	@ManufacturerName varchar(150)=null
 
 AS
 BEGIN
@@ -96,7 +99,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					IM.partnumber AS PartNumber,
-					M.Name As Manufacturer,
+					M.Name As ManufacturerName,
 					IM.PartDescription,
 					RC.CustomerName,
 					WOS.Stage AS StageCode,
@@ -160,7 +163,9 @@ BEGIN
 					(Status like '%'+@GlobalFilter+'%') OR
 					(StageCode like '%'+@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
-					(UpdatedBy like '%' +@GlobalFilter+'%') 
+					(UpdatedBy like '%' +@GlobalFilter+'%') OR
+					(Reference like '%' +@GlobalFilter+'%') OR
+					(ManufacturerName like '%' +@GlobalFilter+'%')
 					))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') and 
@@ -182,7 +187,9 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate as Date)=CAST(@ReceivedDate AS DATE)) and
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate AS DATE)) and
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate AS DATE)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate AS DATE)) AND
+					(ISNULL(@Reference,'') ='' OR Reference like '%' + @Reference+'%') AND
+					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%'))
 					)
 
 			Select @Count = COUNT(ReceivingCustomerWorkId) from #TempResult			
@@ -208,6 +215,8 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END ASC,
             CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='REFERENCE')  THEN Reference END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
@@ -226,7 +235,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END DESC,
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='REFERENCE')  THEN Reference END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

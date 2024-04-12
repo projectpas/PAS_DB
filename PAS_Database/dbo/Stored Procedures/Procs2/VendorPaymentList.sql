@@ -1424,7 +1424,7 @@ BEGIN
 	     AND VRTPD.PaymentMethodId = @Check
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
-		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
+		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
 	     --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,

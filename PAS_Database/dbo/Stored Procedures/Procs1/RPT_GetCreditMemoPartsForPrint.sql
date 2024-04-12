@@ -12,9 +12,9 @@
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3	 04/01/2024	  HEMANT SALIYA	  added isperforma Flage for SO
-	4    04/10/2024   HEMANT            Updated Status Id 
+	4    04/12/2024   HEMANT SALIYA   Updated Status Id 
 	
- --  EXEC RPT_GetCreditMemoPartsForPrint 426,1,182
+ --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
@@ -40,8 +40,10 @@ BEGIN
 					   SOPN.CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
-					   ABS(CM.UnitPrice) UnitPrice,
-					   ABS(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
+					   --ABS(CM.UnitPrice) UnitPrice,
+					   ABS(ISNULL(CM.PartsUnitCost, 0)) UnitPrice,
+					   (ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0)) SubTotal, --+ ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0)
+					   --(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
 					   CM.RestockingFee,
 					   ABS(CM.Amount) Amount						
 				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)		
@@ -66,8 +68,10 @@ BEGIN
 					   WOPN.CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
-					   ABS(CM.UnitPrice) UnitPrice,
-					   ABS(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
+					   --ABS(CM.UnitPrice) UnitPrice,
+					   ABS(ISNULL(CM.PartsUnitCost, 0)) UnitPrice,
+					   (ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0)) SubTotal, -- + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0)
+					   --(ISNULL(CM.PartsRevenue, 0) + ISNULL(CM.LaborRevenue, 0) + ISNULL(CM.FreightRevenue, 0) + ISNULL(CM.MiscRevenue, 0) + ISNULL(CM.SalesTax, 0) + ISNULL(CM.OtherTax, 0)) SubTotal,
 					   CM.RestockingFee,
 					   ABS(CM.Amount) Amount	
 				 FROM dbo.CreditMemoDetails CM WITH (NOLOCK)  

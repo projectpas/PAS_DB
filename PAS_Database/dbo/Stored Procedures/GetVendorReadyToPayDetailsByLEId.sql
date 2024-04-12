@@ -72,7 +72,7 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
@@ -123,7 +123,7 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',
@@ -173,7 +173,7 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
 				  LE.[Name] AS 'LegalEntityName',

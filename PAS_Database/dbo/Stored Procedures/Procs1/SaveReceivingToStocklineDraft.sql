@@ -380,11 +380,15 @@ BEGIN
 		@VerificationDefaultVendorId = ISNULL(AC.VerificationDefaultVendorId, 0), @VerificationFrequencyDays = ISNULL(AC.VerificationFrequencyDays, 0), @VerificationGlAccountId = ISNULL(AC.VerificationGlAccountId, 0), @VerificationMemo = ISNULL(AC.VerificationMemo, 0)
 	  FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
 
-	  DECLARE @AssetLife INT = 0
-	  SELECT @AssetLife = ISNULL(AAT.AssetLife, 0) 
+	  DECLARE @AssetLife INT = 0, @InstallationCost INT = 0
+	  SELECT @AssetLife = ISNULL(AAT.AssetLife, 0)
 	  FROM DBO.Asset A WITH (NOLOCK)
 		INNER JOIN AssetAttributeType AAT ON AAT.AssetAttributeTypeId = A.AssetAttributeTypeId
 	  WHERE A.AssetRecordId = @ItemMasterId;
+
+	  SELECT @InstallationCost = ISNULL(AI.InstallationCost, 0)
+	  FROM DBO.AssetInventory AI WITH (NOLOCK)
+	  WHERE AI.AssetRecordId = @ItemMasterId;
 
 	  DECLARE @WarrantyCompany VARCHAR(100), @WarrantyGLAccountId BIGINT, @WarrantyDefaultVendorId BIGINT
 	  SELECT @WarrantyCompany = ISNULL(AM.WarrantyCompany, ''), @WarrantyGLAccountId = ISNULL(AM.WarrantyGLAccountId, 0), @WarrantyDefaultVendorId = ISNULL(AM.WarrantyDefaultVendorId, 0)
@@ -420,7 +424,7 @@ BEGIN
       0, 0, @InspectionFrequencyDays, @VerificationFrequencyDays, 0, 0, NULL,    
       0, @CalibrationDays, @CalibrationGlAccountId, @CalibrationMemo, @VerificationMemo, @VerificationGlAccountId, NULL,    
       NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
-      NULL, A.[MasterPartId], GETUTCDATE(), 0, 0, 0, 0, 0, @WarrantyDefaultVendorId, @WarrantyGLAccountId, A.[IsDepreciable], A.[IsNonDepreciable],    
+      NULL, A.[MasterPartId], GETUTCDATE(), @InstallationCost, 0, 0, 0, 0, @WarrantyDefaultVendorId, @WarrantyGLAccountId, A.[IsDepreciable], A.[IsNonDepreciable],    
       A.[IsAmortizable], A.[IsNonAmortizable], '', 0, @AssetLife, 0, @WarrantyCompany, 0, NULL, 0,    
       1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    

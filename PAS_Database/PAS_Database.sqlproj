@@ -2894,6 +2894,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateMPNTenderStocklineDetail.sql" />
     <Build Include="dbo\Tables\AssetDepreciationMonthRemoval.sql" />
     <Build Include="dbo\Stored Procedures\SaveAssetDepreciationMonthRemovalData.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_ReceivedUnit.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_ReceivedUnitByIMId.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportNew.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateStocklineDraftForIsSerialized.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetInventoryBatchAccountingDetailsById.sql" />

@@ -21,7 +21,7 @@
 	5    12/26/2023   Vishal Suthar		Modified the SP to set traceableTo and taggedBy field from PO Part into Stockline Draft
 	6    18-01-2024   Shrey Chandegara  update for orderdate
 	7    01-03-2024   Shrey Chandegara  In AssetInventoryDraft SET EnrtyDate is GETUTCDATE() FROM A.EntryDate
-	8    11-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife and Asset Location
+	8    16-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife, Asset Location and DepreciationStartDate
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -380,13 +380,13 @@ BEGIN
 		@VerificationDefaultVendorId = ISNULL(AC.VerificationDefaultVendorId, 0), @VerificationFrequencyDays = ISNULL(AC.VerificationFrequencyDays, 0), @VerificationGlAccountId = ISNULL(AC.VerificationGlAccountId, 0), @VerificationMemo = ISNULL(AC.VerificationMemo, 0)
 	  FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
 
-	  DECLARE @AssetLife INT = 0, @InstallationCost INT = 0
+	  DECLARE @AssetLife INT = 0, @InstallationCost INT = 0, @DepreciationStartDate DATETIME
 	  SELECT @AssetLife = ISNULL(AAT.AssetLife, 0)
 	  FROM DBO.Asset A WITH (NOLOCK)
 		INNER JOIN AssetAttributeType AAT ON AAT.AssetAttributeTypeId = A.AssetAttributeTypeId
 	  WHERE A.AssetRecordId = @ItemMasterId;
 
-	  SELECT @InstallationCost = ISNULL(AI.InstallationCost, 0)
+	  SELECT @InstallationCost = ISNULL(AI.InstallationCost, 0), @DepreciationStartDate = ISNULL(AI.DepreciationStartDate, '')
 	  FROM DBO.AssetInventory AI WITH (NOLOCK)
 	  WHERE AI.AssetRecordId = @ItemMasterId;
 
@@ -411,7 +411,7 @@ BEGIN
       [InventoryStatusId],[InventoryNumber],[AssetStatusId],[Level1],[Level2],[Level3],[Level4],[ManufactureName],[LocationName],[Qty],[StklineNumber],[AvailStatus],[PartNumber],    
       [ControlNumber],[TagDate],[ShippingViaId],[ShippingVia],[ShippingAccount],[ShippingReference],[RepairOrderId],[RepairOrderPartRecordId],[PurchaseOrderId],[PurchaseOrderPartRecordId],    
       [SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[GLAccountId],[GLAccount],[SiteName],[Warehouse],[Location],[ShelfName],[BinName],[IsParent],[ParentId],[IsSameDetailsForAllParts],    
-      [ReceiverNumber],[ReceivedDate],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate])    
+      [ReceiverNumber],[ReceivedDate],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate], [DepreciationStartDate])    
     
       SELECT 0, @ItemMasterId, '', NULL, '', NULL, @ManagementStructureId,    
       0, 0, 0, 0, 0, 0, A.AssetAcquisitionTypeId, A.ManufacturerId,    
@@ -429,7 +429,7 @@ BEGIN
       1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
       A.SiteId, A.WarehouseId, A.AssetLocationId, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
-      NULL, NULL, @CalibrationDefaultVendorId, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END
+      NULL, NULL, @CalibrationDefaultVendorId, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END, @DepreciationStartDate
       FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
     
       SELECT @NewAssetStocklineDraftId = SCOPE_IDENTITY();    

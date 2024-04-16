@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:   [GetVendorReadyToPayDetailsByLEId]           
  ** Author:   AMIT GHEDIYA
- ** Description: This stored procedure is used TO GET Vendor Ready To Pay Details By LE Id
+ ** Description: This stored procedure is used TO GET Vendor Ready To Pay Details By LE Id 
  ** Purpose:         
  ** Date:   18/03/2024      
           
@@ -72,9 +72,11 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
+				 
+				 (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
+
 				  LE.[Name] AS 'LegalEntityName',
 				  VRTPD.CreatedDate
 			 FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
@@ -83,7 +85,8 @@ BEGIN
 			 INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId  
-			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.[CreditMemoHeaderId], 0) = 0--AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
+			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.[CreditMemoHeaderId], 0) = 0
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL--AND ISNULL(VRTPD.IsCreditMemo, 0) = 0
 
 			  UNION
 
@@ -133,7 +136,7 @@ BEGIN
 				LEFT JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON LE.LegalEntityId = VRTPDH.LegalEntityId
 				INNER JOIN [dbo].[CreditMemo] CMD WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 				INNER JOIN [dbo].[VendorPaymentMethod] VPM WITH(NOLOCK) ON VRTPD.PaymentMethodId = VPM.VendorPaymentMethodId  
-			WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL
+			WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
    
 		   UNION
 
@@ -185,6 +188,7 @@ BEGIN
 			 INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VRTPD.VendorId = V.VendorId  
 			  LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = V.CreditTermsId 
 			 WHERE VRTPDH.LegalEntityId = @LegalEntityId AND VRTPD.IsGenerated IS NULL AND ISNULL(VRTPD.[CreditMemoHeaderId], 0) = 0
+				   AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
 			 ORDER BY VRTPD.CreatedDate desc; --AND ISNULL(VRTPD.IsCreditMemo, 0) = 0;
   
   

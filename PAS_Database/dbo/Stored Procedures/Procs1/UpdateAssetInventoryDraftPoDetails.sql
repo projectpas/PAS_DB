@@ -1,6 +1,23 @@
-﻿
-
---EXEC UpdateAssetInventoryDraftPoDetails 1104
+﻿/*************************************************************               
+ ** File:   [UpdateAssetInventoryDraftPoDetails]               
+ ** Author: Unknown    
+ ** Description: This stored procedure isupdate asset inventory draft   
+ ** Purpose:             
+ ** Date:   Unknown
+    
+ ** PARAMETERS:               
+             
+ ** RETURN VALUE:               
+      
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author			Change Description                
+ ** --   --------     -------			--------------------------------              
+    1    Unknown		Unknown				Created    
+	2    11-04-2024   Abhishek Jirawla		In AssetInventoryDraft SET Assetlife and Asset Location, Calibration details, warranty details
+           
+**************************************************************/    
 CREATE   PROCEDURE [dbo].[UpdateAssetInventoryDraftPoDetails]
 @PurchaseOrderId  bigint
 AS
@@ -94,10 +111,12 @@ BEGIN
               --,SD.[MaintenanceGLAccountId] = null
 			  --,SD.[MaintenanceMemo] = ''
 			  ,SD.[IsWarrantyRequired] = 0
-			  --,SD.[WarrantyCompany] = AI.WarrantyCompany
-              --,SD.[WarrantyStartDate] = AI.WarrantyStartDate
-              --,SD.[WarrantyEndDate] = AI.WarrantyEndDate
-              --,SD.[WarrantyStatusId] = AI.WarrantyStatusId
+			  ,SD.[WarrantyCompany] = ASTM.WarrantyCompany
+			  ,SD.[WarrantyDefaultVendorId] = ASTM.WarrantyDefaultVendorId
+			  ,SD.[WarrantyGLAccountId] = ASTM.WarrantyGLAccountId
+              --,SD.[WarrantyStartDate] = ASTM.WarrantyStartDate
+              --,SD.[WarrantyEndDate] = ASTM.WarrantyEndDate
+              --,SD.[WarrantyStatusId] = ASTM.WarrantyStatusId
               --,SD.[UnexpiredTime] = AI.UnexpiredTime      
 			  ,SD.[Warranty] = 0
 			  ,SD.[CalibrationDefaultVendorId] = ASTC.CalibrationDefaultVendorId
@@ -124,12 +143,16 @@ BEGIN
               ,SD.[CertificationGlAccountId] = ASTC.CertificationGlAccountId
               ,SD.[InspectionGlaAccountId] = ASTC.InspectionGlaAccountId
               ,SD.[VerificationGlAccountId] = ASTC.VerificationGlAccountId
+			  ,SD.[CalibrationMemo] = ISNULL(ASTC.CalibrationMemo, '')
+              ,SD.[CertificationMemo] = ISNULL(ASTC.CertificationMemo, '')
+              ,SD.[InspectionMemo] = ISNULL(ASTC.InspectionMemo, '')
+              ,SD.[VerificationMemo] = ISNULL(ASTC.VerificationMemo, '')
 			  ,SD.[IsDepreciable] =ISNULL(AST.IsDepreciable,0)
 			  ,SD.[IsNonDepreciable] =ISNULL(AST.IsNonDepreciable,0)
 			  ,SD.[IsAmortizable] = 0
 			  ,SD.[IsNonAmortizable] = 0			  
               ,SD.[IsInsurance] = 0
-              ,SD.[AssetLife] = 0
+              ,SD.[AssetLife] = ISNULL(AAT.AssetLife,0)
 			  ,SD.[IsQtyReserved] = 0
 			  --,SD.[InventoryStatusId] = AI.InventoryStatusId
               --,SD.[AssetStatusId] = AI.AssetStatusId
@@ -151,8 +174,9 @@ BEGIN
           FROM dbo.AssetInventoryDraft SD WITH (NOLOCK)
           INNER JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId =  SD.PurchaseOrderPartRecordId and POP.ItemTypeId = @StockType
 		  LEFT JOIN dbo.Asset AST  WITH (NOLOCK) ON AST.AssetRecordId = SD.AssetRecordId
-		  LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) ON AST.AssetAttributeTypeId = aat.AssetAttributeTypeId
+		  LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) ON AST.AssetAttributeTypeId = AAT.AssetAttributeTypeId
 		  LEFT JOIN dbo.AssetCalibration ASTC  WITH (NOLOCK) ON AST.AssetRecordId = ASTC.AssetRecordId
+		  LEFT JOIN dbo.AssetMaintenance ASTM  WITH (NOLOCK) ON AST.AssetRecordId = ASTM.AssetRecordId
           LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
           LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
           LEFT JOIN dbo.[Location] LC  WITH (NOLOCK) ON LC.LocationId = SD.LocationId

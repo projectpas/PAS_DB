@@ -2896,6 +2896,10 @@
     <Build Include="dbo\Stored Procedures\SaveAssetDepreciationMonthRemovalData.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWOOperatingMetricReport_ReceivedUnit.sql" />
     <Build Include="dbo\Stored Procedures\GetWOOperatingMetricReport_ReceivedUnitByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineDraftForIsSerialized.sql" />
+    <Build Include="dbo\Stored Procedures\GetAssetInventoryBatchAccountingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownStockAdjustment.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

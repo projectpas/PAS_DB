@@ -16,6 +16,7 @@
  ** --   --------			-------				--------------------------------          
 	1    26/03/2024          Moin Bloch          Created
 	2    04/04/2024          Moin Bloch          changed logic for unit cost
+	3    12/04/2024          Devendra Shekh      added case to set @ManagementStructureId  
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -123,6 +124,7 @@ BEGIN
 		   		   
 		    SELECT @ModuleId = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='WorkOrderMPN');
 				
+			SET @ManagementStructureId = CASE WHEN ISNULL(@ManagementStructureId, 0) = 0 THEN @CurrentManagementStructureId ELSE @ManagementStructureId END;
 		    SELECT @LastMSLevel = LastMSLevel,
 			       @AllMSlevels = AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 

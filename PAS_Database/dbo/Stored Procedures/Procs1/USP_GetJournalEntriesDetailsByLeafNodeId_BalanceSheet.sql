@@ -17,13 +17,14 @@
 	5    08/12/2023   Moin Bloch     Removed REPLACE(BD.AccountingPeriod,' - ','') and Added @periodNameDistinct Line No 258
 	6    12/12/2023   Moin Bloch     Added CreditMemoHeaderId and IsStandAloneCM For 'CRFD' Line No 599
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+	8    12/04/2024   Devendra Shekh added module for INTERNALWORKORDERTEARDOWN
 
 **************************************************************/  
 
 /*************************************************************             
 
-EXEC dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet @StartAccountingPeriodId=179,@EndAccountingPeriodId=179,@ReportingStructureId=23,@ManagementStructureId=1,
-@MasterCompanyId=1,@LeafNodeId=150,@GLAccountId=2,@strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
+EXEC dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet @StartAccountingPeriodId=182,@EndAccountingPeriodId=182,@ReportingStructureId=23,@ManagementStructureId=1,
+@MasterCompanyId=1,@LeafNodeId=153,@GLAccountId=1225,@strFilter=N'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet]
@@ -533,11 +534,12 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
 											WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
 											WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
+											WHEN UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN' THEN 'TEARDOWN_WO'
 											WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
 											ELSE '' END,
 					ReferenceName = CASE WHEN UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.CustomerName
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' OR UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN' THEN WBD.CustomerName
 											WHEN UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT' THEN SBD.CustomerName   
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN SD.VendorName 
 											WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN SD.VendorName
@@ -565,7 +567,7 @@ BEGIN
 											OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN ''
 											ELSE '' END,
 					Referenceid = CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN WBD.ReferenceId
+												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' OR UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN') AND (UPPER(CB.ModuleName) <> 'CREDITMEMO') THEN WBD.ReferenceId
 											
 											WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
 												OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CB.ModuleName) = 'CREDITMEMO') THEN CMBD.ReferenceId	

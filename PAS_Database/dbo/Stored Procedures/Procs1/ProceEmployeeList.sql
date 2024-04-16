@@ -20,7 +20,8 @@
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
 @EmployeeId bigint = NULL,
-@MasterCompanyId bigint = NULL
+@MasterCompanyId bigint = NULL,
+@IsSuperAdmin bit = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -79,7 +80,7 @@ BEGIN
 			   FROM dbo.Employee t WITH (NOLOCK)
 			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
-					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND (EUR.EmployeeId = @EmployeeId OR @IsSuperAdmin = 1)
 					LEFT JOIN  dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
 			        LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
 					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId			        

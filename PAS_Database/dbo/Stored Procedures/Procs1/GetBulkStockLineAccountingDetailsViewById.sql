@@ -93,7 +93,10 @@ BEGIN
 					ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
 					ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
 					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
-					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
+					AdjTypeName = (SELECT BSAT.[Name] FROM [dbo].[BulkStockLineAdjustment] BSA WITH(NOLOCK) 
+						JOIN [dbo].[StockLineAdjustmentType] BSAT WITH(NOLOCK) ON BSAT.StockLineAdjustmentTypeId = BSA.StockLineAdjustmentTypeId
+					WHERE BSA.BulkStkLineAdjId = stbd.ReferenceId)
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  

@@ -16,6 +16,7 @@
     2    02/05/2024   VISHAL SUTHAR		Modified to fix WOQ Print issues
 	3	 11/04/2024   Bhargav Saliya    creditTerms Changes
 	4	 15/04/2024   Moin Bloch        Added Max Length for Notes
+	5	 16/04/2024   Moin Bloch        Commnted Notes Changes
 
 --EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
 **************************************************************/  
@@ -85,16 +86,16 @@ BEGIN
             woq.QuoteStatusId,
             TaxRate = ISNULL(custtax.TaxRate,0),
             CustomerAttention = sa.Attention,
-            --WONotes = woq.Notes,
-			CASE WHEN woq.Notes !='' 
-			     THEN 
-					CASE WHEN LEN(ISNULL(woq.Notes,'')) < 560
-						 THEN ISNULL(woq.Notes,'')
-					ELSE
-						LEFT(ISNULL(woq.Notes,''),560) + '...'
-					END
-			   ELSE ''
-			END AS 'WONotes',
+            WONotes = woq.Notes,
+			--CASE WHEN woq.Notes !='' 
+			--     THEN 
+			--		CASE WHEN LEN(ISNULL(woq.Notes,'')) < 560
+			--			 THEN ISNULL(woq.Notes,'')
+			--		ELSE
+			--			LEFT(ISNULL(woq.Notes,''),560) + '...'
+			--		END
+			--   ELSE ''
+			--END AS 'WONotes',
             WOCustomerRef = UPPER(wop.CustomerReference),
 			WorkScope = UPPER(wop.WorkScope)
 			 FROM dbo.WorkOrderQuote woq WITH(NOLOCK)

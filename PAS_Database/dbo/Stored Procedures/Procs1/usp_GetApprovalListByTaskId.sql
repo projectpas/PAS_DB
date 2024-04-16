@@ -261,6 +261,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			   WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
 
 		 SELECT TOP 1 @MSID = VRTPDH.ManagementStructureId,
 			   @EID = VRTPD.VendorId,	   
@@ -268,6 +269,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			  WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
 	END
 
 	SET @TotalCost  = ISNULL(@TotalCost,0)

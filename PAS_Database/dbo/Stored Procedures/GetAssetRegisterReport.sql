@@ -89,7 +89,7 @@ BEGIN
 				AI.InventoryNumber,
 				UPPER(AI.PartNumber) AS PartNumber,
 				AI.AlternateAssetRecordId,
-				AAR.AssetId AS AlternateAssetRecordName,
+				--AAR.AssetId AS AlternateAssetRecordName,
 				UPPER(AST.MANUFACTURERPN) AS ManufacturerPN,
 				-- AST.[Name] AS AssetName,
 				UPPER(AI.[Name]) AS AssetName,
@@ -131,18 +131,18 @@ BEGIN
 				UPPER(MSD.Level8Name) AS level8,       
 				UPPER(MSD.Level9Name) AS level9,       
 				UPPER(MSD.Level10Name) AS level10
-		FROM AssetInventory AI WITH (NOLOCK)
-				LEFT JOIN Asset AST WITH (NOLOCK) ON AST.AssetId = AI.AssetId
-				LEFT JOIN Asset AAR WITH (NOLOCK) ON AAR.AssetRecordId = AI.AlternateAssetRecordId
-				LEFT JOIN AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE AssetInventoryId = AI.AssetInventoryId AND IsDelete = 0)
-				LEFT JOIN Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
-				LEFT JOIN AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId
-				LEFT JOIN AssetAcquisitionType AAT WITH(NOLOCK) ON AAT.AssetAcquisitionTypeId = AI.AssetAcquisitionTypeId
-				LEFT JOIN AssetInventoryStatus ASTIS WITH(NOLOCK) ON ASTIS.AssetInventoryStatusId = AI.InventoryStatusId
+		FROM DBO.AssetInventory AI WITH (NOLOCK)
+				INNER JOIN DBO.Asset AST WITH (NOLOCK) ON AST.AssetRecordId = AI.AssetRecordId
+				LEFT JOIN DBO.Asset AAR WITH (NOLOCK) ON AAR.AssetRecordId = AI.AlternateAssetRecordId
+				LEFT JOIN DBO.AssetDepreciationHistory ADH WITH (NOLOCK) ON ADH.AssetInventoryId = AI.AssetInventoryId AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE AssetInventoryId = AI.AssetInventoryId AND IsDelete = 0)
+				LEFT JOIN DBO.Currency CR WITH(NOLOCK) ON CR.CurrencyId = AI.CurrencyId 
+				LEFT JOIN DBO.AssetStatus ASTS WITH(NOLOCK) ON ASTS.AssetStatusId = AI.AssetStatusId
+				LEFT JOIN DBO.AssetAcquisitionType AAT WITH(NOLOCK) ON AAT.AssetAcquisitionTypeId = AI.AssetAcquisitionTypeId
+				LEFT JOIN DBO.AssetInventoryStatus ASTIS WITH(NOLOCK) ON ASTIS.AssetInventoryStatusId = AI.InventoryStatusId
 				-- LEFT JOIN TangibleClass TC WITH(NOLOCK) ON TC.TangibleClassId=AI.TangibleClassId
-				LEFT JOIN AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
-				LEFT JOIN AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
-				LEFT JOIN EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID 		
+				LEFT JOIN DBO.AssetAttributeType ASAT WITH(NOLOCK) ON ASAT.AssetAttributeTypeId=AI.AssetAttributeTypeId
+				LEFT JOIN DBO.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = AI.AssetInventoryId AND MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AssetModuleID,','))
+				LEFT JOIN DBO.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID 		
 
 		WHERE ((ISNULL(@id,0) = 0 OR AI.AssetAttributeTypeId IN (@id,0)))			
 			  AND ((ISNULL(@id2,0) = 0 OR AI.AssetStatusId IN (@id2,0)))		 

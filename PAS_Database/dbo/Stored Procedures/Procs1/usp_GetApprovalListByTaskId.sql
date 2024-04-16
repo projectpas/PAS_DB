@@ -15,7 +15,7 @@
 	2    11/09/2023  Amit Ghediya    Update for Stand Alone CreditMemo approve. 
 	3    11/09/2023					 Update for nonPoInvoice
 	4    19/03/2023  Amit Ghediya    Update for Check Register
-	5    19/03/2023  Amit Ghediya    Update for Check Register filter
+	5    19/03/2023  Amit Ghediya    Update for Check Register filter 
      
 --exec [dbo].[usp_GetApprovalListByTaskId] 9, 3
 ************************************************************************/
@@ -261,7 +261,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			   WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
-					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,0) = 0
 
 		 SELECT TOP 1 @MSID = VRTPDH.ManagementStructureId,
 			   @EID = VRTPD.VendorId,	   
@@ -269,7 +269,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			  WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
-					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND VRTPD.CheckNumber IS NULL
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,0) = 0
 	END
 
 	SET @TotalCost  = ISNULL(@TotalCost,0)

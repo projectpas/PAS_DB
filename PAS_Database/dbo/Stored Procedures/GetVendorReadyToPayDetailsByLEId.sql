@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
  ** File:   [GetVendorReadyToPayDetailsByLEId]           
  ** Author:   AMIT GHEDIYA
- ** Description: This stored procedure is used TO GET Vendor Ready To Pay Details By LE Id
+ ** Description: This stored procedure is used TO GET Vendor Ready To Pay Details By LE Id 
  ** Purpose:         
  ** Date:   18/03/2024      
           

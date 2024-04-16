@@ -16,9 +16,9 @@
     1    17/04/2023  Amit Ghediya    Created    
     2    01/08/2023  Satish Gohil    Modify(Remove Other tax calculation )   
 	3	 01/02/2024	 AMIT GHEDIYA	 added isperforma Flage for SO
-	4	 04/11/2024	  HEMANT SALIYA	  Corrected Join for Getting Correct Balance
+	4	 04/12/2024	  HEMANT SALIYA	  Corrected Join for Getting Correct Balance
 
--- EXEC RPT_PrintCreditMemoCalculationData 157,1,0,488,3398    
+-- EXEC RPT_PrintCreditMemoCalculationData 190,1,1,546,77    
     
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[RPT_PrintCreditMemoCalculationData]    
@@ -37,7 +37,7 @@ BEGIN
 			  @EmailTemplateTypeId BIGINT, @tmpdescription VARCHAR(MAX),@tmpTotal DECIMAL(18,2),@tmpTotalFreight DECIMAL(18,2),    
 			  @tmpTotalCharges DECIMAL(18,2),@tmpSubTotals DECIMAL(18,2),@tmpCustomerId BIGINT,@tmpSiteId BIGINT,@tmpSiteTax DECIMAL(18,2),    
 			  @tmpOtherSiteTax DECIMAL(18,2), @SalesTax DECIMAL(18,2), @OtherTax DECIMAL(18,2), @Freight DECIMAL(18,2), @Charges DECIMAL(18,2),
-			  @SubTotal DECIMAL(18,2), @PartsRevenue DECIMAL(18,2), @LaborRevenue DECIMAL(18,2);    
+			  @SubTotal DECIMAL(18,2), @PartsRevenue DECIMAL(18,2), @LaborRevenue DECIMAL(18,2), @RestockingFee DECIMAL(18,2);    
     
 	  --SEELCT AWB & NOTES    
 	  SELECT     
@@ -58,7 +58,7 @@ BEGIN
 		   OUTER APPLY (SELECT TOP 1 CreditMemoDetailId FROM  CreditMemoDetails CD WITH (NOLOCK) WHERE CD.CreditMemoHeaderId = CM.CreditMemoHeaderId) CR     
 	  WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId;    
 
-	  SELECT @SalesTax = SUM(ISNULL(CMD.SalesTax, 0)), @OtherTax = SUM(ISNULL(CMD.OtherTax, 0)), @Freight =  SUM(ISNULL(CMD.FreightRevenue, 0)),
+	  SELECT @SalesTax = SUM(ISNULL(CMD.SalesTax, 0)), @OtherTax = SUM(ISNULL(CMD.OtherTax, 0)), @Freight =  SUM(ISNULL(CMD.FreightRevenue, 0)), @RestockingFee = SUM(ISNULL(CMD.RestockingFee, 0)),
 			 @Charges =  SUM(ISNULL(CMD.MiscRevenue, 0)), @PartsRevenue = SUM(ISNULL(CMD.PartsRevenue, 0)), @LaborRevenue = SUM(ISNULL(CMD.LaborRevenue, 0))
 	  FROM dbo.CreditMemoDetails CMD WITH (NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId GROUP BY CreditMemoHeaderId;
     
@@ -77,7 +77,7 @@ BEGIN
 	  END    
 	     
     
-	SET @SubTotal = (ISNULL(@PartsRevenue,0.00) + ISNULL(@LaborRevenue,0.00) + ISNULL(@Freight,0.00) + ISNULL(@Charges,0.00));    
+	SET @SubTotal = (ISNULL(@PartsRevenue,0.00) + ISNULL(@LaborRevenue,0.00) + ISNULL(@Freight,0.00) + ISNULL(@Charges,0.00) + ISNULL(@RestockingFee,0.00));    
     
 	SET @tmpTotal = (ISNULL(@SubTotal,0.00) + ISNULL(@SalesTax,0.00) + ISNULL(@OtherTax,0.00));     
     

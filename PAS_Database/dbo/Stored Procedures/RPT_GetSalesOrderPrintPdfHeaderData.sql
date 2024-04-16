@@ -12,6 +12,7 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
 ** 2    09/04/2024  Shrey Chandegara  Updated For ItemNo (Add outer Apply for That.)
+** 3    16-Apr-2024	Bhargav Saliya   CreditTerms Changes
 
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 
@@ -43,7 +44,7 @@ BEGIN
 			UPPER(custAddress.PostalCode) AS PostalCode,
 			ISNULL(cust.CustomerPhone, '') AS PhoneFax,
 			'' AS BuyersName,
-			UPPER(ISNULL(ct.Name, '')) AS CreditTerms,
+			UPPER(ISNULL(so.CreditTermName, '')) AS CreditTerms,
 			UPPER(ISNULL(cur.DisplayName, '')) AS Currency,
 			UPPER(so.SalesOrderNumber) AS SONum,
 			so.OpenDate AS OrderDate,

@@ -44,13 +44,14 @@
  28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE
  
  29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
+ 30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
  EXEC GetJournalBatchDetailsViewpopupById 2534,0,'WOP-DirectLabor'  
   
 ************************************************************************/  
-CREATE      PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
+CREATE   PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
 @JournalBatchDetailId BIGINT,  
 @IsDeleted bit,  
 @Module varchar(50) 
@@ -59,7 +60,7 @@ BEGIN
 	 --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	 --SET NOCOUNT ON;  
 		 BEGIN TRY  
-			IF(UPPER(@Module) = UPPER('WO') OR UPPER(@Module) = UPPER('WOP-PARTSISSUED') OR UPPER(@Module) = UPPER('SWOP-PARTSISSUED'))     
+			IF(UPPER(@Module) = UPPER('WO') OR UPPER(@Module) = UPPER('WOP-PARTSISSUED') OR UPPER(@Module) = UPPER('SWOP-PARTSISSUED') OR UPPER(@Module) = UPPER('IWOT'))     
 			BEGIN  
 				DECLARE @WOModuleID INT = 12;
 				DECLARE @STKLModuleID INT = 2; 

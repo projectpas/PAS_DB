@@ -19,7 +19,7 @@
  ** --   --------     -------			--------------------------------          
     1    04-Jan-2024   Hemant Saliya		Created
 	2    22-Jan-2024   Devendra Shekh		duplicate subowo issue resolved
-     
+	2    10-Apr-2024   Bhargav saliya		Add SUB WORK ORDER Materials Module Name
  EXECUTE [CreateSubWorkOrderForTenderStockline] 4007, 3494, 'ADMIN User'
 **************************************************************/ 
 
@@ -58,6 +58,7 @@ BEGIN
 
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
 		SELECT @ActionId = ActionId FROM [DBO].[StklineHistory_Action] WHERE [Type] = 'Create-Sub-WorkOrder' -- For SUB WORK ORDER Cretae History
+		SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'SubWorkOrderMaterials'; -- For SUB WORK ORDER Materials Module
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
         BEGIN  
@@ -218,7 +219,7 @@ BEGIN
 						PRINT '7'
 						
 						--SELECT  @StocklineId,  @ModuleId,  @SubWorkOrderId,  @SubModuleId,  @SubReferenceId,  @ActionId,  0,  @CreatedBy;
-						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @CreatedBy;
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @SubWorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @CreatedBy;
 
 						PRINT '8'
 						--UPDATE CODE PREFIX FROM SUB WO  

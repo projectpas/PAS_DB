@@ -12,6 +12,9 @@
     [IsActive]                  BIT             CONSTRAINT [DF_VendorCreditMemoMapping_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_VendorCreditMemoMapping_IsDeleted] DEFAULT ((0)) NOT NULL,
     [InvoiceType]               INT             NULL,
+    [IsPosted]                  BIT             NULL,
     CONSTRAINT [PK_VendorCreditMemoMapping] PRIMARY KEY CLUSTERED ([VendorCreditMemoMappingId] ASC)
 );
+
+
 

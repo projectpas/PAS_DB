@@ -21,6 +21,7 @@
 	5    12/26/2023   Vishal Suthar		Modified the SP to set traceableTo and taggedBy field from PO Part into Stockline Draft
 	6    18-01-2024   Shrey Chandegara  update for orderdate
 	7    01-03-2024   Shrey Chandegara  In AssetInventoryDraft SET EnrtyDate is GETUTCDATE() FROM A.EntryDate
+	8    11-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife and Asset Location
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -368,9 +369,31 @@ BEGIN
        END    
       END    
     
-	  DECLARE @CalibrationDays INT = 0;
+	  DECLARE @CalibrationDefaultVendorId BIGINT,  @CalibrationDays INT = 0, @CalibrationGlAccountId INT = 0, @CalibrationMemo NVARCHAR(MAX),
+		@CertificationDefaultVendorId BIGINT, @CertificationFrequencyDays INT, @CertificationGlAccountId  BIGINT, @CertificationMemo NVARCHAR(MAX),
+		@InspectionDefaultVendorId BIGINT, @InspectionFrequencyDays INT, @InspectionGlAccountId  BIGINT, @InspectionMemo NVARCHAR(MAX),
+		@VerificationDefaultVendorId BIGINT, @VerificationFrequencyDays INT, @VerificationGlAccountId  BIGINT, @VerificationMemo NVARCHAR(MAX);
 
-	  SELECT @CalibrationDays = ISNULL(AC.CalibrationFrequencyDays, 0) FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
+	  SELECT @CalibrationDefaultVendorId = ISNULL(AC.CalibrationDefaultVendorId, 0), @CalibrationDays = ISNULL(AC.CalibrationFrequencyDays, 0), @CalibrationGlAccountId = ISNULL(AC.CalibrationGlAccountId, 0), @CalibrationMemo = ISNULL(AC.CalibrationMemo, 0),
+		@CertificationDefaultVendorId = ISNULL(AC.CertificationDefaultVendorId, 0), @CertificationFrequencyDays = ISNULL(AC.CertificationFrequencyDays, 0), @CertificationGlAccountId = ISNULL(AC.CertificationGlAccountId, 0), @CertificationMemo = ISNULL(AC.CertificationMemo, 0),
+		@InspectionDefaultVendorId = ISNULL(AC.InspectionDefaultVendorId, 0), @InspectionFrequencyDays = ISNULL(AC.InspectionFrequencyDays, 0), @InspectionGlAccountId = ISNULL(AC.InspectionGlaAccountId, 0), @InspectionMemo = ISNULL(AC.InspectionMemo, 0),
+		@VerificationDefaultVendorId = ISNULL(AC.VerificationDefaultVendorId, 0), @VerificationFrequencyDays = ISNULL(AC.VerificationFrequencyDays, 0), @VerificationGlAccountId = ISNULL(AC.VerificationGlAccountId, 0), @VerificationMemo = ISNULL(AC.VerificationMemo, 0)
+	  FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
+
+	  DECLARE @AssetLife INT = 0, @InstallationCost INT = 0
+	  SELECT @AssetLife = ISNULL(AAT.AssetLife, 0)
+	  FROM DBO.Asset A WITH (NOLOCK)
+		INNER JOIN AssetAttributeType AAT ON AAT.AssetAttributeTypeId = A.AssetAttributeTypeId
+	  WHERE A.AssetRecordId = @ItemMasterId;
+
+	  SELECT @InstallationCost = ISNULL(AI.InstallationCost, 0)
+	  FROM DBO.AssetInventory AI WITH (NOLOCK)
+	  WHERE AI.AssetRecordId = @ItemMasterId;
+
+	  DECLARE @WarrantyCompany VARCHAR(100), @WarrantyGLAccountId BIGINT, @WarrantyDefaultVendorId BIGINT
+	  SELECT @WarrantyCompany = ISNULL(AM.WarrantyCompany, ''), @WarrantyGLAccountId = ISNULL(AM.WarrantyGLAccountId, 0), @WarrantyDefaultVendorId = ISNULL(AM.WarrantyDefaultVendorId, 0)
+	  FROM DBO.AssetMaintenance AM WITH (NOLOCK)
+	  WHERE AM.AssetRecordId = @ItemMasterId;
 
       INSERT INTO DBO.AssetInventoryDraft ([AssetInventoryId],[AssetRecordId],[AssetId],[AlternateAssetRecordId],[Name],[Description],[ManagementStructureId],    
       [CalibrationRequired],[CertificationRequired],[InspectionRequired],[VerificationRequired],[IsTangible],[IsIntangible],[AssetAcquisitionTypeId],[ManufacturerId],    
@@ -396,17 +419,17 @@ BEGIN
       NULL, NULL, NULL, NULL, NULL, NULL,     
       NULL, 0, A.AssetMaintenanceIsContract, NULL, 0, 0, NULL,    
       NULL, NULL, 0, NULL, NULL, NULL, 0, 0, @MasterCompanyId,    
-      A.[AssetLocationId], 0, 0, 1, NULL, NULL, NULL, NULL,    
-      0, 0, 0, NULL, NULL, NULL, NULL,    
-      0, 0, 0, 0, 0, 0, NULL,    
-      0, NULL, NULL, NULL, NULL, NULL, NULL,    
+      A.[AssetLocationId], 0, 0, 1, @CalibrationDefaultVendorId, @CertificationDefaultVendorId, @InspectionDefaultVendorId, @VerificationDefaultVendorId,    
+      0, @CertificationFrequencyDays, 0, @CertificationGlAccountId, @CertificationMemo, @InspectionMemo, @InspectionGlAccountId,    
+      0, 0, @InspectionFrequencyDays, @VerificationFrequencyDays, 0, 0, NULL,    
+      0, @CalibrationDays, @CalibrationGlAccountId, @CalibrationMemo, @VerificationMemo, @VerificationGlAccountId, NULL,    
       NULL, NULL, NULL, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), A.[AssetMaintenanceContractFileExt], NULL,    
-      NULL, A.[MasterPartId], GETUTCDATE(), 0, 0, 0, 0, 0, NULL, NULL, A.[IsDepreciable], A.[IsNonDepreciable],    
-      A.[IsAmortizable], A.[IsNonAmortizable], '', 0, 0, 0, NULL, 0, NULL, 0,    
+      NULL, A.[MasterPartId], GETUTCDATE(), @InstallationCost, 0, 0, 0, 0, @WarrantyDefaultVendorId, @WarrantyGLAccountId, A.[IsDepreciable], A.[IsNonDepreciable],    
+      A.[IsAmortizable], A.[IsNonAmortizable], '', 0, @AssetLife, 0, @WarrantyCompany, 0, NULL, 0,    
       1, NULL, NULL, A.[Level1], A.[Level2], A.[Level3], A.[Level4], NULL, NULL, @Quantity, NULL, NULL, NULL,    
       NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, @ShipViaName, @ShippingAccountNo, NULL, NULL, NULL, @PurchaseOrderId, @PurchaseOrderPartRecordId,    
-      A.SiteId, A.WarehouseId, NULL, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
-      NULL, NULL, NULL, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END
+      A.SiteId, A.WarehouseId, A.AssetLocationId, A.ShelfId, A.BinId, @POPartGLAccountId, @POPartGLAccountName, NULL, NULL, NULL, NULL, NULL, @IsParent_Asset, 0, 1,    
+      NULL, NULL, @CalibrationDefaultVendorId, NULL, CASE WHEN @CalibrationDays > 0 THEN GETUTCDATE() ELSE NULL END, CASE WHEN @CalibrationDays > 0 THEN DATEADD(day, @CalibrationDays, GETUTCDATE()) ELSE NULL END
       FROM DBO.Asset A WITH (NOLOCK) WHERE A.AssetRecordId = @ItemMasterId;    
     
       SELECT @NewAssetStocklineDraftId = SCOPE_IDENTITY();    

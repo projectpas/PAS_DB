@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateWorkOrderQuoteColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This Stored Procedure is Used WOQ Details Based in WOQ Id.    
@@ -17,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/13/2021   Hemant Saliya Created
+	2	 10-Apr-2024  Bhargav Saliya  CreditTerms Changes
      
 -- EXEC [UpdateWorkOrderQuoteColumnsWithId] 6
 **************************************************************/
@@ -35,13 +35,14 @@ BEGIN
 					WOQ.CustomerName = C.Name,
 					WOQ.CustomerContact = CO.FirstName + ' ' + CO.LastName,
 					WOQ.CreditLimit = CF.CreditLimit,
-					WOQ.CreditTerms = CT.Name
+					WOQ.CreditTerms = CASE WHEN ISNULL(WO.CreditTerms,'') != '' THEN  WO.CreditTerms ELSE CT.[Name] END
 				FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
 					INNER JOIN dbo.Customer C WITH(NOLOCK) ON WOQ.CustomerId = C.CustomerId
 					LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND IsDefaultContact = 1					
 					LEFT JOIN dbo.Contact CO WITH(NOLOCK) ON CO.ContactId = CC.ContactId 
 					LEFT JOIN dbo.CustomerFinancial CF  WITH(NOLOCK) ON C.CustomerId = CF.CustomerId
 					LEFT JOIN dbo.CreditTerms CT WITH(NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId
+					LEFT JOIN DBO.WorkOrder WO WITH(NOLOCK) ON WOQ.WorkOrderId = WO.WorkOrderId
 				WHERE WOQ.WorkOrderQuoteId = @WorkOrderQuoteId
 
 				UPDATE WOQA SET 

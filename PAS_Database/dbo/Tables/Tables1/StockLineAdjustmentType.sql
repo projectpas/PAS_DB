@@ -9,6 +9,9 @@
     [UpdatedDate]               DATETIME      CONSTRAINT [DF_StockLineAdjustmentType_UpdatedDate] DEFAULT (getdate()) NULL,
     [IsActive]                  BIT           CONSTRAINT [DF_StockLineAdjustmentType_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT           CONSTRAINT [DF_StockLineAdjustmentType_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [ToolTip]                   VARCHAR (200) NULL,
     CONSTRAINT [PK_StockLineAdjustmentType] PRIMARY KEY CLUSTERED ([StockLineAdjustmentTypeId] ASC)
 );
+
+
 

@@ -1,11 +1,10 @@
-﻿
-CREATE FUNCTION [dbo].[SplitString]  
+﻿CREATE   FUNCTION [dbo].[SplitString]  
 (  
    @Input NVARCHAR(MAX),  
    @Character CHAR(1)  
 )  
 RETURNS @Output TABLE (  
-   Item NVARCHAR(1000)  
+   Item NVARCHAR(MAX)  
 )  
 AS  
 BEGIN  

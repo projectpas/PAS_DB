@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   VISHAL SUTHAR  
  ** Description: Get Data for Stock Report  
@@ -320,58 +321,53 @@ BEGIN
 	 INNER JOIN #TEMPStocklineReceivedDate StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
 	 	 	  
 	 /* Add Reserve AsOfNow till Today */
-	--IF OBJECT_ID(N'tempdb..#TEMPStocklineReserve') IS NOT NULL    
-	--BEGIN    
-	--	DROP TABLE #TEMPStocklineReserve
-	--END
+	IF OBJECT_ID(N'tempdb..#TEMPStocklineReserve') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TEMPStocklineReserve
+	END
 
-	--CREATE TABLE #TEMPStocklineReserve (        
-	--	ID BIGINT IDENTITY(1,1),        
-	--	StocklineId BIGINT NULL,
-	--	QTY_OH INT NULL,
-	--	MasterCompanyId INT NULL
-	--)
+	CREATE TABLE #TEMPStocklineReserve (        
+		ID BIGINT IDENTITY(1,1),        
+		StocklineId BIGINT NULL,
+		QTY_OH INT NULL,
+		MasterCompanyId INT NULL
+	)
 
-	--INSERT INTO #TEMPStocklineReserve (StocklineId, QTY_OH, MasterCompanyId)
-	--SELECT StkHistory.StockLineId AS StocklineId,    
- --       SUM(StkHistory.QtyOnAction) 'QTY_OH',    
- --       stl.MasterCompanyId
- --     FROM DBO.stockline stl WITH (NOLOCK)    
-	--INNER JOIN dbo.Stkline_History StkHistory WITH (NOLOCK) ON StkHistory.StockLineId = stl.StockLineId AND StkHistory.ActionId = 2  -- Reserve
-	--INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
-	--LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
-	----LEFT JOIN dbo.BulkStockLineAdjustmentDetails StkAdjust WITH (NOLOCK) ON StkAdjust.StockLineId = stl.StockLineId AND StkAdjust.StockLineAdjustmentTypeId = 1
- --   WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
-	--AND (CAST(StkHistory.UpdatedDate AS DATE) > CAST(@id AS DATE) AND CAST(StkHistory.UpdatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
-	-- AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	-- AND (ISNULL(@id2,'') = '' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	-- AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	-- AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	-- AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	-- AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	-- AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	-- AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	-- AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	-- AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	-- AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	-- AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
-	-- GROUP BY StkHistory.StockLineId, stl.MasterCompanyId
+	INSERT INTO #TEMPStocklineReserve (StocklineId, QTY_OH, MasterCompanyId)
+	SELECT StkHistory.StockLineId AS StocklineId,    
+        SUM(StkHistory.QtyOnAction) 'QTY_OH',    
+        stl.MasterCompanyId
+      FROM DBO.stockline stl WITH (NOLOCK)    
+	INNER JOIN dbo.Stkline_History StkHistory WITH (NOLOCK) ON StkHistory.StockLineId = stl.StockLineId AND StkHistory.ActionId = 2  -- Reserve
+	INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+	LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
+    WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
+	AND (CAST(StkHistory.UpdatedDate AS DATE) > CAST(@id AS DATE) AND CAST(StkHistory.UpdatedDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
+	 AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
+	 AND (ISNULL(@id2,'') = '' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
+	 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
+	 AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
+	 AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
+	 AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
+	 AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
+	 AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
+	 AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
+	 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
+	 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
+	 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	 AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
+	 AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
+	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
+	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
+	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	 GROUP BY StkHistory.StockLineId, stl.MasterCompanyId
 
-	-- UPDATE StkOriginal
-	-- SET 
-	-- StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkReceived.QTY_OH,
-	-- StkOriginal.QTY_on_Hand = ISNULL(StkOriginal.QTY_on_Hand,0) + (CASE WHEN StkOriginal.Qty_Reserved - StkReceived.QTY_OH < 0 THEN ABS(StkOriginal.Qty_Reserved - StkReceived.QTY_OH) ELSE 0 END),
-	-- StkOriginal.Qty_Reserved =  CASE WHEN StkOriginal.Qty_Reserved > 0 THEN StkOriginal.Qty_Reserved - StkReceived.QTY_OH ELSE 0 END
-	-- --StkOriginal.Qty_Reserved =  CASE WHEN StkOriginal.Qty_Reserved > 0 THEN StkOriginal.Qty_Reserved - StkReceived.QTY_OH ELSE 0 END
-	-- --,StkOriginal.Qty_Available = CASE WHEN StkOriginal.Qty_Available >= StkReceived.QTY_OH THEN StkOriginal.Qty_Available - StkReceived.QTY_OH ELSE 0 END 
-
-	-- FROM #TEMPOriginalStocklineRecords StkOriginal
-	-- INNER JOIN #TEMPStocklineReserve StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
+	 UPDATE StkOriginal
+	 SET 
+	 StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkReceived.QTY_OH,
+	 StkOriginal.Qty_Reserved =  StkOriginal.Qty_Reserved - StkReceived.QTY_OH
+	 FROM #TEMPOriginalStocklineRecords StkOriginal
+	 INNER JOIN #TEMPStocklineReserve StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
 
 
 	 /* Add Removed From OH from AsOfNow till Today */
@@ -417,9 +413,9 @@ BEGIN
 	 GROUP BY StkHistory.StockLineId, stl.MasterCompanyId
 
 	 UPDATE StkOriginal
-	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkReceived.QTY_OH
-	 --,StkOriginal.Qty_Reserved =  StkOriginal.Qty_Reserved + StkReceived.QTY_OH
-	 ,StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkReceived.QTY_OH
+	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkReceived.QTY_OH,
+	 StkOriginal.Qty_Reserved =  StkOriginal.Qty_Reserved + StkReceived.QTY_OH
+	 --,StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkReceived.QTY_OH
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineRemovedFromOH StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
 	 	 

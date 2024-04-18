@@ -18,7 +18,7 @@
 	2    22/12/2023   Bhargav Salya		  Modified
 	3	 01/03/2024   Bhargav Saliya      Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	4    26/03/2024   Abhishek Jirawla	  Removing Reserved quantity saved at the time of bulk stockline adjustment.
-
+	5	 16/04/2024   Amit Ghediya		  Updates memo text.
      
 **************************************************************/
 
@@ -102,6 +102,7 @@ BEGIN
 		DECLARE @INV_DistributionSetupCode VARCHAR(100) = 'CUST_INV_STK'
 		DECLARE @INV_RES_DistributionSetupCode VARCHAR(100) = 'CUST_INV_RES_STK' 
 		SET @DistributionCodeName = 'CUST_STK_TRANS';
+		DECLARE @Memo VARCHAR(MAX);
 
 		SELECT @BlkModuleID = ModuleId FROM Module WHERE CodePrefix='BSTKADJ';
 		
@@ -284,14 +285,21 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table 
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],@QuantityReserved = [QuantityReserved]
+					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],
+						   @QuantityReserved = [QuantityReserved],
+						   @Memo = [Memo]
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
+
+					--Replcae tag with blank
+					SET  @memo = REPLACE(@memo,'<p>','');
+					SET  @memo = REPLACE(@memo,'</p>','');
 
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) <0 THEN 0 ELSE @QuantityOnHand - @newqty END,
 												 --[QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
 												 [QuantityReserved] = CASE WHEN (@QuantityReserved - @newqty) < 0 THEN 0 ELSE (@QuantityReserved - @newqty) END,
+												 [Memo] = '<p>' + @Memo + ' ,' + 'Transfer Customer Stock From Stockline Adjustment </p>',
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;

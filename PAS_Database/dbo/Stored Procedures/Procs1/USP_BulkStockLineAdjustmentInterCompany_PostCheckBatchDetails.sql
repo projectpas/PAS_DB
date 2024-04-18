@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment Inter Company.
@@ -21,7 +22,9 @@
 	5	 26/02/2024   Bhargav Saliya  Resolved management structure Entry Issue
 	6	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	7    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
-	EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
+	8	 16/04/2024   Amit Ghediya     Updates memo text.
+
+EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails]
@@ -99,6 +102,7 @@ BEGIN
 		DECLARE @BulkStatusName varchar(200);  
 		DECLARE @BlkModuleID  BIGINT;
 		DECLARE @DetailUnitCostAdjustment DECIMAL(18,2);
+		DECLARE @Memo VARCHAR(MAX);
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentINTERCOTRANSLE';
 
@@ -289,13 +293,21 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table Adjustment & Freight,Tax
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable], @QuantityReserved = [QuantityReserved]
+					SELECT @QuantityOnHand = [QuantityOnHand],
+						   @QuantityAvailable = [QuantityAvailable], 
+						   @QuantityReserved = [QuantityReserved],
+						   @Memo = [Memo]
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
+
+					--Replcae tag with blank
+					SET  @memo = REPLACE(@memo,'<p>','');
+					SET  @memo = REPLACE(@memo,'</p>','');
 
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
 												 [QuantityReserved] = @QuantityReserved - @newqty,
+												 [Memo] = '<p>' + @Memo + ' ,' + 'InterCompany Transfer From Stockline Adjustment </p>', 
 												 --[QuantityAvailable] = @QuantityAvailable - @newqty,
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()

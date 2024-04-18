@@ -1,4 +1,5 @@
 ﻿
+
 /*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentUnitCost_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
@@ -13,13 +14,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    16/10/2023   Amit Ghediya	Created	
-	2    08/11/2023   Amit Ghediya	Updated for unitcost in child stockline.	
-	3    22/11/2023   Moin Bloch	  Modified Added MS Accounting Id	
-	4    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
+ ** PR   Date         Author		 Change Description            
+ ** --   --------     -------		 --------------------------------          
+    1    16/10/2023   Amit Ghediya	 Created	
+	2    08/11/2023   Amit Ghediya	 Updated for unitcost in child stockline.	
+	3    22/11/2023   Moin Bloch	 Modified Added MS Accounting Id	
+	4    24/11/2023   Moin Bloch	 Modified Added [ReferenceId]
 	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	6	 16/04/2024   Amit Ghediya   Updates memo text.
      
 **************************************************************/
 
@@ -37,47 +39,47 @@ BEGIN
 		
 		DECLARE @CodeTypeId AS BIGINT = 74;
 		DECLARE @currentNo AS BIGINT = 0;
-		DECLARE @JournalTypeNumber varchar(100);
-		DECLARE @DistributionMasterId bigint;    
-		DECLARE @DistributionCode varchar(200); 
-		DECLARE @CurrentManagementStructureId bigint=0; 
-		DECLARE @StatusId int;    
-		DECLARE @StatusName varchar(200);    
-		DECLARE @AccountingPeriod varchar(100);    
-		DECLARE @AccountingPeriodId bigint=0;   
-		DECLARE @JournalTypeId int;    
-		DECLARE @JournalTypeCode varchar(200);
-		DECLARE @JournalBatchHeaderId bigint;    
-		DECLARE @JournalTypename varchar(200);  
-		DECLARE @batch varchar(100);    
-		DECLARE @Currentbatch varchar(100);    
-		DECLARE @CurrentNumber int;    
-		DECLARE @CurrentPeriodId bigint=0; 
-		DECLARE @LineNumber int=1;    
+		DECLARE @JournalTypeNumber VARCHAR(100);
+		DECLARE @DistributionMasterId BIGINT;    
+		DECLARE @DistributionCode VARCHAR(200); 
+		DECLARE @CurrentManagementStructureId BIGINT=0; 
+		DECLARE @StatusId INT;    
+		DECLARE @StatusName VARCHAR(200);    
+		DECLARE @AccountingPeriod VARCHAR(100);    
+		DECLARE @AccountingPeriodId BIGINT=0;   
+		DECLARE @JournalTypeId INT;    
+		DECLARE @JournalTypeCode VARCHAR(200);
+		DECLARE @JournalBatchHeaderId BIGINT;    
+		DECLARE @JournalTypename VARCHAR(200);  
+		DECLARE @batch VARCHAR(100);    
+		DECLARE @Currentbatch VARCHAR(100);    
+		DECLARE @CurrentNumber INT;    
+		DECLARE @CurrentPeriodId BIGINT=0; 
+		DECLARE @LineNumber INT=1;    
 		DECLARE @JournalBatchDetailId BIGINT=0;
 		DECLARE @CommonBatchDetailId BIGINT=0;
-		DECLARE @DistributionSetupId int=0;
-		DECLARE @Distributionname varchar(200); 
-		DECLARE @GlAccountId int;
-		DECLARE @StartsFrom varchar(200)='00';
-		DECLARE @GlAccountName varchar(200);
-		DECLARE @GlAccountNumber varchar(200); 
+		DECLARE @DistributionSetupId INT=0;
+		DECLARE @Distributionname VARCHAR(200); 
+		DECLARE @GlAccountId INT;
+		DECLARE @StartsFrom VARCHAR(200)='00';
+		DECLARE @GlAccountName VARCHAR(200);
+		DECLARE @GlAccountNumber VARCHAR(200); 
 		DECLARE @ExtAmount DECIMAL(18,2);
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId BIGINT;
 		DECLARE @BlkManagementStructureId BIGINT;
-		DECLARE @LastMSLevel varchar(200);
-		DECLARE @AllMSlevels varchar(max);
+		DECLARE @LastMSLevel VARCHAR(200);
+		DECLARE @AllMSlevels VARCHAR(max);
 		DECLARE @ModuleId INT;
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit DECIMAL(18, 2) =0;
+		DECLARE @TotalCredit DECIMAL(18, 2) =0;
+		DECLARE @TotalBalance DECIMAL(18, 2) =0;
 		DECLARE @ExtNumber VARCHAR(20);
 		DECLARE @VendorName VARCHAR(50);
-		DECLARE @ExtDate Datetime;
+		DECLARE @ExtDate DATETIME;
 		DECLARE @stklineId BIGINT;
 		DECLARE @DistributionCodeName VARCHAR(100);
-		DECLARE @CrDrType int=0;
+		DECLARE @CrDrType INT=0;
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @qtyAdjustment INT;
 		DECLARE @Amount DECIMAL(18, 2) =0;
@@ -89,9 +91,10 @@ BEGIN
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
 		DECLARE @tmpTaxAdjustment DECIMAL(18,2);
 		DECLARE @Adjustment DECIMAL(18,2);
+		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @StockLineId BIGINT;
-		DECLARE @BulkStatusId int;    
-		DECLARE @BulkStatusName varchar(200);  
+		DECLARE @BulkStatusId INT;    
+		DECLARE @BulkStatusName VARCHAR(200);  
 		DECLARE @BlkModuleID  BIGINT;
 		DECLARE @DetailUnitCostAdjustment DECIMAL(18,2);
 		DECLARE @tmpUnitCost DECIMAL(18,2);
@@ -273,7 +276,8 @@ BEGIN
 				BEGIN
 					SELECT @BulkStockLineAdjustmentDetailsId = [BulkStockLineAdjustmentDetailsId],
 						   @DetailUnitCostAdjustment = UnitCostAdjustment,
-						   @UnitCostAdjustment = ABS(UnitCostAdjustment),
+						   --@UnitCostAdjustment = ABS(UnitCostAdjustment),
+						    @UnitCostAdjustment = UnitCostAdjustment,
 						   @tmpUnitCost = ABS([NewUnitCost]),
 						   @AdjustmentAmount = AdjustmentAmount,
 						   @FreightAdjustment = FreightAdjustment,
@@ -392,14 +396,18 @@ BEGIN
 					-----Inventory Reserve Or COGS - Parts--------
 
 					--Update Stockline table Adjustment & Freight,Tax
-					SELECT @tmpFreightAdjustment = [FreightAdjustment],@tmpTaxAdjustment = [TaxAdjustment], @Adjustment = [Adjustment]
+					SELECT @tmpFreightAdjustment = [FreightAdjustment],@tmpTaxAdjustment = [TaxAdjustment], @Adjustment = [Adjustment], @Memo = [Memo]
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
+					--Replcae tag with blank
+					SET  @memo = REPLACE(@memo,'<p>','');
+					SET  @memo = REPLACE(@memo,'</p>','');
 					--Parent stockline
 					UPDATE [dbo].[Stockline] SET [FreightAdjustment] = (@FreightAdjustment + @tmpFreightAdjustment),
 												 [TaxAdjustment] = (@TaxAdjustment + @tmpTaxAdjustment),
 												 [Adjustment] = (@Adjustment + @UnitCostAdjustment),
+												 [Memo] = '<p>' + @Memo + ' ,' + 'UnitCost Adjusted From Stockline Adjustment </p>', 
 												 [UnitCost] = @tmpUnitCost,
 												 UpdatedBy = @UpdateBy,
 												 UpdatedDate = GETUTCDATE()

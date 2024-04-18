@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [GetJournalBatchDetailsViewpopupById]             
  ** Author:  Subhash Saliya  
  ** Description: This stored procedure is used GetJournalBatchDetailsById  
@@ -45,6 +46,7 @@
  
  29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
  30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
+ 31	  18/04/2024  AMIT GHEDIYA			 Get MS.
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -121,6 +123,7 @@ BEGIN
 					  ,'' AS ExpertiseName  
 					  ,'' AS EmployeeName
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN UPPER(MSD.Level1Name) IS NOT NULL THEN UPPER(MSD.Level1Name) ELSE UPPER(SMSD.Level1Name) END AS level1    
 					  ,CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(SMSD.Level2Name) END AS level2   
 					  ,CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(SMSD.Level3Name) END AS level3   
@@ -207,6 +210,7 @@ BEGIN
 					  ,CASE WHEN WBD.IsWorkOrder = 1 THEN EMPEX.[Description] ELSE EMPEL.[Description] END AS ExpertiseName  
 					  ,CASE WHEN WBD.IsWorkOrder = 1 THEN EMPE.FirstName +' '+ EMPE.LastName ELSE EMPL.FirstName +' '+ EMPL.LastName END AS EmployeeName  
 					  ,BS.Name AS 'Status' 
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN UPPER(MSD.Level1Name) IS NOT NULL THEN UPPER(MSD.Level1Name) ELSE UPPER(SMSD.Level1Name) END AS level1    
 					  ,CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(SMSD.Level2Name) END AS level2   
 					  ,CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(SMSD.Level3Name) END AS level3   
@@ -295,6 +299,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level1Name)   
 							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level1Name)   
 							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level1Name) ELSE '' END AS level1  
@@ -403,6 +408,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level1Name)   
 							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level1Name)   
 							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level1Name) ELSE '' END AS level1  
@@ -506,6 +512,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(SMSD.Level1Name) AS level1,    
 					   UPPER(SMSD.Level2Name) AS level2,   
 					   UPPER(SMSD.Level3Name) AS level3,   
@@ -582,6 +589,7 @@ BEGIN
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BD.JournalTypeNumber,BD.CurrentNumber  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(MSD.Level1Name) AS level1,    
 					   UPPER(MSD.Level2Name) AS level2,   
 					   UPPER(MSD.Level3Name) AS level3,   
@@ -657,6 +665,7 @@ BEGIN
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BD.JournalTypeNumber,BD.CurrentNumber  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(MSD.Level1Name) AS level1,    
 					   UPPER(MSD.Level2Name) AS level2,   
 					   UPPER(MSD.Level3Name) AS level3,   
@@ -724,6 +733,7 @@ BEGIN
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BD.JournalTypeNumber,BD.CurrentNumber  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(MSD.Level1Name) AS level1,    
 					   UPPER(MSD.Level2Name) AS level2,   
 					   UPPER(MSD.Level3Name) AS level3,   
@@ -798,6 +808,7 @@ BEGIN
 					  ,BTD.[JournalTypeNumber]  
 					  ,BTD.[CurrentNumber]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(MSD.[Level1Name]) AS level1    
 					  ,UPPER(MSD.[Level2Name]) AS level2   
 					  ,UPPER(MSD.[Level3Name]) AS level3   
@@ -889,7 +900,8 @@ BEGIN
 					  ,LET.[CompanyName] AS LegalEntityName  
 					  ,BTD.[JournalTypeNumber]  
 					  ,BTD.[CurrentNumber]  
-					  ,BS.Name AS 'Status',
+					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName',
 					  UPPER(MSD.Level1Name) AS level1, 
 					  UPPER(MSD.Level2Name) AS level2,
 					  UPPER(MSD.Level3Name) AS level3,
@@ -950,7 +962,8 @@ BEGIN
 					  ,LET.[CompanyName] AS LegalEntityName  
 					  ,BTD.[JournalTypeNumber]  
 					  ,BTD.[CurrentNumber]  
-					  ,BS.Name AS 'Status',
+					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName',
 					  UPPER(MSD.Level1Name) AS level1, 
 					  UPPER(MSD.Level2Name) AS level2,
 					  UPPER(MSD.Level3Name) AS level3,
@@ -1012,6 +1025,7 @@ BEGIN
 					  ,BTD.[JournalTypeNumber]  
 					  ,BTD.[CurrentNumber]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN UPPER(SMSD.Level1Name) IS NOT NULL THEN UPPER(SMSD.Level1Name) ELSE UPPER(WMSD.Level1Name) END AS level1    
 					  ,CASE WHEN UPPER(SMSD.Level2Name) IS NOT NULL THEN UPPER(SMSD.Level2Name) ELSE UPPER(WMSD.Level2Name) END AS level2   
 					  ,CASE WHEN UPPER(SMSD.Level3Name) IS NOT NULL THEN UPPER(SMSD.Level3Name) ELSE UPPER(WMSD.Level3Name) END AS level3   
@@ -1076,6 +1090,7 @@ BEGIN
 					  ,BD.[CurrentNumber] 
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BS.Name AS 'Status'
+					  ,msl1.[Description] AS 'ManagementStructureName'
 					  ,UPPER(msl1.[Description]) AS level1    
 					  ,UPPER(msl2.[Description]) AS level2   
 					  ,UPPER(msl3.[Description]) AS level3   
@@ -1151,6 +1166,7 @@ BEGIN
 					  ,BD.[CurrentNumber] 
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(NPOMSD.Level1Name) AS level1    
 					  ,UPPER(NPOMSD.Level2Name) AS level2   
 					  ,UPPER(NPOMSD.Level3Name) AS level3   
@@ -1238,6 +1254,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,CASE WHEN stbd.StockLineId > 0 THEN UPPER(SMSD.Level1Name) ELSE UPPER(EMSD.Level1Name) END AS level1  
 					  ,CASE WHEN stbd.StockLineId > 0 THEN UPPER(SMSD.Level2Name) ELSE UPPER(EMSD.Level2Name) END AS level2   
 					  ,CASE WHEN stbd.StockLineId > 0 THEN UPPER(SMSD.Level3Name) ELSE UPPER(EMSD.Level3Name) END AS level3  
@@ -1325,6 +1342,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,ESS.Level1Id,UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS Level1,
 					ESS.Level2Id,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS Level2,
 					ESS.Level3Id,UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS Level3,
@@ -1407,6 +1425,7 @@ BEGIN
 					  ,BD.[CurrentNumber] 
 					  ,le.CompanyName AS LegalEntityName  
 					  ,BS.Name AS 'Status'
+					  ,msl1.[Description] AS 'ManagementStructureName'
 					  ,'' AS [Currency]
 					  ,UPPER(MSD.Level1Name) AS level1    
 					  ,UPPER(MSD.Level2Name) AS level2   
@@ -1493,6 +1512,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,STKL.[CustomerId] AS [CustomerId],CST.[Name] AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,ESS.Level1Id,UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS Level1,
 					ESS.Level2Id,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS Level2,
 					ESS.Level3Id,UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS Level3,
@@ -1585,6 +1605,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,UPPER(AMSD.Level1Name) AS level1 
 					  ,UPPER(AMSD.Level2Name) AS level2  
 					  ,UPPER(AMSD.Level3Name) AS level3  
@@ -1669,6 +1690,7 @@ BEGIN
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
+					  ,msl.[Description] AS 'ManagementStructureName'
 					  ,ESS.Level1Id,UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS Level1,
 					ESS.Level2Id,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS Level2,
 					ESS.Level3Id,UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS Level3,

@@ -2902,6 +2902,7 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownStockAdjustment.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBatchAndDepreciationDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderCustomerDetails.sql" />
+    <Build Include="dbo\Functions\DistinctList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

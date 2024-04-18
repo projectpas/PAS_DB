@@ -16,6 +16,7 @@
  ** --   --------     -------  --------------------------------            
     1    17/10/2022   SUBHASH Saliya Created 
     2    24/01/2024   Bhargav Saliya Add Field [StockLineNumber] 
+    3    16/04/2024   Moin Bloch      Added New Field Scrap Certificate Date	
 	
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
@@ -92,15 +93,17 @@ BEGIN
 				,WOPN.Id as workOrderPartNoId
 				,WO.WorkOrderId as WorkOrderId
 				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId 
-				,UPPER(ST.StockLineNumber) StockLineNumber
-				FROM dbo.WorkOrder WO WITH (NOLOCK)
-				INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId
-				INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
-				INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
-				LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId
-				Where  SC.MasterCompanyId=@MasterCompanyId and isnull(SC.isSubWorkOrder,0)= 0 
+				,UPPER(ST.StockLineNumber) StockLineNumber				
+				FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+				INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId
+				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
+				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
+				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId
+				WHERE SC.MasterCompanyId=@MasterCompanyId and isnull(SC.isSubWorkOrder,0)= 0 
+
 			UNION ALL
+
 			SELECT DISTINCT UPPER(WO.WorkOrderNum) as WorkOrderNumber
 				,UPPER(WO.CustomerName) CustomerName
 				,ST.SerialNumber
@@ -112,14 +115,14 @@ BEGIN
 				,SWOPN.SubWOPartNoId as workOrderPartNoId
 				,SWO.SubWorkOrderId as WorkOrderId
 				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId 
-				,UPPER(ST.StockLineNumber) StockLineNumber
-				FROM dbo.SubWorkOrder SWO WITH (NOLOCK)
-				INNER JOIN SubWorkOrderPartNumber SWOPN WITH (NOLOCK) ON SWOPN.SubWorkOrderId =SWO.SubWorkOrderId
-				INNER JOIN ItemMaster IM WITH (NOLOCK) ON SWOPN.ItemMasterId=IM.ItemMasterId
-				INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=SWOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=SWOPN.SubWorkOrderId AND SWOPN.SubWOPartNoId=SC.workOrderPartNoId
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
-			  	Where  SWO.MasterCompanyId=@MasterCompanyId and SC.isSubWorkOrder= 1 
+				,UPPER(ST.StockLineNumber) StockLineNumber				
+				FROM [dbo].[SubWorkOrder] SWO WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOPN WITH (NOLOCK) ON SWOPN.SubWorkOrderId =SWO.SubWorkOrderId
+				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SWOPN.ItemMasterId=IM.ItemMasterId
+				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SWOPN.StockLineId AND ST.IsParent = 1
+				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=SWOPN.SubWorkOrderId AND SWOPN.SubWOPartNoId=SC.workOrderPartNoId
+				 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
+			  	WHERE SWO.MasterCompanyId=@MasterCompanyId and SC.isSubWorkOrder= 1 
 			  )
 		,Result AS(  
          SELECT UPPER(CTE.WorkOrderNumber) as WorkOrderNumber
@@ -148,12 +151,13 @@ BEGIN
 				,Isnull(SC.isSubWorkOrder,0) as isSubWorkOrder
 				,SC.MasterCompanyId
 				,UPPER(CTE.StockLineNumber) StockLineNumber
+				,SC.ScrapCertificateDate
 				FROM CTE CTE WITH (NOLOCK)
-				INNER JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.ScrapCertificateId=CTE.ScrapCertificateId 
-				LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
-				LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
-				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
-				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
+				INNER JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.ScrapCertificateId=CTE.ScrapCertificateId 
+				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				 LEFT JOIN [dbo].[vendor] vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
+				 LEFT JOIN [dbo].[employee] EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
+				 LEFT JOIN [dbo].[employee] EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
                 WHERE SC.MasterCompanyId = @MasterCompanyId  AND (SC.IsDeleted = @IsDeleted)
 				--AND isnull(SC.IsDeleted, 0) = 0
      ), ResultCount AS(SELECT COUNT(ScrapCertificateId) AS totalItems FROM Result)  

@@ -1209,7 +1209,7 @@ BEGIN
 					  ,JBD.[LineNumber]  
 					  ,JBD.[GlAccountId]  
 					  ,JBD.[GlAccountNumber]  
-					  ,JBD.[GlAccountName]  
+					  ,UPPER(JBD.[GlAccountName]) AS 'GlAccountName'
 					  ,GLC.[GLAccountClassName]
 					  ,JBD.[TransactionDate]  
 					  ,JBD.[EntryDate]           
@@ -1297,7 +1297,7 @@ BEGIN
 					  ,JBD.[LineNumber]  
 					  ,JBD.[GlAccountId]  
 					  ,JBD.[GlAccountNumber]  
-					  ,JBD.[GlAccountName]  
+					  ,UPPER(JBD.[GlAccountName]) AS 'GlAccountName'
 					  ,GLC.[GLAccountClassName]
 					  ,JBD.[TransactionDate]  
 					  ,JBD.[EntryDate]           
@@ -1467,7 +1467,7 @@ BEGIN
 					  ,JBD.[LineNumber]  
 					  ,JBD.[GlAccountId]  
 					  ,JBD.[GlAccountNumber]  
-					  ,JBD.[GlAccountName]  
+					  ,UPPER(JBD.[GlAccountName]) AS 'GlAccountName'
 					  ,GLC.[GLAccountClassName]
 					  ,JBD.[TransactionDate]  
 					  ,JBD.[EntryDate]           

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetJournalBatchDetailsViewpopupById]             
  ** Author:  Subhash Saliya  
  ** Description: This stored procedure is used GetJournalBatchDetailsById  
@@ -47,6 +46,7 @@
  29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
  30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
  31	  18/04/2024  AMIT GHEDIYA			 Get MS.
+ 32	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 
@@ -844,12 +844,14 @@ BEGIN
 				DECLARE @SACMModuleId BIGINT;
 				DECLARE @SuspenseMSModuleId BIGINT;
 				DECLARE @iSCustomerCreditPayment BIGINT;
+				DECLARE @CMDASTKModuleID BIGINT = 2; 
 				--PRINT 'CMDA'
 
 				SELECT @WOBModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
 				SELECT @SOBModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SalesOrder';
 				SELECT @SACMModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='StandAloneCreditMemoDetails';
 				SELECT @SuspenseMSModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='SuspenseAndUnAppliedPayment';
+				SELECT @CMDASTKModuleID = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='Stockline';
 
 				--Check is from Stand alone CM.
 				SELECT TOP 1  @IsStandAloneCM = CM.StandAloneCreditMemoDetailId FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)
@@ -1026,22 +1028,22 @@ BEGIN
 					  ,BTD.[CurrentNumber]  
 					  ,BS.Name AS 'Status'
 					  ,msl.[Description] AS 'ManagementStructureName'
-					  ,CASE WHEN UPPER(SMSD.Level1Name) IS NOT NULL THEN UPPER(SMSD.Level1Name) ELSE UPPER(WMSD.Level1Name) END AS level1    
-					  ,CASE WHEN UPPER(SMSD.Level2Name) IS NOT NULL THEN UPPER(SMSD.Level2Name) ELSE UPPER(WMSD.Level2Name) END AS level2   
-					  ,CASE WHEN UPPER(SMSD.Level3Name) IS NOT NULL THEN UPPER(SMSD.Level3Name) ELSE UPPER(WMSD.Level3Name) END AS level3   
-					  ,CASE WHEN UPPER(SMSD.Level4Name) IS NOT NULL THEN UPPER(SMSD.Level4Name) ELSE UPPER(WMSD.Level4Name) END AS level4   
-					  ,CASE WHEN UPPER(SMSD.Level5Name) IS NOT NULL THEN UPPER(SMSD.Level5Name) ELSE UPPER(WMSD.Level5Name) END AS level5   
-					  ,CASE WHEN UPPER(SMSD.Level6Name) IS NOT NULL THEN UPPER(SMSD.Level6Name) ELSE UPPER(WMSD.Level6Name) END AS level6   
-					  ,CASE WHEN UPPER(SMSD.Level7Name) IS NOT NULL THEN UPPER(SMSD.Level7Name) ELSE UPPER(WMSD.Level7Name) END AS level7   
-					  ,CASE WHEN UPPER(SMSD.Level8Name) IS NOT NULL THEN UPPER(SMSD.Level8Name) ELSE UPPER(WMSD.Level8Name) END AS level8   
-					  ,CASE WHEN UPPER(SMSD.Level9Name) IS NOT NULL THEN UPPER(SMSD.Level9Name) ELSE UPPER(WMSD.Level9Name) END AS level9   
-					  ,CASE WHEN UPPER(SMSD.Level10Name) IS NOT NULL THEN UPPER(SMSD.Level10Name) ELSE UPPER(WMSD.Level10Name) END AS level10   
+					  ,CASE WHEN UPPER(SMSD.Level1Name) IS NOT NULL THEN UPPER(SMSD.Level1Name) WHEN UPPER(STKMSD.Level1Name) IS NOT NULL THEN UPPER(STKMSD.Level1Name) ELSE UPPER(WMSD.Level1Name) END AS level1    
+					  ,CASE WHEN UPPER(SMSD.Level2Name) IS NOT NULL THEN UPPER(SMSD.Level2Name) WHEN UPPER(STKMSD.Level2Name) IS NOT NULL THEN UPPER(STKMSD.Level2Name) ELSE UPPER(WMSD.Level2Name) END AS level2   
+					  ,CASE WHEN UPPER(SMSD.Level3Name) IS NOT NULL THEN UPPER(SMSD.Level3Name) WHEN UPPER(STKMSD.Level3Name) IS NOT NULL THEN UPPER(STKMSD.Level3Name) ELSE UPPER(WMSD.Level3Name) END AS level3   
+					  ,CASE WHEN UPPER(SMSD.Level4Name) IS NOT NULL THEN UPPER(SMSD.Level4Name) WHEN UPPER(STKMSD.Level4Name) IS NOT NULL THEN UPPER(STKMSD.Level4Name) ELSE UPPER(WMSD.Level4Name) END AS level4   
+					  ,CASE WHEN UPPER(SMSD.Level5Name) IS NOT NULL THEN UPPER(SMSD.Level5Name) WHEN UPPER(STKMSD.Level5Name) IS NOT NULL THEN UPPER(STKMSD.Level5Name) ELSE UPPER(WMSD.Level5Name) END AS level5   
+					  ,CASE WHEN UPPER(SMSD.Level6Name) IS NOT NULL THEN UPPER(SMSD.Level6Name) WHEN UPPER(STKMSD.Level6Name) IS NOT NULL THEN UPPER(STKMSD.Level6Name) ELSE UPPER(WMSD.Level6Name) END AS level6   
+					  ,CASE WHEN UPPER(SMSD.Level7Name) IS NOT NULL THEN UPPER(SMSD.Level7Name) WHEN UPPER(STKMSD.Level7Name) IS NOT NULL THEN UPPER(STKMSD.Level7Name) ELSE UPPER(WMSD.Level7Name) END AS level7   
+					  ,CASE WHEN UPPER(SMSD.Level8Name) IS NOT NULL THEN UPPER(SMSD.Level8Name) WHEN UPPER(STKMSD.Level8Name) IS NOT NULL THEN UPPER(STKMSD.Level8Name) ELSE UPPER(WMSD.Level8Name) END AS level8   
+					  ,CASE WHEN UPPER(SMSD.Level9Name) IS NOT NULL THEN UPPER(SMSD.Level9Name) WHEN UPPER(STKMSD.Level9Name) IS NOT NULL THEN UPPER(STKMSD.Level9Name) ELSE UPPER(WMSD.Level9Name) END AS level9   
+					  ,CASE WHEN UPPER(SMSD.Level10Name) IS NOT NULL THEN UPPER(SMSD.Level10Name) WHEN UPPER(STKMSD.Level10Name) IS NOT NULL THEN UPPER(STKMSD.Level10Name) ELSE UPPER(WMSD.Level10Name) END AS level10   
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 				 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
 				  LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] SBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SBD.[CommonJournalBatchDetailId] 
-				  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.[ModuleID] = @SOBModuleId AND  SMSD.[ReferenceID] = SBD.[InvoiceReferenceId]
-				  LEFT JOIN [dbo].[workOrderManagementStructureDetails] WMSD WITH (NOLOCK) ON  WMSD.[ModuleID] = @WOBModuleId AND WMSD.[ReferenceID] = SBD.[InvoiceReferenceId]     
+				  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.[ModuleID] = SBD.ModuleId AND  SMSD.[ReferenceID] = SBD.[InvoiceReferenceId]
+				  LEFT JOIN [dbo].[workOrderManagementStructureDetails] WMSD WITH (NOLOCK) ON  WMSD.[ModuleID] = SBD.ModuleId AND WMSD.[ReferenceID] = SBD.[InvoiceReferenceId]     
 				  LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]  
 				  LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GLA.GLAccountTypeId 
 				  --LEFT JOIN [dbo].[EntityStructureSetup] ESP WITH(NOLOCK) ON JBD.[ManagementStructureId] = ESP.[EntityStructureId]  
@@ -1049,6 +1051,7 @@ BEGIN
 				  LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.[Level1Id] = msl.[ID]  
 				  LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON msl.[LegalEntityId] = LET.[LegalEntityId] 
 				  LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BTD.StatusId = BS.Id
+				  LEFT JOIN [dbo].[StocklineManagementStructureDetails] STKMSD WITH (NOLOCK) ON STKMSD.[ModuleID] = SBD.ModuleId AND STKMSD.ReferenceID = SBD.[InvoiceReferenceId] 
 				  WHERE JBD.[JournalBatchDetailId] = @JournalBatchDetailId AND JBD.[IsDeleted] = @IsDeleted;  
 				END
 			END  

@@ -53,6 +53,9 @@
     [IsClosed]                BIT             NULL,
     [CustomerRefundId]        BIGINT          NULL,
     [IsUsedInVendorPayment]   BIT             NULL,
+    [IsExchange]              BIT             NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
+
+
 

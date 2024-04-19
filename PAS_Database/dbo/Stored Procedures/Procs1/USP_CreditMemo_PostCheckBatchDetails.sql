@@ -25,6 +25,7 @@
 	9    11/23/2023   Moin Bloch		Modify(LastMSLevel,AllMSlevels Issue Resolved)
 	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
 	11   04/05/2024   HEMANT SALIYA		Updated for Accounting Entry Changes
+	12   04/19/2024   Devendra Shekh	added changes for exchange and saving MSId For [CreditMemoPaymentBatchDetails]
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -84,6 +85,7 @@ BEGIN
 		DECLARE @CreditMemoDetailId BIGINT;
 		DECLARE @temptotaldebitcount DECIMAL(18,2)=0;
 		DECLARE @temptotalcreditcount DECIMAL(18,2)=0;
+		DECLARE @IsExchange BIT = 0;
 		
 		SELECT @ApprovedStatusId = Id, @ApprovedStatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Posted';
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -107,7 +109,7 @@ BEGIN
 		)    
 
 		--READING MANAGEMENTSTRUCTUREID FROM CONDITION BASE.
-		SELECT @UpdateBy = CreatedBy, @IsWorkOrder = ISNULL(IsWorkOrder, 0), @DocumentNumber = CreditMemoNumber , @MasterCompanyId = MasterCompanyId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+		SELECT @UpdateBy = CreatedBy, @IsWorkOrder = ISNULL(IsWorkOrder, 0), @DocumentNumber = CreditMemoNumber , @MasterCompanyId = MasterCompanyId, @IsExchange = ISNULL(IsExchange, 0) FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 		SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode) = UPPER('CMDISACC');
 		SELECT @StatusId = Id, @StatusName = [name] FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
 		SELECT @JournalTypeId = ID, @JournalTypeCode = JournalTypeCode, @JournalTypename = JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
@@ -235,7 +237,7 @@ BEGIN
 					FROM [DBO].[CreditMemoDetails] WITH(NOLOCK)
 					WHERE CreditMemoDetailId = @CreditMemoDetailId; 
 
-					IF(@IsWorkOrder = 0)
+					IF(@IsWorkOrder = 0 AND @IsExchange = 0)
 					BEGIN
 						SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
 						FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
@@ -252,6 +254,18 @@ BEGIN
 						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
 							JOIN [dbo].[WorkOrderPartNumber]  WOP ON WOP.ID = WOBII.WorkOrderPartId
 						WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
+
+						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+					END
+					ELSE IF(@IsExchange = 1)
+					BEGIN
+						SELECT @InvoiceReferenceId = ESOPN.StockLineId, @ManagementStructureId = SL.ManagementStructureId  --ESO.ManagementStructureId  
+						FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] ESOBII WITH(NOLOCK) 
+							JOIN [dbo].[ExchangeSalesOrderPart]  ESOPN ON ESOPN.ExchangeSalesOrderPartId = ESOBII.ExchangeSalesOrderPartId
+							JOIN [dbo].[Stockline] SL ON ESOPN.StockLineId = SL.StockLineId
+							--JOIN [dbo].[ExchangeSalesOrder]  ESO ON ESO.ExchangeSalesOrderId = ESOPN.ExchangeSalesOrderId
+						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId;
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
@@ -545,8 +559,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 				
-					INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@DocumentNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId);
+					INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ManagementStructureId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CreditMemoHeaderId,@DocumentNumber,@AppModuleId,@ExtDate,@CommonBatchDetailId,@InvoiceReferenceId,@ManagementStructureId);
 
 					SET @MasterLoopID = @MasterLoopID - 1;
 				END

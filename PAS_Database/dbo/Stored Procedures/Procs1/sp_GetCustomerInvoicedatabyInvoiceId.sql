@@ -9,17 +9,19 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04/18/2022   Subhash Saliya Created
-	2	 02/1/2024	  AMIT GHEDIYA	 added isperforma Flage for SO
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    04/18/2022   Subhash Saliya	Created
+	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
+	3	 04/19/2024	  Devendra Shekh	added data for Exchange SO
 	
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
 **************************************************************/ 
 
 CREATE Procedure [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
-@InvoicingId bigint,
-@isWorkOrder bit
+@InvoicingId BIGINT,
+@isWorkOrder BIT,
+@isExchange BIT
 AS
 BEGIN
 
@@ -30,7 +32,7 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN 
 			
-			if(@isWorkOrder =0)
+			IF(@isWorkOrder =0 AND @isExchange = 0)
 			BEGIN
 
 				SELECT SOBI.SOBillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],
@@ -52,16 +54,48 @@ BEGIN
 			   ,SO.ManagementStructureId as ManagementStructureId
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
-			FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
-				LEFT JOIN Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
-				LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-				LEFT JOIN CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=SO.CustomerContactId
-				LEFT JOIN Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
-				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
-			    Where SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
+			FROM [dbo].SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
+				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
+				LEFT JOIN [dbo].SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				LEFT JOIN [dbo].CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=SO.CustomerContactId
+				LEFT JOIN [dbo].Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
+				LEFT JOIN [dbo].RMACreditMemoSettings RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
+			    Where SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0	
 
+			END
+			ELSE IF(@isExchange = 1)
+			BEGIN
+
+				SELECT ESOBI.SOBillingInvoicingId as InvoiceId,ESOBI.InvoiceNo [InvoiceNo],
+				ESOBI.InvoiceStatus [InvoiceStatus],ESOBI.InvoiceDate [InvoiceDate],ESO.ExchangeSalesOrderNumber [OrderNumber],
+				C.Name [CustomerName],CT.CustomerTypeName [CustomerType],
+				ESOBI.GrandTotal [InvoiceAmt],
+				IsWorkOrder = 0,
+				ESOBI.ExchangeSalesOrderId AS [ReferenceId]
+				,(CON.FirstName +' '+ CON.LastName +' - '+ CON.WorkPhone) as ContactInfo
+			    ,ESO.CustomerContactId as  CustomerContactId
+			   ,RMAC.RMAReasonId
+			   ,RMAC.RMAReason
+			   ,RMAC.RMAStatusId
+			   ,RMAC.RMAStatus
+			   ,RMAC.ValidDays
+			   ,ESOBI.MasterCompanyId
+			   ,C.CustomerId
+			   ,c.CustomerCode
+			   ,ESO.ManagementStructureId as ManagementStructureId
+			   ,'0' as AddressCount
+			   ,'0' as PartCount
+			FROM [dbo].ExchangeSalesOrderBillingInvoicing ESOBI WITH (NOLOCK)
+				LEFT JOIN [dbo].ExchangeSalesOrderPart ESOPN WITH (NOLOCK) ON ESOPN.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId
+				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON ESOBI.CustomerId = C.CustomerId
+				LEFT JOIN [dbo].ExchangeSalesOrder ESO WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				LEFT JOIN [dbo].CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId = ESO.CustomerContactId
+				LEFT JOIN [dbo].Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
+				LEFT JOIN [dbo].RMACreditMemoSettings RMAC WITH (NOLOCK) ON ESO.MasterCompanyId = RMAC.MasterCompanyId
+			    Where ESOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(ESO.IsVendor , 0) = 0
 
 			END
 			ELSE 
@@ -87,14 +121,13 @@ BEGIN
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
-				LEFT JOIN Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
-				LEFT JOIN CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
-				LEFT JOIN Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
-				LEFT JOIN RMACreditMemoSettings RMAC WITH (NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
+				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
+				LEFT JOIN [dbo].WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
+				LEFT JOIN [dbo].CustomerContact CUN WITH (NOLOCK) ON CUN.CustomerContactId=WO.CustomerContactId
+				LEFT JOIN [dbo].Contact CON WITH (NOLOCK) ON CON.ContactId=CUN.ContactId
+				LEFT JOIN [dbo].RMACreditMemoSettings RMAC WITH (NOLOCK) ON wo.MasterCompanyId = RMAC.MasterCompanyId
 			    Where WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0
-			
 			
 			END
 			END

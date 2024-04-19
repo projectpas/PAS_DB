@@ -2900,6 +2900,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateStocklineDraftForIsSerialized.sql" />
     <Build Include="dbo\Stored Procedures\GetAssetInventoryBatchAccountingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownStockAdjustment.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPAgingReport_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBatchAndDepreciationDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderCustomerDetails.sql" />
     <Build Include="dbo\Functions\DistinctList.sql" />

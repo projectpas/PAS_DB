@@ -25,6 +25,7 @@
 	8    23/08/2023   Amit Ghediya		Updated filter list as per ManagementStructureId
 	9    16/10/2023   Devendra Shekh	timelife issue resolved
 	10   02/02/2024	  Bhargav Saliya    Filter with 'CustomerName'.
+	11   18/04/2024	  Moin Bloch        Added new field 'IsTurnIn' for list
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/   
@@ -84,7 +85,8 @@ CREATE   PROCEDURE [dbo].[ProcStockList]
 	@IsALTStock bit NULL,  
 	@WorkOrderNumber  varchar(50) = NULL,
 	@IsTimeLife varchar(50) = NULL,
-	@CustomerName varchar(50) = NULL
+	@CustomerName varchar(50) = NULL,
+	@IsTurnIn varchar(50) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -178,8 +180,8 @@ BEGIN
 		stl.level2 AS BuName,        
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
-		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,        
-		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,        
+		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock, 
+		CASE WHEN stl.[IsTurnIn] = 1 THEN 'Yes' ELSE 'No' END AS IsTurnIn,
 		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,        
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        
@@ -194,9 +196,9 @@ BEGIN
 	   Stl.SiteId,
 	   lot.LotNumber,
 	   (ISNULL(ct.Name,'')) 'CustomerName',
-	   ISNULL(stl.CustomerId,0) as CustomerId,    
-		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId 
-  
+	   ISNULL(stl.CustomerId,0) as CustomerId, 
+	   (SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
+       	
 	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage,        
 		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = stl.WorkOrderId) as WorkOrderStatus,        
 		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = stl.StockLineId) as rsworkOrderId--,        
@@ -235,7 +237,8 @@ BEGIN
 		  (Site LIKE '%' +@GlobalFilter+'%') OR   
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
-		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
+		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR 
+		  (IsTurnIn LIKE '%' +@GlobalFilter+'%') OR 
 		  (PartCertificationNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (CertifiedBy LIKE '%' +@GlobalFilter+'%') OR        
 		  (CompanyName LIKE '%' +@GlobalFilter+'%') OR        
@@ -282,7 +285,8 @@ BEGIN
 		  (ISNULL(@CertifiedBy,'') ='' OR CertifiedBy LIKE '%' + @CertifiedBy + '%') AND        
 		  (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		  (ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
-		  (ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND              
+		  (ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND    
+		  (ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		  (ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		  (ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
 		  (ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage LIKE '%' + @WorkOrderStage + '%') AND        
@@ -353,7 +357,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='CertifiedDate')  THEN CertifiedDate END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CertifiedDate')  THEN CertifiedDate END DESC,         
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,             
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTurnIn')  THEN IsTurnIn END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTurnIn')  THEN IsTurnIn END DESC,      
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,        
@@ -422,8 +428,8 @@ BEGIN
 		stl.level2 AS BuName,        
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
-		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,  
-		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,
+		CASE WHEN stl.[IsTurnIn] = 1 THEN 'Yes' ELSE 'No' END AS IsTurnIn,
 		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		CASE WHEN ISNULL(stl.IsCustomerStock, 0) = 1 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(stl.customerId,0) > 0 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE 0 END) END AS 'IsAllowCreateWO',     
 		stl.ObtainFromName AS obtainFrom,        
@@ -438,7 +444,7 @@ BEGIN
 		Stl.Site,
 		Stl.SiteId,
 		(ISNULL(ct.Name,'')) 'CustomerName',
-		ISNULL(stl.CustomerId,0) as CustomerId,    
+		ISNULL(stl.CustomerId,0) as CustomerId,
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
 	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
 		(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,        
@@ -481,7 +487,8 @@ BEGIN
 		(Site LIKE '%' +@GlobalFilter+'%') OR   
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
-		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
+		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR   
+		(IsTurnIn LIKE '%' +@GlobalFilter+'%') OR 
 		(PartCertificationNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(CertifiedBy LIKE '%' +@GlobalFilter+'%') OR        
 		(CompanyName LIKE '%' +@GlobalFilter+'%') OR        
@@ -526,7 +533,8 @@ BEGIN
 		(ISNULL(@CertifiedBy,'') ='' OR CertifiedBy LIKE '%' + @CertifiedBy + '%') AND        
 		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		(ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
-		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND              
+		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND   
+		(ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
 		(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
@@ -599,7 +607,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='CertifiedDate')  THEN CertifiedDate END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='CertifiedDate')  THEN CertifiedDate END DESC,         
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,             
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,   
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTurnIn')  THEN IsTurnIn END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTurnIn')  THEN IsTurnIn END DESC,      
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,        
@@ -671,8 +681,8 @@ BEGIN
 		stl.level2 AS BuName,        
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
-		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,     
-		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,
+		CASE WHEN stl.[IsTurnIn] = 1 THEN 'Yes' ELSE 'No' END AS IsTurnIn,
 		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		stl.ObtainFromName AS obtainFrom,        
 		stl.OwnerName AS ownerName,        
@@ -686,8 +696,8 @@ BEGIN
 	   lot.LotNumber,
 	    Stl.Site,
 	   Stl.SiteId,
-	   ISNULL(stl.CustomerId,0) as CustomerId,    
-		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
+	   ISNULL(stl.CustomerId,0) as CustomerId,
+	   (SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
    
 	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage,        
 		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = stl.WorkOrderId) as WorkOrderStatus,        
@@ -729,7 +739,8 @@ BEGIN
 		  (Site LIKE '%' +@GlobalFilter+'%') OR   
 		  (AWB LIKE '%' +@GlobalFilter+'%') OR        
 		  (ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
-		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
+		  (IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR 
+		  (IsTurnIn LIKE '%' +@GlobalFilter+'%') OR 
 		  (PartCertificationNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (CertifiedBy LIKE '%' +@GlobalFilter+'%') OR        
 		  (CompanyName LIKE '%' +@GlobalFilter+'%') OR        
@@ -776,7 +787,8 @@ BEGIN
 		  (ISNULL(@CertifiedBy,'') ='' OR CertifiedBy LIKE '%' + @CertifiedBy + '%') AND        
 		  (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		  (ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
-		  (ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND              
+		  (ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND  
+		  (ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		  (ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		  (ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
 		  (ISNULL(@WorkOrderStage,'') ='' OR WorkOrderStage LIKE '%' + @WorkOrderStage + '%') AND        
@@ -848,7 +860,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='CertifiedDate')  THEN CertifiedDate END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CertifiedDate')  THEN CertifiedDate END DESC,         
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,             
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,      
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='IsTurnIn')  THEN IsTurnIn END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTurnIn')  THEN IsTurnIn END DESC,      
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,        
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,        
@@ -916,7 +930,7 @@ BEGIN
 		stl.level3 AS DivName,        
 		stl.level4 AS DeptName,         
 		CASE WHEN stl.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock,        
-		--CASE WHEN ISNULL(tf.StockLineId,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
+		CASE WHEN stl.[IsTurnIn] = 1 THEN 'Yes' ELSE 'No' END AS IsTurnIn,
 		CASE WHEN ISNULL(stl.IsStkTimeLife,0) =  0 THEN 'No' ELSE 'Yes' END AS IsTimeLife,
 		CASE WHEN ISNULL(stl.IsCustomerStock, 0) = 1 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE (CASE WHEN ISNULL(stl.customerId,0) > 0 AND ISNULL(stl.QuantityAvailable, 0) > 0 THEN 1 ELSE 0 END) END AS 'IsAllowCreateWO',     
 		stl.ObtainFromName AS obtainFrom,        
@@ -930,7 +944,7 @@ BEGIN
 		lot.LotNumber,
 		Stl.Site,
 		Stl.SiteId,
-		ISNULL(stl.CustomerId,0) as CustomerId,    
+		ISNULL(stl.CustomerId,0) as CustomerId,
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
 	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
 		(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,        
@@ -976,7 +990,8 @@ BEGIN
 		(Site LIKE '%' +@GlobalFilter+'%') OR   
 		(AWB LIKE '%' +@GlobalFilter+'%') OR        
 		(ItemCategory LIKE '%' +@GlobalFilter+'%') OR        
-		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR        
+		(IsCustomerStock LIKE '%' +@GlobalFilter+'%') OR   
+		(IsTurnIn LIKE '%' +@GlobalFilter+'%') OR 
 		(PartCertificationNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(CertifiedBy LIKE '%' +@GlobalFilter+'%') OR        
 		(CompanyName LIKE '%' +@GlobalFilter+'%') OR        
@@ -1021,7 +1036,8 @@ BEGIN
 		(ISNULL(@CertifiedBy,'') ='' OR CertifiedBy LIKE '%' + @CertifiedBy + '%') AND        
 		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND              
 		(ISNULL(@CertifiedDate,'') ='' OR CAST(CertifiedDate AS Date)=CAST(@CertifiedDate AS date)) AND        
-		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND              
+		(ISNULL(@IsCustomerStock,'') ='' OR IsCustomerStock LIKE '%' + @IsCustomerStock + '%') AND     
+		(ISNULL(@IsTurnIn,'') ='' OR IsTurnIn LIKE '%' + @IsTurnIn + '%') AND    
 		(ISNULL(@obtainFrom,'') ='' OR obtainFrom LIKE '%' + @obtainFrom + '%') AND        
 		(ISNULL(@ownerName,'') ='' OR ownerName LIKE '%' + @ownerName + '%') AND        
 		(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
@@ -1095,7 +1111,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='CertifiedDate')  THEN CertifiedDate END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='CertifiedDate')  THEN CertifiedDate END DESC,         
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,             
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsCustomerStock')  THEN IsCustomerStock END DESC,  
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='IsTurnIn')  THEN IsTurnIn END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='IsTurnIn')  THEN IsTurnIn END DESC,      
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,        
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,        

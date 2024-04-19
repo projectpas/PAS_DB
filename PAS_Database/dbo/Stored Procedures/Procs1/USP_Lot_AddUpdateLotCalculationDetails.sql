@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_AddUpdateLotCalculationDetails]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to add lot calculation.
@@ -291,7 +290,9 @@ BEGIN
 					SET @LastOrignalCost =  @UpdatedUnitCost;
 				END				
 
-				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost,TransferredOutCost = COGS , IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentPercent END)  WHERE LotCalculationId = @LatestId; 
+				UPDATE [DBO].[LotCalculationDetails] SET OriginalCost = @LastOrignalCost,
+						--TransferredOutCost = COGS , 
+						IsRevenue = @IsRevenue, IsMargin = @IsMargin, IsFixedAmount = @IsFixedAmount, PercentId = @ConPercentId, PerAmount = (CASE WHEN @IsFixedAmount = 1 THEN @ConsignmentFixedAmt ELSE @ConsignmentPercent END)  WHERE LotCalculationId = @LatestId; 
 
 				IF(@IsRevenue =1)
 				BEGIN
@@ -324,7 +325,9 @@ BEGIN
 				BEGIN
 					IF(@Qty = 1)
 					BEGIN
-						Update dbo.Stockline set PurchaseOrderUnitCost = @UpdatedUnitCost,RepairOrderUnitCost = 0, UnitCost = @UpdatedUnitCost, LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
+						Update dbo.Stockline set RepairOrderUnitCost = 0, 
+						--PurchaseOrderUnitCost = @UpdatedUnitCost,UnitCost = @UpdatedUnitCost, 
+						LOTQty = (CASE WHEN (ISNULL(LOTQty,0) - ISNULL(@LastQty,0))  < 0 THEN 0 ELSE (ISNULL(LOTQty,0) - ISNULL(@LastQty,0)) END) WHERE StockLineId = @LastStockLineId
 					END
 					ELSE
 					BEGIN

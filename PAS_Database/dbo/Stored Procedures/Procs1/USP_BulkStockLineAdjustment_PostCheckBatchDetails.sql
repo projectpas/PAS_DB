@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustment_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment.
@@ -19,6 +20,7 @@
 	3    24/11/2023   Moin Bloch	Modified Added [ReferenceId]
     4    26/02/2024   Bhargav Saliya  Get the  @StockModule as 'ModuleId' For StockLine History
 	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	6	 16/04/2024   Amit Ghediya   Updates memo text.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -91,6 +93,7 @@ BEGIN
 		DECLARE @ChildUpdateQty INT;
 		DECLARE @QuantityAvailable INT;
 		DECLARE @StockModule BIGINT;
+		DECLARE @Memo VARCHAR(MAX);
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentQty';
 
@@ -275,10 +278,18 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table Qty
-					SELECT @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					SELECT @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable , @Memo = Memo FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					
+					--Replcae tag with blank
+					SET  @memo = REPLACE(@memo,'<p>','');
+					SET  @memo = REPLACE(@memo,'</p>','');
+					
 					IF(@DetailQtyAdjustment > 0)
 					BEGIN
-						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE() 
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),
+							   [Memo] = '<p>' + @Memo + ' ,' + 'Qty Adjusted From Stockline Adjustment </p>', 
+							   UpdatedBy = @UpdateBy,
+							   UpdatedDate = GETUTCDATE() 
 						WHERE StockLineId = @StockLineId;
 
 						SET @ChildUpdateQty = (@QuantityOnHand + @DetailQtyAdjustment);
@@ -288,7 +299,10 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE()
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),
+							   [Memo] = '<p>' + @Memo + ' ,' + 'Qty Adjusted From Stockline Adjustment </p>', 
+							   UpdatedBy = @UpdateBy,
+							   UpdatedDate = GETUTCDATE()
 						WHERE StockLineId = @StockLineId;
 
 						SET @ChildUpdateQty = (@QuantityOnHand - ABS(@DetailQtyAdjustment));

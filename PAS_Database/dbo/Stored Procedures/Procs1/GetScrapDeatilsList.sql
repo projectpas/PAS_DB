@@ -14,7 +14,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    11/14/2022   Subhash Saliya Created
+    1    11/14/2022   Subhash Saliya  Created
+	2    16/04/2024   Moin Bloch      Added New Field Scrap Certificate Date	
      
 --EXEC [GetScrapDeatilsList] 16, 10048,'STL-000030'
 **************************************************************/
@@ -41,35 +42,36 @@ BEGIN
 				,UPPER(ST.Manufacturer) AS Manufacturer
 				,UPPER(ST.ControlNumber) as cntrlNum
 				,UPPER(WOPN.CustomerReference) AS CustomerReference
-				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId
-				,isnull(SC.ScrapedByEmployeeId,0) as ScrapedByEmployeeId
-				,isnull(SC.ScrapedByVendorId,0) as ScrapedByVendorId
-				,isnull(SC.CertifiedById,0) as CertifiedById
-				,isnull(SC.ScrapReasonId,0) as ScrapReasonId
-				,isnull(SC.IsExternal,0) as IsExternal
+				,ISNULL(SC.ScrapCertificateId,0) as ScrapCertificateId
+				,ISNULL(SC.ScrapedByEmployeeId,0) as ScrapedByEmployeeId
+				,ISNULL(SC.ScrapedByVendorId,0) as ScrapedByVendorId
+				,ISNULL(SC.CertifiedById,0) as CertifiedById
+				,ISNULL(SC.ScrapReasonId,0) as ScrapReasonId
+				,ISNULL(SC.IsExternal,0) as IsExternal
 				,UPPER(case when isnull(SC.IsExternal,0)  =1 then vo.vendorName else (EM.FirstName +'  '+EM.LastName) end) as ScrapedByEmployee 
 				,UPPER(SR.Reason) as ScrapReason
 				,WOPN.Id as workOrderPartNoId
 				,WO.WorkOrderId as WorkOrderId
 				,UPPER(EMc.FirstName +'  '+EMc.LastName) as CertifiedBy
-				,isnull(SC.CreatedBy,WO.CreatedBy) as CreatedBy
-				,isnull(SC.UpdatedBy,WO.UpdatedBy) as UpdatedBy
-				,isnull(SC.CreatedDate,WO.CreatedDate) as CreatedDate
-				,isnull(SC.UpdatedDate,WO.UpdatedDate) as UpdatedDate
-				,Isnull(SC.isSubWorkOrder,0) as isSubWorkOrder
+				,ISNULL(SC.CreatedBy,WO.CreatedBy) as CreatedBy
+				,ISNULL(SC.UpdatedBy,WO.UpdatedBy) as UpdatedBy
+				,ISNULL(SC.CreatedDate,WO.CreatedDate) as CreatedDate
+				,ISNULL(SC.UpdatedDate,WO.UpdatedDate) as UpdatedDate
+				,ISNULL(SC.isSubWorkOrder,0) as isSubWorkOrder
 				,WOPN.ManagementStructureId
 				,WOPN.MasterCompanyId
-				FROM dbo.WorkOrder WO WITH (NOLOCK)
-				INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId AND WOPN.ID = @workOrderPartNoId
-				INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
-				INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
-				LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId
-				LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
-				LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
-				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
-				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
-			    Where WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
+				,SC.ScrapCertificateDate	
+				FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+				INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId AND WOPN.ID = @workOrderPartNoId
+				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
+				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
+				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOPN.ItemMasterId
+				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				 LEFT JOIN [dbo].[vendor] vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
+				 LEFT JOIN [dbo].[employee] EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
+				 LEFT JOIN [dbo].[employee] EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
+			    WHERE WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
 			END
 			BEGIN
 
@@ -83,34 +85,35 @@ BEGIN
 				,UPPER(IM.partnumber) AS partnumber 
 				,UPPER(ST.Manufacturer) AS Manufacturer
 				,UPPER(SWOPN.CustomerReference) AS CustomerReference
-				,isnull(SC.ScrapCertificateId,0) as ScrapCertificateId
-				,isnull(SC.ScrapedByEmployeeId,0) as ScrapedByEmployeeId
-				,isnull(SC.ScrapedByVendorId,0) as ScrapedByVendorId
-				,isnull(SC.CertifiedById,0) as CertifiedById
-				,isnull(SC.ScrapReasonId,0) as ScrapReasonId
-				,isnull(SC.IsExternal,0) as IsExternal
+				,ISNULL(SC.ScrapCertificateId,0) as ScrapCertificateId
+				,ISNULL(SC.ScrapedByEmployeeId,0) as ScrapedByEmployeeId
+				,ISNULL(SC.ScrapedByVendorId,0) as ScrapedByVendorId
+				,ISNULL(SC.CertifiedById,0) as CertifiedById
+				,ISNULL(SC.ScrapReasonId,0) as ScrapReasonId
+				,ISNULL(SC.IsExternal,0) as IsExternal
 				,UPPER(case when isnull(SC.IsExternal,0)  =1 then vo.vendorName else (EM.FirstName +'  '+EM.LastName) end) as ScrapedByEmployee 
 				,UPPER(SR.Reason) as ScrapReason
 				,SWOPN.SubWOPartNoId as workOrderPartNoId
 				,SWO.SubWorkOrderId as WorkOrderId
 				,UPPER(EMc.FirstName +'  '+EMc.LastName) as CertifiedBy
-				,isnull(SC.CreatedBy,SWO.CreatedBy) as CreatedBy
-				,isnull(SC.UpdatedBy,SWO.UpdatedBy) as UpdatedBy
-				,isnull(SC.CreatedDate,SWO.CreatedDate) as CreatedDate
-				,isnull(SC.UpdatedDate,SWO.UpdatedDate) as UpdatedDate
-				,Isnull(SC.isSubWorkOrder,0) as isSubWorkOrder
+				,ISNULL(SC.CreatedBy,SWO.CreatedBy) as CreatedBy
+				,ISNULL(SC.UpdatedBy,SWO.UpdatedBy) as UpdatedBy
+				,ISNULL(SC.CreatedDate,SWO.CreatedDate) as CreatedDate
+				,ISNULL(SC.UpdatedDate,SWO.UpdatedDate) as UpdatedDate
+				,ISNULL(SC.isSubWorkOrder,0) as isSubWorkOrder
 				,@ManagementStructureId as ManagementStructureId
 				,SWO.MasterCompanyId
-				FROM dbo.SubWorkOrder SWO WITH (NOLOCK)
-				INNER JOIN SubWorkOrderPartNumber SWOPN WITH (NOLOCK) ON SWOPN.SubWorkOrderId =SWO.SubWorkOrderId AND SWOPN.SubWOPartNoId = @workOrderPartNoId
-				INNER JOIN ItemMaster IM WITH (NOLOCK) ON SWOPN.ItemMasterId=IM.ItemMasterId
-				INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=SWOPN.StockLineId AND ST.IsParent = 1
-				LEFT JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=SWOPN.SubWorkOrderId AND SWOPN.SubWOPartNoId=SC.workOrderPartNoId
-				LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
-				LEFT JOIN WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
-				LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
-				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
-				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
+				,SC.ScrapCertificateDate	
+				FROM [dbo].[SubWorkOrder] SWO WITH (NOLOCK)
+				INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOPN WITH (NOLOCK) ON SWOPN.SubWorkOrderId =SWO.SubWorkOrderId AND SWOPN.SubWOPartNoId = @workOrderPartNoId
+				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SWOPN.ItemMasterId=IM.ItemMasterId
+				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SWOPN.StockLineId AND ST.IsParent = 1
+				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=SWOPN.SubWorkOrderId AND SWOPN.SubWOPartNoId=SC.workOrderPartNoId
+				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
+				 LEFT JOIN [dbo].[vendor] vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
+				 LEFT JOIN [dbo].[employee] EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
+				 LEFT JOIN [dbo].[employee] EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where SWOPN.SubWOPartNoId=@workOrderPartNoId and SWO.SubWorkOrderId=@workOrderId and SC.isSubWorkOrder= 1 
 			END
 

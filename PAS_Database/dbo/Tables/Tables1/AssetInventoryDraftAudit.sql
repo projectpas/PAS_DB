@@ -153,6 +153,9 @@
     [PerformedById]                     BIGINT          NULL,
     [LastCalibrationDate]               DATETIME        NULL,
     [NextCalibrationDate]               DATETIME        NULL,
+    [DepreciationStartDate]             DATETIME        NULL,
     CONSTRAINT [PK_AssetInventoryDraftAudit] PRIMARY KEY CLUSTERED ([AssetInventoryDraftAuditId] ASC)
 );
+
+
 

@@ -100,6 +100,7 @@ BEGIN TRANSACTION
       ,SD.[IsQtyReserved] = AI.IsQtyReserved
       ,SD.[InventoryStatusId] = AI.InventoryStatusId
       ,SD.[AssetStatusId] = AI.AssetStatusId
+	  ,SD.DepreciationStartDate = AI.DepreciationStartDate
       --,SD.[Level1] = PMS.Level1
       --,SD.[Level2] = PMS.Level2
       --,SD.[Level3] = PMS.Level3

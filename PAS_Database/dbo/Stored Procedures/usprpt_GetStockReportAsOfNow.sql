@@ -423,87 +423,89 @@ BEGIN
 	 FROM #TEMPOriginalStocklineRecords StkOriginal
 	 INNER JOIN #TEMPStocklineRemovedFromOH StkReceived ON StkOriginal.StockLineId = StkReceived.StocklineId
 	 	 
-	
+
 	/* Add Sold Items from AsOfNow till Today */
-	IF OBJECT_ID(N'tempdb..#TEMPStocklineSoldDate') IS NOT NULL    
-	BEGIN    
-		DROP TABLE #TEMPStocklineSoldDate
-	END
+	--IF OBJECT_ID(N'tempdb..#TEMPStocklineSoldDate') IS NOT NULL    
+	--BEGIN    
+	--	DROP TABLE #TEMPStocklineSoldDate
+	--END
 
-	CREATE TABLE #TEMPStocklineSoldDate (        
-		ID BIGINT IDENTITY(1,1),        
-		StocklineId BIGINT NULL,
-		QTY_OH INT NULL,
-		MasterCompanyId INT NULL
-	)
+	--CREATE TABLE #TEMPStocklineSoldDate (        
+	--	ID BIGINT IDENTITY(1,1),        
+	--	StocklineId BIGINT NULL,
+	--	QTY_OH INT NULL,
+	--	MasterCompanyId INT NULL
+	--)
 
-	INSERT INTO #TEMPStocklineSoldDate (StocklineId, QTY_OH, MasterCompanyId)
-	SELECT SOP.StockLineId AS StocklineId,    
-        (SOSD.QtyShipped) 'QTY_OH',    
-        stl.MasterCompanyId
-    FROM DBO.stockline stl WITH (NOLOCK)
-	INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SOP.StockLineId = stl.StockLineId    
-	INNER JOIN dbo.SOPickTicket SOPick WITH (NOLOCK) ON SOPick.SalesOrderPartId = SOP.SalesOrderPartId
-	INNER JOIN dbo.SalesOrderShippingItem SOSD WITH (NOLOCK) ON SOSD.SOPickTicketId = SOPick.SOPickTicketId
-	INNER JOIN dbo.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSD.SalesOrderShippingId
-	INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
-	LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
-    WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
-	AND (CAST(SOS.ShipDate AS DATE) > CAST(@id AS DATE) AND CAST(SOS.ShipDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
-	AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	 AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	 AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	--INSERT INTO #TEMPStocklineSoldDate (StocklineId, QTY_OH, MasterCompanyId)
+	--SELECT SOP.StockLineId AS StocklineId,    
+ --       (SOSD.QtyShipped) 'QTY_OH',    
+ --       stl.MasterCompanyId
+ --   FROM DBO.stockline stl WITH (NOLOCK)
+	--INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SOP.StockLineId = stl.StockLineId    
+	--INNER JOIN dbo.SOPickTicket SOPick WITH (NOLOCK) ON SOPick.SalesOrderPartId = SOP.SalesOrderPartId
+	--INNER JOIN dbo.SalesOrderShippingItem SOSD WITH (NOLOCK) ON SOSD.SOPickTicketId = SOPick.SOPickTicketId
+	--INNER JOIN dbo.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSD.SalesOrderShippingId
+	--INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+	--LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
+ --   WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
+	--AND (CAST(SOS.ShipDate AS DATE) > CAST(@id AS DATE) AND CAST(SOS.ShipDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
+	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
+	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
+	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
+	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
+	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
+	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
+	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
+	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
+	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
+	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
+	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
+	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
+	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
+	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
+	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
+	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
 
-	INSERT INTO #TEMPStocklineSoldDate (StocklineId, QTY_OH, MasterCompanyId)
-	SELECT ESOP.StockLineId AS StocklineId,    
-        (ESOSD.QtyShipped) 'QTY_OH',    
-        stl.MasterCompanyId
-    FROM DBO.stockline stl WITH (NOLOCK)
-	INNER JOIN dbo.ExchangeSalesOrderPart ESOP WITH (NOLOCK) ON ESOP.StockLineId = stl.StockLineId    
-	INNER JOIN dbo.ExchangeSOPickTicket ESOPick WITH (NOLOCK) ON ESOPick.ExchangeSalesOrderPartId = ESOP.ExchangeSalesOrderPartId
-	INNER JOIN dbo.ExchangeSalesOrderShippingItem ESOSD WITH (NOLOCK) ON ESOSD.SOPickTicketId = ESOPick.SOPickTicketId
-	INNER JOIN dbo.ExchangeSalesOrderShipping ESOS WITH (NOLOCK) ON ESOS.ExchangeSalesOrderShippingId = ESOSD.ExchangeSalesOrderShippingId
-	INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
-	LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
-    WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
-	AND (CAST(ESOS.ShipDate AS DATE) > CAST(@id AS DATE) AND CAST(ESOS.ShipDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
-	AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
-	AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
-	AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
-	AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
-	AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
-	AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
-	AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
-	AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
-	AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
-	AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
-	AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-	AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
-	 AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
-	 AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
-	 AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
-	 AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
-	 AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
+	--INSERT INTO #TEMPStocklineSoldDate (StocklineId, QTY_OH, MasterCompanyId)
+	--SELECT ESOP.StockLineId AS StocklineId,    
+ --       (ESOSD.QtyShipped) 'QTY_OH',    
+ --       stl.MasterCompanyId
+ --   FROM DBO.stockline stl WITH (NOLOCK)
+	--INNER JOIN dbo.ExchangeSalesOrderPart ESOP WITH (NOLOCK) ON ESOP.StockLineId = stl.StockLineId    
+	--INNER JOIN dbo.ExchangeSOPickTicket ESOPick WITH (NOLOCK) ON ESOPick.ExchangeSalesOrderPartId = ESOP.ExchangeSalesOrderPartId
+	--INNER JOIN dbo.ExchangeSalesOrderShippingItem ESOSD WITH (NOLOCK) ON ESOSD.SOPickTicketId = ESOPick.SOPickTicketId
+	--INNER JOIN dbo.ExchangeSalesOrderShipping ESOS WITH (NOLOCK) ON ESOS.ExchangeSalesOrderShippingId = ESOSD.ExchangeSalesOrderShippingId
+	--INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId    
+	--LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
+ --   WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent = 1 AND stl.IsDeleted = 0 
+	--AND (CAST(ESOS.ShipDate AS DATE) > CAST(@id AS DATE) AND CAST(ESOS.ShipDate AS DATE) <= CAST(GETUTCDATE() AS DATE))
+	--AND stl.IsCustomerStock = CASE WHEN @id3 = 1 THEN 0 ELSE stl.IsCustomerStock END 
+	--AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@id2, ''), ',')))
+	--AND  (ISNULL(@level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
+	--AND  (ISNULL(@level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
+	--AND  (ISNULL(@level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
+	--AND  (ISNULL(@level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
+	--AND  (ISNULL(@level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
+	--AND  (ISNULL(@level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
+	--AND  (ISNULL(@level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
+	--AND  (ISNULL(@level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
+	--AND  (ISNULL(@level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
+	--AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+	-- AND  (ISNULL(@siteId,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@siteId,',')))    
+	-- AND  (ISNULL(@warehouseId,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@warehouseId,',')))    
+	-- AND  (ISNULL(@locationId,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@locationId,',')))    
+	-- AND  (ISNULL(@shelfId,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
+	-- AND  (ISNULL(@binId,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
 
-	 UPDATE StkOriginal
-	 SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH,
-	 StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkSold.QTY_OH
-	 FROM #TEMPOriginalStocklineRecords StkOriginal
-	 INNER JOIN #TEMPStocklineSoldDate StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
+	-- UPDATE StkOriginal
+	-- SET StkOriginal.QTY_on_Hand = StkOriginal.QTY_on_Hand + StkSold.QTY_OH,
+	-- StkOriginal.Qty_Available = StkOriginal.Qty_Available + StkSold.QTY_OH
+	-- FROM #TEMPOriginalStocklineRecords StkOriginal
+	-- INNER JOIN #TEMPStocklineSoldDate StkSold ON StkOriginal.StockLineId = StkSold.StocklineId
+
+	
 
 	/* Add (Moved to WIP) from AsOfNow till Today */
 	IF OBJECT_ID(N'tempdb..#TEMPStocklineConsumed') IS NOT NULL    

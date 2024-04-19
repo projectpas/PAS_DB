@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usp_GetApprovalListByTaskId]           
  ** Author:  Amit Ghediya
  ** Description: 
@@ -17,7 +18,7 @@
 	4    19/03/2023  Amit Ghediya    Update for Check Register
 	5    19/03/2023  Amit Ghediya    Update for Check Register filter 
      
---exec [dbo].[usp_GetApprovalListByTaskId] 9, 3
+--exec [dbo].[usp_GetApprovalListByTaskId] 11, 1
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
 	@TaskId  BIGINT,
@@ -261,7 +262,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			   WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
-					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,0) = 0
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,'') = ''
 
 		 SELECT TOP 1 @MSID = VRTPDH.ManagementStructureId,
 			   @EID = VRTPD.VendorId,	   
@@ -269,7 +270,7 @@ BEGIN TRY
 			  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)  
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VRTPD.ReadyToPayId = VRTPDH.ReadyToPayId
 			  WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
-					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,0) = 0
+					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,'') = ''
 	END
 
 	SET @TotalCost  = ISNULL(@TotalCost,0)

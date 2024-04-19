@@ -16,6 +16,9 @@
     [IsActive]                BIT           NOT NULL,
     [IsDeleted]               BIT           NOT NULL,
     [isSubWorkOrder]          BIT           NULL,
+    [ScrapCertificateDate]    DATETIME2 (7) NULL,
     CONSTRAINT [PK_ScrapCertificateAudit] PRIMARY KEY CLUSTERED ([ScrapCertificateAuditId] ASC)
 );
+
+
 

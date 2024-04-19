@@ -13,6 +13,7 @@
  ** --   	--------		-------				--------------------------------     
 	1		08/04/2024		Moin Bloch			CREATED
 	2		09/04/2024		Moin Bloch			Added Stockline History
+	3		15/04/2024		Moin Bloch			Added Scrap Entry Operatin
 
 	EXEC [USP_UpdateMPNTenderStocklineDetail] 1,1,'dsdsd'
 **************************************************************/ 
@@ -57,12 +58,14 @@ BEGIN
 				BEGIN
 					UPDATE [dbo].[Stockline] 
 					   SET [QuantityReserved] = @QuantityReserved - 1,  
-						   [QuantityOnHand] = @QuantityOnHand - 1,					   
-						   [QuantityIssued] = @QuantityIssued + 1       
+						 --[QuantityOnHand] = @QuantityOnHand - 1,					   
+						 --[QuantityIssued] = @QuantityIssued + 1    
+						   [QuantityAvailable] = @QuantityAvailable + 1,  
+						   [UnitCost] = 0
 					 WHERE [StockLineId] = @StocklineId;	
 
-					 -- Quantity Issued History
-				     EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @IssueActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;				
+					 -- Quantity Un-Reserve History
+					 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
 				END
 				IF(@Opr = 2)  -- If Remaining Amount = 0
 				BEGIN
@@ -70,6 +73,17 @@ BEGIN
 					   SET [QuantityReserved] = @QuantityReserved - 1,   
 						   [QuantityAvailable] = @QuantityAvailable + 1  
 					 WHERE [StockLineId] = @StocklineId;	
+					
+					-- Quantity Un-Reserve History
+					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
+				END
+				IF(@Opr = 3)  -- If Remaining Amount = 0
+				BEGIN
+					UPDATE [dbo].[Stockline] 
+					   SET [QuantityReserved] = @QuantityReserved - 1,  						
+						   [QuantityOnHand] = @QuantityAvailable - 1,  
+						   [UnitCost] = 0
+					 WHERE [StockLineId] = @StocklineId;
 					
 					-- Quantity Un-Reserve History
 					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;

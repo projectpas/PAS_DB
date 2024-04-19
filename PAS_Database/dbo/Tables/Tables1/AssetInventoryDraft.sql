@@ -152,6 +152,7 @@
     [PerformedById]                     BIGINT          NULL,
     [LastCalibrationDate]               DATETIME        NULL,
     [NextCalibrationDate]               DATETIME        NULL,
+    [DepreciationStartDate]             DATETIME        NULL,
     CONSTRAINT [PK_AssetInventoryDraft] PRIMARY KEY CLUSTERED ([AssetInventoryDraftId] ASC),
     CONSTRAINT [FK_AssetInventoryDraft_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_AssetInventoryDraft_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -159,6 +160,8 @@
     CONSTRAINT [FK_AssetInventoryDraft_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AssetInventoryDraft_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 GO

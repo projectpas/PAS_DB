@@ -23,7 +23,7 @@ exec usprpt_GetStockReportAsOfNow @mastercompanyid=1, @id=N'04/01/2024',@id2=N''
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
-	@id DATETIME2,
+	@id VARCHAR(100),
 	@id2 VARCHAR(100),
 	@id3 bit,
 	@id5 VARCHAR(MAX),

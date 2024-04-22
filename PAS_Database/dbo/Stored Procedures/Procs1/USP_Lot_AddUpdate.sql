@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_Lot_AddUpdate]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Create or update Lot General Info
@@ -113,7 +112,7 @@ BEGIN
            ([LotId],[IsUseMargin],[IsOverallLotCost],[IsCostToPN],[IsReturnCoreToLot],[IsMaintainStkLine] ,[MasterCompanyId] ,[CreatedBy]
            ,[UpdatedBy] ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],MarginPercentageId)
 			VALUES
-           (@LotId,1,0,0,0,0,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0)
+           (@LotId,0,0,0,0,0,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0)
 		END
 		ELSE
 		BEGIN			

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment Inter Company.
@@ -300,14 +299,10 @@ BEGIN
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
-					--Replcae tag with blank
-					SET  @memo = REPLACE(@memo,'<p>','');
-					SET  @memo = REPLACE(@memo,'</p>','');
-
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
 												 [QuantityReserved] = @QuantityReserved - @newqty,
-												 [Memo] = '<p>' + @Memo + ' ,' + 'InterCompany Transfer From Stockline Adjustment </p>', 
+												 [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> InterCompany Transfer From Stockline Adjustment </p>' ELSE @memo + '<p> InterCompany Transfer From Stockline Adjustment </p>' END, 
 												 --[QuantityAvailable] = @QuantityAvailable - @newqty,
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()

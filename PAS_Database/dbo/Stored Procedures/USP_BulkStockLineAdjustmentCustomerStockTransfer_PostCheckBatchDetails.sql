@@ -291,15 +291,11 @@ BEGIN
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
-					--Replcae tag with blank
-					SET  @memo = REPLACE(@memo,'<p>','');
-					SET  @memo = REPLACE(@memo,'</p>','');
-
 					--Update existing stockline
 					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) <0 THEN 0 ELSE @QuantityOnHand - @newqty END,
 												 --[QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
 												 [QuantityReserved] = CASE WHEN (@QuantityReserved - @newqty) < 0 THEN 0 ELSE (@QuantityReserved - @newqty) END,
-												 [Memo] = '<p>' + @Memo + ' ,' + 'Transfer Customer Stock From Stockline Adjustment </p>',
+												 [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Transfer Customer Stock From Stockline Adjustment </p>' ELSE @memo + '<p> Transfer Customer Stock From Stockline Adjustment </p>' END, 
 												 [UpdatedBy] = @UpdateBy,
 												 [UpdatedDate] = GETUTCDATE()
 					WHERE StockLineId = @StockLineId;

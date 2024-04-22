@@ -14,12 +14,22 @@
     [UnitPrice]                           DECIMAL (20, 2) NULL,
     [ExchangeSalesOrderShippingId]        BIGINT          NULL,
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
+    [MiscCharges]                         DECIMAL (18, 2) NULL,
+    [Freight]                             DECIMAL (18, 2) NULL,
+    [SubTotal]                            DECIMAL (18, 2) NULL,
+    [OtherTaxPercent]                     BIGINT          NULL,
+    [SalesTaxPercent]                     BIGINT          NULL,
+    [GrandTotal]                          DECIMAL (18, 2) NULL,
+    [OtherTax]                            DECIMAL (18, 2) NULL,
+    [SalesTax]                            DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItem] PRIMARY KEY CLUSTERED ([ExchangeSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicing] ([SOBillingInvoicingId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderPart] FOREIGN KEY ([ExchangeSalesOrderPartId]) REFERENCES [dbo].[ExchangeSalesOrderPart] ([ExchangeSalesOrderPartId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

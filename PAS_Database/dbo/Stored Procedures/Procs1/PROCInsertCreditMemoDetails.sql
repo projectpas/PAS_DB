@@ -13,10 +13,11 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------   
     1    28 MAR 2024	HEMANT SALIYA         Update For Details Level         
+    2    19 APRIl 2024	Devendra Shekh        added data IsExchange          
 
 **********************/
 
-CREATE    PROCEDURE [dbo].[PROCInsertCreditMemoDetails](@TableCreditMemoDetailsType CreditMemoDetailsType READONLY)    
+CREATE   PROCEDURE [dbo].[PROCInsertCreditMemoDetails](@TableCreditMemoDetailsType CreditMemoDetailsType READONLY)    
 AS    
 BEGIN    
  SET NOCOUNT ON;  
@@ -81,13 +82,13 @@ BEGIN
 				[PartsRevenue],[LaborRevenue],[MiscRevenue], [FreightRevenue], [RestockingFee], [CogsParts], [CogsLabor], [CogsOverHeadCost], [CogsInventory],
 				[Amount],[ReasonId],[Reason],[StocklineId],[StocklineNumber],[ControlNumber],[ControlId],  
 				[ReferenceId],[ReferenceNo],[SOWONum],[Notes],[IsWorkOrder],[MasterCompanyId],[CreatedBy],  
-				[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId],BillingInvoicingItemId)  
+				[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RMADeatilsId],BillingInvoicingItemId,IsExchange)  
 			VALUES(SOURCE.CreditMemoHeaderId,SOURCE.RMAHeaderId,SOURCE.InvoiceId,SOURCE.ItemMasterId,SOURCE.PartNumber,  
 				SOURCE.PartDescription,SOURCE.AltPartNumber,SOURCE.CustPartNumber,SOURCE.SerialNumber,SOURCE.Qty,SOURCE.UnitPrice, SOURCE.SalesTax, SOURCE.OtherTax , SOURCE.PartsUnitCost, SOURCE.COGSPartsUnitCost,
 				SOURCE.PartsRevenue,SOURCE.LaborRevenue,SOURCE.MiscRevenue,SOURCE.FreightRevenue,SOURCE.RestockingFee,SOURCE.CogsParts,SOURCE.CogsLabor,SOURCE.CogsOverHeadCost,SOURCE.CogsInventory,   
 				SOURCE.Amount,SOURCE.ReasonId,SOURCE.Reason,SOURCE.StocklineId,SOURCE.StocklineNumber,SOURCE.ControlNumber,SOURCE.ControlId,  
 				SOURCE.ReferenceId,SOURCE.ReferenceNo,SOURCE.SOWONum,SOURCE.Notes,SOURCE.IsWorkOrder,SOURCE.MasterCompanyId,SOURCE.CreatedBy,  
-				SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.RMADeatilsId,SOURCE.BillingInvoicingItemId);   
+				SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.RMADeatilsId,SOURCE.BillingInvoicingItemId,SOURCE.IsExchange);   
 			END  
 
 			UPDATE t1 SET t1.Amount = ISNULL(a.Amount,0)

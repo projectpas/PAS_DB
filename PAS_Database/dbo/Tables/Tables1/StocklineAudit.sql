@@ -194,9 +194,12 @@
     [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     [EvidenceId]                          INT             NULL,
     [IsGenerateReleaseForm]               BIT             DEFAULT ((0)) NULL,
+    [ExistingCustomerId]                  BIGINT          NULL,
     [RepairOrderNumber]                   VARCHAR (100)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 
 
 

@@ -17,7 +17,7 @@
     1    09/01/2023   Amit Ghediya	Created	
 	2    09/05/2023   Amit Ghediya	Update to allow negative value for batch.	
 	3    09/15/2023   Amit Ghediya	Update for management stucture add in common table.
-     
+    4    04/22/2024   Moin Bloch	Updated Removed Static StandAloneCMModuleId
 **************************************************************/
 
 CREATE        PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
@@ -79,6 +79,9 @@ BEGIN
 
 		SET @DistributionCodeName = 'CMDISACC';
 
+		DECLARE @StandAloneCMModuleId INT = 0
+	    SELECT @StandAloneCMModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] ='StandAloneCM';
+		
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -115,7 +118,7 @@ BEGIN
 			SELECT @ManagementStructureId = ManagementStructureId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
 
-			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+		INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 			FROM [DBO].[CodePrefixes] CP WITH(NOLOCK) JOIN [DBO].[CodeTypes] CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 			WHERE CT.CodeTypeId IN (@CodeTypeId) AND  CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
@@ -236,7 +239,7 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 					INSERT INTO [dbo].CreditMemoPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,DocumentNo,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ModuleId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureDetailsId,@StandAloneCreditMemoDetailsId,@ExtNumber,@ExtDate,@CommonBatchDetailId,0,53)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureDetailsId,@StandAloneCreditMemoDetailsId,@ExtNumber,@ExtDate,@CommonBatchDetailId,0,@StandAloneCMModuleId)
 
 				 -----Account Recevable--------
 
@@ -271,7 +274,7 @@ BEGIN
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
 					INSERT INTO [dbo].CreditMemoPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,DocumentNo,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ModuleId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureDetailsId,@StandAloneCreditMemoDetailsId,@ExtNumber,@ExtDate,@CommonBatchDetailId,0,53)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureDetailsId,@StandAloneCreditMemoDetailsId,@ExtNumber,@ExtDate,@CommonBatchDetailId,0,@StandAloneCMModuleId)
 
 				 -----Account Above--------
 

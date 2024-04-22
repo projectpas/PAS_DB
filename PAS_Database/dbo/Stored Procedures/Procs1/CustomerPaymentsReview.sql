@@ -16,6 +16,7 @@
 	4    11/03/2024    Moin Bloch	    check misc customer
 	5    20/03/2024    Moin Bloch	    changed same customer logic
 	6    08/04/2024    Devendra Shekh	remaining amt issue for known customer without invoices resolved
+	7    19/04/2024    Moin Bloch	    Duplicate issue
 
 	EXEC [dbo].[CustomerPaymentsReview]  10169
 **************************************************************/  
@@ -132,9 +133,10 @@ BEGIN
   ,myCTE3(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS     
 	  (SELECT DISTINCT ReceiptId, C.CustomerId, C.Name, C.CustomerCode, C.PaymentRef, SUM(C.Amount) As Amount    
 	   FROM myCTE2 C    
-	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, C.PaymentRef)  
-
-	  SELECT C.ReceiptId, 
+	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, C.PaymentRef) 
+	  
+  ,myCTE4(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount, AmountRemaining, AmtApplied) AS     
+	  (SELECT C.ReceiptId, 
 			 C.CustomerId, 
 			 C.[Name], 
 			 C.CustomerCode,     
@@ -145,8 +147,24 @@ BEGIN
 		  FROM myCTE3 C          
 	  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId    
 	  LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = C.CustomerId    
-	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, Amount, PaymentRef, IPS.PaymentId, CU.Ismiscellaneous
+	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, Amount, PaymentRef, IPS.PaymentId, CU.Ismiscellaneous)
   
+   SELECT [ReceiptId],
+          [CustomerId],
+		  [Name],
+		  [CustomerCode],
+		  [PaymentRef],
+		  ISNULL([Amount],0)AS Amount,
+		  ISNULL(SUM(AmountRemaining),0) AS AmountRemaining,
+		  ISNULL(SUM(AmtApplied),0) AS AmtApplied
+     FROM myCTE4 GROUP BY 
+	      [ReceiptId],
+          [CustomerId],
+		  [Name],
+		  [CustomerCode],
+		  [PaymentRef],
+	      [Amount]
+		
 	  UNION ALL
 
 	  SELECT CP.ReceiptId, 

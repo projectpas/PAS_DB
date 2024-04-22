@@ -1,17 +1,27 @@
-﻿---------------------------------------------------------------------------------------------------
--- =============================================
--- Description:	Get Search Data for Exchange Quote  search for from part list tab
+﻿/*************************************************************           
+ ** File:   [SearchStockLineExchangeQuotePop]           
+ ** Author:  Unknown
+ ** Description: Get Search Data for Exchange Quote  search for from part list tab
+ ** Purpose:         
+ ** Date:             
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1                 Unknown        Created
+	2	 19-04-2024   Moin Bloch     Allow IsCustomerStock in Vendor Exchange PN-7409
+     
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
--- =============================================
+************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
 @ItemMasterIdlist VARCHAR(max) = '', 
 @ConditionId BIGINT,
 @CustomerId BIGINT ,
 @MappingType INT
-
 AS
 BEGIN
-
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
@@ -133,7 +143,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				AND ISNULL(sl.QuantityAvailable, 0) > 0
-				AND sl.IsCustomerStock = 0
+				--AND sl.IsCustomerStock = 0
 				AND sl.IsParent = 1
 		END
 		COMMIT  TRANSACTION

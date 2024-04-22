@@ -30,6 +30,7 @@
 	13   30/11/2023   Moin Bloch        Modify(Added LotId in New Stockline)
 	14   01/05/2024   Devendra Shekh    Modify(Added LotId in New Stockline)
  ** 15   02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
+    16   04/19/2024   Moin Bloch        Modify(Added RepairOrderNumber in New Stockline)
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -253,7 +254,7 @@ BEGIN
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
-	   ,[LotId],[IsLotAssigned])  
+	   ,[LotId],[IsLotAssigned],[RepairOrderNumber])  
     SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,  
      @StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -280,7 +281,7 @@ BEGIN
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  
        CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN [UnitCost] + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
-	   [LotId],[IsLotAssigned]
+	   [LotId],[IsLotAssigned],[RepairOrderNumber]
    FROM [dbo].[Stockline] WITH(NOLOCK)  
    WHERE [StockLineId] = @StocklineId  
   
@@ -398,8 +399,8 @@ BEGIN
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-              , @AdhocComments     VARCHAR(150)    = 'CreateStocklineForFinishGoodMPN'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderPartNumberId, '') + ''  
+              , @AdhocComments     VARCHAR(150)    = 'CreateStocklineForFinishGoodMPN'                
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderPartNumberId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
   

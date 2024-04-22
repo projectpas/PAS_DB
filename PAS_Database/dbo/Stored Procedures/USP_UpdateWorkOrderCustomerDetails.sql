@@ -12,7 +12,7 @@
  ** --   --------     -------			--------------------------------            
     1    04/16/2024   HEMANT SALIYA      Created  
    
-  
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3886,@WorkOrderPartNoId=3399,@CustomerId=7,@ItemMasterId=20740,@SerialNumber=N'ADMIN User',@Memo=N'ADMIN User',@UpdatedBy=N'ADMIN User'  
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
@@ -37,18 +37,18 @@ BEGIN
 		DECLARE @CustomerName VARCHAR(30) = NULL;
 		DECLARE @CustomerCode VARCHAR(30) = NULL;
 		DECLARE @CustomerType VARCHAR(30) = NULL;
+		DECLARE @WorkOrderNum VARCHAR(30) = NULL;
 		DECLARE @IsFinishedGood BIT = NULL;
 		DECLARE @IsClosed BIT = NULL;
 		DECLARE @WorkOrderSettlementId BIGINT = 9; --Fixed for Final Condition Changed
-		DECLARE @ModuleId BIGINT, @RefferenceId BIGINT, @SubModuleId BIGINT, @SubRefferenceId BIGINT, @OldValue VARCHAR(MAX) = NULL, 
-				@NewValue VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100), @MasterCompanyId INT;
+		DECLARE @ModuleId BIGINT, @RefferenceId BIGINT, @SubModuleId BIGINT, @SubRefferenceId BIGINT, @ExistingValue VARCHAR(MAX) = NULL, 
+				@NewValue VARCHAR(MAX), @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100), @MasterCompanyId INT;
 
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
+		SET @SubRefferenceId = @WorkOrderPartNoId; 
 		
-		
-
-		SELECT @WorkOrderId = WorkOrderId, @IsFinishedGood = IsFinishGood, @IsClosed = IsClosed FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
+		SELECT @WorkOrderId = WorkOrderId, @RefferenceId = WorkOrderId,  @IsFinishedGood = ISNULL(IsFinishGood, 0), @IsClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
 
 		SELECT	@CustomerName = C.[Name], @CustomerCode = C.CustomerCode, @CustomerType = CT.CustomerTypeName,
 				@CustomerContactId = CC.CustomerContactId, 
@@ -61,9 +61,13 @@ BEGIN
 			LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 		WHERE C.CustomerId = @CustomerId
 
+		--CASE-1  UPDATE CUSTOMER DETAILS
 		IF(ISNULL(@CustomerId, 0) > 0)
 		BEGIN
+			PRINT 'UPDATE CUSTOMER DETAILS'
 			SET @StatusCode = 'CUSTOMERCHANGE';
+
+			SELECT @ExistingValue = CustomerName, @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 			UPDATE dbo.WorkOrder SET CustomerId =  @CustomerId WHERE WorkOrderId = @WorkOrderId
 			UPDATE dbo.WorkOrderQuote SET CustomerId =  @CustomerId WHERE WorkOrderId = @WorkOrderId
@@ -74,7 +78,9 @@ BEGIN
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 			WHERE WO.WorkOrderId = @WorkOrderId
 
-			UPDATE dbo.Stockline SET CustomerId =  @CustomerId , Memo = SL.Memo + 'Updated Customer from WO : ' + WO.WorkOrderNum
+			UPDATE dbo.Stockline SET CustomerId =  @CustomerId , 
+				--Memo = REPLACE(SL.Memo, '</p>','<br>') + 'Updated Customer from WO : ' + WO.WorkOrderNum + ' </p>'	,
+				Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
@@ -109,6 +115,13 @@ BEGIN
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WOQ.CustomerId
 
+			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
 			UPDATE ReceivingCustomerWork
 				SET CustomerId = @CustomerId, CustomerContactId = CC.CustomerContactId ,
 					CustomerName = C.[Name], CustomerCode = C.CustomerCode
@@ -118,19 +131,39 @@ BEGIN
 				LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND ISNULL(IsDefaultContact, 0) = 1
 			WHERE RC.WorkOrderId = @WorkOrderId
 
-			EXEC USP_History @ModuleId = @ModuleId,@RefferenceId = @RefferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubRefferenceId, @OldValue = @OldValue, @NewValue = @NewValue, @HistoryText = @HistoryText, @StatusCode = @StatusCode, @MasterCompanyId = @MasterCompanyId, @CreatedBy = @UpdatedBy, @CreatedDate = GETUTCDATE, @UpdatedBy = @UpdatedBy, @UpdatedDate = GETUTCDATE
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@CustomerName,''));
+
+			PRINT 'UPDATE CUSTOMER History'
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @CustomerName, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL , @UpdatedBy, NULL
+			PRINT 'END UPDATE CUSTOMER DETAILS'
 		END
 
+		--CASE-2  UPDATE PART NUMBER DETAILS
 		IF(ISNULL(@ItemMasterId, 0) > 0)
 		BEGIN
+			PRINT 'PART NUMBER DETAILS'
 			SET @StatusCode = 'PARTNUMBERCHANGE';
+			
+			SELECT @ExistingValue = IM.partnumber FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+				JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+			SELECT @NewValue = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId
 
 			UPDATE WorkOrderPartNumber SET ItemMasterId = @ItemMasterId, RevisedItemmasterid = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE WorkOrderPartNumber SET RevisedPartNumber = IM.PartNumber, RevisedPartDescription = IM.PartDescription, IsPMA = IM.IsPma, IsDER = IM.IsDER
+			UPDATE WorkOrderPartNumber SET RevisedPartNumber = IM.PartNumber, RevisedPartDescription = IM.PartDescription, IsPMA = IM.IsPma, IsDER = IM.IsDER,
+				   IsFinishGood = CASE WHEN ISNULL(IsFinishGood, 0) > 0 THEN 0 ELSE IsFinishGood END,
+				   IsClosed = CASE WHEN ISNULL(IsClosed, 0) > 0 THEN 0 ELSE IsClosed END,
+				   ClosedDate = NULL,
+				   WorkOrderStageId = 0,
+				   WorkOrderStatusId = 0
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.RevisedItemmasterid
 			WHERE WOP.ID = @WorkOrderPartNoId
@@ -140,7 +173,8 @@ BEGIN
 			FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
 			WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
 			
-			UPDATE dbo.Stockline SET ItemMasterId =  @ItemMasterId , Memo = SL.Memo + 'Updated Part Number from WO : ' + WO.WorkOrderNum
+			UPDATE dbo.Stockline SET ItemMasterId =  @ItemMasterId , 
+					Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
@@ -148,22 +182,50 @@ BEGIN
 
 			UPDATE dbo.Stockline SET PartNumber = IM.partnumber, PNDescription = IM.PartDescription ,ManufacturerId = IM.ManufacturerId, Manufacturer = IM.ManufacturerName, IsHazardousMaterial = IM.IsHazardousMaterial,
 					IsPMA = IM.IsPma, IsDER = IM.IsDER, isSerialized = IM.isSerialized, PurchaseUnitOfMeasureId = IM.PurchaseUnitOfMeasureId, UnitOfMeasure = IM.PurchaseUnitOfMeasure,
-					RevicedPNId = IM.RevisedPartId, RevicedPNNumber = IM.RevisedPart
+					RevicedPNId = IM.RevisedPartId, RevicedPNNumber = IM.RevisedPart, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 				JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
 			UPDATE ReceivingCustomerWork
-				SET ItemMasterId = @ItemMasterId, IsSerialized = im.isSerialized, ManufacturerName = IM.ManufacturerName, PartNumber = IM.partnumber
+				SET ItemMasterId = @ItemMasterId, IsSerialized = im.isSerialized, ManufacturerName = IM.ManufacturerName, PartNumber = IM.partnumber,
+					RevisePartId = IM.RevisedPartId, IsTimeLife = IM.isTimeLife, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+					Memo = CASE WHEN ISNULL(RC.Memo,'') = '' THEN '</p>Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(RC.Memo, '</p>','<br>') + 'Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
+				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			EXEC USP_History @ModuleId = @ModuleId,@RefferenceId = @RefferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubRefferenceId, @OldValue = @OldValue, @NewValue = @NewValue, @HistoryText = @HistoryText, @StatusCode = @StatusCode, @MasterCompanyId = @MasterCompanyId, @CreatedBy = @UpdatedBy, @CreatedDate = GETUTCDATE, @UpdatedBy = @UpdatedBy, @UpdatedDate = GETUTCDATE
+			UPDATE WorkOrderBillingInvoicingItem SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			FROM dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) 
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
 
+			UPDATE WorkOrderBillingInvoicing SET ItemMasterId = WOP.ItemMasterId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
+				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+
+			UPDATE WorkOrderQuoteDetails SET ItemMasterId = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()				
+			FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK)
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOQD.WOPartNoId
+			WHERE WOP.WorkOrderId = @WorkOrderId 
+
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@NewValue,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+
+			PRINT 'END PART NUMBER DETAILS'
 		END
+
+		
 
 
   

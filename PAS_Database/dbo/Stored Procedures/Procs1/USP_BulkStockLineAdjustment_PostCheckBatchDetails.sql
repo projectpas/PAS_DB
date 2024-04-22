@@ -281,13 +281,13 @@ BEGIN
 					SELECT @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable , @Memo = Memo FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					
 					--Replcae tag with blank
-					SET  @memo = REPLACE(@memo,'<p>','');
-					SET  @memo = REPLACE(@memo,'</p>','');
+					--SET  @memo = REPLACE(@memo,'<p>','');
+					--SET  @memo = REPLACE(@memo,'</p>','');
 					
 					IF(@DetailQtyAdjustment > 0)
 					BEGIN
 						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),
-							   [Memo] = '<p>' + @Memo + ' ,' + 'Qty Adjusted From Stockline Adjustment </p>', 
+							   [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END, 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE() 
 						WHERE StockLineId = @StockLineId;
@@ -300,7 +300,7 @@ BEGIN
 					ELSE
 					BEGIN
 						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),
-							   [Memo] = '<p>' + @Memo + ' ,' + 'Qty Adjusted From Stockline Adjustment </p>', 
+							   [Memo] = CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END,  --@memo + '<p> Qty Adjusted From Stockline Adjustment </p>', 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE()
 						WHERE StockLineId = @StockLineId;

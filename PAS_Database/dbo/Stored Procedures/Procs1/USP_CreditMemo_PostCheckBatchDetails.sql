@@ -26,6 +26,7 @@
 	10   02/21/2023   Devendra Shekh	added if condtion with @IsRestrict and CM post issue resolved
 	11   04/05/2024   HEMANT SALIYA		Updated for Accounting Entry Changes
 	12   04/19/2024   Devendra Shekh	added changes for exchange and saving MSId For [CreditMemoPaymentBatchDetails]
+	13   04/22/2024   Devendra Shekh	modified to manage module Data InvoiceTypeId Wise
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -86,6 +87,15 @@ BEGIN
 		DECLARE @temptotaldebitcount DECIMAL(18,2)=0;
 		DECLARE @temptotalcreditcount DECIMAL(18,2)=0;
 		DECLARE @IsExchange BIT = 0;
+		DECLARE @InvoiceTypeId INT = 0;
+
+		Declare @WOInvoiceTypeId INT = 0;
+		Declare @SOInvoiceTypeId INT = 0;
+		Declare @ExchangeInvoiceTypeId INT = 0;
+
+		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
+		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
+		SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'EXCHANGE';
 		
 		SELECT @ApprovedStatusId = Id, @ApprovedStatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Posted';
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -109,7 +119,7 @@ BEGIN
 		)    
 
 		--READING MANAGEMENTSTRUCTUREID FROM CONDITION BASE.
-		SELECT @UpdateBy = CreatedBy, @IsWorkOrder = ISNULL(IsWorkOrder, 0), @DocumentNumber = CreditMemoNumber , @MasterCompanyId = MasterCompanyId, @IsExchange = ISNULL(IsExchange, 0) FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+		SELECT @UpdateBy = CreatedBy, @IsWorkOrder = ISNULL(IsWorkOrder, 0), @DocumentNumber = CreditMemoNumber , @MasterCompanyId = MasterCompanyId, @InvoiceTypeId = ISNULL(InvoiceTypeId, 0) FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 		SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode) = UPPER('CMDISACC');
 		SELECT @StatusId = Id, @StatusName = [name] FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
 		SELECT @JournalTypeId = ID, @JournalTypeCode = JournalTypeCode, @JournalTypename = JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'CMDA';
@@ -192,11 +202,11 @@ BEGIN
 			)
 
 			--INSERT RECORDS IN #TMPCOMMONJOURNALBATCHDETAIL IF RECORDS ARE AVAILABLES.
-			IF(@IsWorkOrder = 0)
+			IF(@InvoiceTypeId IN (@SOInvoiceTypeId,@ExchangeInvoiceTypeId))
 			BEGIN
 				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='Stockline';
 			END
-			ELSE IF(@IsWorkOrder = 1)
+			ELSE IF(@InvoiceTypeId = @WOInvoiceTypeId)
 			BEGIN
 				SELECT @AppModuleId = ManagementStructureModuleId FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName ='WorkOrderMPN';
 			END
@@ -237,7 +247,7 @@ BEGIN
 					FROM [DBO].[CreditMemoDetails] WITH(NOLOCK)
 					WHERE CreditMemoDetailId = @CreditMemoDetailId; 
 
-					IF(@IsWorkOrder = 0 AND @IsExchange = 0)
+					IF(@InvoiceTypeId = @SOInvoiceTypeId)
 					BEGIN
 						SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
 						FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
@@ -248,7 +258,7 @@ BEGIN
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 					END
-					ELSE IF(@IsWorkOrder = 1)
+					ELSE IF(@InvoiceTypeId = @WOInvoiceTypeId)
 					BEGIN
 						SELECT @InvoiceReferenceId = WorkOrderPartId, @ManagementStructureId = WOP.ManagementStructureId  
 						FROM [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) 
@@ -258,7 +268,7 @@ BEGIN
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 					END
-					ELSE IF(@IsExchange = 1)
+					ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 					BEGIN
 						SELECT @InvoiceReferenceId = ESOPN.StockLineId, @ManagementStructureId = SL.ManagementStructureId  --ESO.ManagementStructureId  
 						FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] ESOBII WITH(NOLOCK) 

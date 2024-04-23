@@ -18,6 +18,7 @@
 	3    08/01/2023  AMIT GHEDIYA				Handle Multiple record cash.
 	4    20/02/2023 Devendra Shekh				added new param
 	5    19/04/2023 Devendra Shekh				added new param(IsExchange)
+	6    22/04/2023 Devendra Shekh				added new param(InvoiceTypeId) and removed IsExchange
      
 -- EXEC CreateUpdateCreditMemoHeader 1
 ************************************************************************/
@@ -63,7 +64,7 @@ CREATE   PROCEDURE [dbo].[CreateUpdateCreditMemoHeader]
 	@ReferenceId bigint=NULL,
 	@ReturnDate datetime2(7)=NULL,
 	@IsStandAloneCM bit=NULL,
-	@IsExchange bit=NULL,
+	@InvoiceTypeId int=NULL,
 	@Result bigint OUTPUT
 AS
 BEGIN
@@ -97,12 +98,12 @@ BEGIN
 											   [CustomerId],[CustomerName],[CustomerCode],[CustomerContactId],[CustomerContact],[CustomerContactPhone],
 											   [IsWarranty],[IsAccepted],[ReasonId],[DeniedMemo],[RequestedById],[RequestedBy],[ApproverId],[ApprovedBy],
 											   [WONum],[WorkOrderId],[Originalwosonum],[Memo],[Notes],[ManagementStructureId],[IsEnforce],[MasterCompanyId],
-                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsWorkOrder],[ReferenceId],[ReturnDate], [IsStandAloneCM], [IsExchange])
+                                               [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsWorkOrder],[ReferenceId],[ReturnDate], [IsStandAloneCM],[InvoiceTypeId])
 										VALUES (@CreditMemoNumber,@rmaId,@rmaNum,@InvoiceId,@InvoiceNumber,@InvoiceDate,@StatusId,@Status,
 												@CustomerId,@CustomerName,@CustomerCode,@CustomerContactId,@CustomerContact,@CustomerContactPhone,  
 												@IsWarranty,@IsAccepted,@ReasonId,@DeniedMemo,@RequestedById,@RequestedBy,@ApproverId,@ApprovedBy,  
 												@WONum,@WorkOrderId,@Originalwosonum,@Memo,@Notes,@ManagementStructureId,@IsEnforce,@MasterCompanyId,
-												@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@IsActive,@IsDeleted,@IsWorkOrder,@ReferenceId,@ReturnDate, @IsStandAloneCM, @IsExchange);
+												@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@IsActive,@IsDeleted,@IsWorkOrder,@ReferenceId,@ReturnDate, @IsStandAloneCM,@InvoiceTypeId);
 
 				SELECT	@Result = IDENT_CURRENT('CreditMemo');
 

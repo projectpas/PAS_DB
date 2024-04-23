@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -69,7 +68,7 @@ BEGIN
 	 SET @todate = @id;
 	 SET @vendorId = case when @id2 = '0' then null else @id2 end;
 	 SET @Typeid = @id3;
-	 SET @invoiceNum = @id5;
+	 SET @invoiceNum = CASE WHEN @id5  = ''  THEN NULL ELSE @id5 END ;
 	 SET @tagtype = @id6;
   
 	SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 

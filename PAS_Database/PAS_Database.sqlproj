@@ -2908,6 +2908,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetCommonVendorList.sql" />
     <Build Include="dbo\Tables\CustomerInvoiceType.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpen_Closed_WorkOrder.sql" />
+    <Build Include="dbo\Tables\AssetInventoryBillingInvoicingItem.sql" />
+    <Build Include="dbo\Tables\AssetInventoryBillingInvoicing.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBillingInvoicing.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryBillingInvoicingPdfData.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -20,6 +20,7 @@ CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails]
 @WorkOrderPartNoId BIGINT = NULL,
 @CustomerId BIGINT = NULL,  
 @ItemMasterId BIGINT = NULL, 
+@CustomerReference VARCHAR(500) = NULL, 
 @SerialNumber VARCHAR(100) = NULL, 
 @Memo NVARCHAR(MAX) = NULL, 
 @UpdatedBy VARCHAR(100) = NULL
@@ -37,6 +38,8 @@ BEGIN
 		DECLARE @CustomerName VARCHAR(30) = NULL;
 		DECLARE @ExistingCustomerId BIGINT = NULL;
 		DECLARE @ExistingItemMasterId BIGINT = NULL;
+		DECLARE @ExistingCustomerReference VARCHAR(200) = NULL;
+		DECLARE @ExistingSerialNumber VARCHAR(100) = NULL;
 		DECLARE @CustomerCode VARCHAR(30) = NULL;
 		DECLARE @CustomerType VARCHAR(30) = NULL;
 		DECLARE @WorkOrderNum VARCHAR(30) = NULL;
@@ -50,7 +53,10 @@ BEGIN
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
 		
-		SELECT @WorkOrderId = WorkOrderId, @RefferenceId = WorkOrderId, @ExistingItemMasterId = ItemMasterId,  @IsFinishedGood = ISNULL(IsFinishGood, 0), @IsClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
+		SELECT @WorkOrderId = WorkOrderId, @RefferenceId = WorkOrderId, @ExistingItemMasterId = ItemMasterId,  @IsFinishedGood = ISNULL(IsFinishGood, 0), 
+			   @IsClosed = ISNULL(IsClosed, 0) , @ExistingCustomerReference = CustomerReference, 
+			   @ExistingSerialNumber = CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE CurrentSerialNumber END
+		FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
 
 		SELECT	@CustomerName = C.[Name], @CustomerCode = C.CustomerCode, @CustomerType = CT.CustomerTypeName,
 				@CustomerContactId = CC.CustomerContactId, 
@@ -166,8 +172,8 @@ BEGIN
 				   IsFinishGood = CASE WHEN ISNULL(IsFinishGood, 0) > 0 THEN 0 ELSE IsFinishGood END,
 				   IsClosed = CASE WHEN ISNULL(IsClosed, 0) > 0 THEN 0 ELSE IsClosed END,
 				   ClosedDate = NULL,
-				   WorkOrderStageId = 0,
-				   WorkOrderStatusId = 0
+				   WorkOrderStageId = NULL,
+				   WorkOrderStatusId = NULL
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.RevisedItemmasterid
 			WHERE WOP.ID = @WorkOrderPartNoId
@@ -176,7 +182,7 @@ BEGIN
 				IsMastervalue = 1, Isvalue_NA = 0
 			FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
 			WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
-			
+
 			UPDATE dbo.Stockline SET ItemMasterId =  @ItemMasterId , 
 					Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
@@ -227,11 +233,73 @@ BEGIN
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 
 			PRINT 'END PART NUMBER DETAILS'
+			
 		END
 
+		--CASE - 3 UPDATE CUST REFERENCE
+		IF(ISNULL(@CustomerReference, '') != '' AND ISNULL(@ExistingCustomerReference, '') != ISNULL(@CustomerReference, ''))
+		BEGIN
+			UPDATE WorkOrderPartNumber SET CustomerReference = @CustomerReference, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+			UPDATE dbo.Stockline SET RepairOrderNumber =  @CustomerReference, RepairOrderId =  NULL 
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+			UPDATE ReceivingCustomerWork
+				SET Reference = @CustomerReference
+			FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+		END
+
+		--CASE - 4 UPDATE SERIAL NUMBER
+		IF(ISNULL(@SerialNumber, '') != '' AND ISNULL(@ExistingSerialNumber, '') != ISNULL(@SerialNumber, ''))
+		BEGIN
+			UPDATE WorkOrderPartNumber SET CurrentSerialNumber = @SerialNumber, RevisedSerialNumber = @SerialNumber, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+			UPDATE dbo.Stockline SET SerialNumber = @SerialNumber, isSerialized =  1 
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
+
+			UPDATE ReceivingCustomerWork
+				SET SerialNumber = @SerialNumber, isSerialized =  1, IsSkipSerialNo = 0 
+			FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
+		END
+
+		--CASE - 4 UPDATE SERIAL NUMBER
+		IF(ISNULL(@Memo, '') != '')
+		BEGIN
 		
+		UPDATE dbo.Stockline SET Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN @Memo ELSE REPLACE(SL.Memo, '</p>','<br>') + @Memo + ' </p>' END
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
 
+			UPDATE ReceivingCustomerWork
+				SET Memo = CASE WHEN ISNULL(Memo,'') = '' THEN @Memo ELSE REPLACE(Memo, '</p>','<br>') + @Memo + ' </p>' END
+			FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
+		END
 
+		IF(ISNULL(@IsFinishedGood, 0) = 1)
+		BEGIN
+			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
+		END
+
+		IF(ISNULL(@IsClosed, 0) = 1)
+		BEGIN
+			EXEC USP_ReOpen_Closed_WorkOrder @WorkOrderPartNoId, @WorkOrderId, @UpdatedBy
+		END
   
  END TRY      
  BEGIN CATCH  

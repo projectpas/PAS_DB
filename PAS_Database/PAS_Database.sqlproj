@@ -2907,6 +2907,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportSSRSData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonVendorList.sql" />
     <Build Include="dbo\Tables\CustomerInvoiceType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpen_Closed_WorkOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

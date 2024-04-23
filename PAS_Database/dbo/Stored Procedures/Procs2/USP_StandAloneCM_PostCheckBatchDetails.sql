@@ -18,6 +18,7 @@
 	2    09/05/2023   Amit Ghediya	Update to allow negative value for batch.	
 	3    09/15/2023   Amit Ghediya	Update for management stucture add in common table.
     4    04/22/2024   Moin Bloch	Updated Removed Static StandAloneCMModuleId
+	5    04/23/2024   Moin Bloch	Updated Added Document Number For List 
 **************************************************************/
 
 CREATE        PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
@@ -115,7 +116,7 @@ BEGIN
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM [DBO].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM [DBO].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (REPLACE(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			
-			SELECT @ManagementStructureId = ManagementStructureId FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+			SELECT @ManagementStructureId = ManagementStructureId, @ExtNumber = [CreditMemoNumber] FROM [DBO].[CreditMemo] WITH(NOLOCK) WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
 
 		INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 

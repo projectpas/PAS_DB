@@ -15,6 +15,7 @@
  ** --   --------		 -------			--------------------------------            
     1    09/06/2023		Devendra Shekh			Created  
 	2    22/04/2024		Moin Bloch			    Added  Acconting Detail For StandAloneCMModuleId
+	3    23/04/2024     Moin Bloch	            Updated Added Document Number For List 
        
 -- exec USP_GetCreditMemo_AccountingDetailsById 191,53
 ************************************************************************/   
@@ -70,7 +71,8 @@ BEGIN
 			  ,JBD.[GlAccountName]  
 			  ,JBD.[TransactionDate]  
 			  ,JBD.[EntryDate]  
-			  ,CPD.ReferenceID AS [ReferenceId]
+			  ,CPD.[ReferenceID] AS [ReferenceId]
+			  ,CPD.[DocumentNo] AS [ReferenceName]
 			  ,JBD.[JournalTypeId]  
 			  ,JBD.[JournalTypeName]  
 			  ,JBD.[IsDebit]  
@@ -147,6 +149,7 @@ BEGIN
 			  ,JBD.[TransactionDate]  
 			  ,JBD.[EntryDate]  
 			  ,CPD.ReferenceID AS [ReferenceId]
+			  ,CPD.[DocumentNo] AS [ReferenceName]
 			  ,JBD.[JournalTypeId]  
 			  ,JBD.[JournalTypeName]  
 			  ,JBD.[IsDebit]  

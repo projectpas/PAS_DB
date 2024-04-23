@@ -155,7 +155,8 @@ BEGIN
 		  [CustomerCode],
 		  [PaymentRef],
 		  ISNULL([Amount],0)AS Amount,
-		  ISNULL(SUM(AmountRemaining),0) AS AmountRemaining,
+		  ---ISNULL(SUM(AmountRemaining),0) AS AmountRemaining,
+		  (ISNULL([Amount],0) - ISNULL(SUM(AmtApplied),0)) AS AmountRemaining,
 		  ISNULL(SUM(AmtApplied),0) AS AmtApplied
      FROM myCTE4 GROUP BY 
 	      [ReceiptId],

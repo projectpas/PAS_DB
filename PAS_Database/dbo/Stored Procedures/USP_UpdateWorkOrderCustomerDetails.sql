@@ -35,6 +35,8 @@ BEGIN
 		DECLARE @CSRId BIGINT = NULL;
 		DECLARE @ContactNumber VARCHAR(30) = NULL;
 		DECLARE @CustomerName VARCHAR(30) = NULL;
+		DECLARE @ExistingCustomerId BIGINT = NULL;
+		DECLARE @ExistingItemMasterId BIGINT = NULL;
 		DECLARE @CustomerCode VARCHAR(30) = NULL;
 		DECLARE @CustomerType VARCHAR(30) = NULL;
 		DECLARE @WorkOrderNum VARCHAR(30) = NULL;
@@ -48,7 +50,7 @@ BEGIN
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
 		
-		SELECT @WorkOrderId = WorkOrderId, @RefferenceId = WorkOrderId,  @IsFinishedGood = ISNULL(IsFinishGood, 0), @IsClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
+		SELECT @WorkOrderId = WorkOrderId, @RefferenceId = WorkOrderId, @ExistingItemMasterId = ItemMasterId,  @IsFinishedGood = ISNULL(IsFinishGood, 0), @IsClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId
 
 		SELECT	@CustomerName = C.[Name], @CustomerCode = C.CustomerCode, @CustomerType = CT.CustomerTypeName,
 				@CustomerContactId = CC.CustomerContactId, 
@@ -61,8 +63,10 @@ BEGIN
 			LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 		WHERE C.CustomerId = @CustomerId
 
+		SELECT @ExistingCustomerId = CustomerId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+
 		--CASE-1  UPDATE CUSTOMER DETAILS
-		IF(ISNULL(@CustomerId, 0) > 0)
+		IF(ISNULL(@CustomerId, 0) > 0 AND ISNULL(@CustomerId, 0) != ISNULL(@ExistingCustomerId, 0))
 		BEGIN
 			PRINT 'UPDATE CUSTOMER DETAILS'
 			SET @StatusCode = 'CUSTOMERCHANGE';
@@ -143,7 +147,7 @@ BEGIN
 		END
 
 		--CASE-2  UPDATE PART NUMBER DETAILS
-		IF(ISNULL(@ItemMasterId, 0) > 0)
+		IF(ISNULL(@ItemMasterId, 0) > 0 AND ISNULL(@ItemMasterId, 0) != ISNULL(@ExistingItemMasterId, 0))
 		BEGIN
 			PRINT 'PART NUMBER DETAILS'
 			SET @StatusCode = 'PARTNUMBERCHANGE';

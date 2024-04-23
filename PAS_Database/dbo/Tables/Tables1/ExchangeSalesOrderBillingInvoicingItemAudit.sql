@@ -23,8 +23,11 @@
     [GrandTotal]                            DECIMAL (18, 2) NULL,
     [OtherTax]                              DECIMAL (18, 2) NULL,
     [SalesTax]                              DECIMAL (18, 2) NULL,
+    [CogsAmount]                            DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSOBillingInvoicingItemId] ASC)
 );
+
+
 
 
 

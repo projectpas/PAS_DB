@@ -22,12 +22,15 @@
     [GrandTotal]                          DECIMAL (18, 2) NULL,
     [OtherTax]                            DECIMAL (18, 2) NULL,
     [SalesTax]                            DECIMAL (18, 2) NULL,
+    [CogsAmount]                          DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItem] PRIMARY KEY CLUSTERED ([ExchangeSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicing] ([SOBillingInvoicingId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderPart] FOREIGN KEY ([ExchangeSalesOrderPartId]) REFERENCES [dbo].[ExchangeSalesOrderPart] ([ExchangeSalesOrderPartId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

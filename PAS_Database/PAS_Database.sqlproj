@@ -2906,6 +2906,7 @@
     <Build Include="dbo\Functions\DistinctList.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportSSRSData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonVendorList.sql" />
+    <Build Include="dbo\Tables\CustomerInvoiceType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

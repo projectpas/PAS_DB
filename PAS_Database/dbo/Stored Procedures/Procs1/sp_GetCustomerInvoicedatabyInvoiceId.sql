@@ -14,14 +14,15 @@
     1    04/18/2022   Subhash Saliya	Created
 	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
 	3	 04/19/2024	  Devendra Shekh	added data for Exchange SO
+	4	 04/19/2024	  Devendra Shekh	modified for invoiceTypeId changes
 	
- -- exec sp_GetCustomerInvoicedatabyInvoiceId 92,1    
+ -- exec sp_GetCustomerInvoicedatabyInvoiceId 213,0,3    
 **************************************************************/ 
 
-CREATE Procedure [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
+CREATE   Procedure [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
 @InvoicingId BIGINT,
 @isWorkOrder BIT,
-@isExchange BIT
+@InvoiceTypeId INT
 AS
 BEGIN
 
@@ -31,8 +32,16 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
-			
-			IF(@isWorkOrder =0 AND @isExchange = 0)
+
+			Declare @WOInvoiceTypeId INT = 0;
+			Declare @SOInvoiceTypeId INT = 0;
+			Declare @ExchangeInvoiceTypeId INT = 0;
+
+			SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
+			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
+			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'EXCHANGE';
+
+			IF(@InvoiceTypeId = @SOInvoiceTypeId)
 			BEGIN
 
 				SELECT SOBI.SOBillingInvoicingId as InvoiceId,SOBI.InvoiceNo [InvoiceNo],
@@ -54,6 +63,7 @@ BEGIN
 			   ,SO.ManagementStructureId as ManagementStructureId
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
+			   ,@SOInvoiceTypeId AS 'InvoiceTypeId'
 			FROM [dbo].SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
 				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
@@ -65,7 +75,7 @@ BEGIN
 			    Where SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0	
 
 			END
-			ELSE IF(@isExchange = 1)
+			ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 			BEGIN
 
 				SELECT ESOBI.SOBillingInvoicingId as InvoiceId,ESOBI.InvoiceNo [InvoiceNo],
@@ -87,6 +97,7 @@ BEGIN
 			   ,ESO.ManagementStructureId as ManagementStructureId
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
+			   ,@ExchangeInvoiceTypeId AS 'InvoiceTypeId'
 			FROM [dbo].ExchangeSalesOrderBillingInvoicing ESOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].ExchangeSalesOrderPart ESOPN WITH (NOLOCK) ON ESOPN.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId
 				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON ESOBI.CustomerId = C.CustomerId
@@ -120,6 +131,7 @@ BEGIN
 			   ,c.CustomerCode
 			   ,'0' as AddressCount
 			   ,'0' as PartCount
+			   ,@WOInvoiceTypeId AS 'InvoiceTypeId'
 				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK)
 				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].WorkOrder WO WITH (NOLOCK) ON WOBI.WorkOrderId = WO.WorkOrderId

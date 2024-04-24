@@ -15,9 +15,10 @@
  ** S NO   Date         Author				Change Description                
  ** --   --------     -------			--------------------------------     
  **	1	19-04-2022   Devendra Shekh			created    
+ **	2	24-04-2022   Devendra Shekh			showing quote amt after customer approved    
  
 exec usprpt_GetWorkOrderBacklogReportSSRSData 
-@mastercompanyid=1,@id='2024-04-15 00:00:00',@id2='2024-04-15 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+@mastercompanyid=1,@id='2024-04-24 00:00:00',@id2='2024-04-24 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
@@ -60,6 +61,9 @@ BEGIN
 	@Level9 VARCHAR(MAX) = NULL,  
 	@Level10 VARCHAR(MAX) = NULL ;
 
+	DECLARE @ApprovedStatusId INT = 0;
+	SELECT @ApprovedStatusId = ApprovalProcessId FROM [dbo].[ApprovalProcess] WITH(NOLOCK) WHERE UPPER([Name]) = 'APPROVED';
+
 	SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
 	SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
 	SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
@@ -80,7 +84,7 @@ BEGIN
 		DROP TABLE #TEMPWOBackLogReportRecords
 	END
 
-	CREATE TABLE #TEMPOriginalStocklineRecords(        
+	CREATE TABLE #TEMPWOBackLogReportRecords(        
 		ID BIGINT IDENTITY(1,1),        
 		WorkOrderId BIGINT NULL,
 		WorkOrderPartNoId BIGINT NULL,
@@ -119,11 +123,12 @@ BEGIN
 		level8 VARCHAR(500) NULL,
 		level9 VARCHAR(500) NULL,
 		level10 VARCHAR(500) NULL,
-		MasterCompanyId int NULL
+		MasterCompanyId int NULL,
+		WorkOrderQuoteId BIGINT NULL
 	) 
 
-	INSERT INTO #TEMPOriginalStocklineRecords(WorkOrderId,WorkOrderPartNoId, Customername, PN, PNdescription, WONum, SerialNum, WOType, StageCode, StatusCode, ReceivedDate, OpenDate, ApprovedAmount, UnitCost, StocklineId, PartsCost, LaborCost, OverheadCost,  
-				MiscCharge, Othercost, Total, WODaysCount, Techname, Priority, WorkScope, QuoteAmount, DaysInStage, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, MasterCompanyId)  
+	INSERT INTO #TEMPWOBackLogReportRecords(WorkOrderId,WorkOrderPartNoId, Customername, PN, PNdescription, WONum, SerialNum, WOType, StageCode, StatusCode, ReceivedDate, OpenDate, ApprovedAmount, UnitCost, StocklineId, PartsCost, LaborCost, OverheadCost,  
+				MiscCharge, Othercost, Total, WODaysCount, Techname, Priority, WorkScope, QuoteAmount, DaysInStage, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, MasterCompanyId, WorkOrderQuoteId)  
     SELECT    
     WO.WorkOrderId,  
 	WOWF.WorkOrderPartNoId,
@@ -137,7 +142,7 @@ BEGIN
     UPPER(WOSS.Description) 'StatusCode',    
     CONVERT(VARCHAR(50), WOPN.ReceivedDate, 107) 'ReceivedDate',     
     CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) 'OpenDate',    
-    CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount + WQD.FreightFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00) END 'ApprovedAmount',  
+	0 'ApprovedAmount',  
     ISNULL(SL.purchaseorderUnitCost, 0) 'UnitCost',    
     RCW.StocklineId,    
     CASE WHEN ISNULL(WOBI.WOBillingInvoicingItemId, 0) = 0 THEN CAST(ISNULL(WOC.PartsCost, 0) AS VARCHAR(20)) ELSE CAST(ISNULL(WOBI.MaterialCost, 0) AS VARCHAR(20)) END'PartsCost',     
@@ -150,7 +155,7 @@ BEGIN
     ISNULL(UPPER(E.FirstName + ' ' + E.LastName), '') 'Techname',    
 	UPPER(ISNULL(P.[Description], '')) AS 'Priority',
 	UPPER(ISNULL(WS.[WorkScopeCodeNew], '')) AS 'WorkScope',
-	CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount + WQD.FreightFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00) END 'QuoteAmount',
+	0 'QuoteAmount',
 	0 AS 'DaysInStage',
     UPPER(MSD.Level1Name) AS level1,      
     UPPER(MSD.Level2Name) AS level2,     
@@ -163,13 +168,14 @@ BEGIN
     UPPER(MSD.Level9Name) AS level9,     
     UPPER(MSD.Level10Name) AS level10 ,  
     WO.MasterCompanyId  
+	,WOQ.WorkOrderQuoteId
    FROM DBO.WorkOrder WO WITH (NOLOCK)      
     INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId    
     INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
-    LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
+    --LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
     LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
     LEFT JOIN DBO.WorkOrderMPNCostDetails WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
     LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
@@ -203,16 +209,27 @@ BEGIN
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
      
-	 UPDATE  #TEMPOriginalStocklineRecords SET DaysInStage = tmpDaysData.DaysInStage
+	 UPDATE  #TEMPWOBackLogReportRecords SET DaysInStage = tmpDaysData.DaysInStage
 			FROM( SELECT WTA.WorkOrderPartNoId,
 						 CASE WHEN WTA.StatusChangedEndDate IS NULL THEN ISNULL(DATEDIFF(day, (WTA.StatusChangedDate), GETDATE()), 0) 
 								ELSE (ISNULL(((WTA.[Days])+ ((WTA.[Hours])/24)+ ((WTA.[Mins])/1440)),0)) END AS 'DaysInStage'
 			FROM [DBO].[WorkOrderTurnArroundTime] WTA WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderStage] WOSD WITH(NOLOCK) ON WTA.CurrentStageId = WOSD.WorkOrderStageId
 			GROUP BY WTA.WorkOrderPartNoId, WTA.StatusChangedEndDate, WTA.StatusChangedDate, WTA.[Days], WTA.[Hours], WTA.[Mins]
-			) tmpDaysData WHERE tmpDaysData.WorkOrderPartNoId = #TEMPOriginalStocklineRecords.WorkOrderPartNoId
+			) tmpDaysData WHERE tmpDaysData.WorkOrderPartNoId = #TEMPWOBackLogReportRecords.WorkOrderPartNoId
+
+
+	UPDATE  #TEMPWOBackLogReportRecords SET ApprovedAmount = tmpQuoteData.QuoteAmount, QuoteAmount = tmpQuoteData.QuoteAmount
+			FROM(SELECT WOQD.WorkOrderQuoteId, WOPD.WorkOrderPartNoId,
+						 CASE WHEN ISNULL(WOPD.ApprovalActionId, 0) = @ApprovedStatusId THEN
+								CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 0 THEN SUM(ISNULL((WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount),0.00)) ELSE SUM(ISNULL(WOQD.CommonFlatRate,0.00)) END ELSE 0 END 'QuoteAmount'
+			FROM [DBO].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK)
+			LEFT JOIN [DBO].[WorkOrderApproval] WOPD WITH(NOLOCK) ON WOQD.WorkOrderQuoteDetailsId = WOPD.WorkOrderDetailId
+			LEFT JOIN [DBO].[WorkOrderPartNumber] WOPN WITH(NOLOCK) ON WOPN.ID = WOPD.WorkOrderPartNoId
+			GROUP BY WOQD.WorkOrderQuoteId, WOPD.ApprovalActionId,WOQD.QuoteMethod,WOPD.WorkOrderPartNoId
+			) tmpQuoteData WHERE tmpQuoteData.WorkOrderQuoteId = #TEMPWOBackLogReportRecords.WorkOrderQuoteId AND tmpQuoteData.WorkOrderPartNoId = #TEMPWOBackLogReportRecords.WorkOrderPartNoId
     
-    SELECT COUNT(WorkOrderId) OVER () AS TotalRecordsCount, * FROM #TEMPOriginalStocklineRecords ORDER BY WorkOrderId DESC  
+    SELECT COUNT(WorkOrderId) OVER () AS TotalRecordsCount, * FROM #TEMPWOBackLogReportRecords ORDER BY WorkOrderId DESC  
 
     COMMIT TRANSACTION    
   END TRY    

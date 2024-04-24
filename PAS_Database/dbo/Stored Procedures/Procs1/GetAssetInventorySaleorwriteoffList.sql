@@ -17,6 +17,7 @@
     1    08/04/2023   Amit Ghediya    Created
 	2    08/08/2023   Amit Ghediya    updated Get data which have qty available.
 	3    08/09/2023   Amit Ghediya    updated for filter.
+	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -65,7 +66,11 @@ BEGIN
 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
-
+		DECLARE @InventoryStatusId INT = 0;
+		DECLARE @CheckIntoWOInventoryStatusId INT = 0;
+		DECLARE @AvailableInventoryStatusId INT = 0;
+		DECLARE @WrittenOffInventoryStatusId INT = 0;
+		DECLARE @SoldInventoryStatusId INT = 0;
 		DECLARE @RecordFrom INT;
 		DECLARE @ModuleID VARCHAR(500) ='42,43'
 		DECLARE @IsActive BIT = 1
@@ -86,24 +91,37 @@ BEGIN
 			SET @SortColumn = Upper(@SortColumn)
 		END
 
-		If @StatusID = 0
-		BEGIN 
-			SET @IsActive = 0
-		END 
-		ELSE IF @StatusID = 1
+		SELECT @CheckIntoWOInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'CHECKED IN TO WO'
+
+		SELECT @WrittenOffInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Written Off'
+
+		SELECT @SoldInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Sold'
+
+		SELECT @AvailableInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Available'
+
+		IF @StatusID = @AvailableInventoryStatusId
 		BEGIN 
 			SET @IsActive = 1
-		END 
-		ELSE IF @StatusID = 2
+			SET @InventoryStatusId = NULL
+		END
+		ELSE IF @StatusID = @SoldInventoryStatusId
 		BEGIN 
 			SET @IsActive = NULL
+			SET @InventoryStatusId = @SoldInventoryStatusId
 		END 
+		ELSE
+		BEGIN 
+			SET @IsActive = NULL
+			SET @InventoryStatusId  = NULL
+		END 
+
+		PRINT @InventoryStatusId
 
 		BEGIN TRY
 			--BEGIN TRANSACTION
 			--	BEGIN
 						;With Result AS(
-							SELECT	
+							SELECT	Distinct
 								asm.AssetRecordId as AssetRecordId,
 								AssetInventoryId = asm.AssetInventoryId,
 								asm.Name AS Name,
@@ -140,7 +158,8 @@ BEGIN
 								V.VendorName,	
 								MSD.LastMSLevel,	
 								MSD.AllMSlevels,asm.statusNote,
-								awo.WorkOrderNum
+								awo.WorkOrderNum,
+								aibi.ASBillingInvoicingId
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
@@ -153,10 +172,15 @@ BEGIN
 								LEFT JOIN  [dbo].[AssetManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetInventoryId	
 								LEFT JOIN  [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId	
 								LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
+								LEFT JOIN  [dbo].[AssetInventoryBillingInvoicing] aibi WITH (NOLOCK) ON AIBI.AssetInventoryId = asm.AssetInventoryId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
-																AND asm.Qty > 0
+																AND (CASE WHEN @InventoryStatusId = @SoldInventoryStatusId THEN asm.Qty END <= 0 
+																	OR CASE WHEN ISNULL(@InventoryStatusId, 0) <> @SoldInventoryStatusId OR @InventoryStatusId IS NULL THEN asm.Qty END > 0)
+																AND (CASE WHEN @StatusID = @AvailableInventoryStatusId THEN asm.InventoryStatusId END NOT IN (@SoldInventoryStatusId, @WrittenOffInventoryStatusId, @CheckIntoWOInventoryStatusId)
+																	OR CASE WHEN @StatusID <> @AvailableInventoryStatusId THEN asm.InventoryStatusId END = asm.InventoryStatusId)
+																AND (@InventoryStatusId IS NULL OR asm.InventoryStatusId = ISNULL(@InventoryStatusId, 0))
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (

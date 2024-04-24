@@ -27,14 +27,14 @@
 	10   26/02/2024   Moin Bloch	Updated the SP to get TotalUnitCost,Freight,and Charges
 	11   01/03/2024   Devendra Shekh added [IsBilling] to select
 	11   20/03/2024   HEMANT SALIYA Convert to Temp Table for handle Duplicate Values
+	12   23/04/2024   Moin Bloch	Updated Invoice Status is not changed Issue PN-7651
      
-
-  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 657,41190,7
+  EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 854,20753,7
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
-	 @SalesOrderId  bigint,  
-	 @SalesOrderPartId bigint,  
-	 @ConditionId bigint  
+@SalesOrderId  bigint,  
+@SalesOrderPartId bigint,  
+@ConditionId bigint  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -171,9 +171,9 @@ BEGIN
 			(SELECT ISNULL(SO.TotalFreight,0) FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 			WHERE [SO].[SalesOrderId] = @SalesOrderId AND so.ChargesBilingMethodId = @ChargesBilingMethodId)
 			AS TotalFlatCharges,
-			(SELECT TOP 1 a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
+			(SELECT a.InvoiceStatus FROM dbo.SalesOrderBillingInvoicing a WITH (NOLOCK) 
 				INNER JOIN dbo.SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
-				Where a.SalesOrderId = @SalesOrderId  AND b.ItemMasterId = sop.ItemMasterId 
+				Where a.SalesOrderId = @SalesOrderId AND sobii.SOBillingInvoicingId = a.SOBillingInvoicingId AND b.ItemMasterId = sop.ItemMasterId 
 				AND sop.StockLineId = b.StockLineId AND SalesOrderShippingId = sosi.SalesOrderShippingId
 				AND ISNULL(a.IsProforma,0) = 0 AND ISNULL(b.IsProforma,0) = 0) 
 			AS InvoiceStatus, 

@@ -17,6 +17,7 @@
 	4    04/04/2024   Hemant Saliya   Updated for -Ve for CM
 	5    04/19/2024   Devendra Shekh   added data for Exchange SO
 	6    04/22/2024   Devendra Shekh   tax amt issue for Exchange Resolved and modified for InvocieTypeId Field
+	7    04/24/2024   Devendra Shekh   so duplicate record issue resolved
 	
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -167,8 +168,8 @@ BEGIN
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-						LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
-						LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
+						--LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
+						--LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
@@ -242,8 +243,6 @@ BEGIN
 						LEFT JOIN [dbo].[ExchangeBillingType] EBT WITH (NOLOCK) ON ESSB.BillingTypeId = EBT.ExchangeBillingTypeId
 						LEFT JOIN [dbo].[ExchangeSalesOrderPart] ESOPN WITH (NOLOCK) ON ESOPN.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId AND ESOPN.ExchangeSalesOrderPartId = ESOBII.ExchangeSalesOrderPartId
 						LEFT JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
-						LEFT JOIN [dbo].[ExchangeSalesOrderFreight] ESOF WITH (NOLOCK) ON ESOF.ExchangeSalesOrderPartId = ESOPN.ExchangeSalesOrderPartId
-						LEFT JOIN [dbo].[ExchangeSalesOrderCharges] ESOC WITH (NOLOCK) ON ESOC.ExchangeSalesOrderPartId = ESOPN.ExchangeSalesOrderPartId
 						LEFT JOIN [dbo].[ExchangeQuote] ESQ WITH (NOLOCK) ON ESQ.ExchangeQuoteId = ESO.ExchangeQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ESOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = ESOPN.StockLineId AND ST.IsParent = 1

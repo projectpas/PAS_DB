@@ -68,6 +68,7 @@ BEGIN
 	SET NOCOUNT ON;
 		DECLARE @InventoryStatusId INT = 0;
 		DECLARE @CheckIntoWOInventoryStatusId INT = 0;
+		DECLARE @AvailableInventoryStatusId INT = 0;
 		DECLARE @WrittenOffInventoryStatusId INT = 0;
 		DECLARE @SoldInventoryStatusId INT = 0;
 		DECLARE @RecordFrom INT;
@@ -96,27 +97,19 @@ BEGIN
 
 		SELECT @SoldInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Sold'
 
-		If @StatusID = 0
-		BEGIN 
-			SET @IsActive = 0
-			SET @InventoryStatusId = NULL
-		END 
-		ELSE IF @StatusID = 1
+		SELECT @AvailableInventoryStatusId = AssetInventoryStatusId FROM AssetInventoryStatus WITH (NOLOCK) WHERE Status = 'Available'
+
+		IF @StatusID = @AvailableInventoryStatusId
 		BEGIN 
 			SET @IsActive = 1
 			SET @InventoryStatusId = NULL
-		END 
-		ELSE IF @StatusID = 12
-		BEGIN 
-			SET @IsActive = 1
-			SET @InventoryStatusId = @WrittenOffInventoryStatusId
 		END
-		ELSE IF @StatusID = 14
+		ELSE IF @StatusID = @SoldInventoryStatusId
 		BEGIN 
 			SET @IsActive = NULL
 			SET @InventoryStatusId = @SoldInventoryStatusId
 		END 
-		ELSE IF @StatusID = 2
+		ELSE
 		BEGIN 
 			SET @IsActive = NULL
 			SET @InventoryStatusId  = NULL
@@ -185,8 +178,8 @@ BEGIN
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
 																AND (CASE WHEN @InventoryStatusId = @SoldInventoryStatusId THEN asm.Qty END <= 0 
 																	OR CASE WHEN ISNULL(@InventoryStatusId, 0) <> @SoldInventoryStatusId OR @InventoryStatusId IS NULL THEN asm.Qty END > 0)
-																AND (CASE WHEN @StatusID = 1 THEN asm.InventoryStatusId END NOT IN (@SoldInventoryStatusId, @WrittenOffInventoryStatusId, @CheckIntoWOInventoryStatusId)
-																	OR CASE WHEN @StatusID <> 1 THEN asm.InventoryStatusId END = asm.InventoryStatusId)
+																AND (CASE WHEN @StatusID = @AvailableInventoryStatusId THEN asm.InventoryStatusId END NOT IN (@SoldInventoryStatusId, @WrittenOffInventoryStatusId, @CheckIntoWOInventoryStatusId)
+																	OR CASE WHEN @StatusID <> @AvailableInventoryStatusId THEN asm.InventoryStatusId END = asm.InventoryStatusId)
 																AND (@InventoryStatusId IS NULL OR asm.InventoryStatusId = ISNULL(@InventoryStatusId, 0))
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result

@@ -1,5 +1,25 @@
 ﻿
+/*************************************************************           
+ ** File:   [GetCustomerDatabyCustId]          
+ ** Author:   Unknown
+ ** Description: This stored procedure is used to get customer data.
+ ** Purpose:         
+ ** Date:   Unknown
+          
+ ** PARAMETERS:
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author          Change Description            
+ ** --   --------     -------		  --------------------------------          
+    1    Unknown   Unknown   Created
+	2    04/23/2024   Abhishek Jirawla Added credit terms id in return
 
+EXEC [dbo].[USP_Asset_GetSaleorwriteoffById]  438
+**************************************************************/
 -- EXEC [dbo].[GetCustomerDatabyCustId] 14
 CREATE PROCEDURE [dbo].[GetCustomerDatabyCustId]
 	@customerId bigint = null
@@ -13,6 +33,7 @@ BEGIN
 	   C.CustomerCode
 	  ,c.Name as ShipToSiteName
 	  ,CF.CreditLimit  AS CreditLimit
+	  ,cts.[CreditTermsId]  AS CreditTermId
 	  ,cts.[Name]  AS CreditTerm
 	  ,CR.Code  AS BaseCurrency
 	  FROM dbo.Customer C WITH (NOLOCK) 

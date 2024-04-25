@@ -16,9 +16,10 @@
  ** --   --------     -------			--------------------------------     
  **	1	19-04-2022   Devendra Shekh			created    
  **	2	24-04-2022   Devendra Shekh			showing quote amt after customer approved    
+ **	3	25-04-2022   Devendra Shekh			showing approved amt only after customer approved
  
 exec usprpt_GetWorkOrderBacklogReportSSRSData 
-@mastercompanyid=1,@id='2024-04-24 00:00:00',@id2='2024-04-24 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+@mastercompanyid=1,@id='2024-04-25 00:00:00',@id2='2024-04-25 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
@@ -219,14 +220,14 @@ BEGIN
 			) tmpDaysData WHERE tmpDaysData.WorkOrderPartNoId = #TEMPWOBackLogReportRecords.WorkOrderPartNoId
 
 
-	UPDATE  #TEMPWOBackLogReportRecords SET ApprovedAmount = tmpQuoteData.QuoteAmount, QuoteAmount = tmpQuoteData.QuoteAmount
-			FROM(SELECT WOQD.WorkOrderQuoteId, WOPD.WorkOrderPartNoId,
-						 CASE WHEN ISNULL(WOPD.ApprovalActionId, 0) = @ApprovedStatusId THEN
-								CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 0 THEN SUM(ISNULL((WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount),0.00)) ELSE SUM(ISNULL(WOQD.CommonFlatRate,0.00)) END ELSE 0 END 'QuoteAmount'
+	UPDATE  #TEMPWOBackLogReportRecords SET ApprovedAmount = CASE WHEN tmpQuoteData.ApprovalActionId = @ApprovedStatusId THEN tmpQuoteData.QuoteAmount ELSE 0 END, QuoteAmount = tmpQuoteData.QuoteAmount
+			FROM(SELECT WOQD.WorkOrderQuoteId, WOQD.WOPartNoId as WorkOrderPartNoId, ISNULL(WOPD.ApprovalActionId, 0) as ApprovalActionId,
+						 --CASE WHEN ISNULL(WOPD.ApprovalActionId, 0) = @ApprovedStatusId THEN
+								CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 0 THEN SUM(ISNULL((WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount + WOQD.FreightFlatBillingAmount),0.00)) ELSE SUM(ISNULL(WOQD.CommonFlatRate,0.00)) END 'QuoteAmount'
 			FROM [DBO].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK)
 			LEFT JOIN [DBO].[WorkOrderApproval] WOPD WITH(NOLOCK) ON WOQD.WorkOrderQuoteDetailsId = WOPD.WorkOrderDetailId
 			LEFT JOIN [DBO].[WorkOrderPartNumber] WOPN WITH(NOLOCK) ON WOPN.ID = WOPD.WorkOrderPartNoId
-			GROUP BY WOQD.WorkOrderQuoteId, WOPD.ApprovalActionId,WOQD.QuoteMethod,WOPD.WorkOrderPartNoId
+			GROUP BY WOQD.WorkOrderQuoteId, WOPD.ApprovalActionId,WOQD.QuoteMethod,WOQD.WOPartNoId
 			) tmpQuoteData WHERE tmpQuoteData.WorkOrderQuoteId = #TEMPWOBackLogReportRecords.WorkOrderQuoteId AND tmpQuoteData.WorkOrderPartNoId = #TEMPWOBackLogReportRecords.WorkOrderPartNoId
     
     SELECT COUNT(WorkOrderId) OVER () AS TotalRecordsCount, * FROM #TEMPWOBackLogReportRecords ORDER BY WorkOrderId DESC  

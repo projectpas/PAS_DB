@@ -15,7 +15,7 @@
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami		   Created        
-	 
+  --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2024-04-24',3654,1,null,null
 ***************************************************************************************************/        
 CREATE     PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
@@ -66,9 +66,9 @@ BEGIN
 	INSERT INTO #TEMPMSFilter(LevelIds)
 	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
 	 SET @todate = @id;
-	 SET @vendorId = case when @id2 = '0' then null else @id2 end;
+	 SET @vendorId = case when @id2 = '0' OR @id2 = '' then null else @id2 end;
 	 SET @Typeid = @id3;
-	 SET @invoiceNum = CASE WHEN @id5  = ''  THEN NULL ELSE @id5 END ;
+	 SET @invoiceNum = CASE WHEN @id5 = '' THEN NULL else @id5 end;
 	 SET @tagtype = @id6;
   
 	SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
@@ -244,7 +244,7 @@ BEGIN
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
-					(rrh.ManagementStructureId) AS ManagementStructureId, 'AP-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', rrh.InvoiceTotal AS 'InvoiceAmount',
+					(rrh.ManagementStructureId) AS ManagementStructureId, 'AP-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms', '0.000000' AS 'FixRateAmount', rrh.InvoiceTotal AS 'InvoiceAmount',
 					0 AS 'cmAmount',0 AS CreditMemoAmount,	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,       
 					UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,       
 					UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,rrh.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId
@@ -304,7 +304,7 @@ BEGIN
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
 																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbymorethan120days,
-					(SMSD.EntityMSID) AS ManagementStructureId, 'Credit Memo' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 
+					(SMSD.EntityMSID) AS ManagementStructureId, 'Credit Memo' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0.000000' AS 'FixRateAmount', 
 					VCD.OriginalAmt AS 'InvoiceAmount', VCD.OriginalAmt AS 'cmAmount',VCD.OriginalAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
 					UPPER(SMSD.Level1Name) AS level1, UPPER(SMSD.Level2Name) AS level2, UPPER(SMSD.Level3Name) AS level3,UPPER(SMSD.Level4Name) AS level4,UPPER(SMSD.Level5Name) AS level5,       
 					UPPER(SMSD.Level6Name) AS level6, UPPER(SMSD.Level7Name) AS level7,UPPER(SMSD.Level8Name) AS level8, UPPER(SMSD.Level9Name) AS level9,UPPER(SMSD.Level10Name) AS level10,
@@ -363,7 +363,7 @@ BEGIN
 	   				 WHEN ctm.Code='CIA' THEN -1      
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
-               MJD.ManagementStructureId AS ManagementStructureId,UPPER('Manual Journal Adjustment') AS 'DocType','' AS 'vendorRef', ''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        
+               MJD.ManagementStructureId AS ManagementStructureId,UPPER('Manual Journal Adjustment') AS 'DocType','' AS 'vendorRef', ''AS 'Salesperson',ctm.Name AS 'Terms', '0.000000' AS 'FixRateAmount', 			        
 			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1, UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3, UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
@@ -450,7 +450,7 @@ BEGIN
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
-					(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',ctm.Name AS 'Terms','0' AS 'FixRateAmount',      
+					(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',ctm.Name AS 'Terms','0.000000' AS 'FixRateAmount',      
 					PartData.InvoiceTotal AS 'InvoiceAmount',0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6,       
 					UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,NPH.MasterCompanyId,
@@ -494,8 +494,8 @@ BEGIN
 	, Result AS(      
 		SELECT DISTINCT       
 			(CTE.VendorId) AS VendorId ,      
-			((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
-			((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
+			UPPER((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
+			UPPER((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.InvoiceAmount - ISNULL(CTE.InvoicePaidAmount,0)),0) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount',
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END  AS 'Amountpaidbylessthen0days',   							
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby30days) END,0) END AS 'Amountpaidby30days',   							
@@ -503,7 +503,8 @@ BEGIN
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN CTE.Amountpaidby90days ELSE (CTE.Amountpaidby90days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby90days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby90days) END,0) END AS 'Amountpaidby90days',   							
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN CTE.Amountpaidby120days ELSE (CTE.Amountpaidby120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby120days) END,0) END AS 'Amountpaidby120days',   							
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN CTE.Amountpaidbymorethan120days ELSE (CTE.Amountpaidbymorethan120days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbymorethan120days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbymorethan120days) END,0) END AS 'Amountpaidbymorethan120days',   													   		
-			ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount',      
+			ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount',   
+			UPPER(CTE.InvoiceNo) AS 'InvoiceNo',  
 			UPPER(CTE.level1) AS level1, UPPER(CTE.level2) AS level2,  UPPER(CTE.level3) AS level3,  UPPER(CTE.level4) AS level4,UPPER(CTE.level5) AS level5,       
 			UPPER(CTE.level6) AS level6,UPPER(CTE.level7) AS level7,  UPPER(CTE.level8) AS level8, UPPER(CTE.level9) AS level9,UPPER(CTE.level10) AS level10,CTE.MasterCompanyId,0 AS cmAmount,
 			DaysPastDue
@@ -528,7 +529,7 @@ BEGIN
 		   FROM Result GROUP BY MastercompanyId)
 
    SELECT	VendorId, 
-            vendorName,vendorCode, 
+            UPPER(vendorName)vendorName,UPPER(vendorCode)vendorCode, 
 			SUM(InvoiceAmount) AS InvoiceAmount, 
 			SUM(BalanceAmount) AS BalanceAmount, 
 			SUM(Amountpaidbylessthen0days) AS Amountpaidbylessthen0days, 
@@ -603,7 +604,7 @@ BEGIN
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, (CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END) AS 'DocType',
-					'' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount',rrh.InvoiceTotal AS 'InvoiceAmount',      
+					'' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0.000000' AS 'FixRateAmount',rrh.InvoiceTotal AS 'InvoiceAmount',      
 					0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',     
 					UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,       
 					UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10,
@@ -664,8 +665,8 @@ BEGIN
 																	WHEN CTM.Code='CreditCard' THEN -1
 																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbymorethan120days,
 					(SMSD.EntityMSID) AS ManagementStructureId,'Credit Memo' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',      
-					ctm.Name AS 'Terms','0' AS 'FixRateAmount',VCD.OriginalAmt AS 'InvoiceAmount', VCD.OriginalAmt AS 'cmAmount', 
-					VCD.OriginalAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
+					'' AS 'Terms','0.000000' AS 'FixRateAmount',VCD.OriginalAmt AS 'InvoiceAmount', VCD.OriginalAmt AS 'cmAmount', 
+					VCD.OriginalAmt AS CreditMemoAmount,DATEADD(DAY, 0,NULL) AS 'DueDate',  
 					UPPER(SMSD.Level1Name) AS level1,UPPER(SMSD.Level2Name) AS level2, UPPER(SMSD.Level3Name) AS level3, UPPER(SMSD.Level4Name) AS level4,UPPER(SMSD.Level5Name) AS level5,       
 					UPPER(SMSD.Level6Name) AS level6,UPPER(SMSD.Level7Name) AS level7, UPPER(SMSD.Level8Name) AS level8, UPPER(SMSD.Level9Name) AS level9,UPPER(SMSD.Level10Name) AS level10,
 					VCM.MasterCompanyId,1 AS IsCreditMemo,VCM.VendorCreditMemoStatusId AS StatusId,0 AS InvoicePaidAmount
@@ -724,8 +725,8 @@ BEGIN
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId, 
-			   UPPER('Manual Journal Adjustment') AS 'DocType', '' AS 'vendorRef',''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        			   			   
-			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
+			   UPPER('Manual Journal Adjustment') AS 'DocType', '' AS 'vendorRef',''AS 'Salesperson','' AS 'Terms', '0.000000' AS 'FixRateAmount', 			        			   			   
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, 0,NULL) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3,  UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
 			   UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5, UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6,       
@@ -803,7 +804,7 @@ BEGIN
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 						(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms',      
-						'0' AS 'FixRateAmount', PartData.InvoiceTotal AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount,
+						'0.000000' AS 'FixRateAmount', PartData.InvoiceTotal AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount,
 						DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',     
 						UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,       
 						UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,
@@ -828,8 +829,7 @@ BEGIN
 				  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
 				  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,','))) AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
 				  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-				  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) )I
-		
+				  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) )I	
 		;WITH CTE AS (   
 			SELECT * FROM #tempReceivingReconciliationElse
 			UNION ALL
@@ -841,7 +841,7 @@ BEGIN
 		),		
 		Result AS(      
 			SELECT DISTINCT      
-			       (CTE.VendorId) AS VendorId ,ISNULL(CTE.vendorName,'') 'vendorName',ISNULL(CTE.vendorCode,'') 'vendorCode', UPPER(CTE.currencyCode) AS  'currencyCode',   
+			       (CTE.VendorId) AS VendorId ,UPPER(ISNULL(CTE.vendorName,'')) 'vendorName',UPPER(ISNULL(CTE.vendorCode,'')) 'vendorCode', UPPER(CTE.currencyCode) AS  'currencyCode',   
    		   		   CASE WHEN CTE.IsCreditMemo = 0 THEN (ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount', 
 				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',      
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
@@ -854,7 +854,7 @@ BEGIN
 				   ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount', 
 				   UPPER(CTE.DocType) AS DocType,
 				   UPPER(CTE.Terms) AS Terms,  
-				   CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
+				   CASE WHEN CTE.IsCreditMemo = 0 AND UPPER(CTE.DocType) != 'MANUAL JOURNAL ADJUSTMENT'  THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
 				   ISNULL(CTE.FixRateAmount,0) AS 'FixRateAmount',    
 				   UPPER(CTE.level1) AS level1, UPPER(CTE.level2) AS level2,       
 				   UPPER(CTE.level3) AS level3, UPPER(CTE.level4) AS level4,       
@@ -883,9 +883,9 @@ BEGIN
 				GROUP BY MastercompanyId)
 
 		  SELECT VendorId, 
-		         vendorName, 
-		         vendorCode, 
-				 InvoiceNo,
+		         UPPER(vendorName) vendorName, 
+		         UPPER(vendorCode) vendorCode, 
+				 UPPER(InvoiceNo) InvoiceNo,
 				 InvoiceDate,
 				 InvoiceAmount,
 				 BalanceAmount,				

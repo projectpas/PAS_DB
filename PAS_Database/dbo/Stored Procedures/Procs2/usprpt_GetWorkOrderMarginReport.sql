@@ -25,6 +25,7 @@
  7    04/09/2023   HEMANT SALIYA  Corrected Revenue Balance
  8    01/31/2024   Devendra Shekh added isperforma Flage for WO
  9    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
+10    04/25/2024   VISHAL SUTHAR  Added a fix to handle devide by zero exception
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -286,7 +287,7 @@ BEGIN
 					0 AS 'laborrevper',
 					0 AS 'ohcostper',  
 					0 AS 'revenueper',   
-					((ISNULL(CM.Amount,0)  * 100))/ISNULL(CM.Amount,0)'grossmarginrevper',  
+					CASE WHEN ISNULL(CM.Amount,0) != 0 THEN (((ISNULL(CM.Amount,0)  * 100))/ISNULL(CM.Amount,0)) ELSE ISNULL(CM.Amount,0) END AS 'grossmarginrevper',  
 
 					--ISNULL(CM.Amount,0) 'revenue',      
 					--ISNULL(WOC.PartsCost,0) 'partscost',      

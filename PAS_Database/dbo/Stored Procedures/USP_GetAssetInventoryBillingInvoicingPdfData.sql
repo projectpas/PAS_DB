@@ -25,6 +25,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
   BEGIN TRY  
 	DECLARE @AssetInventoryId BIGINT = 0;
+	DECLARE @MasterCompanyId BIGINT = 0;
 	DECLARE @Customer INT = 0
 	DECLARE @Vendor INT = 0
 	DECLARE @Company INT = 0
@@ -32,8 +33,7 @@ BEGIN
 	SELECT @Customer = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Customer';
 	SELECT @Vendor = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
 	SELECT @Company = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Company';
-	SELECT @AssetInventoryId = [AssetInventoryId] FROM dbo.AssetInventoryBillingInvoicing WITH(NOLOCK) WHERE [ASBillingInvoicingId] = @ASBillingInvoicingId;
-
+	SELECT @AssetInventoryId = [AssetInventoryId], @MasterCompanyId = MasterCompanyId FROM dbo.AssetInventoryBillingInvoicing WITH(NOLOCK) WHERE [ASBillingInvoicingId] = @ASBillingInvoicingId;
 
 	SELECT TOP 1 
 			1 AS ItemNo,
@@ -43,7 +43,7 @@ BEGIN
 			cust.Email AS CustEmail,
 			bi.Notes AS ASNotes,
 			ISNULL(cont.countries_name, '') AS CustCountry,
-			--ISNULL(sp.FirstName + ' ' + sp.LastName, '') AS SalesPerson,
+			ISNULL(emp_con.FirstName + ' ' + emp_con.LastName, '') AS SalesPerson,
 			--ISNULL(po.PurchaseOrderNumber, '') + '/' + ISNULL(ro.RepairOrderNumber, '') AS PORONum,
 			custAddress.Line1 AS AddressLine1,
 			custAddress.Line2 AS AddressLine2,
@@ -59,6 +59,7 @@ BEGIN
 			shipCountry.countries_name AS ShipToCountry,
 			shipCustomer.[Name] AS ShipToNameOfCustomer,
 			shipCustomer.[Email] AS ShipToCustomerEmail,
+			shipCustomer.[CustomerPhone] AS ShipToCustomerPhone,
 			--saos.ShipToSiteName AS SiteName,
 			--saos.ShipToAddress1 AS ShipToAddressLine1,
 			--saos.ShipToAddress2 AS ShipToAddressLine2,
@@ -128,9 +129,9 @@ BEGIN
 			bi.CreatedBy AS PreparedBy,
 			ISNULL(CONVERT(VARCHAR(10), bi.PrintDate, 121),'') AS DatePrinted,
 			--ISNULL(saos.[Weight], 0) AS 'Weight',
-			--so.[CreditTermName] AS CreditTerms,
+			ct.[Name] AS CreditTerms,
 			ISNULL(cur.Code, '') AS Currency,
-			--so.SalesOrderNumber AS SONum,
+			ai.InventoryNumber AS ASNum,
 			--ISNULL(CONVERT(VARCHAR(10), so.OpenDate, 121),'') AS OrderDate,
 			--ISNULL(CONVERT(VARCHAR(10), saos.ShipDate, 121),'') AS ShipDate,
 			--ISNULL(sipVia.[Name], '') AS ShipVia,
@@ -157,9 +158,10 @@ BEGIN
 			LEFT JOIN  [dbo].[Asset] asset WITH(NOLOCK) ON ai.AssetRecordId = asset.AssetRecordId
 			LEFT JOIN  [dbo].[Customer] cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
 			LEFT JOIN  [dbo].[Address] custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
-			--LEFT JOIN  [dbo].[CustomerContact] cust_cont WITH(NOLOCK) ON so.CustomerContactId = cust_cont.CustomerContactId
-			--LEFT JOIN  [dbo].[Contact] contact WITH(NOLOCK) ON cust_cont.ContactId = contact.ContactId
-			--LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
+			LEFT JOIN  [dbo].[CustomerSales] cust_sale WITH(NOLOCK) ON cust.CustomerId = cust_sale.CustomerId
+			LEFT JOIN  [dbo].[Employee] emp_con WITH(NOLOCK) ON emp_con.EmployeeId = cust_sale.PrimarySalesPersonId
+			LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON cust.CustomerId = cf.CustomerId
+			LEFT JOIN [dbo].CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 			LEFT JOIN  [dbo].[InvoiceType] it WITH(NOLOCK) ON bi.InvoiceTypeId = it.InvoiceTypeId
 			LEFT JOIN  [dbo].[Employee] emp WITH(NOLOCK) ON bi.EmployeeId = emp.EmployeeId
 			LEFT JOIN  [dbo].[Customer] soldToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId = soldToCustomer.CustomerId

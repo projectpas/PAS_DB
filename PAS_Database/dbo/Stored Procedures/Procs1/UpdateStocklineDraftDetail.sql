@@ -17,6 +17,7 @@
     1    12/05/2023   AMIT GHEDIYA	    Modify(Added Traceable & Tagged fields) 
     2    12/26/2023   Vishal Suthar	    Undo Amit's changes to update from PO Part
 	3    18-04-2024   Shrey Chandegara  change for order date 
+	4    25-04-2024   Vishal Suthar		Removed field (WorkOrderId, SalesOrderId, etc.) to get updated from POP which will remove the data of receiver stock report
 
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
@@ -135,10 +136,10 @@ BEGIN
 	    IsPMA = IM.IsPma,
 	    IsDER = IM.IsDER,
 	    OEM = IM.IsOEM,
-	    WorkOrderId = POP.WorkOrderId,
-		SubWorkOrderId = POP.SubWorkOrderId,
-		SalesOrderId = POP.SalesOrderId,
-		ExchangeSalesOrderId = POP.ExchangeSalesOrderId,
+	    --WorkOrderId = POP.WorkOrderId,
+		--SubWorkOrderId = POP.SubWorkOrderId,
+		--SalesOrderId = POP.SalesOrderId,
+		--ExchangeSalesOrderId = POP.ExchangeSalesOrderId,
 	    UnitOfMeasure = UM.shortname,
 		TagType = TT.[Name]
 	    FROM [dbo].[StocklineDraft] SD WITH (NOLOCK)

@@ -1,4 +1,6 @@
-﻿/*************************************************************             
+﻿
+
+/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_ReceivedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report For Most Received Parts
@@ -27,13 +29,13 @@ AS
 BEGIN  
   SET NOCOUNT ON;  
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
-		SET @PageSize = 25;
+		SET @PageSize = 50;
+		DECLARE @Count VARCHAR(10)='50',@Sql NVARCHAR(MAX);  
 		DECLARE @customerid varchar(40) = NULL,  
 		@fromdate datetime,  
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
 		@searchWOType varchar(10) = NULL,
-		@itemMasterId varchar(40) = NULL,
 		@isCustomerWO bit = NULL,
 		@woTypeIds varchar(200) = NULL,
 		@level1 VARCHAR(MAX) = NULL,
@@ -47,13 +49,13 @@ BEGIN
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
-		@totalResult int = 0
+		@totalResult VARCHAR(10) = 0
 
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
        print 'Start'
-      DECLARE @ModuleID INT = 1; -- Receving Customer Module Id
+      DECLARE @ModuleID INT = 12; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -66,12 +68,12 @@ BEGIN
 		
 		@workscopeIds=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Work Scope' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @workscopeIds end,
-
+		
+		@Count=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='defaultRecord' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Count end,
+		
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
-
-		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='MPN(Optional)' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
@@ -95,6 +97,7 @@ BEGIN
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end
 	  FROM
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
+		  SET @Count = COALESCE(NULLIF(@Count, 0), 50);
 		  SET @isCustomerWO = (CASE WHEN @searchWOType = '5' THEN 1 ELSE 0 END)
 		 --SET @woTypeIds = (CASE WHEN @isCustomerWO = 1 THEN (SELECT Id FROM DBO.WorkOrderType WITH(NOLOCK) WHERE Description = 'Customer' ) ELSE (SELECT Id FROM DBO.WorkOrderType WITH(NOLOCK) WHERE Description != 'Customer' ) END)
 		 SET @woTypeIds = 
@@ -109,7 +112,6 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 	  --SET @woTypeIds = 1
-	  PRINT @workscopeIds
 	  SELECT * INTO #TempWOOperating FROM
 
       (SELECT 
@@ -131,23 +133,22 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			WBI.BillingInvoicingId
        FROM 
-			DBO.ReceivingCustomerWork CW WITH (NOLOCK)
-			INNER JOIN DBO.Customer WITH (NOLOCK) ON CW.CustomerId = Customer.CustomerId  
-			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON CW.itemmasterId = IM.itemmasterId
-			INNER JOIN DBO.Condition AS CN WITH (NOLOCK) ON CW.ConditionId = CN.ConditionId 
-			LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON CW.ReceivingCustomerWorkId = WOPN.ReceivingCustomerWorkId
-			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId 
-			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK) ON WOPN.Id =  WOBIT.WorkOrderPartId AND ISNULL(WOBIT.IsVersionIncrease,0) = 0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 
-			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
-			LEFT JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = CW.ReceivingCustomerWorkId
+			DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  
+			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) on WBI.WorkOrderId = WO.WorkOrderId
+			INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIT.WorkOrderPartId = WOPN.ID
+			INNER JOIN DBO.ReceivingCustomerWork CW WITH (NOLOCK) ON WO.WorkOrderId = CW.WorkOrderId AND WOPN.ItemMasterId = CW.ItemMasterId
+			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-	
+			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
+			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId
+			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
 		  
-		  WHERE ISNULL(CW.IsDeleted,0) = 0 AND ISNULL(CW.IsDeleted,0) = 0 AND
-				CW.CustomerId=ISNULL(@customerid,CW.CustomerId) AND CW.ItemMasterId = ISNULL(@itemMasterId,CW.ItemMasterId)
-					AND CAST(CW.ReceivedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND CW.mastercompanyid = @mastercompanyid
-					--AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
-					AND (ISNULL(@workscopeIds,'')='' OR CW.ConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(CW.IsDeleted,0) = 0 AND
+				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
+					AND CAST(WBI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
+					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
+					--AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -167,12 +168,22 @@ BEGIN
 		 (SELECT MAX(Row_Number) AS timesReceived,pn,pnDescription,ItemMasterId FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
-		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC
+		print @totalResult
+		--Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN  '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC'
 
+		PRINT @Sql
+		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  
   
   BEGIN CATCH  
-    
+      SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

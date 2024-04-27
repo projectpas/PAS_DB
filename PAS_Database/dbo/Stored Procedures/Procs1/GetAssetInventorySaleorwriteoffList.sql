@@ -17,7 +17,7 @@
     1    08/04/2023   Amit Ghediya    Created
 	2    08/08/2023   Amit Ghediya    updated Get data which have qty available.
 	3    08/09/2023   Amit Ghediya    updated for filter.
-	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets
+	4	 04/17/2024	  Abhishek Jirawla Adding Distinct in to get seperate results and added condition to return only available assets, Added sold by and sold date information
      
 --  EXEC [GetAssetInventorySaleorwriteoffList] 
 **************************************************************/
@@ -109,6 +109,11 @@ BEGIN
 			SET @IsActive = NULL
 			SET @InventoryStatusId = @SoldInventoryStatusId
 		END 
+		ELSE IF @StatusID = @WrittenOffInventoryStatusId
+		BEGIN 
+			SET @IsActive = NULL
+			SET @InventoryStatusId = @WrittenOffInventoryStatusId
+		END 
 		ELSE
 		BEGIN 
 			SET @IsActive = NULL
@@ -148,6 +153,8 @@ BEGIN
 								asm.UpdatedDate AS UpdatedDate,
 								asm.CreatedBy AS CreatedBy,
 								asm.UpdatedBy AS UpdatedBy ,
+								aibi.CreatedDate AS SoldDate,
+								ISNULL(aibi.CreatedBy, '') AS SoldBy,
 								asm.IsActive AS IsActive,
 								asm.IsDeleted AS IsDeleted,
 								ast.ManufacturerPN,
@@ -174,10 +181,12 @@ BEGIN
 								LEFT JOIN  [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId
 								LEFT JOIN  [dbo].[AssetInventoryBillingInvoicing] aibi WITH (NOLOCK) ON AIBI.AssetInventoryId = asm.AssetInventoryId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
-							                                    AND (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
+							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
+																--AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive)
+																)
 																AND (EUR.EmployeeId IS NOT NULL AND EUR.EmployeeId = @EmployeeId)
-																AND (CASE WHEN @InventoryStatusId = @SoldInventoryStatusId THEN asm.Qty END <= 0 
-																	OR CASE WHEN ISNULL(@InventoryStatusId, 0) <> @SoldInventoryStatusId OR @InventoryStatusId IS NULL THEN asm.Qty END > 0)
+																AND (CASE WHEN @InventoryStatusId = @SoldInventoryStatusId OR @InventoryStatusId = @WrittenOffInventoryStatusId THEN asm.Qty END <= 0 
+																	OR CASE WHEN ISNULL(@InventoryStatusId, 0) <> @SoldInventoryStatusId AND @InventoryStatusId = @WrittenOffInventoryStatusId OR @InventoryStatusId IS NULL THEN asm.Qty END > 0)
 																AND (CASE WHEN @StatusID = @AvailableInventoryStatusId THEN asm.InventoryStatusId END NOT IN (@SoldInventoryStatusId, @WrittenOffInventoryStatusId, @CheckIntoWOInventoryStatusId)
 																	OR CASE WHEN @StatusID <> @AvailableInventoryStatusId THEN asm.InventoryStatusId END = asm.InventoryStatusId)
 																AND (@InventoryStatusId IS NULL OR asm.InventoryStatusId = ISNULL(@InventoryStatusId, 0))

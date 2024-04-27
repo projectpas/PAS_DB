@@ -20,7 +20,8 @@
 	4	 08/12/2023	  Satish Gohil	Dynamic GlAccount Added for particular distribution
 	5	 08/16/2023	  Amit Ghediya	Updated Fix entry for ACCUMULATEDDEPRECIATION to DR. 
 	6	 08/18/2023	  Amit Ghediya	Updated Ristrict for enty if amount is 0.00. 
-	7    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)     
+	7    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)    
+	8	 25/04/2024	  Abhishek Jirawla Making the sold item inactive and also updating the status note to 'Inventory is Sold'
      
 **************************************************************/
 
@@ -120,7 +121,12 @@ BEGIN
 		WHERE Status = @Status;
 
 		--Update Assets Status to Sold/WriteOff & Qty to 0
-		UPDATE [DBO].[AssetInventory] SET InventoryStatusId = @AssetInventoryStatusId , Qty = 0 ,ReceivablesAmount = @CashAmount
+		UPDATE [DBO].[AssetInventory] 
+		SET InventoryStatusId = @AssetInventoryStatusId , 
+			Qty = 0 ,
+			ReceivablesAmount = @CashAmount,
+			IsActive = 0,
+			StatusNote = 'Inventory is Sold'
 		WHERE AssetInventoryId = @AssetInventoryId;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL

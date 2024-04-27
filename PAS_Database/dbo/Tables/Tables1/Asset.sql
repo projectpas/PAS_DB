@@ -22,7 +22,7 @@
     [AssetMaintenanceContractFile]    NVARCHAR (512)  NULL,
     [UnexpiredTime]                   INT             NULL,
     [MasterCompanyId]                 INT             NOT NULL,
-    [AssetLocationId]                 INT             NULL,
+    [AssetLocationId]                 BIGINT          NULL,
     [IsDeleted]                       BIT             CONSTRAINT [Asset_DC_Delete] DEFAULT ((0)) NOT NULL,
     [IsActive]                        BIT             CONSTRAINT [Asset_DC_Active] DEFAULT ((1)) NOT NULL,
     [CreatedBy]                       VARCHAR (256)   NOT NULL,
@@ -51,13 +51,15 @@
     [CntrlNumber]                     INT             NULL,
     [AssetAttributeTypeId]            BIGINT          NULL,
     CONSTRAINT [PK_Asset] PRIMARY KEY CLUSTERED ([AssetRecordId] ASC),
-    FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
+    CONSTRAINT [FK__Asset__MasterPar__47D257FB] FOREIGN KEY ([MasterPartId]) REFERENCES [dbo].[MasterParts] ([MasterPartId]),
     CONSTRAINT [FK_Asset_AssetAcquisitionType] FOREIGN KEY ([AssetAcquisitionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_Asset_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_Asset_Manufacturer] FOREIGN KEY ([ManufacturerId]) REFERENCES [dbo].[Manufacturer] ([ManufacturerId]),
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 GO

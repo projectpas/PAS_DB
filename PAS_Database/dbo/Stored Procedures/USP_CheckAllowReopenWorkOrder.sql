@@ -13,7 +13,7 @@
     1    04/16/2024   HEMANT SALIYA      Created  
 
 DECLARE @IsAllowReopenWO BIT;       
-EXECUTE USP_CheckAllowReopenWorkOrder 3888,3401, @IsAllowReopenWO OUTPUT 
+EXECUTE USP_CheckAllowReopenWorkOrder 3889,3402, @IsAllowReopenWO OUTPUT 
 
 *************************************************************/   
   
@@ -27,16 +27,9 @@ BEGIN
  SET NOCOUNT ON;  
  BEGIN TRY
 		DECLARE @MasterCompanyId INT = NULL;		
-		--DECLARE @ClosedWorkOrderStatusId INT = NULL;
-		--DECLARE @WorkOrderStatusId INT = NULL;
-		--DECLARE @IsAccountByPass BIT = NULL;
 		DECLARE @IsPaymentReceived BIT = NULL;
 		DECLARE @IsPartShipped BIT = NULL;
 		DECLARE @IsPartClosed BIT = NULL;
-
-		--SELECT @ClosedWorkOrderStatusId = Id FROM dbo.WorkOrderStatus WITH (NOLOCK) WHERE StatusCode = 'CLOSED'
-		
-		--SELECT @IsAccountByPass = ISNULL(IsAccountByPass, 0), @WorkOrderStatusId = WorkOrderStatusId FROM dbo.MasterCompany MC JOIN dbo.WorkOrder WO ON WO.MasterCompanyId = MC.MasterCompanyId WHERE WO.WorkOrderId = @WorkOrderId
 
 		SELECT @IsPartClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @WorkOrderPartNoId 
 
@@ -44,12 +37,6 @@ BEGIN
 		FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 			JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
 		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' OR ISNULL(isIgnoreAWB, 0) = 1)
-
-		--SELECT ISNULL(SUM(WOBI.RemainingAmount),0),  ISNULL(SUM(WOBI.GrandTotal), 0)
-		--FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-		--	JOIN dbo.WorkOrderBillingInvoicing WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-		--WHERE WOBI.WorkOrderId = @WorkOrderId AND WOBII.WorkOrderPartNoId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-		--	ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 
 		SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END 
 		FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
@@ -59,14 +46,30 @@ BEGIN
 		
 		--SELECT @IsPaymentReceived, @IsPartShipped, @IsPartClosed
 
-		IF(@IsPaymentReceived = 0 AND  @IsPartShipped = 0 AND @IsPartClosed = 1)
+		IF(@IsPartClosed = 1)
 		BEGIN
-			SET @IsAllowReopenWO = 1;				
+			IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
+			BEGIN
+				SET @IsAllowReopenWO = 0;				
+			END
+			ELSE
+			BEGIN
+				SET @IsAllowReopenWO = 1;
+			END
 		END
-		ELSE 
+		ELSE
 		BEGIN
-			SET @IsAllowReopenWO = 0;
+			IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
+			BEGIN
+				SET @IsAllowReopenWO = 0;				
+			END
+			ELSE
+			BEGIN
+				SET @IsAllowReopenWO = 1;
+			END
 		END
+
+		--SET @IsAllowReopenWO = 1;
 		
 		SELECT @IsAllowReopenWO; 
 

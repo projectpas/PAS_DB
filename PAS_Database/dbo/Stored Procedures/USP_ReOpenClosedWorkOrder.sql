@@ -11,9 +11,9 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** --   --------    -------				--------------------------------
 ** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
 
-EXEC dbo.USP_ReOpenClosedWorkOrder 286,'Admin'
+EXEC dbo.USP_ReOpenClosedWorkOrder 3402,'Admin'
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
+CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS
@@ -73,8 +73,8 @@ AS
 			WHERE WOBII.WorkOrderPartNoId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
 				ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 
-
-			IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@IsPaymentReceived, 0) = 0)
+			--SELECT @IsShippingDone IsShippingDone, @IsPaymentReceived IsPaymentReceived
+			IF(ISNULL(@IsShippingDone,0) = 0 AND ISNULL(@IsPaymentReceived, 0) = 0)
 			BEGIN
 
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
@@ -131,23 +131,23 @@ AS
 
 				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdatedBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
-				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
-				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
-					BEGIN  
-						EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
-						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
-					END
-				END
+				--IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+				--BEGIN
+				--	IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
+				--	BEGIN  
+				--		EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
+				--		@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+				--	END
+				--END
 
-				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
-				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
-					BEGIN  
-						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
-						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
-					END
-				END
+				--IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+				--BEGIN
+				--	IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
+				--	BEGIN  
+				--		EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
+				--		@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+				--	END
+				--END
 
 
 				--REVERSE BILLING ENTRY
@@ -156,7 +156,7 @@ AS
 				DECLARE @IsInvoiceEntry BIT;
 
 				SELECT @IsInvoiceEntry = CASE WHEN COUNT(WorkOrderBatchId) > 0 THEN 1 ELSE 0 END FROM  dbo.WorkOrderBatchDetails WITH(NOLOCK) WHERE InvoiceId = @BillingInvoicingId
-				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) = 0)
+				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
 				BEGIN
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
@@ -165,7 +165,15 @@ AS
 					END
 				END
 				
-
+				--PENDING 
+				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
+				BEGIN
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
+					BEGIN  
+						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
+						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+					END
+				END
 
 			END
 		COMMIT TRANSACTION

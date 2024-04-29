@@ -18,10 +18,11 @@
     3    04/07/2023  Devendra Shekh		added new status code CreateVendorRMAPickTicket,VendorRMAPickTicketConfirmed,VendorRMAShipped    
     4    19/07/2023  Devendra Shekh		added new status code DeleteKit,DeleteKitPart,UnReservedParts  
 	5    17/08/2023  Amit Ghediya		Updated HitoryText content.
+	5    19/04/2024  HEMANT SALIYA		Added Customer Change & Part Number Change
          
 -- EXEC USP_History 7,12,1,2,'WO stage change 1 to 2' ,'statgeId',1,1,NULL,NULL,NULL    
 ************************************************************************/    
-CREATE        PROCEDURE [dbo].[USP_History]    
+CREATE   PROCEDURE [dbo].[USP_History]    
  @ModuleId BIGINT,    
  @RefferenceId BIGINT,    
  @SubModuleId BIGINT,    
@@ -53,7 +54,7 @@ BEGIN
   @StatusCode = 'Releasefrom' OR @StatusCode = 'ReleasefromChange' OR @StatusCode = 'ReleasefromisLocked' OR @StatusCode = 'Shipping' OR @StatusCode = 'Invoicing' OR @StatusCode = 'ShippingPost' OR @StatusCode = 'AddKit' OR @StatusCode = 'CreateWorkOrder' OR @StatusCode = 'UpdateWorkScope' OR 
   @StatusCode = 'UpdateWorkOrderPriority' OR @StatusCode = 'UpdateWorkOrderPublication' OR @StatusCode = 'AddWorkFlow' OR @StatusCode = 'UpdateWorkFlow' OR @StatusCode = 'CreateVendorRMA' OR @StatusCode = 'AddVendorRMAPN' OR @StatusCode = 'CreateVendorRMAPickTicket' 
   OR @StatusCode = 'VendorRMAPickTicketConfirmed' OR @StatusCode = 'VendorRMAShipped' OR @StatusCode = 'CreateVendorCreditMemo' OR @StatusCode = 'UpdateVendorRMAPartQty' OR @StatusCode = 'UpdateVendorRMAReturnReason'
-  OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR @StatusCode = 'UnIssuedParts')    
+  OR @StatusCode = 'DeleteKit' OR @StatusCode = 'DeleteKitPart' OR @StatusCode = 'UnReservedParts' OR @StatusCode = 'StageChange' OR @StatusCode = 'AddPN' OR @StatusCode = 'IssuedParts' OR @StatusCode = 'ReserveParts' OR @StatusCode = 'UnIssuedParts' OR @StatusCode = 'CustomerChange' OR @StatusCode = 'PartNumberChange')    
   BEGIN    
    INSERT INTO [dbo].[History]    
        ([ModuleId]    

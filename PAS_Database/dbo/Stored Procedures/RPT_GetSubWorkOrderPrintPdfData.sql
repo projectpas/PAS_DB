@@ -10,11 +10,12 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    01/01/2024  AMIT GHEDIYA    Created
+** 2    04/25/2024  Devendra Shekh  reading data for SubWOMpn in place of WOMpn
 
-EXEC RPT_GetSubWorkOrderPrintPdfData 181,155
+EXEC RPT_GetSubWorkOrderPrintPdfData 208,186
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[RPT_GetSubWorkOrderPrintPdfData]              
+CREATE   PROCEDURE [dbo].[RPT_GetSubWorkOrderPrintPdfData]              
 	@SubWorkorderId BIGINT,              
 	@SubWOPartNoId BIGINT              
 AS              
@@ -45,26 +46,26 @@ AS
 			SELECT DISTINCT wo.WorkOrderId,              
 				wo.CustomerId,              
 				UPPER(wo.CustomerName) as CustomerName,              
-				wop.Quantity,              
+				SWOPN.Quantity,              
 				--woq.QuoteNumber,   
 				UPPER(SWO.SubWorkOrderNo) as 'QuoteNumber',
 				woq.OpenDate as qouteDate,              
 				'1' as NoofItem,              
 				UPPER(wo.CreatedBy) as Preparedby,              
-				UPPER(wop.CustomerReference) as ronum,            
+				UPPER(SWOPN.CustomerReference) as ronum,            
 				getdate() as DatePrinted,              
 				wo.CreatedDate as workreqDate,      
 				CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 				p.Description as Priority,              
-				CASE WHEN wop.IsPMA = 1 THEN 'YES' else 'NO' END AS RestrictPMA,              
-				CASE WHEN wop.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,              
+				CASE WHEN SWOPN.IsPMA = 1 THEN 'YES' else 'NO' END AS RestrictPMA,              
+				CASE WHEN SWOPN.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,              
 				'' as wty,              
 				'' as wtyCode,            
 				UPPER(imt.partnumber) as IncomingPN,              
-				CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        
+				CASE WHEN isnull(swosc.RevisedItemmasterid,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        
 				CASE WHEN LEN(UPPER(imt.PartDescription)) > 15 then LEFT(UPPER(imt.PartDescription), 15) + '...' else  UPPER(imt.PartDescription) end as PNDesc,              
 				UPPER(sl.SerialNumber) as SerialNum,              
-				CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
+				CASE WHEN ISNULL(SWOPN.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 				UPPER(wop.ACTailNum) as ACTailNum,              
 				'' as TSN,              
 				'' as CSN,    
@@ -72,8 +73,8 @@ AS
 				wop.ReceivedDate,
 				woq.CreatedDate as Qte_Date,              
 				woq.ApprovedDate as Qte_Appvd_Date,              
-				wop.CustomerRequestDate as Req_d_Date,              
-				wop.EstimatedShipDate as Est_Ship_Date,              
+				SWOPN.CustomerRequestDate as Req_d_Date,              
+				SWOPN.EstimatedShipDate as Est_Ship_Date,              
 				UPPER(el.EmployeeCode)  as TechNum,              
 				UPPER(ws.Stage) as WOStage,              
 				UPPER(wo.WorkOrderNum) as WorkOrderNum,              
@@ -115,8 +116,8 @@ AS
 				wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,              
 				UPPER(rc.Reference) as Reference,              
 				wo.UpdatedDate,            
-				  CASE WHEN ISNULL(wosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(wosc.conditionName) END as ReceivedCond,            
-				  UPPER(wop.WorkScope) as WorkScope,            
+				  CASE WHEN ISNULL(swosc.conditionName,'') = '' THEN UPPER(con.Description) ELSE UPPER(swosc.conditionName) END as ReceivedCond,            
+				  UPPER(WSP.WorkScopeCodeNew) as WorkScope,            
 				  UPPER(Pub.PublicationId) as PublicationName,            
 				  CASE WHEN ISNULL(sl.OEM, 0) = 0 THEN 'YES' ELSE 'NO' END as 'OEM',            
 				  @TravelerName as TravelerName,        
@@ -144,19 +145,21 @@ AS
 				LEFT JOIN Dbo.CustomerDomensticShipping shipToSite WITH(NOLOCK) on wo.CustomerId = shipToSite.CustomerId and shipToSite.IsPrimary=1              
 				LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId              
 				LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id              
-				LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId              
-				LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid            
-				LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId              
-				LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId              
-				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = wop.TechnicianId              
-				LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = wop.WorkOrderStageId              
+				LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = SWOPN.ItemMasterId              
+				LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
+				LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
+				LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = SWOPN.StockLineId              
+				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = SWOPN.TechnicianId              
+				LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = SWOPN.SubWorkOrderStageId              
 				LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
-				LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
-				LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = wop.ConditionId            
-				LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = wop.CMMId        
-				LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
-				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
+				--LEFT JOIN Dbo.Condition Rcon WITH(NOLOCK) on Rcon.ConditionId = wop.RevisedConditionId            
+				LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = SWOPN.ConditionId            
+				LEFT JOIN Dbo.Publication Pub WITH(NOLOCK) on Pub.PublicationRecordId = SWOPN.CMMId        
+				--LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
+				LEFT JOIN dbo.SubWorkOrderSettlementDetails swosc WITH(NOLOCK) on SWOPN.SubWorkOrderId = swosc.SubWorkOrderId AND SWOPN.SubWOPartNoId = swosc.SubWOPartNoId AND swosc.WorkOrderSettlementId = 9        
+				LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = swosc.RevisedItemmasterid    
 				LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
+				LEFT JOIN Dbo.WorkScope WSP WITH(NOLOCK) on WSP.WorkScopeId = SWOPN.SubWorkOrderScopeId 
 			WHERE SWO.SubWorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
 	   END              
 	  COMMIT  TRANSACTION              

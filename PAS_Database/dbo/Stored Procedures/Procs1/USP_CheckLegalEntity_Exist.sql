@@ -15,11 +15,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1   28/07/2023 Bhargav Saliya   This stored procedure is used to get Time Zone
+	2   22/04/2024 Abhishek Jirawla Adding asset module to the list
      
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 15,3685
-Create   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint
@@ -31,6 +32,18 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			  BEGIN 
+			   IF @ModuleId = (SELECT ModuleId FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'Asset')
+			  BEGIN
+
+				  SELECT  ts.Description AS 'TimeZoneName', ai.ManagementStructureId, le.LegalEntityId,
+				  ai.AssetInventoryId AS ReferenceId,le.TimeZoneId
+				  FROM AssetInventory ai WITH(NOLOCK)
+				  LEFT JOIN [dbo].EntityStructureSetup ESS WITH(NOLOCK) ON ai.ManagementStructureId = ESS.EntityStructureId
+				  LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ESS.Level1Id = MSL.ID
+				  LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
+				  LEFT JOIN [dbo].TimeZone ts WITH(NOLOCK) ON le.TimeZoneId = ts.TimeZoneId
+				  WHERE ai.AssetInventoryId = @ReferenceId
+			  END
 
 			  IF @ModuleId = (SELECT ModuleId FROM [DBO].Module WITH(NOLOCK) WHERE ModuleName = 'WorkOrder')
 			  BEGIN

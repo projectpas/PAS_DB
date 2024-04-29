@@ -16,11 +16,12 @@
  ** --   --------     -------			--------------------------------            
     1    10/26/2023   AMIT GHEDIYA		Created
 	2    03/11/2024   ABHISHEK JIRAWLA	Modified - Added updated memo description to the new stockline created
+	3    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
   
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
+CREATE   PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -857,6 +858,7 @@ BEGIN
 
 					EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @NewStocklineId, @ManagementStructureEntityId, @MasterCompanyId, @UpdatedBy;
 					
+					EXEC [UpdateStocklineColumnsWithId] @NewStocklineId;
 					--Return new stocklineid
 					SET @Stockline = @NewStocklineId;
 

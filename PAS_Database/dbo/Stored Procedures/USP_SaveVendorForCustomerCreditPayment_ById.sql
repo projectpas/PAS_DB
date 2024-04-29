@@ -15,6 +15,7 @@ EXEC [USP_SaveVendorForCustomerCreditPayment_ById]
 ** 2    03/26/2024		Devendra Shekh		aded new sp call AddVendorPaymentDetails
 ** 3    03/26/2024		Devendra Shekh		aded CASE for vendorId update
 ** 4    04/01/2024		Devendra Shekh		aded INERTING accouting entry while updating flage to IsProcessed
+** 5    04/22/2024		Devendra Shekh		updating vendorId
 
 *****************************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_SaveVendorForCustomerCreditPayment_ById]
@@ -41,7 +42,7 @@ BEGIN
 			CCPD.IsProcessed = @IsProcessed, 
 			CCPD.[ProcessedDate] = CASE WHEN @IsProcessed = 1 THEN GETUTCDATE() ELSE CCPD.[ProcessedDate] END,
 			CCPD.UpdatedDate = GETUTCDATE(),
-			CCPD.VendorId = CASE WHEN ISNULL(CCPD.VendorId, 0) = 0 THEN @VendorId ELSE CCPD.VendorId END,
+			CCPD.VendorId = @VendorId, --CASE WHEN ISNULL(CCPD.VendorId, 0) = 0 THEN @VendorId ELSE CCPD.VendorId END,
 			CCPD.UpdatedBy = @UserName
 		FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)
 		WHERE CCPD.[CustomerCreditPaymentDetailId] = @CustomerCreditPaymentDetailId AND CCPD.MasterCompanyId = @MasterCompanyId;

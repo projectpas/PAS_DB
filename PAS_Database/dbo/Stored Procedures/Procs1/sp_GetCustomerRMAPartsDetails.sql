@@ -15,15 +15,18 @@
 	2	 02/1/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
 	4    04/04/2024   Hemant Saliya   Updated for -Ve for CM
+	5    04/19/2024   Devendra Shekh   added data for Exchange SO
+	6    04/22/2024   Devendra Shekh   tax amt issue for Exchange Resolved and modified for InvocieTypeId Field
+	7    04/24/2024   Devendra Shekh   so duplicate record issue resolved
 	
- -- exec sp_GetCustomerRMAPartsDetails 120,0,13,1    
+ -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
-
 CREATE   Procedure [dbo].[sp_GetCustomerRMAPartsDetails]
 @InvoicingId bigint,
 @IsWorkOrder  bit,
 @RMAHeaderId  BIGINT,
-@Ispopup bit = 0
+@Ispopup bit = 0,
+@InvoiceTypeId  int
 AS
 BEGIN
 
@@ -32,9 +35,82 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN 
+
+			IF OBJECT_ID('tempdb..#TempBillinPartRecords') IS NOT NULL
+				DROP TABLE #TempBillinPartRecords
+
+			CREATE TABLE #TempBillinPartRecords
+			(
+				Id BIGINT IDENTITY(1,1),
+				InvoiceId BIGINT NULL,
+				InvoiceNo VARCHAR(100) NULL,
+				BillingInvoicingItemId BIGINT NULL,
+				InvoiceStatus VARCHAR(30) NULL,
+				InvoiceDate DATETIME2 NULL,
+				ReferenceNo VARCHAR(50) NULL,
+				ItemMasterId BIGINT NULL,
+				PartNumber VARCHAR(100) NULL,
+				PartDescription VARCHAR(MAX) NULL,
+				CustPartNumber VARCHAR(50) NULL,
+				CustomerReference VARCHAR(100) NULL,
+				SerialNumber VARCHAR(100) NULL,
+				StocklineNumber VARCHAR(100) NULL,
+				StocklineId BIGINT NULL,
+				ControlNumber VARCHAR(100) NULL,
+				ControlId VARCHAR(100) NULL,
+				Qty INT NULL,
+				PartsUnitCost DECIMAL(18,2) NULL,
+				PartsRevenue DECIMAL(18,2) NULL,
+				LaborRevenue DECIMAL(18,2) NULL,
+				MiscRevenue DECIMAL(18,2) NULL,
+				FreightRevenue DECIMAL(18,2) NULL,
+				COGSParts DECIMAL(18,2) NULL,
+				COGSLabor DECIMAL(18,2) NULL,
+				COGSOverHeadCost DECIMAL(18,2) NULL,
+				COGSInventory DECIMAL(18,2) NULL,
+				COGSPartsUnitCost DECIMAL(18,2) NULL,
+				UnitPrice DECIMAL(18,2) NULL,
+				Amount DECIMAL(18,2) NULL,
+				IsWorkOrder BIT NULL,
+				ReferenceId BIGINT NULL,
+				RMAReasonId BIGINT NULL,
+				RMAReason VARCHAR(100) NULL,
+				RMAStatusId INT NULL,
+				RMAStatus VARCHAR(50) NULL,
+				RMAValiddate DATETIME2 NULL,
+				SubTotal DECIMAL(18,2) NULL,
+				SalesTax DECIMAL(18,2) NULL,
+				OtherTax DECIMAL(18,2) NULL,
+				GrandTotal DECIMAL(18,2) NULL,
+				InvoiceAmt DECIMAL(18,2) NULL,
+				RMADeatilsId VARCHAR(20) NULL,
+				RMAHeaderId VARCHAR(20) NULL,
+				Notes VARCHAR(50) NULL,
+				MasterCompanyId INT NULL,
+				CreatedBy VARCHAR(50) NULL,
+				UpdatedBy VARCHAR(50) NULL,
+				CreatedDate DATETIME2 NULL,
+				UpdatedDate DATETIME2 NULL,
+				IsActive BIT NULL,
+				IsDeleted BIT NULL,
+				isSerialized BIT NULL,
+				InvoiceQty INT NULL,
+				ManufacturerName VARCHAR(50) NULL,
+				AltPartNumber VARCHAR(100) NULL,
+				InvoiceTypeId INT NULL,
+			)
+
+			Declare @WOInvoiceTypeId INT = 0;
+			Declare @SOInvoiceTypeId INT = 0;
+			Declare @ExchangeInvoiceTypeId INT = 0;
+
+			SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
+			SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
+			SELECT @ExchangeInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'EXCHANGE';
+
 			IF(@Ispopup =1)
 			BEGIN
-				IF(@isWorkOrder = 0)
+				IF(@InvoiceTypeId = @SOInvoiceTypeId)
 				BEGIN
 					SELECT SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId as BillingInvoicingItemId,
 						SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber as ReferenceNo,
@@ -87,17 +163,107 @@ BEGIN
 						WHERE SOBIIA.MasterCompanyId=SOBII.MasterCompanyId AND SOBIIA.ItemMasterId =SOBII.ItemMasterId and SOBIIA.SOBillingInvoicingId =SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsDeleted,0)=0 AND ISNULL(SOBIIA.IsProforma,0) = 0
 						GROUP BY SOBIIA.ItemMasterId, A.PartNumber  
 						) 
+						,@SOInvoiceTypeId AS InvoiceTypeId
 					FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
 						LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-						LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
-						LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
+						--LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
+						--LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
+				END
+				ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
+				BEGIN
+					
+					INSERT INTO #TempBillinPartRecords(InvoiceId , InvoiceNo, BillingInvoicingItemId, InvoiceStatus, InvoiceDate, ReferenceNo, ItemMasterId, PartNumber, PartDescription, CustPartNumber, CustomerReference, SerialNumber, StocklineNumber, StocklineId, ControlNumber
+								,ControlId, Qty, PartsUnitCost, PartsRevenue, LaborRevenue, MiscRevenue, FreightRevenue, COGSParts, COGSLabor, COGSOverHeadCost, COGSInventory, COGSPartsUnitCost, UnitPrice, Amount, IsWorkOrder, ReferenceId
+								,RMAReasonId, RMAReason, RMAStatusId, RMAStatus, RMAValiddate, SubTotal, SalesTax, OtherTax, GrandTotal, InvoiceAmt, RMADeatilsId, RMAHeaderId, Notes, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate
+								,IsActive, IsDeleted, isSerialized, InvoiceQty, ManufacturerName, AltPartNumber, InvoiceTypeId)
+					SELECT ESOBI.SOBillingInvoicingId AS InvoiceId,ESOBI.InvoiceNo [InvoiceNo],ESOBII.ExchangeSOBillingInvoicingItemId as BillingInvoicingItemId,
+						ESOBI.InvoiceStatus [InvoiceStatus],ESOBI.InvoiceDate [InvoiceDate],ESO.ExchangeSalesOrderNumber as ReferenceNo,
+						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
+						ESO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
+						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, ESOBII.NoofPieces as Qty,
+						CASE WHEN UPPER(EBT.[Description]) IN ('CHARGES', 'FREIGHT') THEN 0 ELSE ESOBII.UnitPrice END AS [PartsUnitCost],
+						CASE WHEN UPPER(EBT.[Description]) IN ('CHARGES', 'FREIGHT') THEN 0 ELSE (ISNULL(ESOBII.UnitPrice, 0) * -1) END AS [PartsRevenue], 
+						0 AS [LaborRevenue], 
+						0 AS [MiscRevenue], 
+						0 AS [FreightRevenue],
+						(ISNULL(ESOBII.NoofPieces, 1) * ISNULL(ESOBII.CogsAmount, 0)) AS [COGSParts], 
+						0 AS [COGSLabor], 0 AS [COGSOverHeadCost],
+						(ISNULL(ESOBII.NoofPieces, 1) * ISNULL(ESOBII.CogsAmount, 0)) AS [COGSInventory], 
+						ISNULL(ESOBII.CogsAmount, 0) AS [COGSPartsUnitCost],
+						CASE WHEN UPPER(EBT.[Description]) IN ('CHARGES', 'FREIGHT') THEN 0 
+							 WHEN ISNULL(ESOBII.NoofPieces,0) > 0 THEN (ESOBII.GrandTotal / ESOBII.NoofPieces) ELSE ESOBII.GrandTotal END AS UnitPrice,
+						(ISNULL(ESOBII.NoofPieces, 1) * ISNULL(ESOBII.UnitPrice, 0)) as Amount,
+						IsWorkOrder=0,ESOBI.ExchangeSalesOrderId AS [ReferenceId],
+						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
+						ESOBII.UnitPrice AS SubTotal,
+						(ISNULL(ESOBI.SalesTax, 0) * -1) As SalesTax, 
+						(ISNULL(ESOBI.OtherTax, 0) * -1) As OtherTax, 
+						(ISNULL(ESOBII.UnitPrice, 0) * -1) AS GrandTotal, 
+						(ISNULL(ESOBII.UnitPrice, 0) * -1) AS [InvoiceAmt],
+						'0' as [RMADeatilsId],
+						'0' as [RMAHeaderId],
+						'' as [Notes],
+						ESOBI.[MasterCompanyId],
+						ESOBI.[CreatedBy],
+						ESOBI.[UpdatedBy],
+						ESOBI.[CreatedDate],
+						ESOBI.[UpdatedDate],
+						ESOBI.[IsActive],
+						ESOBI.[IsDeleted],
+						ST.isSerialized,
+						ESOBII.NoofPieces as InvoiceQty,
+						IM.ManufacturerName,
+						AltPartNumber=(  
+						 Select top 1  
+						A.PartNumber [AltPartNumberType] from [dbo].[ExchangeSalesOrderBillingInvoicingItem] ESOBIIA WITH (NOLOCK) 
+						OUTER APPLY(  
+						 SELECT   
+							STUFF((SELECT CASE WHEN LEN(AI.partnumber) >0 THEN ',' ELSE '' END + AI.partnumber  
+							 FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] AL WITH (NOLOCK)  
+							 INNER JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON AL.ItemMasterId=I.ItemMasterId 
+							 INNER JOIN [dbo].[ItemMaster] AI WITH (NOLOCK) ON AL.MappingItemMasterId=AI.ItemMasterId 
+							 Where I.ItemMasterId = ESOBIIA.ItemMasterId  and MappingType=1  
+							 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
+							 FOR XML PATH('')), 1, 1, '') PartNumber  
+						) A  
+						WHERE ESOBIIA.MasterCompanyId = ESOBII.MasterCompanyId AND ESOBIIA.ItemMasterId = ESOBII.ItemMasterId and ESOBIIA.SOBillingInvoicingId = ESOBII.SOBillingInvoicingId AND ISNULL(ESOBII.IsDeleted,0) = 0
+						GROUP BY ESOBIIA.ItemMasterId, A.PartNumber  
+						) 
+						,@ExchangeInvoiceTypeId AS InvoiceTypeId
+					FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)
+						LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] ESOBII WITH (NOLOCK) ON ESOBII.SOBillingInvoicingId = ESOBI.SOBillingInvoicingId
+						LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] ESSB WITH (NOLOCK) ON ESOBII.ExchangeSalesOrderScheduleBillingId = ESSB.ExchangeSalesOrderScheduleBillingId
+						LEFT JOIN [dbo].[ExchangeBillingType] EBT WITH (NOLOCK) ON ESSB.BillingTypeId = EBT.ExchangeBillingTypeId
+						LEFT JOIN [dbo].[ExchangeSalesOrderPart] ESOPN WITH (NOLOCK) ON ESOPN.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId AND ESOPN.ExchangeSalesOrderPartId = ESOBII.ExchangeSalesOrderPartId
+						LEFT JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESOBI.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+						LEFT JOIN [dbo].[ExchangeQuote] ESQ WITH (NOLOCK) ON ESQ.ExchangeQuoteId = ESO.ExchangeQuoteId
+						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ESOBII.ItemMasterId=IM.ItemMasterId
+						LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = ESOPN.StockLineId AND ST.IsParent = 1
+						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON ESO.MasterCompanyId = RMAC.MasterCompanyId
+					WHERE ESOBI.SOBillingInvoicingId=@InvoicingId AND UPPER(EBT.[Description]) IN ('EXCH FEE')
+					AND ISNULL(ESO.IsVendor, 0) = 0
+					
+					UPDATE #TempBillinPartRecords
+					SET [MiscRevenue] = (tmpDATA.MiscRevenue * -1), [FreightRevenue] = (tmpDATA.FreightRevenue * -1)
+					FROM( SELECT UESBII.SOBillingInvoicingId,
+								SUM(ISNULL(UESBII.MiscCharges, 0)) AS [MiscRevenue], 
+								SUM(ISNULL(UESBII.Freight, 0)) AS [FreightRevenue]
+						FROM [DBO].[ExchangeSalesOrderBillingInvoicingItem] UESBII WITH(NOLOCK)
+						LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] UESSB WITH (NOLOCK) ON UESBII.ExchangeSalesOrderScheduleBillingId = UESSB.ExchangeSalesOrderScheduleBillingId
+						LEFT JOIN [dbo].[ExchangeBillingType] UEBT WITH (NOLOCK) ON UESSB.BillingTypeId = UEBT.ExchangeBillingTypeId
+						WHERE UPPER(UEBT.[Description]) IN ('CHARGES', 'FREIGHT')
+						GROUP BY SOBillingInvoicingId
+						) tmpDATA WHERE tmpDATA.SOBillingInvoicingId = #TempBillinPartRecords.InvoiceId
+
+					SELECT * FROM #TempBillinPartRecords;
+
 				END
 				ELSE 
 				BEGIN 
@@ -149,6 +315,7 @@ BEGIN
 						WHERE WOBIIA.MasterCompanyId=WOBII.MasterCompanyId and WOBIIA.ItemMasterId =WOBII.ItemMasterId  and WOBIIA.BillingInvoicingId =WOBII.BillingInvoicingId AND ISNULL(WOBII.IsDeleted,0)=0
 						GROUP BY WOBIIA.ItemMasterId, A.PartNumber  
 						) 
+						,@WOInvoiceTypeId AS InvoiceTypeId
 					FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)
 						LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId
 						LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId

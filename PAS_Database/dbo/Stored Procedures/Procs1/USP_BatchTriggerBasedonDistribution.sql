@@ -5,7 +5,7 @@
  ** Purpose:         
  ** Date:   08/10/2022      
           
- ** PARAMETERS: @JournalBatchHeaderId bigint
+ ** PARAMETERS: @JournalBatchHeaderId BIGINT
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -31,20 +31,19 @@
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistribution]
-@DistributionMasterId bigint=NULL,
-@ReferenceId bigint=NULL,
-@ReferencePartId bigint=NULL,
-@ReferencePieceId bigint=NULL,
-@InvoiceId bigint=NULL,
-@StocklineId bigint=NULL,
-@Qty int=0,
-@laborType varchar(200)=NULL,
-@issued  bit=0,
-@Amount Decimal(18,2)=0,
-@ModuleName varchar(200)=NULL,
-@MasterCompanyId Int=0,
-@UpdateBy varchar(200)=NULL
---@ValidEntry BIT OUTPUT
+@DistributionMasterId BIGINT=NULL,
+@ReferenceId BIGINT=NULL,
+@ReferencePartId BIGINT=NULL,
+@ReferencePieceId BIGINT=NULL,
+@InvoiceId BIGINT=NULL,
+@StocklineId BIGINT=NULL,
+@Qty INT=0,
+@laborType VARCHAR(200)=NULL,
+@issued  BIT=0,
+@Amount DECIMAL(18,2)=0,
+@ModuleName VARCHAR(200)=NULL,
+@MasterCompanyId INT=0,
+@UpdateBy VARCHAR(200)=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -52,66 +51,65 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @JournalTypeId int
-	    DECLARE @JournalTypeCode varchar(200) 
-	    DECLARE @JournalBatchHeaderId bigint
-	    DECLARE @GlAccountId int
-	    DECLARE @StatusId int
-	    DECLARE @StatusName varchar(200)
-	    DECLARE @StartsFrom varchar(200)='00'
-	    DECLARE @CurrentNumber int
-	    DECLARE @GlAccountName varchar(200) 
-	    DECLARE @GlAccountNumber varchar(200) 
-	    DECLARE @JournalTypename varchar(200) 
-	    DECLARE @Distributionname varchar(200) 
-	    DECLARE @CustomerId bigint
-	    DECLARE @ManagementStructureId bigint
-	    DECLARE @CustomerName varchar(200)
-        DECLARE @WorkOrderNumber varchar(200) 
-        DECLARE @MPNName varchar(200) 
-	    DECLARE @PiecePNId bigint
-        DECLARE @PiecePN varchar(200) 
-        DECLARE @ItemmasterId bigint
-	    DECLARE @PieceItemmasterId bigint
-	    DECLARE @CustRefNumber varchar(200)
-	    DECLARE @LineNumber int=1
-	    DECLARE @TotalDebit decimal(18,2)=0
-	    DECLARE @TotalCredit decimal(18,2)=0
-	    DECLARE @TotalBalance decimal(18,2)=0
-	    DECLARE @UnitPrice decimal(18,2)=0
-	    DECLARE @LaborHrs decimal(18,2)=0
-	    DECLARE @DirectLaborCost decimal(18,2)=0
-	    DECLARE @OverheadCost decimal(18,2)=0
-	    DECLARE @partId bigint=0
-		DECLARE @Batchtype int=1
-		DECLARE @batch varchar(100)
-		DECLARE @AccountingPeriod varchar(100)
-		DECLARE @AccountingPeriodId bigint=0
-		DECLARE @CurrentPeriodId bigint=0
-		DECLARE @Currentbatch varchar(100)
-	    DECLARE @LastMSLevel varchar(200)
-		DECLARE @AllMSlevels varchar(max)
-		DECLARE @DistributionSetupId int=0
-		DECLARE @IsAccountByPass bit=0
-		DECLARE @DistributionCode varchar(200)
-		DECLARE @InvoiceTotalCost decimal(18,2)=0
-	    DECLARE @MaterialCost decimal(18,2)=0
-	    DECLARE @LaborOverHeadCost decimal(18,2)=0
-	    DECLARE @FreightCost decimal(18,2)=0
-		DECLARE @SalesTax decimal(18,2)=0
-		DECLARE @OtherTax decimal(18,2)=0
-		DECLARE @InvoiceNo varchar(100)
-		DECLARE @MiscChargesCost decimal(18,2)=0
-		DECLARE @LaborCost decimal(18,2)=0
-		DECLARE @InvoiceLaborCost decimal(18,2)=0
-		DECLARE @RevenuWO decimal(18,2)=0
-		DECLARE @FinishGoodAmount decimal(18,2)=0
-		--DECLARE @CurrentManagementStructureId bigint=0
-		DECLARE @JournalBatchDetailId bigint=0
-		DECLARE @CommonJournalBatchDetailId bigint=0;
-		DECLARE @WopJounralTypeid bigint=0;
-		DECLARE @StocklineNumber varchar(100)
-		DECLARE @UnEarnedAmount decimal(18,2)=0
+		DECLARE @JournalTypeId INT
+	    DECLARE @JournalTypeCode VARCHAR(200) 
+	    DECLARE @JournalBatchHeaderId BIGINT
+	    DECLARE @GlAccountId INT
+	    DECLARE @StatusId INT
+	    DECLARE @StatusName VARCHAR(200)
+	    DECLARE @StartsFrom VARCHAR(200)='00'
+	    DECLARE @CurrentNumber INT
+	    DECLARE @GlAccountName VARCHAR(200) 
+	    DECLARE @GlAccountNumber VARCHAR(200) 
+	    DECLARE @JournalTypename VARCHAR(200) 
+	    DECLARE @Distributionname VARCHAR(200) 
+	    DECLARE @CustomerId BIGINT
+	    DECLARE @ManagementStructureId BIGINT
+	    DECLARE @CustomerName VARCHAR(200)
+        DECLARE @WorkOrderNumber VARCHAR(200) 
+        DECLARE @MPNName VARCHAR(200) 
+	    DECLARE @PiecePNId BIGINT
+        DECLARE @PiecePN VARCHAR(200) 
+        DECLARE @ItemmasterId BIGINT
+	    DECLARE @PieceItemmasterId BIGINT
+	    DECLARE @CustRefNumber VARCHAR(200)
+	    DECLARE @LineNumber INT=1
+	    DECLARE @TotalDebit DECIMAL(18,2)=0
+	    DECLARE @TotalCredit DECIMAL(18,2)=0
+	    DECLARE @TotalBalance DECIMAL(18,2)=0
+	    DECLARE @UnitPrice DECIMAL(18,2)=0
+	    DECLARE @LaborHrs DECIMAL(18,2)=0
+	    DECLARE @DirectLaborCost DECIMAL(18,2)=0
+	    DECLARE @OverheadCost DECIMAL(18,2)=0
+	    DECLARE @partId BIGINT=0
+		DECLARE @Batchtype INT=1
+		DECLARE @batch VARCHAR(100)
+		DECLARE @AccountingPeriod VARCHAR(100)
+		DECLARE @AccountingPeriodId BIGINT=0
+		DECLARE @CurrentPeriodId BIGINT=0
+		DECLARE @Currentbatch VARCHAR(100)
+	    DECLARE @LastMSLevel VARCHAR(200)
+		DECLARE @AllMSlevels VARCHAR(max)
+		DECLARE @DistributionSetupId INT=0
+		DECLARE @IsAccountByPass BIT=0
+		DECLARE @DistributionCode VARCHAR(200)
+		DECLARE @InvoiceTotalCost DECIMAL(18,2)=0
+	    DECLARE @MaterialCost DECIMAL(18,2)=0
+	    DECLARE @LaborOverHeadCost DECIMAL(18,2)=0
+	    DECLARE @FreightCost DECIMAL(18,2)=0
+		DECLARE @SalesTax DECIMAL(18,2)=0
+		DECLARE @OtherTax DECIMAL(18,2)=0
+		DECLARE @InvoiceNo VARCHAR(100)
+		DECLARE @MiscChargesCost DECIMAL(18,2)=0
+		DECLARE @LaborCost DECIMAL(18,2)=0
+		DECLARE @InvoiceLaborCost DECIMAL(18,2)=0
+		DECLARE @RevenuWO DECIMAL(18,2)=0
+		DECLARE @FinishGoodAmount DECIMAL(18,2)=0
+		DECLARE @JournalBatchDetailId BIGINT=0
+		DECLARE @CommonJournalBatchDetailId BIGINT=0;
+		DECLARE @WopJounralTypeid BIGINT=0;
+		DECLARE @StocklineNumber VARCHAR(100)
+		DECLARE @UnEarnedAmount DECIMAL(18,2)=0
 		DECLARE @AccountMSModuleId INT = 0
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
@@ -121,13 +119,12 @@ BEGIN
 	    SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId
 	    SELECT @JournalTypeCode = JournalTypeCode,@JournalTypename = JournalTypeName FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 	    SELECT @WopJounralTypeid = ID FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'WIP'
-		--SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId		
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 		
 		DECLARE @currentNo AS BIGINT = 0;
 		DECLARE @CodeTypeId AS BIGINT = 74;
-		DECLARE @JournalTypeNumber varchar(100);
-		DECLARE @CrDrType int=0
+		DECLARE @JournalTypeNumber VARCHAR(100);
+		DECLARE @CrDrType INT=0
 		DECLARE @ValidDistribution BIT = 1;
 		DECLARE @LotId BIGINT = 0;
 		DECLARE @LotNumber VARCHAR(50) = '';
@@ -168,11 +165,6 @@ BEGIN
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@partId
-
-			--IF(@CurrentManagementStructureId = 0)
-			--BEGIN
-			--	SET @CurrentManagementStructureId = @ManagementStructureId
-			--END
 
 			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,
 			              @AccountingPeriod=PeriodName 
@@ -273,24 +265,24 @@ BEGIN
 							IF(CAST(@Currentbatch AS BIGINT) >99)
 							BEGIN
 
-								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   				ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 							END
 							ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 							BEGIN
 
-								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   				ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 							END
 							ELSE
 							BEGIN
-								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   				ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 							END
 						END
 						SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-						SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+						SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 						print @CurrentNumber
 				          
 						INSERT INTO [dbo].[BatchHeader]
@@ -425,24 +417,24 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
 				          
 							INSERT INTO [dbo].[BatchHeader]
@@ -601,24 +593,24 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
 				          
 							INSERT INTO [dbo].[BatchHeader]
@@ -794,24 +786,24 @@ BEGIN
 									IF(CAST(@Currentbatch AS BIGINT) >99)
 									BEGIN
 
-										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   						ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 									END
 									ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 									BEGIN
 
-										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   						ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 									END
 									ELSE
 									BEGIN
-										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+										SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   						ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 									END
 								END
 								SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-								SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+								SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 								print @CurrentNumber
 				          
 								INSERT INTO [dbo].[BatchHeader]
@@ -994,24 +986,24 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
 				          
 							INSERT INTO [dbo].[BatchHeader]
@@ -1209,24 +1201,24 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
 				          
 							INSERT INTO [dbo].[BatchHeader]
@@ -1406,24 +1398,24 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
 							END
 							SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as varchar(100)) as varchar(100))
+							SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 							print @CurrentNumber
 				          
 							INSERT INTO [dbo].[BatchHeader]
@@ -1641,18 +1633,18 @@ BEGIN
 			--						IF(CAST(@Currentbatch AS BIGINT) >99)
 			--						BEGIN
 
-			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 			--	   						ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 			--						END
 			--						ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 			--						BEGIN
 
-			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 			--	   						ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 			--						END
 			--						ELSE
 			--						BEGIN
-			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+			--							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 			--	   						ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 			--						END
@@ -1845,18 +1837,18 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END
@@ -2265,8 +2257,8 @@ BEGIN
 						JournalTypeId	BIGINT NULL,
 						JournalTypeName	VARCHAR(MAX) NULL,
 						IsDebit	BIT NULL,
-						DebitAmount	decimal NULL,
-						CreditAmount	decimal NULL,
+						DebitAmount	DECIMAL NULL,
+						CreditAmount	DECIMAL NULL,
 						ManagementStructureId	BIGINT NULL,
 						ModuleName	VARCHAR(MAX) NULL,
 						MasterCompanyId	INT NULL,
@@ -2303,7 +2295,7 @@ BEGIN
 							JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON DS.ID = CBD.DistributionSetupId
 					WHERE WOBD.InvoiceId = @InvoiceId AND CBD.MasterCompanyId = @MasterCompanyId
 
-					DECLARE @LCOUNT AS int = 0;
+					DECLARE @LCOUNT AS INT = 0;
 					SELECT @LCOUNT = MAX(ID) FROM #tmpCommonBatchDetails
 					WHILE(@LCOUNT > 0)
 					BEGIN
@@ -2341,18 +2333,18 @@ BEGIN
 								IF(CAST(@Currentbatch AS BIGINT) >99)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
 								BEGIN
 
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
 								END
 								ELSE
 								BEGIN
-									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as varchar(100))
+									SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
 				   					ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
 
 								END

@@ -242,6 +242,10 @@ BEGIN
 		IF(ISNULL(@CustomerReference, '') != '' AND ISNULL(@ExistingCustomerReference, '') != ISNULL(@CustomerReference, ''))
 		BEGIN
 			PRINT 'UPDATE CUST REFERENCE'
+			SET @StatusCode = 'CUSTREFCHANGE';
+
+			SELECT @ExistingValue = WOP.CustomerReference FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) WHERE WOP.ID = @WorkOrderPartNoId
+
 			UPDATE WorkOrderPartNumber SET CustomerReference = @CustomerReference, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			WHERE WOP.ID = @WorkOrderPartNoId
@@ -257,11 +261,23 @@ BEGIN
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@CustomerReference,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+
 		END
 
 		--CASE - 4 UPDATE SERIAL NUMBER
 		IF(ISNULL(@SerialNumber, '') != '' AND ISNULL(@ExistingSerialNumber, '') != ISNULL(@SerialNumber, ''))
 		BEGIN
+			SET @StatusCode = 'SERNUMCHANGE';
+
+			SELECT @ExistingValue = WOP.RevisedSerialNumber FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) WHERE WOP.ID = @WorkOrderPartNoId
+
 			PRINT 'UPDATE SERIAL NUMBER'
 			UPDATE WorkOrderPartNumber SET RevisedSerialNumber = @SerialNumber, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
@@ -280,6 +296,15 @@ BEGIN
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.StockLineId = RC.StockLineId
 			WHERE WOP.ID = @WorkOrderPartNoId
 			PRINT '4.0'
+
+			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
+			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@SerialNumber,''));
+
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+
 		END
 
 		--CASE - 5 UPDATE MEMO
@@ -298,14 +323,13 @@ BEGIN
 			WHERE WOP.ID = @WorkOrderPartNoId
 		END
 
-		IF(ISNULL(@IsFinishedGood, 0) = 1)
-		BEGIN
-			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
-		END
-
 		IF(ISNULL(@IsClosed, 0) = 1)
 		BEGIN
-			EXEC USP_ReOpen_Closed_WorkOrder @WorkOrderPartNoId, @WorkOrderId, @UpdatedBy
+			EXEC USP_ReOpenClosedWorkOrder @WorkOrderPartNoId, @UpdatedBy
+		END
+		ELSE IF(ISNULL(@IsFinishedGood, 0) = 1)
+		BEGIN
+			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
 		END
   
  END TRY      

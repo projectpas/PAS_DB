@@ -1,36 +1,27 @@
 ﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <05/10/2023>  
-** Description: <Re-Open Finish Good WO And Reverse MPN Stockline>  
+** Description: <Re-Open Closed WO>  
   
-Exec [ReverseWorkOrder] 
+Exec [USP_ReOpen_Closed_WorkOrder] 
 ************************************************************** 
 ** Change History 
 **************************************************************   
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
-** 1    05/10/2023  Hemant Saliya		 Re-Open Finish Good WO And Reverse MPN Stockline
-** 2    07/24/2023  Vishal Suthar		 Added stockline history for re-open finished goods
-** 3	27/07/2023  Satish Gohil		 Account Entry Added
-** 4    04/08/2023  Satish Gohil		 Seprate Accounting Entry WO Type Wise
-** 5    08/09/2023  Devendra Shekh		 updating WorkOrderSettlementDetails
-** 6    08/11/2023  Devendra Shekh		 added Isvalue_NA for updating WorkOrderSettlementDetails
-** 7    08/11/2023  Devendra Shekh		 added isperforma Flage for WO  
-** 8    02/19/2024	HEMANT SALIYA	     Updated for Restrict Accounting Entry by Master Company
-** 9    04/09/2024	Devendra Shekh	     Updated for QuantityReserved for Stockline instead of QuantityAvailable
-** 10   04/26/2024	HEMANT SALIYA	     Updated for Re-Open WO Changes
+** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
 
-EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
+EXEC dbo.USP_ReOpen_Closed_WorkOrder 286,'Admin'
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_ReOpen_FinishGood_WorkOrder]
+CREATE     PROCEDURE [dbo].[USP_ReOpen_Closed_WorkOrder]
 	@workOrderPartNoId BIGINT,
+	@workOrderId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS
 	BEGIN
 	
 	DECLARE @ModuleId INT;
 	DECLARE @SubModuleId INT;
-	DECLARE @WorkOrderId BIGINT;
 	DECLARE @MasterCompanyId BIGINT;
 	DECLARE @StockLineId BIGINT;
 	DECLARE @BillingInvoicingId BIGINT;
@@ -49,60 +40,40 @@ AS
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;
-	DECLARE @IsInvoiceGenerated BIT = NULL;
-	DECLARE @8130WorkOrderSettlementId BIGINT;
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
 			SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
-			SELECT @ReferencePartId = WorkFlowWorkOrderId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
+			SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
-			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
-			SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
-			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
-			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
 
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
 				SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
 
-				SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
-				FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
-					JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' OR ISNULL(isIgnoreAWB, 0) = 1)
+				SELECT @IsShippingDone = COUNT(WSI.WorkOrderShippingItemId) FROM dbo.WorkOrderShippingItem WSI WITH (NOLOCK) 
+				WHERE WSI.WorkOrderPartNumId = @workOrderPartNoId
 
-				SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END,
-					@BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
-				FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-					JOIN dbo.WorkOrderBillingInvoicing WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-				WHERE WOBII.WorkOrderPartNoId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+				SELECT @BillingInvoicingId = WOB.BillingInvoicingId FROM dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) 
+					JOIN dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOB.BillingInvoicingId AND ISNULL(WOB.IsPerformaInvoice, 0) = 0
+				WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
 
-				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
+				IF(ISNULL(@IsShippingDone,0) > 0)
 				BEGIN
-					/* Update Stock Line Qty If Shipping is Done and Customer Stock */
+					/* Update Stock Line Qty If Shipping is Done */
 					UPDATE Stockline SET 
+						--QuantityAvailable = CASE WHEN QuantityAvailable = 0 THEN ISNULL(QuantityAvailable, 0) + 1 ELSE QuantityAvailable END, 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
 						QuantityReserved = CASE WHEN QuantityReserved = 0 THEN ISNULL(QuantityReserved, 0) + 1 ELSE QuantityReserved END,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE StockLineId=@StockLineId
 				END
 
-				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
+				IF(ISNULL(@BillingInvoicingId,0) > 0)
 				BEGIN
-					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
-					UPDATE Stockline SET 
-						QuantityOnHand = ISNULL(QuantityOnHand, 0) + 1,
-						QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
-					WHERE StockLineId=@StockLineId
-				END
-
-				IF(ISNULL(@IsInvoiceGenerated,0) > 0)
-				BEGIN
-					/* Update Work Order Billing Status to Re-Generate Invoice */
+					/* Update Stock Line Qty If Shipping is Done */
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
 						InvoiceFilePath = '', 
@@ -112,12 +83,18 @@ AS
 
 				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0 WHERE ID = @workOrderPartNoId;
 
-				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
-				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
+				SELECT @WorkOrderId = WOP.WorkOrderId FROM dbo.WorkOrderPartNumber WOP WITH (NOLOCK) WHERE ID = @workOrderPartNoId;
+				SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
+				SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
+
+				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 WHERE workOrderPartNoId = @workOrderPartNoId
+				AND WorkOrderSettlementId = (SELECT WorkOrderSettlementId FROM WorkOrderSettlement WHERE WorkOrderSettlementName = 'Release Certs (e.g. 8130) Reviewed');
 
 				DECLARE @ActionId INT;
 				SET @ActionId = 10; -- Re-OpenFinishedGood
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @workOrderPartNoId, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
+				
+				SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 				DECLARE @IsRestrict BIT;
 				DECLARE @IsAccountByPass BIT;
@@ -126,7 +103,7 @@ AS
 
 				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
 						EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
@@ -135,7 +112,7 @@ AS
 
 				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 				BEGIN
-					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
 						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    

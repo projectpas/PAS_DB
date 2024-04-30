@@ -17,6 +17,7 @@
     1    06/06/2023   MOIN BLOCH    UPDATED
 	2    06/06/2023   MOIN BLOCH    Added @IsCustStock For Update IsCustomerStock Or Not
 	3    07/14/2023   Amit Ghediya  Update UnitCost set 0 if NULL
+	4    04/25/2024   Devendra Shekh  Updatting GLAccountName issue resolved
      
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -52,7 +53,7 @@ BEGIN
 								
 				UPDATE SL SET 
 					SL.Condition = CN.Description,
-					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName + GL.AccountCode ELSE SL.glAccountname END,
+					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
 					SL.UnitOfMeasure = um.ShortName,
 					SL.Manufacturer = MF.Name,
 					SL.Site = S.Name,

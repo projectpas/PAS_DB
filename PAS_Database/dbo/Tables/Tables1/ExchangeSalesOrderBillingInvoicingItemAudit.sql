@@ -15,6 +15,19 @@
     [UnitPrice]                             DECIMAL (20, 2) NULL,
     [ExchangeSalesOrderShippingId]          BIGINT          NULL,
     [ExchangeSalesOrderScheduleBillingId]   BIGINT          NULL,
+    [MiscCharges]                           DECIMAL (18, 2) NULL,
+    [Freight]                               DECIMAL (18, 2) NULL,
+    [SubTotal]                              DECIMAL (18, 2) NULL,
+    [OtherTaxPercent]                       BIGINT          NULL,
+    [SalesTaxPercent]                       BIGINT          NULL,
+    [GrandTotal]                            DECIMAL (18, 2) NULL,
+    [OtherTax]                              DECIMAL (18, 2) NULL,
+    [SalesTax]                              DECIMAL (18, 2) NULL,
+    [CogsAmount]                            DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItemAudit] PRIMARY KEY CLUSTERED ([AuditExchangeSOBillingInvoicingItemId] ASC)
 );
+
+
+
+
 

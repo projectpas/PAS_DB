@@ -31,6 +31,8 @@
 	19   15/03/2024   Moin Bloch       Modify(Changed DSO Logic)
 	20   19/03/2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 	21   13/03/2024   Moin Bloch       Modify(makes Performa Invoice to Invoice)
+	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
+
 	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
@@ -201,7 +203,7 @@ BEGIN
 		    0 AS 'FxRate',      
 		    CM.InvoiceNumber AS 'WOSONum',      
 		    0 AS 'NewRemainingBal',      
-		    'Fulfilling' AS 'Status',    
+		    CMS.[Name] AS 'Status',    
 		    0 AS 'DSI',                    
 		    0 AS 'DSO',      
 		    NULL AS DiscountDate,      
@@ -227,6 +229,7 @@ BEGIN
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[CustomerRMAHeader] RM WITH (NOLOCK) ON CM.RMAHeaderId = RM.RMAHeaderId    
 			LEFT JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
+			LEFT JOIN [dbo].[CreditMemoStatus] CMS WITH(NOLOCK) ON CM.[StatusId] = CMS.Id    
 			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
 			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId      
 			LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CM.CustomerId = CF.CustomerId      
@@ -241,7 +244,7 @@ BEGIN
 		AND CM.[StatusId] = @CMPostedStatusId
 		AND ISNULL(CM.IsClosed,0) = 0
 		GROUP BY CM.CreditMemoHeaderId,CM.InvoiceId,CM.InvoiceNumber,CM.InvoiceDate,CM.CreditMemoNumber,C.CustomerId,C.[Name],C.CustomerCode,CM.CreditMemoNumber,      
-			MSD.LastMSLevel,MSD.AllMSlevels,C.Ismiscellaneous,CM.IsWorkOrder,WCurr.Code,SCurr.Code,CM.Amount   
+			MSD.LastMSLevel,MSD.AllMSlevels,C.Ismiscellaneous,CM.IsWorkOrder,WCurr.Code,SCurr.Code,CM.Amount,CMS.[Name]   
 
 	   UNION ALL  
 		

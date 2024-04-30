@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentUnitCost_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment Unit Cost.
@@ -400,14 +398,11 @@ BEGIN
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
-					--Replcae tag with blank
-					SET  @memo = REPLACE(@memo,'<p>','');
-					SET  @memo = REPLACE(@memo,'</p>','');
 					--Parent stockline
 					UPDATE [dbo].[Stockline] SET [FreightAdjustment] = (@FreightAdjustment + @tmpFreightAdjustment),
 												 [TaxAdjustment] = (@TaxAdjustment + @tmpTaxAdjustment),
 												 [Adjustment] = (@Adjustment + @UnitCostAdjustment),
-												 [Memo] = '<p>' + @Memo + ' ,' + 'UnitCost Adjusted From Stockline Adjustment </p>', 
+												  [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> UnitCost Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> UnitCost Adjusted From Stockline Adjustment </p>' END, 
 												 [UnitCost] = @tmpUnitCost,
 												 UpdatedBy = @UpdateBy,
 												 UpdatedDate = GETUTCDATE()

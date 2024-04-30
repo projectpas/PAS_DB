@@ -23,7 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_SaveAssetInventoryBillingInvoicing]
 	@CustomerId BIGINT,
 	@MasterCompanyId BIGINT,
 	@Remarks VARCHAR(MAX),
-	@SalesTotal DECIMAL,
+	@SalesTotal DECIMAL(18,2),
 	@EmployeeId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@InvoiceStatus VARCHAR(50),

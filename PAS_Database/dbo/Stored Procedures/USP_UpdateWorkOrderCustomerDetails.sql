@@ -47,12 +47,15 @@ BEGIN
 		DECLARE @IsFinishedGood BIT = NULL;
 		DECLARE @IsClosed BIT = NULL;
 		DECLARE @WorkOrderSettlementId BIGINT = 9; --Fixed for Final Condition Changed
+		DECLARE @8130WorkOrderSettlementId BIGINT; --Fixed for Final Condition Changed
 		DECLARE @ModuleId BIGINT, @RefferenceId BIGINT, @SubModuleId BIGINT, @SubRefferenceId BIGINT, @ExistingValue VARCHAR(MAX) = NULL, 
 				@NewValue VARCHAR(MAX), @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100), @MasterCompanyId INT;
 
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
+
+		SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 
 		PRINT '1'
 		
@@ -333,6 +336,11 @@ BEGIN
 		ELSE IF(ISNULL(@IsFinishedGood, 0) = 1)
 		BEGIN
 			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
+		END
+		ELSE
+		BEGIN
+			UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
+			WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
 		END
   
  END TRY      

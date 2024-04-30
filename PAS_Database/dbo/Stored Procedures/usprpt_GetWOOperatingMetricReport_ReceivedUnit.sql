@@ -1,4 +1,6 @@
-﻿/*************************************************************             
+﻿
+
+/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_ReceivedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report For Most Received Parts
@@ -27,7 +29,8 @@ AS
 BEGIN  
   SET NOCOUNT ON;  
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED 
-		SET @PageSize = 25;
+		SET @PageSize = 50;
+		DECLARE @Count VARCHAR(10)='50',@Sql NVARCHAR(MAX);  
 		DECLARE @customerid varchar(40) = NULL,  
 		@fromdate datetime,  
 		@todate datetime, 
@@ -46,7 +49,7 @@ BEGIN
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
-		@totalResult int = 0
+		@totalResult VARCHAR(10) = 0
 
   
   BEGIN TRY  
@@ -65,7 +68,10 @@ BEGIN
 		
 		@workscopeIds=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Work Scope' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @workscopeIds end,
-
+		
+		@Count=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='defaultRecord' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Count end,
+		
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
 
@@ -91,6 +97,7 @@ BEGIN
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end
 	  FROM
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
+		  SET @Count = COALESCE(NULLIF(@Count, 0), 50);
 		  SET @isCustomerWO = (CASE WHEN @searchWOType = '5' THEN 1 ELSE 0 END)
 		 --SET @woTypeIds = (CASE WHEN @isCustomerWO = 1 THEN (SELECT Id FROM DBO.WorkOrderType WITH(NOLOCK) WHERE Description = 'Customer' ) ELSE (SELECT Id FROM DBO.WorkOrderType WITH(NOLOCK) WHERE Description != 'Customer' ) END)
 		 SET @woTypeIds = 
@@ -161,12 +168,22 @@ BEGIN
 		 (SELECT MAX(Row_Number) AS timesReceived,pn,pnDescription,ItemMasterId FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,ItemMasterId) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
-		Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC
+		print @totalResult
+		--Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN  '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesReceived DESC'
 
+		PRINT @Sql
+		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  
   
   BEGIN CATCH  
-    
+      SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
     DECLARE @ErrorLogID int,  
             @DatabaseName varchar(100) = DB_NAME(), 
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

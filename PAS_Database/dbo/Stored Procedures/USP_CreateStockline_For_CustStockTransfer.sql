@@ -15,11 +15,12 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    21 DEC 2023   BHARGAV SALIYA		Created
+	2    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
   
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE        PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE   PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,
@@ -844,6 +845,7 @@ BEGIN
 
 					EXEC dbo.[USP_SaveSLMSDetails] @StkManagementStructureModuleId, @NewStocklineId, @ManagementStructureEntityId, @MasterCompanyId, @UpdatedBy;
 					
+					EXEC [UpdateStocklineColumnsWithId] @NewStocklineId;
 					--Return new stocklineid
 					SET @Stockline = @NewStocklineId;
 					SET @LoopID = @LoopID - 1;

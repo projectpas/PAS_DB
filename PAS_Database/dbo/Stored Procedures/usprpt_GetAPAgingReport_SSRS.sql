@@ -15,7 +15,7 @@
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami		   Created        
-	 
+  --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2024-04-24',3654,1,null,null
 ***************************************************************************************************/        
 CREATE     PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
@@ -68,7 +68,7 @@ BEGIN
 	 SET @todate = @id;
 	 SET @vendorId = case when @id2 = '0' then null else @id2 end;
 	 SET @Typeid = @id3;
-	 SET @invoiceNum = CASE WHEN @id5  = ''  THEN NULL ELSE @id5 END ;
+	 SET @invoiceNum = CASE WHEN @id5 = '' THEN NULL else @id5 end;
 	 SET @tagtype = @id6;
   
 	SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
@@ -123,7 +123,7 @@ BEGIN
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
 			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
-			  AND ISNULL(VCD.OriginalAmt, 0) > 0 AND VCM.VendorCreditMemoNumber = ISNULL(@invoiceNum,VCM.VendorCreditMemoNumber)
+			  AND ISNULL(VCD.ApplierdAmt, 0) > 0 AND VCM.VendorCreditMemoNumber = ISNULL(@invoiceNum,VCM.VendorCreditMemoNumber)
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -278,34 +278,34 @@ BEGIN
 	-- Credit Memo --
 		SELECT * INTO #tempCreditMemo FROM 
 		 (SELECT DISTINCT (VCM.[VendorId]) AS VendorId,ISNULL(VEN.[VendorName],'') 'vendorName' ,  ISNULL(VEN.[VendorCode],'') 'vendorCode' ,(CR.[Code]) AS  'currencyCode',   
-					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount',ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 					
+					ISNULL(VCD.ApplierdAmt,0) AS 'BalanceAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'PaymentAmount',(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 					
 					 VCM.CreatedDate AS InvoiceDate,ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(CTM.NetDays,0) END), GETUTCDATE()) <= 0 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbylessthen0days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(CTM.NetDays,0) END), GETUTCDATE()) <= 0 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidbylessthen0days,
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 30 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby30days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 30 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby30days,
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 60 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby60days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 60 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby60days,
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 90 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby90days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 90 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby90days,
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby120days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 120 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby120days,
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbymorethan120days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidbymorethan120days,
 					(SMSD.EntityMSID) AS ManagementStructureId, 'Credit Memo' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 
-					VCD.OriginalAmt AS 'InvoiceAmount', VCD.OriginalAmt AS 'cmAmount',VCD.OriginalAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
+					VCD.ApplierdAmt AS 'InvoiceAmount', VCD.ApplierdAmt AS 'cmAmount',VCD.ApplierdAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
 					UPPER(SMSD.Level1Name) AS level1, UPPER(SMSD.Level2Name) AS level2, UPPER(SMSD.Level3Name) AS level3,UPPER(SMSD.Level4Name) AS level4,UPPER(SMSD.Level5Name) AS level5,       
 					UPPER(SMSD.Level6Name) AS level6, UPPER(SMSD.Level7Name) AS level7,UPPER(SMSD.Level8Name) AS level8, UPPER(SMSD.Level9Name) AS level9,UPPER(SMSD.Level10Name) AS level10,
 					VCM.MasterCompanyId,1 AS IsCreditMemo,VCM.VendorCreditMemoStatusId AS StatusId,0 AS InvoicePaidAmount
@@ -320,7 +320,7 @@ BEGIN
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
 			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
-			  AND ISNULL(VCD.OriginalAmt, 0) > 0
+			  AND ISNULL(VCD.ApplierdAmt, 0) > 0
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -494,8 +494,8 @@ BEGIN
 	, Result AS(      
 		SELECT DISTINCT       
 			(CTE.VendorId) AS VendorId ,      
-			((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
-			((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
+			UPPER((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
+			UPPER((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL((CTE.InvoiceAmount - ISNULL(CTE.InvoicePaidAmount,0)),0) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount',
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END  AS 'Amountpaidbylessthen0days',   							
 			CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby30days) END,0) END AS 'Amountpaidby30days',   							
@@ -528,7 +528,7 @@ BEGIN
 		   FROM Result GROUP BY MastercompanyId)
 
    SELECT	VendorId, 
-            vendorName,vendorCode, 
+            UPPER(vendorName)vendorName,UPPER(vendorCode)vendorCode, 
 			SUM(InvoiceAmount) AS InvoiceAmount, 
 			SUM(BalanceAmount) AS BalanceAmount, 
 			SUM(Amountpaidbylessthen0days) AS Amountpaidbylessthen0days, 
@@ -637,35 +637,35 @@ BEGIN
 		SELECT * INTO #tempCreditMemoElse FROM 
 		(SELECT DISTINCT (VCM.[VendorId]) AS VendorId,
 					ISNULL(VEN.[VendorName],'') 'vendorName' , ISNULL(VEN.[VendorCode],'') 'vendorCode' ,(CR.[Code]) AS  'currencyCode',   
-					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount', ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',  
+					ISNULL(VCD.ApplierdAmt,0) AS 'BalanceAmount', ISNULL(VCD.ApplierdAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'PaymentAmount',  
 					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', VCM.CreatedDate AS InvoiceDate,ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(CTM.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbylessthen0days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(CTM.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidbylessthen0days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby30days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby30days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby60days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby60days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby90days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby90days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidby120days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidby120days,
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
-																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN VCD.OriginalAmt ELSE 0 END) AS Amountpaidbymorethan120days,
+																	WHEN CTM.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN VCD.ApplierdAmt ELSE 0 END) AS Amountpaidbymorethan120days,
 					(SMSD.EntityMSID) AS ManagementStructureId,'Credit Memo' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',      
-					ctm.Name AS 'Terms','0' AS 'FixRateAmount',VCD.OriginalAmt AS 'InvoiceAmount', VCD.OriginalAmt AS 'cmAmount', 
-					VCD.OriginalAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
+					ctm.Name AS 'Terms','0' AS 'FixRateAmount',VCD.ApplierdAmt AS 'InvoiceAmount', VCD.ApplierdAmt AS 'cmAmount', 
+					VCD.ApplierdAmt AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate',  
 					UPPER(SMSD.Level1Name) AS level1,UPPER(SMSD.Level2Name) AS level2, UPPER(SMSD.Level3Name) AS level3, UPPER(SMSD.Level4Name) AS level4,UPPER(SMSD.Level5Name) AS level5,       
 					UPPER(SMSD.Level6Name) AS level6,UPPER(SMSD.Level7Name) AS level7, UPPER(SMSD.Level8Name) AS level8, UPPER(SMSD.Level9Name) AS level9,UPPER(SMSD.Level10Name) AS level10,
 					VCM.MasterCompanyId,1 AS IsCreditMemo,VCM.VendorCreditMemoStatusId AS StatusId,0 AS InvoicePaidAmount
@@ -680,7 +680,7 @@ BEGIN
 			 WHERE VCM.[VendorId] = ISNULL(@vendorId,VCM.[VendorId])  			  
 			  AND CAST(VCM.[CreatedDate] AS DATE) <= CAST(@ToDate AS DATE) AND VCM.[MasterCompanyId] = @mastercompanyid   
 			  AND VCM.[VendorCreditMemoStatusId] = @CMPostedStatusId
-			  AND ISNULL(VCD.OriginalAmt, 0) > 0 AND VCM.VendorCreditMemoNumber = ISNULL(@invoiceNum,VCM.VendorCreditMemoNumber)
+			  AND ISNULL(VCD.ApplierdAmt, 0) > 0 AND VCM.VendorCreditMemoNumber = ISNULL(@invoiceNum,VCM.VendorCreditMemoNumber)
 			  AND (ISNULL(@tagtype,'')='' OR SES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR SMSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR SMSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -841,7 +841,7 @@ BEGIN
 		),		
 		Result AS(      
 			SELECT DISTINCT      
-			       (CTE.VendorId) AS VendorId ,ISNULL(CTE.vendorName,'') 'vendorName',ISNULL(CTE.vendorCode,'') 'vendorCode', UPPER(CTE.currencyCode) AS  'currencyCode',   
+			       (CTE.VendorId) AS VendorId ,UPPER(ISNULL(CTE.vendorName,'')) 'vendorName',UPPER(ISNULL(CTE.vendorCode,'')) 'vendorCode', UPPER(CTE.currencyCode) AS  'currencyCode',   
    		   		   CASE WHEN CTE.IsCreditMemo = 0 THEN (ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount', 
 				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',      
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
@@ -883,9 +883,9 @@ BEGIN
 				GROUP BY MastercompanyId)
 
 		  SELECT VendorId, 
-		         vendorName, 
-		         vendorCode, 
-				 InvoiceNo,
+		         UPPER(vendorName) vendorName, 
+		         UPPER(vendorCode) vendorCode, 
+				 UPPER(InvoiceNo) InvoiceNo,
 				 InvoiceDate,
 				 InvoiceAmount,
 				 BalanceAmount,				

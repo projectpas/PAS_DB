@@ -2904,6 +2904,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAssetInventoryBatchAndDepreciationDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderCustomerDetails.sql" />
     <Build Include="dbo\Functions\DistinctList.sql" />
+    <Build Include="dbo\Views\vw_StocklineAdjustmentReasonAudit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderBacklogReportSSRSData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonVendorList.sql" />
     <Build Include="dbo\Tables\CustomerInvoiceType.sql" />
@@ -2917,6 +2918,8 @@
     <Build Include="dbo\Views\vw_EmployeeStation_Audit.sql" />
     <Build Include="dbo\Views\vw_EmployeeLeaveType_Audit.sql" />
     <Build Include="dbo\Views\vw_EmployeeExpertise_Audit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckAllowReopenWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ReOpenClosedWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_New_AddUpdateData.sql" />
   </ItemGroup>
   <ItemGroup>

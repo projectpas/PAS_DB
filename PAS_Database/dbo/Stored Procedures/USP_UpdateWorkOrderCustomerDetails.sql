@@ -267,6 +267,12 @@ BEGIN
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ReceivingCustomerWorkId = RC.ReceivingCustomerWorkId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
+			UPDATE Work_ReleaseFrom_8130
+				SET Reference = @CustomerReference
+			FROM [dbo].[Work_ReleaseFrom_8130] WRO WITH(NOLOCK)
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) on WRO.workOrderPartNoId = WOP.Id
+			WHERE WOP.ID = @WorkOrderPartNoId 
+
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
@@ -341,6 +347,13 @@ BEGIN
 		BEGIN
 			UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
 			WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
+
+			UPDATE WorkOrderPartNumber SET 
+				   isLocked = CASE WHEN ISNULL(isLocked, 0) > 0 THEN 0 ELSE isLocked END
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.RevisedItemmasterid
+			WHERE WOP.ID = @WorkOrderPartNoId
+
 		END
   
  END TRY      

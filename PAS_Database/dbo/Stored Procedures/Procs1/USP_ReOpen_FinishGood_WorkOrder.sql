@@ -51,6 +51,7 @@ AS
 	DECLARE @InternalWOTypeId INT= 0;
 	DECLARE @IsInvoiceGenerated BIT = NULL;
 	DECLARE @8130WorkOrderSettlementId BIGINT;
+	DECLARE @WorkOrderNum VARCHAR(200);
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -63,6 +64,7 @@ AS
 			SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
+			SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
@@ -86,7 +88,8 @@ AS
 					UPDATE Stockline SET 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
 						QuantityReserved = CASE WHEN QuantityReserved = 0 THEN ISNULL(QuantityReserved, 0) + 1 ELSE QuantityReserved END,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
 					WHERE StockLineId=@StockLineId
 				END
 
@@ -96,7 +99,8 @@ AS
 					UPDATE Stockline SET 
 						QuantityOnHand = ISNULL(QuantityOnHand, 0) + 1,
 						QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
 					WHERE StockLineId=@StockLineId
 				END
 

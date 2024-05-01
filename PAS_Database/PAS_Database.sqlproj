@@ -2921,6 +2921,7 @@
     <Build Include="dbo\Stored Procedures\USP_CheckAllowReopenWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenClosedWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_New_AddUpdateData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckIsWOInvoicePosted.sql" />
     <Build Include="dbo\Views\vw_VendorClassificationAudit.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** --   --------    -------				--------------------------------
 ** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
 
-EXEC dbo.USP_ReOpenClosedWorkOrder 3402,'Admin'
+EXEC dbo.USP_ReOpenClosedWorkOrder 3433,'Admin'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
@@ -23,7 +23,7 @@ AS
 	DECLARE @SubModuleId INT;
 	DECLARE @WorkOrderId BIGINT;
 	DECLARE @MasterCompanyId BIGINT;
-	DECLARE @StockLineId BIGINT;
+	DECLARE @StockLineId BIGINT = 0;
 	DECLARE @BillingInvoicingId BIGINT;
 	DECLARE @IsShippingDone INT;
 	DECLARE @IsBillingDone INT;
@@ -34,8 +34,8 @@ AS
 	DECLARE @InvoiceId BIGINT=0;  
 	DECLARE @IssueQty BIGINT=0; 
 	DECLARE @issued bit=0; 
-	DECLARE @laborType VARCHAR(200)='DIRECTLABOR';
-	DECLARE @Amount DECIMAL(18,2);    
+	DECLARE @laborType VARCHAR(200)='';
+	DECLARE @Amount DECIMAL(18,2) = 0;    
     DECLARE @ModuleName VARCHAR(200)='WO';
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
@@ -52,7 +52,7 @@ AS
 	BEGIN TRY
 		BEGIN TRANSACTION
 			SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')    
-			SELECT @ReferencePartId = WorkFlowWorkOrderId , @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
+			SELECT @ReferencePartId = WorkOrderPartNoId , @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
@@ -61,7 +61,7 @@ AS
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
 			SELECT @WorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'OPEN'
 			SELECT @ClosedWorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE StatusCode = 'CLOSED'
-			SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
+			SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			
 			SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
 
@@ -80,7 +80,7 @@ AS
 			--SELECT @IsShippingDone IsShippingDone, @IsPaymentReceived IsPaymentReceived
 			IF(ISNULL(@IsShippingDone,0) = 0 AND ISNULL(@IsPaymentReceived, 0) = 0)
 			BEGIN
-
+				PRINT 'START'
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done and Customer Stock */
@@ -132,8 +132,6 @@ AS
 				SELECT @ActionId  = ActionId FROM StklineHistory_Action WHERE UPPER([Type]) = UPPER('Re-OpenWorkOrder') -- Re-OpenWorkOrder
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @workOrderPartNoId, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
 				
-				SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
-
 				DECLARE @IsRestrict BIT;
 				DECLARE @IsAccountByPass BIT;
 
@@ -161,25 +159,39 @@ AS
 				SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOINVOICINGTAB')   
 				DECLARE @IsInvoiceEntry BIT;
 
+				SELECT @InvoiceId = MAX(WOBI.BillingInvoicingId) FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
+					JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+				WHERE WOBII.WorkOrderPartId = @workOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+
 				SELECT @IsInvoiceEntry = CASE WHEN COUNT(WorkOrderBatchId) > 0 THEN 1 ELSE 0 END FROM  dbo.WorkOrderBatchDetails WITH(NOLOCK) WHERE InvoiceId = @BillingInvoicingId
 				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
 				BEGIN
+					PRINT 'REVERSE BILLING ENTRY FOR CUSTOMER WO'
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
+						PRINT'IN'
 						EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
 					END
+
+					PRINT 'END REVERSE BILLING ENTRY FOR CUSTOMER WO'
 				END
 				
 				--REVERSE BILLING ENTRY FOR INTERNAL WO
 				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
 				BEGIN
+					PRINT 'REVERSE BILLING ENTRY FOR INTERNAL WO'
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0)  
 					BEGIN  
+						PRINT 'IN'
 						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
 					END
+					PRINT 'END REVERSE BILLING ENTRY FOR INTERNAL WO'
 				END
+
+				PRINT 'END'
 
 			END
 		COMMIT TRANSACTION

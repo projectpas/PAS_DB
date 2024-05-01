@@ -51,6 +51,8 @@ AS
 	DECLARE @InternalWOTypeId INT= 0;
 	DECLARE @IsInvoiceGenerated BIT = NULL;
 	DECLARE @8130WorkOrderSettlementId BIGINT;
+	DECLARE @ShippingWorkOrderSettlementId BIGINT = 10; --Fixed for Parts Shipped
+	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
 	DECLARE @WorkOrderNum VARCHAR(200);
 					
 	BEGIN TRY
@@ -110,6 +112,7 @@ AS
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
 						InvoiceFilePath = '', 
+						WorkOrderShippingId = Null,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END
@@ -117,8 +120,7 @@ AS
 				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0 WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
-				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
-
+				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)
 				DECLARE @ActionId INT;
 				SELECT @ActionId  = ActionId FROM StklineHistory_Action WHERE UPPER([Type]) = UPPER('Re-OpenFinishedGood') -- Re-Open Finished Good
 

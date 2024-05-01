@@ -43,6 +43,8 @@ AS
 	DECLARE @IsPaymentReceived BIT = NULL;
 	DECLARE @WorkOrderSettlementId BIGINT = 9; --Fixed for Final Condition Changed
 	DECLARE @8130WorkOrderSettlementId BIGINT; --Fixed for Final Condition Changed
+	DECLARE @ShippingWorkOrderSettlementId BIGINT = 10; --Fixed for Parts Shipped
+	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
 	DECLARE @WorkOrderStatusId INT;
 	DECLARE @ClosedWorkOrderStatusId INT;
 	DECLARE @WorkOrderNum VARCHAR(200);
@@ -107,6 +109,7 @@ AS
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
 						InvoiceFilePath = '', 
+						WorkOrderShippingId = Null,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END 
@@ -118,11 +121,11 @@ AS
 				WHERE WorkOrderId = @WorkOrderId;
 
 				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
-				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
+				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)
 				
 				UPDATE WorkOrderSettlementDetails SET IsMastervalue = 1, Isvalue_NA = 0
 				FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
-				WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
+				WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId 
 
 				DECLARE @ActionId INT;
 				

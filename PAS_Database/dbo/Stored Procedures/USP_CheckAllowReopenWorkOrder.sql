@@ -10,10 +10,10 @@
  ************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1    04/16/2024   HEMANT SALIYA      Created  
+    1    04/30/2024   HEMANT SALIYA      Created  
 
 DECLARE @IsAllowReopenWO BIT;       
-EXECUTE USP_CheckAllowReopenWorkOrder 3889,3402, @IsAllowReopenWO OUTPUT 
+EXECUTE USP_CheckAllowReopenWorkOrder 3913,3430, @IsAllowReopenWO OUTPUT 
 
 *************************************************************/   
   
@@ -36,12 +36,12 @@ BEGIN
 		SELECT @IsPartShipped = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 		FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 			JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' OR ISNULL(isIgnoreAWB, 0) = 1)
+		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
 
 		SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END 
 		FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-			JOIN dbo.WorkOrderBillingInvoicing WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-		WHERE WOBI.WorkOrderId = @WorkOrderId AND WOBII.WorkOrderPartNoId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
+			JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
+		WHERE WOBI.WorkOrderId = @WorkOrderId AND WOBII.WorkOrderPartId = @WorkOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
 			ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 		
 		--SELECT @IsPaymentReceived, @IsPartShipped, @IsPartClosed

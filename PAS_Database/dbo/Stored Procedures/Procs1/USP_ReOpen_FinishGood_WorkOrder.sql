@@ -73,7 +73,7 @@ AS
 				SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 				FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 					JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' OR ISNULL(isIgnoreAWB, 0) = 1)
+				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '') -- OR ISNULL(isIgnoreAWB, 0) = 1
 
 				SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END,
 					@BillingInvoicingId = MAX(WOBI.BillingInvoicingId)

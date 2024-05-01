@@ -26,6 +26,7 @@
  8    01/31/2024   Devendra Shekh added isperforma Flage for WO
  9    03/21/2024   HEMANT SALIYA  Added Is Deleted Condition for WO & CM
 10    04/25/2024   VISHAL SUTHAR  Added a fix to handle devide by zero exception
+11    04/30/2024   Devendra Shekh  Added a fix to handle devide by zero exception(for WithTotal result)
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
@@ -366,11 +367,11 @@ BEGIN
 					FORMAT(SUM(overheadcost), 'N', 'en-us') TotalOverheadcost,  
 					FORMAT(SUM(directcost), 'N', 'en-us') TotalDirectcost,  
 					FORMAT(SUM(margin), 'N', 'en-us') TotalMargin,  
-					FORMAT((SUM(partscost) / SUM(revenue)) * 100, 'N', 'en-us') TotalPartsrevper,  
-					FORMAT((SUM(laborcost) / SUM(revenue)) * 100, 'N', 'en-us') TotalLaborrevper,  
-					FORMAT((SUM(overheadcost) / SUM(revenue)) * 100, 'N', 'en-us') TotalOhcostper,  
-					FORMAT((SUM(directcost) / SUM(revenue)) * 100, 'N', 'en-us') TotalDirectCostPerc,  
-					FORMAT(((SUM(revenue) - SUM(directcost)) / SUM(revenue)) * 100, 'N', 'en-us') TotalMarginPerc  
+					CASE WHEN SUM(revenue) = 0 THEN 0 ELSE FORMAT((SUM(partscost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalPartsrevper,  
+					CASE WHEN SUM(revenue) = 0 THEN 0 ELSE FORMAT((SUM(laborcost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalLaborrevper,  
+					CASE WHEN SUM(revenue) = 0 THEN 0 ELSE FORMAT((SUM(overheadcost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalOhcostper,  
+					CASE WHEN SUM(revenue) = 0 THEN 0 ELSE FORMAT((SUM(directcost) / SUM(revenue)) * 100, 'N', 'en-us') END TotalDirectCostPerc,  
+					CASE WHEN SUM(revenue) = 0 THEN 0 ELSE FORMAT(((SUM(revenue) - SUM(directcost)) / SUM(revenue)) * 100, 'N', 'en-us') END TotalMarginPerc  
 				FROM FinalCTE  
 				GROUP BY masterCompanyId)  
   

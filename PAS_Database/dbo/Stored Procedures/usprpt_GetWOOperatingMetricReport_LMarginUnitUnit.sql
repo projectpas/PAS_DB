@@ -34,6 +34,7 @@ BEGIN
 		@fromdate datetime,  
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
+		@itemMasterId varchar(40) = NULL,
 		@searchWOType varchar(10) = NULL,
 		@marginSortBy varchar(50) = NULL,
 		@isCustomerWO bit = NULL,
@@ -64,7 +65,8 @@ BEGIN
 		
 		@customerid=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Customer(Optional)' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @customerid end,
-		
+		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='MPN(Optional)' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,		
 		@workscopeIds=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Work Scope' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @workscopeIds end,
 		@marginSortBy=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='marginSortBy' 
@@ -156,7 +158,7 @@ BEGIN
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  
 		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND
-				WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
+				WO.CustomerId=ISNULL(@customerid,WO.CustomerId) AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)    
 					AND CAST(WBI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
 					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))

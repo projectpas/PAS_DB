@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_ReceivedUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Most Received Part Report Detail By Item Master Id
@@ -112,7 +113,7 @@ BEGIN
 
       (SELECT 
 			UPPER(Customer.Name) 'customer',  
-			WO.CustomerId CustomerId,
+			CW.CustomerId CustomerId,
 			ROW_NUMBER() OVER(Partition by IM.ItemMasterId ORDER BY IM.PartNumber) AS Row_Number,
 			IM.ItemMasterId as itemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
@@ -122,7 +123,7 @@ BEGIN
 			WBI.BillingInvoicingId as billingInvoicingId,
 			UPPER(Wo.WorkOrderNum) as workOrderNum,
 			
-			wo.OpenDate,
+			CW.ReceivedDate as OpenDate,
 			WBI.InvoiceDate,
 			ISNULL(wos.Code,'') + '-' + ISNULL(wos.Stage,'') as woStage,
 
@@ -153,8 +154,7 @@ BEGIN
 			LEFT JOIN dbo.WorkOrderStage wos WITH (NOLOCK) ON  WOPN.WorkOrderStageId = wos.WorkOrderStageId
 		  
 		  WHERE ISNULL(CW.IsDeleted,0) = 0 AND
-				CW.CustomerId=ISNULL(@customerid,CW.CustomerId) AND  
-				CW.itemmasterId=ISNULL(@selectedItemMasterId,CW.itemmasterId)  
+				CW.CustomerId=ISNULL(@customerid,CW.CustomerId) AND	CW.itemmasterId=ISNULL(@selectedItemMasterId,CW.itemmasterId)  
 					AND CAST(CW.ReceivedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND CW.mastercompanyid = @mastercompanyid
 					--AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
 					AND (ISNULL(@workscopeIds,'')='' OR CW.ConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))

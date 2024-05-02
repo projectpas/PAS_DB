@@ -56,7 +56,7 @@ BEGIN
   BEGIN TRY  
     --BEGIN TRANSACTION  
        print 'Start'
-      DECLARE @ModuleID INT = 12; -- MS Module ID
+      DECLARE @ModuleID INT = 1; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	   SELECT 
 		@fromdate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -119,7 +119,7 @@ BEGIN
 
       (SELECT 
 			UPPER(Customer.Name) 'customer',  
-			WO.CustomerId CustomerId,
+			CW.CustomerId CustomerId,
 			ROW_NUMBER() OVER(Partition by IM.ItemMasterId ORDER BY IM.PartNumber) AS Row_Number,
 			IM.ItemMasterId,
 			UPPER(IM.PartNumber) 'pn',  
@@ -136,22 +136,23 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			WBI.BillingInvoicingId
        FROM 
-			DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  
-			INNER JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
-			INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) on WBI.WorkOrderId = WO.WorkOrderId
-			INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOBIT.WorkOrderPartId = WOPN.ID
-			INNER JOIN DBO.ReceivingCustomerWork CW WITH (NOLOCK) ON WO.WorkOrderId = CW.WorkOrderId AND WOPN.ItemMasterId = CW.ItemMasterId
-			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
+			DBO.ReceivingCustomerWork CW WITH (NOLOCK)
+			INNER JOIN DBO.Customer WITH (NOLOCK) ON CW.CustomerId = Customer.CustomerId  
+			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON CW.itemmasterId = IM.itemmasterId
+			INNER JOIN DBO.Condition AS CN WITH (NOLOCK) ON CW.ConditionId = CN.ConditionId 
+			LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON CW.ReceivingCustomerWorkId = WOPN.ReceivingCustomerWorkId
+			LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId 
+			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK) ON WOPN.Id =  WOBIT.WorkOrderPartId AND ISNULL(WOBIT.IsVersionIncrease,0) = 0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 
+			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			LEFT JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = CW.ReceivingCustomerWorkId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
-			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
 		  
-		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(CW.IsDeleted,0) = 0 AND
-				WO.CustomerId=ISNULL(@customerid,WO.CustomerId) AND CW.ItemMasterId = ISNULL(@itemMasterId,CW.ItemMasterId) 
-					AND CAST(WBI.InvoiceDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
-					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
-					--AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+		  WHERE ISNULL(CW.IsDeleted,0) = 0 AND
+				CW.CustomerId=ISNULL(@customerid,CW.CustomerId) 
+				--AND CW.ItemMasterId = ISNULL(@itemMasterId,CW.ItemMasterId) 
+					AND CAST(CW.ReceivedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND CW.mastercompanyid = @mastercompanyid
+					--AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
+					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -163,7 +164,7 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
-
+		--select * from #TempWOOperating
 		SELECT * INTO #TempWOOperatingFinal FROM
 		 (SELECT * FROM #TempWOOperating main) as res
 		

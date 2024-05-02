@@ -46,8 +46,13 @@ AS
 	DECLARE @ShippingWorkOrderSettlementId BIGINT = 10; --Fixed for Parts Shipped
 	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
 	DECLARE @WorkOrderStatusId INT;
+	DECLARE @WorkOrderStageId INT;
 	DECLARE @ClosedWorkOrderStatusId INT;
 	DECLARE @WorkOrderNum VARCHAR(200);
+	DECLARE @ExistingValue VARCHAR(200);
+	DECLARE @NewValue VARCHAR(200) = 'OPEN';
+	DECLARE @MPNPartNum VARCHAR(200);
+	DECLARE @RefferenceId BIGINT, @SubRefferenceId BIGINT, @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100);
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -60,10 +65,17 @@ AS
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
 			SELECT @WorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE [Status] = 'OPEN'
+
 			SELECT @ClosedWorkOrderStatusId = id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE StatusCode = 'CLOSED'
 			SELECT @WorkOrderNum = WorkOrderNum, @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			
-			SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
+			SELECT @StockLineId = StockLineId,@MasterCompanyId = WOP.MasterCompanyId, @ExistingValue = UPPER(WS.[Status]), @MPNPartNum = IM.partnumber 
+			FROM dbo.WorkOrderPartNumber WOP WITH (NOLOCK) 
+			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
+			JOIN dbo.WorkOrderStatus WS WITH (NOLOCK) ON WOP.WorkOrderStatusId = WS.Id
+			WHERE WOP.ID = @workOrderPartNoId
+
+			SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
 
 			SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
@@ -114,7 +126,7 @@ AS
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END 
 
-				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, WorkOrderStatusId = @WorkOrderStatusId WHERE ID = @workOrderPartNoId;
+				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, WorkOrderStatusId = @WorkOrderStatusId, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrder 
 					SET WorkOrderStatusId = CASE WHEN ISNULL(WorkOrderStatusId, 0) = @ClosedWorkOrderStatusId THEN @WorkOrderStatusId ELSE WorkOrderStatusId END
@@ -126,6 +138,19 @@ AS
 				UPDATE WorkOrderSettlementDetails SET IsMastervalue = 1, Isvalue_NA = 0
 				FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
 				WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId 
+
+				SET @StatusCode = 'REOPENCLOSEDWO';
+
+				SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+				SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
+				SET @TemplateBody = REPLACE(@TemplateBody, '##WoMPN##', ISNULL(@MPNPartNum,''));				
+				SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
+				SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@NewValue,''));
+
+				PRINT 'RE-OPEN WO History'
+				EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL , @UpdatedBy, NULL
+				PRINT 'END RE-OPEN WO DETAILS'
 
 				DECLARE @ActionId INT;
 				

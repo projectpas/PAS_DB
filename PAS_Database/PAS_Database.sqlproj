@@ -2923,6 +2923,16 @@
     <Build Include="dbo\Stored Procedures\USP_SingleScreen_New_AddUpdateData.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckIsWOInvoicePosted.sql" />
     <Build Include="dbo\Views\vw_VendorClassificationAudit.sql" />
+    <Build Include="dbo\Views\vw_TangibleClassAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetStatus.sql" />
+    <Build Include="dbo\Views\vw_AssetLocationAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetIntangibleTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetDisposalTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetDepreciationMethodAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetDepreciationIntervalAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetDepreciationFrequencyAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetDepConventionAudit.sql" />
+    <Build Include="dbo\Views\vw_AssetAttributeTypeAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

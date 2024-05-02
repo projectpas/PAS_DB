@@ -11,6 +11,7 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** --   --------    -------         --------------------------------
 ** 1    01/01/2024  AMIT GHEDIYA    Created
 ** 2    04/25/2024  Devendra Shekh  reading data for SubWOMpn in place of WOMpn
+** 3    05/02/2024  Devendra Shekh  duplicate mpn for multiple wo mpn, issue resolved
 
 EXEC RPT_GetSubWorkOrderPrintPdfData 208,186
 
@@ -132,8 +133,8 @@ AS
 			FROM dbo.SubWorkOrder SWO WITH(NOLOCK) 
 				INNER JOIN dbo.SubWorkOrderPartNumber SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
 				INNER JOIN Dbo.WorkOrder wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             
-				LEFT JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId --and wf.WorkOrderPartNoId=@workOrderPartNoId    
 				INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = SWO.WorkOrderPartNumberId
+				LEFT JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderPartNoId = wop.ID --and wf.WorkOrderPartNoId=@workOrderPartNoId    
 				LEFT JOIN Dbo.WorkOrderQuote woq WITH(NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0              
 				LEFT JOIN Dbo.WorkOrderShipping shippingInfo WITH(NOLOCK) on shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=wop.ID              
 				LEFT JOIN Dbo.CustomerBillingAddress  billToSiteatt WITH(NOLOCK) on shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId              

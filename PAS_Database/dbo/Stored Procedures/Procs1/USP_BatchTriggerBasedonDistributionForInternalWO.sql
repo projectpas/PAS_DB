@@ -18,6 +18,7 @@
 	4    30/11/2023  Moin Bloch     Modify(Added LotId And Lot Number in CommonBatchDetails)
 	5    09/01/2024  Moin Bloch     Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 	6    28/04/2024  HEMANT SALIYA  Modify(Remove Shiping A/C Entry)
+	7    02/05/2024  Devendra Shekh Modify(changed Distribution WOIINVENTORYTOBILL to WOIFINISHGOOD, and reading @MaterialCost details from wompncostdetails)
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]
@@ -1677,7 +1678,7 @@ BEGIN
 	        BEGIN
 				SELECT @InvoiceNo=[InvoiceNo],
 				       @InvoiceTotalCost=ISNULL([GrandTotal],0),
-					   @MaterialCost=ISNULL([MaterialCost],0),
+					   --@MaterialCost=ISNULL([MaterialCost],0),
 					   @FreightCost=ISNULL([FreightCost],0),
 					   @SalesTax=ISNULL([SalesTax],0),
 					   @OtherTax = ISNULL([OtherTax],0),
@@ -1689,6 +1690,7 @@ BEGIN
 
 				SELECT @LaborCost = (SUM(ISNULL(WOPN.LaborCost,0))-SUM(ISNULL(WOPN.OverHeadCost,0))),
 				       @LaborOverHeadCost = SUM(ISNULL(WOPN.OverHeadCost,0))
+					   ,@MaterialCost = SUM(ISNULL(WOPN.PartsCost,0))
 				from [dbo].[WorkOrderMPNCostDetails]  WOPN WITH(NOLOCK)
                 INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBIT WITH(NOLOCK) ON WOPN.WOPartNoId= WOBIT.WorkOrderPartId
                 WHERE [BillingInvoicingId] = @InvoiceId AND [IsVersionIncrease] = 0   
@@ -1895,10 +1897,11 @@ BEGIN
 					END
 
 					-----Inventory to Bill-----
+					-----Changed Inventory to Bill to WOIFINISHGOOD-----
 					IF(@FinishGoodAmount >0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
-						FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WOIINVENTORYTOBILL') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
+						FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WOIFINISHGOOD') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 						  (JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],

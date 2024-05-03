@@ -12,7 +12,7 @@
  ** --   --------     -------			--------------------------------            
     1    04/16/2024   HEMANT SALIYA      Created  
    
-exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3890,@WorkOrderPartNoId=3403,@CustomerId=49,
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3938,@WorkOrderPartNoId=3461,@CustomerId=80,
 @ItemMasterId=41195,@customerReference=N'RO -99999',@SerialNumber=N'999999',@Memo=default,@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
@@ -279,7 +279,7 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@CustomerReference,''));
 
-			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @CustomerReference, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 			PRINT 'UPDATE CUST REFERENCE COMPLETE'
 		END
 
@@ -315,7 +315,7 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@SerialNumber,''));
 
-			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @SerialNumber, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 			PRINT 'UPDATE SERIAL NUMBER COMPLETE'
 		END
 

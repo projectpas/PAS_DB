@@ -836,7 +836,7 @@ BEGIN
 				  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[IsCreditMemo],[StatusId],[LegalEntityName],
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
 					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10]	
 				 			
 			SELECT @Count = COUNT(CustomerId) FROM #TempResult1
@@ -890,6 +890,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntityName') THEN [LegalEntityName] END DESC
 			
 			OFFSET @RecordFrom ROWS FETCH NEXT @PageSize ROWS ONLY
+
+
 				 
 		END
 		ELSE  -- DETAIL VIEW

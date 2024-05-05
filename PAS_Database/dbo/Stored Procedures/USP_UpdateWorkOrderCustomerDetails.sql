@@ -132,6 +132,8 @@ BEGIN
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WOQ.CustomerId
 
+			--Need to Update Customer Details in Shppping as well
+
 			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
 			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId

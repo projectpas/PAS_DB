@@ -126,7 +126,7 @@ AS
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END 
 
-				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, WorkOrderStatusId = @WorkOrderStatusId, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;
+				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, IsClosed = 0, isLocked = 0, WorkOrderStatusId = @WorkOrderStatusId, WorkOrderStageId = @WorkOrderStageId WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrder 
 					SET WorkOrderStatusId = CASE WHEN ISNULL(WorkOrderStatusId, 0) = @ClosedWorkOrderStatusId THEN @WorkOrderStatusId ELSE WorkOrderStatusId END

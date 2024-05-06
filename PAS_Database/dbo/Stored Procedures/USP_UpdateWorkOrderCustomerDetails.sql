@@ -51,6 +51,10 @@ BEGIN
 		DECLARE @ModuleId BIGINT, @RefferenceId BIGINT, @SubModuleId BIGINT, @SubRefferenceId BIGINT, @ExistingValue VARCHAR(MAX) = NULL, 
 				@NewValue VARCHAR(MAX), @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100), @MasterCompanyId INT;
 
+		DECLARE @WorkOrderQuoteStatusId BIGINT = NULL;
+		
+		Select @WorkOrderQuoteStatusId = [Description] FROM dbo.WorkOrderQuoteStatus WHERE [Description] = 'OPEN'
+
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
@@ -122,7 +126,8 @@ BEGIN
 			UPDATE WorkOrderQuote
 				SET CustomerName = C.[Name], CustomerContact = CO.FirstName + ' ' + CO.LastName ,
 					CreditTerms = CTs.[Name] , SalesPersonId = CS.PrimarySalesPersonId, 
-					CreditLimit = CF.CreditLimit
+					CreditLimit = CF.CreditLimit,
+					QuoteStatusId = @WorkOrderQuoteStatusId
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.WorkOrderQuote WOQ WITH(NOLOCK) ON WOQ.CustomerId = C.CustomerId
 				LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND ISNULL(IsDefaultContact, 0) = 1

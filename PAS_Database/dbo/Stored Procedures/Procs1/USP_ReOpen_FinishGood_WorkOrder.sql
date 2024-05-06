@@ -70,6 +70,7 @@ AS
 
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
+				PRINT 'Start ReOpen FinishGood Execution'
 				SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
 
 				SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
@@ -86,6 +87,7 @@ AS
 
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 				BEGIN
+					PRINT 'Update Stock Line Qty If Shipping is Done and Customer Stock'
 					/* Update Stock Line Qty If Shipping is Done and Customer Stock */
 					UPDATE Stockline SET 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
@@ -97,6 +99,7 @@ AS
 
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
 				BEGIN
+					PRINT ' Update Stock Line Qty If Shipping is Done And not Customer Stock'
 					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
 					UPDATE Stockline SET 
 						QuantityOnHand = ISNULL(QuantityOnHand, 0) + 1,
@@ -107,7 +110,8 @@ AS
 				END
 
 				IF(ISNULL(@IsInvoiceGenerated,0) > 0)
-				BEGIN
+				BEGIN	
+					PRINT 'Update Work Order Billing Status to Re-Generate Invoice'
 					/* Update Work Order Billing Status to Re-Generate Invoice */
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
@@ -117,7 +121,7 @@ AS
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END
 
-				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, isLocked = CASE WHEN ISNULL(isLocked, 0) > 0 THEN 0 ELSE isLocked END WHERE ID = @workOrderPartNoId;
+				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, isLocked = 0 WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
 				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)
@@ -173,7 +177,7 @@ AS
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
 					END
 				END
-
+				PRINT 'END ReOpen FinishGood Execution'
 			END
 		COMMIT TRANSACTION
 	END TRY

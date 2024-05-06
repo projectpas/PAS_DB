@@ -10,10 +10,10 @@
  ************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1    04/16/2024   HEMANT SALIYA      Created  
+    1    05/05/2024   HEMANT SALIYA      Created  
    
-exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3938,@WorkOrderPartNoId=3461,@CustomerId=80,
-@ItemMasterId=41195,@customerReference=N'RO -99999',@SerialNumber=N'999999',@Memo=default,@UpdatedBy=N'ADMIN User'
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3940,@WorkOrderPartNoId=3463,@CustomerId=90,
+@ItemMasterId=318,@customerReference=N'RO -99999',@SerialNumber=N'999999',@Memo=default,@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
@@ -134,11 +134,37 @@ BEGIN
 
 			--Need to Update Customer Details in Shppping as well
 
-			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			--SELECT top 1 * FROM dbo.WorkOrderShipping WOS WITH(NOLOCK) order by 1 desc
+
+			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, 
+				ShipToSiteName = CDS.SiteName, ShipToSiteId = CDS.CustomerDomensticShippingId, ShipToAddress1 = ADS.Line1,
+				ShipToAddress2 = ADS.Line2 + ' ' + ADS.Line3, ShipToCity = ADS.City, ShipToState = ADS.StateOrProvince, ShipToZip = ADS.PostalCode,
+				ShipToCountryId = ADS.CountryId,
+				SoldToName = WO.CustomerName, SoldToSiteName = CBD.SiteName, SoldToSiteId = CBD.CustomerBillingAddressId, SoldToAddress1 = ADB.Line1,
+				SoldToAddress2 = ADB.Line2 + ' ' + ADB.Line3, SoldToCity = ADB.City, SoldToState = ADB.StateOrProvince, SoldToZip = ADB.PostalCode,
+				SoldToCountryId = ADB.CountryId
+			FROM dbo.WorkOrderShipping WOS WITH(NOLOCK) 
+				JOIN dbo.WorkOrderShippingItem WOSI WITH(NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOSI.WorkOrderPartNumId
+				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+				LEFT JOIN dbo.[Address] ADS ON ADS.AddressId = CDS.AddressId
+				LEFT JOIN dbo.[Countries] SC ON ADS.CountryId = SC.countries_id
+
+				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
+				LEFT JOIN dbo.[Address] ADB ON ADB.AddressId = CBD.AddressId
+				LEFT JOIN dbo.[Countries] SB ON ADB.CountryId = SB.countries_id
+			WHERE WO.WorkOrderId = @WorkOrderId
+
+			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
+				SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
+				SoldToSiteId = CBD.CustomerBillingAddressId
 			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
 			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
 
 			UPDATE ReceivingCustomerWork
@@ -337,12 +363,17 @@ BEGIN
 			WHERE WOP.ID = @WorkOrderPartNoId
 		END
 
+		PRINT ISNULL(@IsClosed, 0);
+		PRINT ISNULL(@IsFinishedGood, 0);
+
 		IF(ISNULL(@IsClosed, 0) = 1)
 		BEGIN
+			PRINT 'Closed WorkOrder'
 			EXEC USP_ReOpenClosedWorkOrder @WorkOrderPartNoId, @UpdatedBy
 		END
 		ELSE IF(ISNULL(@IsFinishedGood, 0) = 1)
 		BEGIN
+			PRINT 'Finish Good'
 			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
 		END
 		ELSE
@@ -353,7 +384,6 @@ BEGIN
 			UPDATE WorkOrderPartNumber SET 
 				   isLocked = CASE WHEN ISNULL(isLocked, 0) > 0 THEN 0 ELSE isLocked END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
-				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.RevisedItemmasterid
 			WHERE WOP.ID = @WorkOrderPartNoId
 
 		END

@@ -11,6 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    04/30/2024   HEMANT SALIYA      Created  
+	2    05/06/2024   HEMANT SALIYA      Updated For Remove Shipping Condition  
 
 DECLARE @IsAllowReopenWO BIT;       
 EXECUTE USP_CheckAllowReopenWorkOrder 3913,3430, @IsAllowReopenWO OUTPUT 
@@ -28,15 +29,15 @@ BEGIN
  BEGIN TRY
 		DECLARE @MasterCompanyId INT = NULL;		
 		DECLARE @IsPaymentReceived BIT = NULL;
-		DECLARE @IsPartShipped BIT = NULL;
+		--DECLARE @IsPartShipped BIT = NULL;
 		DECLARE @IsPartClosed BIT = NULL;
 
 		SELECT @IsPartClosed = ISNULL(IsClosed, 0) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @WorkOrderPartNoId 
 
-		SELECT @IsPartShipped = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
-		FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
-			JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
+		--SELECT @IsPartShipped = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
+		--FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
+		--	JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
+		--WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
 
 		SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END 
 		FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
@@ -46,28 +47,37 @@ BEGIN
 		
 		--SELECT @IsPaymentReceived, @IsPartShipped, @IsPartClosed
 
-		IF(@IsPartClosed = 1)
+		IF(@IsPaymentReceived = 1)
 		BEGIN
-			IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
-			BEGIN
-				SET @IsAllowReopenWO = 0;				
-			END
-			ELSE
-			BEGIN
-				SET @IsAllowReopenWO = 1;
-			END
+			SET @IsAllowReopenWO = 0;				
 		END
 		ELSE
 		BEGIN
-			IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
-			BEGIN
-				SET @IsAllowReopenWO = 0;				
-			END
-			ELSE
-			BEGIN
-				SET @IsAllowReopenWO = 1;
-			END
+			SET @IsAllowReopenWO = 1;
 		END
+
+		--IF(@IsPartClosed = 1)
+		--BEGIN
+		--	IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
+		--	BEGIN
+		--		SET @IsAllowReopenWO = 0;				
+		--	END
+		--	ELSE
+		--	BEGIN
+		--		SET @IsAllowReopenWO = 1;
+		--	END
+		--END
+		--ELSE
+		--BEGIN
+		--	IF((@IsPaymentReceived = 1 OR  @IsPartShipped = 1))
+		--	BEGIN
+		--		SET @IsAllowReopenWO = 0;				
+		--	END
+		--	ELSE
+		--	BEGIN
+		--		SET @IsAllowReopenWO = 1;
+		--	END
+		--END
 
 		--SET @IsAllowReopenWO = 1;
 		

@@ -80,7 +80,7 @@ AS
 			SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 				JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-			WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
+			WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId --AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
 
 			SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END,
 				   @BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
@@ -90,7 +90,7 @@ AS
 				ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
 
 			--SELECT @IsShippingDone IsShippingDone, @IsPaymentReceived IsPaymentReceived
-			IF(ISNULL(@IsShippingDone,0) = 0 AND ISNULL(@IsPaymentReceived, 0) = 0)
+			IF(ISNULL(@IsPaymentReceived, 0) = 0) --ISNULL(@IsShippingDone,0) = 0 AND 
 			BEGIN
 				PRINT 'START'
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)

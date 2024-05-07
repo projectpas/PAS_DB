@@ -69,11 +69,24 @@ CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @level10Str VARCHAR(500) = NULL,
 @LegalEntityName VARCHAR(500) = NULL,
 @EmployeeId BIGINT = NULL,
-@MasterCompanyid INT = NULL	
+@MasterCompanyid INT = NULL,
+@IsSSRS BIT = NULL,
+@id VARCHAR(MAX) = NULL,
+@id2 VARCHAR(MAX) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	
+	IF OBJECT_ID(N'tempdb..#TempARAgingAsOfNowDataFilter') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TempARAgingAsOfNowDataFilter
+	END
+
+	CREATE TABLE #TempARAgingAsOfNowDataFilter([ID] BIGINT  IDENTITY(1,1),[Field] VARCHAR(MAX));
+
+	INSERT INTO #TempARAgingAsOfNowDataFilter(Field) SELECT Item FROM DBO.SPLITSTRING(@id2,'!');
+
     DECLARE @RecordFrom INT;
 	DECLARE @Count INT;
 	DECLARE @CMPostedStatusId INT;
@@ -103,16 +116,73 @@ BEGIN
     SELECT @EXInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='Exchange';
     SELECT @MJEPostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
+	
+	IF(@IsSSRS = 1)  --  Default For SSRS
+	BEGIN
+		SET @PageNumber = 1;
+		SET @PageSize = 10000;
+	END
 
 	SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
-	IF @SortColumn IS NULL
-	BEGIN
-		SET @SortColumn = UPPER('INVOICEDATE')		
-	END 
-	ELSE
-	BEGIN 
-		SET @SortColumn = UPPER(@SortColumn)		
+	IF(@IsSSRS = 0)
+	BEGIN		
+		IF @SortColumn IS NULL
+		BEGIN
+			SET @SortColumn = UPPER('INVOICEDATE')		
+		END 
+		ELSE
+		BEGIN 
+			SET @SortColumn = UPPER(@SortColumn)		
+		END	
+	END
+	IF(@IsSSRS = 1)  --  Default For SSRS
+	BEGIN		
+		IF @SortColumn IS NULL AND @ViewType = 'Deatils'
+		BEGIN
+			SET @SortColumn = UPPER('INVOICEDATE')	
+			SET @SortOrder = -1;
+		END 
+		IF @SortColumn IS NULL AND @ViewType = 'Summary'
+		BEGIN
+			SET @SortColumn = UPPER('CustomerName')		
+			SET @SortOrder = 1;
+		END
+		ELSE
+		BEGIN 
+			SET @SortColumn = UPPER(@SortColumn)		
+		END	
+	END
+	IF(@IsSSRS = 1)  --  SSRS Params
+	BEGIN		
+		SELECT @AsOfDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 1; 
+		SELECT @CustomerId = ISNULL(TRY_CAST([Field] AS BIGINT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 2; 
+		SELECT @IsInvoice = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 3; 
+		SELECT @IsCredits = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 4; 
+		SELECT @IsDeposit = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 5;		
+		SELECT @IsUnappliedAmounts = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 6; 
+		SELECT @CustomerName = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 7; 
+		SELECT @CustomerCode = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 8; 
+		SELECT @InvoiceDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 9; 
+		SELECT @CustomerRef = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 10; 
+		SELECT @InvoiceNo = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 11; 
+		SELECT @DSI = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 12; 
+		SELECT @DSO = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 13; 
+		SELECT @DSS = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 14; 
+		SELECT @Salesperson = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 15; 
+		SELECT @CreditTerms = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 16; 
+		SELECT @DueDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 17; 
+		SELECT @CurrencyCode = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 18; 
+		SELECT @FxRateAmount = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 19; 
+		SELECT @InvoiceAmount = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 20; 
+		SELECT @CurrentAmount = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 21; 
+		SELECT @Amountlessthan0days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 22; 
+		SELECT @Amountlessthan30days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 23; 
+		SELECT @Amountlessthan60days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 24; 
+		SELECT @Amountlessthan90days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 25; 
+		SELECT @Amountlessthan120days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 26; 
+		SELECT @Amountmorethan120days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 27; 
+		SELECT @LegalEntityName = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 28; 
 	END	
     BEGIN TRY
 
@@ -121,13 +191,9 @@ BEGIN
 			DROP TABLE #TEMPMSFilter
 		END
 
-		CREATE TABLE #TEMPMSFilter(        
-				ID BIGINT  IDENTITY(1,1),        
-				LevelIds VARCHAR(MAX)			 
-			) 
+		CREATE TABLE #TEMPMSFilter([ID] BIGINT  IDENTITY(1,1),[LevelIds] VARCHAR(MAX)); 
 
-		INSERT INTO #TEMPMSFilter(LevelIds)
-		SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
+		INSERT INTO #TEMPMSFilter(LevelIds)	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!');
 
 		DECLARE   
 		@level1 VARCHAR(MAX) = NULL,  
@@ -410,7 +476,7 @@ BEGIN
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsProforma],0) = 0 
 					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
-					AND @IsInvoice = 1
+					AND @IsInvoice = 1					
 					
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
@@ -890,9 +956,7 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntityName') THEN [LegalEntityName] END DESC
 			
 			OFFSET @RecordFrom ROWS FETCH NEXT @PageSize ROWS ONLY
-
-
-				 
+					   				 
 		END
 		ELSE  -- DETAIL VIEW
 		BEGIN

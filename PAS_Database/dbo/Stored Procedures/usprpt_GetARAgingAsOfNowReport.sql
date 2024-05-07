@@ -16,6 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 11-03-2024		HEMANT SALIYA  		Created
 	2	 25-04-2024		Moin Bloch 		    Modified Added Detail View
+	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
      
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Deatils',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
 **************************************************************/
@@ -368,7 +369,8 @@ BEGIN
 				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 				AND WO.[MasterCompanyId] = @MasterCompanyid 
 				AND @IsInvoice = 1
-			
+				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
+							
 			UPDATE #TEMPInvoiceRecords SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
 				FROM( SELECT 
 					   ISNULL(SUM(IPS.PaymentAmount),0)  AS 'InvoicePaidAmount',				  
@@ -476,8 +478,9 @@ BEGIN
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsProforma],0) = 0 
 					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
-					AND @IsInvoice = 1					
-					
+					AND @IsInvoice = 1	
+					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
+										
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
@@ -586,7 +589,8 @@ BEGIN
 					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 					AND ESO.[MasterCompanyId] = @Mastercompanyid 
 					AND @IsInvoice = 1
-			
+				    AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
+								
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
@@ -1135,6 +1139,7 @@ BEGIN
 				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 				AND WO.[MasterCompanyId] = @MasterCompanyid 
 				AND @IsInvoice = 1
+				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 			
 			UPDATE #TEMPInvoiceRecordsDetailsView SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
 				FROM( SELECT 
@@ -1267,7 +1272,8 @@ BEGIN
 					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
 					AND @IsInvoice = 1
-					
+					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
+										
 			UPDATE #TEMPInvoiceRecordsDetailsView SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
@@ -1395,7 +1401,8 @@ BEGIN
 					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 					AND ESO.[MasterCompanyId] = @Mastercompanyid 
 					AND @IsInvoice = 1
-			
+					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
+								
 			UPDATE #TEMPInvoiceRecordsDetailsView SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId

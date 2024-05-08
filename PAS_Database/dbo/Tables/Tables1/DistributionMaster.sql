@@ -10,6 +10,9 @@
     [IsActive]         BIT           NOT NULL,
     [IsDeleted]        BIT           NOT NULL,
     [IsAllowAddBatch]  BIT           NULL,
+    [JournalTypeId]    BIGINT        NULL,
     CONSTRAINT [PK_DistributionMaster] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 

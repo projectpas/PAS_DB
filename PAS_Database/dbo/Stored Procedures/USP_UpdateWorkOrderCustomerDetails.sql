@@ -10,10 +10,10 @@
  ************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1    04/16/2024   HEMANT SALIYA      Created  
+    1    07/05/2024   HEMANT SALIYA      Created  
    
-exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3890,@WorkOrderPartNoId=3403,@CustomerId=49,
-@ItemMasterId=41195,@customerReference=N'RO -99999',@SerialNumber=N'999999',@Memo=default,@UpdatedBy=N'ADMIN User'
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3690,@WorkOrderPartNoId=3165,@CustomerId=14,
+@ItemMasterId=318,@customerReference=N'Brionna Moen',@SerialNumber=N'',@Memo=default,@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
@@ -31,6 +31,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY
+		PRINT 'START EXECUTION'
 		--DECLARE @WorkOrderId BIGINT = NULL;
 		DECLARE @CustomerContactId BIGINT = NULL;
 		DECLARE @SalesPersonId BIGINT = NULL;
@@ -47,12 +48,19 @@ BEGIN
 		DECLARE @IsFinishedGood BIT = NULL;
 		DECLARE @IsClosed BIT = NULL;
 		DECLARE @WorkOrderSettlementId BIGINT = 9; --Fixed for Final Condition Changed
+		DECLARE @8130WorkOrderSettlementId BIGINT; --Fixed for Final Condition Changed
 		DECLARE @ModuleId BIGINT, @RefferenceId BIGINT, @SubModuleId BIGINT, @SubRefferenceId BIGINT, @ExistingValue VARCHAR(MAX) = NULL, 
 				@NewValue VARCHAR(MAX), @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100), @MasterCompanyId INT;
 
+		DECLARE @WorkOrderQuoteStatusId BIGINT = NULL;
+		
+		SELECT @WorkOrderQuoteStatusId = WorkOrderQuoteStatusId FROM dbo.WorkOrderQuoteStatus WITH(NOLOCK)  WHERE [Description] = 'OPEN'
+		
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
+
+		SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WITH(NOLOCK) WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 
 		PRINT '1'
 		
@@ -99,6 +107,7 @@ BEGIN
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 			WHERE WO.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE STOCKLINE DETAILS DONE'
 
 			UPDATE WorkOrder
 				SET CustomerName = C.[Name], CustomerContactId = CC.CustomerContactId ,
@@ -115,11 +124,13 @@ BEGIN
 				LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WO.CustomerId
+			PRINT 'UPDATE WORKORDER DETAILS DONE'
 
 			UPDATE WorkOrderQuote
 				SET CustomerName = C.[Name], CustomerContact = CO.FirstName + ' ' + CO.LastName ,
 					CreditTerms = CTs.[Name] , SalesPersonId = CS.PrimarySalesPersonId, 
-					CreditLimit = CF.CreditLimit
+					CreditLimit = CF.CreditLimit,
+					QuoteStatusId = @WorkOrderQuoteStatusId
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.WorkOrderQuote WOQ WITH(NOLOCK) ON WOQ.CustomerId = C.CustomerId
 				LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND ISNULL(IsDefaultContact, 0) = 1
@@ -128,13 +139,44 @@ BEGIN
 				LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WOQ.CustomerId
+			PRINT 'UPDATE WORKORDER QUOTE DETAILS DONE'
 
-			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'
+			UPDATE WorkOrderApproval SET ApprovalActionId = 0, CustomerId = @CustomerId 
+			FROM dbo.WorkOrderApproval WOQA
+			WHERE WOQA.WorkOrderId = @WorkOrderId
+
+			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, 
+				ShipToSiteName = CDS.SiteName, ShipToSiteId = CDS.CustomerDomensticShippingId, ShipToAddress1 = ADS.Line1,
+				ShipToAddress2 = ADS.Line2 + ' ' + ADS.Line3, ShipToCity = ADS.City, ShipToState = ADS.StateOrProvince, ShipToZip = ADS.PostalCode,
+				ShipToCountryId = ADS.CountryId,
+				SoldToName = WO.CustomerName, SoldToSiteName = CBD.SiteName, SoldToSiteId = CBD.CustomerBillingAddressId, SoldToAddress1 = ADB.Line1,
+				SoldToAddress2 = ADB.Line2 + ' ' + ADB.Line3, SoldToCity = ADB.City, SoldToState = ADB.StateOrProvince, SoldToZip = ADB.PostalCode,
+				SoldToCountryId = ADB.CountryId
+			FROM dbo.WorkOrderShipping WOS WITH(NOLOCK) 
+				JOIN dbo.WorkOrderShippingItem WOSI WITH(NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOSI.WorkOrderPartNumId
+				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+				LEFT JOIN dbo.[Address] ADS ON ADS.AddressId = CDS.AddressId
+				LEFT JOIN dbo.[Countries] SC ON ADS.CountryId = SC.countries_id
+
+				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
+				LEFT JOIN dbo.[Address] ADB ON ADB.AddressId = CBD.AddressId
+				LEFT JOIN dbo.[Countries] SB ON ADB.CountryId = SB.countries_id
+			WHERE WO.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE WORKORDER SHIPPING DETAILS DONE'
+
+			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
+				SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
+				SoldToSiteId = CBD.CustomerBillingAddressId
 			FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
 				JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
+				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
 			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+			PRINT 'UPDATE WORKORDER BILLING DETAILS DONE'
 
 			UPDATE ReceivingCustomerWork
 				SET CustomerId = @CustomerId, CustomerContactId = CC.CustomerContactId ,
@@ -144,6 +186,7 @@ BEGIN
 				JOIN dbo.Customer C WITH(NOLOCK) ON WO.CustomerId = C.CustomerId
 				LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND ISNULL(IsDefaultContact, 0) = 1
 			WHERE RC.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE RECEIVINGCUSTOMERWORK BILLING DETAILS DONE'
 
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
@@ -154,6 +197,7 @@ BEGIN
 			PRINT 'UPDATE CUSTOMER History'
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @CustomerName, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL , @UpdatedBy, NULL
 			PRINT 'END UPDATE CUSTOMER DETAILS'
+			PRINT 'END CUSTOMER DETAILS'
 		END
 
 		--CASE-2  UPDATE PART NUMBER DETAILS
@@ -264,13 +308,19 @@ BEGIN
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ReceivingCustomerWorkId = RC.ReceivingCustomerWorkId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
+			UPDATE Work_ReleaseFrom_8130
+				SET Reference = @CustomerReference
+			FROM [dbo].[Work_ReleaseFrom_8130] WRO WITH(NOLOCK)
+				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) on WRO.workOrderPartNoId = WOP.Id
+			WHERE WOP.ID = @WorkOrderPartNoId 
+
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@CustomerReference,''));
 
-			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @CustomerReference, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 			PRINT 'UPDATE CUST REFERENCE COMPLETE'
 		END
 
@@ -306,7 +356,7 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@SerialNumber,''));
 
-			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
+			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @SerialNumber, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 			PRINT 'UPDATE SERIAL NUMBER COMPLETE'
 		END
 
@@ -326,13 +376,29 @@ BEGIN
 			WHERE WOP.ID = @WorkOrderPartNoId
 		END
 
+		PRINT ISNULL(@IsClosed, 0);
+		PRINT ISNULL(@IsFinishedGood, 0);
+
 		IF(ISNULL(@IsClosed, 0) = 1)
 		BEGIN
+			PRINT 'Closed WorkOrder'
 			EXEC USP_ReOpenClosedWorkOrder @WorkOrderPartNoId, @UpdatedBy
 		END
 		ELSE IF(ISNULL(@IsFinishedGood, 0) = 1)
 		BEGIN
+			PRINT 'Finish Good'
 			EXEC USP_ReOpen_FinishGood_WorkOrder @WorkOrderPartNoId, @UpdatedBy
+		END
+		ELSE
+		BEGIN
+			UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
+			WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
+
+			UPDATE WorkOrderPartNumber SET 
+				   isLocked = CASE WHEN ISNULL(isLocked, 0) > 0 THEN 0 ELSE isLocked END
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+			WHERE WOP.ID = @WorkOrderPartNoId
+
 		END
   
  END TRY      

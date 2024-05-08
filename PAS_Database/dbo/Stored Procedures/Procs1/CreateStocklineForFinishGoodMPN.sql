@@ -31,6 +31,7 @@
 	14   01/05/2024   Devendra Shekh    Modify(Added LotId in New Stockline)
  ** 15   02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
     16   04/19/2024   Moin Bloch        Modify(Added RepairOrderNumber in New Stockline)
+	17   05/04/2024	  HEMANT SALIYA	    Updated for Add Existing Customer Details
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
@@ -254,7 +255,9 @@ BEGIN
        ,[NHAPartNumber],[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType]  
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType]  
        ,[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],IsFinishGood,[IsStkTimeLife]
-	   ,[LotId],[IsLotAssigned],[RepairOrderNumber])  
+	   ,[LotId],[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
+	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm)  
     SELECT CASE WHEN ISNULL(@RevisedPartNoId, 0) > 0 THEN (SELECT PartNumber FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId = @RevisedPartNoId) ELSE [PartNumber] END,  
      @StockLineNumber,[StocklineMatchKey],Stockline.ControlNumber,@ItemMasterId,1,@RevisedConditionId  
        ,[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo]  
@@ -281,10 +284,12 @@ BEGIN
        ,[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],  
        CASE WHEN @InternalWorkOrderTypeId = @WorkOrderTypeId THEN [UnitCost] + @MaterialsCost + @LaborCost ELSE [UnitCost] END,  
        [TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],1,[IsStkTimeLife],
-	   [LotId],[IsLotAssigned],[RepairOrderNumber]
+	   [LotId],[IsLotAssigned],[RepairOrderNumber], [ExistingCustomerId], [ExistingCustomer], IsTurnIn, DaysReceived, ManufacturingDays, TagDays, 
+	   OpenDays, ExchangeSalesOrderId, RRQty, SubWorkOrderNumber, IsManualEntry, WorkOrderMaterialsKitId, OriginalCost, POOriginalCost, ROOriginalCost, 
+	   Adjustment, FreightAdjustment, TaxAdjustment, SubWorkOrderMaterialsId, SubWorkOrderMaterialsKitId, EvidenceId, IsGenerateReleaseForm
    FROM [dbo].[Stockline] WITH(NOLOCK)  
    WHERE [StockLineId] = @StocklineId  
-  
+
     SELECT @NewStocklineId = SCOPE_IDENTITY()  
   
     UPDATE CodePrefixes SET CurrentNummber = @SLCurrentNumber WHERE CodeTypeId = 30 AND MasterCompanyId = @MasterCompanyId  

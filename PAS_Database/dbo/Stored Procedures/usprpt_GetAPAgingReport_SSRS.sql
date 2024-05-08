@@ -1,4 +1,6 @@
-﻿/*************************************************************                   
+﻿
+
+/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -66,7 +68,7 @@ BEGIN
 	INSERT INTO #TEMPMSFilter(LevelIds)
 	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
 	 SET @todate = @id;
-	 SET @vendorId = case when @id2 = '0' then null else @id2 end;
+	 SET @vendorId = case when @id2 = '' OR @id2 = '0' then null else @id2 end;
 	 SET @Typeid = @id3;
 	 SET @invoiceNum = CASE WHEN @id5 = '' THEN NULL else @id5 end;
 	 SET @tagtype = @id6;

@@ -12,6 +12,7 @@
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    20/03/2023   Amit Ghediya    Created  
+	2    20/03/2023   Amit Ghediya    Added DB Standards  
        
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
@@ -54,22 +55,22 @@ BEGIN
   
     ;With Result AS(  
     SELECT HS.[HistoryId],  
-     HS.[ModuleId],  
-     --HS.[RefferenceId],  
-     Wo.[WorkOrderNum],  
-        IM.[partnumber],  
-     HS.[OldValue],  
-     HS.[NewValue],  
-     HS.[HistoryText],  
-     HS.[FieldsName],  
-     HS.[CreatedBy],  
-     HS.[CreatedDate],  
-     HS.[UpdatedBy],  
-     HS.[UpdatedDate]   
-    FROM History HS WITH (NOLOCK)  
-    INNER JOIN WorkOrder WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
-    LEFT JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
-    LEFT JOIN itemmaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
+		 HS.[ModuleId],  
+		 --HS.[RefferenceId],  
+		 Wo.[WorkOrderNum],  
+			IM.[partnumber],  
+		 HS.[OldValue],  
+		 HS.[NewValue],  
+		 HS.[HistoryText],  
+		 HS.[FieldsName],  
+		 HS.[CreatedBy],  
+		 HS.[CreatedDate],  
+		 HS.[UpdatedBy],  
+		 HS.[UpdatedDate]   
+    FROM dbo.History HS WITH (NOLOCK)  
+		INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
+		LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
+		LEFT JOIN dbo.itemmaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
     WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
     ),  
     FinalResult AS (  

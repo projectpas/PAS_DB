@@ -26,7 +26,7 @@
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,680,679,385,0,51013,1,'fff',0,90,'WOP-PartsIssued',1,'admin'
-   EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,680,679,1,0,51013,1,'fff',0,0.00,'WOP-PartsIssued',1,'ADMIN User'
+   EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
 ************************************************************************/
 
@@ -129,6 +129,9 @@ BEGIN
 		DECLARE @LotId BIGINT = 0;
 		DECLARE @LotNumber VARCHAR(50) = '';
 		DECLARE @InvoiceDate DATETIME2(7) = NULL
+		DECLARE @MasterLoopID AS INT;
+		DECLARE @temptotaldebitcount DECIMAL(18,2)= 0 ;
+		DECLARE @temptotalcreditcount DECIMAL(18,2)= 0;
 
 		IF((@JournalTypeCode ='WIP' OR @JournalTypeCode ='WOI' OR @JournalTypeCode ='MRO-WO' OR @JournalTypeCode ='FGI') AND @IsAccountByPass=0)
 		BEGIN 
@@ -138,7 +141,7 @@ BEGIN
 			  FROM [dbo].[WorkOrder] WITH(NOLOCK)  
 			  WHERE [WorkOrderId] = @ReferenceId
 		              
-			IF(@ReferencePartId =0)
+			IF(@ReferencePartId = 0)
 			BEGIN
 				SELECT TOP 1 @partId=WorkOrderPartNoId 
 				  FROM [dbo].[WorkOrderWorkFlow] 
@@ -150,7 +153,7 @@ BEGIN
 				  FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) 
 				  WHERE WorkFlowWorkOrderId=@ReferencePartId
 			END
-					  
+
 	        SELECT @ManagementStructureId = WOP.[ManagementStructureId], 
 			       @ItemmasterId = WOP.[ItemMasterId], 
 				   @CustRefNumber = WOP.[CustomerReference]					  
@@ -2257,8 +2260,8 @@ BEGIN
 						JournalTypeId	BIGINT NULL,
 						JournalTypeName	VARCHAR(MAX) NULL,
 						IsDebit	BIT NULL,
-						DebitAmount	DECIMAL NULL,
-						CreditAmount	DECIMAL NULL,
+						DebitAmount	DECIMAL(18,2) NULL,
+						CreditAmount	DECIMAL(18,2) NULL,
 						ManagementStructureId	BIGINT NULL,
 						ModuleName	VARCHAR(MAX) NULL,
 						MasterCompanyId	INT NULL,
@@ -2295,29 +2298,26 @@ BEGIN
 							JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON DS.ID = CBD.DistributionSetupId
 					WHERE WOBD.InvoiceId = @InvoiceId AND CBD.MasterCompanyId = @MasterCompanyId
 
-					DECLARE @LCOUNT AS INT = 0;
-					SELECT @LCOUNT = MAX(ID) FROM #tmpCommonBatchDetails
-					WHILE(@LCOUNT > 0)
+					SELECT @temptotaldebitcount = SUM(ISNULL(DebitAmount,0)), @temptotalcreditcount =SUM(ISNULL(CreditAmount,0)) FROM #tmpCommonBatchDetails;
+
+					IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
 					BEGIN
 						DECLARE @CommonBatchDetailsId BIGINT;
 						DECLARE @DebitAmount DECIMAL(18,2);
 						DECLARE @CreditAmount DECIMAL(18,2);
-						SELECT @CommonBatchDetailsId = CommonJournalBatchDetailId FROM #tmpCommonBatchDetails WITH(NOLOCK) WHERE ID = @LCOUNT
 
 						SELECT TOP 1 @DistributionSetupId=ID,
-					             @DistributionName = [Name],
-								 @JournalTypeId = DS.JournalTypeId,
-								 @GlAccountId = DS.GlAccountId,
-								 @GlAccountNumber = DS.GlAccountNumber,
-								 @GlAccountName = DS.GlAccountName,
-								 @CrDrType = CRDRType,
-								 @DebitAmount = CBD.CreditAmount,
-								 @CreditAmount = CBD.DebitAmount
-						FROM dbo.WorkOrderBatchDetails WOBD WITH(NOLOCK) 
-							JOIN dbo.CommonBatchDetails CBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = WOBD.CommonJournalBatchDetailId
-							JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON DS.ID = CBD.DistributionSetupId
-						WHERE WOBD.InvoiceId = @InvoiceId AND CBD.MasterCompanyId = @MasterCompanyId AND CBD.CommonJournalBatchDetailId = @CommonBatchDetailsId
-					
+					             @DistributionName=Name,
+								 @JournalTypeId =JournalTypeId,
+								 @GlAccountId=GlAccountId,
+								 @GlAccountNumber=GlAccountNumber,
+								 @GlAccountName=GlAccountName,
+								 @CrDrType = CRDRType
+					        FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
+						   WHERE UPPER(DistributionSetupCode) = UPPER('ACCOUNTSRECEIVABLETRADE') 
+							AND DistributionMasterId = @DistributionMasterId 
+							AND MasterCompanyId=@MasterCompanyId
+
 						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId = @JournalTypeId AND MasterCompanyId = @MasterCompanyId AND CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE) AND StatusId = @StatusId)
 						BEGIN
 							IF NOT EXISTS(SELECT JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK))
@@ -2380,32 +2380,50 @@ BEGIN
 							(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[AccountingPeriodId],[AccountingPeriod])
 						 VALUES
-							(@JournalTypeNumber, @currentNo, @DistributionSetupId, @DistributionName, @JournalBatchHeaderId, 1 , @GlAccountId , @GlAccountNumber , @GlAccountName, @InvoiceDate, GETUTCDATE(),@JournalTypeId , @JournalTypename ,
-							1,0,0, @ManagementStructureId, @ModuleName, @LastMSLevel, @AllMSlevels, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod)
+							(@JournalTypeNumber, @currentNo, @DistributionSetupId, @Distributionname, @JournalBatchHeaderId, 1 , @GlAccountId , @GlAccountNumber , @GlAccountName, GETUTCDATE(), GETUTCDATE(),@JournalTypeId , @JournalTypename ,
+							1,0,0, @ManagementStructureId, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod)
 						
 						SET @JournalBatchDetailId = SCOPE_IDENTITY()
 
-						INSERT INTO [dbo].[CommonBatchDetails]
-							([JournalBatchDetailId],[JournalTypeNumber],[CurrentNumber],[DistributionSetupId],[DistributionName],[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber])
-						VALUES
-							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-							CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-							@DebitAmount, @CreditAmount,							
-							@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber)
+						SELECT  @MasterLoopID = MAX(ID) FROM #tmpCommonBatchDetails
+						WHILE(@MasterLoopID > 0)
+						BEGIN			
+							SELECT @ManagementStructureId = ManagementStructureId FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
 
-						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+							INSERT INTO [dbo].[CommonBatchDetails]
+												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
+												[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
+												[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted], [LotId],[LotNumber])
+							SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
+												,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+												CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
+												CreditAmount,
+												DebitAmount,
+												ManagementStructureId ,'WO',LastMSLevel,AllMSlevels ,MasterCompanyId,
+												@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,[LotId],[LotNumber]
+							FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
+							
+							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
-						-----  Accounting MS Entry  -----
+							-----  Accounting MS Entry  -----
 
-						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+							EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-						INSERT INTO [dbo].[WorkOrderBatchDetails]
-							(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
-						VALUES
-							(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,@InvoiceId ,@InvoiceNo,null,@CustRefNumber,@Qty,@UnitPrice,0,0,0,@CommonJournalBatchDetailId ,1)
+							INSERT INTO [dbo].[WorkOrderBatchDetails]
+								(JournalBatchDetailId,[JournalBatchHeaderId],[ReferenceId],[ReferenceName],[MPNPartId],[MPNName],[PiecePNId],[PiecePN],[CustomerId],[CustomerName] ,[InvoiceId],[InvoiceName],[ARControlNum] ,[CustRefNumber] ,Qty,UnitPrice,LaborHrs,DirectLaborCost,OverheadCost,CommonJournalBatchDetailId ,[IsWorkOrder])
+							VALUES
+								(@JournalBatchDetailId,@JournalBatchHeaderId,@ReferenceId ,@WorkOrderNumber ,@ReferencePartId,@MPNName,@ReferencePieceId,@PiecePN,@CustomerId ,@CustomerName,@InvoiceId ,@InvoiceNo,null,@CustRefNumber,@Qty,@UnitPrice,0,0,0,@CommonJournalBatchDetailId ,1)
+						
+							SET @MasterLoopID = @MasterLoopID - 1;
+						END
 
-						SET @LCOUNT = @LCOUNT - 1
+						SET @TotalDebit=0;
+						SET @TotalCredit=0;
+					
+						SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
+					
+						UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
 					END
 					
 				END

@@ -139,7 +139,7 @@ BEGIN
         END))    
       FROM @Fields    
       WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') = ''    
-   
+    
       SET @FieldName = SUBSTRING(@FieldName, 1, LEN(@FieldName))    
       SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)    
          
@@ -149,12 +149,8 @@ BEGIN
         SET @FieldValue += ' ,' + CAST(@RefColumnValue AS varchar(max))    
       END    
       SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
-         print 'fgh'; 
-		 select @Query;
       EXEC (@Query)    
-    print 'fgh1';
       SET @ID = IDENT_CURRENT(@PageName)    
-	  
     END    
     ELSE    
     BEGIN	  
@@ -240,7 +236,7 @@ BEGIN
     BEGIN    
      SET @legalEntities=SUBSTRING(@legalEntities,1,LEN(@legalEntities)-1)          
     END     
-     
+    
   IF (@PageName = 'assetIntangibleType')    
     BEGIN    
       INSERT INTO [dbo].[AssetIntangibleTypeLEMapping] (IntangibleTypeId,LegalEntityId)    
@@ -264,11 +260,9 @@ BEGIN
       BEGIN    
         SET @DeleteSQLQuery = 'DELETE FROM ' + @ManagementStructureTable + ' WHERE MasterCompanyId = ' + CAST(@MasterCompanyId AS varchar(max)) + ' AND ' + @PrimaryKey + ' = ' + CAST(@ID AS varchar(max)) + '';    
         
-		EXECUTE (@DeleteSQLQuery)    
+        EXECUTE (@DeleteSQLQuery)    
       END    
     
-      SET @SQLQuery2 = 'INSERT INTO ' + @ManagementStructureTable + '(ManagementStructureId,' + @PrimaryKey + ',MasterCompanyId,CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,IsActive,IsDeleted)'    
-      SET @SQLQuery2 += ' SELECT  CAST(Item AS bigint), ' + CAST(@ID AS varchar(max)) + ',' + CAST(@MasterCompanyId AS varchar(max)) + ',' + ''''+ @UpdatedBy +''''+ ',GETUTCDATE(), ' +''''+ @UpdatedBy +''''+ ', GETUTCDATE(),1,0 FROM dbo.SplitString(''' + @ManagementStructureIds + ''','','')';    
       EXECUTE (@SQLQuery2)    
     END    
     

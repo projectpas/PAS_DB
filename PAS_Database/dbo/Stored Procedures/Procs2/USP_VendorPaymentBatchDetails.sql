@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_PostWireTransferBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used insert account report in batch
@@ -186,7 +187,8 @@ BEGIN
 			[CheckNumber] NVARCHAR(50),
 			[CheckDate] DATETIME,
 			[ReceivingReconciliationId] BIGINT,
-			[IsVendorPayment] BIT
+			[IsVendorPayment] BIT,
+			VendorPaymentDetailsId BIGINT
 		)
 
 		INSERT INTO #tmpVendorReadyToPayDetails 
@@ -206,6 +208,7 @@ BEGIN
 				   ,CAST([CheckDate] AS DATE) [CheckDate]
 				   ,[ReceivingReconciliationId]
 				   ,CASE WHEN ISNULL([CreditMemoAmount],0) > 0 THEN 1 ELSE 0 END
+			
 			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId AND [PaymentMethodId] <> @Check
 			   GROUP BY [VendorId],[PaymentMethodId],[CheckNumber],CAST([CheckDate] AS DATE),[ReceivingReconciliationId],[CreditMemoAmount]
 
@@ -217,17 +220,20 @@ BEGIN
 				   ,[CheckNumber]
 				   ,[CheckDate]
 				   ,[ReceivingReconciliationId]
-				   ,[IsVendorPayment])		    
+				   ,[IsVendorPayment],VendorPaymentDetailsId)		    
 			 SELECT [VendorId]
 				   ,[PaymentMethodId]
-				   ,SUM(ISNULL([PaymentMade],0)) 
-				   ,SUM(ISNULL([DiscountToken],0))				   
+				   --,SUM(ISNULL([PaymentMade],0)) 
+				   --,SUM(ISNULL([DiscountToken],0))	
+				    ,ISNULL([PaymentMade],0)
+				   ,ISNULL([DiscountToken],0)			
 				   ,[CheckNumber]
 				   ,CAST([CheckDate] AS DATE) [CheckDate]
 				   ,[ReceivingReconciliationId]
 				   ,CASE WHEN ISNULL([CreditMemoAmount],0) > 0 THEN 1 ELSE 0 END
+				   ,VendorPaymentDetailsId
 			   FROM [VendorReadyToPayDetails] WHERE [ReadyToPayId] = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId
-			   GROUP BY [VendorId],[PaymentMethodId],[CheckNumber],CAST([CheckDate] AS DATE),[ReceivingReconciliationId],[CreditMemoAmount]
+			   --GROUP BY [VendorId],[PaymentMethodId],[CheckNumber],CAST([CheckDate] AS DATE),[ReceivingReconciliationId],[CreditMemoAmount]
 
 		SELECT  @MasterLoopID = MAX(ID) FROM #tmpVendorReadyToPayDetails
 		SELECT  @MasterLoopIDs = MAX(ID) FROM #tmpVendorReadyToPayDetail
@@ -836,19 +842,21 @@ BEGIN
 				   @CheckNumber = [CheckNumber],
 				   @CheckDate = [CheckDate],
 				   @ReceivingReconciliationId = [ReceivingReconciliationId],
-				   @IsVendorPayment = [IsVendorPayment]
+				   @IsVendorPayment = [IsVendorPayment],
+				   @VendorPaymentDetailsId = VendorPaymentDetailsId
 			  FROM #tmpVendorReadyToPayDetail WHERE ID  = @MasterLoopIDs;	
 		
 
 			INSERT INTO #tmpCreditMemo ([VendorId],[VendorPaymentDetailsId],[VendorCreditMemoId])
 					SELECT [VendorId],[VendorPaymentDetailsId],[VendorCreditMemoId] 
-			FROM [dbo].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @ReceivingReconciliationId;
+			FROM [dbo].[VendorCreditMemoMapping] WITH(NOLOCK) WHERE VendorPaymentDetailsId = @VendorPaymentDetailsId;
 					
 			SELECT  @CreditMemoLoopID = MAX(ID) FROM #tmpCreditMemo
 
 			WHILE(@CreditMemoLoopID > 0)
 			BEGIN
-				SELECT @VendorCreditMemoId = [VendorCreditMemoId],@VendorPaymentDetailsId = [VendorPaymentDetailsId]
+			PRINT 'Insert'
+				SELECT @VendorCreditMemoId = [VendorCreditMemoId]
 				FROM #tmpCreditMemo WHERE ID  = @CreditMemoLoopID;
 				
 				SELECT @StatusIdClosed = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name='Closed';

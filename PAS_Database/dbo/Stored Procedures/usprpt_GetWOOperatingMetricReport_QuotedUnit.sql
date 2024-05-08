@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_QuotedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report by Most Quoted WO
@@ -34,6 +33,7 @@ BEGIN
 		@fromdate datetime,  
 		@todate datetime, 
 		@workscopeIds varchar(200) = NULL,
+		@itemMasterId varchar(40) = NULL,
 		@searchWOType varchar(10) = NULL,
 		@isCustomerWO bit = NULL,
 		@woTypeIds varchar(200) = NULL,
@@ -74,6 +74,9 @@ BEGIN
 		
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
+		
+		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='MPN(Optional)' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
@@ -141,7 +144,7 @@ BEGIN
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 			INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 			INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
-			INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON WOPN.ID = CST.WOPartNoId  
+			--INNER JOIN DBO.WorkOrderMPNCostDetails CST WITH (NOLOCK) ON WOPN.ID = CST.WOPartNoId  
 			INNER JOIN dbo.WorkOrder WO WITH(NOLOCK) on WOPN.WorkOrderId = WO.WorkOrderId
 			LEFT JOIN DBO.WorkOrderBillingInvoicingItem AS WOBIT WITH (NOLOCK)  on WOPN.ID = WOBIT.WorkOrderPartId AND ISNULL(WOBIT.IsVersionIncrease,0)=0 AND ISNULL(WOBIT.IsPerformaInvoice, 0) = 0 
 			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WOBIT.BillingInvoicingId = WBI.BillingInvoicingId and WBI.IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  AND WBI.InvoiceStatus = 'Invoiced'
@@ -153,7 +156,7 @@ BEGIN
 		  
 		  WHERE 
 				--WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced'  AND 
-				ISNULL(WOQ.IsDeleted,0) = 0 AND	WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  
+				ISNULL(WOQ.IsDeleted,0) = 0 AND	WO.CustomerId=ISNULL(@customerid,WO.CustomerId)  AND WOPN.ItemMasterId = ISNULL(@itemMasterId,WOPN.ItemMasterId)    
 					AND CAST(WOQ.opendate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND WO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
 					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))

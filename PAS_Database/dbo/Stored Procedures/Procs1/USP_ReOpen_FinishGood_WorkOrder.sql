@@ -51,6 +51,9 @@ AS
 	DECLARE @InternalWOTypeId INT= 0;
 	DECLARE @IsInvoiceGenerated BIT = NULL;
 	DECLARE @8130WorkOrderSettlementId BIGINT;
+	DECLARE @ShippingWorkOrderSettlementId BIGINT = 10; --Fixed for Parts Shipped
+	DECLARE @BillingWorkOrderSettlementId BIGINT = 11; --Fixed for Parts Invoiced
+	DECLARE @WorkOrderNum VARCHAR(200);
 					
 	BEGIN TRY
 		BEGIN TRANSACTION
@@ -63,15 +66,17 @@ AS
 			SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
+			SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
 			IF((SELECT COUNT(ID) FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId AND ISNULL(IsFinishGood,0) = 1 AND ISNULL(IsClosed, 0) = 0) >  0)
 			BEGIN
+				PRINT 'Start ReOpen FinishGood Execution'
 				SELECT @StockLineId = StockLineId,@MasterCompanyId = MasterCompanyId FROM dbo.WorkOrderPartNumber WITH (NOLOCK) WHERE ID = @workOrderPartNoId
 
 				SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 				FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 					JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
-				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId AND (ISNULL(AirwayBill, '') != '' OR ISNULL(isIgnoreAWB, 0) = 1)
+				WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId --AND (ISNULL(AirwayBill, '') != '') OR ISNULL(isIgnoreAWB, 0) = 1
 
 				SELECT @IsInvoiceGenerated = CASE WHEN COUNT(WOBI.BillingInvoicingId) > 0 THEN 1 ELSE 0 END,
 					@BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
@@ -82,39 +87,45 @@ AS
 
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) = @CustomerWOTypeId)
 				BEGIN
+					PRINT 'Update Stock Line Qty If Shipping is Done and Customer Stock'
 					/* Update Stock Line Qty If Shipping is Done and Customer Stock */
 					UPDATE Stockline SET 
 						QuantityOnHand = CASE WHEN QuantityOnHand = 0 THEN ISNULL(QuantityOnHand, 0) + 1 ELSE QuantityOnHand END,
 						QuantityReserved = CASE WHEN QuantityReserved = 0 THEN ISNULL(QuantityReserved, 0) + 1 ELSE QuantityReserved END,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
 					WHERE StockLineId=@StockLineId
 				END
 
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
 				BEGIN
+					PRINT ' Update Stock Line Qty If Shipping is Done And not Customer Stock'
 					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
 					UPDATE Stockline SET 
 						QuantityOnHand = ISNULL(QuantityOnHand, 0) + 1,
 						QuantityReserved = ISNULL(QuantityReserved, 0) + 1,
-						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
+						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+						Memo = CASE WHEN ISNULL(Memo,'') = '' THEN '</p>Updated Quntity From Work Order : ' + @WorkOrderNum + ' </p>' ELSE REPLACE(Memo, '</p>','<br>') + 'Updated Quntity From Work Order From Work Order : ' + @WorkOrderNum + ' </p>' END
 					WHERE StockLineId=@StockLineId
 				END
 
 				IF(ISNULL(@IsInvoiceGenerated,0) > 0)
-				BEGIN
+				BEGIN	
+					PRINT 'Update Work Order Billing Status to Re-Generate Invoice'
 					/* Update Work Order Billing Status to Re-Generate Invoice */
 					UPDATE WorkOrderBillingInvoicing SET 
 						InvoiceStatus = 'Reviewed', 
 						InvoiceFilePath = '', 
+						WorkOrderShippingId = Null,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE BillingInvoicingId = @BillingInvoicingId
 				END
 
-				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0 WHERE ID = @workOrderPartNoId;
+				UPDATE dbo.WorkOrderPartNumber SET IsFinishGood = 0, isLocked = 0 WHERE ID = @workOrderPartNoId;
 
 				UPDATE dbo.WorkOrderSettlementDetails SET IsMasterValue = 0, Isvalue_NA = 0 
-				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId = @8130WorkOrderSettlementId;
-
+				WHERE WorkOrderId = @WorkOrderId AND workOrderPartNoId = @workOrderPartNoId AND WorkOrderSettlementId IN (@8130WorkOrderSettlementId, @ShippingWorkOrderSettlementId, @BillingWorkOrderSettlementId)
+				
 				DECLARE @ActionId INT;
 				SELECT @ActionId  = ActionId FROM StklineHistory_Action WHERE UPPER([Type]) = UPPER('Re-OpenFinishedGood') -- Re-Open Finished Good
 
@@ -166,7 +177,7 @@ AS
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
 					END
 				END
-
+				PRINT 'END ReOpen FinishGood Execution'
 			END
 		COMMIT TRANSACTION
 	END TRY

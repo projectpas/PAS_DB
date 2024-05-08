@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [usprpt_GetARAgingAsOfNowReport]           
- ** Author:   HEMANT SALIYA  
- ** Description: Get Data for AR Agging Report  
+ ** File:   [usprpt_GetARAgingAsOfNowReport_SSRS]           
+ ** Author:   Moin Bloch 
+ ** Description: Get Data for AR Agging Report For SSRS
  ** Purpose:         
- ** Date:   11-03-2024       
+ ** Date:   08-05-2024       
           
  ** PARAMETERS:           
    
@@ -14,67 +14,31 @@
  **************************************************************           
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
-	1	 11-03-2024		HEMANT SALIYA  		Created
-	2	 25-04-2024		Moin Bloch 		    Modified Added Detail View
-	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
+	1	 08-05-2024		Moin Bloch  		Created
      
-EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
+EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
-@PageNumber INT = NULL,
-@PageSize INT = NULL,
-@SortColumn VARCHAR(50)=NULL,
-@SortOrder INT = NULL,
-@GlobalFilter varchar(50) = NULL,
-@ViewType varchar(50) = NULL,
-@AsOfDate DATETIME2 = NULL,
-@CustomerId BIGINT = NULL,
-@IsInvoice BIT = NULL,
-@IsCredits BIT = NULL,
-@IsDeposit BIT = NULL,
-@IsUnappliedAmounts BIT = NULL,
+CREATE PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
+@id VARCHAR(MAX) = NULL,
+@id2 VARCHAR(MAX) = NULL,
+@id3 VARCHAR(MAX) = NULL,
+@id4 VARCHAR(MAX) = NULL,
 @strFilter VARCHAR(MAX) = NULL,
-@CustomerName VARCHAR(50) = NULL,
-@CustomerCode VARCHAR(50) = NULL,
-@CurrencyCode VARCHAR(50) = NULL,
-@InvoiceNo VARCHAR(50) = NULL,
-@InvoiceDate DATETIME = NULL,
-@DSI INT = NULL,
-@DSO INT = NULL,
-@DSS INT = NULL,
-@DocType VARCHAR(50) = NULL,
-@CustomerRef VARCHAR(50) = NULL,
-@Salesperson VARCHAR(50) = NULL,
-@CreditTerms VARCHAR(50) = NULL,
-@DueDate DATETIME = NULL,
-@FxRateAmount  VARCHAR(50) = NULL,
-@InvoiceAmount DECIMAL(18, 2) = NULL,
-@BalanceAmount DECIMAL(18, 2) = NULL,
-@CurrentAmount DECIMAL(18, 2) = NULL,
-@PaymentAmount DECIMAL(18, 2) = NULL,
-@Amountlessthan0days DECIMAL(18,2) = NULL,
-@Amountlessthan30days DECIMAL(18,2) = NULL,
-@Amountlessthan60days DECIMAL(18,2) = NULL,
-@Amountlessthan90days DECIMAL(18,2) = NULL,
-@Amountlessthan120days DECIMAL(18,2) = NULL,
-@Amountmorethan120days DECIMAL(18,2) = NULL,
-@level1Str VARCHAR(500) = NULL,
-@level2Str VARCHAR(500) = NULL,
-@level3Str VARCHAR(500) = NULL,
-@level4Str VARCHAR(500) = NULL,
-@level5Str VARCHAR(500) = NULL,
-@level6Str VARCHAR(500) = NULL,
-@level7Str VARCHAR(500) = NULL,
-@level8Str VARCHAR(500) = NULL,
-@level9Str VARCHAR(500) = NULL,
-@level10Str VARCHAR(500) = NULL,
-@LegalEntityName VARCHAR(500) = NULL,
-@EmployeeId BIGINT = NULL,
-@masterCompanyid INT = NULL
+@mastercompanyid INT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	
+	IF OBJECT_ID(N'tempdb..#TempARAgingAsOfNowDataFilter') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TempARAgingAsOfNowDataFilter
+	END
+
+	CREATE TABLE #TempARAgingAsOfNowDataFilter([ID] BIGINT  IDENTITY(1,1),[Field] VARCHAR(MAX));
+
+	INSERT INTO #TempARAgingAsOfNowDataFilter(Field) SELECT Item FROM DBO.SPLITSTRING(@id2,'!');
+
     DECLARE @RecordFrom INT;
 	DECLARE @Count INT;
 	DECLARE @CMPostedStatusId INT;
@@ -97,6 +61,55 @@ BEGIN
 	DECLARE @STLCMModuleTypeId INT = 5
 	DECLARE @MJEModuleTypeId INT = 6
 	
+	DECLARE @PageNumber INT = NULL,
+    @PageSize INT = NULL,
+    @SortColumn VARCHAR(50)=NULL,
+    @SortOrder INT = NULL,
+    @GlobalFilter varchar(50) = NULL,
+    @ViewType varchar(50) = @id,
+    @AsOfDate DATETIME2 = NULL, 
+    @CustomerId BIGINT = NULL,
+    @IsInvoice BIT = NULL,
+    @IsCredits BIT = NULL,
+    @IsDeposit BIT = NULL,
+    @IsUnappliedAmounts BIT = NULL,
+    @CustomerName VARCHAR(50) = NULL,
+    @CustomerCode VARCHAR(50) = NULL,
+    @CurrencyCode VARCHAR(50) = NULL,
+    @InvoiceNo VARCHAR(50) = NULL,
+    @InvoiceDate DATETIME = NULL,
+    @DSI INT = NULL,
+    @DSO INT = NULL,
+    @DSS INT = NULL,
+    @DocType VARCHAR(50) = NULL,
+    @CustomerRef VARCHAR(50) = NULL,
+    @Salesperson VARCHAR(50) = NULL,
+    @CreditTerms VARCHAR(50) = NULL,
+    @DueDate DATETIME = NULL,
+    @FxRateAmount  VARCHAR(50) = NULL,
+    @InvoiceAmount DECIMAL(18, 2) = NULL,
+    @BalanceAmount DECIMAL(18, 2) = NULL,
+    @CurrentAmount DECIMAL(18, 2) = NULL,
+    @PaymentAmount DECIMAL(18, 2) = NULL,
+    @Amountlessthan0days DECIMAL(18,2) = NULL,
+    @Amountlessthan30days DECIMAL(18,2) = NULL,
+    @Amountlessthan60days DECIMAL(18,2) = NULL,
+    @Amountlessthan90days DECIMAL(18,2) = NULL,
+    @Amountlessthan120days DECIMAL(18,2) = NULL,
+    @Amountmorethan120days DECIMAL(18,2) = NULL,
+    @level1Str VARCHAR(500) = NULL,
+    @level2Str VARCHAR(500) = NULL,
+    @level3Str VARCHAR(500) = NULL,
+    @level4Str VARCHAR(500) = NULL,
+    @level5Str VARCHAR(500) = NULL,
+    @level6Str VARCHAR(500) = NULL,
+    @level7Str VARCHAR(500) = NULL,
+    @level8Str VARCHAR(500) = NULL,
+    @level9Str VARCHAR(500) = NULL,
+    @level10Str VARCHAR(500) = NULL,
+    @LegalEntityName VARCHAR(500) = NULL,
+    @EmployeeId BIGINT = NULL
+	
     SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED';  	  
     SELECT @ClosedCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Closed';
     SELECT @WOInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='WorkOrder';
@@ -104,18 +117,55 @@ BEGIN
     SELECT @EXInvoiceTypeId = [CustomerInvoiceTypeId] FROM [dbo].[CustomerInvoiceType] WHERE ModuleName='Exchange';
     SELECT @MJEPostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
-	
+		
+	SET @PageNumber = 1;
+	SET @PageSize = 10000;
 	SET @RecordFrom = (@PageNumber - 1) * @PageSize;
-				
-	IF @SortColumn IS NULL
+	   			
+	IF @SortColumn IS NULL AND @ViewType = 'Details'
 	BEGIN
-		SET @SortColumn = UPPER('INVOICEDATE')		
+		SET @SortColumn = UPPER('INVOICEDATE')	
+		SET @SortOrder = -1;
 	END 
+	IF @SortColumn IS NULL AND @ViewType = 'Summary'
+	BEGIN
+		SET @SortColumn = UPPER('CustomerName')		
+		SET @SortOrder = 1;
+	END
 	ELSE
 	BEGIN 
 		SET @SortColumn = UPPER(@SortColumn)		
-	END	
-		
+	END		
+	
+	SELECT @AsOfDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 1; 
+	SELECT @CustomerId = ISNULL(TRY_CAST([Field] AS BIGINT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 2; 
+	SELECT @IsInvoice = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 3; 
+	SELECT @IsCredits = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 4; 
+	SELECT @IsDeposit = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 5;		
+	SELECT @IsUnappliedAmounts = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 6; 
+	SELECT @CustomerName = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 7; 
+	SELECT @CustomerCode = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 8; 
+	SELECT @InvoiceDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 9; 
+	SELECT @CustomerRef = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 10; 
+	SELECT @InvoiceNo = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 11; 
+	SELECT @DSI = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 12; 
+	SELECT @DSO = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 13; 
+	SELECT @DSS = ISNULL(TRY_CAST([Field] AS INT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 14; 
+	SELECT @Salesperson = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 15; 
+	SELECT @CreditTerms = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 16; 
+	SELECT @DueDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 17; 
+	SELECT @CurrencyCode = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 18; 
+	SELECT @FxRateAmount = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 19; 
+	SELECT @InvoiceAmount = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 20; 
+	SELECT @CurrentAmount = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 21; 
+	SELECT @Amountlessthan0days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 22; 
+	SELECT @Amountlessthan30days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 23; 
+	SELECT @Amountlessthan60days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 24; 
+	SELECT @Amountlessthan90days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 25; 
+	SELECT @Amountlessthan120days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 26; 
+	SELECT @Amountmorethan120days = ISNULL(TRY_CAST([Field] AS DECIMAL(18,2)),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 27; 
+	SELECT @LegalEntityName = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END FROM #TempARAgingAsOfNowDataFilter WHERE ID = 28; 
+		 
     BEGIN TRY
 
 		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
@@ -324,7 +374,7 @@ BEGIN
 				) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId	
 		
 			-- SO INVOICE DETAILS
-			
+			select * from #TEMPInvoiceRecords
 			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
@@ -894,14 +944,13 @@ BEGIN
 					   				 
 		END
 		ELSE  -- DETAIL VIEW
-		BEGIN
-			
-			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecordsDetailsView') IS NOT NULL    
+		BEGIN			
+			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecordsDetailsViewSSRS') IS NOT NULL    
 			BEGIN    
-				DROP TABLE #TEMPInvoiceRecordsDetailsView
+				DROP TABLE #TEMPInvoiceRecordsDetailsViewSSRS
 			END
 			
-			CREATE TABLE #TEMPInvoiceRecordsDetailsView(        
+			CREATE TABLE #TEMPInvoiceRecordsDetailsViewSSRS(        
 				[ID] BIGINT IDENTITY(1,1), 
 				[BillingInvoicingId] BIGINT NOT NULL,
 				[CustomerId] BIGINT NULL,
@@ -962,7 +1011,7 @@ BEGIN
 			
 			-- WO IONVOICE DETAILS
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1068,34 +1117,34 @@ BEGIN
 			WHERE WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
 				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-				AND WO.[MasterCompanyId] = @MasterCompanyid 
+				AND WO.[MasterCompanyId] = @masterCompanyid 
 				AND @IsInvoice = 1
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 			
-			UPDATE #TEMPInvoiceRecordsDetailsView SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
 				FROM( SELECT 
 					   ISNULL(SUM(IPS.PaymentAmount),0)  AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
+					JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.StatusId = @CustomerPaymentsPostedStatus AND IPS.InvoiceType = @WO 
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecordsDetailsView SET CreditMemoAmount = ISNULL(tmpcm.CMAmount, 0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET CreditMemoAmount = ISNULL(tmpcm.CMAmount, 0)
 					FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 						FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 							INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 							INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.WOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-							JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = WOBII.BillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
+							JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = WOBII.BillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
 						WHERE CMD.IsWorkOrder = 1 AND CM.CustomerId = TmpInv.CustomerId AND CM.StatusId = @CMPostedStatusId
 						GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-				) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId	
+				) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId	
 
 			-- SO INVOICE DETAILS
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1205,29 +1254,29 @@ BEGIN
 					AND @IsInvoice = 1
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 										
-			UPDATE #TEMPInvoiceRecordsDetailsView SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
+					JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.[StatusId] = @CustomerPaymentsPostedStatus AND IPS.[InvoiceType] = @SO 
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecordsDetailsView SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
 				FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 						INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
 						INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) ON SOBII.SOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-						JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
+						JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
 					WHERE CMD.[IsWorkOrder] = 0 AND CM.[CustomerId] = TmpInv.CustomerId AND CM.[StatusId] = @CMPostedStatusId
 					GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId
+			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId
 			
 			-- EXCHANGE SO INVOICE DETAILS --
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1334,29 +1383,29 @@ BEGIN
 					AND @IsInvoice = 1
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 								
-			UPDATE #TEMPInvoiceRecordsDetailsView SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
+					JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.[StatusId] = @CustomerPaymentsPostedStatus AND IPS.[InvoiceType] = @Exch
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecordsDetailsView SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
+			UPDATE #TEMPInvoiceRecordsDetailsViewSSRS SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
 				FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 						INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
 						INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) ON SOBII.ExchangeSOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-						JOIN #TEMPInvoiceRecordsDetailsView TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
+						JOIN #TEMPInvoiceRecordsDetailsViewSSRS TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
 					WHERE CM.InvoiceTypeId = @EXInvoiceTypeId AND CM.[CustomerId] = TmpInv.CustomerId AND CM.[StatusId] = @CMPostedStatusId
 					GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsView.BillingInvoicingId
+			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsDetailsViewSSRS.BillingInvoicingId
 				
 			-- CREDIT MEMO --
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1442,7 +1491,7 @@ BEGIN
 							   
 			-- STAND ALONE CREDIT MEMO --
 				
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1528,7 +1577,7 @@ BEGIN
 
 			-- MANUAL JOURNAL --
 				
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1652,10 +1701,9 @@ BEGIN
 				MSL9.[Code], MSL9.[Description],
 				MSL10.[Code], MSL10.[Description],
 				MJH.[MasterCompanyId],LE.[Name]
-						
-   		    SELECT * INTO #TempResult2 FROM #TEMPInvoiceRecordsDetailsView
-			WHERE (
-			      (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
+   		   
+			SELECT * INTO #TempResultSSRS FROM #TEMPInvoiceRecordsDetailsViewSSRS
+			WHERE ((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
 				  (ISNULL(@DocType,'') ='' OR [DocType] LIKE '%' + @DocType + '%') AND
@@ -1699,10 +1747,10 @@ BEGIN
 				  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
-				 			
-			SELECT @Count = COUNT(CustomerId) FROM #TempResult2
+			
+			SELECT @Count = COUNT(CustomerId) FROM #TempResultSSRS
 
-			SELECT *, @Count AS NumberOfItems FROM #TempResult2 ORDER BY  
+			SELECT *, @Count AS NumberOfItems FROM #TempResultSSRS ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,

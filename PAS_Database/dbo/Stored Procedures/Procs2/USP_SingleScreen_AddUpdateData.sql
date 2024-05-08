@@ -3,14 +3,13 @@
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to add/update data
  ** Purpose:           
- ** Date:   04/02/2024  
+ ** Date:   05/10/2024  
             
   ** Change History             
  **************************************************************             
  ** PR   Date         Author  	Change Description              
  ** --   --------     -------		--------------------------------            
-    1    04/02/2024   Vishal Suthar	 Created
-	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
+    1    05/08/2024   Vishal Suthar	 Added History
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_AddUpdateData]        
  @ID int = NULL,        

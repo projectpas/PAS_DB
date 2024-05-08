@@ -2935,6 +2935,7 @@
     <Build Include="dbo\Views\vw_AssetAttributeTypeAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckIsValidCustomerDetails.sql" />
     <Build Include="dbo\Views\vw_PublicationTypeAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMPNStocklineQtyForShipping.sql" />
     <Build Include="dbo\Views\vw_EmployeeCertificationType_Audit.sql" />
   </ItemGroup>
   <ItemGroup>

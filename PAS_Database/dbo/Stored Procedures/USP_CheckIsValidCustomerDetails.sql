@@ -14,15 +14,17 @@
 
 DECLARE @IsValidCustomerContact BIT;      
 DECLARE @IsValidCustomerShipping BIT;
-EXECUTE USP_CheckIsValidCustomerDetails 14, 3462, @IsValidCustomerContact OUTPUT, @IsValidCustomerShipping OUTPUT
+DECLARE @IsValidCustomerBilling BIT;
+EXECUTE USP_CheckIsValidCustomerDetails 77, 3165, @IsValidCustomerContact OUTPUT, @IsValidCustomerShipping OUTPUT, @IsValidCustomerBilling OUTPUT
 
 *************************************************************/   
   
-CREATE    PROCEDURE [dbo].[USP_CheckIsValidCustomerDetails] 	
+CREATE     PROCEDURE [dbo].[USP_CheckIsValidCustomerDetails] 	
 @CustomerId BIGINT = NULL,  
 @WorkOrderPartNoId BIGINT = NULL,  
 @IsValidCustomerContact BIT = 0 OUTPUT,  
-@IsValidCustomerShipping BIT = 0 OUTPUT
+@IsValidCustomerShipping BIT = 0 OUTPUT,
+@IsValidCustomerBilling BIT = 0 OUTPUT
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -32,6 +34,7 @@ BEGIN
 		DECLARE @IsContactGenerated BIT = 0;
 		DECLARE @InvoiceStatus VARCHAR(100) = NULL;
 		DECLARE @IsShippingDone BIT = 0;
+		DECLARE @IsBillingDone BIT = 0;
 
 		SELECT @IsValidCustomerContact = CASE WHEN ISNULL(CO.WorkPhone, '') <> '' THEN 1 ELSE 0 END 
 		FROM dbo.CustomerContact CC WITH(NOLOCK) 
@@ -43,19 +46,28 @@ BEGIN
 			JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
 		WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId
 
-		IF(ISNULL(@IsShippingDone,0) > 0)
+		SELECT @IsBillingDone = CASE WHEN COUNT(WOB.BillingInvoicingId) > 0 THEN 1 ELSE 0 END 
+		FROM dbo.WorkOrderBillingInvoicing WOB WITH (NOLOCK) 
+			JOIN dbo.WorkOrderBillingInvoicingItem WOBI WITH (NOLOCK) ON WOB.BillingInvoicingId = WOBI.BillingInvoicingId 
+		WHERE WOBI.WorkOrderPartId = @workOrderPartNoId
+
+		IF(ISNULL(@IsShippingDone,0) > 0 OR ISNULL(@IsBillingDone,0) > 0)
 		BEGIN
 			SELECT @IsValidCustomerShipping = CASE WHEN COUNT(CS.CustomerDomensticShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.CustomerDomensticShipping CS WITH(NOLOCK) 		
-				JOIN dbo.[Address] A WITH(NOLOCK) ON CS.AddressId = A.AddressId 
 			WHERE CustomerId = @CustomerId AND ISNULL(CS.IsPrimary, 0) = 1 AND CS.IsDeleted = 0 AND CS.IsActive = 1
+
+			SELECT @IsValidCustomerBilling = CASE WHEN COUNT(CB.CustomerBillingAddressId) > 0 THEN 1 ELSE 0 END 
+			FROM dbo.CustomerBillingAddress CB WITH(NOLOCK) 		
+			WHERE CustomerId = @CustomerId AND ISNULL(CB.IsPrimary, 0) = 1 AND CB.IsDeleted = 0 AND CB.IsActive = 1
 		END
 		ELSE
 		BEGIN
 			SET @IsValidCustomerShipping = 1;
+			SET @IsValidCustomerBilling = 1;
 		END
 
-		SELECT @IsValidCustomerContact, @IsValidCustomerShipping; 
+		SELECT ISNULL(@IsValidCustomerContact, 0), ISNULL(@IsValidCustomerShipping, 0), ISNULL(@IsValidCustomerBilling, 0); 
 
  END TRY      
  BEGIN CATCH  

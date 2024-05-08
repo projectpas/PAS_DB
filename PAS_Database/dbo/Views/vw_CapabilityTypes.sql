@@ -1,7 +1,8 @@
 ﻿
-CREATE VIEW [dbo].[vw_CapabilityTypes]
+CREATE   VIEW [dbo].[vw_CapabilityTypes]
 AS
-SELECT ct.[CapabilityTypeId]
+SELECT ct.[CapabilityTypeId] AS PkID
+	  ,ct.[CapabilityTypeId] AS ID
       ,ct.[Description]
       ,ct.[IsActive]
       ,ct.[IsDeleted]

@@ -2920,6 +2920,13 @@
     <Build Include="dbo\Views\vw_EmployeeExpertise_Audit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckAllowReopenWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_ReOpenClosedWorkOrder.sql" />
+    <Build Include="dbo\Views\vw_VendorClassificationAudit.sql" />
+    <Build Include="dbo\Views\vw_StandardAudit.sql" />
+    <Build Include="dbo\Views\vw_CapabilityType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SingleScreen_New_AddUpdateData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EntityStructure_GetEntityStructureFieldsList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

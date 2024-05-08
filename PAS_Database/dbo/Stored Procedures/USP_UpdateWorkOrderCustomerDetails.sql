@@ -143,8 +143,6 @@ BEGIN
 
 			UPDATE WorkOrderApproval SET ApprovalActionId = 0, CustomerId = @CustomerId 
 			FROM dbo.WorkOrderApproval WOQA
-				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOQA.WorkOrderPartNoId
-				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 			WHERE WOQA.WorkOrderId = @WorkOrderId
 
 			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, 

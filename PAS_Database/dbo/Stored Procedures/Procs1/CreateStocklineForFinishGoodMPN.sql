@@ -31,7 +31,7 @@
 	14   01/05/2024   Devendra Shekh    Modify(Added LotId in New Stockline)
  ** 15   02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
     16   04/19/2024   Moin Bloch        Modify(Added RepairOrderNumber in New Stockline)
-	15   05/04/2024	  HEMANT SALIYA	    Updated for Add Existing Customer Details
+	17   05/04/2024	  HEMANT SALIYA	    Updated for Add Existing Customer Details
 
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/

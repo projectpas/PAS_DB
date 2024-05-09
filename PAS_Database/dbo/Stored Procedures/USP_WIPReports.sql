@@ -12,8 +12,8 @@
  ** --   --------     -------			--------------------------------            
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
 
-DECLARE @IsAllowReopenWO BIT;       
-EXECUTE USP_WIPReports 3913,3430, @IsAllowReopenWO OUTPUT 
+     
+EXECUTE USP_WIPReports 1,NULL, NULL, 0, NULL, 0, NULL
 
 *************************************************************/   
   
@@ -34,6 +34,11 @@ BEGIN
 		DECLARE @FromDate DATETIME; 
 		DECLARE @ToDate DATETIME; 
 		DECLARE @ProvisionId INT;
+
+		--SET Tempararly Records 
+		SET @mastercompanyid = 1;
+		SET @FromDate = GETUTCDATE() - 2;
+		SET @ToDate = GETUTCDATE();
 
 		SELECT @ProvisionId = ProvisionId FROM dbo.Provision  WHERE StatusCode = 'REPLACE'		
 
@@ -77,7 +82,7 @@ BEGIN
 			OpenDate DATETIME,
 			WOAge INT,
 			PartCost DECIMAL(18,2) NULL,
-			DirectCost DECIMAL(18,2) NULL,
+			DirectLabor DECIMAL(18,2) NULL,
 			OHCost DECIMAL(18,2) NULL,
 			MiscCost DECIMAL(18,2) NULL,
 			OtherCost DECIMAL(18,2) NULL,
@@ -123,18 +128,21 @@ BEGIN
 
 		INSERT INTO #TEMPOriginalStocklineRecords(WorkOrderId, WorkOrderPartNoId, StockLineId, CustomerId, MasterCompanyId,
 			PartNumber, PartDescription, SerialNumber, CustomerName, WorkOrderType, WorkOrderNum, OpenDate, WorkScope, StockLineNumber,Manufacturer,
-			[Priority])
+			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10)
 		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  SL.PNDescription AS PartDescription, 
-			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,
+			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,			
 			WO.CustomerName, WT.[Description] AS WorkOrderType, WO.WorkOrderNum, WO.OpenDate, WOP.WorkScope, SL.StockLineNumber,
-			SL.Manufacturer, P.[Description] As [Priority]
+			SL.Manufacturer, P.[Description] As [Priority], SL.ControlNumber, C.[Description] As Condition, SL.ItemGroup, SL.IsCustomerStock,
+			DATEDIFF(day, WO.OpenDate, GETUTCDATE()),
+			UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,    
+			UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,    
+			UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
 		FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
-			--JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
-			--JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 			JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID 
 			JOIN dbo.Stockline SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId
+			JOIN dbo.Condition C WITH(NOLOCK) ON WOP.RevisedConditionId = C.ConditionId
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 			LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
@@ -150,23 +158,29 @@ BEGIN
 			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 
-		UPDATE #TEMPOriginalStocklineRecords SET PartCost = 0 FROM(
-			SELECT WO.WorkOrderId, WOP.ID AS WorkOrderPartNoId, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, 
-					SUM(ISNULL(WOMS.QtyIssued, 0) * ISNULL(WOMS.UnitCost, 0)) AS PartCost
-			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
-				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-				JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
-				JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
-				JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
-				--JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID 
-				--JOIN dbo.Stockline SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId
-				--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
-				--LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
-			WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
-				 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
-				 AND ISNULL(WOMS.QtyIssued, 0) > 0 AND WOMS.ProvisionId = @ProvisionId
-			GROUP BY WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId
-		) results WHERE results.StockLineId = #TEMPOriginalStocklineRecords.StockLineId AND results.WorkOrderPartNoId = #TEMPOriginalStocklineRecords.WorkOrderPartNoId
+		--UPDATE #TEMPOriginalStocklineRecords SET PartCost = 0 FROM(
+		--	SELECT WO.WorkOrderId, WOP.ID AS WorkOrderPartNoId, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, 
+		--			SUM(ISNULL(WOMS.QtyIssued, 0) * ISNULL(WOMS.UnitCost, 0)) AS PartCost
+		--	FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+		--		JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+		--		JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
+		--		JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
+		--		JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
+		--	WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+		--		 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
+		--		 AND ISNULL(WOMS.QtyIssued, 0) > 0 AND WOMS.ProvisionId = @ProvisionId AND ISNULL(WOP.IsFinishGood, 0) = 0
+		--	GROUP BY WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId
+		--) results WHERE results.StockLineId = #TEMPOriginalStocklineRecords.StockLineId AND results.WorkOrderPartNoId = #TEMPOriginalStocklineRecords.WorkOrderPartNoId
+
+		UPDATE tmporg SET PartCost = ISNULL(WCD.PartsCost, 0), DirectLabor = ISNULL(WCD.LaborCost, 0) - ISNULL(WCD.OverHeadCost, 0), OHCost = ISNULL(WCD.OverHeadCost, 0),
+				MiscCost = ISNULL(WCD.FreightCost, 0), OtherCost = ISNULL(WCD.OtherCost, 0), 
+				TotalWIPCost = ISNULL(WCD.PartsCost, 0) + ISNULL(WCD.LaborCost, 0) + ISNULL(WCD.FreightCost, 0) + ISNULL(WCD.OtherCost, 0)
+		FROM #TEMPOriginalStocklineRecords tmporg 
+			JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON tmporg.WorkOrderPartNoId = WOP.ID
+			JOIN dbo.WorkOrderMPNCostDetails WCD WITH(NOLOCK) ON tmporg.WorkOrderPartNoId = WCD.WOPartNoId
+		WHERE ISNULL(WOP.IsFinishGood, 0) = 0 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
+
+		SELECT * FROM #TEMPOriginalStocklineRecords WHERE ISNULL(TotalWIPCost, 0) > 0
 
  END TRY      
  BEGIN CATCH  

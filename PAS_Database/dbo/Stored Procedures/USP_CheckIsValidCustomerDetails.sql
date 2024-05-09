@@ -15,11 +15,11 @@
 DECLARE @IsValidCustomerContact BIT;      
 DECLARE @IsValidCustomerShipping BIT;
 DECLARE @IsValidCustomerBilling BIT;
-EXECUTE USP_CheckIsValidCustomerDetails 14, 3462, @IsValidCustomerContact OUTPUT, @IsValidCustomerShipping OUTPUT, @IsValidCustomerBilling OUTPUT
+EXECUTE USP_CheckIsValidCustomerDetails 77, 3165, @IsValidCustomerContact OUTPUT, @IsValidCustomerShipping OUTPUT, @IsValidCustomerBilling OUTPUT
 
 *************************************************************/   
   
-CREATE    PROCEDURE [dbo].[USP_CheckIsValidCustomerDetails] 	
+CREATE     PROCEDURE [dbo].[USP_CheckIsValidCustomerDetails] 	
 @CustomerId BIGINT = NULL,  
 @WorkOrderPartNoId BIGINT = NULL,  
 @IsValidCustomerContact BIT = 0 OUTPUT,  
@@ -67,7 +67,7 @@ BEGIN
 			SET @IsValidCustomerBilling = 1;
 		END
 
-		--SELECT ISNULL(@IsValidCustomerContact, 0), ISNULL(@IsValidCustomerShipping, 0), ISNULL(@IsValidCustomerBilling, 0); 
+		SELECT ISNULL(@IsValidCustomerContact, 0), ISNULL(@IsValidCustomerShipping, 0), ISNULL(@IsValidCustomerBilling, 0); 
 
  END TRY      
  BEGIN CATCH  

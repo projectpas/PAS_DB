@@ -2948,6 +2948,9 @@
     <Build Include="dbo\Views\vw_EvidenceAudit.sql" />
     <Build Include="dbo\Views\vw_CommonTeardownTypeAudit.sql" />
     <Build Include="dbo\Views\vw_CapabilityTypeAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMPNStocklineQtyForShipping.sql" />
+    <Build Include="dbo\Views\vw_EmployeeCertificationType_Audit.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetARAgingAsOfNowReport_SSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

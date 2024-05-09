@@ -10,10 +10,10 @@
  ************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
-    1    05/05/2024   HEMANT SALIYA      Created  
+    1    07/05/2024   HEMANT SALIYA      Created  
    
-exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3940,@WorkOrderPartNoId=3463,@CustomerId=90,
-@ItemMasterId=318,@customerReference=N'RO -99999',@SerialNumber=N'999999',@Memo=default,@UpdatedBy=N'ADMIN User'
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3690,@WorkOrderPartNoId=3165,@CustomerId=14,
+@ItemMasterId=318,@customerReference=N'Brionna Moen',@SerialNumber=N'',@Memo=default,@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
@@ -31,6 +31,7 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY
+		PRINT 'START EXECUTION'
 		--DECLARE @WorkOrderId BIGINT = NULL;
 		DECLARE @CustomerContactId BIGINT = NULL;
 		DECLARE @SalesPersonId BIGINT = NULL;
@@ -53,13 +54,13 @@ BEGIN
 
 		DECLARE @WorkOrderQuoteStatusId BIGINT = NULL;
 		
-		Select @WorkOrderQuoteStatusId = [Description] FROM dbo.WorkOrderQuoteStatus WHERE [Description] = 'OPEN'
-
+		SELECT @WorkOrderQuoteStatusId = WorkOrderQuoteStatusId FROM dbo.WorkOrderQuoteStatus WITH(NOLOCK)  WHERE [Description] = 'OPEN'
+		
 		SET @ModuleId = 15; --Fixed for Work Order
 		SET @SubModuleId = 43; --Fixed for Work Order MPM
 		SET @SubRefferenceId = @WorkOrderPartNoId; 
 
-		SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
+		SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WITH(NOLOCK) WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 
 		PRINT '1'
 		
@@ -106,6 +107,7 @@ BEGIN
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
 			WHERE WO.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE STOCKLINE DETAILS DONE'
 
 			UPDATE WorkOrder
 				SET CustomerName = C.[Name], CustomerContactId = CC.CustomerContactId ,
@@ -122,6 +124,7 @@ BEGIN
 				LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WO.CustomerId
+			PRINT 'UPDATE WORKORDER DETAILS DONE'
 
 			UPDATE WorkOrderQuote
 				SET CustomerName = C.[Name], CustomerContact = CO.FirstName + ' ' + CO.LastName ,
@@ -136,10 +139,11 @@ BEGIN
 				LEFT JOIN dbo.CreditTerms CTs WITH(NOLOCK) ON CF.CreditTermsId = CTs.CreditTermsId 
 				LEFT JOIN dbo.CustomerSales CS WITH(NOLOCK) ON CS.CustomerId = C.CustomerId 
 			WHERE WorkOrderId = @WorkOrderId AND C.CustomerId = WOQ.CustomerId
+			PRINT 'UPDATE WORKORDER QUOTE DETAILS DONE'
 
-			--Need to Update Customer Details in Shppping as well
-
-			--SELECT top 1 * FROM dbo.WorkOrderShipping WOS WITH(NOLOCK) order by 1 desc
+			UPDATE WorkOrderApproval SET ApprovalActionId = 0, CustomerId = @CustomerId 
+			FROM dbo.WorkOrderApproval WOQA
+			WHERE WOQA.WorkOrderId = @WorkOrderId
 
 			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, 
 				ShipToSiteName = CDS.SiteName, ShipToSiteId = CDS.CustomerDomensticShippingId, ShipToAddress1 = ADS.Line1,
@@ -160,6 +164,7 @@ BEGIN
 				LEFT JOIN dbo.[Address] ADB ON ADB.AddressId = CBD.AddressId
 				LEFT JOIN dbo.[Countries] SB ON ADB.CountryId = SB.countries_id
 			WHERE WO.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE WORKORDER SHIPPING DETAILS DONE'
 
 			UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
 				SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
@@ -171,6 +176,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
 				LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
 			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
+			PRINT 'UPDATE WORKORDER BILLING DETAILS DONE'
 
 			UPDATE ReceivingCustomerWork
 				SET CustomerId = @CustomerId, CustomerContactId = CC.CustomerContactId ,
@@ -180,6 +186,7 @@ BEGIN
 				JOIN dbo.Customer C WITH(NOLOCK) ON WO.CustomerId = C.CustomerId
 				LEFT JOIN dbo.CustomerContact CC WITH(NOLOCK) ON C.CustomerId = CC.CustomerId AND ISNULL(IsDefaultContact, 0) = 1
 			WHERE RC.WorkOrderId = @WorkOrderId
+			PRINT 'UPDATE RECEIVINGCUSTOMERWORK BILLING DETAILS DONE'
 
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
@@ -190,6 +197,7 @@ BEGIN
 			PRINT 'UPDATE CUSTOMER History'
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @CustomerName, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL , @UpdatedBy, NULL
 			PRINT 'END UPDATE CUSTOMER DETAILS'
+			PRINT 'END CUSTOMER DETAILS'
 		END
 
 		--CASE-2  UPDATE PART NUMBER DETAILS

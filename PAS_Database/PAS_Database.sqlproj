@@ -2935,6 +2935,8 @@
     <Build Include="dbo\Views\vw_AssetAttributeTypeAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckIsValidCustomerDetails.sql" />
     <Build Include="dbo\Views\vw_PublicationTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_IntegrationPortalAudit.sql" />
+    <Build Include="dbo\Views\vw_CurrencyAudit.sql" />
     <Build Include="dbo\Views\vw_WorkPerformedAudit.sql" />
     <Build Include="dbo\Views\vw_WorkOrderStageAudit.sql" />
     <Build Include="dbo\Views\vw_WOPartStatusAudit.sql" />

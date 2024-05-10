@@ -24,7 +24,7 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
     DECLARE @SQLQuery AS nvarchar(max)
-    SET @SQLQuery = 'SELECT EntityStructureId FROM ' + @TableName + ' WITH (NOLOCK) WHERE MasterCompanyId = ' + CAST(@MasterCompanyId AS varchar(20)) + ' AND ' + @FieldName + ' = ' + CAST(@ReferenceId AS varchar(20)) + '';
+    SET @SQLQuery = 'SELECT ManagementStructureId FROM ' + @TableName + ' WITH (NOLOCK) WHERE MasterCompanyId = ' + CAST(@MasterCompanyId AS varchar(20)) + ' AND ' + @FieldName + ' = ' + CAST(@ReferenceId AS varchar(20)) + '';
     EXECUTE sp_executesql @SQLQuery
   END TRY
   BEGIN CATCH

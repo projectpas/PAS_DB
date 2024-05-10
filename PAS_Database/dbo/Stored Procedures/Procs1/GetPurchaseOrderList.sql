@@ -390,7 +390,25 @@ BEGIN
   CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,      
   CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,      
   CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC      
+  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC,
+  CASE WHEN (@SortOrder=1  AND @SortColumn='status')  THEN status END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='status')  THEN status END DESC,
+  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN quantityOrdered END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN quantityOrdered END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN quantityReceived END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN quantityReceived END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN quantityBackOrdered END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN quantityBackOrdered END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderNumType')  THEN workOrderNumType END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderNumType')  THEN workOrderNumType END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='repairOrderNumberType')  THEN repairOrderNumberType END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='repairOrderNumberType')  THEN repairOrderNumberType END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='approvedBy')  THEN approvedBy END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='approvedBy')  THEN approvedBy END DESC, 
+  CASE WHEN (@SortOrder=1  AND @SortColumn='estDeliveryType')  THEN estDeliveryType END ASC,      
+  CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC 
+
+  
   OFFSET @RecordFrom ROWS       
   FETCH NEXT @PageSize ROWS ONLY      
  END      

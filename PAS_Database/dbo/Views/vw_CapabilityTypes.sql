@@ -10,4 +10,4 @@ SELECT ct.[CapabilityTypeId] AS PkID
       ,ct.[UpdatedBy]
       ,ct.[CreatedDate]
       ,ct.[UpdatedDate]
-  FROM [dbo].[CapabilityType] ct LEFT JOIN dbo.Condition c ON ct.ConditionId = c.ConditionId
+  FROM [dbo].[CapabilityType] ct WITH(NOLOCK) LEFT JOIN dbo.Condition c ON ct.ConditionId = c.ConditionId

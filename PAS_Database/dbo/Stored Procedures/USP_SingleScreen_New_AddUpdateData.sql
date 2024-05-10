@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SingleScreen_new_AddUpdateData]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to add/update data
@@ -149,7 +150,6 @@ BEGIN
         SET @FieldValue += ' ,' + CAST(@RefColumnValue AS varchar(max))    
       END    
       SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
-		 select @Query;
       EXEC (@Query)    
       SET @ID = IDENT_CURRENT(@PageName)    
     END    
@@ -260,7 +260,6 @@ BEGIN
       IF (@Mode = 'Edit')    
       BEGIN    
         SET @DeleteSQLQuery = 'DELETE FROM ' + @ManagementStructureTable + ' WHERE MasterCompanyId = ' + CAST(@MasterCompanyId AS varchar(max)) + ' AND ' + @PrimaryKey + ' = ' + CAST(@ID AS varchar(max)) + '';    
-        
 		EXECUTE (@DeleteSQLQuery)    
       END    
     

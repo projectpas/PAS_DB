@@ -81,6 +81,7 @@ BEGIN
 			WorkScope VARCHAR(100),
 			OpenDate DATETIME,
 			WOAge INT,
+			Qty INT,
 			PartCost DECIMAL(18,2) NULL,
 			DirectLabor DECIMAL(18,2) NULL,
 			OHCost DECIMAL(18,2) NULL,
@@ -128,7 +129,8 @@ BEGIN
 
 		INSERT INTO #TEMPOriginalStocklineRecords(WorkOrderId, WorkOrderPartNoId, StockLineId, CustomerId, MasterCompanyId,
 			PartNumber, PartDescription, SerialNumber, CustomerName, WorkOrderType, WorkOrderNum, OpenDate, WorkScope, StockLineNumber,Manufacturer,
-			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10)
+			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+			legalEntity, Qty)
 		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  SL.PNDescription AS PartDescription, 
 			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,			
 			WO.CustomerName, WT.[Description] AS WorkOrderType, WO.WorkOrderNum, WO.OpenDate, WOP.WorkScope, SL.StockLineNumber,
@@ -136,7 +138,7 @@ BEGIN
 			DATEDIFF(day, WO.OpenDate, GETUTCDATE()),
 			UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,    
 			UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,    
-			UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
+			UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10, LE.[Name] AS legalEntity, 1
 		FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
@@ -145,6 +147,8 @@ BEGIN
 			JOIN dbo.Condition C WITH(NOLOCK) ON WOP.RevisedConditionId = C.ConditionId
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 			LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
+			LEFT JOIN dbo.ManagementStructureLevel MSL ON MSL.ID = MSD.Level1Id
+			LEFT JOIN dbo.LegalEntity LE ON MSL.LegalEntityId = LE.LegalEntityId
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
 			 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    

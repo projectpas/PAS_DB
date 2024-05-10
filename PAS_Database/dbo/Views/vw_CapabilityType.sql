@@ -1,13 +1,13 @@
 ﻿
-CREATE   VIEW [dbo].[vw_CapabilityTypes]
+CREATE   VIEW [dbo].[vw_CapabilityType]
 AS
 SELECT ct.[CapabilityTypeId] AS PkID
 	  ,ct.[CapabilityTypeId] AS ID
       ,ct.[Description]
-      ,ct.[IsActive]
-      ,ct.[IsDeleted]
       ,ct.[CreatedBy]
       ,ct.[UpdatedBy]
       ,ct.[CreatedDate]
       ,ct.[UpdatedDate]
-  FROM [dbo].[CapabilityType] ct LEFT JOIN dbo.Condition c ON ct.ConditionId = c.ConditionId
+	   ,ct.[IsActive]
+      ,ct.[IsDeleted]
+  FROM [dbo].[CapabilityType] ct

@@ -2954,6 +2954,11 @@
     <Build Include="dbo\Views\vw_EmployeeCertificationType_Audit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetARAgingAsOfNowReport_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_WIPReports.sql" />
+    <Build Include="dbo\Views\vw_StandardAudit.sql" />
+    <Build Include="dbo\Views\vw_CapabilityType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EntityStructure_GetEntityStructureFieldsList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

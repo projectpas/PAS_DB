@@ -146,20 +146,20 @@ BEGIN
 						 WHEN ISNULL(ESS.Level3Id, '') != '' THEN CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description] 
 						 WHEN ISNULL(ESS.Level2Id, '') != '' THEN CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] 
 						 WHEN ISNULL(ESS.Level1Id, '') != '' THEN CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] 
-					END AS LastMSlevel					
-				FROM dbo.EntityStructureSetup ESS WITH (NOLOCK)				    
+					END AS LastMSlevel
+				FROM dbo.EntityStructureSetup ESS WITH (NOLOCK)		
 					--LEFT JOIN dbo.RoleManagementStructure EMS WITH (NOLOCK) ON ESS.EntityStructureId =  EMS.EntityStructureId					
 					--LEFT JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EMS.RoleId = EUR.RoleId 
-					LEFT JOIN ManagementStructureLevel MSL1 WITH (NOLOCK) on ESS.Level1Id = MSL1.ID
-					LEFT JOIN ManagementStructureLevel MSL2 WITH (NOLOCK) on ESS.Level2Id = MSL2.ID
-					LEFT JOIN ManagementStructureLevel MSL3 WITH (NOLOCK) on ESS.Level3Id = MSL3.ID
-					LEFT JOIN ManagementStructureLevel MSL4 WITH (NOLOCK) on ESS.Level4Id = MSL4.ID
-					LEFT JOIN ManagementStructureLevel MSL5 WITH (NOLOCK) on ESS.Level5Id = MSL5.ID
-					LEFT JOIN ManagementStructureLevel MSL6 WITH (NOLOCK) on ESS.Level6Id = MSL6.ID
-					LEFT JOIN ManagementStructureLevel MSL7 WITH (NOLOCK) on ESS.Level7Id = MSL7.ID
-					LEFT JOIN ManagementStructureLevel MSL8 WITH (NOLOCK) on ESS.Level8Id = MSL8.ID
-					LEFT JOIN ManagementStructureLevel MSL9 WITH (NOLOCK) on ESS.Level9Id = MSL9.ID
-					LEFT JOIN ManagementStructureLevel MSL10 WITH (NOLOCK) on ESS.Level10Id = MSL10.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON ESS.Level2Id = MSL2.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON ESS.Level3Id = MSL3.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON ESS.Level4Id = MSL4.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON ESS.Level5Id = MSL5.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON ESS.Level6Id = MSL6.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON ESS.Level7Id = MSL7.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON ESS.Level8Id = MSL8.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON ESS.Level9Id = MSL9.ID
+					LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON ESS.Level10Id = MSL10.ID
 				WHERE ((ESS.IsDeleted = 0) 
 				        AND ESS.MasterCompanyId = @MasterCompanyId )),
 						--AND EMS.RoleId = @LoginUserRoleID and EUR.EmployeeId = @EmployeeId) 

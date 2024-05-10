@@ -1,7 +1,6 @@
-﻿
-CREATE VIEW [dbo].[vw_bin]
+﻿CREATE VIEW [dbo].[vw_bin]
 AS
-SELECT        dbo.Countries.nice_name AS Country, dbo.Address.Line1, dbo.Address.Line2, dbo.Address.Line3, dbo.Address.City, dbo.Address.StateOrProvince, dbo.Address.PostalCode, dbo.Site.Name AS Site, 
+SELECT        dbo.Countries.nice_name AS Country, dbo.Address.Line1, dbo.Address.Line2, dbo.Address.Line3, dbo.Address.City, dbo.Address.StateOrProvince, dbo.Address.PostalCode, dbo.Site.Name AS Site, dbo.Site.Name AS SiteName,  
                          dbo.Warehouse.Name AS Warehouse, dbo.Location.Name AS Location, dbo.Shelf.Name AS Shelf, dbo.Bin.BinId, dbo.Bin.Name, dbo.Bin.Memo, dbo.Bin.MasterCompanyId, dbo.Bin.CreatedBy, dbo.Bin.UpdatedBy, 
                          dbo.Bin.CreatedDate, dbo.Bin.UpdatedDate, dbo.Bin.IsActive, dbo.Bin.IsDeleted, dbo.Site.SiteId, dbo.Shelf.ShelfId, dbo.Location.LocationId, dbo.Warehouse.WarehouseId,ISNULL(dbo.LegalEntity.Name,'') AS LegalEntity
 FROM            dbo.Address INNER JOIN

@@ -14,6 +14,7 @@
     1    18-9-2023		Ayesha Sultana		Created  
 	2    20/10/2023     Bhargav Saliya      Export Data Convert Into Upper Case
 	3    27/11/2023     Moin Bloch          Added LotNumber
+	4    10/05/2023     Moin Bloch          Added IsUpdated
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetPOAccountingDetailsViewById]    
 @ReferenceId bigint    
@@ -26,7 +27,6 @@ BEGIN
 
 	DECLARE @POMSModuleId INT = 0
 	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
-	--DECLARE @CPModuleID INT=59;
 
       SELECT CBD.[CommonJournalBatchDetailId]
 			,CBD.[JournalBatchDetailId] 
@@ -83,13 +83,12 @@ BEGIN
 		    ,CAST(MSL9.[Code] AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		    ,CAST(MSL10.[Code] AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
 			,CBD.[LotNumber]
+			,CASE WHEN CBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
    FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)  
-		-- INNER JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON CBD.DistributionSetupId=DS.ID  
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId  		
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BD.JournalBatchHeaderId = BH.JournalBatchHeaderId
 		 LEFT JOIN [dbo].[StocklineBatchDetails] SLBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = SLBD.CommonJournalBatchDetailId  
 		 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=CBD.GLAccountId
-		 --LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND CBD.ManagementStructureId = MSD.EntityMSID AND MSD.ModuleId = @POMSModuleId		
 		 LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND CBD.ManagementStructureId = MSD.EntityMSID AND MSD.ModuleId = @POMSModuleId
 		 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id  
 		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID

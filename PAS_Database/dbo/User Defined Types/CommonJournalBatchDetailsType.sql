@@ -16,5 +16,8 @@
     [JournalTypeName]            VARCHAR (256)   NULL,
     [ManagementStructureId]      BIGINT          NULL,
     [LastMSLevel]                VARCHAR (256)   NULL,
-    [AllMSlevels]                VARCHAR (256)   NULL);
+    [AllMSlevels]                VARCHAR (256)   NULL,
+    [IsUpdated]                  BIT             NULL);
+
+
 

@@ -13,6 +13,7 @@
 	3    01/11/2023     Bhargav Saliya      ADD ORDER BY DESC because Last accounting entry is not coming first
 	4    10/11/2023     HEMANT SALIYA       Resolved Time out Issue
 	5    01/12/2023     Moin Bloch          Added Lot Number 
+	6    10/05/2023     Moin Bloch          Added IsUpdated
 
 EXEC GetExchangeSOAccountingDetailsViewById 106
 ************************************************************************/   
@@ -85,6 +86,7 @@ BEGIN
 		    ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		    ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
 			,CBD.[LotNumber]
+			,CASE WHEN CBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
    FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)    
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId  		
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BD.JournalBatchHeaderId = BH.JournalBatchHeaderId

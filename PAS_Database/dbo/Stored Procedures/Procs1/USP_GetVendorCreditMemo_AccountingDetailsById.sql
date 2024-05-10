@@ -16,6 +16,7 @@
     1    09/11/2023		Devendra Shekh			Created  
     3    20/10/2023     Bhargav Saliya         Export Data Convert Into Upper Case   
 	4    20-03-2024     Shrey Chandegara       Add @VendorCMIds
+	5    10/05/2023     Moin Bloch             Added IsUpdated
 -- exec USP_GetVendorCreditMemo_AccountingDetailsById 90
 ************************************************************************/   
  CREATE      PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
@@ -89,6 +90,7 @@ BEGIN
 		  ,CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] AS level8
 		  ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		  ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
+		  ,CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
    FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 		INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -98,26 +100,25 @@ BEGIN
 		LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]  
 		LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = MSD.[ReferenceId] AND 
 		JBD.[ManagementStructureId] = MSD.[EntityMSID] AND MSD.ModuleId = @AccountMSModuleId
-		LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
-		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
+		LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON MSL1.LegalEntityId = LET.LegalEntityId  
 		LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
-		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = VDR.CurrencyId  
+		LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = VDR.CurrencyId  
      WHERE VPBD.ReferenceID IN (SELECT value FROM STRING_SPLIT(@VendorCMIds, ',')) OR VPBD.ReferenceID = @ReferenceId
   END    
   END TRY    
  BEGIN CATCH          
   IF @@trancount > 0    
-   PRINT 'ROLLBACK'    
-   ROLLBACK TRAN;    
+   PRINT 'ROLLBACK' 
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'USP_GetVendorCreditMemo_AccountingDetailsById'     

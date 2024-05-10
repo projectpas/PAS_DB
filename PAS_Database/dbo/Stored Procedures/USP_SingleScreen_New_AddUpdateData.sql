@@ -149,12 +149,9 @@ BEGIN
         SET @FieldValue += ' ,' + CAST(@RefColumnValue AS varchar(max))    
       END    
       SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
-         print 'fgh'; 
 		 select @Query;
       EXEC (@Query)    
-    print 'fgh1';
       SET @ID = IDENT_CURRENT(@PageName)    
-	  
     END    
     ELSE    
     BEGIN	  

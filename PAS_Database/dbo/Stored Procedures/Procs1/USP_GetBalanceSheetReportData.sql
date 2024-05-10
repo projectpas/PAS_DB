@@ -16,6 +16,7 @@
  5		15/12/2023   Moin Bloch			    Added Static Income Statement ReportingStructureId Need TO Change  Line Number 53
  6      25/01/2024   Hemant Saliya	        Remove Manual Journal from Reports
  7      31/01/2024   Hemant Saliya	        Updated for Handle Balance Issues
+ 8      09/05/2024   Hemant Saliya	        Updated for Handle Static Income Statement ReportingStructureId 
 
 **************************************************************/
   
@@ -33,7 +34,8 @@ AS
 BEGIN
   BEGIN TRY
 		---Static Income Statement ReportingStructureId Need TO Change-----------------------------------------------------------
-		DECLARE @IncomeStatementReportingStructureId BIGINT = 8    
+		DECLARE @IncomeStatementReportingStructureId BIGINT ;   
+		SET @IncomeStatementReportingStructureId = CASE WHEN @MasterCompanyId = 1 THEN 8 WHEN @MasterCompanyId = 13 THEN 54 ELSE 1 END
 
 		DECLARE @LeafNodeId AS BIGINT;
 		DECLARE @AccountcalID AS BIGINT;
@@ -51,10 +53,8 @@ BEGIN
 		DECLARE @BatchMSModuleId BIGINT; 
 		DECLARE @YTDLeafNodeId BIGINT; 
 		DECLARE @RELeafNodeId BIGINT; 
-
-		
-
 		DECLARE @IsDebugMode BIT; 
+
 		SET @IsDebugMode = 0;
 
 		IF(@EndAccountingPeriodId is null OR @EndAccountingPeriodId = 0)
@@ -116,7 +116,7 @@ BEGIN
 		
 		SELECT @INITIALFROMDATE = MIN(FromDate) FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [IsDeleted] = 0  
 		
-		SELECT @NAME = NAME,@FiscalYear = [FiscalYear] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = 1 AND [AccountingCalendarId] = @StartAccountingPeriodId AND [IsDeleted] = 0   
+		SELECT @NAME = NAME,@FiscalYear = [FiscalYear] FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [AccountingCalendarId] = @StartAccountingPeriodId AND [IsDeleted] = 0   
 
 		SELECT @CURRENTYEARFROMDATE = MIN([FromDate]) FROM [dbo].[AccountingCalendar] WITH(NOLOCK) WHERE [NAME] = @NAME AND [FiscalYear] = @FiscalYear;
 		

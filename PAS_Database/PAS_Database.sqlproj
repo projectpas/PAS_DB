@@ -2953,6 +2953,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMPNStocklineQtyForShipping.sql" />
     <Build Include="dbo\Views\vw_EmployeeCertificationType_Audit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetARAgingAsOfNowReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WIPReports.sql" />
     <Build Include="dbo\Views\vw_VendorClassificationAudit.sql" />
     <Build Include="dbo\Views\vw_StandardAudit.sql" />
     <Build Include="dbo\Views\vw_CapabilityType.sql" />

@@ -369,6 +369,10 @@ BEGIN
                 WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId
 				AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
 
+				DECLARE @NewCndId BIGINT = 0,@NewItmId BIGINT = 0;
+
+				SELECT @NewCndId = [ConditionId],@NewItmId = [ItemMasterId] FROM [dbo].[SalesOrderPart] WITH(NOLOCK) WHERE [SalesOrderPartId] = @SalesOrderPartId;
+
                 IF (@QtyFulfilled <= 0)
                 BEGIN
                   DELETE SOSTL FROM [dbo].[SalesOrderStockLine] SOSTL WHERE SOSTL.SalesOrderPartId = @ExSalesOrderPartId;
@@ -378,6 +382,21 @@ BEGIN
                   DELETE SORP  FROM [dbo].[SalesOrderReserveParts] SORP WHERE SORP.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOURP FROM [dbo].[SalesOrderUnReservedStock] SOURP WHERE SOURP.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOP   FROM [dbo].[SalesOrderPart] SOP WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+				  
+				  -- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
+
+				  UPDATE [dbo].[SalesOrderFreight] 
+					 SET [SalesOrderPartId] = @SalesOrderPartId,
+						 [ConditionId] = @NewCndId,
+						 [ItemMasterId] = @NewItmId
+				   WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
+
+				  UPDATE [dbo].[SalesOrderCharges] 
+					 SET [SalesOrderPartId] = @SalesOrderPartId,
+					     [ConditionId] = @NewCndId,
+						 [ItemMasterId] = @NewItmId
+				   WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
+
                 END
 
                 IF ((SELECT COUNT(1) FROM [dbo].[SalesOrderPart] WITH (NOLOCK) WHERE [SalesOrderPartId] = @ExSalesOrderPartId) = 0)
@@ -389,6 +408,20 @@ BEGIN
                   DELETE SORP  FROM [dbo].[SalesOrderReserveParts] SORP WHERE SORP.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOURP FROM [dbo].[SalesOrderUnReservedStock] SOURP WHERE SOURP.SalesOrderPartId = @ExSalesOrderPartId;
                   DELETE SOP   FROM [dbo].[SalesOrderPart] SOP WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
+
+				  -- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
+
+				  UPDATE [dbo].[SalesOrderFreight] 
+					 SET [SalesOrderPartId] = @SalesOrderPartId,
+					     [ConditionId] = @NewCndId,
+						 [ItemMasterId] = @NewItmId
+				   WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
+
+				  UPDATE [dbo].[SalesOrderCharges] 
+					 SET [SalesOrderPartId] = @SalesOrderPartId,
+					     [ConditionId] = @NewCndId,
+						 [ItemMasterId] = @NewItmId
+				   WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
                 END
 
               END
@@ -616,7 +649,7 @@ BEGIN
 						DELETE SORP  FROM [dbo].[SalesOrderReserveParts] SORP WHERE SORP.SalesOrderPartId = @ExSalesOrderPartId;
 						DELETE SOURP FROM [dbo].[SalesOrderUnReservedStock] SOURP WHERE SOURP.SalesOrderPartId = @ExSalesOrderPartId;
 						DELETE SOP   FROM [dbo].[SalesOrderPart] SOP WHERE SOP.SalesOrderPartId = @ExSalesOrderPartId;
-
+						
 						IF (@OldConditionId <> @NewConditionId)
 						BEGIN
 							UPDATE [dbo].[SalesOrderPart] SET ConditionId = @NewConditionId, 
@@ -627,6 +660,20 @@ BEGIN
 							UPDATE [dbo].[SalesOrderPart]
 							SET QtyRequested = (QtyRequested + @NewQtyRequested)
 							WHERE [SalesOrderId] = @SalesOrderId AND ItemMasterId = @NewItemMasterId AND ConditionId = @NewConditionId;
+
+							-- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
+
+							UPDATE [dbo].[SalesOrderFreight] 
+						       SET [SalesOrderPartId] = @SalesOrderPartId, 
+							       [ItemMasterId] = @NewItemMasterId,
+								   [ConditionId] = @NewConditionId
+						     WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
+
+							UPDATE [dbo].[SalesOrderCharges] 
+						       SET [SalesOrderPartId] = @SalesOrderPartId, 
+							       [ItemMasterId] = @NewItemMasterId,
+								   [ConditionId] = @NewConditionId
+						     WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
 						END
 					  END
 					  ELSE
@@ -699,6 +746,20 @@ BEGIN
 									WHERE SalesOrderPartId = @SalesOrderPartId;
 
 									UPDATE [dbo].[SalesOrderPart] SET QtyRequested = Qty, StatusId = @soPartFulfilledStatusId WHERE [SalesOrderId] = @SoId;
+
+									-- UPDATE NEWLY CREATED [SalesOrderPartId] IN FREIGHT & CHARGES
+
+									UPDATE [dbo].[SalesOrderFreight] 
+									   SET [SalesOrderPartId] = @SalesOrderPartId, 
+										   [ItemMasterId] = @NewItemMasterId,
+										   [ConditionId] = @NewConditionId
+									 WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
+
+									 UPDATE [dbo].[SalesOrderCharges] 
+									    SET [SalesOrderPartId] = @SalesOrderPartId, 
+										    [ItemMasterId] = @NewItemMasterId,
+										    [ConditionId] = @NewConditionId
+									  WHERE [SalesOrderPartId] = @ExSalesOrderPartId AND [SalesOrderId] = @SalesOrderId;
 								END
 							END
 						END

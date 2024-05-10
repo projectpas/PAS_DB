@@ -15,6 +15,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 08-05-2024		Moin Bloch  		Created
+	2    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
      
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
@@ -53,6 +54,7 @@ BEGIN
 	DECLARE @CustomerPaymentsPostedStatus INT= 2;
 	DECLARE @MJEPostStatusId INT;
 	DECLARE @MSModuleId INT;	
+	DECLARE @CustomerCreditPaymentOpenStatus INT = 1
 
 	DECLARE @WOModuleTypeId INT = 1
 	DECLARE @SOModuleTypeId INT = 2
@@ -60,6 +62,7 @@ BEGIN
 	DECLARE @CMModuleTypeId INT = 4	
 	DECLARE @STLCMModuleTypeId INT = 5
 	DECLARE @MJEModuleTypeId INT = 6
+	DECLARE @UAModuleTypeId INT = 7	
 	
 	DECLARE @PageNumber INT = NULL,
     @PageSize INT = NULL,
@@ -204,20 +207,22 @@ BEGIN
 		DECLARE @WOMSModuleID BIGINT ; -- = 12 Work Order MS Module ID  
 		DECLARE @CMMSModuleID BIGINT ; -- = 61 CM MS Module ID  
 		DECLARE @ESOMSModuleID BIGINT;
+		DECLARE @SuspenseModuleID BIGINT;
 			  
 		SELECT @WOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='WORKORDERMPN';
 		SELECT @SOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SALESORDER ';
 		SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='CREDITMEMOHEADER';
 	    SELECT @ESOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSOHeader';
+	    SELECT @SuspenseModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SUSPENSEANDUNAPPLIEDPAYMENT';
 
 		IF(@ViewType = 'Summary')  -- VIEW
 		BEGIN
-			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecords') IS NOT NULL    
+			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecordsSSRS') IS NOT NULL    
 			BEGIN    
-				DROP TABLE #TEMPInvoiceRecords
+				DROP TABLE #TEMPInvoiceRecordsSSRS
 			END
 
-			CREATE TABLE #TEMPInvoiceRecords(        
+			CREATE TABLE #TEMPInvoiceRecordsSSRS(        
 				[ID] BIGINT IDENTITY(1,1),      
 				[BillingInvoicingId] BIGINT NOT NULL,
 				[CustomerId] BIGINT NULL,
@@ -266,7 +271,7 @@ BEGIN
 		
 			-- WO INVOICE DETAILS
 			
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -352,30 +357,30 @@ BEGIN
 				AND @IsInvoice = 1
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 							
-			UPDATE #TEMPInvoiceRecords SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
 				FROM( SELECT 
 					   ISNULL(SUM(IPS.PaymentAmount),0)  AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
+					JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.StatusId = @CustomerPaymentsPostedStatus AND IPS.InvoiceType = @WO 
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecords SET CreditMemoAmount = ISNULL(tmpcm.CMAmount, 0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET CreditMemoAmount = ISNULL(tmpcm.CMAmount, 0)
 					FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 						FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 							INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 							INNER JOIN [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH(NOLOCK) ON WOBII.WOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-							JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = WOBII.BillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
+							JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = WOBII.BillingInvoicingId AND TmpInv.ModuleTypeId = @WOModuleTypeId
 						WHERE CMD.IsWorkOrder = 1 AND CM.CustomerId = TmpInv.CustomerId AND CM.StatusId = @CMPostedStatusId
 						GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-				) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId	
+				) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId	
 		
 			-- SO INVOICE DETAILS
-			select * from #TEMPInvoiceRecords
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -462,29 +467,29 @@ BEGIN
 					AND @IsInvoice = 1	
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 										
-			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
+					JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.[StatusId] = @CustomerPaymentsPostedStatus AND IPS.[InvoiceType] = @SO 
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecords SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
 				FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 						INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
 						INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) ON SOBII.SOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-						JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
+						JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @SOModuleTypeId
 					WHERE CMD.[IsWorkOrder] = 0 AND CM.[CustomerId] = TmpInv.CustomerId AND CM.[StatusId] = @CMPostedStatusId
 					GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId
+			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId
 			
 			-- EXCHANGE SO INVOICE DETAILS --
 
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -572,29 +577,29 @@ BEGIN
 					AND @IsInvoice = 1
 				    AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 								
-			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
 				 FROM [dbo].[InvoicePayments] IPS WITH (NOLOCK)   
-					JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
+					JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = IPS.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
 					LEFT JOIN [dbo].[CustomerPayments] CP WITH (NOLOCK) ON CP.ReceiptId = IPS.ReceiptId  
 				 WHERE CP.[StatusId] = @CustomerPaymentsPostedStatus AND IPS.[InvoiceType] = @Exch
 				 GROUP BY IPS.SOBillingInvoicingId 
-				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId
+				) tmpcash WHERE tmpcash.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId
 
-			UPDATE #TEMPInvoiceRecords SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
+			UPDATE #TEMPInvoiceRecordsSSRS SET [CreditMemoAmount] = ISNULL(tmpcm.[CMAmount], 0)
 				FROM( SELECT ISNULL(SUM(CMD.Amount),0) AS 'CMAmount', TmpInv.BillingInvoicingId, CMD.BillingInvoicingItemId      
 					FROM [dbo].[CreditMemoDetails] CMD WITH (NOLOCK)   
 						INNER JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId 
 						INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) ON SOBII.ExchangeSOBillingInvoicingItemId = CMD.BillingInvoicingItemId 
-						JOIN #TEMPInvoiceRecords TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
+						JOIN #TEMPInvoiceRecordsSSRS TmpInv ON TmpInv.BillingInvoicingId = SOBII.SOBillingInvoicingId AND TmpInv.ModuleTypeId = @EXSOModuleTypeId
 					WHERE CM.InvoiceTypeId = @EXInvoiceTypeId AND CM.[CustomerId] = TmpInv.CustomerId AND CM.[StatusId] = @CMPostedStatusId
 					GROUP BY CMD.BillingInvoicingItemId, TmpInv.BillingInvoicingId  
-			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecords.BillingInvoicingId
+			) tmpcm WHERE tmpcm.BillingInvoicingId = #TEMPInvoiceRecordsSSRS.BillingInvoicingId
 			
 			-- CREDIT MEMO --
 
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -661,7 +666,7 @@ BEGIN
 
 			-- STAND ALONE CREDIT MEMO --
 				
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -729,7 +734,7 @@ BEGIN
 
 			-- MANUAL JOURNAL --
 				
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -837,6 +842,70 @@ BEGIN
 				MSL10.[Code], MSL10.[Description],
 				MJH.[MasterCompanyId],LE.[Name]
 
+			-- SUSPENSE AND UNAPPLIED CASH   --
+
+			INSERT INTO #TEMPInvoiceRecordsSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
+				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
+				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
+				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
+				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
+			                C.[CustomerId],     
+							UPPER(C.[Name]),
+					        UPPER(C.[CustomerCode]),						
+							CCP.[RemainingAmount],
+							0,
+							0,
+							CCP.[RemainingAmount],
+							0,
+							0,
+							0,
+							0,
+							0,
+							CCP.[RemainingAmount], --  'InvoiceAmount', 
+							0, -- 'CMAmount', 
+							0, -- 'CreditMemoAmount',
+							0, --'CreditMemoUsed'							
+							MSD.[Level1Id], 
+							MSD.[Level2Id], 
+							MSD.[Level3Id], 
+							MSD.[Level4Id], 
+							MSD.[Level5Id], 
+							MSD.[Level6Id], 
+							MSD.[Level7Id], 
+							MSD.[Level8Id], 
+							MSD.[Level9Id], 
+							MSD.[Level10Id],
+							UPPER(MSD.[Level1Name]),        
+							UPPER(MSD.[Level2Name]),       
+							UPPER(MSD.[Level3Name]),       
+							UPPER(MSD.[Level4Name]),       
+							UPPER(MSD.[Level5Name]),       
+							UPPER(MSD.[Level6Name]),       
+							UPPER(MSD.[Level7Name]),       
+							UPPER(MSD.[Level8Name]),       
+							UPPER(MSD.[Level9Name]),       
+							UPPER(MSD.[Level10Name]),
+							CCP.[MasterCompanyId],
+							0,
+							1,
+							0,  -- 'InvoicePaidAmount',
+							@UAModuleTypeId,  -- 'SUSPENSE AND UNAPPLIED CASH',
+					        LE.[Name]
+			  FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
+				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CCP.CustomerId = C.CustomerId   
+				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK)ON ES.EntityStructureId = CCP.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK)ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK)ON MSL.LegalEntityId = LE.LegalEntityId  
+			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.[CustomerId])
+				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CCP.[MasterCompanyId] = @MasterCompanyid  
+				AND @IsUnappliedAmounts = 1		
+
 			SELECT  [CustomerId],[CustomerName],[CustomerCode],
 					ISNULL(SUM([BalanceAmount]),0) BalanceAmount,
 					ISNULL(SUM([CurrentAmount]),0) CurrentAmount,
@@ -853,7 +922,7 @@ BEGIN
 					ISNULL(SUM([CreditMemoUsed]),0) CreditMemoUsed,	        
 					[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 					[LegalEntityName]
-			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
+			 INTO #TempResultSSRS1 FROM #TEMPInvoiceRecordsSSRS		
 			 WHERE((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
 				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
@@ -890,9 +959,9 @@ BEGIN
 			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
 					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10]	
 				 			
-			SELECT @Count = COUNT(CustomerId) FROM #TempResult1
+			SELECT @Count = COUNT(CustomerId) FROM #TempResultSSRS1
 
-			SELECT *, @Count AS NumberOfItems FROM #TempResult1 ORDER BY  
+			SELECT *, @Count AS NumberOfItems FROM #TempResultSSRS1 ORDER BY  
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
@@ -1702,6 +1771,86 @@ BEGIN
 				MSL10.[Code], MSL10.[Description],
 				MJH.[MasterCompanyId],LE.[Name]
    		   
+		    -- SUSPENSE AND UNAPPLIED CASH   --
+
+			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CustomerRef],[Salesperson],[CreditTerms],
+											[BalanceAmount],[CurrentAmount],[PaymentAmount],
+											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
+											[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
+											[InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],[fxRateAmount],
+											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
+											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
+											[ModuleTypeId],[LegalEntityName])
+			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
+			                C.[CustomerId],     
+							UPPER(C.[Name]),
+					        UPPER(C.[CustomerCode]),
+							'', --Currency,
+							UPPER('Suspense and Unapplied Cash'),
+							UPPER(CCP.[SuspenseUnappliedNumber]), 
+					        CCP.[ReceiveDate],
+							0,
+							0,
+							0,
+							NULL,
+							'',
+							'', 
+							'',  
+							CCP.[RemainingAmount],
+							0,
+							0,
+							CCP.[RemainingAmount],
+							0,
+							0,
+							0,
+							0,
+							0,
+							CCP.[RemainingAmount], --  'InvoiceAmount', 
+							0, -- 'CMAmount', 
+							0, -- 'CreditMemoAmount',
+							0, --'CreditMemoUsed'
+							'0.000000',
+							MSD.[Level1Id], 
+							MSD.[Level2Id], 
+							MSD.[Level3Id], 
+							MSD.[Level4Id], 
+							MSD.[Level5Id], 
+							MSD.[Level6Id], 
+							MSD.[Level7Id], 
+							MSD.[Level8Id], 
+							MSD.[Level9Id], 
+							MSD.[Level10Id],
+							UPPER(MSD.[Level1Name]),        
+							UPPER(MSD.[Level2Name]),       
+							UPPER(MSD.[Level3Name]),       
+							UPPER(MSD.[Level4Name]),       
+							UPPER(MSD.[Level5Name]),       
+							UPPER(MSD.[Level6Name]),       
+							UPPER(MSD.[Level7Name]),       
+							UPPER(MSD.[Level8Name]),       
+							UPPER(MSD.[Level9Name]),       
+							UPPER(MSD.[Level10Name]),
+							CCP.[MasterCompanyId],
+							0,
+							1,
+							0,  -- 'InvoicePaidAmount',
+							@UAModuleTypeId, 
+					        LE.[Name]
+			 FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
+				LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON CCP.CustomerId = C.CustomerId   
+				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CCP.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
+			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.CustomerId)
+				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CCP.[MasterCompanyId] = @MasterCompanyid  
+				AND @IsUnappliedAmounts = 1	
+
 			SELECT * INTO #TempResultSSRS FROM #TEMPInvoiceRecordsDetailsViewSSRS
 			WHERE ((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					

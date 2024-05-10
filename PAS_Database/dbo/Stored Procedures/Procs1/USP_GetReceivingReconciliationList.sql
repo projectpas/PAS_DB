@@ -1,4 +1,19 @@
-﻿-- =============================================
+﻿/*************************************************************             
+ ** File:   [USP_GetReceivingReconciliationList]             
+ ** Author:   
+ ** Description: This stored procedure is used to get Reconsilation list
+ ** Purpose:           
+ ** Date:   
+         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+	1                  unknown
+	2    09-05-2024    Moin Bloch   added MasterCompanyId Wise Data
+**************************************************************/  
+-- =============================================
 -- exec USP_GetReceivingReconciliationList 40,1,'ReceivingReconciliationId',-1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,0,NULL,NULL,NULL,NULL
 -- =============================================
 CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
@@ -12,8 +27,6 @@ CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
 @ReceivingReconciliationNumber	varchar(50),
 @InvoiceNum varchar(50),
 @OpenDate datetime=null,
---@PostDate datetime=null,
---@AccountingPeriod varchar(50)= null,
 @Status varchar(50)=null,
 @VendorName varchar(50)=null,
 @OriginalTotal varchar(50)= null,
@@ -35,37 +48,34 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN
+	
 				DECLARE @RecordFrom int;
 				SET @RecordFrom = (@PageNumber-1)*@PageSize;
-				IF @IsDeleted is null
-				Begin
-					Set @IsDeleted=0
-				End
-				print @IsDeleted	
-				IF @SortColumn is null
-				Begin
-					Set @SortColumn = 'ReceivingReconciliationId'
-				End 
+				IF @IsDeleted IS NULL
+				BEGIN
+					SET @IsDeleted=0
+				END
+				
+				IF @SortColumn IS NULL
+				BEGIN
+					SET @SortColumn = 'ReceivingReconciliationId'
+				END 
 				Else
-				Begin 
-					Set @SortColumn=Upper(@SortColumn)
-				End
+				BEGIN 
+					SET @SortColumn = UPPER(@SortColumn)
+				END
+				IF @StatusID=0
+				BEGIN 
+					SET @StatusID=null
+				END 
 
-
-				If @StatusID=0
-				Begin 
-					Set @StatusID=null
-				End 
-
-				If @Status='0'
-				Begin
-					Set @Status=null
-				End
+				IF @Status='0'
+				BEGIN
+					SET @Status=null
+				END
 				DECLARE @MSModuleID INT = 4; -- Purchaseorder Management Structure Module ID
 				DECLARE @ROMSModuleID INT = 24; -- repairorder Management Structure Module ID
-				;With Main AS(
+				;WITH Main AS(
 						SELECT DISTINCT RRH.[ReceivingReconciliationId]
 							,RRH.[ReceivingReconciliationNumber]
 							,RRH.[InvoiceNum]
@@ -87,176 +97,146 @@ BEGIN
 							,RRH.[CreatedDate]
 							,RRH.[UpdatedDate]
 							,RRH.[IsActive]
-							,RRH.[IsDeleted]
-							--,P.LastMSLevel
-							--,P.AllMSlevels
-							,CASE WHEN (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.LastMSLevel
+							,RRH.[IsDeleted]						
+							,CASE WHEN (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.LastMSLevel
 							ELSE R.LastMSLevel END as 'LastMSLevel' 
-							,CASE WHEN (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.AllMSlevels
+							,CASE WHEN (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)  = 1 THEN P.AllMSlevels
 							ELSE R.AllMSlevels END as 'AllMSlevels',
-							[Type] = (SELECT TOP 1 [Type] FROM ReceivingReconciliationDetails R WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)
+							[Type] = (SELECT TOP 1 [Type] FROM [dbo].[ReceivingReconciliationDetails] R WITH(NOLOCK) WHERE R.ReceivingReconciliationId = RRH.ReceivingReconciliationId)
 						FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK)  
-						LEFT JOIN ReceivingReconciliationDetails RRD ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId
-						Outer Apply(
+						LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH(NOLOCK) ON RRH.ReceivingReconciliationId = RRD.ReceivingReconciliationId
+						OUTER APPLY(
 							Select top 1 MSD.LastMSLevel,	
-								MSD.AllMSlevels from ReceivingReconciliationDetails rrcd
-								Inner JOIN PurchaseOrder puo on rrcd.PurchaseOrderId = puo.PurchaseOrderId
-								INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = puo.PurchaseOrderId
-								INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
-								INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+								MSD.AllMSlevels FROM [dbo].[ReceivingReconciliationDetails] rrcd WITH(NOLOCK)
+								INNER JOIN [dbo].[PurchaseOrder] puo  WITH (NOLOCK) ON rrcd.PurchaseOrderId = puo.PurchaseOrderId
+								INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = puo.PurchaseOrderId
+								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
+								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								where ReceivingReconciliationId=RRH.ReceivingReconciliationId
 						)P
-						Outer Apply(
+						OUTER APPLY(
 							Select top 1 MSD.LastMSLevel,	
-								MSD.AllMSlevels from ReceivingReconciliationDetails rrcd
-								Inner JOIN RepairOrder puo on rrcd.PurchaseOrderId = puo.RepairOrderId
-								INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = puo.RepairOrderId
-								INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
-								INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-								where ReceivingReconciliationId=RRH.ReceivingReconciliationId
-						)R where (@StatusID is null or RRH.StatusId = @StatusID))
+								MSD.AllMSlevels from [dbo].[ReceivingReconciliationDetails] rrcd WITH (NOLOCK)
+								INNER JOIN [dbo].[RepairOrder] puo WITH (NOLOCK) ON rrcd.PurchaseOrderId = puo.RepairOrderId
+								INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = puo.RepairOrderId
+								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
+								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+								WHERE ReceivingReconciliationId=RRH.ReceivingReconciliationId
+						)R WHERE (@StatusID IS NULL OR RRH.StatusId = @StatusID))
 						,PartCTE AS(
-						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from ReceivingReconciliationHeader SQ WITH (NOLOCK)
-						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
-						inner Join PurchaseOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.PurchaseOrderId
-						Outer Apply(
+						SELECT SQ.ReceivingReconciliationId,(CASE WHEN COUNT(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from [dbo].[ReceivingReconciliationHeader] SQ WITH (NOLOCK)
+						LEFT JOIN [dbo].[ReceivingReconciliationDetails] SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						INNER JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) On SP.PurchaseOrderId=po.PurchaseOrderId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT DISTINCT ',' + S.POReference
-									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
-									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  FROM [dbo].[ReceivingReconciliationDetails] S WITH (NOLOCK)
 									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PartNumber
 						) A
-						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
-						Group By SQ.ReceivingReconciliationId,A.PartNumber
+						GROUP BY SQ.ReceivingReconciliationId,A.PartNumber
 						),PartDateCTE AS(
-						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse B.PORODate End)  as 'PORODateType',B.PORODate from ReceivingReconciliationHeader SQ WITH (NOLOCK)
-						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
-						inner Join PurchaseOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.PurchaseOrderId
-						Outer Apply(
+						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse B.PORODate End)  as 'PORODateType',B.PORODate from [dbo].[ReceivingReconciliationHeader] SQ WITH (NOLOCK)
+						LEFT JOIN [dbo].[ReceivingReconciliationDetails] SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						INNER JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) On SP.PurchaseOrderId=po.PurchaseOrderId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT DISTINCT ',' + CONVERT(VARCHAR, POP.OpenDate , 110)
-									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
-									  INNER Join PurchaseOrder POP WITH (NOLOCK) On S.PurchaseOrderId=POP.PurchaseOrderId
-									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  FROM [dbo].[ReceivingReconciliationDetails] S WITH (NOLOCK)
+									  INNER JOIN [dbo].[PurchaseOrder] POP WITH (NOLOCK) On S.PurchaseOrderId=POP.PurchaseOrderId
 									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PORODate
 						) B
-						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
-						Group By SQ.ReceivingReconciliationId,B.PORODate
+						GROUP BY SQ.ReceivingReconciliationId,B.PORODate
 						)
 						,PartROCTE AS(
-						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse C.PartNumber End)  as 'PartNumberType',C.PartNumber from ReceivingReconciliationHeader SQ WITH (NOLOCK)
-						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
-						inner Join RepairOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
-						Outer Apply(
+						SELECT SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse C.PartNumber End)  as 'PartNumberType',C.PartNumber from [dbo].[ReceivingReconciliationHeader] SQ WITH (NOLOCK)
+						LEFT JOIN [dbo].[ReceivingReconciliationDetails] SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						INNER JOIN [dbo].[RepairOrder] po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT DISTINCT ',' + S.POReference
-									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
-									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
+									  FROM [dbo].[ReceivingReconciliationDetails] S WITH (NOLOCK)
+									  WHERE S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PartNumber
 						) C
-						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
-						Group By SQ.ReceivingReconciliationId,C.PartNumber
+						GROUP BY SQ.ReceivingReconciliationId,C.PartNumber
 						),PartRODateCTE AS(
-						Select SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse D.PORODate End)  as 'PORODateType',D.PORODate from ReceivingReconciliationHeader SQ WITH (NOLOCK)
-						Left Join ReceivingReconciliationDetails SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
-						inner Join RepairOrder po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
-						Outer Apply(
+						SELECT SQ.ReceivingReconciliationId,(Case When Count(DISTINCT po.RepairOrderId) > 1 Then 'Multiple' ELse D.PORODate End)  as 'PORODateType',D.PORODate from [dbo].[ReceivingReconciliationHeader] SQ WITH (NOLOCK)
+						LEFT JOIN [dbo].[ReceivingReconciliationDetails] SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId
+						INNER JOIN [dbo].[RepairOrder] po WITH (NOLOCK) On SP.PurchaseOrderId=po.RepairOrderId
+						OUTER APPLY(
 							SELECT 
 							   STUFF((SELECT DISTINCT ',' + CONVERT(VARCHAR, POP.OpenDate , 110)
-									  FROM ReceivingReconciliationDetails S WITH (NOLOCK)
-									  INNER Join RepairOrder POP WITH (NOLOCK) On S.PurchaseOrderId=POP.RepairOrderId
-									  --INNER Join  I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
+									  FROM [dbo].[ReceivingReconciliationDetails] S WITH (NOLOCK)
+									  INNER JOIN [dbo].[RepairOrder] POP WITH (NOLOCK) On S.PurchaseOrderId=POP.RepairOrderId
 									  Where S.ReceivingReconciliationId=SQ.ReceivingReconciliationId  AND (S.PackagingId is NULL OR S.PackagingId=0)
 									  FOR XML PATH('')), 1, 1, '') PORODate
 						) D
-						--Where ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
-						Group By SQ.ReceivingReconciliationId,D.PORODate
+						GROUP BY SQ.ReceivingReconciliationId,D.PORODate
 						)
 						,Result AS(
-						Select M.ReceivingReconciliationId,M.ReceivingReconciliationNumber,M.InvoiceNum as 'InvoiceNum',M.StatusId,M.Status as 'Status',M.VendorId,M.VendorName,IsNull(M.CurrencyId,0) as 'CurrencyId',M.CurrencyName,M.OpenDate,
+						SELECT M.ReceivingReconciliationId,M.ReceivingReconciliationNumber,M.InvoiceNum as 'InvoiceNum',M.StatusId,M.Status as 'Status',M.VendorId,M.VendorName,IsNull(M.CurrencyId,0) as 'CurrencyId',M.CurrencyName,M.OpenDate,
 									M.OriginalTotal,M.RRTotal,M.InvoiceTotal,M.DIfferenceAmount,M.TotalAdjustAmount,M.CreatedBy,M.UpdatedBy,M.CreatedDate,M.UpdatedDate,M.IsDeleted,M.IsActive,
 									M.LastMSLevel,M.AllMSlevels,CASE WHEN M.[Type] = 1 THEN PT.PartNumber ELSE PTRO.PartNumber END as 'PartNumber',CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END as 'PartNumberType',
 									CASE WHEN M.[Type] = 1 THEN PTE.PORODate ELSE PTERO.PORODate END as 'PORODate',CASE WHEN M.[Type] = 1 THEN PTE.PORODateType ELSE PTERO.PORODateType END as 'PORODateType'
 									from Main M 
-						Left Join PartCTE PT On M.ReceivingReconciliationId=PT.ReceivingReconciliationId
-						Left Join PartDateCTE PTE On M.ReceivingReconciliationId=PTE.ReceivingReconciliationId
-						Left Join PartROCTE PTRO On M.ReceivingReconciliationId=PTRO.ReceivingReconciliationId
-						Left Join PartRODateCTE PTERO On M.ReceivingReconciliationId=PTERO.ReceivingReconciliationId
-						Where (
+						LEFT JOIN PartCTE PT On M.ReceivingReconciliationId=PT.ReceivingReconciliationId
+						LEFT JOIN PartDateCTE PTE On M.ReceivingReconciliationId=PTE.ReceivingReconciliationId
+						LEFT JOIN PartROCTE PTRO On M.ReceivingReconciliationId=PTRO.ReceivingReconciliationId
+						LEFT JOIN PartRODateCTE PTERO On M.ReceivingReconciliationId=PTERO.ReceivingReconciliationId
+						WHERE M.MasterCompanyId = @MasterCompanyId AND (
 						(@GlobalFilter <>'' AND (
-						(M.ReceivingReconciliationNumber like '%' +@GlobalFilter+'%' ) OR
-								(M.InvoiceNum like '%' +@GlobalFilter+'%') OR
-								--(M.[Status] like '%' +@GlobalFilter+'%') OR
-								(M.VendorName like '%' +@GlobalFilter+'%') OR
-								--(PartNumberType like '%' +@GlobalFilter+'%') OR  
-								(CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END like '%' +@GlobalFilter+'%') OR  
-								(M.CurrencyName like '%' +@GlobalFilter+'%')
-								--(M.CreatedBy like '%' +@GlobalFilter+'%') OR
-								--(M.UpdatedBy like '%' +@GlobalFilter+'%') 
+						(M.ReceivingReconciliationNumber LIKE '%' +@GlobalFilter+'%' ) OR
+								(M.InvoiceNum LIKE '%' +@GlobalFilter+'%') OR
+								(M.VendorName LIKE '%' +@GlobalFilter+'%') OR
+								(CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%' +@GlobalFilter+'%') OR  
+								(M.CurrencyName LIKE '%' +@GlobalFilter+'%')
 								))
 								OR   
 								(@GlobalFilter='' AND 
-								(IsNull(@ReceivingReconciliationNumber,'') ='' OR M.ReceivingReconciliationNumber like '%'+@ReceivingReconciliationNumber+'%') and 
-								(IsNull(@InvoiceNum,'') ='' OR M.InvoiceNum like '%'+@InvoiceNum+'%') and
-								--(IsNull(@Status,'') ='' OR M.Status like '%'+ @Status+'%') and
-								(IsNull(@VendorName,'') =''  OR M.VendorName like '%'+@VendorName+'%') and
-								--(IsNull(@Status,'') =''  OR M.[Status] like '%'+@Status+'%') and
-								(IsNull(@CurrencyName,'') =''  OR M.CurrencyName like '%'+@CurrencyName+'%') and
-								--(IsNull(@PartNumberType,'') =''  OR PT.PartNumberType like '%'+@PartNumberType+'%') and
-								(IsNull(@PartNumberType,'') =''  OR CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END like '%'+@PartNumberType+'%') and
-								--(IsNull(@CreatedBy,'') =''  OR M.CreatedBy like '%'+@CreatedBy+'%') and
-								--(IsNull(@UpdatedBy,'') =''  OR M.UpdatedBy like '%'+@UpdatedBy+'%') and
-								(@OriginalTotal is  null or M.OriginalTotal=@OriginalTotal) and
-								(@RRTotal is  null or M.RRTotal=@RRTotal) and
-								(@InvoiceTotal is  null or M.InvoiceTotal=@InvoiceTotal) and
-								(@DIfferenceAmount is  null or M.DIfferenceAmount=@DIfferenceAmount) and
-								(IsNull(@PORODateType,'') ='' OR Cast(PTE.PORODateType as Date)=Cast(@PORODateType as date))  
-								--(@SoAmount is  null or M.SoAmount=@SoAmount) and
-								--(@OpenDate is  null or Cast(M.OpenDate as date)=Cast(@OpenDate as date))
-								--(IsNull(@PartNumberType,'') ='' OR PT.PartNumberType like '%'+@PartNumberType+'%') and
-								--(IsNull(@PartDescriptionType,'') ='' OR PD.PartDescriptionType like '%'+@PartDescriptionType+'%') and
-								--(IsNull(@CreatedDate,'') ='' OR Cast(M.CreatedDate as Date)=Cast(@CreatedDate as date)) and
-								--(IsNull(@UpdatedDate,'') ='' OR Cast(M.UpdatedDate as date)=Cast(@UpdatedDate as date))
-								)
-								)
-						),CTE_Count AS (Select COUNT(ReceivingReconciliationId) AS NumberOfItems FROM Result)
+								(ISNULL(@ReceivingReconciliationNumber,'') ='' OR M.ReceivingReconciliationNumber LIKE '%'+@ReceivingReconciliationNumber+'%') AND 
+								(ISNULL(@InvoiceNum,'') ='' OR M.InvoiceNum LIKE '%'+@InvoiceNum+'%') AND
+								(ISNULL(@VendorName,'') =''  OR M.VendorName LIKE '%'+@VendorName+'%') AND
+								(ISNULL(@CurrencyName,'') =''  OR M.CurrencyName LIKE '%'+@CurrencyName+'%') AND
+								(ISNULL(@PartNumberType,'') =''  OR CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%'+@PartNumberType+'%') AND
+								(@OriginalTotal IS  NULL OR M.OriginalTotal=@OriginalTotal) AND
+								(@RRTotal IS  NULL OR M.RRTotal=@RRTotal) AND
+								(@InvoiceTotal IS  NULL OR M.InvoiceTotal=@InvoiceTotal) AND
+								(@DIfferenceAmount IS  NULL OR M.DIfferenceAmount=@DIfferenceAmount) AND
+								(ISNULL(@PORODateType,'') ='' OR Cast(PTE.PORODateType as Date)=Cast(@PORODateType as date))))
+						),CTE_Count AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM Result)
 						SELECT ReceivingReconciliationId,ReceivingReconciliationNumber,InvoiceNum,StatusId,Status,VendorId,VendorName,CurrencyId,CurrencyName,OpenDate
 						,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,LastMSLevel,AllMSlevels,PartNumber,PartNumberType,PORODate,PORODateType
 						FROM Result,CTE_Count
 						ORDER BY  
-						CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='CURRENCYNAME')  THEN CurrencyName END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
-						CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='CURRENCYNAME')  THEN CurrencyName END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+						CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORNAME')  THEN VendorName END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='CURRENCYNAME')  THEN CurrencyName END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='STATUS')  THEN Status END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVINGRECONCILIATIONNUMBER')  THEN ReceivingReconciliationNumber END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCYNAME')  THEN CurrencyName END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS')  THEN Status END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY
-					END
-			COMMIT  TRANSACTION
-
+				
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
-				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
+				PRINT 'ROLLBACK'			
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SearchSOQViewData' 

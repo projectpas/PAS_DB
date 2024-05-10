@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport]           
  ** Author:   HEMANT SALIYA  
  ** Description: Get Data for AR Agging Report  
@@ -17,7 +18,8 @@
 	1	 11-03-2024		HEMANT SALIYA  		Created
 	2	 25-04-2024		Moin Bloch 		    Modified Added Detail View
 	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
-     
+	4    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
+	     
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
@@ -89,6 +91,7 @@ BEGIN
 	DECLARE @CustomerPaymentsPostedStatus INT= 2;
 	DECLARE @MJEPostStatusId INT;
 	DECLARE @MSModuleId INT;	
+	DECLARE @CustomerCreditPaymentOpenStatus INT = 1
 
 	DECLARE @WOModuleTypeId INT = 1
 	DECLARE @SOModuleTypeId INT = 2
@@ -96,6 +99,7 @@ BEGIN
 	DECLARE @CMModuleTypeId INT = 4	
 	DECLARE @STLCMModuleTypeId INT = 5
 	DECLARE @MJEModuleTypeId INT = 6
+	DECLARE @UAModuleTypeId INT = 7		
 	
     SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED';  	  
     SELECT @ClosedCreditMemoStatus = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Closed';
@@ -154,12 +158,15 @@ BEGIN
 		DECLARE @WOMSModuleID BIGINT ; -- = 12 Work Order MS Module ID  
 		DECLARE @CMMSModuleID BIGINT ; -- = 61 CM MS Module ID  
 		DECLARE @ESOMSModuleID BIGINT;
+		DECLARE @SuspenseModuleID BIGINT;
+		
 			  
 		SELECT @WOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='WORKORDERMPN';
 		SELECT @SOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SALESORDER ';
 		SELECT @CMMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='CREDITMEMOHEADER';
 	    SELECT @ESOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSOHeader';
-
+		SELECT @SuspenseModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='SUSPENSEANDUNAPPLIEDPAYMENT';
+		
 		IF(@ViewType = 'Summary')  -- VIEW
 		BEGIN
 			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecords') IS NOT NULL    
@@ -786,6 +793,70 @@ BEGIN
 				MSL9.[Code], MSL9.[Description],
 				MSL10.[Code], MSL10.[Description],
 				MJH.[MasterCompanyId],LE.[Name]
+				
+			-- SUSPENSE AND UNAPPLIED CASH   --
+
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
+				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
+				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
+				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
+				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
+			                C.[CustomerId],     
+							UPPER(C.[Name]),
+					        UPPER(C.[CustomerCode]),						
+							CCP.[RemainingAmount],
+							0,
+							0,
+							CCP.[RemainingAmount],
+							0,
+							0,
+							0,
+							0,
+							0,
+							CCP.[RemainingAmount], --  'InvoiceAmount', 
+							0, -- 'CMAmount', 
+							0, -- 'CreditMemoAmount',
+							0, --'CreditMemoUsed'							
+							MSD.[Level1Id], 
+							MSD.[Level2Id], 
+							MSD.[Level3Id], 
+							MSD.[Level4Id], 
+							MSD.[Level5Id], 
+							MSD.[Level6Id], 
+							MSD.[Level7Id], 
+							MSD.[Level8Id], 
+							MSD.[Level9Id], 
+							MSD.[Level10Id],
+							UPPER(MSD.[Level1Name]),        
+							UPPER(MSD.[Level2Name]),       
+							UPPER(MSD.[Level3Name]),       
+							UPPER(MSD.[Level4Name]),       
+							UPPER(MSD.[Level5Name]),       
+							UPPER(MSD.[Level6Name]),       
+							UPPER(MSD.[Level7Name]),       
+							UPPER(MSD.[Level8Name]),       
+							UPPER(MSD.[Level9Name]),       
+							UPPER(MSD.[Level10Name]),
+							CCP.[MasterCompanyId],
+							0,
+							1,
+							0,  -- 'InvoicePaidAmount',
+							@UAModuleTypeId,  -- 'SUSPENSE AND UNAPPLIED CASH',
+					        LE.[Name]
+			  FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
+				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CCP.CustomerId = C.CustomerId   
+				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK)ON ES.EntityStructureId = CCP.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK)ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK)ON MSL.LegalEntityId = LE.LegalEntityId  
+			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.[CustomerId])
+				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CCP.[MasterCompanyId] = @MasterCompanyid  
+				AND @IsUnappliedAmounts = 1		
 
 			SELECT  [CustomerId],[CustomerName],[CustomerCode],
 					ISNULL(SUM([BalanceAmount]),0) BalanceAmount,
@@ -1653,6 +1724,86 @@ BEGIN
 				MSL10.[Code], MSL10.[Description],
 				MJH.[MasterCompanyId],LE.[Name]
 						
+			-- SUSPENSE AND UNAPPLIED CASH   --
+
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CustomerRef],[Salesperson],[CreditTerms],
+											[BalanceAmount],[CurrentAmount],[PaymentAmount],
+											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
+											[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
+											[InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],[fxRateAmount],
+											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
+											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
+											[ModuleTypeId],[LegalEntityName])
+			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
+			                C.[CustomerId],     
+							UPPER(C.[Name]),
+					        UPPER(C.[CustomerCode]),
+							'', --Currency,
+							UPPER('Suspense and Unapplied Cash'),
+							UPPER(CCP.[SuspenseUnappliedNumber]), 
+					        CCP.[ReceiveDate],
+							0,
+							0,
+							0,
+							NULL,
+							'',
+							'', 
+							'',  
+							CCP.[RemainingAmount],
+							0,
+							0,
+							CCP.[RemainingAmount],
+							0,
+							0,
+							0,
+							0,
+							0,
+							CCP.[RemainingAmount], --  'InvoiceAmount', 
+							0, -- 'CMAmount', 
+							0, -- 'CreditMemoAmount',
+							0, --'CreditMemoUsed'
+							'0.000000',
+							MSD.[Level1Id], 
+							MSD.[Level2Id], 
+							MSD.[Level3Id], 
+							MSD.[Level4Id], 
+							MSD.[Level5Id], 
+							MSD.[Level6Id], 
+							MSD.[Level7Id], 
+							MSD.[Level8Id], 
+							MSD.[Level9Id], 
+							MSD.[Level10Id],
+							UPPER(MSD.[Level1Name]),        
+							UPPER(MSD.[Level2Name]),       
+							UPPER(MSD.[Level3Name]),       
+							UPPER(MSD.[Level4Name]),       
+							UPPER(MSD.[Level5Name]),       
+							UPPER(MSD.[Level6Name]),       
+							UPPER(MSD.[Level7Name]),       
+							UPPER(MSD.[Level8Name]),       
+							UPPER(MSD.[Level9Name]),       
+							UPPER(MSD.[Level10Name]),
+							CCP.[MasterCompanyId],
+							0,
+							1,
+							0,  -- 'InvoicePaidAmount',
+							@UAModuleTypeId, 
+					        LE.[Name]
+			 FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
+				LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON CCP.CustomerId = C.CustomerId   
+				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
+				INNER JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = CCP.ManagementStructureId
+				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
+				INNER JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
+			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.CustomerId)
+				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CCP.[MasterCompanyId] = @MasterCompanyid  
+				AND @IsUnappliedAmounts = 1	
+
    		    SELECT * INTO #TempResult2 FROM #TEMPInvoiceRecordsDetailsView
 			WHERE (
 			      (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND

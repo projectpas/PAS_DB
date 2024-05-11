@@ -13,17 +13,18 @@
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
 
      
-EXECUTE USP_WIPReports 1,NULL, NULL, 0, NULL, 0, NULL
+exec USP_WIPReports @mastercompanyid=1,@id='2024-01-25 00:00:00',@id2='2024-05-24 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+EXEC USP_WIPReports @mastercompanyid=1,@id='2024-02-01 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec USP_WIPReports @mastercompanyid=1,@id='2024-08-01 00:00:00',@id2='2024-10-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec USP_WIPReports @mastercompanyid=1,@id='2024-05-02 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_WIPReports] 	
 @mastercompanyid INT,
-@id VARCHAR(100),
-@id2 VARCHAR(100),
-@id3 bit,
-@id5 VARCHAR(MAX),
-@id6 BIGINT,
+@id DATETIME,
+@id2 DATETIME,
+@id3 BIGINT,
 @strFilter VARCHAR(MAX) = NULL
 AS  
 BEGIN  
@@ -36,9 +37,15 @@ BEGIN
 		DECLARE @ProvisionId INT;
 
 		--SET Tempararly Records 
-		SET @mastercompanyid = 1;
-		SET @FromDate = GETUTCDATE() - 2;
-		SET @ToDate = GETUTCDATE();
+		--SET @mastercompanyid = 1;
+		--SET @FromDate = CASE WHEN ISNULL(@id, '') != '' THEN CAST(@id AS DATETIME) ELSE GETUTCDATE() - 30 END;
+		--SET @ToDate = CASE WHEN ISNULL(@id2, '') != '' THEN CAST(@id2 AS DATETIME) ELSE GETUTCDATE() - 30 END;
+
+		SELECT @FromDate = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
+		SELECT @ToDate = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
+
+		--PRINT @FromDate
+		--PRINT @ToDate
 
 		SELECT @ProvisionId = ProvisionId FROM dbo.Provision  WHERE StatusCode = 'REPLACE'		
 

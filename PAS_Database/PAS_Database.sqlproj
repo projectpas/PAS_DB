@@ -2959,6 +2959,15 @@
     <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetList.sql" />
     <Build Include="dbo\Stored Procedures\USP_ManagementStructure_GetById.sql" />
     <Build Include="dbo\Stored Procedures\USP_EntityStructure_GetEntityStructureFieldsList.sql" />
+    <Build Include="dbo\Views\vw_WarehouseAudit.sql" />
+    <Build Include="dbo\Views\vw_StandardsAudit.sql" />
+    <Build Include="dbo\Views\vw_SiteAudit.sql" />
+    <Build Include="dbo\Views\vw_ShelfAudit.sql" />
+    <Build Include="dbo\Views\vw_ManufacturerAudit.sql" />
+    <Build Include="dbo\Views\vw_LocationAudit.sql" />
+    <Build Include="dbo\Views\vw_ItemGroupAudit.sql" />
+    <Build Include="dbo\Views\vw_ItemClassificationAudit.sql" />
+    <Build Include="dbo\Views\vw_binAudit.sql" />
     <Build Include="dbo\Views\vw_TaxTypeAudit.sql" />
     <Build Include="dbo\Views\vw_TagTypeAudit.sql" />
     <Build Include="dbo\Views\vw_PercentAudit.sql" />

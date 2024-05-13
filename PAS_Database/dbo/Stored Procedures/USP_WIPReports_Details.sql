@@ -18,11 +18,11 @@ EXEC USP_WIPReports @mastercompanyid=1,@id='2024-02-01 00:00:00',@id2='2024-11-0
 exec USP_WIPReports @mastercompanyid=1,@id='2024-08-01 00:00:00',@id2='2024-10-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 exec USP_WIPReports @mastercompanyid=1,@id='2024-05-02 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 exec USP_WIPReports @mastercompanyid=1,@id='2024-02-22 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
-exec USP_WIPReports @mastercompanyid=1,@id='2024-01-05 00:00:00',@id2='2024-05-12 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec USP_WIPReports_Details @mastercompanyid=1,@id='2024-01-05 00:00:00',@id2='2024-05-12 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 
 *************************************************************/   
   
-CREATE   PROCEDURE [dbo].[USP_WIPReports] 	
+CREATE   PROCEDURE [dbo].[USP_WIPReports_Details] 	
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),

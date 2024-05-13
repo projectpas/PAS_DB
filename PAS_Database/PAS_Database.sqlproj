@@ -2973,6 +2973,7 @@
     <Build Include="dbo\Views\vw_PercentAudit.sql" />
     <Build Include="dbo\Views\vw_CustomerTypeAudit.sql" />
     <Build Include="dbo\Views\vw_CountriesAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WIPReports_Details.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

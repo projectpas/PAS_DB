@@ -41,17 +41,14 @@
  25	  22/12/2023  Bhargav saliya         added new Bulk StockLine Adjustment CUSTOMERSTOCK  
  26	  09/01/2023  Moin Bloch             added MAST For MANUAL ASSET INVENTORY
  27	  18/01/2024  AMIT GHEDIYA           added MJE For Manual Journal
- 28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE
- 
+ 28	  01/04/2024  Shrey Chandegara       Rename SADJ-INTRACOTRANS-DIV to INTRACOTRANS-DIV And Rename SADJ-INTERCOTRANS-LE to INTERCOTRANS-LE 
  29	  01/04/2024  Devendra Shekh         added NEW ELSE IF FOR CMDA based on @iSCustomerCreditPayment
  30	  11/04/2024  Devendra Shekh         added IWOT MODULE In WO case for first IF
  31	  18/04/2024  AMIT GHEDIYA			 Get MS.
  32	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
+ 33	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
-
- EXEC GetJournalBatchDetailsViewpopupById 2534,0,'WOP-DirectLabor'  
-  
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
 @JournalBatchDetailId BIGINT,  
@@ -135,6 +132,7 @@ BEGIN
 					  ,CASE WHEN UPPER(MSD.Level9Name) IS NOT NULL THEN UPPER(MSD.Level9Name) ELSE UPPER(SMSD.Level9Name) END AS level9   
 					  ,CASE WHEN UPPER(MSD.Level10Name) IS NOT NULL THEN UPPER(MSD.Level10Name) ELSE UPPER(SMSD.Level10Name) END AS level10   
 				      ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
 					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId    
@@ -222,6 +220,7 @@ BEGIN
 					  ,CASE WHEN UPPER(MSD.Level9Name) IS NOT NULL THEN UPPER(MSD.Level9Name) ELSE UPPER(SMSD.Level9Name) END AS level9   
 					  ,CASE WHEN UPPER(MSD.Level10Name) IS NOT NULL THEN UPPER(MSD.Level10Name) ELSE UPPER(SMSD.Level10Name) END AS level10   
 				      ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
 						INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId    
@@ -331,6 +330,7 @@ BEGIN
 							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name)   
 							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10  
 					  ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -439,7 +439,7 @@ BEGIN
 					  ,CASE WHEN UPPER(stbd.StockType)= 'STOCK' THEN UPPER(MSD.Level10Name)   
 							WHEN UPPER(stbd.StockType)= 'NONSTOCK' THEN UPPER(NMSD.Level10Name)   
 							WHEN UPPER(stbd.StockType)= 'ASSET' THEN UPPER(AMSD.Level10Name) ELSE '' END  AS level10  
-					  
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -522,7 +522,8 @@ BEGIN
 					   UPPER(SMSD.Level7Name) AS level7,   
 					   UPPER(SMSD.Level8Name) AS level8,   
 					   UPPER(SMSD.Level9Name) AS level9,   
-					   UPPER(SMSD.Level10Name) AS level10 
+					   UPPER(SMSD.Level10Name) AS level10, 
+					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -600,7 +601,8 @@ BEGIN
 					   UPPER(MSD.Level8Name) AS level8,   
 					   UPPER(MSD.Level9Name) AS level9,   
 					   UPPER(MSD.Level10Name) AS level10,   
-					   JBD.[LotNumber]
+					   JBD.[LotNumber],
+					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
@@ -675,7 +677,8 @@ BEGIN
 					   UPPER(MSD.Level7Name) AS level7,   
 					   UPPER(MSD.Level8Name) AS level8,   
 					   UPPER(MSD.Level9Name) AS level9,   
-					   UPPER(MSD.Level10Name) AS level10   
+					   UPPER(MSD.Level10Name) AS level10, 
+					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
@@ -743,7 +746,8 @@ BEGIN
 					   UPPER(MSD.Level7Name) AS level7,   
 					   UPPER(MSD.Level8Name) AS level8,   
 					   UPPER(MSD.Level9Name) AS level9,   
-					   UPPER(MSD.Level10Name) AS level10   
+					   UPPER(MSD.Level10Name) AS level10,
+					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
 					INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId    
@@ -820,6 +824,7 @@ BEGIN
 					  ,UPPER(MSD.[Level9Name]) AS level9   
 					  ,UPPER(MSD.[Level10Name]) AS level10 
 					  ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.[DistributionSetupId] = DS.[ID]  
 					 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
@@ -913,7 +918,8 @@ BEGIN
 					  UPPER(MSD.Level7Name) AS level7,
 					  UPPER(MSD.Level8Name) AS level8,
 					  UPPER(MSD.Level9Name) AS level9,
-					  UPPER(MSD.Level10Name) AS level10
+					  UPPER(MSD.Level10Name) AS level10,
+					  CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 					FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
@@ -975,7 +981,8 @@ BEGIN
 					  UPPER(MSD.Level7Name) AS level7,
 					  UPPER(MSD.Level8Name) AS level8,
 					  UPPER(MSD.Level9Name) AS level9,
-					  UPPER(MSD.Level10Name) AS level10
+					  UPPER(MSD.Level10Name) AS level10,
+					  CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 					FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
@@ -1037,7 +1044,8 @@ BEGIN
 					  ,CASE WHEN UPPER(SMSD.Level7Name) IS NOT NULL THEN UPPER(SMSD.Level7Name) WHEN UPPER(STKMSD.Level7Name) IS NOT NULL THEN UPPER(STKMSD.Level7Name) ELSE UPPER(WMSD.Level7Name) END AS level7   
 					  ,CASE WHEN UPPER(SMSD.Level8Name) IS NOT NULL THEN UPPER(SMSD.Level8Name) WHEN UPPER(STKMSD.Level8Name) IS NOT NULL THEN UPPER(STKMSD.Level8Name) ELSE UPPER(WMSD.Level8Name) END AS level8   
 					  ,CASE WHEN UPPER(SMSD.Level9Name) IS NOT NULL THEN UPPER(SMSD.Level9Name) WHEN UPPER(STKMSD.Level9Name) IS NOT NULL THEN UPPER(STKMSD.Level9Name) ELSE UPPER(WMSD.Level9Name) END AS level9   
-					  ,CASE WHEN UPPER(SMSD.Level10Name) IS NOT NULL THEN UPPER(SMSD.Level10Name) WHEN UPPER(STKMSD.Level10Name) IS NOT NULL THEN UPPER(STKMSD.Level10Name) ELSE UPPER(WMSD.Level10Name) END AS level10   
+					  ,CASE WHEN UPPER(SMSD.Level10Name) IS NOT NULL THEN UPPER(SMSD.Level10Name) WHEN UPPER(STKMSD.Level10Name) IS NOT NULL THEN UPPER(STKMSD.Level10Name) ELSE UPPER(WMSD.Level10Name) END AS level10
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 				 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
@@ -1103,7 +1111,8 @@ BEGIN
 					  ,UPPER(msl7.[Description]) AS level7   
 					  ,UPPER(msl8.[Description]) AS level8   
 					  ,UPPER(msl9.[Description]) AS level9   
-					  ,UPPER(msl10.[Description]) AS level10  
+					  ,UPPER(msl10.[Description]) AS level10 
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1181,6 +1190,7 @@ BEGIN
 					  ,UPPER(NPOMSD.Level9Name) AS level9   
 					  ,UPPER(NPOMSD.Level10Name) AS level10   
 					  ,CU.[Code] AS 'Currency'
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1267,7 +1277,8 @@ BEGIN
 					   ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
 					   ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
 					   ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
-					   ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+					   ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
+					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1364,7 +1375,8 @@ BEGIN
 					ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
 					ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
 					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
-					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
+					CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1449,6 +1461,7 @@ BEGIN
 					  ,UPPER(MSD.Level8Name) AS level8   
 					  ,UPPER(MSD.Level9Name) AS level9   
 					  ,UPPER(MSD.Level10Name) AS level10   
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1534,7 +1547,8 @@ BEGIN
 					ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
 					ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
 					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
-					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
+					CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1629,6 +1643,7 @@ BEGIN
 					  ,UPPER(AMSD.Level9Name) AS level9  
 					  ,UPPER(AMSD.Level10Name) AS level10  
 					  ,JBD.[LotNumber]
+					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 						INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
@@ -1712,7 +1727,8 @@ BEGIN
 					ESS.Level7Id,UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS Level7,
 					ESS.Level8Id,UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS Level8,
 					ESS.Level9Id,UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS Level9,
-					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10
+					ESS.Level10Id,UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) AS Level10,
+					CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					 INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  

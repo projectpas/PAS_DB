@@ -34,6 +34,9 @@
     [ReferenceId]                BIGINT          NULL,
     [LotId]                      BIGINT          NULL,
     [LotNumber]                  VARCHAR (50)    NULL,
+    [IsUpdated]                  BIT             NULL,
     CONSTRAINT [PK_CommonBatchDetails] PRIMARY KEY CLUSTERED ([CommonJournalBatchDetailId] ASC)
 );
+
+
 

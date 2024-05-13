@@ -18,7 +18,8 @@
 	3    03/10/2023  Bhargav Saliya         Employee duplicate Records issue Resolved
 	4    20/10/2023  Bhargav Saliya         Export Data Convert Into Upper Case
 	5    30/11/2023  Moin Bloch             Added Lot Number 
-
+	6    10/05/2024  Moin Bloch             Added IsUpdated
+	
 --EXEC [GetAccountingDetailsViewpopupById] 3577,3047
 
 ************************************************************************/
@@ -103,7 +104,8 @@ BEGIN
 			     UPPER(MSD.Level8Name) AS level8,     
 			     UPPER(MSD.Level9Name) AS level9,     
 			     UPPER(MSD.Level10Name) AS level10,     
-				 JBD.[LotNumber]  
+				 JBD.[LotNumber],
+				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
      INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
      INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      
@@ -111,8 +113,6 @@ BEGIN
       LEFT JOIN  [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON  MSD.ReferenceID = WBD.MPNPartId
 	  LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId 
 	  LEFT JOIN  [dbo].[WorkOrderWorkFlow] WF WITH(NOLOCK) ON WF.WorkOrderId=WBD.ReferenceId AND WF.WorkOrderPartNoId = WBD.MPNPartId
-	  --LEFT JOIN  [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WF.WorkFlowWorkOrderId 
-	  --LEFT JOIN  [dbo].[WorkOrderMaterialStockLine] MSTL WITH(NOLOCK) ON MSTL.StockLineId=WBD.StocklineId AND WOM.WorkOrderMaterialsId = MSTL.WorkOrderMaterialsId
 	  LEFT JOIN  [dbo].[WorkOrderLabor] WOL WITH(NOLOCK) ON WOL.WorkOrderLaborId=WBD.PiecePNId  
       LEFT JOIN  [dbo].[EmployeeExpertise] EMPEX WITH(NOLOCK) ON EMPEX.EmployeeExpertiseId=WOL.ExpertiseId   
       LEFT JOIN  [dbo].[Employee] EMPE WITH(NOLOCK) ON EMPE.EmployeeId=WOL.EmployeeId

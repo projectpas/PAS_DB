@@ -17,6 +17,7 @@
 	2    08/09/2023  Ayesha Sultana       Getting JE Status field changes  
     3    20/10/2023  Bhargav Saliya       Export Data Convert Into Upper Case   
 	4    30/11/2023  Moin Bloch           Added Lot Number 
+	5    10/05/2023  Moin Bloch           Added IsUpdated
 
 -- exec GetAccountingDetailsViewById 531   
 ************************************************************************/   
@@ -89,10 +90,11 @@ BEGIN
            UPPER(SSD.Level8Name) AS level8,     
            UPPER(SSD.Level9Name) AS level9,     
            UPPER(SSD.Level10Name) AS level10,
-		   JBD.LotNumber
+		   JBD.LotNumber,
+		   CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
-     Inner JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
-     Inner JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId         
+     INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
+     INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId         
      LEFT JOIN  [dbo].[SalesOrderBatchDetails] SBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=SBD.CommonJournalBatchDetailId       
      LEFT JOIN  [dbo].[SalesOrderManagementStructureDetails] SSD WITH (NOLOCK) ON  SSD.ReferenceID = SBD.SalesOrderId    
      LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId     

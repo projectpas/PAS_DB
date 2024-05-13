@@ -2968,6 +2968,11 @@
     <Build Include="dbo\Views\vw_ItemGroupAudit.sql" />
     <Build Include="dbo\Views\vw_ItemClassificationAudit.sql" />
     <Build Include="dbo\Views\vw_binAudit.sql" />
+    <Build Include="dbo\Views\vw_TaxTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_TagTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_PercentAudit.sql" />
+    <Build Include="dbo\Views\vw_CustomerTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_CountriesAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -13,17 +13,18 @@
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
 
      
-EXECUTE USP_WIPReports 1,NULL, NULL, 0, NULL, 0, NULL
+exec USP_WIPReports @mastercompanyid=1,@id='2024-01-25 00:00:00',@id2='2024-05-24 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+EXEC USP_WIPReports @mastercompanyid=1,@id='2024-02-01 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec USP_WIPReports @mastercompanyid=1,@id='2024-08-01 00:00:00',@id2='2024-10-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+exec USP_WIPReports @mastercompanyid=1,@id='2024-05-02 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_WIPReports] 	
 @mastercompanyid INT,
-@id VARCHAR(100),
-@id2 VARCHAR(100),
-@id3 bit,
-@id5 VARCHAR(MAX),
-@id6 BIGINT,
+@id DATETIME,
+@id2 DATETIME,
+@id3 BIGINT,
 @strFilter VARCHAR(MAX) = NULL
 AS  
 BEGIN  
@@ -36,9 +37,15 @@ BEGIN
 		DECLARE @ProvisionId INT;
 
 		--SET Tempararly Records 
-		SET @mastercompanyid = 1;
-		SET @FromDate = GETUTCDATE() - 2;
-		SET @ToDate = GETUTCDATE();
+		--SET @mastercompanyid = 1;
+		--SET @FromDate = CASE WHEN ISNULL(@id, '') != '' THEN CAST(@id AS DATETIME) ELSE GETUTCDATE() - 30 END;
+		--SET @ToDate = CASE WHEN ISNULL(@id2, '') != '' THEN CAST(@id2 AS DATETIME) ELSE GETUTCDATE() - 30 END;
+
+		SELECT @FromDate = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
+		SELECT @ToDate = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
+
+		--PRINT @FromDate
+		--PRINT @ToDate
 
 		SELECT @ProvisionId = ProvisionId FROM dbo.Provision  WHERE StatusCode = 'REPLACE'		
 
@@ -81,6 +88,7 @@ BEGIN
 			WorkScope VARCHAR(100),
 			OpenDate DATETIME,
 			WOAge INT,
+			Qty INT,
 			PartCost DECIMAL(18,2) NULL,
 			DirectLabor DECIMAL(18,2) NULL,
 			OHCost DECIMAL(18,2) NULL,
@@ -128,7 +136,8 @@ BEGIN
 
 		INSERT INTO #TEMPOriginalStocklineRecords(WorkOrderId, WorkOrderPartNoId, StockLineId, CustomerId, MasterCompanyId,
 			PartNumber, PartDescription, SerialNumber, CustomerName, WorkOrderType, WorkOrderNum, OpenDate, WorkScope, StockLineNumber,Manufacturer,
-			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10)
+			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+			legalEntity, Qty)
 		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  SL.PNDescription AS PartDescription, 
 			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,			
 			WO.CustomerName, WT.[Description] AS WorkOrderType, WO.WorkOrderNum, WO.OpenDate, WOP.WorkScope, SL.StockLineNumber,
@@ -136,7 +145,7 @@ BEGIN
 			DATEDIFF(day, WO.OpenDate, GETUTCDATE()),
 			UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,    
 			UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,    
-			UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
+			UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10, LE.[Name] AS legalEntity, 1
 		FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
@@ -145,6 +154,8 @@ BEGIN
 			JOIN dbo.Condition C WITH(NOLOCK) ON WOP.RevisedConditionId = C.ConditionId
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 			LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
+			LEFT JOIN dbo.ManagementStructureLevel MSL ON MSL.ID = MSD.Level1Id
+			LEFT JOIN dbo.LegalEntity LE ON MSL.LegalEntityId = LE.LegalEntityId
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
 			 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    

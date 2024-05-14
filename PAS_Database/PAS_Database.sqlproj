@@ -2976,6 +2976,7 @@
     <Build Include="dbo\Stored Procedures\USP_WIPReports_Details.sql" />
     <Build Include="dbo\Views\vw_CustomerSettingAudit.sql" />
     <Build Include="dbo\Views\vw_CustomerSetting.sql" />
+    <Build Include="dbo\Views\vw_DiscountAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

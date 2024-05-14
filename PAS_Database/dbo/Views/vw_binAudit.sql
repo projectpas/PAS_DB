@@ -1,6 +1,7 @@
-﻿CREATE     VIEW [dbo].[vw_binAudit]
+﻿
+CREATE      VIEW [dbo].[vw_binAudit]
 AS
-	SELECT ct.BinAuditId  AS PkID, ct.BinAuditId AS ID	
+	SELECT ct.BinAuditId  AS PkID, ct.BinId AS ID	
 	,ct.[Site] AS [Site]
 	,ct.[Warehouse] AS [Warehouse]
 	,ct.[Location] AS [Location]

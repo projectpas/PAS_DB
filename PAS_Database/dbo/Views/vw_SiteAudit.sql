@@ -1,6 +1,6 @@
-﻿CREATE     VIEW [dbo].[vw_SiteAudit]
+﻿CREATE      VIEW [dbo].[vw_SiteAudit]
 AS
-	SELECT ct.SiteAuditId  AS PkID, ct.SiteAuditId AS ID	
+	SELECT ct.SiteAuditId  AS PkID, ct.SiteId AS ID
 	,ct.[Name] AS [Site Name]
 	,ct.[LegalEntity] AS [Legal Entity]
 	,ct.[Line1] AS [Address Line1]

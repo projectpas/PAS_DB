@@ -1,6 +1,7 @@
-﻿CREATE     VIEW [dbo].[vw_ShelfAudit]
+﻿
+CREATE       VIEW [dbo].[vw_ShelfAudit]
 AS
-	SELECT ct.ShelfAuditId  AS PkID, ct.ShelfAuditId AS ID	
+	SELECT ct.ShelfAuditId  AS PkID, ct.ShelfId AS ID	
 	,ct.[Site] AS [Site]
 	,ct.[Name] AS [Site Name]
 	,ct.[Warehouse] AS [Warehouse]

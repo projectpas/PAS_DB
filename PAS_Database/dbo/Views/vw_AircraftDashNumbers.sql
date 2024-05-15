@@ -1,8 +1,18 @@
-﻿CREATE VIEW [dbo].[vw_AircraftDashNumbers]
+﻿CREATE    VIEW  vw_AircraftDashNumbers
 AS
-SELECT        dbo.AircraftDashNumber.DashNumberId, dbo.AircraftDashNumber.AircraftTypeId, dbo.AircraftDashNumber.AircraftModelId, dbo.AircraftDashNumber.DashNumber, dbo.AircraftDashNumber.Memo, 
-                         dbo.AircraftDashNumber.MasterCompanyId, dbo.AircraftDashNumber.CreatedBy, dbo.AircraftDashNumber.UpdatedBy, dbo.AircraftDashNumber.CreatedDate, dbo.AircraftDashNumber.UpdatedDate, 
-                         dbo.AircraftDashNumber.IsActive, dbo.AircraftDashNumber.IsDeleted, dbo.AircraftModel.ModelName AS AircraftModel, dbo.AircraftType.Description AS AircraftType
-FROM            dbo.AircraftDashNumber INNER JOIN
-                         dbo.AircraftModel ON dbo.AircraftDashNumber.AircraftModelId = dbo.AircraftModel.AircraftModelId INNER JOIN
-                         dbo.AircraftType ON dbo.AircraftDashNumber.AircraftTypeId = dbo.AircraftType.AircraftTypeId
+SELECT ACD.[DashNumberId]
+      ,ACD.[AircraftTypeId]
+      ,ACD.[AircraftModelId]
+      ,ACD.[DashNumber]
+      ,ACD.[MasterCompanyId]
+      ,ACD.[CreatedBy]
+      ,ACD.[CreatedDate]
+      ,ACD.[UpdatedBy]
+      ,ACD.[UpdatedDate]
+      ,ACD.[IsActive]
+      ,ACD.[IsDeleted]
+	  ,ACT.[Description] AS AircraftType
+	  ,ACM.[ModelName] as AircraftModel
+FROM [dbo].[AircraftDashNumber] ACD WITH (NOLOCK) 
+JOIN [DBO].[AircraftType]       ACT WITH (NOLOCK) ON ACD.AircraftTypeId = ACT.AircraftTypeId
+JOIN [DBO].[AircraftModel]      ACM WITH (NOLOCK) ON ACD.AircraftModelId = ACM.AircraftModelId

@@ -12,8 +12,8 @@
  ** --   --------     -------			--------------------------------            
     1    07/05/2024   HEMANT SALIYA      Created  
    
-exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3690,@WorkOrderPartNoId=3165,@CustomerId=14,
-@ItemMasterId=318,@customerReference=N'Brionna Moen',@SerialNumber=N'',@Memo=default,@UpdatedBy=N'ADMIN User'
+exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
+@customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
 *************************************************************/   
   
 CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderCustomerDetails] 	
@@ -351,6 +351,8 @@ BEGIN
 			PRINT '4.0'
 
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+
+			SELECT @ExistingValue = CASE WHEN ISNULL(@ExistingValue,'') = '' THEN 'Ser Num Not Provided' ELSE @ExistingValue END
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));

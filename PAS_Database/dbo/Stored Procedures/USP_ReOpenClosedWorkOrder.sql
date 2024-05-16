@@ -10,7 +10,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
 ** 1    05/10/2024  Hemant Saliya		 Re-Open Closed WO
-** 2    05/16/2024  Hemant Saliya		 Handle for Do not allow to reverce Billing Entry Multiple Time
+** 2    05/16/2024  Hemant Saliya		 Handle for Do not allow to reverse Billing Entry Multiple Time
 
 EXEC dbo.USP_ReOpenClosedWorkOrder 3433,'Admin'
 **************************************************************/ 

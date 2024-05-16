@@ -19,7 +19,7 @@ Exec [ReverseWorkOrder]
 ** 8    02/19/2024	HEMANT SALIYA	     Updated for Restrict Accounting Entry by Master Company
 ** 9    04/09/2024	Devendra Shekh	     Updated for QuantityReserved for Stockline instead of QuantityAvailable
 ** 10   04/26/2024	HEMANT SALIYA	     Updated for Re-Open WO Changes
-** 11   05/16/2024  Hemant Saliya		 Handle for Do not allow to reverce Billing Entry Multiple Time
+** 11   05/16/2024  Hemant Saliya		 Handle for Do not allow to reverse Billing Entry Multiple Time
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 

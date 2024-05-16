@@ -9,7 +9,8 @@ Exec [USP_ReOpenClosedWorkOrder]
 **************************************************************   
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
-** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
+** 1    05/10/2024  Hemant Saliya		 Re-Open Closed WO
+** 2    05/16/2024  Hemant Saliya		 Handle for Do not allow to reverce Billing Entry Multiple Time
 
 EXEC dbo.USP_ReOpenClosedWorkOrder 3433,'Admin'
 **************************************************************/ 
@@ -187,7 +188,7 @@ AS
 				SELECT @InvoiceId = MAX(WOBI.BillingInvoicingId) FROM dbo.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
 					JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
 				WHERE WOBII.WorkOrderPartId = @workOrderPartNoId AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.IsDeleted = 0 AND
-					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0
+					ISNULL(WOBII.IsPerformaInvoice, 0) = 0 AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND WOBII.IsDeleted = 0 AND ISNULL(WOBI.IsReversedJE, 0) = 0
 
 				SELECT @IsInvoiceEntry = CASE WHEN COUNT(WorkOrderBatchId) > 0 THEN 1 ELSE 0 END FROM  dbo.WorkOrderBatchDetails WITH(NOLOCK) WHERE InvoiceId = @BillingInvoicingId
 				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
@@ -198,6 +199,8 @@ AS
 						PRINT'IN'
 						EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+					
+						UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
 					END
 
 					PRINT 'END REVERSE BILLING ENTRY FOR CUSTOMER WO'
@@ -212,6 +215,9 @@ AS
 						PRINT 'IN'
 						EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
 						@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+					
+						UPDATE dbo.WorkOrderBillingInvoicing SET IsReversedJE = 1 WHERE BillingInvoicingId = @InvoiceId
+					
 					END
 					PRINT 'END REVERSE BILLING ENTRY FOR INTERNAL WO'
 				END

@@ -329,7 +329,10 @@ BEGIN
 		BEGIN
 			SET @StatusCode = 'SERNUMCHANGE';
 
-			SELECT @ExistingValue = WOP.RevisedSerialNumber FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) WHERE WOP.ID = @WorkOrderPartNoId
+			SELECT @ExistingValue = CASE WHEN ISNULL(WOP.RevisedSerialNumber, '') = '' THEN SL.SerialNumber ELSE WOP.RevisedSerialNumber END 
+			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) 
+			JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+			WHERE WOP.ID = @WorkOrderPartNoId
 
 			PRINT 'UPDATE SERIAL NUMBER'
 			UPDATE WorkOrderPartNumber SET RevisedSerialNumber = @SerialNumber, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()

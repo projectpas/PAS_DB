@@ -18,6 +18,7 @@
 	2	 25-04-2024		Moin Bloch 		    Modified Added Detail View
 	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
 	4    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
+	5    16-05-2024		Moin Bloch 		    Modified Added Total Amounts For Footer
 	     
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
 **************************************************************/
@@ -79,6 +80,16 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     DECLARE @RecordFrom INT;
 	DECLARE @Count INT;
+	DECLARE @TotalAmount DECIMAL(18,2) = 0;	
+	DECLARE @TotalCurrentAmount DECIMAL(18,2) = 0;
+	DECLARE @TotalReceivedAmount DECIMAL(18,2) = 0;
+	DECLARE @TotalAmountlessthan0days  DECIMAL(18,2) = 0;
+	DECLARE @TotalAmountlessthan30days DECIMAL(18,2) = 0;  
+	DECLARE @TotalAmountlessthan60days DECIMAL(18,2) = 0; 
+	DECLARE @TotalAmountlessthan90days DECIMAL(18,2) = 0;
+	DECLARE @TotalAmountlessthan120days DECIMAL(18,2) = 0;
+	DECLARE @TotalAmountmorethan120days DECIMAL(18,2) = 0;
+
 	DECLARE @CMPostedStatusId INT;
 	DECLARE @ClosedCreditMemoStatus INT;
 	DECLARE @WOInvoiceTypeId INT;
@@ -921,10 +932,28 @@ BEGIN
 			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
 					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 					 [IsCreditMemo],[StatusId]	
-				 			
-			SELECT @Count = COUNT(CustomerId) FROM #TempResult1
-
-			SELECT *, @Count AS NumberOfItems FROM #TempResult1 ORDER BY  
+				 		
+			SELECT @Count = COUNT(CustomerId),
+			       @TotalAmount = ISNULL(SUM([InvoiceAmount]),0), 
+				   @TotalCurrentAmount = ISNULL(SUM([CurrentAmount]),0),
+				   @TotalReceivedAmount = ISNULL(SUM([ReceivedAmount]),0),
+				   @TotalAmountlessthan0days = ISNULL(SUM([Amountlessthan0days]),0),
+				   @TotalAmountlessthan30days = ISNULL(SUM([Amountlessthan30days]),0),
+				   @TotalAmountlessthan60days = ISNULL(SUM([Amountlessthan60days]),0),
+				   @TotalAmountlessthan90days = ISNULL(SUM([Amountlessthan90days]),0),
+				   @TotalAmountlessthan120days = ISNULL(SUM([Amountlessthan120days]),0),
+				   @TotalAmountmorethan120days = ISNULL(SUM([Amountmorethan120days]),0) FROM #TempResult1;
+				   			
+			SELECT *, @Count AS NumberOfItems,
+			          @TotalAmount AS TotalAmount,
+					  @TotalCurrentAmount AS TotalCurrentAmount,
+					  @TotalReceivedAmount AS TotalReceivedAmount,
+					  @TotalAmountlessthan0days AS TotalAmountlessthan0days,
+					  @TotalAmountlessthan30days AS TotalAmountlessthan30days,
+					  @TotalAmountlessthan60days AS TotalAmountlessthan60days,
+					  @TotalAmountlessthan90days AS TotalAmountlessthan90days,
+					  @TotalAmountlessthan120days AS TotalAmountlessthan120days,
+					  @TotalAmountmorethan120days AS TotalAmountmorethan120days  FROM #TempResult1 ORDER BY  	
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
@@ -1886,9 +1915,27 @@ BEGIN
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
 				 			
-			SELECT @Count = COUNT(CustomerId) FROM #TempResult2
-
-			SELECT *, @Count AS NumberOfItems FROM #TempResult2 ORDER BY  
+			SELECT @Count = COUNT(CustomerId),
+			       @TotalAmount = ISNULL(SUM([InvoiceAmount]),0), 
+				   @TotalCurrentAmount = ISNULL(SUM([CurrentAmount]),0),
+				   @TotalReceivedAmount = ISNULL(SUM([ReceivedAmount]),0),
+				   @TotalAmountlessthan0days = ISNULL(SUM([Amountlessthan0days]),0),
+				   @TotalAmountlessthan30days = ISNULL(SUM([Amountlessthan30days]),0),
+				   @TotalAmountlessthan60days = ISNULL(SUM([Amountlessthan60days]),0),
+				   @TotalAmountlessthan90days = ISNULL(SUM([Amountlessthan90days]),0),
+				   @TotalAmountlessthan120days = ISNULL(SUM([Amountlessthan120days]),0),
+				   @TotalAmountmorethan120days = ISNULL(SUM([Amountmorethan120days]),0) FROM #TempResult2;
+				   
+			SELECT *, @Count AS NumberOfItems,
+			          @TotalAmount AS TotalAmount,
+					  @TotalCurrentAmount AS TotalCurrentAmount,
+					  @TotalReceivedAmount AS TotalReceivedAmount,
+					  @TotalAmountlessthan0days AS TotalAmountlessthan0days,
+					  @TotalAmountlessthan30days AS TotalAmountlessthan30days,
+					  @TotalAmountlessthan60days AS TotalAmountlessthan60days,
+					  @TotalAmountlessthan90days AS TotalAmountlessthan90days,
+					  @TotalAmountlessthan120days AS TotalAmountlessthan120days,
+					  @TotalAmountmorethan120days AS TotalAmountmorethan120days  FROM #TempResult2 ORDER BY  					 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,

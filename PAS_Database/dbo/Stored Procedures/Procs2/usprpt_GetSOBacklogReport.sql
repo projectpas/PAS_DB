@@ -12,11 +12,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    05-May-2022  Mahesh Sorathiya   Created  
-	2    20-JUNE-203     Devendra Shekh        made changes for total unitcost and extcost
-	3    28-MARCH-2024  Ekta Chandegra     IsActive and IsDelete flag is added 
+ ** S NO   Date				Author				Change Description              
+ ** --	 --------			-------				--------------------------------            
+    1    05-May-2022		Mahesh Sorathiya	Created  
+	2    20-JUNE-203		Devendra Shekh		made changes for total unitcost and extcost
+	3    28-MARCH-2024		Ekta Chandegra		IsActive and IsDelete flag is added 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -131,17 +131,13 @@ BEGIN
 			UPPER(SO.CustomerName) AS 'customer',
 			UPPER(SO.customerreference) 'custref',
 			SUM(SOP.qty) 'qty',
-			--FORMAT(SOP.unitcost,'#,0.00') 'unitcost',
-			--FORMAT((SUM(SOP.qty * SOP.unitcost)),'#,0.00') 'extcost',
-			--FORMAT(SUM(SOP.qty * SOP.unitcost) , 'N', 'en-us') 'extcost',
-			ISNULL(SUM(SOP.qty * SOP.unitcost) , 0) 'extcost',
-			--FORMAT(SOP.unitcost , 'N', 'en-us') 'unitcost',
-			ISNULL(SOP.unitcost , 0) 'unitcost',
-
+			--ISNULL(SUM(SOP.qty * SOP.unitcost) , 0) 'extcost',
+			ISNULL(SUM(SOP.qty * SOP.UnitSalesPricePerUnit) , 0) 'extcost',
+			--ISNULL(SOP.unitcost , 0) 'unitcost',
+			ISNULL(SOP.UnitSalesPricePerUnit , 0) 'unitcost',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END 'shipdate',
-
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -178,10 +174,10 @@ BEGIN
 		GROUP BY 
 			SO.SalesOrderNumber, 
 			SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
-			--FORMAT(SOP.unitcost , 'N', 'en-us'),
-			ISNULL(SOP.unitcost , 0),
-			ISNULL((SOP.qty * SOP.unitcost) , 0),
-			--FORMAT(SOP.qty * SOP.unitcost, 'N', 'en-us') ,
+			--ISNULL(SOP.unitcost , 0),
+			--ISNULL((SOP.qty * SOP.unitcost) , 0),
+			ISNULL(SOP.UnitSalesPricePerUnit , 0),
+			ISNULL((SOP.qty * SOP.UnitSalesPricePerUnit) , 0),
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END,
@@ -206,8 +202,7 @@ BEGIN
 					WC.TotalUnitCost,
 					WC.TotalExtCost
 				FROM FinalCTE FC
-					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-				--ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(opendate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), opendate, 107) END
+				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				ORDER BY opendate
 				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
    

@@ -72,9 +72,12 @@
     [PercentId]                  BIGINT          NULL,
     [Days]                       INT             NULL,
     [NetDays]                    INT             NULL,
+    [COCManufacturingPDFPath]    VARCHAR (MAX)   NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),
     CONSTRAINT [FK_SalesOrderAudit_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 

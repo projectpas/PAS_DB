@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------            
     1    04/02/2024   Vishal Suthar	 Created
 	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
+	3    17/05/2024   Abhishek Jirawla Remove SelectedCompanyIds from queries so it can be inserted in the tables.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
  @ID int = NULL,    
@@ -60,8 +61,11 @@ BEGIN
 	--	END
 	--END  
     
-    SELECT TOP 1 @selectedcompanyidsFieldName = FieldName, @selectedcompanyidsFieldValue = FieldValue FROM @Fields WHERE FieldName = 'selectedcompanyids'    
+    SELECT TOP 1 @selectedcompanyidsFieldName = FieldName, @selectedcompanyidsFieldValue = FieldValue FROM @Fields WHERE FieldName = 'SelectedCompanyIds'    
     
+	PRINT @selectedcompanyidsFieldName
+	PRINT @selectedcompanyidsFieldValue
+
     SET @Isselectedcompany = 0    
     IF (ISNULL(@selectedcompanyidsFieldName, '') != '')    
     BEGIN    
@@ -77,7 +81,7 @@ BEGIN
       IF (ISNULL(@ReferenceTable, '') != '')    
       BEGIN    
         SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM @Fields    
-        WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') != ''    
+        WHERE ISNULL(ReferenceTable, '') != ''    
     
         SELECT @RefFieldValue = COALESCE(@RefFieldValue + ' ' +    
           (CASE    
@@ -99,8 +103,7 @@ BEGIN
               FieldType = 'number' THEN REPLACE(FieldValue, '''', '''''') + ','    
           END))    
         FROM @Fields    
-        WHERE FieldName != 'selectedcompanyids'    
-        AND ISNULL(ReferenceTable, '') != ''    
+        WHERE ISNULL(ReferenceTable, '') != ''    
     
         SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'    
         SET @RefFieldValue += ' ' + CAST(@MasterCompanyId AS varchar(max)) + ',''' + @CreatedBy + ''',''' + @CreatedBy + ''''    
@@ -115,8 +118,7 @@ BEGIN
       END    
     
       SELECT @FieldName = COALESCE(@FieldName + ',  ' + FieldName, FieldName) FROM @Fields    
-      WHERE FieldName != 'selectedcompanyids'    
-      AND ISNULL(ReferenceTable, '') = ''    
+      WHERE ISNULL(ReferenceTable, '') = ''    
     
       SELECT @FieldValue = COALESCE(@FieldValue + ' ' +    
         (CASE    
@@ -139,7 +141,7 @@ BEGIN
           WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldValue + ','    
         END))    
       FROM @Fields    
-      WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') = ''    
+      WHERE ISNULL(ReferenceTable, '') = ''    
    
       SET @FieldName = SUBSTRING(@FieldName, 1, LEN(@FieldName))    
       SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)    
@@ -149,8 +151,11 @@ BEGIN
         SET @FieldName += ' ,' + @RefColumnName    
         SET @FieldValue += ' ,' + CAST(@RefColumnValue AS varchar(max))    
       END    
-      SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
-      EXEC (@Query)    
+
+      
+	  SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
+      PRINT @Query
+	  EXEC (@Query)    
       SET @ID = IDENT_CURRENT(@PageName)    
     END    
     ELSE    
@@ -173,7 +178,7 @@ BEGIN
 						LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
 				WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + REPLACE(FieldValue, '''', '''''') + ','    
 				ELSE '' END))    
-      FROM @Fields WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') = ''    
+      FROM @Fields WHERE ISNULL(ReferenceTable, '') = ''    
     
       SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)  
     
@@ -198,7 +203,7 @@ BEGIN
                 ELSE '0,'    
               END)    
             WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + FieldValue + ','    
-          END)) FROM @Fields WHERE FieldName != 'selectedcompanyids' AND ISNULL(ReferenceTable, '') != ''    
+          END)) FROM @Fields WHERE ISNULL(ReferenceTable, '') != ''    
     
         SET @RefFieldName = SUBSTRING(@RefFieldName, 1, LEN(@RefFieldName) - 1)    
     

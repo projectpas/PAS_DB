@@ -15,9 +15,8 @@
  4		23-11-2023		Ayesha Sultana				 Modified - GLACCMAPPING bug fixes
  5		23-11-2023		Moin Bloch				     Modified - Renamed ReportingStructureId To NewReportingStructureId
  6		02-01-2023		Moin Bloch				     Modified - Resolved Copy Reporting Structure Issue
-  
+ 7		17-05-2024		Moin Bloch				     Modified - Added New Field IsDefault
 ************************************************************************/ 
-
 CREATE        PROCEDURE [dbo].[CopyReportingStructure]
 @ReportingStructureId BIGINT,
 @ReportName VARCHAR(50),  
@@ -25,7 +24,8 @@ CREATE        PROCEDURE [dbo].[CopyReportingStructure]
 @CreatedBy VARCHAR(50),
 @UpdatedBy VARCHAR(50),
 @CreatedDate DATETIME,
-@UpdatedDate DATETIME
+@UpdatedDate DATETIME,
+@IsDefault BIT
 AS
 BEGIN
 	SET NOCOUNT ON;      
@@ -34,14 +34,25 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 
-	    DECLARE @TotalRecord int = 0;   
+	    DECLARE @TotalRecord INT = 0;   
 	    DECLARE @MinId BIGINT = 1;  
 		DECLARE @LeafNodeId BIGINT = 0; 
 		DECLARE @ParentId BIGINT = 0;
 		DECLARE @NewLeafNodeId BIGINT = 0;
-	
-		INSERT INTO ReportingStructure([ReportName],[ReportDescription],[IsVersionIncrease],[VersionNumber],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[GlAccountClassId],[IsDefault])	
-		SELECT ReportName=@ReportName,ReportDescription=@ReportDescription,IsVersionIncrease, VersionNumber='VER-000001',MasterCompanyId,CreatedBy=@CreatedBy,UpdatedBy=@UpdatedBy,CreatedDate=@CreatedDate,UpdatedDate=@UpdatedDate,IsActive,IsDeleted,GlAccountClassId,IsDefault
+		DECLARE @NewIsDefault BIT = 0;
+
+		SELECT @NewIsDefault = [IsDefault] FROM [dbo].[ReportingStructure] WITH(NOLOCK) WHERE [ReportingStructureId] = @ReportingStructureId; 
+
+		IF(@NewIsDefault = 1)
+		BEGIN
+			IF(@NewIsDefault = @IsDefault)
+			BEGIN
+				UPDATE [dbo].[ReportingStructure] SET [IsDefault] = 0 WHERE [ReportingStructureId] = @ReportingStructureId; 
+			END			
+		END
+
+		INSERT INTO dbo.ReportingStructure([ReportName],[ReportDescription],[IsVersionIncrease],[VersionNumber],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[GlAccountClassId],[IsDefault],[ReportTypeId])	
+		SELECT [ReportName]=@ReportName,[ReportDescription]=@ReportDescription,[IsVersionIncrease],[VersionNumber] ='VER-000001',[MasterCompanyId],[CreatedBy]=@CreatedBy,[UpdatedBy]=@UpdatedBy,[CreatedDate]=@CreatedDate,[UpdatedDate]=@UpdatedDate,[IsActive],[IsDeleted],[GlAccountClassId],@IsDefault,[ReportTypeId]
 		FROM [dbo].[ReportingStructure] WITH(NOLOCK)
 		WHERE [ReportingStructureId] = @ReportingStructureId; 
 

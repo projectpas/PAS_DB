@@ -13,7 +13,10 @@
     [IsDeleted]            BIT           NOT NULL,
     [GlAccountClassId]     VARCHAR (MAX) NULL,
     [IsDefault]            BIT           NULL,
+    [ReportTypeId]         BIGINT        NULL,
     CONSTRAINT [PK_ReportingStructure] PRIMARY KEY CLUSTERED ([ReportingStructureId] ASC),
     CONSTRAINT [FK_ReportingStructure_MasterCompnay] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 

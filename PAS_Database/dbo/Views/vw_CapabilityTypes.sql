@@ -1,5 +1,4 @@
-﻿
-CREATE   VIEW [dbo].[vw_CapabilityTypes]
+﻿CREATE   VIEW [dbo].[vw_CapabilityTypes]
 AS
 SELECT ct.[CapabilityTypeId] AS PkID
 	  ,ct.[CapabilityTypeId] AS ID
@@ -10,4 +9,8 @@ SELECT ct.[CapabilityTypeId] AS PkID
       ,ct.[UpdatedBy]
       ,ct.[CreatedDate]
       ,ct.[UpdatedDate]
+      ,ct.[MasterCompanyId]
+      ,ct.[SequenceNo]
+      ,ct.[CapabilityTypeDesc]
+      ,ct.[SequenceMemo]
   FROM [dbo].[CapabilityType] ct WITH(NOLOCK) LEFT JOIN dbo.Condition c ON ct.ConditionId = c.ConditionId

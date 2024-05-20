@@ -17,6 +17,7 @@
     1    05-May-2022		Mahesh Sorathiya	Created  
 	2    20-JUNE-203		Devendra Shekh		made changes for total unitcost and extcost
 	3    28-MARCH-2024		Ekta Chandegra		IsActive and IsDelete flag is added 
+	3    17-MAY-2024		Vishal Suthar		Modified Unit Cost, Ext. Cost to Unit Price and Ext. Price
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -132,9 +133,12 @@ BEGIN
 			UPPER(SO.customerreference) 'custref',
 			SUM(SOP.qty) 'qty',
 			--ISNULL(SUM(SOP.qty * SOP.unitcost) , 0) 'extcost',
-			ISNULL(SUM(SOP.qty * SOP.UnitSalesPricePerUnit) , 0) 'extcost',
+			SUM(ISNULL(SOP.qty, 0) * (ISNULL(SOP.UnitSalesPricePerUnit, 0))) + 
+			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = SOP.SalesOrderId AND socg.ItemMasterId = SOP.ItemMasterId AND socg.ConditionId = SOP.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0) 'extcost',
 			--ISNULL(SOP.unitcost , 0) 'unitcost',
-			ISNULL(SOP.UnitSalesPricePerUnit , 0) 'unitcost',
+			ISNULL(SOP.UnitSalesPricePerUnit , 0) +
+			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = SOP.SalesOrderId AND socg.ItemMasterId = SOP.ItemMasterId AND socg.ConditionId = SOP.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
+			AS 'unitcost',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END 'shipdate',
@@ -174,6 +178,7 @@ BEGIN
 		GROUP BY 
 			SO.SalesOrderNumber, 
 			SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
+			SOP.ItemMasterId, SOP.ConditionId, SOP.SalesOrderId,
 			--ISNULL(SOP.unitcost , 0),
 			--ISNULL((SOP.qty * SOP.unitcost) , 0),
 			ISNULL(SOP.UnitSalesPricePerUnit , 0),

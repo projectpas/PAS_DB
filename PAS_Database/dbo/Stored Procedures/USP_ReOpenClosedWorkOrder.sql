@@ -12,7 +12,8 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 1    05/10/2024  Hemant Saliya		 Re-Open Closed WO
 ** 2    05/16/2024  Hemant Saliya		 Handle for Do not allow to reverse Billing Entry Multiple Time
 
-EXEC dbo.USP_ReOpenClosedWorkOrder 3433,'Admin'
+exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
+
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
@@ -27,6 +28,9 @@ AS
 	DECLARE @StockLineId BIGINT = 0;
 	DECLARE @BillingInvoicingId BIGINT;
 	DECLARE @IsShippingDone INT;
+	DECLARE @IsPickTicketGenerated INT;
+	DECLARE @PickTicketId BIGINT;
+	DECLARE @WorkOrderShippingId BIGINT;
 	DECLARE @IsBillingDone INT;
 	DECLARE @DistributionMasterId BIGINT;
 	DECLARE @DistributionCode VARCHAR(50);
@@ -52,6 +56,7 @@ AS
 	DECLARE @WorkOrderNum VARCHAR(200);
 	DECLARE @ExistingValue VARCHAR(200);
 	DECLARE @NewValue VARCHAR(200) = 'OPEN';
+	DECLARE @WOShippingStatusId BIGINT = 1; --Fixed for Open Status
 	DECLARE @MPNPartNum VARCHAR(200);
 	DECLARE @RefferenceId BIGINT, @SubRefferenceId BIGINT, @TemplateBody VARCHAR(MAX), @HistoryText VARCHAR(MAX), @StatusCode VARCHAR(100);
 					
@@ -78,10 +83,14 @@ AS
 
 			SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
 
-			SELECT @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
+			SELECT @WorkOrderShippingId = MAX(WOS.WorkOrderShippingId), @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 
 				JOIN dbo.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId 
 			WHERE WOSI.WorkOrderPartNumId = @workOrderPartNoId --AND (ISNULL(AirwayBill, '') != '' ) --OR ISNULL(isIgnoreAWB, 0) = 1
+
+			SELECT @PickTicketId = MAX(PickTicketId), @IsPickTicketGenerated = CASE WHEN COUNT(WOP.PickTicketId) > 0 THEN 1 ELSE 0 END 
+			FROM dbo.WOPickTicket WOP WITH (NOLOCK) 
+			WHERE WOP.OrderPartId = @workOrderPartNoId AND IsDeleted = 0 AND IsActive = 1
 
 			SELECT @IsPaymentReceived = CASE WHEN (ISNULL(SUM(WOBI.RemainingAmount),0) - ISNULL(SUM(WOBI.GrandTotal), 0)) = 0 THEN 0 ELSE 1 END,
 				   @BillingInvoicingId = MAX(WOBI.BillingInvoicingId)
@@ -105,6 +114,27 @@ AS
 					WHERE StockLineId=@StockLineId
 				END
 
+				IF(ISNULL(@IsShippingDone,0) > 0)
+				BEGIN
+					PRINT 'START UPDATE SHIPPING'
+					/* Update Work Order Billing If Shipping is Generated */
+
+					UPDATE WorkOrderShippingItem SET PDFPath = NULL, FedexPdfPath = NUll WHERE WorkOrderShippingId = @WorkOrderShippingId
+					UPDATE WorkOrderShipping SET WOShippingStatusId = @WOShippingStatusId WHERE WorkOrderShippingId = @WorkOrderShippingId
+
+					--DELETE FROM dbo.WorkOrderShippingItem WHERE WorkOrderShippingId = @WorkOrderShippingId
+					--DELETE FROM dbo.WorkOrderCustomsInfo WHERE WorkOrderShippingId = @WorkOrderShippingId
+					--DELETE FROM dbo.WorkOrderShipping WHERE WorkOrderShippingId = @WorkOrderShippingId
+				END
+
+				IF(ISNULL(@IsPickTicketGenerated,0) > 0)
+				BEGIN
+					PRINT 'START UPDATE PICKTICKET'
+
+					UPDATE WOPickTicket SET PDFPath = NUll, IsConfirmed = 0 WHERE OrderPartId =  @workOrderPartNoId
+					--DELETE FROM WOPickTicket WHERE OrderPartId =  @workOrderPartNoId
+				END
+
 				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
@@ -120,8 +150,9 @@ AS
 				BEGIN
 					/* Update Work Order Billing Status to Re-Generate Invoice */
 					UPDATE WorkOrderBillingInvoicing SET 
-						InvoiceStatus = 'Reviewed', 
+						InvoiceStatus = 'Pending', 
 						InvoiceFilePath = '', 
+						--InvoiceDate = Null,
 						WorkOrderShippingId = Null,
 						UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()						
 					WHERE BillingInvoicingId = @BillingInvoicingId

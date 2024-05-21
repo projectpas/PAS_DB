@@ -21,7 +21,7 @@
      
  EXECUTE [sp_GetWOShippingParentList] 34, 39
 **************************************************************/
-Create   Procedure [dbo].[sp_GetWOShippingParentList]
+CREATE   Procedure [dbo].[sp_GetWOShippingParentList]
 @WorkOrderId  bigint,
 @WorkOrderPartId bigint
 AS
@@ -42,8 +42,9 @@ BEGIN
 					wop.WorkOrderId,
 					wop.ID as WorkOrderPartId,
 					SUM(ISNULL(wopt.QtyToShip, 0)) - SUM(ISNULL(wosi.QtyShipped,0)) as QtyRemaining,
-					CASE WHEN SUM(ISNULL(wopt.QtyToShip, 0)) = SUM(ISNULL(wosi.QtyShipped, 0)) THEN 'Fullfilled'
-					ELSE 'Fullfilling' END as [Status],1 as ItemNo,
+					--CASE WHEN SUM(ISNULL(wopt.QtyToShip, 0)) = SUM(ISNULL(wosi.QtyShipped, 0)) THEN 'Fullfilled' ELSE 'Fullfilling' END as [Status], 
+					SS.[Status] As [Status],
+					1 as ItemNo,
 					isnull(cds.ShipViaId,0) as ShipViaId
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)
 					LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
@@ -54,8 +55,9 @@ BEGIN
 					LEFT JOIN DBO.CustomerDomensticShippingShipVia cds WITH(NOLOCK) ON CDSD.CustomerDomensticShippingId = cds.CustomerDomensticShippingId and cds.IsPrimary=1					
 					LEFT JOIN DBO.WorkOrderShippingItem wosi  WITH(NOLOCK) on wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId and wos.WorkOrderId = wo.WorkOrderId
-				WHERE wop.WorkOrderId = @WorkOrderId AND wopt.IsConfirmed = 1 --and wop.ID=@WorkOrderPartId
-				GROUP BY wo.WorkOrderNum,imt.partnumber,imt.PartDescription,cds.ShipViaId,wop.WorkOrderId,wop.ID,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription;
+					LEFT JOIN DBO.ShippingStatus SS WITH(NOLOCK) ON wos.WOShippingStatusId = SS.ShippingStatusId
+				WHERE wop.WorkOrderId = @WorkOrderId AND wopt.IsConfirmed = 1 AND wop.IsFinishGood = 1 --and wop.ID=@WorkOrderPartId
+				GROUP BY wo.WorkOrderNum,imt.partnumber,imt.PartDescription,cds.ShipViaId,wop.WorkOrderId,wop.ID,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription, SS.[Status];
 			END
 		COMMIT  TRANSACTION
 

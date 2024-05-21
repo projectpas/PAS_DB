@@ -2984,6 +2984,7 @@
     <Build Include="dbo\Views\vw_ContactTagAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTransferTemplateList.sql" />
     <Build Include="dbo\Views\vw_GLAccountWithName.sql" />
+    <Build Include="dbo\Views\vw_chargeAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

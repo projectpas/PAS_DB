@@ -9,6 +9,10 @@
     [UpdatedDate]          DATETIME2 (7) CONSTRAINT [DF_ItemMasterSettings_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]             BIT           CONSTRAINT [DF__ItemMasterSettings_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]            BIT           CONSTRAINT [DF__ItemMasterSettings_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [UnitOfMeasureId]      BIGINT        NULL,
+    [UnitOfMeasure]        VARCHAR (100) NULL,
     CONSTRAINT [PK_ItemMasterSettings] PRIMARY KEY CLUSTERED ([ItemMasterSettingsId] ASC)
 );
+
+
 

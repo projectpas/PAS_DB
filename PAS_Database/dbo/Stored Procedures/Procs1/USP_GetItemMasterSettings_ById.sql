@@ -1,4 +1,4 @@
-﻿Create   PROCEDURE [dbo].[USP_GetItemMasterSettings_ById]
+﻿CREATE   PROCEDURE [dbo].[USP_GetItemMasterSettings_ById]
 @MasterCompanyId bigint
 AS
 BEGIN
@@ -13,6 +13,8 @@ BEGIN
 					ims.[ItemMasterSettingsId],
 					ims.[GLAccountId],
 					ims.[GLAccount],
+					ims.[UnitOfMeasureId],
+					ims.[UnitOfMeasure],
 					ims.[MasterCompanyId],
 					ims.[CreatedBy],
 					ims.[CreatedDate],

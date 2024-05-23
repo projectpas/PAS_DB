@@ -14,6 +14,8 @@
 	2    30/10/2023   Hemnat Saliya  Updated For GL Balance
 	3    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	4    31/01/2024   Hemant Saliya	 Updated for Handle Balance Issues
+	5	 23/05/2024   Moin Bloch	 Set IncomeStatement Default ReportingStructureId 
+
 
 ************************************************************************
 EXEC [RPT_GetBalanceSheetReportsExportData] 179,179,23,1,1,0, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -33,8 +35,9 @@ AS
 BEGIN   
  BEGIN TRY 
 		  ---Static Income Statement ReportingStructureId Need TO Change-----------------------------------------------------------
-		  DECLARE @IncomeStatementReportingStructureId BIGINT = 8    
-		
+		  DECLARE @IncomeStatementReportingStructureId BIGINT = 0    
+		  	  SET @IncomeStatementReportingStructureId = (SELECT [ReportingStructureId] FROM [dbo].[ReportingStructure] WITH(NOLOCK) WHERE [IsDefault] = 1 AND [MasterCompanyId] = @MasterCompanyId AND UPPER([ReportName])  = 'INCOME STATEMENT - STD FORMAT-V2' AND [IsVersionIncrease] = 0 AND [IsActive] = 1 AND [IsDeleted] = 0) 
+
 		  DECLARE @FROMDATE DATETIME;
 		  DECLARE @TODATE DATETIME;  
 		  DECLARE @AccountcalID AS bigint;

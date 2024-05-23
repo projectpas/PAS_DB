@@ -17,6 +17,8 @@
  6      25/01/2024   Hemant Saliya	        Remove Manual Journal from Reports
  7      31/01/2024   Hemant Saliya	        Updated for Handle Balance Issues
  8      09/05/2024   Hemant Saliya	        Updated for Handle Static Income Statement ReportingStructureId 
+ 9		23/05/2024   Moin Bloch			    Set IncomeStatement Default ReportingStructureId 
+
 
 **************************************************************/
   
@@ -34,8 +36,9 @@ AS
 BEGIN
   BEGIN TRY
 		---Static Income Statement ReportingStructureId Need TO Change-----------------------------------------------------------
-		DECLARE @IncomeStatementReportingStructureId BIGINT ;   
-		SET @IncomeStatementReportingStructureId = CASE WHEN @MasterCompanyId = 1 THEN 8 WHEN @MasterCompanyId = 13 THEN 54 ELSE 1 END
+		DECLARE @IncomeStatementReportingStructureId BIGINT=0;   
+		--SET @IncomeStatementReportingStructureId = CASE WHEN @MasterCompanyId = 1 THEN 8 WHEN @MasterCompanyId = 13 THEN 54 ELSE 1 END
+		SET @IncomeStatementReportingStructureId = (SELECT [ReportingStructureId] FROM [dbo].[ReportingStructure] WITH(NOLOCK) WHERE [IsDefault] = 1 AND [MasterCompanyId] = @MasterCompanyId AND UPPER([ReportName])  = 'INCOME STATEMENT - STD FORMAT-V2' AND [IsVersionIncrease] = 0 AND [IsActive] = 1 AND [IsDeleted] = 0) 
 
 		DECLARE @LeafNodeId AS BIGINT;
 		DECLARE @AccountcalID AS BIGINT;

@@ -36,7 +36,7 @@ BEGIN
  BEGIN TRY 
 		  ---Static Income Statement ReportingStructureId Need TO Change-----------------------------------------------------------
 		  DECLARE @IncomeStatementReportingStructureId BIGINT = 0    
-		  	  SET @IncomeStatementReportingStructureId = (SELECT [ReportingStructureId] FROM [dbo].[ReportingStructure] WITH(NOLOCK) WHERE [IsDefault] = 1 AND [MasterCompanyId] = @MasterCompanyId AND UPPER([ReportName])  = 'INCOME STATEMENT - STD FORMAT-V2' AND [IsVersionIncrease] = 0 AND [IsActive] = 1 AND [IsDeleted] = 0) 
+		  	  SET @IncomeStatementReportingStructureId = (SELECT [ReportingStructureId] FROM [dbo].[ReportingStructure] WITH(NOLOCK) WHERE [IsDefault] = 1 AND [MasterCompanyId] = @MasterCompanyId AND [ReportTypeId] = (SELECT [ReportTypeId] FROM [dbo].[ReportType] WITH(NOLOCK) WHERE UPPER([ReportTypeName]) = 'INCOME STATEMENT') AND [IsVersionIncrease] = 0 AND [IsActive] = 1 AND [IsDeleted] = 0) 
 
 		  DECLARE @FROMDATE DATETIME;
 		  DECLARE @TODATE DATETIME;  

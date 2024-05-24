@@ -18,7 +18,7 @@
     [VendorContractReference] VARCHAR (30)    NULL,
     [IsPreferredVendor]       BIT             CONSTRAINT [Vendor_DC_IsPreferredVendor] DEFAULT ((0)) NOT NULL,
     [LicenseNumber]           VARCHAR (30)    NULL,
-    [VendorURL]               VARCHAR (50)    NULL,
+    [VendorURL]               VARCHAR (100)   NULL,
     [IsCertified]             BIT             CONSTRAINT [Vendor_DC_IsCertified] DEFAULT ((0)) NOT NULL,
     [VendorAudit]             BIT             CONSTRAINT [Vendor_DC_VendorAudit] DEFAULT ((0)) NOT NULL,
     [EDI]                     BIT             CONSTRAINT [Vendor_DC_EDI] DEFAULT ((0)) NOT NULL,
@@ -61,6 +61,8 @@
     CONSTRAINT [UC_Vendor_Email] UNIQUE NONCLUSTERED ([VendorEmail] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

@@ -19,7 +19,10 @@
     [IsActive]                 BIT             NOT NULL,
     [IsDeleted]                BIT             NOT NULL,
     [IsCustomerSetting]        BIT             NULL,
+    [PaymentMethodId]          BIGINT          NULL,
     CONSTRAINT [PK_CustomerFinancialAudit] PRIMARY KEY CLUSTERED ([CustomerFinancialAuditId] ASC),
     CONSTRAINT [FK_CustomerFinancialAudit_CustomerFinancial] FOREIGN KEY ([CustomerFinancialId]) REFERENCES [dbo].[CustomerFinancial] ([CustomerFinancialId])
 );
+
+
 

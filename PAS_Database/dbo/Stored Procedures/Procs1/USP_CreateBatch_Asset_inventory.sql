@@ -17,6 +17,7 @@
 	4    21/08/2023   Moin Bloch         Modify(Added Accounting MS Entry)
 	5    1/JAN/2024   AYESHA SULTANA     MODIFY(GETTING @SelectedAccountingPeriodId FROM API)
 	7    14/02/2023	  Moin Bloch		 Updated Used Distribution Setup Code Insted of Name 
+	8	 23/05/2024   Abhishek Jirawla   Changing UnitCost to Total Cost
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -129,7 +130,7 @@ BEGIN
         DECLARE @MonthDIFF bigint=0;
         DECLARE @DividedDaysDIFF int=0;
         DECLARE @AssetLife int;
-		DECLARE @AssetUnitPrice decimal(18,2)=0;
+		DECLARE @AssetTotalPrice decimal(18,2)=0;
 		DECLARE @ResidualPercentage decimal(18,2)=0;
 		DECLARE @DepreciationAmount decimal(18,2)=0;
 		DECLARE @PercentageAmount decimal(18,2)=0;
@@ -173,14 +174,14 @@ BEGIN
 		@IntangibleWriteDownGLAccountId=IntangibleWriteDownGLAccountId,@IntangibleWriteOffGLAccountId=IntangibleWriteOffGLAccountId 
 		FROM DBO.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@AssetInventoryId;
 
-		SELECT @AssetUnitPrice=isnull(AI.UnitCost,0),@TangibleClassId=Asset.TangibleClassId,@DeprFrequency=AI.DepreciationFrequencyName,
+		SELECT @AssetTotalPrice=isnull(AI.TotalCost,0),@TangibleClassId=Asset.TangibleClassId,@DeprFrequency=AI.DepreciationFrequencyName,
 		@AssetLife=Isnull(AI.AssetLife,0),@AssetCreateDate=AI.EntryDate,@ResidualPercentage=Isnull(AI.ResidualPercentage,0) 
 		FROM DBO.AssetInventory AI WITH(NOLOCK)
         INNER JOIN DBO.Asset WITH(NOLOCK) on Asset.AssetRecordId=AI.AssetRecordId
 		WHERE AI.AssetInventoryId= @AssetInventoryId
         Print @DeprFrequency
-		SET @PercentageAmount = ISNULL((ISNULL(@ResidualPercentage,0) * ISNULL(@AssetUnitPrice,0) /100),0)
-		SET @MonthlyDepAmount = ISNULL((ISNULL(@AssetUnitPrice,0)-ISNULL(@PercentageAmount,0)) / ISNULL(@AssetLife,0),0)
+		SET @PercentageAmount = ISNULL((ISNULL(@ResidualPercentage,0) * ISNULL(@AssetTotalPrice,0) /100),0)
+		SET @MonthlyDepAmount = ISNULL((ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0)) / ISNULL(@AssetLife,0),0)
 
 		IF(UPPER(@DeprFrequency)='MTHLY' OR UPPER(@DeprFrequency)='MONTHLY')
         BEGIN
@@ -573,7 +574,7 @@ BEGIN
 				------Accumulated Depreciation -----------
 
 				------Asset Account -----------
-				SET @Amount =  ISNULL((ISNULL(@AssetUnitPrice,0)-ISNULL(@PercentageAmount,0)),0);
+				SET @Amount =  ISNULL((ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0)),0);
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
 				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') AND
@@ -626,7 +627,7 @@ BEGIN
 				------Asset Account -----------
 
 				------Loss/(Gain) on Disposal of Assets -----------
-				SET @Amount =  Isnull((@ARCaseAmount+@DepreciationAmount),0)-(ISNULL(@AssetUnitPrice,0)-ISNULL(@PercentageAmount,0));
+				SET @Amount =  Isnull((@ARCaseAmount+@DepreciationAmount),0)-(ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0));
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
 				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
@@ -729,7 +730,7 @@ BEGIN
 				SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 						
 				SET @UnitPrice = @Amount;
-				SET @Amount = (@AssetUnitPrice);
+				SET @Amount = (@AssetTotalPrice);
 
 				SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 	            SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 

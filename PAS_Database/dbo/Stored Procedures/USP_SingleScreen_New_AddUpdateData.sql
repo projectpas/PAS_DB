@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SingleScreen_new_AddUpdateData]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to add/update data
@@ -13,6 +12,7 @@
     1    04/02/2024   Vishal Suthar	 Created
 	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
 	3    17/05/2024   Abhishek Jirawla Remove SelectedCompanyIds from queries so it can be inserted in the tables.
+	4.   27/05/2024   Amit Ghediya     Update for set Default Site.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
  @ID int = NULL,    
@@ -44,7 +44,15 @@ BEGIN
     DECLARE @RefFieldValue AS varchar(max)    
     DECLARE @RefColumnName AS varchar(max)    
     DECLARE @RefColumnValue AS bigint    
-    DECLARE @RefQuery AS varchar(max) = ''    
+    DECLARE @RefQuery AS varchar(max) = '';
+
+	IF(@PageName = 'site')  
+	BEGIN
+	IF EXISTS(SELECT FieldValue FROM @Fields WHERE FieldName = 'IsDefault' AND FieldValue = 'true')
+		BEGIN
+			UPDATE Site SET IsDefault = 0 WHERE MasterCompanyId = (SELECT TOP 1 FieldValue FROM @Fields WHERE FieldName = 'MasterCompanyId')
+		END
+	END 
     
     IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @PageName))    
     BEGIN    

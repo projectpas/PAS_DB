@@ -2986,6 +2986,8 @@
     <Build Include="dbo\Views\vw_GLAccountWithName.sql" />
     <Build Include="dbo\Views\vw_chargeAudit.sql" />
     <Build Include="dbo\Views\vw_PriorityAudit.sql" />
+    <Build Include="dbo\Views\vw_ShipVia.sql" />
+    <Build Include="dbo\Views\vw_DocumentType.sql" />
     <Build Include="dbo\Views\vw_MasterDiscountTypeAudit.sql" />
     <Build Include="dbo\Views\vw_MasterBankFeesTypeAudit.sql" />
     <Build Include="dbo\Views\vw_MasterAdjustReasonAudit.sql" />

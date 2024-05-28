@@ -1,4 +1,11 @@
-﻿
+﻿/***************************************************************  
+ ** File:   [GetItemMasterCapesList]             
+ ** Author:  
+ ** Description: This stored procedure is used to Get ItemMasterCapesList 
+
+    1    No-Data
+	2.   28/05/2024   Amit Ghediya     Update for get Item Details from Item Master table.
+**************************************************************/
 CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
@@ -55,8 +62,8 @@ BEGIN
 
 		;WITH Result AS(		
 			SELECT DISTINCT imc.ItemMasterCapesId,
-				(ISNULL(UPPER(imc.[PartNumber]),'')) 'partNo',
-				(ISNULL(UPPER(imc.[PartDescription]),'')) 'pnDiscription',
+				(ISNULL(UPPER(im.[PartNumber]),'')) 'partNo',
+				(ISNULL(UPPER(im.[PartDescription]),'')) 'pnDiscription',
 				(ISNULL(UPPER(im.[ManufacturerName]),'')) 'ManufacturerName',
 				(ISNULL(UPPER(imc.[CapabilityType]),'')) 'capabilityType',
 				imc.CapabilityTypeId AS capabilityTypeId,

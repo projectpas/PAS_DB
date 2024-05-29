@@ -2993,6 +2993,8 @@
     <Build Include="dbo\Views\vw_MasterAdjustReasonAudit.sql" />
     <Build Include="dbo\Views\vw_TaxRateAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetItemMasterById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSubWOSerialNumber_ByPartId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStockLineLessQtyCheckList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

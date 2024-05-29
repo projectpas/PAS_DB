@@ -15,13 +15,14 @@
     3    01/09/2024   Devendra Shekh			added new column
 	4    01/16/2024   Hemant Saliya				Updated For Reopen Sub WO
 	5    01/16/2024   Devendra Shekh			delete disabled issue resolved
+	6    05/29/2024   Devendra Shekh			Stk Join changed to SWPT from SWO and adde ControlNumber to select
      
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
 @SubWOStatus=NULL,@OriginalCondition=NULL,@UpdatedCondition=NULL,@IsTransferredToParentWO=NULL,@OriginalStockLineNumber=NULL,
 @UpdatedStockLineNumber=NULL,@CreatedBy=NULL,
-@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=4102,@MasterCompanyId=1
+@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@OpenDate=NULL,@IsDeleted=0,@WorkOrderId=3986,@MasterCompanyId=1
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderList]
@@ -202,13 +203,14 @@ BEGIN
 						CASE WHEN (ISNULL(WOMS.QtyReserved , 0) + ISNULL(WOMS.QtyIssued , 0)) > 0 OR ISNULL(WPN.IsClosed, 0) = 1   THEN 0 ELSE SWPT.IsClosed  END AS 'isAllowReOpen',
 						SL.StockLineNumber AS 'OriginalStockLineNumber',
 						SL.StockLineNumber AS 'UpdatedStockLineNumber',
+						ISNULL(SL.ControlNumber, '') AS 'ControlNumber',
 						tmpSub.SubReleaseFromId
 			   FROM [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK)
 				INNER JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = SWPT.SubWorkOrderId
 				---INNER JOIN [dbo].[SubWorkOrderPartNumber] SWPT WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SWPT.ItemMasterId = IM.ItemMasterId
-				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SWO.StockLineId = SL.StockLineId
+				INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SWPT.StockLineId = SL.StockLineId
 				INNER JOIN [dbo].[WorkScope] SUBWOS WITH (NOLOCK) ON SWPT.SubWorkOrderScopeId = SUBWOS.WorkScopeId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON SWO.WorkOrderPartNumberId = WPN.ID
 				LEFT JOIN [dbo].[Condition] OCD WITH (NOLOCK) ON SWPT.ConditionId = OCD.ConditionId

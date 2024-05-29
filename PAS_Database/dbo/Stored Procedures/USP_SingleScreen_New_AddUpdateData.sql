@@ -13,6 +13,21 @@
 	2	 05/04/2024   Bhargav saliya resolved credit-terms days and netdays updates issue in single screnn
 	3    17/05/2024   Abhishek Jirawla Remove SelectedCompanyIds from queries so it can be inserted in the tables.
 	4.   27/05/2024   Amit Ghediya     Update for set Default Site.
+
+
+declare @p5 dbo.SingleScreenColumnType
+insert into @p5 values(N'Description',N'TEST',N'string',N'')
+insert into @p5 values(N'Avglaborrate',N'0',N'string',N'')
+insert into @p5 values(N'OverheadburdenPercentId',NULL,N'integer',N'')
+insert into @p5 values(N'FlatAmount',N'0',N'string',N'')
+insert into @p5 values(N'IsWorksInShop',N'false',N'boolean',N'')
+insert into @p5 values(N'IsActive',N'true',N'boolean',N'')
+insert into @p5 values(N'MasterCompanyId',N'1',N'integer',NULL)
+insert into @p5 values(N'CreatedBy',N'ADMIN User',N'string',NULL)
+insert into @p5 values(N'UpdatedBy',N'ADMIN User',N'string',NULL)
+
+exec USP_SingleScreen_New_AddUpdateData @ID=0,@PageName=N'employeeexpertise',@Mode=N'Add',@PrimaryKey=N'EmployeeExpertiseId',@Fields=@p5,@ReferenceTable=N'',@ManagementStructure=0,@ManagementStructureTable=N'',@ManagementStructureIds=N''
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
  @ID int = NULL,    
@@ -137,7 +152,7 @@ BEGIN
             END)    
           WHEN LOWER(FieldType) = 'datetime' OR    
             LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldValue + ','    
+          WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN (CASE WHEN FieldName = 'OverheadburdenPercentId' AND FieldValue = '0' THEN 'NULL' ELSE FieldValue END) + ','    
         END),    
         (CASE    
           WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    

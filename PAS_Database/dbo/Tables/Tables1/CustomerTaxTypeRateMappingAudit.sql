@@ -21,9 +21,12 @@
     [IsRepair]                          BIT           NULL,
     [IsProductSale]                     BIT           NULL,
     [IsTaxExempt]                       BIT           NULL,
+    [TaxId]                             BIGINT        NULL,
     CONSTRAINT [PK_CustomerTaxTypeRateMappingAudit] PRIMARY KEY CLUSTERED ([AuditCustomerTaxTypeRateMappingId] ASC),
     CONSTRAINT [FK_CustomerTaxTypeRateMappingAudit_CustomerTaxTypeRateMapping] FOREIGN KEY ([CustomerTaxTypeRateMappingId]) REFERENCES [dbo].[CustomerTaxTypeRateMapping] ([CustomerTaxTypeRateMappingId])
 );
+
+
 
 
 

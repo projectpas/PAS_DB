@@ -13,6 +13,7 @@
  ** --   --------			-------				--------------------------------          
     1    08/09/2023			Devendra shekh			  Created
     2    01/31/2023			Devendra shekh			  changes for condition Update
+	3    05/31/2024			Hemant Saliya			  Correced WOP condition Updates
 
 
 exec dbo.USP_UpdateConditionById @WOPartNoId =3696,@WOId=4201,@ConditionId=10
@@ -39,7 +40,7 @@ BEGIN
 					FROM [dbo].WorkOrderBillingInvoicing WBI WITH(NOLOCK) WHERE WBI.WorkOrderId = @WOId AND WBI.IsVersionIncrease = 0 
 					ORDER BY WBI.BillingInvoicingId DESC
 
-					UPDATE dbo.WorkOrderPartNumber SET ConditionId = @ConditionId   WHERE ID = @WOPartNoId;
+					UPDATE dbo.WorkOrderPartNumber SET RevisedConditionId = @ConditionId   WHERE ID = @WOPartNoId;
 
 					IF(@WOBillingId > 0)
 					BEGIN

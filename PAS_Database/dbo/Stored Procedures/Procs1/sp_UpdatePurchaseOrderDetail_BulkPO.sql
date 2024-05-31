@@ -1,4 +1,21 @@
-﻿--- exec sp_UpdatePurchaseOrderDetail  214
+﻿/*************************************************************           
+ ** File:     [sp_UpdatePurchaseOrderDetail_BulkPO]           
+ ** Author:	   
+ ** Description:
+ ** Purpose:         
+ ** Date:       [mm/dd/yyyy]    
+ ** PARAMETERS:       
+ ** RETURN VALUE:     
+ **************************************************************    
+ ** Change History           
+ **************************************************************           
+ ** PR   	Date			Author					Change Description            
+ ** --   	--------		-------				--------------------------------     
+	1		 
+	2		05/30/2024		Devendra Shekh			stopped updating PO status to Fulfilling
+	
+--- exec sp_UpdatePurchaseOrderDetail  214
+**************************************************************/ 
 CREATE   Procedure [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
 @PurchaseOrderId  bigint,
 @WorkOrderMaterialsIds VARCHAR(MAX) = NULL,
@@ -98,7 +115,7 @@ BEGIN
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.ExchangeSalesOrderId > 0
 
 		UPDATE PO SET
-		PO.StatusId = (SELECT POStatusID FROM dbo.POStatus Where IsActive = 1 and IsDeleted = 0  and Memo = 'Fulfilling' ),
+		--PO.StatusId = (SELECT POStatusID FROM dbo.POStatus Where IsActive = 1 and IsDeleted = 0  and Memo = 'Fulfilling' ),
 		PO.ApproverId = ISNULL((select TOP 1 PA.ApprovedById from dbo.PurchaseOrderApproval PA WITH (NOLOCK) INNER JOIN
 							dbo.ApprovalStatus APS WITH (NOLOCK) ON PA.StatusId = APS.ApprovalStatusId   AND APS.Name =  'Approved'
 							WHERE PurchaseOrderID = @PurchaseOrderId ORDER BY ApprovedDate DESC),0),

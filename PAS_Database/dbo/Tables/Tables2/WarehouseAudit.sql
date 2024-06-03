@@ -18,6 +18,9 @@
     [PostalCode]       VARCHAR (20)   NULL,
     [Country]          VARCHAR (50)   NULL,
     [LegalEntity]      VARCHAR (50)   NULL,
-    [SiteName]         VARCHAR (50)   NULL
+    [SiteName]         VARCHAR (50)   NULL,
+    [WarehouseCode]    VARCHAR (200)  NULL
 );
+
+
 

@@ -7,10 +7,11 @@
 /*
 	       Date		    Name                  Description				
 	1)  31-05-2024   Ekta Chandegra     Check @SpeedQuoteId is number
+	2)  04-06-2024   Ekta Chandegra    Change datatype of @SpeedQuoteId 
 */
 
 CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
-	@SpeedQuoteId bigint
+	@SpeedQuoteId varchar(200)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

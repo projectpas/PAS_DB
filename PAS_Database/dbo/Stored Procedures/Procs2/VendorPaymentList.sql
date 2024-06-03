@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [VendorPaymentList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorPaymentList
@@ -33,6 +34,7 @@
 	17   02/04/2024   AMIT GHEDIYA    filter update
 	18   05/04/2024   AMIT GHEDIYA    Update status for Print Check & Paid in full.
 	19   08/04/2024   AMIT GHEDIYA    Get Vendor Payment Control Num.
+	20   03/06/2024   AMIT GHEDIYA    Update for get CheckNumber from condition.
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -179,11 +181,11 @@ BEGIN
 			   PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsGenerated = 1),
-			   --ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-								 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
+			   ISNULL(Tab.PayRef,'') AS 'PaymentRef',
+			   --PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+						--		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
+						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
 			   '' AS 'DateProcessed',
 			   '' AS 'CheckCrashed',
 			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
@@ -203,7 +205,8 @@ BEGIN
 								   MAX(PM.Description) AS PaymentMethod,
 								   MAX(VRTPDH.PrintCheck_Wire_Num) AS PaymentRef,
 								   VRTPDH.ReadyToPayId,
-								   VD.ControlNumber
+								   VD.ControlNumber,
+								   MAX(VD.CheckNumber) AS PayRef
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
@@ -285,11 +288,11 @@ BEGIN
 			  PaymentMethod = (SELECT MAX(PM.Description) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
-			   --ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-								 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-								 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
+			   ISNULL(Tab.PayRef,'') AS 'PaymentRef',
+			   --PaymentRef = (SELECT MAX(VD.CheckNumber) FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+						--		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
+						--		 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId  AND VD.IsGenerated = 1),
 			   '' AS 'DateProcessed',
 			   '' AS 'CheckCrashed',
 			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
@@ -309,7 +312,8 @@ BEGIN
 								   MAX(PM.Description) AS PaymentMethod,
 								   MAX(VRTPDH.PrintCheck_Wire_Num) AS PaymentRef,
 								   VRTPDH.ReadyToPayId,
-								   VD.ControlNumber
+								   VD.ControlNumber,
+								   MAX(VD.CheckNumber) AS PayRef
 							FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
 								 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
 							     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId

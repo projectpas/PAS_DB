@@ -12,6 +12,7 @@
  ** PR   	Date			Author					Change Description            
  ** --   	--------		-------				--------------------------------     
 	1		05/29/2024		Devendra Shekh			CREATED
+	1		06/05/2024		HEMANT SALIYA			Updated for Add Provision Condition
 	
 	EXEC [USP_GetStockLineLessQtyCheckList] 3993, 3510, 1
 **************************************************************/ 
@@ -26,6 +27,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
+				DECLARE @ReplaceProvisionId INT;
 
 				IF OBJECT_ID('tempdb..#Results') IS NOT NULL
 					DROP TABLE #Results
@@ -46,6 +48,8 @@ BEGIN
 					QuantityRequested INT NULL,
 				)
 
+				SELECT @ReplaceProvisionId = ProvisionId FROM dbo.Provision WHERE StatusCode = 'REPLACE'
+
 				--Inserting Materials StockLine Data 
 				INSERT INTO #TempStkLineList(PartNumber, PartDescription, StockLineId, StockLineNumber, ControlNumber, SerialNumber,
 						Quantity, QuantityAvailable, QuantityOnHand, QuantityIssued, QuantityReserved, QuantityRequested)
@@ -62,7 +66,7 @@ BEGIN
 						ISNULL(STK.QuantityReserved, 0) AS QuantityReserved,
 						ISNULL(WOMS.Quantity,0 ) AS QuantityRequested
 				FROM [dbo].[Stockline] STK WITH(NOLOCK)
-				INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = STK.StockLineId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOMS.StockLineId = STK.StockLineId AND ProvisionId = @ReplaceProvisionId
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOM.WorkOrderId = @WorkOrderId 
@@ -85,7 +89,7 @@ BEGIN
 						ISNULL(STK.QuantityReserved, 0) AS QuantityReserved,
 						ISNULL(WOMSK.Quantity,0 ) AS QuantityRequested
 				FROM [dbo].[Stockline] STK WITH(NOLOCK)
-				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMSK WITH(NOLOCK) ON WOMSK.StockLineId = STK.StockLineId
+				INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMSK WITH(NOLOCK) ON WOMSK.StockLineId = STK.StockLineId AND ProvisionId = @ReplaceProvisionId
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitId = WOMSK.WorkOrderMaterialsKitId
 				WHERE	WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
 						AND WOMK.WorkOrderId = @WorkOrderId 

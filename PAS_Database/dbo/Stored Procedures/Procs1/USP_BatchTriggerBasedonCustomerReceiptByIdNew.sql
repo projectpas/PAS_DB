@@ -506,9 +506,10 @@ BEGIN
 										
 					IF(@ValidDistribution = 1)
 					BEGIN
-						-----Account Receivables------		
+						-----Account Receivables------						
 						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0)
 						BEGIN	
+							
 							SELECT top 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,
 										 @JournalTypeId =JournalTypeId,
@@ -721,8 +722,17 @@ BEGIN
 						-----Other Adjustments------
 						IF(@OtherAdjustmentAmount > 0)
 						BEGIN
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
-							FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRSOTHERADJ') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId						
+							SELECT TOP 1 @DistributionSetupId=ID,
+							             @DistributionName=Name,
+										 @JournalTypeId =JournalTypeId,
+										 @GlAccountId=GlAccountId,
+										 @GlAccountNumber=GlAccountNumber,
+										 @GlAccountName=GlAccountName,
+										 @CrDrType = CRDRType 
+							FROM DBO.DistributionSetup WITH(NOLOCK) 
+							WHERE UPPER(DistributionSetupCode) = UPPER('CRSOTHERADJ') 
+							And DistributionMasterId=@DistributionMasterId 
+							AND MasterCompanyId = @MasterCompanyId						
 
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,
@@ -747,8 +757,17 @@ BEGIN
 						-----Other Adjustments------
 						IF(@OtherAdjustmentAmount < 0)
 						BEGIN
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
-							FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRSOTHERADJ') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId						
+							SELECT TOP 1 @DistributionSetupId=ID,
+							             @DistributionName=Name,
+										 @JournalTypeId =JournalTypeId,
+										 @GlAccountId=GlAccountId,
+										 @GlAccountNumber=GlAccountNumber,
+										 @GlAccountName=GlAccountName,
+										 @CrDrType = CRDRType 
+							FROM DBO.DistributionSetup WITH(NOLOCK) 
+							WHERE UPPER(DistributionSetupCode) = UPPER('CRSOTHERADJ') 
+							And DistributionMasterId=@DistributionMasterId 
+							AND MasterCompanyId = @MasterCompanyId						
 
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,
@@ -775,8 +794,17 @@ BEGIN
 						-----Deposit/Unearned Revenue------
 						IF(@IsDeposit = 1 AND @DepositeAmount > 0)
 						BEGIN
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
-							FROM DBO.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRSDEPOSITREVNUE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId						
+							SELECT TOP 1 @DistributionSetupId=ID,
+							             @DistributionName=Name,
+										 @JournalTypeId =JournalTypeId,
+										 @GlAccountId=GlAccountId,
+										 @GlAccountNumber=GlAccountNumber,
+										 @GlAccountName=GlAccountName,
+										 @CrDrType = CRDRType 
+							FROM DBO.DistributionSetup WITH(NOLOCK) 
+							WHERE UPPER(DistributionSetupCode) = UPPER('CRSDEPOSITREVNUE') 
+							And DistributionMasterId=@DistributionMasterId 
+							AND MasterCompanyId = @MasterCompanyId						
 
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,
@@ -803,7 +831,7 @@ BEGIN
 						-----Deposit/Unearned Revenue------
 
 						-----Suspense------						
-						IF(@miscellaneousAmount >0)
+						IF(@miscellaneousAmount > 0)
 						BEGIN					
 							SELECT TOP 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,
@@ -910,6 +938,8 @@ BEGIN
 					     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
 					END
+
+					SET @Ismiscellaneous = 0;
 
 					SET @MinId = @MinId + 1
 

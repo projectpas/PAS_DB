@@ -31,6 +31,9 @@
     [GLAccountId]           BIGINT          NULL,
     [LegalEntityId]         BIGINT          NULL,
     [BankType]              VARCHAR (50)    NULL,
+    [CurrencyId]            INT             NULL,
     CONSTRAINT [PK_CustomerPaymentsAudit] PRIMARY KEY CLUSTERED ([ReceiptAuditId] ASC)
 );
+
+
 

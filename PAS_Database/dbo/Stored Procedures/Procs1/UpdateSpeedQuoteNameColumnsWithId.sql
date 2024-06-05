@@ -4,11 +4,6 @@
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
 -- =============================================
 --  EXEC [dbo].[UpdateSpeedQuoteNameColumnsWithId] 10144
-/*
-	       Date		    Name                  Description				
-	1)  31-05-2024   Ekta Chandegra     Check @SpeedQuoteId is number
-*/
-
 CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
 	@SpeedQuoteId bigint
 AS
@@ -54,7 +49,7 @@ BEGIN
 	LEFT JOIN DBO.CustomerContact CC WITH (NOLOCK) ON SQ.CustomerContactId = CC.CustomerContactId
 	LEFT JOIN DBO.Contact customContact WITH (NOLOCK) ON CC.ContactId = customContact.ContactId
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msqs WITH (NOLOCK) ON SQ.StatusId = msqs.Id
-	Where SQ.SpeedQuoteId = ISNUMERIC(@SpeedQuoteId)
+	Where SQ.SpeedQuoteId = @SpeedQuoteId
 
 
 	Update SQP
@@ -70,8 +65,7 @@ BEGIN
 	LEFT JOIN DBO.Condition c WITH (NOLOCK) ON SQP.ConditionId = c.ConditionId
 	LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON SQP.StatusId = st.Id
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msoqs WITH (NOLOCK) ON SQP.StatusId = msoqs.Id
-	Where SQP.SpeedQuoteId = ISNUMERIC(@SpeedQuoteId)
-
+	Where SQP.SpeedQuoteId = @SpeedQuoteId
 	COMMIT  TRANSACTION
 	END TRY    
 	BEGIN CATCH   

@@ -5,7 +5,7 @@
 -- =============================================
 --  EXEC [dbo].[UpdateSpeedQuoteNameColumnsWithId] 10144
 CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
-	@SpeedQuoteId int
+	@SpeedQuoteId bigint
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

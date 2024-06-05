@@ -13,15 +13,16 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/30/2020   Hemant Saliya Created
-	2    07/09/2020   Hemant Saliya Updated SQL Standards
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/30/2020   Hemant Saliya		Created
+	2    07/09/2020   Hemant Saliya		Updated SQL Standards
+	3    06/04/2020   Devendra Shekh	removal reason update issue resolved
      
 --EXEC [UpdateReceivingCustomerColumnsWithId] 5
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateReceivingCustomerColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateReceivingCustomerColumnsWithId]
 	@ReceivingCustomerWorkId int
 AS
 BEGIN
@@ -104,7 +105,7 @@ BEGIN
 					LEFT JOIN dbo.Vendor CERVEN WITH(NOLOCK) ON CERVEN.VendorId = RCW.CertifiedById
 					LEFT JOIN dbo.LegalEntity CERCOM WITH(NOLOCK) ON CERCOM.LegalEntityId = RCW.CertifiedById
 					LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = RCW.TagTypeIds
-					LEFT JOIN dbo.TeardownReason  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId and tr.CommonTeardownTypeId=(select top 1 tdt.TeardownTypeId from TeardownType as tdt where tdt.[Name]= 'Removal Reasons')
+					LEFT JOIN dbo.TeardownReason  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId --and tr.CommonTeardownTypeId=(select top 1 tdt.TeardownTypeId from TeardownType as tdt where tdt.[Name]= 'Removal Reasons')
 					LEFT JOIN dbo.TagType  RTT WITH (NOLOCK) ON RTT.TagTypeId = RCW.CustReqTagTypeId
 
 				WHERE RCW.ReceivingCustomerWorkId = @ReceivingCustomerWorkId

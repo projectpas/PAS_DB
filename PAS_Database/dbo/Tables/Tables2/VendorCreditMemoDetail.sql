@@ -4,7 +4,7 @@
     [VendorRMADetailId]        BIGINT          NULL,
     [VendorRMAId]              BIGINT          NULL,
     [Qty]                      BIGINT          NULL,
-    [Notes]                    VARCHAR (500)   NULL,
+    [Notes]                    VARCHAR (MAX)   NULL,
     [OriginalAmt]              DECIMAL (18, 2) NULL,
     [ApplierdAmt]              DECIMAL (18, 2) NULL,
     [RefundAmt]                DECIMAL (18, 2) NULL,
@@ -20,4 +20,6 @@
     [StockLineId]              BIGINT          NULL,
     CONSTRAINT [PK_VendorCreditMemoDetail] PRIMARY KEY CLUSTERED ([VendorCreditMemoDetailId] ASC)
 );
+
+
 

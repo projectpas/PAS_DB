@@ -8,7 +8,7 @@
     [ApplierdAmt]              DECIMAL (18, 2) NULL,
     [RefundAmt]                DECIMAL (18, 2) NULL,
     [RefundDate]               DATETIME2 (7)   NULL,
-    [Notes]                    VARCHAR (500)   NULL,
+    [Notes]                    VARCHAR (MAX)   NULL,
     [MasterCompanyId]          INT             NULL,
     [CreatedBy]                VARCHAR (256)   NULL,
     [UpdatedBy]                VARCHAR (256)   NULL,
@@ -18,4 +18,6 @@
     [IsDeleted]                BIT             NULL,
     [UnitCost]                 DECIMAL (18, 2) NULL,
     [StockLineId]              BIGINT          NULL);
+
+
 

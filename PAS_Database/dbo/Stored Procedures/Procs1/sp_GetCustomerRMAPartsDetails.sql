@@ -348,7 +348,7 @@ BEGIN
 					   ,CRM.[IsDeleted] ,CRM.[ReturnDate] ,CRM.[WorkOrderNum],CRM.[ReceiverNum] ,ST.isSerialized ,CRM.InvoiceId ,@InvoiceStatus as InvoiceStatus
 					   ,CRM.BillingInvoicingItemId ,CRH.InvoiceNo,CRM.CustomerReference,CRM.InvoiceQty ,IM.ManufacturerName
 					   ,0 SubTotal, 0 As SalesTax, 0 AS OtherTax, 0 GrandTotal, 0 PartsUnitCost,0 As PartsRevenue, 0 As LaborRevenue, 0 MiscRevenue
-					   ,0 AS FreightRevenue, 0 As COGSParts, 0 AS COGSPartsUnitCost, 0 COGSLabor, 0 As COGSOverHeadCost, 0 As COGSInventory
+					   ,0 AS FreightRevenue, 0 As COGSParts, 0 AS COGSPartsUnitCost, 0 COGSLabor, 0 As COGSOverHeadCost, 0 As COGSInventory, 0 AS InvoiceTypeId
 					   ,AltPartNumber=(  
 						SELECT TOP 1  
 							A.PartNumber [AltPartNumberType] from [dbo].[CustomerRMADeatils] SOBIIA WITH (NOLOCK) 

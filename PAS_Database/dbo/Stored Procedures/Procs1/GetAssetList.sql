@@ -1,4 +1,26 @@
-﻿CREATE PROCEDURE [dbo].[GetAssetList]  
+﻿
+/*************************************************************           
+ ** File:   [GetAssetList]
+ ** Author:   
+ ** Description: This stored procedure is used to Get Asset List
+ ** Purpose:         
+ ** Date:    
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    									Created
+    2	 06/10/2024  Abhishek Jirawla		Returning upper case data
+	
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[GetAssetList]  
  -- Add the parameters for the stored procedure here   
 @PageSize int,  
 @PageNumber int,  

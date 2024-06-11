@@ -10,8 +10,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    13/09/2023   Amit Ghediya    Created
+	2    11/06/2024   Moin Bloch      Added Upper Case in GL
 	
- --  EXEC RPT_GetStandAloneCreditMemoItemForPrint 13
+ --  EXEC RPT_GetStandAloneCreditMemoItemForPrint 217
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[RPT_GetStandAloneCreditMemoItemForPrint]
@@ -25,8 +26,8 @@ BEGIN
 			  ROW_NUMBER() OVER (
 				ORDER BY SACM.StandAloneCreditMemoDetailId
 			  ) row_num,
-			  GL.AccountCode +' '+ GL.AccountName AS 'GLName',
-			  ISNULL(GL.AccountDescription,'') AS 'Description',
+			  UPPER(GL.AccountCode +' '+ GL.AccountName) AS 'GLName',
+			  ISNULL(UPPER(GL.AccountDescription),'') AS 'Description',
 			  SACM.Qty,
 			  SACM.Rate,
 			  SACM.Amount
@@ -34,11 +35,8 @@ BEGIN
 		LEFT JOIN dbo.GLAccount GL WITH (NOLOCK) ON SACM.GlAccountId = GL.GLAccountId
 		WHERE SACM.CreditMemoHeaderId = @CreditMemoHeaderId;
 	END TRY    
-	BEGIN CATCH      
-	IF @@trancount > 0				
-	ROLLBACK TRAN;
+	BEGIN CATCH  
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
-
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
     , @AdhocComments     VARCHAR(150)    = 'RPT_GetStandAloneCreditMemoItemForPrint' 
     , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@CreditMemoHeaderId AS varchar(10)) ,'') +''													  

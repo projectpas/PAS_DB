@@ -34,8 +34,11 @@
     [AccountingPeriod]      VARCHAR (100)   NULL,
     [PostedBy]              VARCHAR (256)   NULL,
     [IsReversedJE]          BIT             NULL,
+    [APPostedDate]          DATETIME        NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
+
+
 
 
 

@@ -15,6 +15,7 @@
  ** --   --------     -------  ------		--------------------------            
     1    07/13/2023		Satish Gohil		Created   
 	2	 18/10/2023		Nainshi Joshi		Update PostedBy in BatchDetails
+	3	 11/06/2024		HEMANT SALIYA		Added AP Posted Date
   
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_UpdateCommonBatchStatus]  
@@ -32,12 +33,25 @@ BEGIN
   DECLARE @BatchCount INT;  
   DECLARE @PostBatchCount INT;  
   DECLARE @StatusName VARCHAR(50);  
+  DECLARE @APPostedDate DATETIME;  
   
   SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchDetailId = @journalBatchDetailId  
   SELECT @StatusId = Id,@StatusName = Name FROM dbo.BatchStatus WITH(NOLOCK) WHERE Name = 'Posted'  
+  SELECT * FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE AccountingCalendarId = @AccountingPeriodId
+
+  IF((SELECT COUNT(1) FROM dbo.AccountingCalendar WITH(NOLOCK) WHERE GETUTCDATE() BETWEEN CAST(FromDate AS date) AND CAST(ToDate AS date) AND AccountingCalendarId = @AccountingPeriodId) > 0)
+  BEGIN
+	SET @APPostedDate = GETUTCDATE();
+  END
+  ELSE
+  BEGIN
+	SELECT @APPostedDate = ToDate FROM dbo.AccountingCalendar WITH(NOLOCK) 
+		WHERE GETUTCDATE() BETWEEN CAST(FromDate AS date) AND CAST(ToDate AS date) AND AccountingCalendarId = @AccountingPeriodId
+  END
   
   UPDATE dbo.BatchDetails SET   
-   PostedDate = GETUTCDATE(),  
+   PostedDate = GETUTCDATE(),
+   APPostedDate = @APPostedDate,  
    PostedBy = @updatedBy,
    StatusId = @StatusId,  
    UpdatedBy = @updatedBy,  
@@ -53,6 +67,7 @@ BEGIN
   BEGIN  
    UPDATE dbo.BatchHeader SET  
    PostDate = GETUTCDATE(),  
+   APPostedDate = @APPostedDate,  
    PostedBy = @updatedBy,  
    StatusId = @StatusId,  
    StatusName = @StatusName,  

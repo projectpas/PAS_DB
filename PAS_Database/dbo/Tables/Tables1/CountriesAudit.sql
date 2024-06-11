@@ -13,10 +13,12 @@
     [UpdatedDate]        DATETIME2 (7)  NOT NULL,
     [IsActive]           BIT            NOT NULL,
     [IsDeleted]          BIT            NOT NULL,
-    [Description]        VARCHAR (256)  NULL,
+    [Description]        VARCHAR (MAX)  NULL,
     [Memo]               NVARCHAR (MAX) NULL,
     [MasterCompanyId]    BIGINT         NULL,
     [SequenceNo]         INT            NULL,
     CONSTRAINT [PK__CountriesAudit] PRIMARY KEY CLUSTERED ([AuditCountries_id] ASC)
 );
+
+
 

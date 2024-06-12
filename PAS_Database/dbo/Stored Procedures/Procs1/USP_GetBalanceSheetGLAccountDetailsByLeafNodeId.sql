@@ -15,6 +15,7 @@
 	3	 01/11/2023   Hemnat Saliya		Updated For JE Balabce
 	4	 22/11/2023   Moin Bloch		Modified commented manual glaccountId in IsDebugMode
 	5    25/01/2024   Hemant Saliya	    Remove Manual Journal from Reports
+	6    12/06/2024   Hemant Saliya	    Corrected GL Account Name
 
 ************************************************************************/
   
@@ -435,6 +436,8 @@ BEGIN
 
 			-- remove the last comma
 			SET @columns = LEFT(@columns, LEN(@columns) - 1);
+
+			UPDATE #AccTrendTable SET GLAccountCode = GL.AccountCode, GLAccountName = GL.AccountName FROM #AccTrendTable JOIN dbo.GLAccount GL ON #AccTrendTable.GLAccountId = GL.GLAccountId
 
 			SET @sql ='SELECT * FROM   
 				(

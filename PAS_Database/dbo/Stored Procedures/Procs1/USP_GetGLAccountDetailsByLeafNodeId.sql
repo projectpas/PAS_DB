@@ -13,7 +13,8 @@
 	1    17/07/2023   Hemant Saliya  Created
 	2    05/08/2023   Hemant Saliya  Update for Display GL Account wise
 	3    19/09/2023   Hemant Saliya  Added MS and LE Filters	
-	4    25/01/2024   Hemant Saliya		Remove Manual Journal from Reports
+	4    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+	5    12/06/2024   Hemant Saliya	 Corrected GL Account Name
 
 ************************************************************************
 EXEC [USP_GetGLAccountDetailsByLeafNodeId] 133,133,8,1,1,102,@xmlFilter=N'<?xml version="1.0" encoding="utf-16"?>
@@ -450,6 +451,7 @@ BEGIN
 			-- remove the last comma
 			SET @columns = LEFT(@columns, LEN(@columns) - 1);
 
+			UPDATE #AccTrendTable SET GLAccountCode = GL.AccountCode, GLAccountName = GL.AccountName FROM #AccTrendTable JOIN dbo.GLAccount GL ON #AccTrendTable.GLAccountId = GL.GLAccountId
 
 			SET @sql ='SELECT * FROM   
 				(

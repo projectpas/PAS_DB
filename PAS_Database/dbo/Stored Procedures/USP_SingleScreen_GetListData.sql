@@ -60,8 +60,8 @@ BEGIN
               WHEN LOWER(FieldValue) = 'false' THEN 't.isDeleted = 0'
               ELSE 't.isDeleted = 1'
             END)
-          WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(crtBy.FirstName, '''') = '''' OR crtBy.FirstName LIKE ''%' + FieldValue + '%'')'
-          WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(mdfyBy.FirstName, '''') = '''' OR mdfyBy.FirstName LIKE ''%' + FieldValue + '%'')'
+          WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
+          WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
           ELSE ' And (ISNULL(t.' + FieldName + ','''') ='''' OR t.' + FieldName + ' LIKE ''%' + FieldValue + '%'')'
         END)
       FROM #tmpFilterData

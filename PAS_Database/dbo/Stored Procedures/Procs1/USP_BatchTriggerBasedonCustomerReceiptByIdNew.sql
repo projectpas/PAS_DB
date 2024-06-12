@@ -1,10 +1,9 @@
 ﻿/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonCustomerReceiptByIdNew]
- ** Author:  Deep Patel
- ** Description: This stored procedure is used USP_BatchTriggerBasedonSOInvoice
+ ** Author:  HEMANT SALIYA
+ ** Description: This stored procedure is used to Generate Cash Receipt Accounting Entry
  ** Purpose:         
  ** Date:   08/11/2022
-          
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -21,7 +20,8 @@
 	7    11/26/2023	 HEMANT SALIYA  Updated Journal Type Id and Name in Batch Details
 	8    03/12/2024  Moin Bloch     Modify (Added Suspense Entry)
 	9    04/03/2024  Devendra Shekh Modify (changed entry to suspense from AR for customer)
-	10    04/04/2024  Devendra Shekh Modify (added both entry suspense and AR for known customer)
+	10   04/04/2024  Devendra Shekh Modify (added both entry suspense and AR for known customer)
+	11   11/06/2024  HEMANT SALIYA  Updated For Accounting Calendor MOnth need to get it from CRS Header
 
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
@@ -100,7 +100,8 @@ BEGIN
 		SELECT @MasterCompanyId = MasterCompanyId, 
 		       @UpdatedBy = CreatedBy,
 			   @BankType = BankType,
-			   @BankId = BankName
+			   @BankId = BankName,
+			   @AccountingPeriodId = AcctingPeriod
 		 FROM [dbo].[CustomerPayments] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId;
 
 		SELECT @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE ID = @DistributionMasterId
@@ -141,14 +142,24 @@ BEGIN
 			  					  
 			SET @ManagementStructureId= @CurrentManagementStructureId;
 
-			SELECT TOP 1  @AccountingPeriodId = acc.[AccountingCalendarId],
-			              @AccountingPeriod = [PeriodName] FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
-			INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
-			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON msl.[LegalEntityId] = acc.[LegalEntityId] AND acc.[IsDeleted] = 0
-			WHERE est.[EntityStructureId] = @CurrentManagementStructureId 
-			  AND acc.[MasterCompanyId] = @MasterCompanyId  
-			  AND CAST(GETUTCDATE() AS DATE) >= CAST([FromDate] AS DATE) 
-			  AND CAST(GETUTCDATE() AS DATE) <= CAST([ToDate] AS DATE)
+			IF(ISNULL(@AccountingPeriodId, 0) > 0)
+			BEGIN
+				SELECT TOP 1  @AccountingPeriodId = acc.[AccountingCalendarId],@AccountingPeriod = [PeriodName] 
+				FROM [dbo].[AccountingCalendar] acc WITH(NOLOCK) 
+				WHERE acc.[MasterCompanyId] = @MasterCompanyId AND acc.AccountingCalendarId = @AccountingPeriodId AND acc.[IsDeleted] = 0
+				  
+			END
+			ELSE
+			BEGIN
+				SELECT TOP 1  @AccountingPeriodId = acc.[AccountingCalendarId],@AccountingPeriod = [PeriodName] 
+				FROM [dbo].[EntityStructureSetup] est WITH(NOLOCK) 
+					INNER JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON est.Level1Id = msl.ID 
+					INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON msl.[LegalEntityId] = acc.[LegalEntityId] AND acc.[IsDeleted] = 0
+				WHERE est.[EntityStructureId] = @CurrentManagementStructureId 
+					AND acc.[MasterCompanyId] = @MasterCompanyId  
+					AND CAST(GETUTCDATE() AS DATE) >= CAST([FromDate] AS DATE) 
+					AND CAST(GETUTCDATE() AS DATE) <= CAST([ToDate] AS DATE)
+			END
 
 			IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
@@ -257,8 +268,6 @@ BEGIN
 			(SELECT CodeSufix 
 			FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0)))
-			
-			
 
 			IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId AND  CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 			BEGIN

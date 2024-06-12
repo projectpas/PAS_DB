@@ -1,4 +1,27 @@
-﻿CREATE PROCEDURE [dbo].[GetAssetPNViewList]  
+﻿
+
+/*************************************************************           
+ ** File:   [GetAssetPNViewList]
+ ** Author:   
+ ** Description: This stored procedure is used to Get Asset List PN View
+ ** Purpose:         
+ ** Date:    
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    									Created
+    2	 06/10/2024  Abhishek Jirawla		Returning upper case data
+	
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[GetAssetPNViewList]  
  -- Add the parameters for the stored procedure here   
 @PageSize int,  
 @PageNumber int,  
@@ -74,26 +97,26 @@ BEGIN
       
     ;With Result AS(  
               Select   
-         asm.AssetRecordId as AssetRecordId,         
-      asm.IsDepreciable AS IsDepreciable,  
-      asm.IsAmortizable AS IsAmortizable,  
-      asm.Name AS Name,  
-      asm.AssetId AS AssetId,  
-      (SELECT TOP 1 AssetId FROM dbo.Asset WITH(NOLOCK) where AssetRecordId=asm.AlternateAssetRecordId) AS AlternateAssetId,  
-      maf.Name AS ManufacturerName,  
-      CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END AS IsSerializedNew,  
-      CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END AS CalibrationRequiredNew,  
-      CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END AS AssetClass,  
-      ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No') as deprAmort,  
-      AssetType= asty.AssetAttributeTypeName,   
-      asm.MasterCompanyId AS MasterCompanyId,  
-      asm.CreatedDate AS CreatedDate,  
-      asm.UpdatedDate AS UpdatedDate,  
-      asm.CreatedBy AS CreatedBy,  
-      asm.UpdatedBy AS UpdatedBy ,  
-      asm.IsActive AS IsActive,  
-      asm.IsDeleted AS IsDeleted  ,
-	  asm.ManufacturerPN
+    UPPER(asm.AssetRecordId) as AssetRecordId,         
+    asm.IsDepreciable AS IsDepreciable,  
+    asm.IsAmortizable AS IsAmortizable,  
+    UPPER(asm.Name) AS Name,  
+    UPPER(asm.AssetId) AS AssetId,  
+    UPPER((SELECT TOP 1 AssetId FROM dbo.Asset WITH(NOLOCK) where AssetRecordId=asm.AlternateAssetRecordId)) AS AlternateAssetId,  
+    UPPER(maf.Name) AS ManufacturerName,  
+    UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
+    UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
+    UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END) AS AssetClass,  
+    UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
+    UPPER(asty.AssetAttributeTypeName) AS AssetType,   
+    UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
+    asm.CreatedDate AS CreatedDate,  
+    asm.UpdatedDate AS UpdatedDate,  
+    UPPER(asm.CreatedBy) AS CreatedBy,  
+    UPPER(asm.UpdatedBy) AS UpdatedBy ,  
+    asm.IsActive AS IsActive,  
+    asm.IsDeleted AS IsDeleted  ,
+	UPPER(asm.ManufacturerPN) AS ManufacturerPN
 	  ,(SELECT CAST(ai.AssetInventoryId as NVARCHAR(100)) + ',' 
 	  FROM dbo.AssetInventory ai  WITH(NOLOCK) WHERE ai.AssetRecordId=asm.AssetRecordId FOR XML PATH('')) AS AssetInventoryIds
      FROM dbo.Asset asm WITH(NOLOCK)  
@@ -144,8 +167,8 @@ BEGIN
     Select M.AssetRecordId, M.IsDepreciable,M.IsAmortizable,  
         M.[Name] as 'Name',M.AssetId,M.AlternateAssetId, M.ManufacturerName,M.IsSerializedNew,M.CalibrationRequiredNew,M.AssetClass,M.deprAmort,M.AssetType,M.MasterCompanyId,ISNULL(M.CreatedDate,'')AS CreatedDate,ISNULL(M.UpdatedDate,'')AS UpdatedDate,  
         M.CreatedBy,M.UpdatedBy,M.IsActive as 'IsActive',M.IsDeleted as 'IsDeleted',  
-       PT.PartNumber AS 'PN', PT.PartNumberType as 'PartNumber',  
-       PD.PartDescription AS 'PNDesc',PD.PartDescriptionType  as 'PartDescription'  ,M.ManufacturerPN,M.AssetInventoryIds
+       PT.PartNumber AS 'PN', UPPER(PT.PartNumberType) as 'PartNumber',  
+       PD.PartDescription AS 'PNDesc',UPPER(PD.PartDescriptionType)  as 'PartDescription'  ,M.ManufacturerPN,M.AssetInventoryIds
        from Result M   
     Left Join PartCTE PT On M.AssetRecordId = PT.AssetRecordId  
     Left Join PartDescCTE PD on PD.AssetRecordId = M.AssetRecordId),  

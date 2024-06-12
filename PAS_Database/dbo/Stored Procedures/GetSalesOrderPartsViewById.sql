@@ -15,7 +15,7 @@
  ** --   --------		-------			--------------------------------            
     1    03/06/2024		AMIT GHEDIYA	 Created  
 
--- exec GetSalesOrderPartsViewById 891   
+-- exec GetSalesOrderPartsViewById 50 
 ************************************************************************/   
 CREATE     PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
 	@SalesOrderId BIGINT    
@@ -29,13 +29,13 @@ BEGIN
 			 ROW_NUMBER() OVER (
 				ORDER BY part.SalesOrderId
 			 ) row_num, 
-			part.PONumber,
-			itemMaster.PartNumber,
-			itemMaster.PartDescription,
-			ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
-			qs.SerialNumber AS SerialNumber,
+			UPPER(part.PONumber) AS PONumber,
+			UPPER(itemMaster.PartNumber) AS PartNumber,
+			UPPER(itemMaster.PartDescription) AS PartDescription,
+			UPPER(ISNULL(qs.StockLineNumber, '')) AS StockLineNumber,
+			UPPER(qs.SerialNumber) AS SerialNumber,
 			part.Qty,
-			ISNULL(cp.Description, '') AS Condition
+			UPPER(ISNULL(cp.Description, '')) AS Condition
 		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId

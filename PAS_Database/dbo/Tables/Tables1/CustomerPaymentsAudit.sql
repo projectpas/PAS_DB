@@ -5,7 +5,7 @@
     [BankName]              INT             NULL,
     [BankAcctNum]           INT             NULL,
     [DepositDate]           DATETIME        NULL,
-    [AcctingPeriod]         VARCHAR (50)    NULL,
+    [AcctingPeriod]         BIGINT          NULL,
     [Amount]                DECIMAL (20, 2) NOT NULL,
     [AmtApplied]            DECIMAL (20, 2) NULL,
     [AmtRemaining]          DECIMAL (20, 2) NULL,
@@ -34,6 +34,8 @@
     [CurrencyId]            INT             NULL,
     CONSTRAINT [PK_CustomerPaymentsAudit] PRIMARY KEY CLUSTERED ([ReceiptAuditId] ASC)
 );
+
+
 
 
 

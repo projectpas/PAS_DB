@@ -4,7 +4,7 @@
     [BankName]              INT             NULL,
     [BankAcctNum]           INT             NULL,
     [DepositDate]           DATETIME        NULL,
-    [AcctingPeriod]         VARCHAR (50)    NULL,
+    [AcctingPeriod]         BIGINT          NULL,
     [Amount]                DECIMAL (20, 2) NOT NULL,
     [AmtApplied]            DECIMAL (20, 2) NULL,
     [AmtRemaining]          DECIMAL (20, 2) NULL,
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_CustomerPayments_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CustomerPayments_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

@@ -3,7 +3,7 @@
 -- Create date: 12-may-2021
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
 -- =============================================
---  EXEC [dbo].[UpdateSpeedQuoteNameColumnsWithId] 10144
+--  EXEC [dbo].[UpdateSpeedQuoteNameColumnsWithId] 166
 CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
 	@SpeedQuoteId bigint
 AS
@@ -49,8 +49,7 @@ BEGIN
 	LEFT JOIN DBO.CustomerContact CC WITH (NOLOCK) ON SQ.CustomerContactId = CC.CustomerContactId
 	LEFT JOIN DBO.Contact customContact WITH (NOLOCK) ON CC.ContactId = customContact.ContactId
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msqs WITH (NOLOCK) ON SQ.StatusId = msqs.Id
-	Where SQ.SpeedQuoteId = @SpeedQuoteId
-
+	Where SQ.SpeedQuoteId = @SpeedQuoteId;
 
 	Update SQP
 	SET PartNumber = im.partnumber,
@@ -65,10 +64,11 @@ BEGIN
 	LEFT JOIN DBO.Condition c WITH (NOLOCK) ON SQP.ConditionId = c.ConditionId
 	LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON SQP.StatusId = st.Id
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msoqs WITH (NOLOCK) ON SQP.StatusId = msoqs.Id
-	Where SQP.SpeedQuoteId = @SpeedQuoteId
+	Where SQP.SpeedQuoteId = @SpeedQuoteId;
+
 	COMMIT  TRANSACTION
 	END TRY    
-	BEGIN CATCH   
+	BEGIN CATCH
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;

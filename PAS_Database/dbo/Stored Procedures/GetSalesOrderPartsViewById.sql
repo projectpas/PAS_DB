@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    03/06/2024		AMIT GHEDIYA	 Created  
+	2    13/06/2024		AMIT GHEDIYA	 Update for get only part which is reserve qty. 
 
 -- exec GetSalesOrderPartsViewById 50 
 ************************************************************************/   
@@ -34,13 +35,12 @@ BEGIN
 			UPPER(itemMaster.PartDescription) AS PartDescription,
 			UPPER(ISNULL(qs.StockLineNumber, '')) AS StockLineNumber,
 			UPPER(qs.SerialNumber) AS SerialNumber,
-			part.Qty,
+			rPart.QtyToReserve AS Qty,
 			UPPER(ISNULL(cp.Description, '')) AS Condition
 		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
+		INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.QtyToReserve > 0
 		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
-		LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 		ORDER BY part.ItemNo;

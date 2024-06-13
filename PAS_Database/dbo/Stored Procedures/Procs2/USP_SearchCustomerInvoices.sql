@@ -30,6 +30,7 @@
 	13  18/03/2024	  Moin Bloch        added exchange details in pn view
 	14  21/03/2024	  Moin Bloch        added ManagementStructureId 
 	15  04/05/2024	  Moin Bloch        added condtion to removed posted and closed credit memo invoices from invoice list 
+	16  06/13/2024	  Devendra Shekh    not getting SO Invoices data issue resolved
 
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -129,7 +130,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
 			Where WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.IsVersionIncrease=0
 			AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1 AND ISNULL(WOBI.RemainingAmount,0) > 0
-			AND WOBI.[BillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 			
 			),				
 			LastMSLevelCTE AS(  
@@ -330,7 +331,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND SOBI.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
-			  AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+			  AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 			),
 			SVersionCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
@@ -498,7 +499,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 			Where SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 AND ISNULL(SOBI.GrandTotal,0) > 0	
-			  AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			  AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 			),
 			ExchSVersionCTE AS(  
 				Select PC.SOBillingInvoicingId,(Case When Count(WOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse A.VersionNo End)  as 'VersionNo',  
@@ -806,7 +807,7 @@ BEGIN
 				LEFT JOIN dbo.WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 			Where WOBI.MasterCompanyId=@MasterCompanyId AND WOBI.IsVersionIncrease=0
 			AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1 AND ISNULL(WOBI.RemainingAmount,0) > 0
-			AND WOBI.[BillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
 
 			UNION ALL
 
@@ -852,7 +853,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND SOBII.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
-			 AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+			 AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				GROUP BY SOBI.SOBillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 					C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
@@ -904,7 +905,7 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
 				WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 AND ISNULL(SOBI.[GrandTotal],0) > 0	
-			     AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT CM.[InvoiceId] FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			     AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 						
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result)  
 			   SELECT * INTO #TempResults from  Result

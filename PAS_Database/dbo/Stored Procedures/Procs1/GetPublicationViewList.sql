@@ -134,26 +134,30 @@ BEGIN
                 SELECT 
                     PC.PublicationRecordId,
                     CASE WHEN COUNT(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELSE A.PartNumber END AS 'PartNumberType',
-                    A.PartNumber 
+					'' as PartNumber
+                    --A.PartNumber 
                 FROM [dbo].[Publication] PC WITH (NOLOCK)
                 LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
                 LEFT JOIN (
                     SELECT 
                         S.PublicationRecordId,
+						--CASE WHEN COUNT(S.PublicationRecordId) > 0 THEN 'Multiple' ELSE
 						(SELECT TOP 1 I.partnumber
 								FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 								Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
 								Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 								) PartNumber
+							--END AS PartNumber
                     FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
                     GROUP BY S.PublicationRecordId
                 ) A ON PC.PublicationRecordId = A.PublicationRecordId
                 WHERE PC.IsDeleted = 0 AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
                 GROUP BY PC.PublicationRecordId, A.PartNumber
+				
             ),
 				  PartDescCTE AS(
 						Select PC.PublicationRecordId, (CASE WHEN COUNT(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELSE A.PartDescription END)  AS 'PartDescriptionType',
-						A.PartDescription FROM [dbo].[Publication] PC WITH (NOLOCK)
+						'' as PartDescription FROM [dbo].[Publication] PC WITH (NOLOCK)
 						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
 						LEFT JOIN (
 									SELECT 
@@ -172,7 +176,7 @@ BEGIN
 						),						
 				ManufacturerCTE AS(
 						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELse A.Manufacturer End) AS 'ManufacturerType',
-						A.Manufacturer FROM [dbo].[Publication] PC WITH (NOLOCK)
+						'' as Manufacturer FROM [dbo].[Publication] PC WITH (NOLOCK)
 						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
 						LEFT JOIN (
 									SELECT 

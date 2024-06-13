@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Hemant Saliya Created
 	2    09/24/2021   Deep Patel    Add multiple part view changes.....
+	3    13/06/2024   Shrey Chandegara  Remove OUTER APPLY
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -129,36 +130,42 @@ BEGIN
                         LEFT JOIN  [dbo].[Location] loc WITH (NOLOCK) ON pu.LocationId = loc.LocationId              
                         LEFT JOIN  [dbo].[Module] pemp WITH (NOLOCK) ON pu.PublishedById = pemp.ModuleId  
 				  WHERE pu.IsDeleted = @IsDeleted AND (@IsActive IS NULL OR pu.IsActive = @IsActive) AND pu.MasterCompanyId = @MasterCompanyId),
-				  PartCTE AS(
-						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',
-						A.PartNumber FROM [dbo].[Publication] PC WITH (NOLOCK)
-						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
-						OUTER APPLY(
-							SELECT 
-							   STUFF((SELECT ',' + I.partnumber
-									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
-									  Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  Where S.PublicationRecordId = PC.PublicationRecordId
-									  AND S.IsActive = 1 AND S.IsDeleted = 0
-									  FOR XML PATH('')), 1, 1, '') PartNumber
-						) A
-						WHERE ((PC.IsDeleted = @IsDeleted))
-						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
-						GROUP BY PC.PublicationRecordId, A.PartNumber
-						),				
+				 PartCTE AS (
+                SELECT 
+                    PC.PublicationRecordId,
+                    CASE WHEN COUNT(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELSE A.PartNumber END AS 'PartNumberType',
+                    A.PartNumber 
+                FROM [dbo].[Publication] PC WITH (NOLOCK)
+                LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
+                LEFT JOIN (
+                    SELECT 
+                        S.PublicationRecordId,
+						(SELECT TOP 1 I.partnumber
+								FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
+								Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
+								Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+								) PartNumber
+                    FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+                    GROUP BY S.PublicationRecordId
+                ) A ON PC.PublicationRecordId = A.PublicationRecordId
+                WHERE PC.IsDeleted = 0 AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
+                GROUP BY PC.PublicationRecordId, A.PartNumber
+            ),
 				  PartDescCTE AS(
 						Select PC.PublicationRecordId, (CASE WHEN COUNT(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELSE A.PartDescription END)  AS 'PartDescriptionType',
 						A.PartDescription FROM [dbo].[Publication] PC WITH (NOLOCK)
 						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
-						OUTER APPLY(
-							SELECT 
-							   STUFF((SELECT ', ' + I.PartDescription
-									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
-									  LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId
-									  WHERE S.PublicationRecordId = PC.PublicationRecordId
-									  AND S.IsActive = 1 AND S.IsDeleted = 0
-									  FOR XML PATH('')), 1, 1, '') PartDescription
-						) A
+						LEFT JOIN (
+									SELECT 
+										S.PublicationRecordId,
+										(SELECT TOP 1 I.PartDescription
+												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
+												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
+												Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+												) PartDescription
+									FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+									GROUP BY S.PublicationRecordId
+								) A ON PC.PublicationRecordId = A.PublicationRecordId
 						WHERE ((PC.IsDeleted = @IsDeleted))
 						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
 						GROUP BY PC.PublicationRecordId,A.PartDescription
@@ -167,20 +174,22 @@ BEGIN
 						Select PC.PublicationRecordId,(Case When Count(PCI.PublicationRecordId) > 1 THEN 'Multiple' ELse A.Manufacturer End) AS 'ManufacturerType',
 						A.Manufacturer FROM [dbo].[Publication] PC WITH (NOLOCK)
 						LEFT JOIN [dbo].[PublicationItemMasterMapping] PCI WITH (NOLOCK) ON PC.PublicationRecordId = PCI.PublicationRecordId
-						OUTER APPLY(
-							SELECT 
-							   STUFF((SELECT ',' + MF.Name
-									  FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
-									  LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-									  LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
-									  Where S.PublicationRecordId = PC.PublicationRecordId
-									  AND S.IsActive = 1 AND S.IsDeleted = 0
-									  FOR XML PATH('')), 1, 1, '') Manufacturer
-						) A
-						WHERE ((PC.IsDeleted = @IsDeleted))
-						AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
-						GROUP BY PC.PublicationRecordId, A.Manufacturer
-						),			
+						LEFT JOIN (
+									SELECT 
+										S.PublicationRecordId,
+										(SELECT TOP 1 MF.[Name]
+												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
+												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
+												LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
+												Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+												) Manufacturer
+								FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
+								GROUP BY S.PublicationRecordId
+							) A ON PC.PublicationRecordId = A.PublicationRecordId
+									WHERE ((PC.IsDeleted = @IsDeleted))
+									AND PCI.IsActive = 1 AND PCI.IsDeleted = 0
+									GROUP BY PC.PublicationRecordId, A.Manufacturer
+									),			
 						Results AS(
 						Select M.PublicationRecordId, PublicationId,M.[Description] as 'Description',
 							   M.[PublicationType] as 'PublicationType', M.PublishedBy as 'PublishedBy',M.RevisionDate AS RevisionDate,

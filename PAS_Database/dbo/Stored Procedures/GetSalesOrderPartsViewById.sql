@@ -25,25 +25,72 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
  SET NOCOUNT ON;    
  BEGIN TRY        
-   BEGIN       
+   BEGIN   
+		--SELECT 
+		--	 ROW_NUMBER() OVER (
+		--		ORDER BY part.SalesOrderId
+		--	 ) row_num, 
+		--	UPPER(part.PONumber) AS PONumber,
+		--	UPPER(itemMaster.PartNumber) AS PartNumber,
+		--	UPPER(itemMaster.PartDescription) AS PartDescription,
+		--	UPPER(ISNULL(qs.StockLineNumber, '')) AS StockLineNumber,
+		--	UPPER(qs.SerialNumber) AS SerialNumber,
+		--	rPart.QtyToReserve AS Qty,
+		--	UPPER(ISNULL(cp.Description, '')) AS Condition
+		--FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
+		--INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.QtyToReserve > 0
+		--LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+		--LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+		--LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+		--WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
+		--ORDER BY part.ItemNo;
+
+		IF OBJECT_ID(N'tempdb..#tmprShipDetails') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmprShipDetails
+		END
+		
+		CREATE TABLE #tmprShipDetails
+		(
+			[Qty] INT NULL,
+			[SerialNumber] VARCHAR(MAX) NULL,
+			[Condition] VARCHAR(MAX) NULL,
+			[PartNumber] VARCHAR(MAX) NULL,
+		)
+
+		INSERT INTO #tmprShipDetails ([Qty],[SerialNumber],[Condition],[PartNumber])	
 		SELECT 
-			 ROW_NUMBER() OVER (
-				ORDER BY part.SalesOrderId
-			 ) row_num, 
-			UPPER(part.PONumber) AS PONumber,
-			UPPER(itemMaster.PartNumber) AS PartNumber,
-			UPPER(itemMaster.PartDescription) AS PartDescription,
-			UPPER(ISNULL(qs.StockLineNumber, '')) AS StockLineNumber,
+			rpart.QtyToReserve AS Qty,
 			UPPER(qs.SerialNumber) AS SerialNumber,
-			rPart.QtyToReserve AS Qty,
-			UPPER(ISNULL(cp.Description, '')) AS Condition
+			UPPER(ISNULL(cp.Description, '')) AS Condition,
+			UPPER(itemMaster.PartNumber) AS PartNumber
 		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
-		INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.QtyToReserve > 0
-		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
-		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
+				AND rPart.QtyToReserve > 0 
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
-		ORDER BY part.ItemNo;
+
+		UNION 
+
+		SELECT 
+			sos.QtyShipped AS Qty,
+			UPPER(qs.SerialNumber) AS SerialNumber,
+			UPPER(ISNULL(cp.Description, '')) AS Condition,
+			UPPER(itemMaster.PartNumber) AS PartNumber
+		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
+				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON part.SalesOrderPartId = sos.SalesOrderPartId
+				AND sos.IsActive = 1 AND sos.IsDeleted = 0
+		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
+		
+		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
+				 SUM(Qty) AS Qty,SerialNumber,Condition,PartNumber 
+		FROM #tmprShipDetails
+		GROUP BY PartNumber,SerialNumber,Condition
   END    
   END TRY    
  BEGIN CATCH          

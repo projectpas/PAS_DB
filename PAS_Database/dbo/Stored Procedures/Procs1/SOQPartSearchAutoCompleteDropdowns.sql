@@ -1,6 +1,21 @@
-﻿
-
-CREATE     PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]  
+﻿/*************************************************************           
+ ** File:   [SOQPartSearchAutoCompleteDropdowns]
+ ** Author:   
+ ** Description: This stored procedure is used to get part details from PN search
+ ** Purpose:         
+ ** Date:    
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			-------------------------------          
+    1	 06/13/2024  Vishal Suthar		Increased reasult set limit from 20 to 50
+************************************************************************/
+CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
   @CustRestrictedDer BIT=0,
   @CustRestrictedPMA BIT=0,
@@ -166,7 +181,7 @@ CREATE     PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 
 		INSERT INTO #Result 
 				SELECT 
-				DISTINCT TOP 20 * 
+				DISTINCT TOP 50 * 
 				FROM #TempTable t
 				ORDER BY t.PartNumber
 
@@ -189,7 +204,7 @@ CREATE     PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
 		END
 
-		SELECT DISTINCT TOP 20 r.PartId,
+		SELECT DISTINCT TOP 50 r.PartId,
 			r.PartNumber,
 			r.PartDescription,
 			r.ManufacturerName,

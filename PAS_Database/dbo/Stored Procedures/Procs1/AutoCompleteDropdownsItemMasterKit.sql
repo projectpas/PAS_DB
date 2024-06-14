@@ -1,5 +1,25 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [AutoCompleteDropdownsItemMasterKit]           
+ ** Author:   Vishal Suthar
+ ** Description: This stored procedure is used to search part
+ ** Purpose:         
+ ** Date:   06/14/2024       
+          
+ ** PARAMETERS:           
+ @UserType varchar(60)   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/14/2024   Vishal Suthar Added History
+    2    06/14/2024   Vishal Suthar Increased Limit of records from 20 to 50 for Item Master Module
+     
 -- EXEC AutoCompleteDropdownsItemMasterKit 'ItemMaster','ItemMasterId','PartNumber','',1,'20','0',1
+**************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterKit]    
 @TableName VARCHAR(50) = null,    
 @Parameter1 VARCHAR(50)= null,    
@@ -25,11 +45,11 @@ BEGIN
   
   IF(@Count = '0')     
   BEGIN        
-     IF(@Parameter4=1)    
+     IF(@Parameter4 = 1)    
      BEGIN 
-		  IF(@TableName='ItemMaster')
+		  IF(@TableName = 'ItemMaster')
 		  BEGIN
-			SELECT TOP 20 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
+			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId,im.ManufacturerName As ManufacturerName 
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND isSerialized = 1 AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
@@ -52,11 +72,11 @@ BEGIN
   END
   ELSE    
   BEGIN    
-  IF(@Parameter4=1)    
+  IF(@Parameter4 = 1)    
   BEGIN 
-		IF(@TableName='ItemMaster')
+		IF(@TableName = 'ItemMaster')
 		BEGIN
-			SELECT TOP 20 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
+			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND isSerialized = 1 AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'

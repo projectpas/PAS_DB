@@ -13,13 +13,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/23/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/23/2020   Hemant Saliya		Created
+	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
      
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
-
 CREATE PROCEDURE [dbo].[AutoCompleteDropdownsMaterialsItemMaster]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
@@ -33,13 +33,10 @@ BEGIN
 	  BEGIN TRY
 
 		DECLARE @Sql NVARCHAR(MAX);	
-		IF(@Count = '0') 
-		   BEGIN
-		   set @Count = '20';	
-		END	
+		
 		IF(@IsActive = 1)
 			BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber + ' - ' + sl.StocklineNumber AS Label,						
 						Im.PartDescription, 
@@ -109,7 +106,7 @@ BEGIN
 			End
 			ELSE
 			BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber + ' - ' + sl.StocklineNumber AS Label,						
 						Im.PartDescription, 
@@ -143,7 +140,7 @@ BEGIN
 						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId
 				WHERE Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 				UNION 
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber + ' - ' + sl.StocklineNumber AS Label,						
 						Im.PartDescription, 
@@ -181,7 +178,6 @@ BEGIN
 		END TRY 
 	BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
-
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'AutoCompleteDropdownsMaterialsItemMaster'               
 			  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StartWith, '') as varchar(100))

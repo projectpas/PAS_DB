@@ -53,14 +53,16 @@ BEGIN
 		CREATE TABLE #tmprShipDetails
 		(
 			[Qty] INT NULL,
+			[StockLineNumber] VARCHAR(MAX) NULL,
 			[SerialNumber] VARCHAR(MAX) NULL,
 			[Condition] VARCHAR(MAX) NULL,
 			[PartNumber] VARCHAR(MAX) NULL,
 		)
 
-		INSERT INTO #tmprShipDetails ([Qty],[SerialNumber],[Condition],[PartNumber])	
+		INSERT INTO #tmprShipDetails ([Qty],[StockLineNumber],[SerialNumber],[Condition],[PartNumber])	
 		SELECT 
 			rpart.QtyToReserve AS Qty,
+			UPPER(qs.StockLineNumber) AS StockLineNumber,
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber
@@ -76,6 +78,7 @@ BEGIN
 
 		SELECT 
 			sos.QtyShipped AS Qty,
+			UPPER(qs.StockLineNumber) AS StockLineNumber,
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber
@@ -88,9 +91,9 @@ BEGIN
 		WHERE part.SalesOrderId = @SalesOrderId  AND part.IsDeleted = 0
 		
 		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS row_num,
-				 SUM(Qty) AS Qty,SerialNumber,Condition,PartNumber 
+				 SUM(Qty) AS Qty,StockLineNumber,SerialNumber,Condition,PartNumber 
 		FROM #tmprShipDetails
-		GROUP BY PartNumber,SerialNumber,Condition
+		GROUP BY PartNumber,StockLineNumber,SerialNumber,Condition
   END    
   END TRY    
  BEGIN CATCH          

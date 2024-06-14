@@ -14,11 +14,11 @@
  ** --   --------     -------		--------------------------------            
     1    11/16/2023   AMIT GHEDIYA  Created  
 	2    11/17/2023   AMIT GHEDIYA  Updated only Display part which is added in Lot. 
-	2    12/07/2023   Rajesh Gami   LOT condition change
+	3    12/07/2023   Rajesh Gami   LOT condition change
+	4    06/14/2024   Vishal Suthar	Increased Limit of records from 20 to 50 for Item Master Module
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerIsLot] '',1,100,'',1  
-**************************************************************/  
-  
+**************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
 	@StartWith VARCHAR(50),  
 	@IsActive bit = true,  
@@ -37,14 +37,10 @@ BEGIN
 
   SET @LotId = (SELECT LotId FROM dbo.RepairOrder WITH(NOLOCK) where RepairOrderId = @RoId);
   SET @StockLineId = (SELECT ',' + CAST(StockLineId AS VARCHAR(256)) from LotTransInOutDetails WHERE LotId = @LotId for XML PATH(''));
-
-  IF(@Count = '0')   
-     BEGIN  
-     set @Count = '20';   
-  END   
+ 
   IF(@IsActive = 1)  
    BEGIN    
-     SELECT DISTINCT TOP 20   
+     SELECT DISTINCT TOP 50   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,   
@@ -68,7 +64,6 @@ BEGIN
       Im.isTimeLife AS IsTimeLife,  
       ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification 
-       
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 	  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
@@ -109,7 +104,7 @@ BEGIN
    End  
    ELSE  
    BEGIN  
-    SELECT DISTINCT TOP 20   
+    SELECT DISTINCT TOP 50   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,    
@@ -138,7 +133,7 @@ BEGIN
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'  
     UNION   
-    SELECT DISTINCT TOP 20   
+    SELECT DISTINCT TOP 50   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,    
       Im.partnumber AS PartNumber,  

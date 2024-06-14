@@ -10,9 +10,10 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/23/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/23/2020   Hemant Saliya		Created
+	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
      
 --EXEC [AutoCompleteDropdownsItemMasterWithStockLine] '',1,200,'108,109,11'
 **************************************************************/
@@ -30,13 +31,10 @@ BEGIN
 	  BEGIN TRY
 
 		DECLARE @Sql NVARCHAR(MAX);	
-		IF(@Count = '0') 
-		   BEGIN
-		   set @Count = '20';	
-		END	
+		
 		IF(@IsActive = 1)
 			BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
@@ -54,7 +52,7 @@ BEGIN
 			End
 			ELSE
 			BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
@@ -63,7 +61,7 @@ BEGIN
 					  AND SL.QuantityAvailable > 0
 				      AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 				UNION 
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK)

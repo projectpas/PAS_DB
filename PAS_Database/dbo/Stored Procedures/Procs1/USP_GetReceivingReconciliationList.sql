@@ -40,7 +40,8 @@ CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
 @CreatedBy varchar(50),
 @CurrencyName varchar(50),
 @PartNumberType varchar(50),
-@PORODateType datetime=null
+@PORODateType datetime=null,
+@LastMSLevel varchar(50)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -71,7 +72,7 @@ BEGIN
 
 				IF @Status='0'
 				BEGIN
-					SET @Status=null
+					SET @Status = Null
 				END
 				DECLARE @MSModuleID INT = 4; -- Purchaseorder Management Structure Module ID
 				DECLARE @ROMSModuleID INT = 24; -- repairorder Management Structure Module ID
@@ -189,6 +190,12 @@ BEGIN
 						(@GlobalFilter <>'' AND (
 						(M.ReceivingReconciliationNumber LIKE '%' +@GlobalFilter+'%' ) OR
 								(M.InvoiceNum LIKE '%' +@GlobalFilter+'%') OR
+								(M.LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
+								(M.[Status] LIKE '%' +@GlobalFilter+'%') OR
+								(M.OriginalTotal LIKE '%' +@GlobalFilter+'%') OR
+								(M.RRTotal LIKE '%' +@GlobalFilter+'%') OR
+								(M.InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR
+								(M.DIfferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 								(M.VendorName LIKE '%' +@GlobalFilter+'%') OR
 								(CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%' +@GlobalFilter+'%') OR  
 								(M.CurrencyName LIKE '%' +@GlobalFilter+'%')
@@ -198,6 +205,8 @@ BEGIN
 								(ISNULL(@ReceivingReconciliationNumber,'') ='' OR M.ReceivingReconciliationNumber LIKE '%'+@ReceivingReconciliationNumber+'%') AND 
 								(ISNULL(@InvoiceNum,'') ='' OR M.InvoiceNum LIKE '%'+@InvoiceNum+'%') AND
 								(ISNULL(@VendorName,'') =''  OR M.VendorName LIKE '%'+@VendorName+'%') AND
+								--(ISNULL(@Status,'') =''  OR M.[Status] LIKE '%'+@Status+'%') AND
+								(IsNull(@LastMSLevel,'') ='' OR LastMSLevel like '%'+@LastMSLevel+'%') AND
 								(ISNULL(@CurrencyName,'') =''  OR M.CurrencyName LIKE '%'+@CurrencyName+'%') AND
 								(ISNULL(@PartNumberType,'') =''  OR CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%'+@PartNumberType+'%') AND
 								(@OriginalTotal IS  NULL OR M.OriginalTotal=@OriginalTotal) AND
@@ -229,6 +238,7 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
+						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END Desc,    
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY

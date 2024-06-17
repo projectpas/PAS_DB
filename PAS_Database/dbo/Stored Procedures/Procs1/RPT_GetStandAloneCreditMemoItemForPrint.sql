@@ -11,8 +11,9 @@
  ** --   --------     -------		--------------------------------          
     1    13/09/2023   Amit Ghediya    Created
 	2    11/06/2024   Moin Bloch      Added Upper Case in GL
+	3    17/06/2024   Amit Ghediya    Get Reason 
 	
- --  EXEC RPT_GetStandAloneCreditMemoItemForPrint 217
+ --  EXEC RPT_GetStandAloneCreditMemoItemForPrint 77
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[RPT_GetStandAloneCreditMemoItemForPrint]
@@ -28,6 +29,7 @@ BEGIN
 			  ) row_num,
 			  UPPER(GL.AccountCode +' '+ GL.AccountName) AS 'GLName',
 			  ISNULL(UPPER(GL.AccountDescription),'') AS 'Description',
+			  ISNULL(UPPER(SACM.Reason),'') AS 'Reason',
 			  SACM.Qty,
 			  SACM.Rate,
 			  SACM.Amount

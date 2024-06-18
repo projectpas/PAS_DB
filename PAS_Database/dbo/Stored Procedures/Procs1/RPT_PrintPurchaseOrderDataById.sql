@@ -196,7 +196,8 @@ BEGIN
 			   ISNULL(ADB.[Country],'') AS 'BillToCountry',
 			
 			   ISNULL(ADB.[Memo],'') AS 'BillToMemo',
-			   VW.[WarningMessage] AS 'WarningMessage',
+			   --VW.[WarningMessage] AS 'WarningMessage',
+			   '' AS 'WarningMessage',
 			   ISNULL(PMSD.[LastMSLevel],'') AS 'LastMSLevel',
 			   ISNULL(PMSD.[AllMSlevels],'') AS 'AllMSlevels',
 			   @NumofRecords AS 'NumOfRecords'
@@ -206,8 +207,8 @@ BEGIN
 		LEFT JOIN [DBO].[AllAddress] ADB WITH (NOLOCK) ON PO.PurchaseOrderId = AdB.ReffranceId AND ADB.IsShippingAdd = @IsFalse AND ADB.ModuleId = @ModuleID
 		LEFT JOIN [DBO].[Contact] BC WITH (NOLOCK) ON BC.ContactId = ADB.ContactId
 		LEFT JOIN [DBO].[AllShipVia] ASV WITH (NOLOCK) ON PO.PurchaseOrderId = ASV.ReferenceId AND ASV.ModuleId = @ModuleID
-		LEFT JOIN [DBO].[VendorWarning] VW WITH (NOLOCK) ON PO.VendorId = VW.VendorId AND VW.Warning = @IsTrue
-		LEFT JOIN [DBO].[VendorWarningList] VWL WITH (NOLOCK) ON VW.VendorWarningListId = VWL.VendorWarningListId AND VWL.Name = @VendorWarningListName
+		--LEFT JOIN [DBO].[VendorWarning] VW WITH (NOLOCK) ON PO.VendorId = VW.VendorId AND VW.Warning = @IsTrue
+		--LEFT JOIN [DBO].[VendorWarningList] VWL WITH (NOLOCK) ON VW.VendorWarningListId = VWL.VendorWarningListId AND VWL.Name = @VendorWarningListName
 		LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] PMSD WITH (NOLOCK) ON PO.PurchaseOrderId = PMSD.ReferenceID AND PMSD.ModuleID = @OtherModuleID
 		WHERE PO.[PurchaseOrderId] = @PurchaseOrderId;
 		

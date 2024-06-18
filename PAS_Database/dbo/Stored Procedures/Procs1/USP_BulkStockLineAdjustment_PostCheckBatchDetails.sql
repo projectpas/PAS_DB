@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustment_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment.
@@ -21,6 +20,7 @@
     4    26/02/2024   Bhargav Saliya  Get the  @StockModule as 'ModuleId' For StockLine History
 	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	6	 16/04/2024   Amit Ghediya   Updates memo text.
+	7	 18/06/2024   Amit Ghediya   Modified to allow qty update if unit cost is 0.00.
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -124,8 +124,8 @@ BEGIN
 		FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) 
 		WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;
 
-		IF(ISNULL(@Amount,0) <> 0)
-		BEGIN 
+		--IF(ISNULL(@Amount,0) <> 0)
+		--BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentQty')
 			
 			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
@@ -260,12 +260,12 @@ BEGIN
 													 [ManagementStructureId],[LastMSLevel],[AllMSlevels])
 				SELECT [BulkStkLineAdjDetailsId],[BulkStkLineAdjId],[StockLineId],[Qty],[NewQty],[QtyAdjustment],[UnitCost],[AdjustmentAmount],[StockLineAdjustmentTypeId],[IsDeleted],
 													 [ManagementStructureId],[LastMSLevel],[AllMSlevels] 
-				FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND AdjustmentAmount <> 0 AND IsActive = 1;
+				FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;-- AND AdjustmentAmount <> 0;
 
 				SELECT  @MasterLoopID = MAX(ID) FROM #tmpBulkStockLineAdjustmentDetails
-
+				
 				WHILE(@MasterLoopID > 0)
-				BEGIN
+				BEGIN 
 					SELECT @BulkStockLineAdjustmentDetailsId = [BulkStockLineAdjustmentDetailsId],
 						   @DetailQtyAdjustment = QtyAdjustment,
 						   @TransferQtyAdjustment = ABS(QtyAdjustment),
@@ -311,68 +311,70 @@ BEGIN
 						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, NULL, NULL, NULL, 9, @TransferQtyAdjustment, @UpdateBy;
 					END
 
-					-----Inventory-Stock--------
-					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
-					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'BULKSAINVENTORYSTOCKQTY' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
-
-					IF(@DetailQtyAdjustment > 0) -- Debit entry
+					IF(ISNULL(@Amount,0) <> 0)
 					BEGIN
-						INSERT INTO [dbo].[CommonBatchDetails]
-						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
-						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
-						VALUES	
-						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
-						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-						CASE WHEN @AdjustmentAmount > 0 THEN 1 ELSE 0 END,
-						CASE WHEN @AdjustmentAmount > 0 THEN ABS(@AdjustmentAmount) ELSE 0 END,
-						CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE ABS(@AdjustmentAmount) END,
-						@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId);
+						-----Inventory-Stock--------
+						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'BULKSAINVENTORYSTOCKQTY' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
-						SET @CommonBatchDetailId = SCOPE_IDENTITY();
-					END
-					ELSE -- Credit entry
-					BEGIN
-					 INSERT INTO [dbo].[CommonBatchDetails]
-						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
-						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
-						VALUES	
-						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
-						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
-						CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE 1 END,
-						CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE ABS(@AdjustmentAmount) END,
-						CASE WHEN @AdjustmentAmount > 0 THEN ABS(@AdjustmentAmount) ELSE 0 END,
-						@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId);
+						IF(@DetailQtyAdjustment > 0) -- Debit entry
+						BEGIN
+							INSERT INTO [dbo].[CommonBatchDetails]
+							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
+							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES	
+							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
+							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							CASE WHEN @AdjustmentAmount > 0 THEN 1 ELSE 0 END,
+							CASE WHEN @AdjustmentAmount > 0 THEN ABS(@AdjustmentAmount) ELSE 0 END,
+							CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE ABS(@AdjustmentAmount) END,
+							@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId);
 
-						SET @CommonBatchDetailId = SCOPE_IDENTITY();
-					END
-
-					-----  Accounting MS Entry  -----
-
-					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@BlkManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
-			
-					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@BlkManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
-
-					-----Inventory-Stock--------
-
-					-----Inventory Reserve Or COGS - Parts--------
-
-					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					 @CrDrType = CRDRType
-					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'INVENTORYRESCOGSPARTSQTY' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
-
-					 SELECT @GlAccountId = GlAccountId FROM [DBO].[DistributionSetup]  WITH(NOLOCK) WHERE [DistributionSetupCode] = 'INVENTORYRESCOGSPARTSQTY' AND MasterCompanyId = @MasterCompanyId;
-					 SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
-
-					 IF(@DetailQtyAdjustment > 0) -- Debit entry
-					 BEGIN
+							SET @CommonBatchDetailId = SCOPE_IDENTITY();
+						END
+						ELSE -- Credit entry
+						BEGIN
 						 INSERT INTO [dbo].[CommonBatchDetails]
+							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
+							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
+							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+							VALUES	
+							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
+							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+							CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE 1 END,
+							CASE WHEN @AdjustmentAmount > 0 THEN 0 ELSE ABS(@AdjustmentAmount) END,
+							CASE WHEN @AdjustmentAmount > 0 THEN ABS(@AdjustmentAmount) ELSE 0 END,
+							@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId);
+
+							SET @CommonBatchDetailId = SCOPE_IDENTITY();
+						END
+
+						-----  Accounting MS Entry  -----
+
+						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@BlkManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
+			
+						INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
+						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@BlkManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
+
+						-----Inventory-Stock--------
+
+						-----Inventory Reserve Or COGS - Parts--------
+
+						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
+						@CrDrType = CRDRType
+						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'INVENTORYRESCOGSPARTSQTY' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+
+						SELECT @GlAccountId = GlAccountId FROM [DBO].[DistributionSetup]  WITH(NOLOCK) WHERE [DistributionSetupCode] = 'INVENTORYRESCOGSPARTSQTY' AND MasterCompanyId = @MasterCompanyId;
+						SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
+
+						IF(@DetailQtyAdjustment > 0) -- Debit entry
+						BEGIN
+							INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
@@ -387,9 +389,9 @@ BEGIN
 							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId)
 
 							SET @CommonBatchDetailId = SCOPE_IDENTITY();
-					  END
-					  ELSE -- Credit entry
-					  BEGIN
+						 END
+						 ELSE -- Credit entry
+						 BEGIN
 							INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 								[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -405,7 +407,7 @@ BEGIN
 								@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId)
 
 								SET @CommonBatchDetailId = SCOPE_IDENTITY();
-					  END
+						 END
 
 						-----  Accounting MS Entry  -----
 
@@ -414,7 +416,8 @@ BEGIN
 						INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureIds,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,0,@EmployeeId)
 					
-					-----Inventory Reserve Or COGS - Parts--------
+						-----Inventory Reserve Or COGS - Parts--------
+					END
 
 					--GEt Stockline Module ID
 					SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'SL';
@@ -437,7 +440,7 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
-		END
+		--END
 
 		
 		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 

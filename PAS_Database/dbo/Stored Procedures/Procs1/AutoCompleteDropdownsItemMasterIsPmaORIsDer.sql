@@ -10,13 +10,13 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
     1    12/23/2020   Moin Created
+	2    06/14/2024   Vishal Suthar		Increase limit of records from 20 to 50
      
 --EXEC [AutoCompleteDropdownsItemMasterIsPmaORIsDer] '822',1,200,'108,109,11',1
 **************************************************************/
-
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
 @StartWith VARCHAR(50),
 @IsActive bit,
@@ -32,14 +32,10 @@ BEGIN
 		
 		IF(@IsPmaorISDer = 'IsPma')
 		BEGIN
-			DECLARE @Sql NVARCHAR(MAX);	
-				IF(@Count = '0') 
-				BEGIN
-					set @Count = '20';	
-				END	
+			DECLARE @Sql NVARCHAR(MAX);
 				IF(@IsActive = 1)
 				BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
@@ -55,14 +51,14 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma != 1 AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 					UNION 
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
@@ -74,13 +70,9 @@ BEGIN
 		ELSE
 		BEGIN
 			DECLARE @Sql2 NVARCHAR(MAX);	
-				IF(@Count = '0') 
-				BEGIN
-					   set @Count = '20';	
-				END	
 				IF(@IsActive = 1)
 				BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 							Im.ItemMasterId AS Value, 
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
@@ -96,14 +88,14 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 							Im.ItemMasterId AS Value, 
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 							WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 							UNION 
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 							Im.ItemMasterId AS Value,  
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber

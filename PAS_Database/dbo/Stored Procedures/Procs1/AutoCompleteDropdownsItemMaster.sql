@@ -11,34 +11,29 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/23/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/23/2020   Hemant Saliya		Created
+    2    06/14/2024   Vishal Suthar		Increase limit of records from 20 to 50
      
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
-
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMaster]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
 @MasterCompanyId int
-
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON  
 	BEGIN TRY
-		DECLARE @Sql NVARCHAR(MAX);	
-		IF(@Count = '0') 
-		   BEGIN
-		   set @Count = '20';	
-		END	
+		DECLARE @Sql NVARCHAR(MAX);
 
 		IF(@IsActive = 1)
 			BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,	
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
@@ -110,7 +105,7 @@ BEGIN
 			End
 			ELSE
 			BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,	
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
@@ -144,7 +139,7 @@ BEGIN
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK)  ON Im.GLAccountId = GL.GLAccountId
 				WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 				UNION 
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,

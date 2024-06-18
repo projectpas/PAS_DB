@@ -10,33 +10,29 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    15/02/2023   Rajesh Gami   Created  
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    15/02/2023   Rajesh Gami		Created  
+	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,100,'',1  
-**************************************************************/  
-  
+**************************************************************/
 CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
 @IsActive bit = true,  
 @Count VARCHAR(10) = '0',  
 @Idlist VARCHAR(max) = '0',  
 @MasterCompanyId int  
-  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON    
  BEGIN TRY   
   DECLARE @Sql NVARCHAR(MAX);   
-  IF(@Count = '0')   
-     BEGIN  
-     set @Count = '20';   
-  END   
+  
   IF(@IsActive = 1)  
    BEGIN    
-     SELECT DISTINCT TOP 20   
+     SELECT DISTINCT TOP 50   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,   
@@ -61,7 +57,6 @@ BEGIN
       Im.isTimeLife AS IsTimeLife,  
       ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification 
-       
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
@@ -71,7 +66,6 @@ BEGIN
      SELECT DISTINCT Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,   
-      -- (IM.partnumber +' - '+ M.[Name]) As Label,  
       im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
          Im.PartDescription,   
       Im.ItemClassificationId,   
@@ -101,11 +95,10 @@ BEGIN
    End  
    ELSE  
    BEGIN  
-    SELECT DISTINCT TOP 20   
+    SELECT DISTINCT TOP 50   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,    
-       --(IM.partnumber +' - '+ M.[Name]) As Label,  
       im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
          Im.PartDescription,   
       Im.ItemClassificationId,   
@@ -134,7 +127,6 @@ BEGIN
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,    
       Im.partnumber AS PartNumber,  
-       --(IM.partnumber +' - '+ M.[Name]) As Label,  
       im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
          Im.PartDescription,   
       Im.ItemClassificationId,   
@@ -156,11 +148,7 @@ BEGIN
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
-      --JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId  
-      --LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK) ON Im.ItemGroupId =  Ig.ItemGroupId  
-      --LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-      --LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId  
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   
    END  

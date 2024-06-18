@@ -15,7 +15,10 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
-	3    08/12/2023   Jevik Raiyani		 add @statusValue
+	3    08/12/2023   Jevik Raiyani			add @statusValue
+	4    06/18/2024   Vishal Suthar         Added @UnitSalesPrice column
+
+exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=NULL,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderList]
@@ -32,6 +35,7 @@ CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@SalesOrderNumber varchar(50) = NULL,
 	@OpenDate  datetime = NULL,
 	@CustomerReference varchar(50) = NULL,
+	@UnitSalesPrice varchar(50)= NULL,
 	@UnitCost varchar(50)= NULL,
 	@Qty varchar(50)= NULL,
 	@UnitCostExtended varchar(50)= NULL,
@@ -83,24 +87,25 @@ BEGIN
 		        SO.[SalesOrderNumber],
 				SO.[OpenDate],
 				SO.[CustomerReference],
-				STL.[SerialNumber],  
-				ISNULL(SP.[UnitCost],0) AS [UnitCost],
-				ISNULL(SP.[Qty],0) AS [Qty],
-				ISNULL(SP.[UnitCostExtended],0) AS [UnitCostExtended],
+				STL.[SerialNumber],
+				CAST(ISNULL(SP.[UnitSalesPricePerUnit], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
+				ISNULL(SP.[UnitCost], 0) AS [UnitCost],
+				ISNULL(SP.[Qty], 0) AS [Qty],
+				ISNULL(SP.[UnitCostExtended], 0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
-				SO.[SalesPersonName],					
-				CAST(SOS.[ShipDate] AS Date) AS ShipDate,							
+				SO.[SalesPersonName],
+				CAST(SOS.[ShipDate] AS Date) AS ShipDate,
 				SO.[CustomerId],
 				CU.[Name] AS [CustomerName],
 				SP.ConditionId,
-				SO.[IsDeleted],					
+				SO.[IsDeleted],
 				SO.[CreatedDate],
-				SO.[CreatedBy],					
-				SO.[IsActive],					
+				SO.[CreatedBy],
+				SO.[IsActive],
 				SO.[StatusId],
-				ISNULL(IM.ManufacturerName,'')ManufacturerName,			
+				ISNULL(IM.ManufacturerName,'')ManufacturerName,
 				MSOS.[Name] AS StatusValue
-			   FROM [dbo].[SalesOrder] SO WITH (NOLOCK)	
+			   FROM [dbo].[SalesOrder] SO WITH (NOLOCK)
 			   INNER JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = SO.CustomerId
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
@@ -109,16 +114,16 @@ BEGIN
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
 			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
-			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId	
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	
+			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId
 			   LEFT JOIN [dbo].[MasterSalesOrderStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.Id
-
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId
 				AND SO.IsActive = 1
 				AND SO.IsDeleted = 0
 				AND (@ConditionId IS NULL OR SP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 			), ResultCount AS(SELECT COUNT(SalesOrderId) AS totalItems FROM Result)
+
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 				(PartDescription LIKE '%' +@GlobalFilter+'%') OR
@@ -127,6 +132,7 @@ BEGIN
 				(SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 				(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
 				(SerialNumber LIKE '%' +@GlobalFilter+'%') OR	
+				(CAST(UnitSalesPrice AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR	
 				(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR	
 				(CAST(Qty AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 				(CAST(UnitCostExtended AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
@@ -141,6 +147,7 @@ BEGIN
 				(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 				(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 				(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
+				(ISNULL(@UnitSalesPrice,'') ='' OR CAST(UnitSalesPrice AS decimal(9,2)) LIKE '%'+ UnitSalesPrice +'%') AND 
 				(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
 				(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(10)) LIKE '%'+ @Qty+'%') AND 
 				(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(10)) LIKE '%'+ @UnitCostExtended+'%') AND 
@@ -149,7 +156,6 @@ BEGIN
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	
 				(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 				(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%'))))		
-					
 			SELECT @Count = COUNT(SalesOrderId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY 
@@ -166,6 +172,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerReference')  THEN CustomerReference END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerReference')  THEN CustomerReference END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitSalesPrice')  THEN UnitSalesPrice END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitSalesPrice')  THEN UnitSalesPrice END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
@@ -191,7 +199,7 @@ BEGIN
 			FETCH NEXT @PageSize ROWS ONLY
 		END		
 	END TRY    
-	BEGIN CATCH      
+	BEGIN CATCH
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;

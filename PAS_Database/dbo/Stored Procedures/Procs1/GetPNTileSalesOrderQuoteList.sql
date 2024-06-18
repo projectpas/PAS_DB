@@ -33,6 +33,7 @@ CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@OpenDate  datetime = NULL,
 	@CustomerReference varchar(50) = NULL,
 	@UnitCost varchar(50)= NULL,
+	@UnitSalesPrice varchar(50) = NULL,
 	@Qty varchar(50)= NULL,
 	@UnitCostExtended varchar(50)= NULL,
 	@ConditionName varchar(50) = NULL,	
@@ -79,6 +80,7 @@ BEGIN
 		            SOD.[SalesOrderNumber],
 					SOQ.[OpenDate],
 					SOQ.[CustomerReference],
+					ISNULL(SP.[UnitSalesPricePerUnit],0) AS [UnitSalesPrice],
 					ISNULL(SP.[UnitCost],0) AS [UnitCost],
 					ISNULL(SP.[QtyRequested],0) AS [Qty],
 					ISNULL(SP.[UnitCostExtended],0) AS [UnitCostExtended],
@@ -120,6 +122,7 @@ BEGIN
 					(SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(UnitSalesPrice AS VARCHAR(20)) LIKE '%' + @GlobalFilter +'%') OR	
 					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR	
 					(CAST(Qty AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
 					(CAST(UnitCostExtended AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
@@ -135,6 +138,7 @@ BEGIN
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 					(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
+					(ISNULL(@UnitSalesPrice,'') ='' OR CAST(UnitSalesPrice AS NVARCHAR(10)) LIKE '%'+ @UnitSalesPrice+'%') AND 
 					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
 					(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(10)) LIKE '%'+ @Qty+'%') AND 
 					(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(10)) LIKE '%'+ @UnitCostExtended+'%') AND 
@@ -163,6 +167,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerReference')  THEN CustomerReference END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerReference')  THEN CustomerReference END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitSalesPrice')  THEN UnitSalesPrice END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitSalesPrice')  THEN UnitSalesPrice END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,

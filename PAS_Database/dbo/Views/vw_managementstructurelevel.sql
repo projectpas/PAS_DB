@@ -1,19 +1,17 @@
-﻿
-
-CREATE VIEW [dbo].[vw_managementstructurelevel]
+﻿CREATE   VIEW [dbo].[vw_managementstructurelevel]
 AS
-SELECT dbo.ManagementStructureLevel.[ID]
-      ,dbo.ManagementStructureLevel.[Code]
-      ,dbo.ManagementStructureLevel.[Description]
-      ,dbo.ManagementStructureLevel.[TypeID]
-      ,dbo.ManagementStructureLevel.[MasterCompanyId]
-      ,dbo.ManagementStructureLevel.[CreatedBy]
-      ,dbo.ManagementStructureLevel.[UpdatedBy]
-      ,dbo.ManagementStructureLevel.[CreatedDate]
-      ,dbo.ManagementStructureLevel.[UpdatedDate]
-      ,dbo.ManagementStructureLevel.[IsActive]
-      ,dbo.ManagementStructureLevel.[IsDeleted]
-	  ,dbo.ManagementStructureType.[Description] as TypeName
-	  ,dbo.ManagementStructureType.[SequenceNo] as SequenceNo
-  FROM [dbo].ManagementStructureLevel   WITH(NOLOCK)
-  INNER JOIN ManagementStructureType  on ManagementStructureLevel.TypeID =ManagementStructureType.TypeID
+
+SELECT ML.[ID]
+      ,MT.[Description] AS TypeName
+      ,ML.[Code]
+	  ,ML.LegalEntityId
+      ,ML.[Description]
+      ,ML.[TypeID]     
+      ,ML.[IsActive]
+      ,ML.[IsDeleted]
+      ,ML.[CreatedBy]
+      ,ML.[UpdatedBy]
+      ,ML.[CreatedDate]
+      ,ML.[UpdatedDate]
+	  ,ML.[MasterCompanyId]	  
+FROM dbo.[ManagementStructureLevel] ML  WITH(NOLOCK) INNER JOIN ManagementStructureType MT ON ML.TypeID = MT.TypeID WHERE ML.LegalEntityId IS NULL

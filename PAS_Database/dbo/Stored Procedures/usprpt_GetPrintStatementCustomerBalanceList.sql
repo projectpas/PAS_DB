@@ -16,7 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 17-06-2024		HEMANT SALIYA  		Created
 
-EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
+EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetPrintStatementCustomerBalanceList]
@@ -109,6 +109,9 @@ BEGIN
 	BEGIN
 		SET @viewType = 'ALL'
 	END
+
+	--Temporary set to all
+	SET @viewType = 'ALL'
 		
     BEGIN TRY
 
@@ -121,8 +124,8 @@ BEGIN
 
 		DECLARE @CustomerId BIGINT
 
-		SET @CustName = 'LUICE INDIA LTD'
-		SET @CustomerId = 3389
+		--SET @CustName = 'LUICE INDIA LTD'
+		--SET @CustomerId = 3389
 		SET @ISDebugMode = 0;
 			  
 		SELECT @WOMSModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER(ModuleName) ='WORKORDERMPN';
@@ -821,21 +824,21 @@ BEGIN
       DROP TABLE #TEMPInvoiceRecordsDetailsView
     END
 
-    DECLARE @ErrorLogID int,
-        @DatabaseName varchar(100) = DB_NAME(),
-        -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-        @AdhocComments varchar(150) = '[usprpt_GetARAgingAsOfNowReport]',
-        @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)),
-        @ApplicationName varchar(100) = 'PAS'
-    -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-    EXEC Splogexception @DatabaseName = @DatabaseName,
-        @AdhocComments = @AdhocComments,
-        @ProcedureParameters = @ProcedureParameters,
-        @ApplicationName = @ApplicationName,
-        @ErrorLogID = @ErrorLogID OUTPUT;
+    --DECLARE @ErrorLogID int,
+    --    @DatabaseName varchar(100) = DB_NAME(),
+    --    -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+    --    @AdhocComments varchar(150) = '[usprpt_GetARAgingAsOfNowReport]',
+    --    @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)),
+    --    @ApplicationName varchar(100) = 'PAS'
+    -------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+    --EXEC Splogexception @DatabaseName = @DatabaseName,
+    --    @AdhocComments = @AdhocComments,
+    --    @ProcedureParameters = @ProcedureParameters,
+    --    @ApplicationName = @ApplicationName,
+    --    @ErrorLogID = @ErrorLogID OUTPUT;
 
-    RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
-    RETURN (1);
+    --RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+    --RETURN (1);
   END CATCH
 
   IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL

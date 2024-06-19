@@ -25,6 +25,7 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN   
+   DECLARE @CloseSOStatusId int = (SELECT TOP 1 ID FROM DBO.MasterSalesOrderStatus where Name ='Closed' AND IsActive = 1 AND IsDeleted = 0);
    ;WITH Result AS (  
     SELECT DISTINCT POR.ReferenceId as RefId,PurchaseOrderPartReferenceId,POR.ModuleId, POR.Qty AS Qty,  
     --ISNULL((CASE WHEN POR.ModuleId = 1 THEN (SELECT SUM(Stk.QuantityReserved) FROM DBO.Stockline Stk WITH (NOLOCK)   
@@ -65,7 +66,7 @@ BEGIN
     INNER JOIN [DBO].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderPartRecordId = POR.PurchaseOrderPartId  
     LEFT JOIN [DBO].[WorkOrder] wo WITH (NOLOCK) ON wo.WorkOrderId = POR.ReferenceId  
     LEFT JOIN [DBO].[RepairOrder] ro WITH (NOLOCK) ON ro.RepairOrderId = POR.ReferenceId  
-    LEFT JOIN [DBO].[SalesOrder] so WITH (NOLOCK) ON so.SalesOrderId = POR.ReferenceId  
+    LEFT JOIN [DBO].[SalesOrder] so WITH (NOLOCK) ON so.SalesOrderId = POR.ReferenceId AND SO.StatusId != @CloseSOStatusId
     LEFT JOIN [DBO].[ExchangeSalesOrder] eso WITH (NOLOCK) ON eso.ExchangeSalesOrderId = POR.ReferenceId  
     LEFT JOIN [DBO].[Lot] l WITH (NOLOCK) ON l.LotId = POR.ReferenceId  
     LEFT JOIN [DBO].[SubWorkOrder] sw WITH (NOLOCK) ON sw.SubWorkOrderId = POR.ReferenceId  

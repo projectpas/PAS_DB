@@ -12,6 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    05/04/2023   Amit Ghediya     Created
 	2    21/11/2023   Amit Ghediya     Updated for get lotout unitcost & ext Cost amount for trans out.
+	3	 20 jun 2024  Bhargav Saliya   Remove UPPER case for the memo
 **************************************************************
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -97,7 +98,7 @@ BEGIN
 					UPPER(MSD.Level2Name) AS bU,
 					UPPER(MSD.Level3Name) AS div,
 					UPPER(MSD.Level4Name) AS dept,
-					UPPER(ind.TransInMemo) AS memo
+					ind.TransInMemo AS memo
 					,UPPER(MSD.LastMSLevel)	LastMSLevel
 					,UPPER(MSD.AllMSlevels) AllMSlevels
 					,UPPER(stl.UnitOfMeasure) AS Uom

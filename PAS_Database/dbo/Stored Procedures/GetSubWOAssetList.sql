@@ -13,16 +13,20 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    03/23/2020   Subhash Saliya Created  
- 2    06/25/2020   Hemant  Saliya Added Transation & Content Management 
- 3    04/24/2023   Shrey Chandegara Join Change with table AssetAttributeType
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    03/23/2020   Subhash Saliya	Created  
+	2    06/25/2020   Hemant  Saliya	Added Transation & Content Management 
+	3    04/24/2023   Shrey Chandegara	Join Change with table AssetAttributeType
+	4    06/20/2023   Devendra Shekh	Join Change with table TangibleClass
        
- EXECUTE [GetSubWOAssetList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  
+exec GetSubWOAssetList 
+@PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@SubWorkOrderAssetId=0,@SubWOPartNoId=231,
+@TaskName=NULL,@Name=NULL,@AssetId=NULL,@Description=NULL,@TangibleClassName=NULL,@Quantity=0,
+@CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@AssetClass=NULL,@Status=NULL 
 **************************************************************/   
   
-CREATE     PROCEDURE [dbo].[GetSubWOAssetList]  
+CREATE   PROCEDURE [dbo].[GetSubWOAssetList]  
  -- Add the parameters for the stored procedure here   
  @PageSize int,  
  @PageNumber int,  
@@ -110,7 +114,7 @@ BEGIN
        join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
        LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  
-       JOIN dbo.TangibleClass at WITH (NOLOCK) ON a.TangibleClassId = at.TangibleClassId  
+       JOIN dbo.TangibleClass at WITH (NOLOCK) ON AAT.TangibleClassId = at.TangibleClassId  
        LEFT JOIN dbo.SubWOCheckInCheckOutWorkOrderAsset COCI WITH (NOLOCK) ON WOA.SubWorkOrderAssetId = COCI.SubWorkOrderAssetId AND COCI.IsQtyCheckOut = 1  
        LEFT JOIN dbo.AssetInventory AI WITH (NOLOCK) ON COCI.AssetInventoryId =  AI.AssetInventoryId  
        LEFT JOIN dbo.AssetInventoryStatus AIS WITH (NOLOCK) ON AIS.AssetInventoryStatusId =  AI.InventoryStatusId  

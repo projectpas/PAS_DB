@@ -17,8 +17,9 @@
 	5    20/03/2024    Moin Bloch	    changed same customer logic
 	6    08/04/2024    Devendra Shekh	remaining amt issue for known customer without invoices resolved
 	7    19/04/2024    Moin Bloch	    Duplicate issue
+	8    20/06/2024    Moin Bloch	    Added isDeleted flage
 
-	EXEC [dbo].[CustomerPaymentsReview]  10169
+	EXEC [dbo].[CustomerPaymentsReview]  188
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[CustomerPaymentsReview]    
@@ -64,7 +65,7 @@ BEGIN
 				   ELSE '' END      
 		 ,(ISNULL(ICP.Amount, 0)) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ISNULL(ICP.Ismiscellaneous,0) = 0  
+	  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ISNULL(ICP.Ismiscellaneous,0) = 0 AND ICP.IsActive = 1 AND ICP.IsDeleted = 0
 	  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId 	 
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0
@@ -83,7 +84,7 @@ BEGIN
 				   ELSE '' END      
 		 ,ISNULL(IWP.Amount, 0) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND ISNULL(IWP.Ismiscellaneous,0) = 0     
+	  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND ISNULL(IWP.Ismiscellaneous,0) = 0 AND IWP.IsActive = 1 AND IWP.IsDeleted = 0     
 	  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId 
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0	 
@@ -102,7 +103,7 @@ BEGIN
 				   ELSE '' END      
 		 , ISNULL(ICCP.Amount, 0) AS 'Amount'
 	  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK)  
-	  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ISNULL(ICCP.Ismiscellaneous,0) = 0         
+	  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ISNULL(ICCP.Ismiscellaneous,0) = 0 AND ICCP.IsActive = 1 AND ICCP.IsDeleted = 0             
 	  LEFT JOIN [dbo].[Customer] CDP WITH (NOLOCK) ON CDP.CustomerId = ICCP.CustomerId     
 	  WHERE CP.ReceiptId =  @ReceiptId              
 	  AND CP.IsDeleted = 0	
@@ -127,7 +128,7 @@ BEGIN
 		  AS PaymentRef    
 		  , Amount 
 		  FROM myCTE1 C    
-		  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId    
+		  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId AND IPS.IsActive = 1 AND IPS.IsDeleted = 0      
 		  GROUP BY C.ReceiptId, C.CustomerId, Name, CustomerCode,C.PaymentRef, Amount)  
 	  
   ,myCTE3(ReceiptId, CustomerId, Name, CustomerCode, PaymentRef, Amount) AS     
@@ -145,7 +146,7 @@ BEGIN
 			 CASE WHEN ISNULL(IPS.PaymentId, 0) = 0 AND ISNULL(CU.Ismiscellaneous, 0) = 0 THEN Amount ELSE (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0))  END AS AmountRemaining,
 			(Amount - (Amount - SUM(IPS.PaymentAmount) + ISNULL(SUM(CASE WHEN IPS.InvoiceType = 3 THEN ABS(ISNULL(IPS.OriginalAmount,0)) ELSE 0 END),0)))  AS AmtApplied  
 		  FROM myCTE3 C          
-	  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId    
+	  LEFT JOIN [dbo].[InvoicePayments] IPS WITH (NOLOCK) ON C.ReceiptId = IPS.ReceiptId AND IPS.CustomerId = C.CustomerId AND IPS.IsActive = 1 AND IPS.IsDeleted = 0     
 	  LEFT JOIN [dbo].[Customer] CU WITH (NOLOCK) ON CU.CustomerId = C.CustomerId    
 	  GROUP BY C.ReceiptId, C.CustomerId, C.Name, C.CustomerCode, Amount, PaymentRef, IPS.PaymentId, CU.Ismiscellaneous)
   
@@ -201,7 +202,7 @@ BEGIN
 		   LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND ICCP1.Ismiscellaneous = 1  
 		   WHERE CP.ReceiptId = CP1.ReceiptId 
 	  ) A  
-	  WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0)
+	  WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0) AND CP.IsDeleted = 0	 
 
  END TRY        
   BEGIN CATCH    

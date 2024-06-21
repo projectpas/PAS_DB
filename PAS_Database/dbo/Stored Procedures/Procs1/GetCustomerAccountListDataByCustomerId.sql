@@ -27,6 +27,7 @@
 	14   07/03/2024		   Hemant Saliya   Verify SP and Joins
 	15   19/03/2024        Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 	16   19/03/2024        Devendra Shekh  amount mismatch issue resolved
+	17	 06/21/2024		   Hemant Saliya  added Un Applied Cash Details
 ***************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
 	@CustomerId BIGINT = NULL,
@@ -43,11 +44,14 @@ BEGIN
 		BEGIN TRY
 		DECLARE @SOMSModuleID INT = 17;
 		DECLARE @WOMSModuleID INT = 12;
-	    DECLARE @CreditMemoMSModuleID INT = 61
+	    DECLARE @CreditMemoMSModuleID INT = 61;
+		DECLARE @CustomerCreditPaymentOpenStatus INT = 1; -- For Suspense Posting Status Id
 		DECLARE @PostStatusId INT;
 	    SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
 		DECLARE @CMPostedStatusId INT
         SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
+
+		
 		
 		IF(@OpenTransactionsOnly = 1)
 		BEGIN 
@@ -248,6 +252,17 @@ BEGIN
 				 AND CM.IsStandAloneCM = 1  				 
 			   GROUP BY CM.CustomerId			
 			)
+
+			,UnAppliedCash AS(
+				SELECT SUS.CustomerId AS CustomerId, 
+				(ISNULL(SUM(SUS.RemainingAmount),0)) AS 'UnAppliedCash'
+				FROM dbo.CustomerCreditPaymentDetail SUS  WITH (NOLOCK) 					
+			   WHERE SUS.CustomerId = @CustomerId AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(SUS.IsActive, 0) = 1 AND ISNULL(SUS.IsDeleted, 0) = 0
+			     AND CAST(SUS.ReceiveDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND SUS.CustomerId = @CustomerId
+				 AND SUS.StatusId = @CustomerCreditPaymentOpenStatus
+			   GROUP BY SUS.CustomerId			
+			)
 			
 			,ManualJE AS (			 
 				SELECT MJD.ReferenceId AS CustomerId,
@@ -266,6 +281,7 @@ BEGIN
 					   MAX(CTE.currencyCode) AS  'currencyCode',
 					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount',
 					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   (ISNULL(MAX(UAC.UnAppliedCash),0)) AS 'UnAppliedCashAmount',
 					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
@@ -286,7 +302,9 @@ BEGIN
 					INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
 					LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId 
 					LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 					
-					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 					
+					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 		
+					LEFT JOIN UnAppliedCash AS UAC WITH (NOLOCK) ON UAC.CustomerId = C.CustomerId 		
+					
 			   WHERE c.CustomerId = @CustomerId 
 			   GROUP BY C.CustomerId
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
@@ -482,6 +500,17 @@ BEGIN
 			   GROUP BY CM.CustomerId			
 			)
 
+			,UnAppliedCash AS(
+				SELECT SUS.CustomerId AS CustomerId, 
+				(ISNULL(SUM(SUS.RemainingAmount),0)) AS 'UnAppliedCash'
+				FROM dbo.CustomerCreditPaymentDetail SUS  WITH (NOLOCK) 					
+			   WHERE SUS.CustomerId = @CustomerId AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(SUS.IsActive, 0) = 1 AND ISNULL(SUS.IsDeleted, 0) = 0
+			     AND CAST(SUS.ReceiveDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE)
+			     AND SUS.CustomerId = @CustomerId
+				 AND SUS.StatusId = @CustomerCreditPaymentOpenStatus
+			   GROUP BY SUS.CustomerId			
+			)
+
 		    ,ManualJE AS (			 
 			  SELECT MJD.ReferenceId AS CustomerId,
 				     ISNULL(SUM(ISNULL(MJD.Debit,0) - ISNULL(MJD.Credit,0)),0) AS 'ManualJEAmount' 				 
@@ -499,7 +528,9 @@ BEGIN
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
                        MAX(CT.CustomerTypeName) 'CustomertType',
 					   MAX(CTE.currencyCode) AS  'currencyCode',
-					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount', (ISNULL(SUM(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount', 
+					   (ISNULL(SUM(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
+					   (ISNULL(SUM(UAC.UnAppliedCash),0)) AS 'UnAppliedCashAmount',
 					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
@@ -520,7 +551,8 @@ BEGIN
 					INNER JOIN CTECalculation AS CTECalculation WITH (NOLOCK) ON CTECalculation.CustomerId = C.CustomerId
 					LEFT JOIN Creditmemo AS Creditmemo WITH (NOLOCK) ON Creditmemo.CustomerId = C.CustomerId
 					LEFT JOIN StandaloneCreditMemo AS SCM WITH (NOLOCK) ON SCM.CustomerId = C.CustomerId 	
-					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 				
+					LEFT JOIN ManualJE AS ManualJE WITH (NOLOCK) ON ManualJE.CustomerId = C.CustomerId 			
+					LEFT JOIN UnAppliedCash AS UAC WITH (NOLOCK) ON UAC.CustomerId = C.CustomerId 			
 			   WHERE c.CustomerId = @CustomerId  GROUP BY C.CustomerId
 
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)

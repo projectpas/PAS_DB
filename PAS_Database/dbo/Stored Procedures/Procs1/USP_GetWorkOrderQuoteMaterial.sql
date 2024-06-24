@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/22/2022   Subhash Saliya		Created
 	2	 03/08/2024   Bhargav Saliya     Change Order By Desc to Asc
+	3	 06/24/2024   Abhishek Jirawla   Adding memo
      
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -81,6 +82,7 @@ BEGIN
                        im.Item,
 					   0 as WOQMaterialKitMappingId,
 					   0 as KitId,
+					   ISNULL(wom.Memo, '') AS 'Memo',
 					   wom.CreatedBy,
 					   wom.CreatedDate,
 					   wom.UpdatedBy,
@@ -140,6 +142,7 @@ BEGIN
                        im.Item,
 					   wom.WOQMaterialKitMappingId as WOQMaterialKitMappingId,
 					   wom.kitId as KitId,
+					   '' AS Memo,
 					   wom.CreatedBy,
 					   wom.CreatedDate,
 					   wom.UpdatedBy,

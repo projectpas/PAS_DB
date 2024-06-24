@@ -32,8 +32,9 @@
 	20   19/03/2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 	21   13/03/2024   Moin Bloch       Modify(makes Performa Invoice to Invoice)
 	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
+	23   21/06/2024   Hemant Saliya    Added Un Applied Cash to utilize in Cash Receipt.
 
-	EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
+EXEC  [dbo].[SearchCustomerInvoicesByCustId] 1122,1 
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      

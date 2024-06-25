@@ -3003,6 +3003,10 @@
     <Build Include="dbo\Views\vw_ManagementStructureLevelAudit.sql" />
     <Build Include="dbo\Views\vw_DefaultMessageAudit.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetPrintStatementCustomerBalanceList.sql" />
+    <Build Include="dbo\Views\vw_WingTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_ShippingTermsAudit.sql" />
+    <Build Include="dbo\Views\vw_ATAChapterCategoryAudit.sql" />
+    <Build Include="Security\Donald.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

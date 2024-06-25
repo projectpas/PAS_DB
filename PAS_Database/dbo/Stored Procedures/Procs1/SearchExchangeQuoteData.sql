@@ -12,6 +12,7 @@
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
+	2    24/06/2024   AMIT GHEDIYA		 Manufacture filter added(before not working).   
 **************************************************************/   
 CREATE    PROCEDURE [dbo].[SearchExchangeQuoteData]
 	-- Add the parameters for the stored procedure here
@@ -45,7 +46,8 @@ CREATE    PROCEDURE [dbo].[SearchExchangeQuoteData]
 	@CreatedBy varchar(50)=null,
 	@UpdatedBy varchar(50)=null,
 	@MasterCompanyId int = 1,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@ManufacturerName varchar(200)=null
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
@@ -89,7 +91,7 @@ BEGIN
 				ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'CustomerRequestDateType',
 				EQ.StatusId, EQ.CustomerReference, IsNull(P.Description, '') as 'Priority', IsNull(P.Description, '') as 'PriorityType',
 				(E.FirstName+' '+E.LastName)as SalesPerson,
-				IsNull(IM.partnumber,'') as 'PartNumber',ISNULL(Im.ManufacturerName,'') as 'ManufacturerName', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',
+				IsNull(IM.partnumber,'') as 'PartNumber',ISNULL(Im.ManufacturerName,'') as 'ManufacturerName',ISNULL(Im.ManufacturerName,'') as 'ManufacturerNameType', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',
 				EQ.CreatedDate, EQ.UpdatedDate, EQ.UpdatedBy, EQ.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimateShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromiseDate',
 				--ISNULL(EQ.ShippedDate, '0001-01-01') as 'ShippedDate', 
 				EQ.IsDeleted,EQ.IsNewVersionCreated
@@ -126,7 +128,7 @@ BEGIN
 						--RequestedDateType,
 						EstimateShipDate,CustomerRequestDateType, EstimateShipDateType, PromiseDate, 
 						SalesPerson, Status, StatusId,
-						PartNumber, PartNumberType, PartDescription,ManufacturerName, PartDescriptionType,IsNewVersionCreated,
+						PartNumber, PartNumberType, PartDescription,ManufacturerName,ManufacturerNameType, PartDescriptionType,IsNewVersionCreated,
 						CreatedDate, UpdatedDate, CreatedBy, UpdatedBy FROM Result
 				where (
 					(@GlobalFilter <>'' AND ((ExchangeQuoteNumber like '%' +@GlobalFilter+'%' ) OR 
@@ -144,7 +146,7 @@ BEGIN
 							(PromiseDate like '%' +@GlobalFilter+'%') OR
 							(PartNumberType like '%' +@GlobalFilter+'%') OR
 							(PartDescriptionType like '%' +@GlobalFilter+'%') OR
-							(ManufacturerName like '%' +@GlobalFilter+'%') OR
+							(ManufacturerNameType like '%' +@GlobalFilter+'%') OR
 							(CreatedDate like '%' +@GlobalFilter+'%') OR
 							(UpdatedDate like '%' +@GlobalFilter+'%') OR
 							(Status like '%' +@GlobalFilter+'%')
@@ -172,7 +174,8 @@ BEGIN
 							(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%'+ @UpdatedBy+'%') and
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
-							(IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%'))
+							(IsNull(@Status,'') ='' OR Status like  '%'+@Status+'%') and
+							(IsNull(@ManufacturerName,'') ='' OR ManufacturerNameType like  '%'+@ManufacturerName+'%'))
 							)
 							),
 						ResultCount AS (Select COUNT(ExchangeQuoteId) AS NumberOfItems FROM FinalResult)
@@ -184,7 +187,7 @@ BEGIN
 						CustomerRequestDate, CustomerRequestDateType, QuoteExpireDate, EstimateShipDate, EstimateShipDateType, PromiseDate, 
 						--ShippedDate,
 						UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId,
-						UPPER(PartNumber) 'PartNumber', UPPER(PartNumberType) 'PartNumberType', UPPER(PartDescription) 'PartDescription', UPPER(ManufacturerName) 'ManufacturerName', UPPER(PartDescriptionType) 'PartDescriptionType',IsNewVersionCreated,
+						UPPER(PartNumber) 'PartNumber', UPPER(PartNumberType) 'PartNumberType', UPPER(PartDescription) 'PartDescription', UPPER(ManufacturerName) 'ManufacturerName',UPPER(ManufacturerName) 'ManufacturerNameType', UPPER(PartDescriptionType) 'PartDescriptionType',IsNewVersionCreated,
 						CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy', NumberOfItems FROM FinalResult, ResultCount
 
 						ORDER BY  
@@ -207,7 +210,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
-					CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerNameType END ASC,
 
 			        CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGEQUOTEID')  THEN ExchangeQuoteId END DESC,
 			        CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGEQUOTENUMBER')  THEN ExchangeQuoteNumber END DESC,
@@ -228,7 +231,7 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerNameType END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 					Print @SortOrder

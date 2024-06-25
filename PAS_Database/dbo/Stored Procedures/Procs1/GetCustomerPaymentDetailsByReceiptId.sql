@@ -1,4 +1,4 @@
-﻿-- EXEC GetCustomerPaymentDetailsByReceiptId 90,0,2
+﻿-- EXEC GetCustomerPaymentDetailsByReceiptId 146,0,1
 CREATE   PROCEDURE [dbo].[GetCustomerPaymentDetailsByReceiptId]
 @ReceiptId BIGINT = NULL,
 @PageIndex int = NULL,

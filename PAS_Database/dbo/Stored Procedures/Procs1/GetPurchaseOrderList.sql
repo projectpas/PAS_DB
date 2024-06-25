@@ -1,4 +1,5 @@
-﻿/*************************************************************                 
+﻿
+/*************************************************************                 
  ** File:   [GetPurchaseOrderList]                 
  ** Author:   Vishal Suthar        
  ** Description: Get Data for Purchase Order listing      
@@ -91,7 +92,7 @@ BEGIN
  BEGIN       
  IF(@ViewType = 'poview')      
  BEGIN      
- ;WITH Result AS(               
+	;WITH Result AS(               
   SELECT DISTINCT PO.PurchaseOrderId,      
       PO.PurchaseOrderNumber,      
    PO.PurchaseOrderNumber AS PurchaseOrderNo,      
@@ -414,128 +415,130 @@ BEGIN
  END      
  ELSE      
  BEGIN      
-  ;WITH Result AS(               
-      SELECT DISTINCT PO.PurchaseOrderId,      
-          PO.PurchaseOrderNumber,      
-    PO.PurchaseOrderNumber AS PurchaseOrderNo,      
-                PO.OpenDate,      
-    PO.ClosedDate,      
-    PO.CreatedDate,      
-    PO.CreatedBy,      
-    PO.UpdatedDate,      
-    PO.UpdatedBy,      
-    PO.IsActive,      
-    PO.IsDeleted,      
-    PO.StatusId,      
-    PO.VendorId,      
-    PO.VendorName,      
-    PO.VendorCode,           
-    PO.[Status],      
-    PO.Requisitioner AS RequestedBy,      
-    PO.ApprovedBy,      
-    POP.PartNumber,      
-    POP.PartNumber as PartNumberType,      
-    M.[Name] AS Manufacturer,      
-    M.[Name] AS ManufacturerType,      
-    SO.SalesOrderNumber,      
-    SO.SalesOrderNumber as SalesOrderNumberType,      
-    WO.WorkOrderNum,      
-    WO.WorkOrderNum as WorkOrderNumType,   
-    RO.RepairOrderNumber,      
-    RO.RepairOrderNumber as RepairOrderNumberType,      
-    --POP.EstDeliveryDate,      
-    CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,      
-    CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryType,      
-    POP.PurchaseOrderPartRecordId,      
-    ISNULL(POP.QuantityOrdered,0) AS QuantityOrdered,      
-    ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,      
-    ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
-   FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
-   INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId      
-   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
-   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
-   LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
-   LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
-   LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
-   LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
-   LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
-    WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))       
-       --AND EMS.EmployeeId =  @EmployeeId       
-    AND PO.MasterCompanyId = @MasterCompanyId       
-    AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)      
-  ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)      
-  SELECT * INTO #TempResult FROM  Result      
-   WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR      
-    (CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
-    (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR       
-    (VendorName LIKE '%' +@GlobalFilter+'%') OR        
-    (RequestedBy LIKE '%' +@GlobalFilter+'%') OR      
-    (ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
-    ([Status]  LIKE '%' +@GlobalFilter+'%') OR      
-    (PartNumber LIKE '%' +@GlobalFilter+'%') OR      
-    (Manufacturer LIKE '%' +@GlobalFilter+'%') OR      
-    (SalesOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
-    (WorkOrderNumType LIKE '%' +@GlobalFilter+'%') OR      
-    (RepairOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
-    (CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR      
-    (CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
-    (CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))      
-    OR         
-    (@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND       
-    (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND      
-    (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND      
-    (ISNULL(@ApprovedBy,'') ='' OR ApprovedBy LIKE '%' + @ApprovedBy + '%') AND      
-    (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND      
-    (ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND      
-    (ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND               
-    (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND               
-    (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND      
-    (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND      
-    (ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') AND      
-    (ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and      
-    (ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND      
-    (ISNULL(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND      
-    (ISNULL(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%') AND      
-    (ISNULL(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') AND      
-    (ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND       
-    (ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND       
-    (ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))      
-    )      
+	  ;WITH Result AS(               
+		  SELECT DISTINCT PO.PurchaseOrderId,      
+			  PO.PurchaseOrderNumber,      
+		PO.PurchaseOrderNumber AS PurchaseOrderNo,      
+					PO.OpenDate,      
+		PO.ClosedDate,      
+		PO.CreatedDate,      
+		PO.CreatedBy,      
+		PO.UpdatedDate,      
+		PO.UpdatedBy,      
+		PO.IsActive,      
+		PO.IsDeleted,      
+		PO.StatusId,      
+		PO.VendorId,      
+		PO.VendorName,      
+		PO.VendorCode,           
+		PO.[Status],      
+		PO.Requisitioner AS RequestedBy,      
+		PO.ApprovedBy,      
+		POP.PartNumber,      
+		POP.PartNumber as PartNumberType,      
+		M.[Name] AS Manufacturer,      
+		M.[Name] AS ManufacturerType,      
+		SO.SalesOrderNumber,      
+		SO.SalesOrderNumber as SalesOrderNumberType,      
+		WO.WorkOrderNum,      
+		WO.WorkOrderNum as WorkOrderNumType,   
+		RO.RepairOrderNumber,      
+		RO.RepairOrderNumber as RepairOrderNumberType,      
+		--POP.EstDeliveryDate,      
+		CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,      
+		CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryType,      
+		POP.PurchaseOrderPartRecordId,      
+		ISNULL(POP.QuantityOrdered,0) AS QuantityOrdered,      
+		ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,      
+		ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
+	   FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
+	   INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId      
+	   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
+	   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
+	   LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
+	   LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
+	   LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
+	   LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
+	   LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
+		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))       
+		   --AND EMS.EmployeeId =  @EmployeeId       
+		AND PO.MasterCompanyId = @MasterCompanyId       
+		AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)      
+	  ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)      
+	  SELECT * INTO #TempResult FROM  Result      
+	   WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR      
+		(CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
+		(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR       
+		(VendorName LIKE '%' +@GlobalFilter+'%') OR        
+		(RequestedBy LIKE '%' +@GlobalFilter+'%') OR      
+		(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
+		([Status]  LIKE '%' +@GlobalFilter+'%') OR      
+		(PartNumber LIKE '%' +@GlobalFilter+'%') OR      
+		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR      
+		(SalesOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
+		(WorkOrderNumType LIKE '%' +@GlobalFilter+'%') OR      
+		(RepairOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
+		(CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR      
+		(CAST(QuantityBackOrdered AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+		(CAST(QuantityReceived AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))      
+		OR         
+		(@GlobalFilter='' AND (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber+'%') AND       
+		(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND      
+		(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND      
+		(ISNULL(@ApprovedBy,'') ='' OR ApprovedBy LIKE '%' + @ApprovedBy + '%') AND      
+		(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND      
+		(ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND      
+		(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND               
+		(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND               
+		(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND      
+		(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND      
+		(ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') AND      
+		(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and      
+		(ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND      
+		(ISNULL(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND      
+		(ISNULL(@WorkOrderNumType,'') ='' OR WorkOrderNumType like '%'+@WorkOrderNumType+'%') AND      
+		(ISNULL(@RepairOrderNumberType,'') ='' OR RepairOrderNumberType like '%'+@RepairOrderNumberType+'%') AND      
+		(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered as NVARCHAR(10)) like '%'+ @QuantityOrdered+'%') AND       
+		(ISNULL(@QuantityBackOrdered,'') ='' OR CAST(QuantityBackOrdered as NVARCHAR(10)) like '%'+@QuantityBackOrdered+'%') AND       
+		(ISNULL(@QuantityReceived,'') ='' OR CAST(QuantityReceived as NVARCHAR(10)) like '%'+@QuantityReceived+'%'))      
+		)      
       
-  SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult         
+	  SELECT @Count = COUNT(PurchaseOrderId) FROM #TempResult      
       
-  SELECT *, @Count AS NumberOfItems FROM #TempResult      
-  ORDER BY        
-  CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,         
-  CASE WHEN (@SortOrder=1  AND @SortColumn='RequestedBy')  THEN RequestedBy END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedBy')  THEN RequestedBy END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='ApprovedBy')  THEN ApprovedBy END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,                 
-  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,      
-  CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,      
-  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,      
-  CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,      
-  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,        
-  CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END DESC,      
-  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,      
-  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,      
-  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC      
-  OFFSET @RecordFrom ROWS       
-  FETCH NEXT @PageSize ROWS ONLY      
+	  SELECT *, @Count AS NumberOfItems FROM #TempResult      
+	  ORDER BY        
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderId')  THEN PurchaseOrderId END ASC,      
+      CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderId')  THEN PurchaseOrderId END DESC, 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,         
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='RequestedBy')  THEN RequestedBy END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='RequestedBy')  THEN RequestedBy END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='ApprovedBy')  THEN ApprovedBy END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='ApprovedBy')  THEN ApprovedBy END DESC,                 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,      
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,      
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,      
+	  CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,      
+	  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END DESC,        
+	  CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END ASC,      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBERTYPE')  THEN SalesOrderNumberType END DESC,      
+	  CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END ASC,      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,      
+	  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,      
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC      
+	  OFFSET @RecordFrom ROWS       
+	  FETCH NEXT @PageSize ROWS ONLY      
  END      
  END      
  COMMIT  TRANSACTION      

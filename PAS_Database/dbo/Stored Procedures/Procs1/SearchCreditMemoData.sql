@@ -17,6 +17,7 @@
 	4    09/15/2023   AMIT GHEDIYA      Updated to Cast.
 	5    04/04/2024   Devendra Shekh    added vendorid to select
 	6    04/10/2024   HEMANT            Updated Status Id 
+	7    06/25/2024   Moin Bloch        Updated Multiple Reson
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -142,9 +143,9 @@ BEGIN
     LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId =CRD.CreditMemoHeaderId  
     OUTER APPLY(    
      SELECT     
-     STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 then ',' ELSE '' END + I.partnumber    
-      FROM CreditMemoDetails S WITH (NOLOCK)    
-      Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
+     STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 THEN ',' ELSE '' END + I.partnumber    
+      FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
+      Left Join dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartNumber    
@@ -156,11 +157,11 @@ BEGIN
     Select CRD.CreditMemoHeaderId,(CASE WHEN COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE A.PartDescription END)  AS 'PartDescription',    
     A.PartDescription [PartDescriptionType] FROM dbo.CreditMemo CRH WITH (NOLOCK)   
     LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId = CRD.CreditMemoHeaderId  
-    Outer Apply(    
+    OUTER APPLY(    
      SELECT     
      STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription    
-      FROM CreditMemoDetails S WITH (NOLOCK)    
-      Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
+      FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
+      LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartDescription    
@@ -173,11 +174,11 @@ BEGIN
     Select CRD.CreditMemoHeaderId,(CASE WHEN COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE A.ManufacturerName END)  AS 'ManufacturerName',    
     A.ManufacturerName [ManufacturerNameType] FROM dbo.CreditMemo CRH WITH (NOLOCK)   
     LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId = CRD.CreditMemoHeaderId  
-    Outer Apply(    
+    OUTER APPLY(    
      SELECT     
-     STUFF((SELECT CASE WHEN LEN(I.ManufacturerName) >0 then ',' ELSE '' END + I.ManufacturerName    
-      FROM CreditMemoDetails S WITH (NOLOCK)    
-      Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
+     STUFF((SELECT CASE WHEN LEN(I.ManufacturerName) > 0 THEN ',' ELSE '' END + I.ManufacturerName    
+      FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
+      LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId    
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') ManufacturerName    
@@ -186,35 +187,51 @@ BEGIN
     Group By CRD.CreditMemoHeaderId, A.ManufacturerName    
     ),  
       
-     CMReasonCTE AS(    
-    Select CRD.CreditMemoHeaderId,(Case When Count(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELse A.Reason End)  as 'Reason',    
-    A.Reason [ReasonType] from CreditMemo CRH WITH (NOLOCK)   
-    LEFT JOIN CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId = CRD.CreditMemoHeaderId  
-    Outer Apply(    
+   CMReasonCTE AS(    
+    SELECT 
+	CASE WHEN CRH.IsStandAloneCM = 1 THEN SCRD.CreditMemoHeaderId ELSE CRD.CreditMemoHeaderId END CreditMemoHeaderId,
+	CASE WHEN CRH.IsStandAloneCM = 1 THEN 
+		(CASE WHEN COUNT(SCRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE B.Reason End)
+		ELSE 
+		(CASE WHEN COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE A.Reason End)
+	END	AS 'Reason',  
+	CASE WHEN CRH.IsStandAloneCM = 1 THEN B.Reason ELSE A.Reason END AS [ReasonType]
+	
+	FROM dbo.CreditMemo CRH WITH (NOLOCK)   
+    LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId = CRD.CreditMemoHeaderId  
+	LEFT JOIN dbo.StandAloneCreditMemoDetails SCRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId = SCRD.CreditMemoHeaderId 
+    OUTER APPLY(    
      SELECT     
-     STUFF((SELECT CASE WHEN LEN(S.Reason) >0 then ',' ELSE '' END + S.Reason    
-      FROM CreditMemoDetails S WITH (NOLOCK)         
-      Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+     STUFF((SELECT CASE WHEN LEN(S.Reason) > 0 THEN ',' ELSE '' END + S.Reason    
+      FROM dbo.CreditMemoDetails S WITH (NOLOCK)         
+      Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId AND ISNULL(CRH.IsStandAloneCM,0) = 0
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') Reason    
-    ) A    
-    WHERE CRH.MasterCompanyId=@MasterCompanyId AND ISNULL(CRH.IsDeleted,0)=0  
-    GROUP BY CRD.CreditMemoHeaderId, A.Reason    
-    ),  
-     CMUnitPriceCTE AS(    
-    Select CRD.CreditMemoHeaderId,(Case When COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE A.UnitPrice End)  as 'UnitPrice',    
-    A.UnitPrice [UnitPriceType] from dbo.CreditMemo CRH WITH (NOLOCK)   
-    LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId =CRD.CreditMemoHeaderId  
-    Outer Apply(    
+    ) A  
+	OUTER APPLY(    
      SELECT     
-     STUFF((SELECT CASE WHEN LEN(CAST(S.UnitPrice AS NVARCHAR(10))) > 0 then ',' ELSE '' END + CAST(S.UnitPrice AS NVARCHAR(10))   
-      FROM CreditMemoDetails S WITH (NOLOCK)    
+     STUFF((SELECT CASE WHEN LEN(S.Reason) > 0 THEN ',' ELSE '' END + S.Reason    
+      FROM dbo.StandAloneCreditMemoDetails S WITH (NOLOCK)         
+      Where S.CreditMemoHeaderId = SCRD.CreditMemoHeaderId AND CRH.IsStandAloneCM = 1
+      AND S.IsActive = 1 AND S.IsDeleted = 0    
+      FOR XML PATH('')), 1, 1, '') Reason    
+    ) B  
+	 WHERE CRH.MasterCompanyId=@MasterCompanyId AND ISNULL(CRH.IsDeleted,0) = 0 GROUP BY CRD.CreditMemoHeaderId, SCRD.CreditMemoHeaderId,CRH.IsStandAloneCM,A.Reason,B.Reason        
+    ),  
+
+   CMUnitPriceCTE AS(    
+    Select CRD.CreditMemoHeaderId,(CASE WHEN COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELSE A.UnitPrice End)  as 'UnitPrice',    
+    A.UnitPrice [UnitPriceType] FROM dbo.CreditMemo CRH WITH (NOLOCK)   
+    LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId =CRD.CreditMemoHeaderId  
+    OUTER APPLY(    
+     SELECT     
+     STUFF((SELECT CASE WHEN LEN(CAST(S.UnitPrice AS NVARCHAR(10))) > 0 THEN ',' ELSE '' END + CAST(S.UnitPrice AS NVARCHAR(10))   
+      FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') UnitPrice    
     ) A    
-    WHERE CRH.MasterCompanyId=@MasterCompanyId AND isnull(CRH.IsDeleted,0)=0  
-    GROUP BY CRD.CreditMemoHeaderId, A.UnitPrice    
+    WHERE CRH.MasterCompanyId=@MasterCompanyId AND isnull(CRH.IsDeleted,0) = 0 GROUP BY CRD.CreditMemoHeaderId, A.UnitPrice    
     ),       
      Results AS( SELECT DISTINCT M.[CreditMemoHeaderId],M.[CreditMemoNumber],M.[RMAHeaderId],M.[RMANumber],M.[InvoiceId],M.[InvoiceNumber],  
            ISNULL(M.[InvoiceDate],'') AS InvoiceDate,
@@ -242,11 +259,11 @@ BEGIN
            FROM Result M     
      LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = M.CreditMemoHeaderId
 	 LEFT JOIN dbo.StandAloneCreditMemoDetails SACD WITH (NOLOCK)  ON SACD.CreditMemoHeaderId = M.CreditMemoHeaderId AND SACD.IsActive = 1
-     LEFT JOIN PartCTE PT On M.CreditMemoHeaderId = PT.CreditMemoHeaderId  
-     LEFT JOIN PartDescCTE PD on PD.CreditMemoHeaderId = M.CreditMemoHeaderId  
+     LEFT JOIN PartCTE PT ON M.CreditMemoHeaderId = PT.CreditMemoHeaderId  
+     LEFT JOIN PartDescCTE PD ON PD.CreditMemoHeaderId = M.CreditMemoHeaderId  
      LEFT JOIN CMReasonCTE RC ON RC.CreditMemoHeaderId = M.CreditMemoHeaderId       
-     LEFT JOIN CMUnitPriceCTE UC on UC.CreditMemoHeaderId =  M.CreditMemoHeaderId  
-     LEFT JOIN ManufacturerNameCTE  MF on MF.CreditMemoHeaderId = M.CreditMemoHeaderId  
+     LEFT JOIN CMUnitPriceCTE UC ON UC.CreditMemoHeaderId =  M.CreditMemoHeaderId  
+     LEFT JOIN ManufacturerNameCTE  MF ON MF.CreditMemoHeaderId = M.CreditMemoHeaderId  
      GROUP BY   
      M.[CreditMemoHeaderId],M.[CreditMemoNumber],M.[RMAHeaderId],M.[RMANumber],M.[InvoiceId],M.[InvoiceNumber],  
            ISNULL(M.[InvoiceDate],''),
@@ -271,42 +288,42 @@ BEGIN
     ),ResultCount AS(SELECT COUNT(CreditMemoHeaderId) AS totalItems FROM Results)    
     SELECT * INTO #TempResult2 from  Results  
      WHERE ((@GlobalFilter <>'' AND (    
-                  (CreditMemoNumber like '%' +@GlobalFilter+'%') OR    
-            (Status like '%' +@GlobalFilter+'%') OR    
+            (CreditMemoNumber like '%' +@GlobalFilter+'%') OR    
+            ([Status] like '%' +@GlobalFilter+'%') OR    
             (Reason like '%' +@GlobalFilter+'%') OR   
             (RMANumber like '%' +@GlobalFilter+'%') OR   
             (WONum like '%' +@GlobalFilter+'%') OR   
             (CustomerName like '%' +@GlobalFilter+'%') OR   
-      (ManufacturerName like '%' +@GlobalFilter+'%') OR   
+            (ManufacturerName like '%' +@GlobalFilter+'%') OR   
             (PartNumber like '%'+@GlobalFilter+'%') OR    
             (PartDescription like '%' +@GlobalFilter+'%') OR   
             (ReferenceNo like '%' +@GlobalFilter+'%') OR    
             (RequestedBy like '%' +@GlobalFilter+'%') OR    
-      (CAST(Qty AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
-      (CAST(UnitPrice AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
+            (CAST(Qty AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
+            (CAST(UnitPrice AS VARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
             (CAST(Amount AS NVARCHAR(200)) LIKE '%' +@GlobalFilter+'%') OR   
             (LastMSLevel like '%' +@GlobalFilter+'%') OR   
             (Memo like '%'+@GlobalFilter+'%')))    
-      OR       
-                  (@GlobalFilter='' AND   
+            OR       
+            (@GlobalFilter='' AND   
             (ISNULL(@CreditMemoNumber,'') ='' OR CreditMemoNumber like '%' + @CreditMemoNumber+'%') AND     
             (ISNULL(@IssueDate,'') ='' OR Cast(IssueDate as Date)=Cast(@IssueDate as date)) AND   
-            (ISNULL(@Status,'') ='' OR Status like '%' + @Status+'%') AND    
+            (ISNULL(@Status,'') ='' OR [Status] like '%' + @Status+'%') AND    
             (ISNULL(@Reason,'') ='' OR Reason like '%' + @Reason+'%') AND   
             (ISNULL(@RMANumber,'') ='' OR RMANumber like '%' + @RMANumber+'%') AND    
-      (IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND    
+            (ISNULL(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') AND    
             (ISNULL(@WONum,'') ='' OR WONum like '%' + @WONum+'%') AND    
-            (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND    
-            (IsNull(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND    
-                  (IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND    
-            (IsNull(@ReferenceNo,'') ='' OR ReferenceNo like '%' + @ReferenceNo +'%') AND    
-            (IsNull(@ReturnDate,'') ='' OR Cast(ReturnDate as Date)=Cast(@ReturnDate as date)) AND   
-			 (IsNull(CAST(@Qty AS VARCHAR(200)),'') = '' OR CAST(Qty AS varchar(200)) Like '%' +  ISNULL(CAST(@Qty AS VARCHAR(200)),'') +'%') AND  
-			 (IsNull(CAST(@UnitPrice AS VARCHAR(200)),'') = '' OR CAST(UnitPrice AS varchar(200)) Like '%' +  ISNULL(CAST(@UnitPrice AS VARCHAR(200)),'') +'%') AND  
-            (IsNull(CAST(@Amount AS VARCHAR(200)),'') = '' OR CAST(Amount AS varchar(200)) Like '%' +  ISNULL(CAST(@Amount AS VARCHAR(200)),'') +'%') AND   
+            (ISNULL(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND    
+            (ISNULL(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') AND    
+            (ISNULL(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') AND    
+            (ISNULL(@ReferenceNo,'') ='' OR ReferenceNo like '%' + @ReferenceNo +'%') AND    
+            (ISNULL(@ReturnDate,'') ='' OR Cast(ReturnDate as Date)=Cast(@ReturnDate as date)) AND   
+			(ISNULL(CAST(@Qty AS VARCHAR(200)),'') = '' OR CAST(Qty AS varchar(200)) Like '%' +  ISNULL(CAST(@Qty AS VARCHAR(200)),'') +'%') AND  
+			(ISNULL(CAST(@UnitPrice AS VARCHAR(200)),'') = '' OR CAST(UnitPrice AS varchar(200)) Like '%' +  ISNULL(CAST(@UnitPrice AS VARCHAR(200)),'') +'%') AND  
+            (ISNULL(CAST(@Amount AS VARCHAR(200)),'') = '' OR CAST(Amount AS varchar(200)) Like '%' +  ISNULL(CAST(@Amount AS VARCHAR(200)),'') +'%') AND   
             (ISNULL(@RequestedBy,'') ='' OR RequestedBy like '%' + @RequestedBy+'%') AND   
             (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') AND  
-            (IsNull(@Memo,'') ='' OR Memo like '%' + @Memo+'%')))   
+            (ISNULL(@Memo,'') ='' OR Memo like '%' + @Memo+'%')))   
     
       SELECT @Count = COUNT(CreditMemoHeaderId) from #TempResult2      
     
@@ -320,20 +337,20 @@ BEGIN
             CASE WHEN (@SortOrder=1 and @SortColumn='WONUM')  THEN WONum END ASC,  
             CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,    
-                  CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,    
+            CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='ORIGINALWOSONUM')  THEN Originalwosonum END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='RETURNDATE')  THEN ReturnDate END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='QTY')  THEN Qty END ASC,    
-                  CASE WHEN (@SortOrder=1 and @SortColumn='UNITPRICE')  THEN UnitPrice END ASC,    
-                  CASE WHEN (@SortOrder=1 and @SortColumn='AMOUNT')  THEN Amount END ASC,    
+            CASE WHEN (@SortOrder=1 and @SortColumn='UNITPRICE')  THEN UnitPrice END ASC,    
+            CASE WHEN (@SortOrder=1 and @SortColumn='AMOUNT')  THEN Amount END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='REQUESTEDBY')  THEN RequestedBy END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,   
             CASE WHEN (@SortOrder=1 and @SortColumn='MEMO')  THEN Memo END ASC,    
             CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,    
-      CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNo')  THEN ReferenceNo END ASC,   
-      CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,  
+            CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNo')  THEN ReferenceNo END ASC,   
+            CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END ASC,  
   
-      CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END Desc,    
+            CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerName')  THEN ManufacturerName END Desc,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREDITMEMONUMBER')  THEN CreditMemoNumber END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='ISSUEDATE')  THEN IssueDate END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,    
@@ -342,20 +359,20 @@ BEGIN
             CASE WHEN (@SortOrder=-1 and @SortColumn='WONUM')  THEN WONum END DESC,  
             CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,    
-                  CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,    
+            CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='ORIGINALWOSONUM')  THEN Originalwosonum END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='RETURNDATE')  THEN ReturnDate END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='QTY')  THEN Qty END DESC,    
-                  CASE WHEN (@SortOrder=-1 and @SortColumn='UNITPRICE')  THEN UnitPrice END DESC,    
-                  CASE WHEN (@SortOrder=-1 and @SortColumn='AMOUNT')  THEN Amount END DESC,    
+            CASE WHEN (@SortOrder=-1 and @SortColumn='UNITPRICE')  THEN UnitPrice END DESC,    
+            CASE WHEN (@SortOrder=-1 and @SortColumn='AMOUNT')  THEN Amount END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='REQUESTEDBY')  THEN RequestedBy END DESC,    
             CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,   
             CASE WHEN (@SortOrder=-1 and @SortColumn='MEMO')  THEN Memo END DESC,  
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
-      CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNo')  THEN ReferenceNo END DESC  
+            CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNo')  THEN ReferenceNo END DESC  
                    
-                  OFFSET @RecordFrom ROWS     
-                  FETCH NEXT @PageSize ROWS ONLY            
+            OFFSET @RecordFrom ROWS     
+            FETCH NEXT @PageSize ROWS ONLY            
   
  END TRY      
  BEGIN CATCH  

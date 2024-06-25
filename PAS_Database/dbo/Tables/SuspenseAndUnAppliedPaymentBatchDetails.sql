@@ -8,6 +8,10 @@
     [ReferenceId]                               BIGINT        NULL,
     [ReferenceNumber]                           VARCHAR (150) NULL,
     [Memo]                                      VARCHAR (500) NULL,
+    [CustomerId]                                BIGINT        NULL,
+    [CustomerName]                              VARCHAR (100) NULL,
     CONSTRAINT [PK_SuspenseAndUnAppliedPaymentBatchDetails] PRIMARY KEY CLUSTERED ([SuspenseAndUnAppliedPaymentBatchDetailsId] ASC)
 );
+
+
 

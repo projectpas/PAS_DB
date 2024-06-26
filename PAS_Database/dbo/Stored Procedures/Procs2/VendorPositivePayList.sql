@@ -1,4 +1,4 @@
-﻿/************************************************************************************           
+﻿/****************************           
  ** File:   [VendorPositivePayList]           
  ** Author:   MOIN BLOCH
  ** Description: This stored procedure is used Get Vendor Positive Pay List
@@ -9,16 +9,20 @@
          
  ** RETURN VALUE:           
   
- ************************************************************************************           
+ ****************************           
   ** Change History           
- ************************************************************************************           
+ ****************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/10/2023   MOIN BLOCH    CREATED 
 	2    07/21/2023   MOIN BLOCH    Added StartDate And EndDate Filter
+	3    06/25/2024   SAHDEV SALIYA Added ReadyToPayDetailsId for Resolve Print Issue
   
---EXEC VendorPositivePayList 
-**************************************************************/
+exec VendorPositivePayList 
+@PageSize=10,@PageNumber=1,@SortColumn=N'invoiceNum',@SortOrder=-1,@GlobalFilter=N'',
+@InvoiceNum=N'2',@OriginalTotal=NULL,@RRTotal=NULL,@InvoiceTotal=NULL,@Status=N'PaidinFull',@VendorName=NULL,@InvociedDate=NULL,@EntryDate=NULL,@MasterCompanyId=1,@EmployeeId=2,
+@BankName=NULL,@BankAccountNumber=NULL,@PaymentMethod=NULL,@PaymentMethodId=1,@StartDate=NULL,@EndDate=NULL
+**********************/
 CREATE   PROCEDURE [dbo].[VendorPositivePayList]
 @PageSize int,  
 @PageNumber int,  
@@ -105,6 +109,7 @@ BEGIN
 			,VRP.IsVoidedCheck
 			,PM.[Description] AS 'PaymentMethod'
 			,[VRP].[PaymentMethodId]
+			,[VRP].ReadyToPayDetailsId
 		FROM [dbo].[VendorReadyToPayDetails] VRP  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRP.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK) ON VRP.ReadyToPayId = VRH.ReadyToPayId
@@ -117,11 +122,11 @@ BEGIN
 
 		 WHERE ([VRP].[PaymentMethodId] = @PaymentMethodId) AND (VRP.[MasterCompanyId] = @MasterCompanyId) 
 		   AND (@StartDate IS NULL OR CAST(VRP.CheckDate AS DATE) BETWEEN CAST(@StartDate AS DATE) AND CAST(@EndDate AS DATE))
-		 GROUP BY VRP.CheckNumber,lebl.BankName,DWPL.BankName,IWPL.BeneficiaryBank,lebl.BankAccountNumber,DWPL.AccountNumber,IWPL.BeneficiaryBankAccount, VRH.ReadyToPayId,VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,VRP.VendorId,PM.[Description],[VRP].[PaymentMethodId]
+		 GROUP BY VRP.CheckNumber,lebl.BankName,DWPL.BankName,IWPL.BeneficiaryBank,lebl.BankAccountNumber,DWPL.AccountNumber,IWPL.BeneficiaryBankAccount, VRH.ReadyToPayId,VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,VRP.VendorId,PM.[Description],[VRP].[PaymentMethodId],[VRP].ReadyToPayDetailsId
     ),  
     FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, InvoiceTotal,VendorName, PaymentHold, InvociedDate,EntryDate,  
-      PaymentMethod, PaymentRef, CheckCrashed,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId FROM Result  
+      PaymentMethod, PaymentRef, CheckCrashed,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,ReadyToPayDetailsId FROM Result  
     WHERE 
 	   ((@GlobalFilter <>'' AND ((InvoiceNum LIKE '%' +@GlobalFilter+'%' ) OR          
        (InvociedDate LIKE '%' +@GlobalFilter+'%') OR  
@@ -144,7 +149,7 @@ BEGIN
 	   ),
 	   ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, InvoiceNum, InvoiceTotal,VendorName, PaymentHold, InvociedDate, EntryDate,  
-			 PaymentMethod, PaymentRef, CheckCrashed, NumberOfItems,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId
+			 PaymentMethod, PaymentRef, CheckCrashed, NumberOfItems,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,ReadyToPayDetailsId
 		FROM FinalResult, ResultCount    
      ORDER BY CASE WHEN (@SortOrder=1  AND @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
 		      CASE WHEN (@SortOrder=1  AND @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  

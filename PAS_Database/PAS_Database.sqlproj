@@ -3009,6 +3009,7 @@
     <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateAudit.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateviewList.sql" />
+    <Build Include="dbo\Views\vw_TermsConditionAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

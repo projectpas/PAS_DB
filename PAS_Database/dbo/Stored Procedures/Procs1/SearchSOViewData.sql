@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/08/2023  Ekta Chandegara     Convert text into uppercase
+	2    06/26/2024  AMIT GHEDIYA        Added orderby for RequestedDate,EstimatedShipDate
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
  -- Add the parameters for the stored procedure here    
@@ -252,7 +253,7 @@ BEGIN
         (IsNull(@CustomerName,'') ='' OR M.Name like '%'+ @CustomerName+'%') and    
         (@QuoteAmount is  null or M.SalesPrice=@QuoteAmount) and    
         (@SoAmount is  null or M.SoAmount=@SoAmount) and    
-        (@QuoteDate is  null or Cast(M.OpenDate as date)=Cast(@QuoteDate as date)) and    
+        (@QuoteDate is  null or Cast(M.QuoteDate as date)=Cast(@QuoteDate as date)) and    
         (IsNull(@SalesPerson,'') ='' OR M.SalesPerson like '%'+@SalesPerson+'%') and    
         (IsNull(@PriorityType,'') ='' OR PR.PriorityType like '%'+ @PriorityType+'%') and    
         (IsNull(@PartNumberType,'') ='' OR PT.PartNumberType like '%'+@PartNumberType+'%') and    
@@ -282,7 +283,7 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,    
-      CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEDATE')  THEN OpenDate END ASC,    
+      CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBER')  THEN SalesOrderNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
@@ -297,12 +298,15 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESPERSON')  THEN SalesPerson END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,    
-      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,    
+      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
+	  CASE WHEN (@SortOrder=1 and @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END ASC,  
+	  CASE WHEN (@SortOrder=1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END ASC,
+
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END Desc,    
-      CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN OpenDate END Desc,    
+      CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBER')  THEN SalesOrderNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END Desc,
@@ -317,7 +321,10 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='SALESPERSON')  THEN SalesPerson END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,    
-      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC    
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END DESC 
+
       OFFSET @RecordFrom ROWS     
       FETCH NEXT @PageSize ROWS ONLY    
      END    

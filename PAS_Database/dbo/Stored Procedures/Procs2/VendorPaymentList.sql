@@ -35,7 +35,7 @@
 	18   05/04/2024   AMIT GHEDIYA    Update status for Print Check & Paid in full.
 	19   08/04/2024   AMIT GHEDIYA    Get Vendor Payment Control Num.
 	20   03/06/2024   AMIT GHEDIYA    Update for get CheckNumber from condition.
-	21   19/06/2024   Abhishek Jirawla Add Legal Entity.
+	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital.
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -67,7 +67,8 @@ CREATE   PROCEDURE [dbo].[VendorPaymentList]
 @DifferenceAmount varchar(50)=null,
 @PaymentMethod varchar(50)=null,
 @PaymentRef varchar(50)=null,
-@CheckCrashed varchar(50)=null
+@CheckCrashed varchar(50)=null,
+@ControlNumber varchar(150)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -536,8 +537,9 @@ BEGIN
 
     --),  
     ;WITH FinalResult AS (  
-    SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate,EntryDate,DueDate, DaysPastDue, 
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed,DiscountToken,ReadyToPaymentMade,BankName,BankAccountNumber,VendorId,ControlNumber,LegalEntity FROM #TEMPVendorPaymentListRecords  
+    SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, 
+		InvociedDate,EntryDate,DueDate, DaysPastDue, PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, DiscountToken, ReadyToPaymentMade, 
+		BankName, BankAccountNumber, VendorId, ControlNumber, LegalEntity FROM #TEMPVendorPaymentListRecords  
     WHERE -- ISNULL(ReadyToPayId,0) = 0 AND 
 	   ((@GlobalFilter <>'' AND ((InvoiceNum LIKE '%' +@GlobalFilter+'%' ) OR   
        ([Status] LIKE '%' +@GlobalFilter+'%') OR  
@@ -553,7 +555,8 @@ BEGIN
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
-	   (CheckCrashed LIKE '%' +@GlobalFilter+'%')
+	   (CheckCrashed LIKE '%' +@GlobalFilter+'%') OR
+	   (ControlNumber LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -572,22 +575,64 @@ BEGIN
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
 	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
-	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%'))  
+	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%')) 
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate, DueDate, DaysPastDue,  
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,ReadyToPaymentMade,BankName,BankAccountNumber,VendorId,ControlNumber,LegalEntity FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate, DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems, DiscountToken,
+	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, VendorId, UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  
-     CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC, 
+     CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,
 	 CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DueDate')  THEN DueDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
 
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC, 
-	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC 
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DueDate')  THEN DueDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
 
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
@@ -856,7 +901,8 @@ BEGIN
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
-	   (CheckCrashed LIKE '%' +@GlobalFilter+'%')
+	   (CheckCrashed LIKE '%' +@GlobalFilter+'%') OR
+	   (ControlNumber LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -875,22 +921,64 @@ BEGIN
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
 	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
-	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%')) 
+	   (ISNULL(@CheckCrashed,'') ='' OR CheckCrashed LIKE '%'+ @CheckCrashed+'%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%')) 
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,DueDate, DaysPastDue ,
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,ReadyToPaymentMade,BankName,BankAccountNumber,ReadyToPayId,VendorId,ControlNumber,LegalEntity  FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal, DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate,DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,
+	  DiscountToken, ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, VendorId, UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity  FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,  
 	 CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DueDate')  THEN DueDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
   
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC,
-	 CASE WHEN (@SortOrder= -1 and @SortColumn='STATUS')  THEN Status END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DueDate')  THEN DueDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END  
@@ -1034,7 +1122,8 @@ BEGIN
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
-	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
+	   (ControlNumber LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -1050,22 +1139,54 @@ BEGIN
 	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') ANd
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
-	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))   
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%')) 
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,ReadyToPaymentMade,BankName,BankAccountNumber,ReadyToPayId,ReadyToPayDetailsId,VendorId  FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems, DiscountToken,
+	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, ReadyToPayDetailsId, VendorId  FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID') THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC, 
 	 CASE WHEN (@SortOrder=1 and @SortColumn='STATUS') THEN Status END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
   
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC,
-	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS') THEN Status END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS') THEN Status END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
 
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
@@ -1282,7 +1403,8 @@ BEGIN
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
 	   (PaymentMethod LIKE '%' +@GlobalFilter+'%') OR
-	   (PaymentRef LIKE '%' +@GlobalFilter+'%')
+	   (PaymentRef LIKE '%' +@GlobalFilter+'%') OR
+	   (ControlNumber LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -1300,11 +1422,14 @@ BEGIN
 	   (ISNULL(@DiscountToken,'') ='' OR DiscountToken LIKE '%'+ @DiscountToken+'%') AND
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
-	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%'))   
+	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))    
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,ReadyToPaymentMade,DueDate,DaysPastDue, 
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,BankName,BankAccountNumber,ReadyToPayId,ReadyToPayDetailsId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,ControlNumber,LegalEntity FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal, DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate, ReadyToPaymentMade, DueDate, DaysPastDue, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, 
+	  NumberOfItems, DiscountToken, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber,ReadyToPayId,ReadyToPayDetailsId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
@@ -1312,12 +1437,52 @@ BEGIN
      CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,  
 	 CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,  
 	 CASE WHEN (@SortOrder=1 and @SortColumn='STATUS') THEN Status END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DueDate')  THEN DueDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
   
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC,
 	 CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
-	CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS') THEN Status END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS') THEN Status END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DaysPastDue')  THEN DaysPastDue END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ReadyToPaymentMade')  THEN ReadyToPaymentMade END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DueDate')  THEN DueDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
     END 
@@ -1553,7 +1718,8 @@ BEGIN
 	   (BankName LIKE '%' +@GlobalFilter+'%') OR  
        (BankAccountNumber LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  
+       (VendorName LIKE '%' +@GlobalFilter+'%')   OR  
+       (ControlNumber LIKE '%' +@GlobalFilter+'%')  
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -1567,22 +1733,61 @@ BEGIN
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
-	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%'))     
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))     
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,ReadyToPayDetailsId,ControlNumber,LegalEntity FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,
+	  UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, IsVoidedCheck, VendorId, PaymentMethodId, CreatedDate, ReadyToPayDetailsId,
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,  
-	 CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,  
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC, 
+	 CASE WHEN (@SortOrder=1 and @SortColumn='Status')  THEN Status END ASC, 
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
 	  
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC,  	 
-	 CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC ,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='Status')  THEN Status END ASC, 
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
 
 		OFFSET @RecordFrom ROWS   
 		FETCH NEXT @PageSize ROWS ONLY  
@@ -1871,7 +2076,8 @@ BEGIN
 	   (BankName LIKE '%' +@GlobalFilter+'%') OR  
        (BankAccountNumber LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%') 
+       (VendorName LIKE '%' +@GlobalFilter+'%')  OR  
+       (ControlNumber LIKE '%' +@GlobalFilter+'%') 
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -1885,22 +2091,61 @@ BEGIN
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%')AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
-	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%'))   
+	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))   
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
-      SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate, EntryDate,  
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,ReadyToPayDetailsId,ControlNumber,LegalEntity FROM FinalResult, ResultCount  
+      SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal, DifferenceAmount, UPPER(VendorName) AS VendorName, 
+	  PaymentHold, InvociedDate, EntryDate,  UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,
+	  UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, IsVoidedCheck, VendorId, PaymentMethodId, CreatedDate, ReadyToPayDetailsId,
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END ASC,  
      CASE WHEN (@SortOrder=1 and @SortColumn='VENDORNAME')  THEN VendorName END ASC,  
 	 CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,  
+	 CASE WHEN (@SortOrder=1 and @SortColumn='Status')  THEN Status END ASC, 
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentHold')  THEN PaymentHold END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='RRTotal')  THEN RRTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ControlNumber')  THEN ControlNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DiscountToken')  THEN DiscountToken END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentRef')  THEN PaymentRef END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DateProcessed')  THEN DateProcessed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='InvociedDate')  THEN InvociedDate END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankName')  THEN BankName END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
 	  
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORNAME')  THEN VendorName END DESC,  	 
-	 CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='Status')  THEN Status END DESC, 
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentHold')  THEN PaymentHold END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='OriginalTotal')  THEN OriginalTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='RRTotal')  THEN RRTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvoiceTotal')  THEN InvoiceTotal END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DifferenceAmount')  THEN DifferenceAmount END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ControlNumber')  THEN ControlNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DiscountToken')  THEN DiscountToken END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentRef')  THEN PaymentRef END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DateProcessed')  THEN DateProcessed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='EntryDate')  THEN EntryDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='InvociedDate')  THEN InvociedDate END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankName')  THEN BankName END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='BankAccountNumber')  THEN BankAccountNumber END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
 
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  

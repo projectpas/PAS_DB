@@ -34,7 +34,7 @@
 	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
 	23   21/06/2024   Hemant Saliya    Added Un Applied Cash to utilize in Cash Receipt.
 
-EXEC  [dbo].[SearchCustomerInvoicesByCustId] 3389,1 
+EXEC  [dbo].[SearchCustomerInvoicesByCustId] 70,1 
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
@@ -278,7 +278,7 @@ BEGIN
 		    (SELECT COUNT(CCP.CustomerCreditPaymentDetailId) AS NumberOfItems) 'NumberOfItems',      
 		    MSD.LastMSLevel,      
 		    MSD.AllMSlevels,    
-		    0 AS InvoiceType,      
+		    7 AS InvoiceType,      
 		    0 AS ARBalance,      
 		    C.Ismiscellaneous,
 			0 AS 'ExchangeSalesOrderScheduleBillingId',

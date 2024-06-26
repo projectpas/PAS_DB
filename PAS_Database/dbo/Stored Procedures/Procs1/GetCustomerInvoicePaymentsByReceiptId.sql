@@ -30,7 +30,7 @@
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 154,0,2,34      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 61,0,2,14      
     
-EXEC GetCustomerInvoicePaymentsByReceiptId 260,0,2,3401,1      
+EXEC GetCustomerInvoicePaymentsByReceiptId 366,0,2,70,1      
       
 **************************************************************/      
 CREATE     PROCEDURE [dbo].[GetCustomerInvoicePaymentsByReceiptId]      
@@ -119,8 +119,8 @@ BEGIN
                [PageIndex],   
                CASE WHEN InvoiceType = 1 THEN SOBI.RemainingAmount     
                WHEN InvoiceType = 2 THEN WOBI.RemainingAmount  WHEN InvoiceType = 6 THEN ESOBI.RemainingAmount ELSE 0 END AS 'RemainingAmount',      
-               INV.[InvoiceDate],[Id],[GLARAccount]      
-               ,CASE WHEN INV.IsDeleted = 1 THEN 0 ELSE 1 END AS 'Selected',  
+               INV.[InvoiceDate],[Id],[GLARAccount],      
+               CASE WHEN INV.IsDeleted = 1 THEN 0 ELSE 1 END AS 'Selected',  
      
 			   CASE WHEN InvoiceType = 1 THEN CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(S.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(S.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END  
 			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END  
@@ -138,7 +138,7 @@ BEGIN
 			  LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK) ON ESOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId
 			  LEFT JOIN [dbo].[WorkOrderBillingInvoicingItem] wobii WITH(NOLOCK) ON WOBI.BillingInvoicingId = wobii.BillingInvoicingId      
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON INV.SOBillingInvoicingId = CM.CreditMemoHeaderId   
-			  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCP WITH(NOLOCK) ON INV.SOBillingInvoicingId = CCP.CustomerCreditPaymentDetailId   
+			  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCP WITH(NOLOCK) ON INV.SOBillingInvoicingId = CCP.CustomerCreditPaymentDetailId AND INV.ReceiptId =  CCP.ReceiptId  
 			  LEFT JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
 			  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD_WO WITH (NOLOCK) ON MSD_WO.ModuleID = @WOMSModuleID AND MSD_WO.ReferenceID = wobii.WorkOrderPartId   
 			  LEFT JOIN [dbo].[ExchangeManagementStructureDetails] EMSD WITH (NOLOCK) ON EMSD.ModuleID = @ESOMSModuleID AND EMSD.ReferenceID = ESOBI.ExchangeSalesOrderId 
@@ -158,8 +158,8 @@ BEGIN
       
 		SELECT CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentId    ELSE 0 END AS 'PaymentId',      
 			  SOBI.CustomerId,SOBI.SOBillingInvoicingId,      
-			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId'      
-			  ,SOBI.MasterCompanyId,      
+			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.ReceiptId    ELSE 0 END AS 'ReceiptId',      
+			  SOBI.MasterCompanyId,      
 			  0 AS IsMultiplePaymentMethod,0 AS IsCheckPayment,0 AS IsWireTransfer,0 AS IsEFT,0 AS IsCCDCPayment,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.PaymentAmount    ELSE 0 END AS PaymentAmount,      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.DiscAmount    ELSE 0 END AS DiscAmount,      

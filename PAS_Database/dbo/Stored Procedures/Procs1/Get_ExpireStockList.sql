@@ -15,7 +15,7 @@
  **************************************************************               
  ** PR   Date         Author  Change Description                
  ** --   --------     -------  --------------------------------              
-    1    05/23/2023   Hemant Saliya  Created    
+    1    05/23/2023   Hemant Saliya  Created 
     
 -- EXEC [Get_ExpireStockList] 947    
 **************************************************************/    
@@ -140,11 +140,11 @@ BEGIN
      WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR    
       (PartDescription LIKE '%' +@GlobalFilter+'%') OR     
       (Manufacturer LIKE '%' +@GlobalFilter+'%') OR         
+      (SerialNumber LIKE '%' +@GlobalFilter+'%') OR         
       (StocklineNumber LIKE '%' +@GlobalFilter+'%') OR         
       (expDate LIKE '%' +@GlobalFilter+'%') OR    
       (expDays LIKE '%' +@GlobalFilter+'%') OR    
-      (UpdatedBy LIKE '%' +@GlobalFilter+'%')OR
-	  (SerialNumber LIKE '%' +@GlobalFilter+'%')))     
+      (UpdatedBy LIKE '%' +@GlobalFilter+'%')))
       OR       
       (@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND    
       (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND    
@@ -160,9 +160,9 @@ BEGIN
       (ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND    
       (ISNULL(@Location,'') ='' OR [Location] LIKE '%' + @Location + '%') AND    
       (ISNULL(@Shelf,'') ='' OR Shelf LIKE '%' + @Shelf + '%') AND    
+      (ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND    
       (ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND    
-      (ISNULL(@expDate,'') ='' OR CAST(expDate AS Date)=CAST(@expDate AS date)AND
-	  (ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%')))    
+      (ISNULL(@expDate,'') ='' OR CAST(expDate AS Date)=CAST(@expDate AS date)))
         )    
         SELECT @Count = COUNT(StockLineId) FROM #TempResults       
     

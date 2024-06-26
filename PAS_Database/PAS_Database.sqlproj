@@ -3015,6 +3015,8 @@
     <Build Include="dbo\Views\vw_LeadSourceAudit.sql" />
     <Build Include="dbo\Views\vw_CertificationTypeAudit.sql" />
     <Build Include="dbo\Stored Procedures\UpdateUnAppliedCashStatus.sql" />
+    <Build Include="dbo\Views\vw_ATAChapterList.sql" />
+    <Build Include="dbo\Views\vw_ATAChapterAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

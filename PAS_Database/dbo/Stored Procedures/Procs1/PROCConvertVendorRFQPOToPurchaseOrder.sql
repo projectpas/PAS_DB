@@ -16,6 +16,7 @@
     1    04/01/2022  Moin Bloch        Created    
     2    05/22/2023  Satish Gohil	   Remove Automatic (-)  
 	3    01/12/2023  Amit Ghediya      Modify(Added Traceable & Tagged fields)
+	4    26/06/2024  Shrey Chandegara  Modify(ADD Close date When convert po)
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -168,7 +169,7 @@ BEGIN
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;    
         
-        UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
+        UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed',ClosedDate = GETUTCDATE() WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
     
      UPDATE dbo.VendorRFQPurchaseOrderPart SET [PurchaseOrderId] = IDENT_CURRENT('PurchaseOrder'),[PurchaseOrderNumber] = @PurchaseOrderNumber     
                 WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId; 
@@ -366,7 +367,7 @@ BEGIN
      END    
      ELSE    
      BEGIN    
-        UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
+        UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed',ClosedDate = GETUTCDATE()  WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
      END    
 
 	 INSERT INTO [dbo].[PurchaseOrderPartReference]([PurchaseOrderId],[PurchaseOrderPartId],[ModuleId],[ReferenceId],[Qty],[RequestedQty],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
@@ -519,7 +520,7 @@ BEGIN
     END    
     ELSE    
     BEGIN    
-       UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed' WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
+       UPDATE dbo.VendorRFQPurchaseOrder SET StatusId=3,[Status] = 'Closed',ClosedDate = GETUTCDATE()  WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;     
     END    
 
 	INSERT INTO [dbo].[PurchaseOrderPartReference]([PurchaseOrderId],[PurchaseOrderPartId],[ModuleId],[ReferenceId],[Qty],[RequestedQty],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])

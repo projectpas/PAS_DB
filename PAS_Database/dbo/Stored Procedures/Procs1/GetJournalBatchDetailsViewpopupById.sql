@@ -47,6 +47,7 @@
  31	  18/04/2024  AMIT GHEDIYA			 Get MS.
  32	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
  33	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
+ 34	  25/06/2024  Devendra Shekh		 added CustomerName for 'CMDA'
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
 ************************************************************************/  
@@ -920,6 +921,7 @@ BEGIN
 					  UPPER(MSD.Level9Name) AS level9,
 					  UPPER(MSD.Level10Name) AS level10,
 					  CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,'' as CustomerName
 					FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
@@ -983,6 +985,7 @@ BEGIN
 					  UPPER(MSD.Level9Name) AS level9,
 					  UPPER(MSD.Level10Name) AS level10,
 					  CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,ISNULL(SUPBD.CustomerName, '') as CustomerName
 					FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 						 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 						 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
@@ -1046,6 +1049,7 @@ BEGIN
 					  ,CASE WHEN UPPER(SMSD.Level9Name) IS NOT NULL THEN UPPER(SMSD.Level9Name) WHEN UPPER(STKMSD.Level9Name) IS NOT NULL THEN UPPER(STKMSD.Level9Name) ELSE UPPER(WMSD.Level9Name) END AS level9   
 					  ,CASE WHEN UPPER(SMSD.Level10Name) IS NOT NULL THEN UPPER(SMSD.Level10Name) WHEN UPPER(STKMSD.Level10Name) IS NOT NULL THEN UPPER(STKMSD.Level10Name) ELSE UPPER(WMSD.Level10Name) END AS level10
 					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,'' as CustomerName
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 				 INNER JOIN [dbo].[BatchDetails] BTD WITH(NOLOCK) ON JBD.[JournalBatchDetailId] = BTD.[JournalBatchDetailId]    
 				 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       

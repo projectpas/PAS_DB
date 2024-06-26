@@ -1,4 +1,4 @@
-﻿/*************************************************************                   
+﻿/*********************                   
  ** File:   [PrintCheckSetupList]                   
  ** Author:  unknown   
  ** Description: Get Data For Print Check Setup List
@@ -6,15 +6,16 @@
  ** Date:     
  ** PARAMETERS:         
  ** RETURN VALUE:       
- **************************************************************                   
+ **********************                   
   ** Change History                   
- *************************************************************************************************                   
+ *********************************                   
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------   
 	1                      unknown         Created            
 	2    21-SEP-2023       Moin Bloch      Modified (Formated The SP AND ADDED MASTER COMPANY WISE DATA )
 	3    15-MARCH-2024     AMIT GHEDIYA    Modified ( GET LE data)
-***************************************************************************************************/ 
+	4    24-JUNE-2024      SAHDEV SALIYA   Modified (GlAccount,LegalEntity Convert To UPPER Case And Filter Issue Resolved in Type Name)
+*********************************/ 
 CREATE   PROCEDURE [dbo].[PrintCheckSetupList]
 @PageSize int,
 @PageNumber int,
@@ -69,7 +70,7 @@ BEGIN
 					   RRH.BankAccountId,
 					   RRH.BankAccountNumber,
 					   RRH.GLAccountId,
-					   RRH.GlAccount,
+					   UPPER(RRH.GlAccount) AS GlAccount,
 					   RRH.ConfirmBankAccInfo,
 					   RRH.BankRef,
 					   RRH.CcardPaymentRef,
@@ -85,7 +86,7 @@ BEGIN
 					   MSD.AllMSlevels,
 					   RRH.ManagementStructureId,
 					   RRH.LegalEntityId,
-					   LD.Name as 'LegalEntity'
+					   UPPER (LD.Name) as 'LegalEntity'
 				   FROM [dbo].[PrintCheckSetup] RRH WITH (NOLOCK)		
 						LEFT JOIN dbo.LegalEntity LD WITH(NOLOCK) on RRH.LegalEntityId = LD.LegalEntityId
 						LEFT JOIN [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK) on RRH.BankId=lebl.LegalEntityBankingLockBoxId
@@ -99,7 +100,8 @@ BEGIN
 								Type, TypeName, MasterCompanyId, CreatedBy,CreatedDate,UpdatedBy,UpdatedDate,APGLAccount,LastMSLevel,
 						AllMSlevels,ManagementStructureId,LegalEntityId,LegalEntity FROM Result
 						WHERE ((@GlobalFilter <>'' AND ((StartNum LIKE '%' +@GlobalFilter+'%' ) OR 
-							  ([BankName] LIKE '%' +@GlobalFilter+'%') OR
+						      ([TypeName] LIKE '%' +@GlobalFilter+'%') OR
+							  (BankName LIKE '%' +@GlobalFilter+'%') OR
 							  (BankAccountNumber LIKE '%' +@GlobalFilter+'%') OR
 							  (GlAccount LIKE '%' +@GlobalFilter+'%') OR
 							  (APGLAccount LIKE '%' +@GlobalFilter+'%') OR
@@ -133,6 +135,7 @@ BEGIN
 							CASE WHEN (@SortOrder=1 AND @SortColumn='APGLAccount')  THEN APGLAccount END ASC,
 							CASE WHEN (@SortOrder=1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 							CASE WHEN (@SortOrder=1 AND @SortColumn='LegalEntity')  THEN LegalEntity END ASC,
+							CASE WHEN (@SortOrder=1 AND @SortColumn='GlAccount')  THEN GlAccount END ASC,
 
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='PRINTINGID')  THEN PrintingId END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='STARTNUM')  THEN StartNum END DESC,
@@ -142,7 +145,8 @@ BEGIN
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='BANKACCOUNTNUMBER')  THEN BankAccountNumber END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='BANKREF')  THEN BankRef END DESC,
-							CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntity')  THEN LegalEntity END DESC
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='GlAccount')  THEN GlAccount END DESC
 							OFFSET @RecordFrom ROWS 
 							FETCH NEXT @PageSize ROWS ONLY
 						END

@@ -3008,6 +3008,12 @@
     <Build Include="dbo\Views\vw_ATAChapterCategoryAudit.sql" />
     <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CustomerChangeBatchTriggerBasedonSupenseId.sql" />
+    <Build Include="dbo\Views\vw_EmailTemplateviewList.sql" />
+    <Build Include="dbo\Views\vw_TermsConditionAudit.sql" />
+    <Build Include="dbo\Views\vw_UnitOfMeasureAudit.sql" />
+    <Build Include="dbo\Views\vw_LeadSourceAudit.sql" />
+    <Build Include="dbo\Views\vw_CertificationTypeAudit.sql" />
     <Build Include="dbo\Stored Procedures\UpdateUnAppliedCashStatus.sql" />
   </ItemGroup>
   <ItemGroup>

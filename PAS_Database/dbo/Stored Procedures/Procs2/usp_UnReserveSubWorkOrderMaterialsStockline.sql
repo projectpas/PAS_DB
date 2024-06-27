@@ -12,6 +12,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 1    12/30/2021  HEMANT SALIYA    Save Work Order Materials Un Reserve Stockline Details
 ** 2    07/19/2023  VISHAL SUTHAR    Added new stockline history for SWO
 ** 3    07/19/2023  HEMANT SALIYA    Added KIT PART for SWO
+** 4    06/27/2024  HEMANT SALIYA    Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -181,13 +182,25 @@ BEGIN
 					FROM dbo.SubWorkOrderMaterialStockLineKit WOMS JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
-					--FOR UPDATED STOCKLINE QTY
-					UPDATE dbo.Stockline
-					SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnReserved,0),
-						QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(tmpRSL.QuantityActUnReserved,0),                        
-						SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId
-					FROM dbo.Stockline SL JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-					WHERE ISNULL(tmpRSL.KitId, 0) > 0
+					DECLARE @countKitStockline INT = 1;
+
+					--FOR FOR UPDATED STOCKLINE QTY
+					WHILE @countKitStockline <= @TotalCountsBoth
+					BEGIN
+						DECLARE @tmpKitStockLineId BIGINT;
+
+						SELECT @tmpKitStockLineId = StockLineId FROM #tmpUnReserveSWOMaterialsStockline WHERE ID = @countKitStockline
+
+						--FOR UPDATED STOCKLINE QTY
+						UPDATE dbo.Stockline
+						SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnReserved,0),
+							QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(tmpRSL.QuantityActUnReserved,0),                        
+							SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId
+						FROM dbo.Stockline SL JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+						WHERE ISNULL(tmpRSL.KitId, 0) > 0 AND tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
+
+						SET @countKitStockline = @countKitStockline + 1;
+					END;
 		
 					--UPDATE WORK ORDER MATERIALS DETAILS
 					WHILE @mcount <= @TotalCountsBoth
@@ -258,12 +271,24 @@ BEGIN
 					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0
 					
-					--FOR UPDATED STOCKLINE QTY
-					UPDATE dbo.Stockline
-					SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnReserved,0),
-						QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(tmpRSL.QuantityActUnReserved,0)
-					FROM dbo.Stockline SL JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-					WHERE ISNULL(tmpRSL.KitId, 0) = 0
+					DECLARE @countStockline INT = 1;
+
+					--FOR FOR UPDATED STOCKLINE QTY
+					WHILE @countStockline <= @TotalCountsBoth
+					BEGIN
+						DECLARE @tmpStockLineId BIGINT;
+
+						SELECT @tmpStockLineId = StockLineId FROM #tmpUnReserveSWOMaterialsStockline WHERE ID = @countStockline
+
+						--FOR UPDATED STOCKLINE QTY
+						UPDATE dbo.Stockline
+						SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnReserved,0),
+							QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(tmpRSL.QuantityActUnReserved,0)
+						FROM dbo.Stockline SL JOIN #tmpUnReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+						WHERE ISNULL(tmpRSL.KitId, 0) = 0 AND tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+
+						SET @countStockline = @countStockline + 1;
+					END;
 
 					DECLARE @countBoth INT = 1;
 

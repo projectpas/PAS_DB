@@ -10,7 +10,8 @@ EXEC [usp_ReserveIssueSubWorkOrderMaterialsStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    12/30/2021  HEMANT SALIYA    Save Sub Work Order Materials reserve & Issue Stockline Details
-   2    08/29/2023  Moin Bloch       Batch Detail Entry For Issue SubWO
+** 2    08/29/2023  Moin Bloch       Batch Detail Entry For Issue SubWO
+** 3    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -21,7 +22,6 @@ INSERT INTO @p1 values(65,72,10099,512,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'A
 INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000311',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
 
 EXEC dbo.usp_ReserveIssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
-
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_ReserveIssueSubWorkOrderMaterialsStockline]
@@ -66,6 +66,7 @@ BEGIN
 					DECLARE @Amount decimal(18,2);
 					DECLARE @ModuleName varchar(200)='SWOP-PartsIssued'
 					DECLARE @UpdateBy varchar(200);
+					DECLARE @TotalCountsBoth INT;
 
 					SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('WOMATERIALGRIDTAB');
 
@@ -142,6 +143,7 @@ BEGIN
 					WHERE SL.QuantityAvailable > 0 AND SL.QuantityAvailable >= tblMS.QuantityActReserved AND SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActReserved
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveSWOMaterialsStockline;
+					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpReserveSWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -197,13 +199,25 @@ BEGIN
 						GROUP BY WOM.SubWorkOrderMaterialsId
 					) GropWOM WHERE GropWOM.SubWorkOrderMaterialsId = dbo.SubWorkOrderMaterials.SubWorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.SubWorkOrderMaterials.Quantity,0)			
 
+					DECLARE @countKitStockline INT = 1;
 
-					--FOR UPDATED STOCKLINE QTY
-					UPDATE dbo.Stockline
-					SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-						QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-						QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0)						
-					FROM dbo.Stockline SL JOIN #tmpReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+					--FOR FOR UPDATED STOCKLINE QTY
+					WHILE @countKitStockline <= @TotalCountsBoth
+					BEGIN
+						DECLARE @tmpKitStockLineId BIGINT;
+
+						SELECT @tmpKitStockLineId = StockLineId FROM #tmpReserveSWOMaterialsStockline WHERE ID = @countKitStockline
+
+						--FOR UPDATED STOCKLINE QTY
+						UPDATE dbo.Stockline
+						SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+							QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+							QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0)						
+						FROM dbo.Stockline SL JOIN #tmpReserveSWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+						WHERE tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
+
+						SET @countKitStockline = @countKitStockline + 1;
+					END;
 					
 					--FOR UPDATE TOTAL WORK ORDER COST
 					WHILE @count<= @TotalCounts

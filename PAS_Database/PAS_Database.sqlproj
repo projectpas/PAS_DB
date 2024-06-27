@@ -3017,6 +3017,10 @@
     <Build Include="dbo\Stored Procedures\UpdateUnAppliedCashStatus.sql" />
     <Build Include="dbo\Views\vw_ATAChapterList.sql" />
     <Build Include="dbo\Views\vw_ATAChapterAudit.sql" />
+    <Build Include="dbo\Views\vw_JournalCurrencyTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_JournalCategoryAudit.sql" />
+    <Build Include="dbo\Views\vw_GLAccountClassAudit.sql" />
+    <Build Include="dbo\Views\vw_ExpenditureCategoryAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

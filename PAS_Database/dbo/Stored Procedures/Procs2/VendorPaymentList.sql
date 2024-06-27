@@ -35,7 +35,7 @@
 	18   05/04/2024   AMIT GHEDIYA    Update status for Print Check & Paid in full.
 	19   08/04/2024   AMIT GHEDIYA    Get Vendor Payment Control Num.
 	20   03/06/2024   AMIT GHEDIYA    Update for get CheckNumber from condition.
-	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital.
+	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. U[date Invoiced Date to InvoiceDate instead of Due date
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -169,7 +169,7 @@ BEGIN
 			   VN.VendorName,
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
 			   CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   RRC.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',			   			  
 			   --DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',   
 			   --CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  			   
@@ -282,7 +282,7 @@ BEGIN
 			   VN.VendorName,
 			  -- 0 AS 'PaymentHold',
 			  'NO' AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   CM.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CM.InvoiceDate)
@@ -349,7 +349,7 @@ BEGIN
 				NPH.VendorName,
 				--0 AS 'PaymentHold',
 				'NO' AS 'PaymentHold',
-				NPH.UpdatedDate AS 'InvociedDate',
+				NPH.InvoiceDate AS 'InvociedDate',
 				NPH.UpdatedDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate', 
 				--CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  				
@@ -381,18 +381,6 @@ BEGIN
 			   LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
 			   LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.ID
 			   INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH(NOLOCK) ON NPHS.[NonPOInvoiceHeaderStatusId] = NPH.[StatusId]
-			   --OUTER APPLY (SELECT VD.VendorPaymentDetailsId,
-			   --                    SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,
-						--		   SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,
-						--		   MAX(PM.Description) AS PaymentMethod,
-						--		   --MAX(VRTPDH.PrintCheck_Wire_Num) AS PaymentRef,
-						--		   CASE WHEN VD.IsVoidedCheck =1 THEN MAX(VD.CheckNumber) + ' (V)' ELSE MAX(VD.CheckNumber) END PaymentRef,
-						--		   VRTPDH.ReadyToPayId
-						--	FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-						--		 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-						--	     LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-						--	WHERE ISNULL(VD.VendorReadyToPayDetailsTypeId, 0) = 3 AND VD.IsVoidedCheck = 0 AND VD.IsGenerated = 1 AND ISNULL(VD.NonPOInvoiceId, 0) = NPH.NonPOInvoiceId
-			   -- GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.IsVoidedCheck) AS Tab
 			   OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,
 								   SUM(ISNULL(VD.PaymentMade,0)) ReadyToPaymentMade,
 								   SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,
@@ -430,7 +418,7 @@ BEGIN
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   NPH.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			  --DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
 			  -- CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
@@ -492,7 +480,7 @@ BEGIN
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   CCPD.ProcessedDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CCPD.ProcessedDate)
@@ -657,7 +645,7 @@ BEGIN
 				--ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
 				--ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
 				CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-				RRH.DueDate AS 'InvociedDate',
+				RRC.InvoiceDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',  
 			    --CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  				
@@ -717,7 +705,7 @@ BEGIN
 				VN.VendorName,
 				--0 AS 'PaymentHold',
 				'NO' AS 'PaymentHold',
-				RRH.DueDate AS 'InvociedDate',
+				CM.InvoiceDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CM.InvoiceDate)
@@ -778,7 +766,7 @@ BEGIN
 				VN.VendorName,
 				--0 AS 'PaymentHold',
 				'NO' AS 'PaymentHold',
-				RRH.DueDate AS 'InvociedDate',
+				NPH.InvoiceDate AS 'InvociedDate',
 				RRH.DueDate AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
 			    --CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
@@ -1210,7 +1198,7 @@ BEGIN
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
 			   --ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
 			   CASE WHEN RRC.IsInvoiceOnHold = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   RRC.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),RRC.InvoiceDate)
@@ -1271,7 +1259,7 @@ BEGIN
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
-			   RRH.DueDate AS 'InvociedDate',
+			   NPH.InvoiceDate AS 'InvociedDate',
 			   RRH.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),NPH.InvoiceDate)
@@ -1335,7 +1323,7 @@ BEGIN
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
-			   VPD.DueDate AS 'InvociedDate',
+			   CCPD.ProcessedDate AS 'InvociedDate',
 			   VPD.DueDate AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CCPD.ProcessedDate)

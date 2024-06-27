@@ -40,7 +40,7 @@ CREATE PROCEDURE [dbo].[USP_GetReceivingReconciliationList]
 @CreatedBy varchar(50),
 @CurrencyName varchar(50),
 @PartNumberType varchar(50),
-@PORODateType datetime=null,
+@PORODateType date=null,
 @LastMSLevel varchar(50)=null
 AS
 BEGIN
@@ -205,7 +205,6 @@ BEGIN
 								(ISNULL(@ReceivingReconciliationNumber,'') ='' OR M.ReceivingReconciliationNumber LIKE '%'+@ReceivingReconciliationNumber+'%') AND 
 								(ISNULL(@InvoiceNum,'') ='' OR M.InvoiceNum LIKE '%'+@InvoiceNum+'%') AND
 								(ISNULL(@VendorName,'') =''  OR M.VendorName LIKE '%'+@VendorName+'%') AND
-								--(ISNULL(@Status,'') =''  OR M.[Status] LIKE '%'+@Status+'%') AND
 								(IsNull(@LastMSLevel,'') ='' OR LastMSLevel like '%'+@LastMSLevel+'%') AND
 								(ISNULL(@CurrencyName,'') =''  OR M.CurrencyName LIKE '%'+@CurrencyName+'%') AND
 								(ISNULL(@PartNumberType,'') =''  OR CASE WHEN M.[Type] = 1 THEN PT.PartNumberType ELSE PTRO.PartNumberType END LIKE '%'+@PartNumberType+'%') AND
@@ -213,7 +212,9 @@ BEGIN
 								(@RRTotal IS  NULL OR M.RRTotal=@RRTotal) AND
 								(@InvoiceTotal IS  NULL OR M.InvoiceTotal=@InvoiceTotal) AND
 								(@DIfferenceAmount IS  NULL OR M.DIfferenceAmount=@DIfferenceAmount) AND
-								(ISNULL(@PORODateType,'') ='' OR Cast(PTE.PORODateType as Date)=Cast(@PORODateType as date))))
+								(ISNULL(@PORODateType,'') ='' OR CASE WHEN M.[Type] = 1 THEN CONVERT(VARCHAR, PTE.PORODateType , 110) ELSE CONVERT(VARCHAR, PTERO.PORODateType , 110) END = CONVERT(VARCHAR, @PORODateType , 110))							
+							))								
+
 						),CTE_Count AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM Result)
 						SELECT ReceivingReconciliationId,ReceivingReconciliationNumber,InvoiceNum,StatusId,Status,VendorId,VendorName,CurrencyId,CurrencyName,OpenDate
 						,OriginalTotal,RRTotal,InvoiceTotal,DIfferenceAmount,TotalAdjustAmount,CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy,LastMSLevel,AllMSlevels,PartNumber,PartNumberType,PORODate,PORODateType
@@ -226,6 +227,7 @@ BEGIN
 						CASE WHEN (@SortOrder=1 AND @SortColumn='CURRENCYNAME')  THEN CurrencyName END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='STATUS')  THEN Status END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
+						CASE WHEN (@SortOrder=1 AND @SortColumn='PORODate')  THEN PORODate END ASC,						
 						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 						CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
@@ -236,9 +238,10 @@ BEGIN
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCYNAME')  THEN CurrencyName END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS')  THEN Status END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,
+						CASE WHEN (@SortOrder=-1 AND @SortColumn='PORODate')  THEN PORODate END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END Desc,    
+						CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,    
 						CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY
@@ -250,7 +253,7 @@ BEGIN
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SearchSOQViewData' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

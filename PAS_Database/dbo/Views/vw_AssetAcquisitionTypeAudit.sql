@@ -1,7 +1,18 @@
-﻿CREATE VIEW dbo.vw_AssetAcquisitionTypeAudit
+﻿CREATE   VIEW [dbo].[vw_AssetAcquisitionTypeAudit]
 AS
-SELECT AssetAcquisitionTypeId, Name, Code, UpdatedDate, CreatedDate, UpdatedBy, CreatedBy, IsDeleted, IsActive, SequenceNo
-FROM     dbo.AssetAcquisitionTypeAudit
+	SELECT AAT.AssetAcquisitionTypeAuditId  AS PkID,
+	AAT.AssetAcquisitionTypeId AS ID,
+	AAT.Name as [Acquisition Type],
+	AAT.Code as [Acquisition Code],
+	AAT.[Memo],
+	AAT.SequenceNo as [Sequence No],
+	AAT.CreatedBy AS [Created By],
+	AAT.CreatedDate AS [Created On],
+	AAT.UpdatedBy AS [Updated By],
+	AAT.UpdatedDate AS [Updated On],
+	AAT.IsActive AS [Is Active],
+	AAT.IsDeleted AS [Is Deleted]
+	FROM [DBO].AssetAcquisitionTypeAudit AAT WITH (NOLOCK)
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_DiagramPaneCount', @value = 1, @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'VIEW', @level1name = N'vw_AssetAcquisitionTypeAudit';
 

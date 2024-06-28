@@ -3023,6 +3023,10 @@
     <Build Include="dbo\Views\vw_ExpenditureCategoryAudit.sql" />
     <Build Include="dbo\Views\vw_InvoiceDeliveryPrefStatusAudit.sql" />
     <Build Include="dbo\Views\vw_LotCostSourceReferenceAudit.sql" />
+    <Build Include="dbo\Tables\ExchangeCoreLetterTypeAudit.sql" />
+    <Build Include="dbo\Views\vw_VendorRMAReturnReasonAudit.sql" />
+    <Build Include="dbo\Views\vw_POROCategoryAudit.sql" />
+    <Build Include="dbo\Views\vw_ExchangeCoreLetterTypeAudit.sql" />
     <Build Include="dbo\Tables\LogInLog.sql" />
   </ItemGroup>
   <ItemGroup>

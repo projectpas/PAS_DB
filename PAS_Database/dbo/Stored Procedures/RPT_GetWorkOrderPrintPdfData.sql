@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -12,8 +11,9 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** --   --------    -------				--------------------------------
 ** 1    01/01/2024  AMIT GHEDIYA		Created
 ** 2    02/13/2024  Vishal Suthar		Modified the WOFPrintDate field
+** 3    06/28/2024  Vishal Suthar		Added IsActive and IsDeleted check in WorkOrderQuote join
 
-EXEC RPT_GetWorkOrderPrintPdfData 5320,4937
+EXEC RPT_GetWorkOrderPrintPdfData 2513,2049
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -140,7 +140,7 @@ BEGIN
 		FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 		INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId
-		LEFT JOIN Dbo.WorkOrderQuote woq WITH(NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0              
+		LEFT JOIN Dbo.WorkOrderQuote woq WITH(NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0 AND woq.IsActive = 1 AND woq.IsDeleted = 0       
 		LEFT JOIN Dbo.WorkOrderShipping shippingInfo WITH(NOLOCK) on shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=wop.ID              
 		LEFT JOIN Dbo.CustomerBillingAddress  billToSiteatt WITH(NOLOCK) on shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId              
 		LEFT JOIN Dbo.CustomerDomensticShipping  shipToSiteatt WITH(NOLOCK) on shippingInfo.ShipToSiteId = shipToSiteatt.CustomerDomensticShippingId              

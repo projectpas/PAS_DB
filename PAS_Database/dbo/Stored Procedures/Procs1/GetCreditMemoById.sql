@@ -20,11 +20,13 @@
 	5	 01/02/2024	 AMIT GHEDIYA	    added isperforma Flage for SO
 	6	 19/04/2024	 Devendra Shekh	    added isExchange to select
 	7	 19/04/2024	 Devendra Shekh	    added InvoiceTypeId to select and removed isExchange
+	8	 27/06/2024	 Moin Bloch	    added AcctingPeriodId 
+
 -- EXEC GetCreditMemoById 8  
   
 ************************/  
 CREATE   PROCEDURE [dbo].[GetCreditMemoById]  
-	@CreditMemoHeaderId bigint  
+@CreditMemoHeaderId bigint  
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -88,7 +90,8 @@ BEGIN
 	  ,CM.[FreightBilingMethodId]  
       ,CM.[TotalFreight]  
 	  ,CM.[ChargesBilingMethodId]  
-      ,CM.[TotalCharges]  
+      ,CM.[TotalCharges] 
+	  ,CM.[AcctingPeriodId] 	  
 	  ,CRMA.[ValidDate]  
 	  ,CRMA.[CreatedDate] 'RMAIssueDate'  
 	  ,CF.CurrencyId

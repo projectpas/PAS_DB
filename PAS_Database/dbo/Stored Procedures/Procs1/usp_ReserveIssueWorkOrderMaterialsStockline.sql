@@ -11,6 +11,7 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** --   --------    -------         --------------------------------
 ** 1    12/30/2021  HEMANT SALIYA    Save Work Order Materials reserve & Issue Stockline Details
 ** 2    07/21/2022  VISHAL SUTHAR    Added new stockline history
+** 3    06/27/2024  HEMANT SALIYA		Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -55,6 +56,7 @@ BEGIN
 					DECLARE @IsSerialised BIT;
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @TotalCountsBoth INT;
 
 					DECLARE @RC int;
                     DECLARE @DistributionMasterId bigint;
@@ -145,6 +147,7 @@ BEGIN
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
 					SELECT @IsKit = MAX(KitId) FROM #tmpReserveWOMaterialsStockline;
+					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -203,14 +206,27 @@ BEGIN
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterialsKit.WorkOrderMaterialsKitId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterialsKit.Quantity,0)			
 
 
-						--FOR UPDATED STOCKLINE QTY
-						UPDATE dbo.Stockline
-						SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-							QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0),
-							WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
-						FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-					
+						DECLARE @countKitStockline INT = 1;
+
+						--FOR FOR UPDATED STOCKLINE QTY
+						WHILE @countKitStockline <= @TotalCountsBoth
+						BEGIN
+							DECLARE @tmpKitStockLineId BIGINT;
+
+							SELECT @tmpKitStockLineId = StockLineId FROM #tmpReserveWOMaterialsStockline WHERE ID = @countKitStockline
+
+							--FOR UPDATED STOCKLINE QTY
+							UPDATE dbo.Stockline
+							SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+								QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+								QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0),
+								WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+							FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+							WHERE tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
+
+							SET @countKitStockline = @countKitStockline + 1;
+						END;
+
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
@@ -240,19 +256,9 @@ BEGIN
 
 							SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
 
-							--IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
-							--BEGIN
-							--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-							--END
-							--ELSE
-							--BEGIN
-							--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-							--END
-
 							EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
 
 							-- batch trigger issue qty
-
 							EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
 							@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 
@@ -311,16 +317,27 @@ BEGIN
 							GROUP BY WOM.WorkOrderMaterialsId
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)			
 
+						DECLARE @countStockline INT = 1;
 
-						--FOR UPDATED STOCKLINE QTY
-						UPDATE dbo.Stockline
-						SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-							QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
-							--QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.QuantityActReserved,0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0),
-							WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
-						FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-					
+						--FOR FOR UPDATED STOCKLINE QTY
+						WHILE @countStockline <= @TotalCountsBoth
+						BEGIN
+							DECLARE @tmpStockLineId BIGINT;
+
+							SELECT @tmpStockLineId = StockLineId FROM #tmpReserveWOMaterialsStockline WHERE ID = @countStockline
+
+							--FOR UPDATED STOCKLINE QTY
+							UPDATE dbo.Stockline
+							SET QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+								QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) - ISNULL(tmpRSL.QuantityActReserved,0),
+								QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActReserved,0),
+								WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+							FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+							WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+
+							SET @countStockline = @countStockline + 1;
+						END;
+
 						--FOR UPDATE TOTAL WORK ORDER COST
 						WHILE @count<= @TotalCounts
 						BEGIN
@@ -350,19 +367,9 @@ BEGIN
 
 							SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
 
-							--IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
-							--BEGIN
-							--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-							--END
-							--ELSE
-							--BEGIN
-							--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-							--END
-
 							EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
 
 							-- batch trigger issue qty
-
 							EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
 							@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 

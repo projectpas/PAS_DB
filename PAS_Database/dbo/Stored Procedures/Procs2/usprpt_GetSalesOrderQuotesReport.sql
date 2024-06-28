@@ -12,11 +12,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** S NO   Date            Author          Change Description              
- ** --   --------         -------          --------------------------------            
-    1    20-April-2022  Mahesh Sorathiya   Created  
-	2    30-June-2022  Devendra Shekh      Made changes for total  
-	3    28-MARCH-2024  Ekta Chandegra     IsActive and IsDelete flag is added 
+ ** S NO   Date            Author			Change Description              
+ ** --   --------         -------			--------------------------------            
+    1    20-April-2022  Mahesh Sorathiya	Created  
+	2    30-June-2022	Devendra Shekh      Made changes for total  
+	3    28-MARCH-2024  Ekta Chandegra		IsActive and IsDelete flag is added 
+	4    26-JUNE-2024	Vishal Suthar		Added filter to show only latest version of quote
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuotesReport] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -95,7 +96,7 @@ BEGIN
 		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
 		  WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)  
 				AND CAST(SOQ.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SOQ.MasterCompanyId = @mastercompanyid  
-				AND SOQ.IsDeleted = 0 AND SOQ.IsActive = 1
+				AND SOQ.IsDeleted = 0 AND SOQ.IsActive = 1 AND SOQ.IsNewVersionCreated = 0
 				AND  
 				(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -158,7 +159,7 @@ BEGIN
 		    GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
       WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)
 		    AND CAST(SOQ.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SOQ.MasterCompanyId = @mastercompanyid  
-			AND SOQ.IsDeleted = 0 AND SOQ.IsActive = 1
+			AND SOQ.IsDeleted = 0 AND SOQ.IsActive = 1 AND SOQ.IsNewVersionCreated = 0
 			AND  
 			(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

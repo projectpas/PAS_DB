@@ -1,4 +1,5 @@
-﻿CREATE    PROCEDURE DBO.Get_ShippingConfigureList  
+﻿
+CREATE    PROCEDURE [dbo].[Get_ShippingConfigureList]  
 (  
   @PageNumber int,    
   @PageSize int,    
@@ -98,7 +99,7 @@ BEGIN
     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,    
-    CASE WHEN (@SortOrder=1 AND @SortColumn='Shipvia')  THEN shippingvia END ASC,
+    CASE WHEN (@SortOrder=1 AND @SortColumn='shippingvia')  THEN shippingvia END ASC,
     CASE WHEN (@SortOrder=1 AND @SortColumn='ShippingAccountNumber')  THEN ShippingAccountNumber END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='APIKey')  THEN APIKey END ASC,    
     CASE WHEN (@SortOrder=1 AND @SortColumn='SecretKey')  THEN SecretKey END ASC,  
@@ -107,7 +108,7 @@ BEGIN
     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,    
-    CASE WHEN (@SortOrder=-1 AND @SortColumn='Shipvia')  THEN shippingvia END DESC,	
+    CASE WHEN (@SortOrder=-1 AND @SortColumn='shippingvia')  THEN shippingvia END DESC,	
     CASE WHEN (@SortOrder=-1 AND @SortColumn='ShippingAccountNumber')  THEN ShippingAccountNumber END DESC,    
     CASE WHEN (@SortOrder=-1 AND @SortColumn='APIKey')  THEN APIKey END DESC  ,  
     CASE WHEN (@SortOrder=-1 AND @SortColumn='SecretKey')  THEN SecretKey END DESC    

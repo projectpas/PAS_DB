@@ -3028,6 +3028,7 @@
     <Build Include="dbo\Views\vw_POROCategoryAudit.sql" />
     <Build Include="dbo\Views\vw_ExchangeCoreLetterTypeAudit.sql" />
     <Build Include="dbo\Tables\LogInLog.sql" />
+    <Build Include="dbo\Views\vw_GLCashFlowClassificationAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -3021,6 +3021,7 @@
     <Build Include="dbo\Views\vw_JournalCategoryAudit.sql" />
     <Build Include="dbo\Views\vw_GLAccountClassAudit.sql" />
     <Build Include="dbo\Views\vw_ExpenditureCategoryAudit.sql" />
+    <Build Include="dbo\Views\vw_InvoiceDeliveryPrefStatusAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

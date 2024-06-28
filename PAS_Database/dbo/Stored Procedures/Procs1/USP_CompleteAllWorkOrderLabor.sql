@@ -232,7 +232,9 @@ BEGIN
 
 					SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
-					IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+					IF(ISNULL(@TotalCost, 0) > 0 )
+					BEGIN
+						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 						BEGIN
 							PRINT '7'
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
@@ -254,6 +256,7 @@ BEGIN
 							END
 							PRINT '8.1'
 						END
+					END
 
 					SET @LoopID = @LoopID + 1;
 				END

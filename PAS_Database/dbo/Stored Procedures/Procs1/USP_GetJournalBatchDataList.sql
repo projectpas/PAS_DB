@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:   [USP_GetJournalBatchDataList]                 
  ** Author:   Subhash Saliya      
  ** Description: Get GetJournalBatchDataList         
@@ -16,6 +15,7 @@
     2    05/09/2023   Bhargav Saliya	Add One Field [UpdatedBy]  
 	3	 18/10/2023	  Nainshi Joshi		Add [PostedBy] field
 	4	 17/04/2024	  AMIT GHEDIYA		JeNumber filter added
+	5	 27/06/2024	  Bhargav Saliya    PostedBy filter added
 
  -- exec USP_GetJournalBatchDataList 92,1          
 **************************************************************/       
@@ -41,6 +41,7 @@ CREATE     PROCEDURE [dbo].[USP_GetJournalBatchDataList]
 @IsDeleted bit= null,      
 @CreatedBy varchar(50),  
 @UpdatedBy varchar(50),
+@PostedBy varchar(50),
 @JeNumber varchar(100) = NULL
 AS      
 BEGIN      
@@ -105,28 +106,28 @@ BEGIN
 				(AccountingPeriod like '%' +@GlobalFilter+'%') OR        
 				(StatusName like '%'+@GlobalFilter+'%') OR        
 				(JournalTypeName like '%'+@GlobalFilter+'%') OR        
-		   ((CAST(TotalDebit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
-		   ((CAST(TotalCredit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
-		   ((CAST(TotalBalance AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+		        ((CAST(TotalDebit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+		        ((CAST(TotalCredit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+		        ((CAST(TotalBalance AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
 				(CreatedBy like '%' +@GlobalFilter+'%')  OR  
-		  (UpdatedBy like '%' +@GlobalFilter+'%')  
+				(UpdatedBy like '%' +@GlobalFilter+'%') OR
+				(PostedBy like '%' +@GlobalFilter+'%')
 				))        
 				OR           
 				(@GlobalFilter='' AND (IsNull(@BatchName,'') ='' OR BatchName like '%' + @BatchName+'%') AND        
-		   (IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
-		   (IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
-			 (IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
+				(IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
+				(IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
+				(IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
 				(IsNull(@StatusName,'') ='' OR StatusName like '%' + @StatusName+'%') AND        
 				(IsNull(@JournalTypeName,'') ='' OR JournalTypeName like '%' + @JournalTypeName+'%') AND      
-		   (IsNull(@TotalDebit,'') ='' OR CAST(TotalDebit AS varchar(20)) like '%' + @TotalDebit+'%' ) AND       
-		   (IsNull(@TotalCredit,'') ='' OR CAST(TotalCredit AS varchar(20)) like '%' + @TotalCredit+'%' ) AND        
-		   (IsNull(@TotalBalance,'') ='' OR CAST(TotalBalance AS varchar(20)) like '%' + @TotalBalance+'%') AND       
-		   (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-		   (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')  
-				)      
-		  )        
+				(IsNull(@TotalDebit,'') ='' OR CAST(TotalDebit AS varchar(20)) like '%' + @TotalDebit+'%' ) AND       
+				(IsNull(@TotalCredit,'') ='' OR CAST(TotalCredit AS varchar(20)) like '%' + @TotalCredit+'%' ) AND        
+				(IsNull(@TotalBalance,'') ='' OR CAST(TotalBalance AS varchar(20)) like '%' + @TotalBalance+'%') AND       
+				(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
+				(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND
+				(IsNull(@PostedBy,'') ='' OR PostedBy like '%' + @PostedBy+'%')))        
 				ORDER BY          
-		   CASE WHEN (@SortOrder=1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END ASC,        
+				CASE WHEN (@SortOrder=1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='BatchName')  THEN BatchName END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='PostDate')  THEN PostDate END ASC,        
@@ -137,7 +138,8 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='TotalCredit')  THEN CAST(TotalCredit AS varchar(20)) END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='TotalBalance')  THEN CAST(TotalBalance AS varchar(20)) END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,        
-				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
+				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='PostedBy')  THEN PostedBy END ASC, 
         
 				CASE WHEN (@SortOrder=-1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END Desc,       
 				CASE WHEN (@SortOrder=-1 and @SortColumn='BatchName')  THEN BatchName END Desc,        
@@ -150,7 +152,8 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TotalCredit')  THEN CAST(TotalCredit AS varchar(20)) END Desc,        
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TotalBalance')  THEN CAST(TotalBalance AS varchar(20)) END Desc,        
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END Desc,     
-				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc       
+				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='PostedBy')  THEN PostedBy END Desc     
               
         
 				OFFSET @RecordFrom ROWS         
@@ -208,24 +211,26 @@ BEGIN
 				(AccountingPeriod like '%' +@GlobalFilter+'%') OR        
 				(StatusName like '%'+@GlobalFilter+'%') OR        
 				(JournalTypeName like '%'+@GlobalFilter+'%') OR        
-		   ((CAST(TotalDebit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
-		   ((CAST(TotalCredit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
-		   ((CAST(TotalBalance AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+				((CAST(TotalDebit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+				((CAST(TotalCredit AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
+				((CAST(TotalBalance AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
 				(CreatedBy like '%' +@GlobalFilter+'%')  OR  
-		  (UpdatedBy like '%' +@GlobalFilter+'%')  
+				(UpdatedBy like '%' +@GlobalFilter+'%')	OR
+				(PostedBy like '%' +@GlobalFilter+'%')
 				))        
 				OR           
 				(@GlobalFilter='' AND (IsNull(@BatchName,'') ='' OR BatchName like '%' + @BatchName+'%') AND        
-		   (IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
-		   (IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
-			 (IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
+				(IsNull(@EntryDate,'') ='' OR Cast(EntryDate as Date)=Cast(@EntryDate as date)) AND        
+				(IsNull(@PostDate,'') ='' OR Cast(PostDate as Date)=Cast(@PostDate as date)) AND        
+				(IsNull(@AccountingPeriod,'') ='' OR AccountingPeriod like '%' + @AccountingPeriod+'%') AND        
 				(IsNull(@StatusName,'') ='' OR StatusName like '%' + @StatusName+'%') AND        
 				(IsNull(@JournalTypeName,'') ='' OR JournalTypeName like '%' + @JournalTypeName+'%') AND      
-		   (IsNull(@TotalDebit,'') ='' OR CAST(TotalDebit AS varchar(20)) like '%' + @TotalDebit+'%' ) AND       
-		   (IsNull(@TotalCredit,'') ='' OR CAST(TotalCredit AS varchar(20)) like '%' + @TotalCredit+'%' ) AND        
-		   (IsNull(@TotalBalance,'') ='' OR CAST(TotalBalance AS varchar(20)) like '%' + @TotalBalance+'%') AND       
-		   (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-		   (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')  
+				(IsNull(@TotalDebit,'') ='' OR CAST(TotalDebit AS varchar(20)) like '%' + @TotalDebit+'%' ) AND       
+				(IsNull(@TotalCredit,'') ='' OR CAST(TotalCredit AS varchar(20)) like '%' + @TotalCredit+'%' ) AND        
+				(IsNull(@TotalBalance,'') ='' OR CAST(TotalBalance AS varchar(20)) like '%' + @TotalBalance+'%') AND       
+				(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
+				(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND
+				(IsNull(@PostedBy,'') ='' OR PostedBy like '%' + @PostedBy+'%') 
 				)      
 		  )        
 				ORDER BY          
@@ -240,7 +245,8 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='TotalCredit')  THEN CAST(TotalCredit AS varchar(20)) END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='TotalBalance')  THEN CAST(TotalBalance AS varchar(20)) END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,        
-				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,        
+				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=1 and @SortColumn='PostedBy')  THEN PostedBy END ASC, 
         
 				CASE WHEN (@SortOrder=-1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END Desc,       
 				CASE WHEN (@SortOrder=-1 and @SortColumn='BatchName')  THEN BatchName END Desc,        
@@ -253,7 +259,8 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TotalCredit')  THEN CAST(TotalCredit AS varchar(20)) END Desc,        
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TotalBalance')  THEN CAST(TotalBalance AS varchar(20)) END Desc,        
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END Desc,     
-				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc       
+				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='PostedBy')  THEN PostedBy END Desc
               
         
 				OFFSET @RecordFrom ROWS         

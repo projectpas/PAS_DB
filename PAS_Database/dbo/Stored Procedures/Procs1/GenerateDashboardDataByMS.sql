@@ -10,14 +10,15 @@
  **********************           
   ** Change History           
  **********************           
- ** PR   Date             Author		         Change Description            
- ** --   --------         -------		     ----------------------------   
-    1    22 Nov 2023	JEVIK RAIYANI              update SQProcessed variable calculation         
-	2	 01/31/2024		Devendra Shekh				added isperforma Flage for WO
-	3	 01/02/2024	    AMIT GHEDIYA	            added isperforma Flage for SO
-	4    03/07/2024     Bhargav Saliya				Fixed duplicate Record Issue
-	6    19 March 2024  Bhargav Saliya				Resolved Count Issue(MRO Inputs) in MRO Dashboard 
-	7	 28 March 2024  Bhargav Saliya				Resolve Snapshot: MRO Billing amount issue
+ ** PR   Date             Author			Change Description            
+ ** --   --------         -------			----------------------------   
+    1    22 Nov 2023	JEVIK RAIYANI		update SQProcessed variable calculation         
+	2	 01/31/2024		Devendra Shekh		added isperforma Flage for WO
+	3	 01/02/2024	    AMIT GHEDIYA	    added isperforma Flage for SO
+	4    03/07/2024     Bhargav Saliya		Fixed duplicate Record Issue
+	6    19 March 2024  Bhargav Saliya		Resolved Count Issue(MRO Inputs) in MRO Dashboard 
+	7	 28 March 2024  Bhargav Saliya		Resolve Snapshot: MRO Billing amount issue
+	8	 28 June 2024   Vishal Suthar		Added login entry in LogInLog table for employee when they login into the system
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -47,10 +48,12 @@ BEGIN
 		DECLARE @SalesOrderQouteModuleID AS INT =18
 		DECLARE @SpeedQouteModuleID AS INT =27
 		DECLARE @EmployeeRoleID AS VARCHAR(MAX);
-			
-		SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
-		WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
+		INSERT INTO [dbo].[LogInLog]
+           ([EmployeeId],[LogInTime],[LogOutTime],[IPAddress],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate])
+        SELECT EmployeeId,GETDATE(),GETDATE(),'0',MasterCompanyId,FirstName + ' ' +LASTNAME,FirstName + ' ' +LASTNAME,GETDATE(),GETDATE()  from dbo.Employee WHERE [EmployeeId]  = @EmployeeId
+     
+		
 		SET @EmployeeRoleID = STUFF((SELECT DISTINCT ',' + CAST(RoleId AS VARCHAR(100))
 							FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
 							FOR XML PATH('')), 1, 1, '')

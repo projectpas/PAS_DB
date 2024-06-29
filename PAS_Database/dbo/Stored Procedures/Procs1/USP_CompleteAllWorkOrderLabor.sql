@@ -232,6 +232,8 @@ BEGIN
 
 					SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 
+					SELECT TOP 1 @TotalCost = ISNULL(TotalCost, 0) FROM dbo.WorkOrderLabor WITH (NOLOCK) WHERE WorkOrderLaborId = @WorkOrderLaborId
+
 					IF(ISNULL(@TotalCost, 0) > 0 )
 					BEGIN
 						IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)

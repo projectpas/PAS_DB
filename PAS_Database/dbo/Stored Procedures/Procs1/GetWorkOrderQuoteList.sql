@@ -145,7 +145,7 @@ BEGIN
          LEFT JOIN dbo.ApprovalStatus appsI WITH (NOLOCK) on wopp.InternalStatusId = appsI.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsA WITH (NOLOCK) on 4 = appsA.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
-                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0  AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND woq.QuoteStatusId IN (1, 4, 5)))
+                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND wqs.WorkOrderQuoteStatusId IN (1, 4, 5)))
      ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult FROM  Result  
       WHERE (  
@@ -159,7 +159,7 @@ BEGIN
       (OpenDate like '%' +@GlobalFilter+'%') OR  
       (promisedDate like '%' +@GlobalFilter+'%') OR  
       (estShipDate like '%'+@GlobalFilter+'%') OR  
-         (estCompletionDate like '%' +@GlobalFilter+'%' ) OR   
+		(estCompletionDate like '%' +@GlobalFilter+'%' ) OR   
       (quoteStatus like '%' +@GlobalFilter+'%') OR  
       (quoteStatusId like '%' +@GlobalFilter+'%') OR  
       (CreatedBy like '%' +@GlobalFilter+'%') OR  
@@ -171,8 +171,9 @@ BEGIN
 	  (WoStage like '%' +@GlobalFilter+'%') OR  
       (WoStatus like '%' +@GlobalFilter+'%') OR 
       (WorkOrderStatus like '%' +@GlobalFilter+'%')  
-      ))  
-      OR     
+      )
+	  )  
+    	OR     
       (@GlobalFilter='' AND (IsNull(@workOrderNum,'') ='' OR WorkOrderNum like '%' + @workOrderNum+'%') AND  
       (IsNull(@quoteNumber,'') ='' OR quoteNumber like '%' + @quoteNumber+'%') AND  
       (IsNull(@customerName,'') ='' OR customerName like '%' + @customerName+'%') AND  
@@ -182,7 +183,7 @@ BEGIN
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@quoteStatus,'') ='' OR quoteStatus like '%' + @quoteStatus+'%') AND  
-      (IsNull(@StatusId,0) = 0 OR quoteStatusId = @StatusId) AND  
+      --(IsNull(@StatusId,0) = 0 OR quoteStatusId = @StatusId) AND  
       (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
       (IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date)=Cast(@OpenDate as date)) AND  

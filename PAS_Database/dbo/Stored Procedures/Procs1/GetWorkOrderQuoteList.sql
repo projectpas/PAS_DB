@@ -12,6 +12,7 @@
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
+	2    06/29/2024   Abhishek Jirawla   Adding flag to return only specified status for pending Approval
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -24,12 +25,12 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]
  @customerName varchar(50) = null,  
  @customerCode varchar(50) = null,  
  @openDate datetime = null,  
-    @promiseDate datetime = null,  
-    @estCompletionDate datetime = null,  
-    @estShipDate datetime = null,  
-    @StatusId int = null,  
-    @CreatedDate datetime = null,  
-    @UpdatedDate datetime = null,  
+ @promiseDate datetime = null,  
+ @estCompletionDate datetime = null,  
+ @estShipDate datetime = null,  
+ @StatusId int = null,  
+ @CreatedDate datetime = null,  
+ @UpdatedDate datetime = null,  
  @CreatedBy varchar(50) = null,  
  @UpdatedBy varchar(50) = null,  
  @MasterCompanyId varchar(200) = null,  
@@ -43,7 +44,8 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]
  @MSModuleID INT=12,
  @WoStage  varchar(200)=null,
  @WoStatus varchar(200)=null,
- @ManufacturerName varchar(200)=null
+ @ManufacturerName varchar(200)=null,
+ @IsPendingApproval bit = null
 AS   
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -77,6 +79,7 @@ BEGIN
     BEGIN   
      Set @SortColumn=Upper(@SortColumn)  
     END  
+
     ;WITH Result AS(  
          SELECT  
            woq.WorkOrderQuoteId as WorkOrderQuoteId,  
@@ -142,7 +145,7 @@ BEGIN
          LEFT JOIN dbo.ApprovalStatus appsI WITH (NOLOCK) on wopp.InternalStatusId = appsI.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsA WITH (NOLOCK) on 4 = appsA.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
-                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)  
+                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0  AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND woq.QuoteStatusId IN (1, 4, 5)))
      ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult FROM  Result  
       WHERE (  

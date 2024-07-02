@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿/*********************           
  ** File:   [USP_GetYearEndCloseList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get Year End Close List List
@@ -9,18 +9,19 @@
 
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/12/2023   Hemant Saliya	 Created Procedure
 	2    09/25/2023   Hemant Saliya	 Added Version Numver in List
 	3    09/26/2023   Bhargav Saliya  Add One Field [BatchHeaderId]
+	4    06/28/2024   Sahdev Saliya  Added Global Filters and Sorting (Revenue, Expenses, NetEarning, NetRevenue)
 
 EXEC USP_GetYearEndCloseList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@Year=0,@VersionNumber=NULL,@LegalEntity=NULL,@Memo=NULL,@ExecuteDate=NULL,@YearEndDate=NULL,
 @CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2     
-**************************************************************/
+**********************/
 CREATE   PROCEDURE [dbo].[USP_GetYearEndCloseList]
  -- Add the parameters for the stored procedure here  
 	 @PageSize INT,  
@@ -38,8 +39,12 @@ CREATE   PROCEDURE [dbo].[USP_GetYearEndCloseList]
 	 @UpdatedDate DATETIME = NULL,  
 	 @CreatedBy VARCHAR(50) = NULL,  
 	 @UpdatedBy VARCHAR(50) = NULL,  
-	 @IsDeleted BIT = null,  
+	 @IsDeleted BIT = null, 
 	 @MasterCompanyId VARCHAR(200) = NULL,  
+	 @Revenue VARCHAR(50) = NULL,  
+	 @Expenses VARCHAR(50) = NULL,
+	 @NetEarning VARCHAR(50) = NULL,  
+	 @NetRevenue VARCHAR(50) = NULL ,
 	 @EmployeeId VARCHAR(200) = NULL	
 AS  
 BEGIN  
@@ -93,12 +98,12 @@ BEGIN
 			[VersionNumber],	
 			[LegalEntity],
 			[YearEndDate],
-			[Revenue],
-			[Expenses],
-			[NetEarning],
+			CAST([Revenue] AS VARCHAR) AS [Revenue],
+			CAST([Expenses] AS VARCHAR) AS [Expenses],
+			CAST([NetEarning] AS VARCHAR) AS [NetEarning],
 			[PreviousYearRevenue],
-			[NetRevenue],
-			[Memo],
+			CAST([NetRevenue] AS VARCHAR) AS [NetRevenue],
+			UPPER ([Memo]) AS [Memo],
 			[StartPeriodId],
 			[EndPeriodId],
 			[ExecuteDate],
@@ -117,6 +122,10 @@ BEGIN
 		([LegalEntity] like '%' +@GlobalFilter+'%') OR  
 	    ([Memo] like '%' +@GlobalFilter+'%') OR  
         (CreatedBy like '%' +@GlobalFilter+'%') OR  
+        (Revenue like '%' +@GlobalFilter+'%') OR  
+        (Expenses like '%' +@GlobalFilter+'%') OR  
+        (NetEarning like '%' +@GlobalFilter+'%') OR  
+        (NetRevenue like '%' +@GlobalFilter+'%') OR  
         (UpdatedBy like '%' +@GlobalFilter+'%')  
         ))  
         OR     
@@ -125,7 +134,11 @@ BEGIN
 		(IsNull(@VersionNumber,'') ='' OR VersionNumber like '%' + @VersionNumber+'%') AND  
 		(IsNull(@Memo,'') ='' OR Memo like '%' + @Memo+'%') AND  
         (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-        (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
+        (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND
+		(IsNull(@Revenue,'') ='' OR Revenue like '%' + @Revenue+'%') AND  
+		(IsNull(@Expenses,'') ='' OR Expenses like '%' + @Expenses+'%') AND  
+		(IsNull(@NetEarning,'') ='' OR NetEarning like '%' + @NetEarning+'%') AND  
+        (IsNull(@NetRevenue,'') ='' OR NetRevenue like '%' + @NetRevenue+'%') AND  
         (IsNull(@ExecuteDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([ExecuteDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@ExecuteDate as date)) AND  
 		(IsNull(@YearEndDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal([YearEndDate], @CurrntEmpTimeZoneDesc) as Date) = Cast(@YearEndDate as date)) AND  
         (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
@@ -145,7 +158,11 @@ BEGIN
 		CASE WHEN (@SortOrder=1 AND @SortColumn='YEAR')  THEN [Year] END ASC,  
 		CASE WHEN (@SortOrder=1 AND @SortColumn='VERSIONNUMBER')  THEN [VersionNumber] END ASC,  
 		CASE WHEN (@SortOrder=1 AND @SortColumn='LEGALENTITY')  THEN [LegalEntity] END ASC,  
-		CASE WHEN (@SortOrder=1 AND @SortColumn='MEMO')  THEN [Memo] END ASC,  
+		CASE WHEN (@SortOrder=1 AND @SortColumn='MEMO')  THEN [Memo] END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='REVENUE')  THEN [Revenue] END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='EXPENSES')  THEN [Expenses] END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='NETEARNING')  THEN [NetEarning] END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='NETREVENUE')  THEN [NetRevenue] END ASC,
   
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
 	    CASE WHEN (@SortOrder=-1 AND @SortColumn='EXECUTEDATE')  THEN ExecuteDate END DESC,  
@@ -156,7 +173,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='YEAR')  THEN [Year] END DESC, 
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='VERSIONNUMBER')  THEN [VersionNumber] END DESC,  
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='LEGALENTITY')  THEN [LegalEntity] END DESC,  
-		CASE WHEN (@SortOrder=-1 AND @SortColumn='MEMO')  THEN [Memo] END DESC
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='MEMO')  THEN [Memo] END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='REVENUE')  THEN [Revenue] END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='EXPENSES')  THEN [Expenses] END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='NETEARNING')  THEN [NetEarning] END DESC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='NETREVENUE')  THEN [NetRevenue] END DESC
   
         OFFSET @RecordFrom ROWS   
         FETCH NEXT @PageSize ROWS ONLY  

@@ -3039,6 +3039,7 @@
     <Build Include="dbo\Views\vw_LeafNodeNameAudit.sql" />
     <Build Include="dbo\Views\vw_CreditMemoReasonAudit.sql" />
     <Build Include="dbo\Views\vw_BalanceTypeAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SO_Refresh_CreditLimit_Terms.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

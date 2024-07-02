@@ -15,6 +15,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 17-06-2024		HEMANT SALIYA  		Created
+	2    02-07-2024     Shrey Chandegara    Changes for sorting and filer and global filter
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
@@ -746,20 +747,31 @@ BEGIN
 					[LegalEntityName] AS 'LegelEntity',
 					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount]
 			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
-			 WHERE((ISNULL(@CustName,'') ='' OR [CustomerName] LIKE '%' + @CustName+'%') AND
-				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
-				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
-				  (ISNULL(@CurrentAmount,0) = 0 OR [CurrentAmount] = @CurrentAmount) AND	
-				  --(ISNULL(@ReceivedAmount,0) = 0 OR [ReceivedAmount] = @ReceivedAmount) AND	
-				  --(ISNULL(@PaymentAmount,0) = 0 OR [PaymentAmount] = @PaymentAmount) AND
-				  (ISNULL(@Amountlessthan0days,0) = 0 OR [Amountlessthan0days] = @Amountlessthan0days) AND
-				  (ISNULL(@Amountlessthan30days,0) =0 OR [Amountlessthan30days] = @Amountlessthan30days) AND
-				  (ISNULL(@Amountlessthan60days,0) =0 OR [Amountlessthan60days]= @Amountlessthan60days) AND
-				  (ISNULL(@Amountlessthan90days,0) =0 OR [Amountlessthan90days]= @Amountlessthan90days) AND
-				  (ISNULL(@Amountlessthan120days,0) =0 OR [Amountlessthan120days] = @Amountlessthan120days) AND					
-				  (ISNULL(@Amountmorethan120days,0) =0 OR [Amountmorethan120days] = @Amountmorethan120days)) 
+			 WHERE ((@GlobalFilter <>'' AND ((CustomerName LIKE '%' +@GlobalFilter+'%') OR      
+					(CurrencyCode LIKE '%' +@GlobalFilter+'%') OR        
+					(CAST(Amountlessthan0days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan30days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan60days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan90days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan120days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountmorethan120days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST([RemainingAmount] AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))      
+				OR   
+			 
+				 (@GlobalFilter='' AND (ISNULL(@CustName,'') ='' OR [CustomerName] LIKE '%' + @CustName+'%') AND
+				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND	
+				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
+				  (ISNULL(@BalanceAmount,0) =0 OR CONVERT(int,ISNULL([BalanceAmount],0))= @BalanceAmount) AND
+				  (ISNULL(@CurrentAmount,0) =0 OR CONVERT(int,ISNULL([CurrentAmount],0))= @CurrentAmount) AND
+				  (ISNULL(@CreditMemoAmount,0) =0 OR CONVERT(int,ISNULL([CreditMemoAmount],0))= @CreditMemoAmount) AND
+				  (ISNULL(@Amountlessthan0days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan0days],0))= @Amountlessthan0days) AND
+				  (ISNULL(@Amountlessthan30days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan30days],0))= @Amountlessthan30days) AND
+				  (ISNULL(@Amountlessthan60days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan60days],0))= @Amountlessthan60days) AND
+				  (ISNULL(@Amountlessthan90days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan90days],0))= @Amountlessthan90days) AND
+				  (ISNULL(@Amountlessthan120days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan120days],0))= @Amountmorethan120days) )
+				  )
 				  --(ISNULL(@InvoiceAmount,0) = 0 OR [InvoiceAmount] = @InvoiceAmount)) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo]
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo],[CurrencyCode]
 
 			CREATE TABLE #TEMPFinalResilts(        
 				[CustomerId] BIGINT NULL,
@@ -801,7 +813,7 @@ BEGIN
 					ISNULL(SUM([BalanceAmount]),0), 
 					ISNULL(SUM([RemainingAmount]),0), 
 					ISNULL(SUM(CurrentAmount),0), 
-					ISNULL(SUM(CreditMemoAmount),0), 
+					ISNULL(SUM([CreditMemoAmount]),0), 
 					ISNULL(SUM([Amountpaidbylessthen0days]),0), 
 					ISNULL(SUM([Amountpaidby30days]),0), 
 					ISNULL(SUM([Amountpaidby60days]),0), 
@@ -836,14 +848,30 @@ BEGIN
 					  @TotalAmountlessthan120days AS TotalAmountlessthan120days,
 					  @TotalAmountmorethan120days AS TotalAmountmorethan120days  
 			FROM #TEMPFinalResilts ORDER BY  	
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustName] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustName] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTNAME') THEN [CustName] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTNAME') THEN [CustName] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,			
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREDITMEMOAMOUNT') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREDITMEMOAMOUNT') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENCYCODE') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCYCODE') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBYLESSTHEN0DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBYLESSTHEN0DAYS') THEN [CustomerCode] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 		
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY30DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY30DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY60DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY60DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY90DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY90DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY120DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY120DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBYMORETHAN120DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBYMORETHAN120DAYS') THEN [CustomerCode] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END DESC, 		
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END ASC,

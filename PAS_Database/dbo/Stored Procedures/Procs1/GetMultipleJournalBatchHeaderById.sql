@@ -20,7 +20,7 @@
 	5	 04/12/2023  Ayesha Sultana		  Date Time UTC convert
 	6	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
 	7	 10/01/2024  Moin Bloch		      Set TDate Format to MM-dd-yyy
-    8	1st July 2024    Bhargav Saliya	  Set [EntryDate] Format to 'MM-dd-yyy'
+    8	1st July 2024    Bhargav Saliya	  Set [EntryDate] Format to 'MM-dd-yyy' AND ALSO [DEntryDate]
 -- EXEC GetMultipleJournalBatchHeaderById '1524,1523,1521,1520,1519,1518,1517,1516,1515,1495,1513,1467,1500',1 
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
@@ -66,7 +66,8 @@ BEGIN
    ISNULL(JBD.[DebitAmount],0) AS DebitAmount,  
    ISNULL(JBD.[CreditAmount],0) AS CreditAmount,  
    JBD.[JournalTypeNumber] AS DJournalTypeNumber,  
-   CAST(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
+   --CAST(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
+   FORMAT(CAST(DBO.ConvertUTCtoLocal(JBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss') AS DEntryDate, -- JBD.[EntryDate] AS DEntryDate,  
    JBD.[JournalTypeName] AS DJournalTypeName,  
    JT.[JournalTypeCode],  
    CAST(DBO.ConvertUTCtoLocal(JBD.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS CreatedDate,

@@ -145,7 +145,7 @@ BEGIN
          LEFT JOIN dbo.ApprovalStatus appsI WITH (NOLOCK) on wopp.InternalStatusId = appsI.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsA WITH (NOLOCK) on 4 = appsA.ApprovalStatusId  
          LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
-                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND wqs.WorkOrderQuoteStatusId IN (1, 4, 5)))
+                    WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND (wopp.ApprovalActionId IN (0, 1, 2, 4) OR wopp.ApprovalActionId IS NULL)))
      ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult FROM  Result  
       WHERE (  

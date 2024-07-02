@@ -12,3 +12,31 @@
     CONSTRAINT [PK_ExchangeCoreLetterType] PRIMARY KEY CLUSTERED ([ExchangeCoreLetterTypeId] ASC)
 );
 
+
+
+
+GO
+
+
+
+CREATE   TRIGGER [dbo].[Trg_ExchangeCoreLetterTypeAudit]
+
+   ON  [dbo].[ExchangeCoreLetterType]
+
+   AFTER INSERT,UPDATE
+
+AS 
+
+BEGIN
+
+
+
+	INSERT INTO [dbo].[ExchangeCoreLetterTypeAudit]
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+
+
+END

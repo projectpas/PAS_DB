@@ -20,8 +20,8 @@
 	5	 04/12/2023  Ayesha Sultana		  Date Time UTC convert
 	6	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
 	7	 10/01/2024  Moin Bloch		      Set TDate Format to MM-dd-yyy
-         
--- EXEC GetMultipleJournalBatchHeaderById '1524,1523,1521,1520,1519,1518,1517,1516,1515,1495,1513,1467,1500',1    
+    8	1st July 2024    Bhargav Saliya	  Set [EntryDate] Format to 'MM-dd-yyy'
+-- EXEC GetMultipleJournalBatchHeaderById '1524,1523,1521,1520,1519,1518,1517,1516,1515,1495,1513,1467,1500',1 
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
 @JournalBatchHeaderId varchar(MAX)  = null,
@@ -48,7 +48,8 @@ BEGIN
    JBH.[JournalBatchHeaderId],  
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
-   CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS EntryDate, 
+   --CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS EntryDate,
+   FORMAT(CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy') AS EntryDate, 
    CAST(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS PostDate, 
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  

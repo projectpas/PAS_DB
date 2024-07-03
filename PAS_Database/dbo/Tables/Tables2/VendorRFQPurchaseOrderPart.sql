@@ -48,6 +48,7 @@
     [TaggedByName]             VARCHAR (250)   NULL,
     [TaggedByTypeName]         VARCHAR (250)   NULL,
     [TagDate]                  DATETIME2 (7)   NULL,
+    [IsNoQuote]                BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -59,6 +60,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

@@ -84,7 +84,8 @@ BEGIN
      ,PO.[Status] AS POStatus      
      ,POMSD.[EntityMSID] AS EntityStructureId      
      ,POMSD.[LastMSLevel] AS LastMSLevel      
-     ,POMSD.[AllMSlevels] AS AllMSlevels      
+     ,POMSD.[AllMSlevels] AS AllMSlevels  
+	 ,PP.IsNoQuote
     FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK)       
     LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON PP.PurchaseOrderId = PO.PurchaseOrderId      
     JOIN [dbo].[PurchaseOrderManagementStructureDetails] POMSD ON PP.VendorRFQPOPartRecordId = POMSD.ReferenceID AND POMSD.ModuleID = 21      
@@ -109,7 +110,7 @@ for xml path(''),TYPE).value('.','varchar(max)') , 1,1,'') as newdata   from Ve
  GROUP BY PP.VendorRFQPOPartRecordId,PP.VendorRFQPurchaseOrderId,PP.ItemMasterId,PP.PartNumber,PP.PartDescription,PP.StockType,PP.ManufacturerId,PP.Manufacturer,PP.PriorityId,PP.Priority,PP.NeedByDate,PP.PromisedDate,PP.ConditionId,PP.Condition,PP.QuantityOrdered,PP.UnitCost,PP.ExtendedCost,PP.WorkOrderId,PP.SubWorkOrderId,PP.SalesOrderId,PP.ManagementStructureId,PP.Level1,PP.Level2,PP.Level3,PP.Level4,PP.Memo,PP.MasterCompanyId,PP.CreatedBy,PP.CreatedDate,PP.UpdatedBy,PP.UpdatedDate,PP.IsActive,
  PP.IsDeleted,PP.PurchaseOrderId,PP.PurchaseOrderNumber,PP.UOMId,PP.UnitOfMeasure,
  [TraceableTo],[TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName] ,[TagDate],
- PO.CreatedDate,PO.Status,POMSD.EntityMSID,POMSD.LastMSLevel,POMSD.AllMSlevels  
+ PO.CreatedDate,PO.Status,POMSD.EntityMSID,POMSD.LastMSLevel,POMSD.AllMSlevels,PP.IsNoQuote  
    
  END      
  END TRY          

@@ -6,11 +6,12 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				-------------------------------- 
-	2    07/25/2023   Devendra Shekh		changed NVARCHAR(10) to NVARCHAR(20)
-	3    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
-	4    12/04/2023   Jevik Raiyani		 add @statusValue
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			-------------------------------- 
+	2    07/25/2023   Devendra Shekh	changed NVARCHAR(10) to NVARCHAR(20)
+	3    05/12/2023   Amit Ghediya      Modify(Added Traceable & Tagged fields)
+	4    12/04/2023   Jevik Raiyani		add @statusValue
+	5    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
@@ -127,7 +128,8 @@ BEGIN
 					(taggedDate LIKE '%' +@GlobalFilter+'%') OR
 					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
 					(TagType LIKE '%' +@GlobalFilter+'%') OR
-					(TaggedBy LIKE '%' +@GlobalFilter+'%'))
+					(TaggedBy LIKE '%' +@GlobalFilter+'%') OR
+					(VendorName LIKE '%' +@GlobalFilter+'%'))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND

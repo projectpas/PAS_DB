@@ -3028,6 +3028,19 @@
     <Build Include="dbo\Views\vw_POROCategoryAudit.sql" />
     <Build Include="dbo\Views\vw_ExchangeCoreLetterTypeAudit.sql" />
     <Build Include="dbo\Tables\LogInLog.sql" />
+    <Build Include="dbo\Views\vw_GLCashFlowClassificationAudit.sql" />
+    <Build Include="dbo\Views\vw_TaxRate_Audit.sql" />
+    <Build Include="dbo\Views\vw_GLAccountCategoryAudit.sql" />
+    <Build Include="dbo\Views\vw_ATASubChapterList.sql" />
+    <Build Include="dbo\Views\vw_ATASubChapterAudit.sql" />
+    <Build Include="dbo\Views\vw_RMAReasonAudit.sql" />
+    <Build Include="dbo\Views\vw_Master1099Audit.sql" />
+    <Build Include="dbo\Views\vw_Ledger_Audit.sql" />
+    <Build Include="dbo\Views\vw_LeafNodeNameAudit.sql" />
+    <Build Include="dbo\Views\vw_CreditMemoReasonAudit.sql" />
+    <Build Include="dbo\Views\vw_BalanceTypeAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SO_Refresh_CreditLimit_Terms.sql" />
+    <Build Include="dbo\Views\vw_EccnDeterminationSourceAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

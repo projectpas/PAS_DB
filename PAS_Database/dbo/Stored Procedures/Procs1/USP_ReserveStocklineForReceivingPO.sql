@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_ReserveStocklineForReceivingPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to reserve stocklines for receiving PO
@@ -826,7 +827,8 @@ BEGIN
 					
 							SELECT @SelectedWorkOrderMaterialsIdSWO = SWOM.SubWorkOrderMaterialsId, @SelectedWorkOrderId_ForSWO = SWOM.WorkOrderId FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) 
 							WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
-					
+					PRINT '@SelectedWorkOrderMaterialsIdSWO'
+					PRINT @SelectedWorkOrderMaterialsIdSWO
 							SET @Quantity = 0;
 							SET @QuantityReserved = 0;
 							SET @QuantityIssued = 0;
@@ -1042,14 +1044,18 @@ BEGIN
 							--END		
 							PRINT @stkWorkOrderMaterialsId
 							PRINT 'STK UPDATE SUB WO AGAIN'
-							IF (@stkWorkOrderMaterialsId > 0)
-							BEGIN
-								UPDATE Stk
-								SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
-								Stk.WorkOrderId = @SelectedWorkOrderId_ForSWO --@ReferenceId
-								FROM DBO.Stockline Stk 
-								WHERE Stk.StockLineId = @StkStocklineId;
-							END
+							--IF (@stkWorkOrderMaterialsId > 0)
+							--BEGIN
+							--PRINT @SelectedWorkOrderId_ForSWO
+							--PRINT '@SelectedWorkOrderId_ForSWO'
+							--PRINT @StkStocklineId
+							--PRINT'@StkStocklineId'
+							--	UPDATE Stk
+							--	SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
+							--	Stk.WorkOrderId = @SelectedWorkOrderId_ForSWO --@ReferenceId
+							--	FROM DBO.Stockline Stk 
+							--	WHERE Stk.StockLineId = @StkStocklineId;
+							--END
 						END
 						BEGIN
 							SET @ReservedIntoSubWOMaterial = 0;
@@ -1252,6 +1258,7 @@ BEGIN
 
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId  AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
 						BEGIN
+							PRINT 'SWO SubWorkOrderMaterialsKit'
 							UPDATE Stk
 							SET Stk.Quantity = @stkQty,
 							Stk.QuantityAvailable = @stkQuantityAvailable,

@@ -15,6 +15,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 17-06-2024		HEMANT SALIYA  		Created
+	2    02-07-2024     Shrey Chandegara    Changes for sorting and filer and global filter
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
@@ -231,14 +232,21 @@ BEGIN
 							0 AS IsCreditMemo,
 							0,
 							@WOModuleTypeId, -- 'WorkOrder',
-							LegalEntityName = (SELECT   
-							STUFF((SELECT DISTINCT ',' + LE.[Name]  
+
+							LegalEntityName = (SELECT DISTINCT TOP 1 LE.[Name]  
 								FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
 									JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = WOP.ManagementStructureId
 									JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 									JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-								WHERE WOP.WorkOrderId = WO.WorkOrderId
-								FOR XML PATH('')), 1, 1, '')),
+								WHERE WOP.WorkOrderId = WO.WorkOrderId ),
+							--LegalEntityName = (SELECT   
+							--STUFF((SELECT DISTINCT ',' + LE.[Name]  
+							--	FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
+							--		JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = WOP.ManagementStructureId
+							--		JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+							--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+							--	WHERE WOP.WorkOrderId = WO.WorkOrderId 
+							--	FOR XML PATH('')), 1, 1, '')),
 							0
 			FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId      
@@ -249,15 +257,8 @@ BEGIN
 			WHERE ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND WO.[MasterCompanyId] = @MasterCompanyid 
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
 				AND ((ISNULL(WOBI.[IsPerformaInvoice],0) = 0) OR (ISNULL(WOBI.[IsPerformaInvoice],0) = 1 AND (ISNULL(WOBI.GrandTotal, 0) - ISNULL(WOBI.RemainingAmount, 0)) > 0 AND PDA.OriginalDepositAmt - PDA.UsedDepositAmt != 0))
-
-				--AND ISNULL(WOBI.[RemainingAmount],0) > 0
-				--((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0
 				AND WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) 
-				--AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0
-				--AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-				--AND @IsInvoice = 1
-				--AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
-							
+				
 			UPDATE #TEMPInvoiceRecords SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
 				FROM( SELECT 
 					   ISNULL(SUM(IPS.PaymentAmount),0)  AS 'InvoicePaidAmount',				  
@@ -344,15 +345,26 @@ BEGIN
 					           0,  --IsCreditMemo
 							   0,  --InvoicePaidAmount,
 							   @SOModuleTypeId,  --'SalesOrder',
-							   LegalEntityName = (SELECT   
-								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
-										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
-										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
-										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId
-									FOR XML PATH('')), 1, 1, '')),
+							   LE.[Name] AS LegalEntityName,
+							 --  LegalEntityName = (SELECT   
+								--STUFF((SELECT DISTINCT ',' + LE.[Name]  
+								--	 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
+								--		JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+								--		JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
+								--		JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+								--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+								--	WHERE SOP.SalesOrderId = SO.SalesOrderId
+								--	FOR XML PATH('')), 1, 1, '')),
+								--	LE.[Name] AS LegalEntityName,
+							 --  LegalEntityName = (SELECT   
+								--STUFF((SELECT DISTINCT ',' + LE.[Name]  
+								--	 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
+								--		JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+								--		JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
+								--		JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+								--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+								--	WHERE SOP.SalesOrderId = SO.SalesOrderId
+								--	FOR XML PATH('')), 1, 1, '')),
 							    0
 				FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)       
 					INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId      
@@ -360,16 +372,14 @@ BEGIN
 					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 					LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId   
 					LEFT JOIN #SOProformaDepositAmt SPDA ON SPDA.SalesOrderId = SO.SalesOrderId 
+					JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SO.ManagementStructureId
+					JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+					JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId
 				WHERE SO.[MasterCompanyId] = @Mastercompanyid
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus 
 					AND ((ISNULL(SOBI.[IsProforma],0) = 0) OR (ISNULL(SOBI.[IsProforma],0) = 1 AND (ISNULL(SOBI.GrandTotal, 0) - ISNULL(SOBI.RemainingAmount, 0)) > 0 AND SPDA.OriginalDepositAmt - SPDA.UsedDepositAmt != 0))
-					
 					AND SO.[CustomerId] = ISNULL(@CustomerId, SO.CustomerId) 
-					--AND ISNULL(SOBI.[IsProforma],0) = 0 
-					--AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-					--AND @IsInvoice = 1	
-					--AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
-										
+					
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
@@ -445,30 +455,30 @@ BEGIN
 							 0,
 							 0,  --InvoicePaidAmount,
 							 @EXSOModuleTypeId, 
-							 LegalEntityName = (SELECT   
-								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[ExchangeSalesOrderPart] ESOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = ESOP.StockLineId
-										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
-										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
-										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
-									FOR XML PATH('')), 1, 1, '')),
+							 LE.[Name] AS LegalEntityName,
+							 --LegalEntityName = (SELECT   
+								--STUFF((SELECT DISTINCT ',' + LE.[Name]  
+								--	 FROM [dbo].[ExchangeSalesOrderPart] ESOP WITH (NOLOCK)
+								--		JOIN [dbo].[Stockline] SL ON SL.StockLineId = ESOP.StockLineId
+								--		JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
+								--		JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+								--		JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
+								--	WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+								--	FOR XML PATH('')), 1, 1, '')),
 							0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
 							INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
 							INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = ESO.CustomerId 
 							INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = ESOBI.CurrencyId
-							LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId      
+							LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON ctm.CreditTermsId = ESO.CreditTermId   
+							JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = ESO.ManagementStructureId
+							JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
+							JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 				WHERE ESO.[MasterCompanyId] = @Mastercompanyid 
 					AND ISNULL(ESOBI.[RemainingAmount],0) > 0 
 					AND ESOBI.[InvoiceStatus] = @InvoiceStatus
-
 					AND ESO.[CustomerId] = ISNULL(@CustomerId, ESO.CustomerId) 
-					--AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-					--AND @IsInvoice = 1
-				    --AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
-								
+					
 			UPDATE #TEMPInvoiceRecords SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
 				FROM(SELECT ISNULL(SUM(IPS.PaymentAmount),0) AS 'InvoicePaidAmount',				  
 					   IPS.SOBillingInvoicingId AS BillingInvoicingId
@@ -592,12 +602,8 @@ BEGIN
 			WHERE CM.[MasterCompanyId] = @Mastercompanyid      
 				AND CM.[IsStandAloneCM] = 1 AND ISNULL(CM.IsClosed, 0) = 0           
 				AND CM.[StatusId] = @CMPostedStatusId
-
 				AND CM.[CustomerId] = ISNULL(@CustomerId, CM.CustomerId)
-		    --AND CM.[MasterCompanyId] = @Mastercompanyid      
-		    --AND CAST(CM.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-			--AND @IsCredits = 1
-
+		   
 			IF(@ISDebugMode = 1)
 			BEGIN
 				SELECT 'CREDIT MEMO'
@@ -667,9 +673,6 @@ BEGIN
 					AND MJH.[ManualJournalStatusId] = @MJEPostStatusId
 					AND MJD.[ReferenceTypeId] = 1  
 					AND ISNULL(MJH.IsActive, 0) = 1 AND ISNULL(MJH.IsDeleted, 0) = 0
-					--AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-					--AND MJH.[MasterCompanyId] = @Mastercompanyid  
-					--AND @IsCredits = 1
 			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],MJH.[JournalNumber], 
 					MJH.[PostedDate],CTM.[Name],ctm.[Code],ctm.[NetDays],
 					MJH.[MasterCompanyId], CR.Code
@@ -717,9 +720,6 @@ BEGIN
 			WHERE CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus	
 				AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(CCP.IsActive, 0) = 1 AND ISNULL(CCP.IsDeleted, 0) = 0
-				--AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
-				--AND CCP.[MasterCompanyId] = @MasterCompanyid  
-				--AND @IsUnappliedAmounts = 1	
 				
 			--SELECT * FROM #TEMPInvoiceRecords
 
@@ -746,20 +746,31 @@ BEGIN
 					[LegalEntityName] AS 'LegelEntity',
 					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount]
 			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
-			 WHERE((ISNULL(@CustName,'') ='' OR [CustomerName] LIKE '%' + @CustName+'%') AND
-				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
-				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
-				  (ISNULL(@CurrentAmount,0) = 0 OR [CurrentAmount] = @CurrentAmount) AND	
-				  --(ISNULL(@ReceivedAmount,0) = 0 OR [ReceivedAmount] = @ReceivedAmount) AND	
-				  --(ISNULL(@PaymentAmount,0) = 0 OR [PaymentAmount] = @PaymentAmount) AND
-				  (ISNULL(@Amountlessthan0days,0) = 0 OR [Amountlessthan0days] = @Amountlessthan0days) AND
-				  (ISNULL(@Amountlessthan30days,0) =0 OR [Amountlessthan30days] = @Amountlessthan30days) AND
-				  (ISNULL(@Amountlessthan60days,0) =0 OR [Amountlessthan60days]= @Amountlessthan60days) AND
-				  (ISNULL(@Amountlessthan90days,0) =0 OR [Amountlessthan90days]= @Amountlessthan90days) AND
-				  (ISNULL(@Amountlessthan120days,0) =0 OR [Amountlessthan120days] = @Amountlessthan120days) AND					
-				  (ISNULL(@Amountmorethan120days,0) =0 OR [Amountmorethan120days] = @Amountmorethan120days)) 
+			 WHERE ((@GlobalFilter <>'' AND ((CustomerName LIKE '%' +@GlobalFilter+'%') OR      
+					(CurrencyCode LIKE '%' +@GlobalFilter+'%') OR        
+					(CAST(Amountlessthan0days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan30days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan60days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan90days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountlessthan120days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST(Amountmorethan120days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
+					(CAST([RemainingAmount] AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%')))      
+				OR   
+			 
+				 (@GlobalFilter='' AND (ISNULL(@CustName,'') ='' OR [CustomerName] LIKE '%' + @CustName+'%') AND
+				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND	
+				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
+				  (ISNULL(@BalanceAmount,0) =0 OR CONVERT(int,ISNULL([BalanceAmount],0))= @BalanceAmount) AND
+				  (ISNULL(@CurrentAmount,0) =0 OR CONVERT(int,ISNULL([CurrentAmount],0))= @CurrentAmount) AND
+				  (ISNULL(@CreditMemoAmount,0) =0 OR CONVERT(int,ISNULL([CreditMemoAmount],0))= @CreditMemoAmount) AND
+				  (ISNULL(@Amountlessthan0days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan0days],0))= @Amountlessthan0days) AND
+				  (ISNULL(@Amountlessthan30days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan30days],0))= @Amountlessthan30days) AND
+				  (ISNULL(@Amountlessthan60days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan60days],0))= @Amountlessthan60days) AND
+				  (ISNULL(@Amountlessthan90days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan90days],0))= @Amountlessthan90days) AND
+				  (ISNULL(@Amountlessthan120days,0) =0 OR CONVERT(int,ISNULL([Amountlessthan120days],0))= @Amountmorethan120days) )
+				  )
 				  --(ISNULL(@InvoiceAmount,0) = 0 OR [InvoiceAmount] = @InvoiceAmount)) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo]
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],[StatusId],[CurrencyCode] ,[IsCreditMemo],[CurrencyCode]
 
 			CREATE TABLE #TEMPFinalResilts(        
 				[CustomerId] BIGINT NULL,
@@ -778,17 +789,8 @@ BEGIN
 				[Amountpaidby120days] DECIMAL(18, 2) NULL,
 				[Amountpaidbymorethan120days] DECIMAL(18, 2) NULL,	
 				[LegelEntity] VARCHAR(MAX) NULL,
-				--[Status] VARCHAR(MAX) NULL,
 				[InvoiceAmount] DECIMAL(18, 2) NULL,
 				[ReceivedAmount] DECIMAL(18, 2) NULL
-				--[CMAmount] DECIMAL(18, 2) NULL,				
-				--[CreditMemoUsed] DECIMAL(18, 2) NULL,
-				--[MasterCompanyId] INT NULL,
-				--[StatusId] BIGINT NULL,
-				--[IsCreditMemo] BIT NULL,
-				--[InvoicePaidAmount] DECIMAL(18, 2) NULL,
-				--[ModuleTypeId] INT NULL,				
-				
 			)
 
 			--SELECT '#TempResult1'
@@ -801,7 +803,7 @@ BEGIN
 					ISNULL(SUM([BalanceAmount]),0), 
 					ISNULL(SUM([RemainingAmount]),0), 
 					ISNULL(SUM(CurrentAmount),0), 
-					ISNULL(SUM(CreditMemoAmount),0), 
+					ISNULL(SUM([CreditMemoAmount]),0), 
 					ISNULL(SUM([Amountpaidbylessthen0days]),0), 
 					ISNULL(SUM([Amountpaidby30days]),0), 
 					ISNULL(SUM([Amountpaidby60days]),0), 
@@ -836,14 +838,30 @@ BEGIN
 					  @TotalAmountlessthan120days AS TotalAmountlessthan120days,
 					  @TotalAmountmorethan120days AS TotalAmountmorethan120days  
 			FROM #TEMPFinalResilts ORDER BY  	
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustName] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustName] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTNAME') THEN [CustName] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTNAME') THEN [CustName] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,			
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREDITMEMOAMOUNT') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREDITMEMOAMOUNT') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENCYCODE') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCYCODE') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBYLESSTHEN0DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBYLESSTHEN0DAYS') THEN [CustomerCode] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 		
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY30DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY30DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY60DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY60DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY90DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY90DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBY120DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBY120DAYS') THEN [CustomerCode] END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTPAIDBYMORETHAN120DAYS') THEN [CustomerCode] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTPAIDBYMORETHAN120DAYS') THEN [CustomerCode] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END DESC, 		
 				CASE WHEN (@SortOrder=1  AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END ASC,

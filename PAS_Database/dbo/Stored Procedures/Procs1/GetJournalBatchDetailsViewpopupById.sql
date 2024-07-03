@@ -48,8 +48,10 @@
  32	  19/04/2024  Devendra Shekh		 read MS level details changes from STK for SO and ESO
  33	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
  34	  25/06/2024  Devendra Shekh		 added CustomerName for 'CMDA'
+ 35	  03/07/2024  Abhishek Jirawla		 added MS level for 'CKS'
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
+ exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[GetJournalBatchDetailsViewpopupById]  
 @JournalBatchDetailId BIGINT,  
@@ -738,16 +740,16 @@ BEGIN
 					  ,BD.JournalTypeNumber,BD.CurrentNumber  
 					  ,BS.Name AS 'Status'
 					  ,msl.[Description] AS 'ManagementStructureName'
-					  ,UPPER(MSD.Level1Name) AS level1,    
-					   UPPER(MSD.Level2Name) AS level2,   
-					   UPPER(MSD.Level3Name) AS level3,   
-					   UPPER(MSD.Level4Name) AS level4,   
-					   UPPER(MSD.Level5Name) AS level5,   
-					   UPPER(MSD.Level6Name) AS level6,   
-					   UPPER(MSD.Level7Name) AS level7,   
-					   UPPER(MSD.Level8Name) AS level8,   
-					   UPPER(MSD.Level9Name) AS level9,   
-					   UPPER(MSD.Level10Name) AS level10,
+					  ,CASE WHEN UPPER(MSD.Level1Name) IS NOT NULL THEN UPPER(MSD.Level1Name) ELSE UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) END AS level1,    
+					   CASE WHEN UPPER(MSD.Level2Name) IS NOT NULL THEN UPPER(MSD.Level2Name) ELSE UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) END AS level2,   
+					   CASE WHEN UPPER(MSD.Level3Name) IS NOT NULL THEN UPPER(MSD.Level3Name) ELSE UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) END AS level3,   
+					   CASE WHEN UPPER(MSD.Level4Name) IS NOT NULL THEN UPPER(MSD.Level4Name) ELSE UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) END AS level4,   
+					   CASE WHEN UPPER(MSD.Level5Name) IS NOT NULL THEN UPPER(MSD.Level5Name) ELSE UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) END AS level5,   
+					   CASE WHEN UPPER(MSD.Level6Name) IS NOT NULL THEN UPPER(MSD.Level6Name) ELSE UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) END AS level6,   
+					   CASE WHEN UPPER(MSD.Level7Name) IS NOT NULL THEN UPPER(MSD.Level7Name) ELSE UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) END AS level7,   
+					   CASE WHEN UPPER(MSD.Level8Name) IS NOT NULL THEN UPPER(MSD.Level8Name) ELSE UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) END AS level8,   
+					   CASE WHEN UPPER(MSD.Level9Name) IS NOT NULL THEN UPPER(MSD.Level9Name) ELSE UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) END AS level9,   
+					   CASE WHEN UPPER(MSD.Level10Name) IS NOT NULL THEN UPPER(MSD.Level10Name) ELSE UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description]) END  AS level10,
 					   CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
 			   FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId    
@@ -761,6 +763,16 @@ BEGIN
 					LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
 					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
 					LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESP.Level1Id = MSL1.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON ESP.Level2Id = MSL2.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON ESP.Level3Id = MSL3.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON ESP.Level4Id = MSL4.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON ESP.Level5Id = MSL5.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON ESP.Level6Id = MSL6.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON ESP.Level7Id = MSL7.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON ESP.Level8Id = MSL8.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON ESP.Level9Id = MSL9.ID
+					LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON ESP.Level10Id = MSL10.ID
 				WHERE JBD.JournalBatchDetailId =@JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 			END  
 			IF(UPPER(@Module) = UPPER('EXPS') OR UPPER(@Module) = UPPER('EXFB') OR UPPER(@Module) = UPPER('EXCR'))  

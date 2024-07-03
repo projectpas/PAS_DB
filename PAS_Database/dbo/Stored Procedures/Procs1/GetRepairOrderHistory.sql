@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿/*********************           
  ** File:   [GetRepairOrderHistory]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get repair order history   
@@ -9,15 +9,15 @@
 
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
-     
-**************************************************************/
+    3    02-07-2024   Sahdev Saliya     Added Global Filters ,Set Listing Order With RepairOrderNumber or QuoteNumber and Sorting (UnitCost)
+**********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
 @PageSize int = 10,
@@ -30,7 +30,7 @@ CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @VendorName varchar(50) = NULL,
 @Partnumber varchar(50) = NULL,
 @PartDescription varchar(100) = NULL,
-@UnitCost decimal = 0,
+@UnitCost VARCHAR(50) = NULL,
 @QuoteNumber varchar(100) = NULL,
 @QuoteDate datetime = NULL,
 @Condition varchar(100) = NULL,
@@ -54,7 +54,8 @@ BEGIN
 
 		IF @SortColumn IS NULL
 		BEGIN
-			SET @SortColumn=Upper('CreatedDate')
+			SET @SortColumn=CASE WHEN @ViewType = 'roview' THEN 'RepairOrderNumber' ELSE 'QuoteNumber' END;
+			SET @SortOrder = -1;
 		END 
 		ELSE
 		BEGIN 
@@ -73,7 +74,7 @@ BEGIN
 					--POP.EstRecordDate as 'ReceivedDate',
 					F.ReceiveDate as 'ReceivedDate',
 					PO.VendorId,VN.VendorName as 'VendorName',VN.VendorCode as 'VendorCode',VRFQPO.VendorRFQRepairOrderNumber AS 'QuoteNumber',
-					VRFQPO.OpenDate as 'QuoteDate',POP.Memo,POP.UnitCost,CN.[Description] as 'Condition',CN.ConditionId,
+					VRFQPO.OpenDate as 'QuoteDate',POP.Memo,cast(POP.UnitCost AS VARCHAR) as [UnitCost],CN.[Description] as 'Condition',CN.ConditionId,
 					DATEDIFF(day, PO.OpenDate, F.ReceiveDate) AS TAT,POP.RepairOrderPartRecordId as RepairOrderPartId,ISNULL(POP.WorkPerformedId,0) as WorkPerformedId from RepairOrderPart POP WITH (NOLOCK)
 					INNER JOIN RepairOrder PO WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId
 					INNER JOIN ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
@@ -99,7 +100,7 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
-					--(UnitCost LIKE '%' +@GlobalFilter+'%') OR
+					(UnitCost LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
@@ -107,7 +108,7 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
-					--(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
+					(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 
@@ -125,6 +126,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QuoteNumber')  THEN QuoteNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuoteNumber')  THEN QuoteNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
 			OFFSET @RecordFrom ROWS 
@@ -164,7 +167,7 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(QuoteNumber LIKE '%' +@GlobalFilter+'%') OR
-					--(UnitCost LIKE '%' +@GlobalFilter+'%') OR
+					(UnitCost LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
@@ -172,7 +175,7 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
-					--(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
+					(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 
@@ -190,6 +193,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='QuoteNumber')  THEN QuoteNumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuoteNumber')  THEN QuoteNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
 			OFFSET @RecordFrom ROWS 

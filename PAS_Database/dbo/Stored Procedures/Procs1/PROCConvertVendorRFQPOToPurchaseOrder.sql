@@ -163,7 +163,7 @@ BEGIN
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
          VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
-                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId;  
+                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND VRFQP.[IsNoQuote] = 0;  
 							
 
     

@@ -13,7 +13,7 @@
 	1    01/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
+CREATE     PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -51,13 +51,14 @@ BEGIN
 						TARGET.[UOMId] = SOURCE.UOMId,
 						TARGET.[TraceableTo] = SOURCE.TraceableTo,
 						TARGET.[TraceableToName] = SOURCE.TraceableToName,
-						TARGET.[TraceableToType] = SOURCE.TraceableToType,
+					TARGET.[TraceableToType] = SOURCE.TraceableToType,
 						TARGET.[TagTypeId] = SOURCE.TagTypeId,
 						TARGET.[TaggedByType] = SOURCE.TaggedByType,
 						TARGET.[TaggedBy] = SOURCE.TaggedBy,
 						TARGET.[TaggedByName] = SOURCE.TaggedByName,
 						TARGET.[TaggedByTypeName] = SOURCE.TaggedByTypeName,
-						TARGET.[TagDate] = SOURCE.TagDate
+						TARGET.[TagDate] = SOURCE.TagDate,
+						TARGET.[IsNoQuote] = SOURCE.IsNoQuote
 
 						WHEN NOT MATCHED BY TARGET
 						THEN
@@ -72,7 +73,7 @@ BEGIN
 								   ,[TaggedByType]
 								   ,[TaggedBy]
 								   ,[TaggedByName]
-								   ,[TaggedByTypeName],[TagDate]
+								   ,[TaggedByTypeName],[TagDate],[IsNoQuote]
 								   )
 							VALUES(SOURCE.VendorRFQPurchaseOrderId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.PartDescription,SOURCE.StockType,
 								   SOURCE.ManufacturerId,SOURCE.Manufacturer,SOURCE.PriorityId,SOURCE.Priority,SOURCE.NeedByDate,SOURCE.PromisedDate,
@@ -85,7 +86,7 @@ BEGIN
 								   ,SOURCE.TaggedByType
 								   ,SOURCE.TaggedBy
 								   ,SOURCE.TaggedByName
-								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate
+								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate,SOURCE.IsNoQuote
 								   );
 					
 					  													     

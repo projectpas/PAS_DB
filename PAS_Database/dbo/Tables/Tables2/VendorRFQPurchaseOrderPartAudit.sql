@@ -49,6 +49,9 @@
     [TaggedByName]                 VARCHAR (250)   NULL,
     [TaggedByTypeName]             VARCHAR (250)   NULL,
     [TagDate]                      DATETIME2 (7)   NULL,
+    [IsNoQuote]                    BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQPOPartRecordAuditId] ASC)
 );
+
+
 

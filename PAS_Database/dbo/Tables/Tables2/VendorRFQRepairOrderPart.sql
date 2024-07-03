@@ -57,6 +57,7 @@
     [TaggedByName]            VARCHAR (250)   NULL,
     [TaggedByTypeName]        VARCHAR (250)   NULL,
     [TagDate]                 DATETIME2 (7)   NULL,
+    [IsNoQuote]               BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderPart] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordId] ASC),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
@@ -68,6 +69,8 @@
     CONSTRAINT [FK_VendorRFQRepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_VendorRFQRepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 GO

@@ -48,7 +48,7 @@ BEGIN
 				[TagDate]
 		   FROM dbo.VendorRFQRepairOrderPart VRF WITH(NOLOCK) 
 		   INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = VRF.VendorRFQROPartRecordId AND MSD.ModuleID=@ModuleId
-		   WHERE [VendorRFQROPartRecordId]=@VendorRFQROPartRecordId AND RepairOrderId IS NULL;
+		   WHERE [VendorRFQROPartRecordId]=@VendorRFQROPartRecordId AND RepairOrderId IS NULL AND VRF.IsNoQuote = 0;
 	  END
 	  ELSE
 	  BEGIN
@@ -75,6 +75,6 @@ BEGIN
 				[TagDate]
 		   FROM dbo.VendorRFQRepairOrderPart VRF WITH(NOLOCK)
 		   INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = VRF.VendorRFQROPartRecordId AND MSD.ModuleID=@ModuleId
-		   WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL;
+		   WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL AND VRF.IsNoQuote = 0;
 	  END
 END

@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/01/2022   Moin Bloch     Created
 	2    06/12/2023   Amit Ghediya   Modify(Added Traceable & Tagged fields)
+	3    03-07-2024   Shrey Chandegara Added New Field [IsNoQuote]
 
 -- EXEC [GetVendorRFQRepairOrderParts] 1
 ************************************************************************/
@@ -88,6 +89,7 @@ BEGIN
 			  ,PP.[TaggedByName]
 			  ,PP.[TaggedByTypeName]
 			  ,PP.[TagDate]
+			  ,PP.[IsNoQuote]
 		 FROM [dbo].[VendorRFQRepairOrderPart] PP WITH (NOLOCK)
 		 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON PP.RepairOrderId = RO.RepairOrderId					
 		 JOIN [dbo].[RepairOrderManagementStructureDetails] POMSD ON PP.VendorRFQROPartRecordId = POMSD.ReferenceID AND POMSD.ModuleID = 23

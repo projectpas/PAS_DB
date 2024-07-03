@@ -1,6 +1,4 @@
-﻿  
-  
-CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
+﻿CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
 @PageNumber int = 1,  
 @PageSize int = 10,  
 @SortColumn varchar(50)=NULL,  
@@ -329,7 +327,7 @@ SET NOCOUNT ON;
      (@GlobalFilter='' AND (ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber+'%') AND   
      (ISNULL(@CreatedBy,'') ='' OR M.CreatedBy LIKE '%' + @CreatedBy + '%') AND  
      (ISNULL(@UpdatedBy,'') ='' OR M.UpdatedBy LIKE '%' + @UpdatedBy + '%') AND       
-     --(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND  
+     (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND  
      (ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND  
      (ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND           
      (ISNULL(@OpenDate,'') ='' OR CAST(M.OpenDate AS Date) = CAST(@OpenDate AS date)) AND           

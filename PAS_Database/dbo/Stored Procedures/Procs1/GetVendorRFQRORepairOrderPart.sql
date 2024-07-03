@@ -14,6 +14,7 @@
  ** PR   Date         Author          Change Description                  
  ** --   --------     -------         --------------------------------                
     1    06/12/2023  AMIT GHEDIYA     Updated (Added Traceable & Tagged fields)  
+	2    03-07-2024  Shrey Chandegara Modify(For filter data when isnoquote = 0) 
            
 -- EXEC [GetVendorRFQRORepairOrderPart] 33,23     
 ************************************************************************/ 
@@ -48,7 +49,7 @@ BEGIN
 				[TagDate]
 		   FROM dbo.VendorRFQRepairOrderPart VRF WITH(NOLOCK) 
 		   INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = VRF.VendorRFQROPartRecordId AND MSD.ModuleID=@ModuleId
-		   WHERE [VendorRFQROPartRecordId]=@VendorRFQROPartRecordId AND RepairOrderId IS NULL AND VRF.IsNoQuote = 0;
+		   WHERE [VendorRFQROPartRecordId]=@VendorRFQROPartRecordId AND RepairOrderId IS NULL AND ISNULL(VRF.IsNoQuote,0) = 0;
 	  END
 	  ELSE
 	  BEGIN
@@ -75,6 +76,6 @@ BEGIN
 				[TagDate]
 		   FROM dbo.VendorRFQRepairOrderPart VRF WITH(NOLOCK)
 		   INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = VRF.VendorRFQROPartRecordId AND MSD.ModuleID=@ModuleId
-		   WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL AND VRF.IsNoQuote = 0;
+		   WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId AND RepairOrderId IS NULL AND ISNULL(VRF.IsNoQuote ,0)= 0;
 	  END
 END

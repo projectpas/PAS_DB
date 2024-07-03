@@ -17,6 +17,7 @@
     2    05/22/2023  Satish Gohil	   Remove Automatic (-)  
 	3    01/12/2023  Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	4    26/06/2024  Shrey Chandegara  Modify(ADD Close date When convert po)
+	5    02-07-2024  Shrey Chandegara  Add condition when insert value in Purchaseorderpart for chek [ISNOQUOTE].
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -163,7 +164,7 @@ BEGIN
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
          VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
-                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND VRFQP.[IsNoQuote] = 0;  
+                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0
 							
 
     

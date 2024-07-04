@@ -19,9 +19,10 @@
 	2    06/25/2020   Hemant  Saliya	Added Transation & Content Management 
 	3    04/24/2023   Shrey Chandegara	Join Change with table AssetAttributeType
 	4    06/20/2023   Devendra Shekh	Join Change with table TangibleClass
+	5    07/04/2023   Devendra Shekh	added InventoryNumber,StklineNumber,ControlNumber to select
        
 exec GetSubWOAssetList 
-@PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@SubWorkOrderAssetId=0,@SubWOPartNoId=231,
+@PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@SubWorkOrderAssetId=0,@SubWOPartNoId=270,
 @TaskName=NULL,@Name=NULL,@AssetId=NULL,@Description=NULL,@TangibleClassName=NULL,@Quantity=0,
 @CheckInDate=NULL,@CheckOutDate=NULL,@CheckInBy=NULL,@CheckOutBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@AssetClass=NULL,@Status=NULL 
 **************************************************************/   
@@ -110,7 +111,10 @@ BEGIN
        COCI.CheckOutDate,  
        case when isnull(WOA.IsFromWorkFlow,0) =0 then 'No' else 'Yes' end IsFromWorkFlowNew,    
                             CASE WHEN  ISNULL(COCI.CheckOutDate,'') !='' THEN 'Checked Out of WO' WHEN isnull(COCI.CheckInDate,'') !='' THEN 'Checked In To WO'  ELSE ''  END  AS Status    
-       FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)  
+       ,AI.InventoryNumber AS InventoryNumber
+	   ,AI.StklineNumber AS StklineNumber
+	   ,AI.ControlNumber AS ControlNumber
+	   FROM dbo.SubWorkOrderAsset WOA WITH (NOLOCK)  
        join dbo.Asset A WITH (NOLOCK) on WOA.AssetRecordId = A.AssetRecordId  
        LEFT JOIN dbo.Task T WITH(NOLOCK) on T.TaskId = WOA.TaskId  
        LEFT JOIN dbo.AssetAttributeType AAT WITH (NOLOCK) on A.AssetAttributeTypeId = AAT.AssetAttributeTypeId  

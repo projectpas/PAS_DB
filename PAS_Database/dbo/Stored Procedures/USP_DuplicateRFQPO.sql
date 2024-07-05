@@ -138,13 +138,13 @@ BEGIN
 					   [QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],[WorkOrderNo],[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],
 					   [SalesOrderNo],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 					   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PurchaseOrderId],[PurchaseOrderNumber],[UOMId],[UnitOfMeasure],[TraceableTo],
-					   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate])
+					   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote])
 					SELECT @NewID,[ItemMasterId],[PartNumber],[PartDescription],
 						   [StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[PromisedDate],[ConditionId],[Condition],
 						   [QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],[WorkOrderNo],[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],
 						   [SalesOrderNo],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 						   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PurchaseOrderId],[PurchaseOrderNumber],[UOMId],[UnitOfMeasure],[TraceableTo],
-						   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate]
+						   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote]
 					FROM [dbo].[VendorRFQPurchaseOrderPart] WITH(NOLOCK) 
 					WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
 						  AND [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId

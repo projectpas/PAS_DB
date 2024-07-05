@@ -35,7 +35,7 @@
 	18   05/04/2024   AMIT GHEDIYA    Update status for Print Check & Paid in full.
 	19   08/04/2024   AMIT GHEDIYA    Get Vendor Payment Control Num.
 	20   03/06/2024   AMIT GHEDIYA    Update for get CheckNumber from condition.
-	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. U[date Invoiced Date to InvoiceDate instead of Due date
+	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. Update Invoiced Date to InvoiceDate instead of Due date
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -52,7 +52,8 @@ CREATE   PROCEDURE [dbo].[VendorPaymentList]
 @InvoiceTotal varchar(50)=null,  
 @Status varchar(50)=null,  
 @CurrentStatus varchar(50)=null,  
-@VendorName varchar(50)=null,  
+@VendorName varchar(50)=null,
+@LegalEntity varchar(50)=null,
 @InvociedDate datetime=null,  
 @EntryDate datetime=null,  
 @DueDate datetime=null,  
@@ -537,7 +538,8 @@ BEGIN
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
 	   (DaysPastDue LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  OR
+       (VendorName LIKE '%' +@GlobalFilter+'%') OR  
+       (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
 	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
@@ -555,7 +557,8 @@ BEGIN
        (ISNULL(@OriginalTotal,'') ='' OR [OriginalTotal] LIKE '%'+ @OriginalTotal+'%') AND  
        (ISNULL(@RRTotal,'') ='' OR [RRTotal] LIKE '%'+@RRTotal+'%') AND  	   
        (ISNULL(@InvoiceTotal,'') ='' OR [InvoiceTotal] LIKE '%'+ @InvoiceTotal+'%') AND  
-       (ISNULL(@VendorName,'') ='' OR [VendorName] LIKE '%'+ @VendorName +'%') AND
+       (ISNULL(@VendorName,'') ='' OR [VendorName] LIKE '%'+ @VendorName +'%') AND 
+       (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR [PaymentHold] LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
@@ -883,7 +886,8 @@ BEGIN
        (OriginalTotal LIKE '%' +@GlobalFilter+'%') OR  
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  OR
+       (VendorName LIKE '%' +@GlobalFilter+'%')  OR 
+       (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
 	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
@@ -902,6 +906,7 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
+	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
@@ -1106,6 +1111,7 @@ BEGIN
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
        (VendorName LIKE '%' +@GlobalFilter+'%') OR
+	   (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
 	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
@@ -1121,6 +1127,7 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
+	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
@@ -1387,6 +1394,7 @@ BEGIN
        (RRTotal LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR	
        (VendorName LIKE '%' +@GlobalFilter+'%') OR
+	   (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
 	   (ReadyToPaymentMade LIKE '%' +@GlobalFilter+'%') OR
 	   (DiscountToken LIKE '%' +@GlobalFilter+'%') OR
 	   (DifferenceAmount LIKE '%' +@GlobalFilter+'%') OR
@@ -1404,6 +1412,7 @@ BEGIN
        (ISNULL(@RRTotal,'') ='' OR RRTotal LIKE '%'+@RRTotal+'%') AND  
        (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND  
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
+	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ReadyToPaymentMade,'') ='' OR ReadyToPaymentMade LIKE '%'+ @ReadyToPaymentMade+'%') AND
@@ -1706,7 +1715,8 @@ BEGIN
 	   (BankName LIKE '%' +@GlobalFilter+'%') OR  
        (BankAccountNumber LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')   OR  
+       (VendorName LIKE '%' +@GlobalFilter+'%')   OR 
+	   (LegalEntity LIKE '%' +@GlobalFilter+'%') OR
        (ControlNumber LIKE '%' +@GlobalFilter+'%')  
        ))  
        OR     
@@ -1720,6 +1730,7 @@ BEGIN
 	   (ISNULL(@BankName,'') ='' OR BankName LIKE '%'+ @BankName+'%') AND 
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
        (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
+	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))     
@@ -2064,7 +2075,8 @@ BEGIN
 	   (BankName LIKE '%' +@GlobalFilter+'%') OR  
        (BankAccountNumber LIKE '%'+@GlobalFilter+'%') OR  
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
-       (VendorName LIKE '%' +@GlobalFilter+'%')  OR  
+       (VendorName LIKE '%' +@GlobalFilter+'%')  OR 
+	   (LegalEntity LIKE '%' +@GlobalFilter+'%') OR 
        (ControlNumber LIKE '%' +@GlobalFilter+'%') 
        ))  
        OR     
@@ -2077,7 +2089,8 @@ BEGIN
 	   (ISNULL(@InvoiceTotal,'') ='' OR InvoiceTotal LIKE '%'+ @InvoiceTotal+'%') AND 
 	   (ISNULL(@BankName,'') ='' OR BankName LIKE '%'+ @BankName+'%') AND 
 	   (ISNULL(@BankAccountNumber,'') ='' OR BankAccountNumber LIKE '%'+ @BankAccountNumber+'%') AND 
-       (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%')AND
+       (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+ @VendorName +'%') AND
+	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
 	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))   

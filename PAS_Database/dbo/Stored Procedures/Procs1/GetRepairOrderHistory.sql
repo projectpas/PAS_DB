@@ -16,7 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
-    3    02-07-2024   Sahdev Saliya     Added Global Filters ,Set Listing Order With RepairOrderNumber or QuoteNumber and Sorting (UnitCost)
+    3    02-07-2024   Sahdev Saliya     Added Global Filters and Sorting (UnitCost)
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -30,7 +30,7 @@ CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @VendorName varchar(50) = NULL,
 @Partnumber varchar(50) = NULL,
 @PartDescription varchar(100) = NULL,
-@UnitCost VARCHAR(50) = NULL,
+@UnitCost decimal(18,2) = NULL,
 @QuoteNumber varchar(100) = NULL,
 @QuoteDate datetime = NULL,
 @Condition varchar(100) = NULL,
@@ -92,7 +92,7 @@ BEGIN
 					--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId
 					AND PO.MasterCompanyId = @MasterCompanyId
-					AND PO.CreatedDate between @FromDate  AND  @ToDate
+					AND PO.OpenDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -108,7 +108,7 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
+					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 
@@ -159,7 +159,7 @@ BEGIN
 				--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				  AND PO.MasterCompanyId = @MasterCompanyId
-				  AND PO.CreatedDate between @FromDate  AND  @ToDate
+				  AND PO.OpenDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -175,7 +175,7 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
+					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 

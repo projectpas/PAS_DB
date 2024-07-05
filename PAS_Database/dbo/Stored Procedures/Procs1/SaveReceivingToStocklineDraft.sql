@@ -22,6 +22,7 @@
 	6    18-01-2024   Shrey Chandegara  update for orderdate
 	7    01-03-2024   Shrey Chandegara  In AssetInventoryDraft SET EnrtyDate is GETUTCDATE() FROM A.EntryDate
 	8    16-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife, Asset Location, DepreciationStartDate and more details
+	9    05-07-2024   Moin Bloch        Modified the SP to set ForStockQty  PN-8032
          
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
@@ -216,7 +217,7 @@ BEGIN
       '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
       NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
-      @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
+      @LotId, NULL, NULL, NULL, NULL, NULL, @Quantity, NULL, NULL, NULL, NULL, NULL, NULL,     -- @QtyToTraverse changed to @Quantity on  [ForStockQty]  -> PN-8032
       NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife    
       FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     

@@ -3043,6 +3043,7 @@
     <Build Include="dbo\Views\vw_EccnDeterminationSourceAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateRFQPO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAllocationDetailsHistoryById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DuplicateRFQRO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditPaymentDetails.sql" />
   </ItemGroup>
   <ItemGroup>

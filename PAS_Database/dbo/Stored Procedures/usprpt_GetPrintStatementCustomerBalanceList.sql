@@ -16,6 +16,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 17-06-2024		HEMANT SALIYA  		Created
 	2    02-07-2024     Shrey Chandegara    Changes for sorting and filer and global filter
+	3    05-07-2024     Moin Bloch          Fixed Legel Entity sorting ,filer and global filter issue.
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
@@ -747,7 +748,8 @@ BEGIN
 					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount]
 			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
 			 WHERE ((@GlobalFilter <>'' AND ((CustomerName LIKE '%' +@GlobalFilter+'%') OR      
-					(CurrencyCode LIKE '%' +@GlobalFilter+'%') OR        
+					([CurrencyCode] LIKE '%' +@GlobalFilter+'%') OR        
+					([LegalEntityName] LIKE '%' +@GlobalFilter+'%') OR        
 					(CAST(Amountlessthan0days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
 					(CAST(Amountlessthan30days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
 					(CAST(Amountlessthan60days AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR       
@@ -760,6 +762,7 @@ BEGIN
 				 (@GlobalFilter='' AND (ISNULL(@CustName,'') ='' OR [CustomerName] LIKE '%' + @CustName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND	
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
+				  (ISNULL(@LegelEntity,'') ='' OR [LegalEntityName] LIKE '%' + @LegelEntity + '%') AND				  
 				  (ISNULL(@BalanceAmount,0) =0 OR CONVERT(int,ISNULL([BalanceAmount],0))= @BalanceAmount) AND
 				  (ISNULL(@CurrentAmount,0) =0 OR CONVERT(int,ISNULL([CurrentAmount],0))= @CurrentAmount) AND
 				  (ISNULL(@CreditMemoAmount,0) =0 OR CONVERT(int,ISNULL([CreditMemoAmount],0))= @CreditMemoAmount) AND
@@ -879,10 +882,9 @@ BEGIN
 				CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTMORETHAN120DAYS') THEN [Amountpaidbymorethan120days] END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='AMOUNTMORETHAN120DAYS') THEN [Amountpaidbymorethan120days] END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='INVOICEAMOUNT') THEN [InvoiceAmount] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICEAMOUNT') THEN [InvoiceAmount] END DESC,
-			
-				CASE WHEN (@SortOrder=1  AND @SortColumn='LegalEntityName') THEN [LegelEntity] END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntityName') THEN [LegelEntity] END DESC
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICEAMOUNT') THEN [InvoiceAmount] END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='LEGELENTITY') THEN [LegelEntity] END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='LEGELENTITY') THEN [LegelEntity] END DESC
 			
 			OFFSET @RecordFrom ROWS FETCH NEXT @PageSize ROWS ONLY
 					   				 

@@ -3044,6 +3044,7 @@
     <Build Include="dbo\Stored Procedures\USP_DuplicateRFQPO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAllocationDetailsHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateRFQRO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditPaymentDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

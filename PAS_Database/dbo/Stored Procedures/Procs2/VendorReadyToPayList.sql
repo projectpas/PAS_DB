@@ -34,6 +34,7 @@
 	17   28/03/2024   Devendra Shekh    table changes for creditMemo(changed to same as nonPO)
 	18   04/04/2024   Devendra Shekh    discount removed from credit memo and suspense record
 	19   08/04/2023   Devendra Shekh	added conditon for amount for SelectedforPayment
+	20   08/07/2024   Abhishek Jirawla	Removed Miscellaneous flag from CustomerCreditPaymentDetails select
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -498,7 +499,7 @@ BEGIN
 		        AND [VPD].[RemainingAmount] > 0
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ISNULL(CCPD.IsProcessed,0) = 1
-				AND  CCPD.IsMiscellaneous = 1
+				--AND  CCPD.IsMiscellaneous = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND CP.LegalEntityId = @LegalEntityId
 

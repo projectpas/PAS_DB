@@ -176,7 +176,7 @@ BEGIN
       END    
 
       
-	  SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ' )' + ' VALUES (' + @FieldValue + ')'    
+	  SET @Query = 'INSERT INTO [' + @PageName + '] (' + @FieldName + ',CreatedDate,UpdatedDate'+')' + ' VALUES (' + @FieldValue + ',GETUTCDATE(),GETUTCDATE()'+')'    
       PRINT @Query
 	  EXEC (@Query)    
       SET @ID = IDENT_CURRENT(@PageName)    

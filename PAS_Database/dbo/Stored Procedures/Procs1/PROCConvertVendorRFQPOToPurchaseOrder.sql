@@ -18,6 +18,7 @@
 	3    01/12/2023  Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	4    26/06/2024  Shrey Chandegara  Modify(ADD Close date When convert po)
 	5    02-07-2024  Shrey Chandegara  Add condition when insert value in Purchaseorderpart for chek [ISNOQUOTE].
+	6    05-07-2024  Shrey Chandegara  MOdify insert freight data into PURCHASEORDERFREIGHT.
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -50,6 +51,7 @@ BEGIN
   DECLARE @CreateBy VARCHAR(100)='';    
   DECLARE @UpdateBy VARCHAR(100)='';    
   DECLARE @PID BIGINT=0;    
+  DECLARE @POPartID BIGINT=0;    
   DECLARE @MSCID INT=0;    
   DECLARE @MSSID BIGINT=0;    
   DECLARE @CreatBy VARCHAR(100)='';    
@@ -162,10 +164,22 @@ BEGIN
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
-         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
+         GETDATE(),GETDATE(),VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
                             FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0
-							
+
+		SET @POPartID = IDENT_CURRENT('PurchaseOrderPart');
+
+		INSERT INTO [dbo].[PurchaseOrderFreight]
+           ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
+           ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
+           ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
+		SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
+			,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
+            ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
+		FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
+		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
+		WHERE VRF.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PART.[IsNoQuote], 0) = 0			
 
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;    
@@ -353,9 +367,22 @@ BEGIN
          VRFQP.[UOMId],VRFQP.[UnitOfMeasure],VRFQP.[ManagementStructureId],VRFQP.[Level1],VRFQP.[Level2],VRFQP.[Level3],VRFQP.[Level4],NULL,1,VRFQP.[Memo],    
          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,    
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
-         VRFQP.[CreatedDate],VRFQP.[UpdatedDate],VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
+         GETDATE(),GETDATE(),VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
-                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId;     
+                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId;   
+			
+		SET @POPartID = IDENT_CURRENT('PurchaseOrderPart');
+
+		INSERT INTO [dbo].[PurchaseOrderFreight]
+           ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
+           ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
+           ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
+		SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
+			,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
+            ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
+		FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
+		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
+		WHERE VRF.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PART.[IsNoQuote], 0) = 0		
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;             
     

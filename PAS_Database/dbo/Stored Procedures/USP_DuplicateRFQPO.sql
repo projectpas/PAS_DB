@@ -79,8 +79,8 @@ BEGIN
 		---Check CreditLimit ----
 		IF(ISNULL(@CreditLimit,0) = 0)
 		BEGIN
-			SET @CreditLimit = (SELECT [CreditLimit] FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
-		    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId);
+			SELECT @CreditLimit = [CreditLimit], @CreditTermsId = [CreditTermsId] FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
+		    WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
 		END
 
 		INSERT INTO [dbo].[VendorRFQPurchaseOrder]([VendorRFQPurchaseOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    

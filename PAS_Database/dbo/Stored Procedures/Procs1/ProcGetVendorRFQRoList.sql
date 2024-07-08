@@ -43,7 +43,8 @@ CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
 	@Level2Type			varchar(200)=null,
 	@Level3Type			varchar(200)=null,
 	@Level4Type			varchar(200)=null,
-	@Memo			varchar(200)=null
+	@Memo			varchar(200)=null,
+	@IsNoQuote [BIT] = 0
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -104,6 +105,7 @@ BEGIN
 				   RP.Condition as 'ConditionType',
 				   RP.WorkPerformed as 'WorkPerformedType',
 				   RP.QuantityOrdered,
+				   RP.IsNoQuote,
 				   RP.UnitCost,
 				   RP.NeedByDate as 'NeedByDateType',
 				   RP.PromisedDate as 'PromisedDateType',
@@ -342,6 +344,7 @@ BEGIN
 					--M.QuantityOrdered,
 					(Select SUM(QuantityOrdered) as QuantityOrdered from VendorRFQRepairOrderPart WITH (NOLOCK) 
 					Where VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) as QuantityOrdered,
+					 0 as IsNoQuote,
 					(Select SUM(UnitCost) as UnitCost from VendorRFQRepairOrderPart WITH (NOLOCK) 
 					Where VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) as UnitCost,
 					PC.PartNumber,PDC.PartDescription,PC.PartNumberType,PDC.PartDescriptionType,
@@ -489,7 +492,7 @@ BEGIN
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 				   GROUP BY M.VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,
+					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,IsNoQuote,
 					RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,
 					SP.StockType,SP.RepairOrderNumber
 					,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4
@@ -570,8 +573,16 @@ BEGIN
 			FETCH NEXT @PageSize ROWS ONLY
 	END
 	END TRY    
-	BEGIN CATCH      
+	BEGIN CATCH    
+	SELECT
+		ERROR_NUMBER() AS ErrorNumber,
+		ERROR_STATE() AS ErrorState,
+		ERROR_SEVERITY() AS ErrorSeverity,
+		ERROR_PROCEDURE() AS ErrorProcedure,
+			ERROR_LINE() AS ErrorLine,
+		ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID INT
+		
 		,@DatabaseName VARCHAR(100) = db_name()
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 		,@AdhocComments VARCHAR(150) = 'ProcGetVendorRFQRoList'

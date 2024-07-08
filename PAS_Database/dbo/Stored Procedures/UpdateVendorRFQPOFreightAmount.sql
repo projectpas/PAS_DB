@@ -27,6 +27,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
+	BEGIN TRANSACTION  
 	IF(@Opr=1)
 	BEGIN
 		UPDATE dbo.VendorRFQPurchaseOrder SET [TotalFreight] -= @BillingAmount where [VendorRFQPurchaseOrderId] = @VendorRFQPOId;
@@ -35,6 +36,7 @@ BEGIN
 	BEGIN
 	    UPDATE dbo.VendorRFQPurchaseOrder SET [TotalFreight] += @BillingAmount where [VendorRFQPurchaseOrderId] = @VendorRFQPOId;
 	END
+	COMMIT  TRANSACTION  
 	END TRY 
 	BEGIN CATCH      
 		IF @@trancount > 0

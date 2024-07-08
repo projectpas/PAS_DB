@@ -21,6 +21,7 @@
     4    11/09/2023   Vishal Suthar  auto reserve stockline based on PO settings  
 	5    13-12-2023   Shrey Chandegara  update for stockline history  
 	6    17-01-2024   Shrey Chandegara  Update for asset attributetype and glaccounts changes
+	7    05-07-2024   Moin Bloch        Modified the SP to set RRQty  PN-8032
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -532,6 +533,7 @@ BEGIN
 						[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],
 						[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId],[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],
 						[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife])
+
                         SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
 							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],
@@ -549,7 +551,7 @@ BEGIN
 						NULL,NULL,NULL,@POVendorId,[IsParent],[ParentId],[IsSameDetailsForAllParts],0,[SubWorkOrderId],0,NULL,[UnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],
 						[Level3],[Level4],[Condition],NULL,NULL,[Warehouse],[Location],NULL,NULL,[UnitOfMeasure],NULL,NULL,NULL,NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0),'',NULL,NULL,
 						NULL,[TaggedBy],[TaggedByName],(ISNULL(PurchaseOrderUnitCost, 0) + ISNULL(RepairOrderUnitCost, 0) + ISNULL(Adjustment, 0)),[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],
-						[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE @QtyToReceive END,NULL,1,NULL,
+						[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,NULL,1,NULL,
 						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife]
                         FROM #tmpStocklineDraft
                         WHERE StockLineDraftId = @SelectedStockLineDraftId;
@@ -697,10 +699,10 @@ BEGIN
                                     FROM #StocklineDraftForQtyToReceive
                                     WHERE ID = @LoopID_QtyToReceive;
 
-                                    UPDATE StocklineDraft
+                                    UPDATE dbo.StocklineDraft
                                     SET StockLineId = @NewStocklineId,
                                         StockLineNumber = @StockLineNumber,
-                                        ForStockQty = @QtyToReceive
+                                        ForStockQty = @QtyAdded --@QtyToReceive            
                                     WHERE StockLineDraftId = @CurrentStocklineDraftId;
 
                                     SET @TotalQtyToTraverse = @TotalQtyToTraverse - 1;

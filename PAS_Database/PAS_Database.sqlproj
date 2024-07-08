@@ -3044,6 +3044,14 @@
     <Build Include="dbo\Stored Procedures\USP_DuplicateRFQPO.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAllocationDetailsHistoryById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateRFQRO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCustomerCreditPaymentDetails.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOFreightAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOFreight.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPOFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPOPartById.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPOFreightList.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQPOFreightType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -36,7 +36,8 @@
 @Level2Type varchar(200)=null,  
 @Level3Type varchar(200)=null,  
 @Level4Type varchar(200)=null,  
-@Memo varchar(200)=NULL  
+@Memo varchar(200)=NULL  ,
+@IsNoQuote BIT = 0
 AS  
 BEGIN  
   
@@ -99,7 +100,8 @@ BEGIN
      VPOP.PromisedDate as 'PromisedDateType',  
      VPOP.Condition as 'ConditionType',  
      VPOP.UnitCost,  
-     VPOP.QuantityOrdered,  
+     VPOP.QuantityOrdered,
+	 VPOP.IsNoQuote,
 	  (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNoType',    
        
    (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNoType',    
@@ -155,7 +157,7 @@ BEGIN
          --AND EMS.EmployeeId =  @EmployeeId   
       AND PO.MasterCompanyId = @MasterCompanyId   
 
-		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels 
+		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels 
 
       --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)  
    ), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)  

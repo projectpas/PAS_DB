@@ -1,7 +1,6 @@
-﻿
-CREATE   VIEW [dbo].[vw_TaskAudit] 
+﻿CREATE   VIEW [dbo].[vw_TaskAudit] 
 AS
 	SELECT TA.TaskAuditId AS PkID, TaskId AS ID, Description AS 'Task', 
 	IsTravelerTask as 'Traveler Task',Sequence AS 'Sequence No',Memo AS 'Memo'
-	,TA.CreatedDate, TA.UpdatedDate, TA.IsActive, TA.MasterCompanyId, TA.CreatedBy, TA.UpdatedBy, TA.IsDeleted
+	,TA.CreatedDate AS 'Created Date', TA.UpdatedDate AS 'Updated Date', TA.IsActive as 'Active ?',TA.IsDeleted as 'Deleted ?', TA.CreatedBy as 'Created By', TA.UpdatedBy as 'Updated By' 
 	FROM dbo.TaskAudit AS TA WITH (NOLOCK)

@@ -53,7 +53,7 @@
     [CreditTermName]           VARCHAR (50)    NULL,
     [EmployeeName]             VARCHAR (50)    NULL,
     [CurrencyName]             VARCHAR (50)    NULL,
-    [CustomerWarningName]      VARCHAR (50)    NULL,
+    [CustomerWarningName]      VARCHAR (500)   NULL,
     [ManagementStructureName]  VARCHAR (50)    NULL,
     [CustomerContactName]      VARCHAR (50)    NULL,
     [VersionNumber]            VARCHAR (50)    NULL,
@@ -74,4 +74,6 @@
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 

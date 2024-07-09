@@ -3057,6 +3057,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateCustomerReferenceDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCustomerListForCreateCustomer.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCustomerListForUpdateCustomer.sql" />
+    <Build Include="dbo\Views\vw_EmployeeTrainingType_Audit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -1,8 +1,9 @@
 ﻿
+
 CREATE VIEW [dbo].[vw_AssetDepreciationMethodAudit]
 AS
-SELECT AssetDepreciationMethodAuditId, AssetDepreciationMethodId, AssetDepreciationMethodCode, AssetDepreciationMethodName, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, SequenceNo
-FROM     dbo.AssetDepreciationMethodAudit
+SELECT AssetDepreciationMethodAuditId AS PkID, AssetDepreciationMethodId AS ID, AssetDepreciationMethodCode, AssetDepreciationMethodName, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted
+FROM dbo.AssetDepreciationMethodAudit
 GO
 
 

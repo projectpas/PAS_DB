@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    03/23/2020   Subhash Saliya	Created
 	2    02/01/2024   Devendra Shekh	Updated for revised Part Panry and Condition
+	3    07/09/2024   Abhishek Jirawla	Added Batchnumber to the script
 
 
      
@@ -59,7 +60,7 @@ BEGIN
 					  --,UPPER(wro.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  --,UPPER(wro.[Batchnumber]) as Batchnumber
+					  ,UPPER(wro.[Batchnumber]) as Batchnumber
 					   ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
 					  ,wosc.conditionName as [status]
 					  ,wro.[Remarks]

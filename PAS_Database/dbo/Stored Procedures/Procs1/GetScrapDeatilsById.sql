@@ -36,7 +36,7 @@ BEGIN
 			BEGIN
 			SELECT WO.WorkOrderNum AS WorkOrderNumber
 				,WO.CustomerName CustomerName
-				,ST.SerialNumber
+				,WOPN.RevisedSerialNumber AS SerialNumber
 				,CASE WHEN ISNULL(WOPN.RevisedItemmasterid, 0) > 0 THEN WOPN.RevisedPartNumber ELSE imt.PartNumber END AS 'PartNumber'
 			    ,CASE WHEN ISNULL(WOPN.RevisedItemmasterid, 0) > 0 THEN WOPN.RevisedPartDescription ELSE imt.PartDescription END AS 'partDescription'
 				,ST.Manufacturer
@@ -65,7 +65,7 @@ BEGIN
 			BEGIN
 			SELECT WO.WorkOrderNum AS WorkOrderNumber
 				,WO.CustomerName CustomerName
-				,ST.SerialNumber
+				,SWOPN.RevisedSerialNumber AS SerialNumber
 				,IM.partnumber
 				,ST.Manufacturer
 				,SWOPN.CustomerReference

@@ -3054,6 +3054,9 @@
     <Build Include="dbo\User Defined Types\VendorRFQPOFreightType.sql" />
     <Build Include="dbo\Tables\ModuleHierarchyMaster_Old.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateSalesOrderQuote.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_UpdateCustomerReferenceDetails.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCustomerListForCreateCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetCustomerListForUpdateCustomer.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*********************             
  ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
  ** Author:    
  ** Description: Get Search Data for ExchangeCoreTrackingList   
@@ -7,16 +6,16 @@
  ** Date:     
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author             Change Description              
  ** --   --------     -------           --------------------------------            
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
-**************************************************************/   
+**********************/   
 
 --exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
-CREATE    PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
+CREATE PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -38,6 +37,9 @@ CREATE    PROCEDURE [dbo].[SearchExchangeSalesOrderCoreTrackingData]
 	@ReceivedDate datetime=null,
 	@CoreDueDate datetime=null,
 	@LetterSentDate datetime=null,
+	@SerialNumber varchar(50)=null,
+	@ExchType varchar(50)=null,
+	@LetterType nvarchar(50)=null,
 	@FilterType nvarchar(50)=null
 AS
 BEGIN
@@ -136,6 +138,9 @@ BEGIN
 						(PartDescription like '%' +@GlobalFilter+'%') OR
 						(ReceivingNumber like '%' +@GlobalFilter+'%') OR
 						(CustomerName like '%' +@GlobalFilter+'%') OR
+						(SerialNumber like '%' +@GlobalFilter+'%') OR
+						(ExchType like '%' +@GlobalFilter+'%') OR
+						(LetterType like '%' +@GlobalFilter+'%') OR
 						(ExchangeSalesOrderNumber like '%' +@GlobalFilter+'%')OR
 						(ExchType like '%' +@GlobalFilter+'%')OR
 						(WONum like '%' +@GlobalFilter+'%') 
@@ -144,6 +149,9 @@ BEGIN
 						(@GlobalFilter='' AND (IsNull(@PartNumber,'') ='' OR PartNumber like  '%'+ @PartNumber+'%') and 
 						(IsNull(@PartDescription,'') ='' OR PartDescription like '%'+@PartDescription+'%') and
 						(IsNull(@CustomerName,'') ='' OR CustomerName like  '%'+@CustomerName+'%') and
+						(IsNull(@SerialNumber,'') ='' OR SerialNumber like  '%'+@SerialNumber+'%') and
+						(IsNull(@ExchType,'') ='' OR ExchType like  '%'+@ExchType+'%') and 
+						(IsNull(@LetterType,'') ='' OR LetterType like  '%'+@LetterType+'%') and
 						(IsNull(@ReceivingNumber,'') ='' OR ReceivingNumber like '%'+@ReceivingNumber+'%') and
 						(IsNull(@ExchangeSalesOrderNumber,'') ='' OR ExchangeSalesOrderNumber like '%'+ @ExchangeSalesOrderNumber+'%') and
 						(IsNull(@WONum,'') ='' OR WONum like '%'+ @WONum+'%') and
@@ -162,15 +170,42 @@ BEGIN
 					UPPER(ReceivingNumber) 'ReceivingNumber', UPPER(Reference) 'Reference', RevisedPartId,ReceivedDate,CustReqDate, UPPER(EmployeeName) 'EmployeeName', CoreStatusId,UPPER(Status) 'Status',CoreDueDate,
 					Memo, UPPER(ExpectedCoreSN) 'ExpectedCoreSN', ExpecedCoreCond,CoreAccepted,WorkOrderId,UPPER(WONum) 'WONum',IsVendor,ExchType,NumberOfItems FROM FinalResult, ResultCount
 					ORDER BY  
-				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERID')  THEN ExchangeSalesOrderId END DESC,
-				CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,
+				
+				CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGESALESORDERNUMBER')  THEN ExchangeSalesOrderNumber END DESC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='EXCHANGESALESORDERNUMBER')  THEN ExchangeSalesOrderNumber END ASC,
-		        CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGESALESORDERID')  THEN PartNumber END DESC,
-		        CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='EXCHANGESALESORDERNUMBER')  THEN ExchangeSalesOrderNumber END DESC
+
+				CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
+				
+				CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ExchType')  THEN ExchType END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='ExchType')  THEN ExchType END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='LetterType')  THEN LetterType END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='LetterType')  THEN LetterType END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='LetterSentDate')  THEN LetterSentDate END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='LetterSentDate')  THEN LetterSentDate END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='WONum')  THEN WONum END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='WONum')  THEN WONum END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='ReceivedDate')  THEN ReceivedDate END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='OpenDate')  THEN OpenDate END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='OpenDate')  THEN OpenDate END ASC,
+
+				CASE WHEN (@SortOrder=-1 and @SortColumn='CoreDueDate')  THEN CoreDueDate END DESC,
+		        CASE WHEN (@SortOrder=1 and @SortColumn='CoreDueDate')  THEN CoreDueDate END ASC,
+
+		        CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,
+				CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC
 				OFFSET @RecordFrom ROWS 
 				FETCH NEXT @PageSize ROWS ONLY
 				Print @SortOrder

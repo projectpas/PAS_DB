@@ -36,7 +36,7 @@ BEGIN
 			BEGIN
 			SELECT UPPER(WO.WorkOrderNum) as WorkOrderNumber
 				,UPPER(WO.CustomerName) CustomerName
-				,ST.SerialNumber
+				,UPPER(WOPN.RevisedSerialNumber) AS SerialNumber
 				,UPPER(CASE WHEN ISNULL(WOPN.RevisedItemmasterid, 0) > 0 THEN WOPN.RevisedPartNumber ELSE imt.PartNumber END) as 'PartNumber'
 			    ,UPPER(CASE WHEN ISNULL(WOPN.RevisedItemmasterid, 0) > 0 THEN WOPN.RevisedPartDescription ELSE imt.PartDescription END) as 'partDescription'
 				,UPPER(ST.Manufacturer) AS Manufacturer
@@ -81,7 +81,7 @@ BEGIN
 					SELECT top 1 @ManagementStructureId = WS.ManagementStructureId FROM DBO.SubWorkOrderPartNumber sWS WITH (NOLOCK) inner join WorkOrderPartNumber ws on sws.WorkOrderId=ws.WorkOrderId  where SubWOPartNoId= @workOrderPartNoId  
 			   SELECT UPPER(WO.WorkOrderNum) as WorkOrderNumber
 				,UPPER(WO.CustomerName) CustomerName
-				,ST.SerialNumber
+				,UPPER(SWOPN.RevisedSerialNumber) AS SerialNumber
 				,UPPER(IM.partnumber) AS partnumber 
 				,UPPER(ST.Manufacturer) AS Manufacturer
 				,UPPER(SWOPN.CustomerReference) AS CustomerReference

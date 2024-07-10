@@ -84,6 +84,9 @@ BEGIN
 			 WHERE ((@GlobalFilter <>'' AND (([Name] LIKE '%' +@GlobalFilter+'%') OR
 			        (CageCode LIKE '%' +@GlobalFilter+'%') OR	
 					(SecretKey LIKE '%' +@GlobalFilter+'%') OR
+					(Description LIKE '%' +@GlobalFilter+'%') OR
+					(APIURL LIKE '%' +@GlobalFilter+'%') OR
+					(Name LIKE '%' +@GlobalFilter+'%') OR
 					(AccessKey LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%'))) OR   

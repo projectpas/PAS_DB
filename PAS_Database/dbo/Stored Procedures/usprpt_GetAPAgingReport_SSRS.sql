@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -541,13 +539,15 @@ BEGIN
 			SUM(Amountpaidbymorethan120days) AS Amountpaidbymorethan120days,
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,			
 			TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
-			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount,DaysPastDue
+			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount,
+			CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/2)) AS DaysPastDue
 			
    INTO #TempResult1 FROM  Result FC
    INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
    GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
             ,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
-			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount,DaysPastDue
+			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount
+			--,DaysPastDue
       
     SELECT @Count = COUNT(VendorId) FROM #TempResult1     
     SELECT @Count AS TotalRecordsCount,

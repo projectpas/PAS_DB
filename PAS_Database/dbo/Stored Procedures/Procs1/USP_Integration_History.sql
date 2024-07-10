@@ -1,4 +1,4 @@
-﻿CREATE   PROCEDURE [DBO].[USP_Integration_History]
+﻿CREATE   PROCEDURE [dbo].[USP_Integration_History]
 (
 	@ThirdPartInegrationId BIGINT,
 	@CreatedBy varchar(50)
@@ -7,10 +7,10 @@ AS
 BEGIN
 BEGIN TRY
 	INSERT INTO [DBO].[ThirdPartInegrationAudit]
-		([ThirdPartInegrationId], [LegalEntityId] ,[CageCode] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
+		([ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
 		,[CreatedDate] , [UpdatedDate] ,[IsActive] ,[IsDeleted])
 
-	SELECT	[ThirdPartInegrationId], [LegalEntityId] ,[CageCode] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
+	SELECT	[ThirdPartInegrationId], [LegalEntityId] ,[CageCode],[APIURL] ,[IntegrationIds] ,[SecretKey] ,[AccessKey] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy]
 			,[CreatedDate] , [UpdatedDate] ,[IsActive] ,[IsDeleted] 
 		FROM [ThirdPartInegration] 
 		WHERE ThirdPartInegrationId = @ThirdPartInegrationId

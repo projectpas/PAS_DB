@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    22/02/2024  Rajesh Gami    Created
+	2    10-07-2024  SHrey Chandegara MOdify for QuoteCond (add case condition to handle null )by Rajesh Gami 
      
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -172,7 +173,7 @@ BEGIN
 							csd.[High],
 							csd.[AvgTat],
 							csd.[QuoteTatQty],
-							csd.[QuoteCond],
+							(CASE WHEN csd.[QuoteCond] = '' THEN NULL ELSE csd.[QuoteCond] END) QuoteCond,
 							csd.[QuoteTrace],
 							csd.[IlsQty],
 							csd.[IlsTraceability],

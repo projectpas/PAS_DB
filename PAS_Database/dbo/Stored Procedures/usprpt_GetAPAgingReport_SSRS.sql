@@ -81,11 +81,8 @@ BEGIN
 	SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
 	SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
 	SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
-	PRINT 'PRINT @PageSize'
-	PRINT @PageSize
    IF ISNULL(@PageSize,0)=0      
    BEGIN  
-   PRINT @PageSize
 			SELECT * INTO #tempReceivingReconciliationCount FROM 
 			(SELECT rrh.ReceivingReconciliationId AS ReceivingReconciliationId 
 					FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
@@ -482,7 +479,6 @@ BEGIN
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))))D
-			  	PRINT 'START'
 		;WITH CTE AS (   
                SELECT * FROM #tempReceivingReconciliation
 			   UNION ALL
@@ -952,8 +948,6 @@ BEGIN
 		  INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
 
 		  SELECT @Count = COUNT(VendorId) FROM #TempResult2  
-		  PRINT @PageSize
-		  PRINT 'PRINT @PageSizePRINT @PageSize'
 		  SELECT @Count AS TotalRecordsCount,
 		         vendorName, 
 		         vendorCode, 
@@ -988,7 +982,6 @@ BEGIN
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
 		
 	END
-	PRINT 'END'
   END TRY        
   BEGIN CATCH        
     SELECT  

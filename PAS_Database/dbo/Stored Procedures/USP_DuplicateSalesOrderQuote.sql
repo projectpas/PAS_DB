@@ -48,7 +48,7 @@ BEGIN
 				 @Id INT,
 				 @DocId INT,
 				 @NewID BIGINT,
-				 @SalesOrderQouteOrderNumber VARCHAR(250),
+				 @SalesOrderQuoteNumber VARCHAR(250),
 				 @SalesOrderQuotePartId BIGINT,
 				 @NewPartID BIGINT; 
 		
@@ -71,7 +71,7 @@ BEGIN
 		SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK)    
         WHERE [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
 
-		SET @SalesOrderQouteOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix)); 
+		SET @SalesOrderQuoteNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix)); 
 
 		INSERT INTO [dbo].[SalesOrderQuote]
 			([QuoteTypeId],[OpenDate],[ValidForDays],[QuoteExpireDate],[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
@@ -88,7 +88,7 @@ BEGIN
 			[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId],[ProbabilityId],[LeadSourceId],@CreditLimit,@CreditTermsId,
 			[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId],[CreatedBy],
 			GETUTCDATE(),[UpdatedBy],GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],
-			[QtyRequested],[QtyToBeQuoted],[SalesOrderQuoteNumber],[QuoteSentDate],[IsNewVersionCreated],1,[QuoteParentId],[QuoteTypeName],
+			[QtyRequested],[QtyToBeQuoted],@SalesOrderQuoteNumber,[QuoteSentDate],[IsNewVersionCreated],1,[QuoteParentId],[QuoteTypeName],
 			[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],[ProbabilityName],[LeadSourceName],[CreditTermName],
 			[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],
 			[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2],[ManagementStructureName3],

@@ -81,7 +81,8 @@ BEGIN
 	SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
 	SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
 	SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
-
+	PRINT 'PRINT @PageSize'
+	PRINT @PageSize
    IF ISNULL(@PageSize,0)=0      
    BEGIN  
    PRINT @PageSize
@@ -493,6 +494,7 @@ BEGIN
 		)    
 	, Result AS(      
 		SELECT DISTINCT       
+			ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY v.vendorId ASC) rNo,
 			(CTE.VendorId) AS VendorId ,      
 			UPPER((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
 			UPPER((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
@@ -510,7 +512,8 @@ BEGIN
 		  FROM CTE AS CTE WITH (NOLOCK)       
 		  INNER JOIN dbo.Vendor AS v WITH (NOLOCK) ON v.VendorId = CTE.VendorId    
 		  WHERE V.MasterCompanyId = @MasterCompanyId 
-   ) , ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)      
+   ) , ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)     
+  
    ,WithTotal (MastercompanyId, 
                TotalInvoiceAmount, --TotalcmAmount, TotalcmAmountUsed, 
                TotalBalanceAmount,TotalAmountpaidbylessthen0days, TotalAmountpaidby30days, 
@@ -527,7 +530,10 @@ BEGIN
 				SUM(cmAmount) cmAmount
 		   FROM Result GROUP BY MastercompanyId)
 
-   SELECT	VendorId, 
+   SELECT	
+			--(SELECT COUNT(1) FROM Result rs WHERE fc.vendorId = rs.vendorId) AS vendorCOUNT,
+			--MAX(FC.rNo) rNo,
+			VendorId, 
             UPPER(vendorName)vendorName,UPPER(vendorCode)vendorCode, 
 			SUM(InvoiceAmount) AS InvoiceAmount, 
 			SUM(BalanceAmount) AS BalanceAmount, 
@@ -539,19 +545,50 @@ BEGIN
 			SUM(Amountpaidbymorethan120days) AS Amountpaidbymorethan120days,
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,			
 			TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
-			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount,
-			CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/2)) AS DaysPastDue
+			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,WC.cmAmount
+			--,CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/2)) AS DaysPastDue
+			,DaysPastDue
 			
    INTO #TempResult1 FROM  Result FC
    INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
    GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
             ,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
 			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount
+			,DaysPastDue
+    
+	;WITH cteFinal AS (
+			  SELECT *,  
+				ROW_NUMBER() OVER(PARTITION BY CTE.VendorId,CTE.level1,CTE.level2,CTE.level3,CTE.level4,CTE.level5,CTE.level6,CTE.level7,CTE.level8,CTE.level9,CTE.level10 ORDER BY CTE.vendorId ASC) rNo
+			  FROM #TempResult1 CTE
+			)
+	SELECT	
+			MAX(FC.rNo) rNo,
+			VendorId,vendorName,
+            vendorCode, 
+			SUM(InvoiceAmount) AS InvoiceAmount, 
+			SUM(BalanceAmount) AS BalanceAmount, 
+			SUM(Amountpaidbylessthen0days) AS Amountpaidbylessthen0days, 
+			SUM(Amountpaidby30days) AS Amountpaidby30days, 
+			SUM(Amountpaidby60days) AS Amountpaidby60days, 
+			SUM(Amountpaidby90days) AS Amountpaidby90days, 
+			SUM(Amountpaidby120days) AS Amountpaidby120days, 
+			SUM(Amountpaidbymorethan120days) AS Amountpaidbymorethan120days,
+			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,			
+			TotalInvoiceAmount, TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days,TotalAmountpaidby60days,
+			TotalAmountpaidby90days,TotalAmountpaidby120days,TotalAmountpaidbymorethan120days ,cmAmount
+			,CONVERT(INT,(SUM(ISNULL(DaysPastDue,0))/(MAX(ISNULL(FC.rNo,1))))) AS DaysPastDue
 			--,DaysPastDue
-      
-    SELECT @Count = COUNT(VendorId) FROM #TempResult1     
-    SELECT @Count AS TotalRecordsCount,
-	VendorId,vendorName, vendorCode, 
+			
+   INTO #TempResult1Final FROM  cteFinal FC
+   GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+            ,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
+			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount
+			--,DaysPastDue
+
+    SELECT @Count = COUNT(VendorId) FROM #TempResult1Final     
+    SELECT @Count AS TotalRecordsCount
+	,rNo
+	,VendorId,vendorName, vendorCode, 
 	FORMAT(ISNULL(InvoiceAmount,0), 'N', 'en-us') AS 'InvoiceAmount',
 	FORMAT(ISNULL(BalanceAmount,0), 'N', 'en-us') AS 'BalanceAmount',	
 	FORMAT(ISNULL(Amountpaidbylessthen0days,0), 'N', 'en-us') AS 'Amountpaidbylessthen0days',
@@ -565,7 +602,7 @@ BEGIN
 	TotalBalanceAmount, TotalAmountpaidbylessthen0days, 
 	TotalAmountpaidby30days, TotalAmountpaidby60days, TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount,DaysPastDue
 	
-	FROM #TempResult1      
+	FROM #TempResult1Final 
     ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN 1 ELSE 1       
     END      
 	OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
@@ -915,7 +952,8 @@ BEGIN
 		  INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
 
 		  SELECT @Count = COUNT(VendorId) FROM #TempResult2  
-		  
+		  PRINT @PageSize
+		  PRINT 'PRINT @PageSizePRINT @PageSize'
 		  SELECT @Count AS TotalRecordsCount,
 		         vendorName, 
 		         vendorCode, 
@@ -948,6 +986,7 @@ BEGIN
 			ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN InvoiceDate ELSE InvoiceDate  
 		END
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
+		
 	END
 	PRINT 'END'
   END TRY        

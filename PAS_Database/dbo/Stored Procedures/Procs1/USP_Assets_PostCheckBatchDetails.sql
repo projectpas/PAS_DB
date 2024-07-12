@@ -115,6 +115,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @WrittenOffStatus VARCHAR(100) = 'WrittenOff';
 		DECLARE @SoldStatus VARCHAR(100) = 'Sold';
+		DECLARE @ModuleName VARCHAR(10) = 'AST';
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -283,7 +284,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN @CashAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @CashAmount END,
-					@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -325,7 +326,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @DepreciationAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @DepreciationAmount END,
 					--1,@DepreciationAmount,0,
-					@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -380,7 +381,7 @@ BEGIN
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE 1 END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
-					@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -417,7 +418,7 @@ BEGIN
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE 1 END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
-						@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -461,7 +462,7 @@ BEGIN
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE 1 END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 					CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
-					@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -498,7 +499,7 @@ BEGIN
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE 1 END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @FinalSaleAsset END,
 						CASE WHEN @IsSaleAssetDRCR = 1 THEN @FinalSaleAsset ELSE 0 END,
-						@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
@@ -538,7 +539,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN @InstallCost ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @InstallCost END,
-					@ManagementStructureId ,'ASt',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()

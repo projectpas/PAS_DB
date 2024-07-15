@@ -21,13 +21,14 @@
 	5    13-12-2023   Shrey Chandegara  update for stockline history  
 	6    17-01-2024   Shrey Chandegara  Update for asset attributetype and glaccounts changes
 	7    05-07-2024   Moin Bloch        Modified the SP to set RRQty  PN-8032
+	8    15-07-2024   Devendra Shekh    Modified For Account BatchDetail Entry
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,
@@ -45,6 +46,10 @@ BEGIN
             DECLARE @MainPartLoopID AS INT;
             DECLARE @LoopID AS INT;
             DECLARE @CurrentIndex BIGINT;
+			DECLARE @StkCount INT = 0;
+			DECLARE @AstInvCount INT = 0;
+			DECLARE @p2 dbo.PostStocklineBatchType;
+			DECLARE @p3 dbo.PostStocklineBatchType;
 
             IF OBJECT_ID(N'tempdb..#POPartsToReceive') IS NOT NULL
             BEGIN
@@ -635,11 +640,11 @@ BEGIN
                         END
 
                         /* Accounting Entry */
-                        DECLARE @p2 dbo.PostStocklineBatchType;
+                        --DECLARE @p2 dbo.PostStocklineBatchType;
 
                         INSERT INTO @p2 VALUES (@NewStocklineId, @QtyAdded, @PurchaseOrderUnitCostAdded, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'STOCK')
 
-                        EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p2, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+                        --EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p2, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
 
                         DECLARE @ReceivingPurchaseOrderModule AS BIGINT = 28;
 
@@ -1828,12 +1833,12 @@ BEGIN
 						END 
 
                         /* Accounting Entry */
-                        DECLARE @p3 dbo.PostStocklineBatchType;
+                        --DECLARE @p3 dbo.PostStocklineBatchType;
 
                         INSERT INTO @p3
-                        VALUES (@NewStocklineId_Asset, @QtyAdded_Asset, @PurchaseOrderUnitCostAdded_Asset, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'STOCK')
+                        VALUES (@NewStocklineId_Asset, @QtyAdded_Asset, @PurchaseOrderUnitCostAdded_Asset, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'ASSET')
 
-                        EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p3, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+                        --EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p3, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
 
                         DECLARE @ReceivingPurchaseOrderModule_Asset AS BIGINT = 28;
 
@@ -2400,6 +2405,20 @@ BEGIN
 
                 SET @MainPartLoopID = @MainPartLoopID - 1;
             END
+
+			SELECT @StkCount = COUNT(StockLineId) FROM @p2;
+			SELECT @AstInvCount = COUNT(StockLineId) FROM @p3;
+			/* Accounting Entry For StockLine*/
+			IF(@StkCount > 0)
+			BEGIN
+				EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p2, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+			END
+
+			/* Accounting Entry For AssetInventory*/
+			IF(@AstInvCount > 0)
+			BEGIN
+				EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p3, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+			END
 
             EXEC DBO.UpdateStocklineDraftDetail @PurchaseOrderId;
             EXEC DBO.UpdateAssetInventoryDraftPoDetails @PurchaseOrderId;

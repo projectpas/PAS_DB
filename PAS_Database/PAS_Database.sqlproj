@@ -3064,6 +3064,7 @@
     <Build Include="dbo\Stored Procedures\GetCustomerListForCreateCustomerInIntegrationAccounting.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateBatch_DepreciableAssetInventory.sql" />
     <Build Include="dbo\User Defined Types\DepreciableInventory.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_SaveRequestParamsDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

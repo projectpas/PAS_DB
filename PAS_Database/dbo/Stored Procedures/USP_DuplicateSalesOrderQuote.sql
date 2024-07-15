@@ -22,6 +22,7 @@ CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
 	@SalesOrderQuoteId BIGINT,
 	@MasterCompanyId INT,
 	@CodeTypeId INT,
+	@Username VARCHAR(250),
 	@Result INT OUTPUT
 AS
 BEGIN
@@ -30,10 +31,13 @@ BEGIN
 
   BEGIN TRY
     BEGIN TRANSACTION
-		DECLARE @OpenStatus INT, @CustomerId BIGINT
+		DECLARE @OpenStatus INT, @PartOpenStatus BIGINT, @CustomerId BIGINT
 		DECLARE @CurrentNummber BIGINT,
 				 @CodePrefix VARCHAR(50),
 				 @CodeSufix VARCHAR(50),
+				 @ValidForDays INT,
+				 @IsApprovalRule BIT,
+				 @QuoteExpireDate DATETIME2,
 				 @CreditTermsId INT, 
 				 @CreditLimit DECIMAL(18,2), 
 				 @ARBalance DECIMAL(18,2),
@@ -55,6 +59,9 @@ BEGIN
 		SELECT @CustomerId = CustomerId FROM [dbo].[SalesOrderQuote] WITH(NOLOCK)  WHERE SalesOrderQuoteId = @SalesOrderQuoteId
 		
 		SELECT @OpenStatus = [Id] FROM [dbo].[MasterSalesOrderQuoteStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
+
+		SELECT @PartOpenStatus = SOPartStatusId FROM [dbo].[SOPartStatus] WITH(NOLOCK)  WHERE PartStatus = 'Open'
+
 		SELECT @CreditTermsId = CreditTermsId FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
 		SELECT @CreditLimit = CreditLimit FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
 		SELECT @ARBalance = ARBalance FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
@@ -67,6 +74,9 @@ BEGIN
 
 		SELECT @AttachmentModuleId = AttachmentModuleId FROM [dbo].[AttachmentModule] WITH(NOLOCK)  WHERE [Name] = 'SalesQuote';
 
+		SELECT @ValidForDays = ValidDays, @IsApprovalRule = IsApprovalRule FROM SalesOrderQuoteSettings
+
+		SELECT @QuoteExpireDate = DATEADD(day, @ValidForDays, GETUTCDATE());
 
 		SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK)    
         WHERE [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
@@ -84,10 +94,10 @@ BEGIN
 			[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2],[ManagementStructureName3],
 			[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight],[TotalCharges],[FreightBilingMethodId],
 			[ChargesBilingMethodId])
-		(SELECT [QuoteTypeId],[OpenDate],[ValidForDays],[QuoteExpireDate],[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
+		(SELECT [QuoteTypeId],GETUTCDATE(),@ValidForDays,@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
 			[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId],[ProbabilityId],[LeadSourceId],@CreditLimit,@CreditTermsId,
-			[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId],[CreatedBy],
-			GETUTCDATE(),[UpdatedBy],GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],
+			[EmployeeId],[RestrictPMA],[RestrictDER],NULL,[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId],@Username,
+			GETUTCDATE(),@Username,GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],
 			[QtyRequested],[QtyToBeQuoted],@SalesOrderQuoteNumber,[QuoteSentDate],[IsNewVersionCreated],1,[QuoteParentId],[QuoteTypeName],
 			[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],[ProbabilityName],[LeadSourceName],[CreditTermName],
 			[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],
@@ -111,7 +121,7 @@ BEGIN
 		 SELECT [ModuleID],@NewID,[EntityMSID],
 		 			[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 			[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 			[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 			[MasterCompanyId],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 		 FROM [dbo].[SalesOrderManagementStructureDetails] WITH(NOLOCK) 
 		 WHERE [ReferenceID] = @SalesOrderQuoteId 
 		 AND [ModuleID] = @ManagementStructureHeaderModuleId;
@@ -156,10 +166,10 @@ BEGIN
 					   [StatusName],[CurrencyName],[ItemNo],[UnitSalesPricePerUnit],[IsLotAssigned],[LotId],[SalesPriceExpiryDate])
 					SELECT @NewID,[ItemMasterId],[StockLineId],[FxRate],[QtyQuoted],[UnitSalePrice],
 						   [MarkUpPercentage],[SalesBeforeDiscount],[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],
-						   [CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],[SalesPriceExtended],
+						   @Username,GETUTCDATE(),@Username,GETUTCDATE(),[IsDeleted],[UnitCost],[MethodType],[SalesPriceExtended],
 						   [MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],
 						   [MarginPercentage],[ConditionId],[IsConvertedToSalesOrder],[IsActive],[CustomerRequestDate],[PromisedDate],
-						   [EstimatedShipDate],[PriorityId],[StatusId],[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],
+						   [EstimatedShipDate],[PriorityId],@PartOpenStatus,[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],
 						   [GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[QtyPrevQuoted],
 						   [ControlNumber],[IdNumber],[QtyAvailable],[StockLineName],[PartNumber],[PartDescription],[ConditionName],[PriorityName],
 						   [StatusName],[CurrencyName],[ItemNo],[UnitSalesPricePerUnit],[IsLotAssigned],[LotId],[SalesPriceExpiryDate]
@@ -179,7 +189,7 @@ BEGIN
 					SELECT [ModuleID],@NewPartID,[EntityMSID],
 		 	   				[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 	   				[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 	   				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 	   				[MasterCompanyId],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 					FROM [dbo].[SalesOrderManagementStructureDetails] WITH(NOLOCK) 
 					WHERE [ReferenceID] = @SalesOrderQuotePartId 
 					AND [ModuleID] = @ManagementStructurePartModuleId;
@@ -195,7 +205,7 @@ BEGIN
 							[ChargeName],[MarkupName],[ItemMasterId],[ConditionId],[UnitOfMeasureId])    
 							SELECT @NewID,@NewPartID,[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description],
 							[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId],
-							[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[VendorName],
+							[RefNum],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[VendorName],
 							[ChargeName],[MarkupName],[ItemMasterId],[ConditionId],[UnitOfMeasureId]    
 							FROM [dbo].[SalesOrderQuoteCharges] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @SalesOrderQuoteId AND [SalesOrderQuotePartId] = @SalesOrderQuotePartId;    
 					 END
@@ -211,7 +221,7 @@ BEGIN
 							[ShipViaName],[UOMName],[DimensionUOMName],[CurrencyName],[ItemMasterId],[ConditionId])    
 							SELECT @NewID,@NewPartID,[ShipViaId],[Weight],[Memo],[Amount],[MarkupPercentageId],[MarkupFixedPrice],
 							[HeaderMarkupId],[BillingMethodId],[BillingRate],[BillingAmount],[Length],[Width],[Height],[UOMId],[DimensionUOMId],[CurrencyId],
-							[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],
+							[MasterCompanyId],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],
 							[ShipViaName],[UOMName],[DimensionUOMName],[CurrencyName],[ItemMasterId],[ConditionId]    
 							FROM [dbo].[SalesOrderQuoteFreight] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @SalesOrderQuoteId AND [SalesOrderQuotePartId] = @SalesOrderQuotePartId;    
 					 END
@@ -232,15 +242,15 @@ BEGIN
 				   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])    
 				SELECT @NewID,@AddressModuleId,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],    
 				   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],    
-				   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],    
-				   [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]    
+				   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],@Username,    
+				   @Username,GETUTCDATE(),GETUTCDATE(),1,0,[IsPrimary]    
 			    FROM [dbo].[AllAddress] WITH(NOLOCK) WHERE [ReffranceId] = @SalesOrderQuoteId AND [ModuleId] = @AddressModuleId;    
     
 				INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],    
 					[ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,    
 					[IsActive] ,[IsDeleted])    
 				SELECT @NewID,@AddressModuleId,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],    
-					[ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),    
+					[ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],@Username,@Username ,GETUTCDATE(),GETUTCDATE(),    
 					1,0     
 				FROM [dbo].[AllShipVia] WITH(NOLOCK) 
 				WHERE [ReferenceId] = @SalesOrderQuoteId AND [ModuleId] = @AddressModuleId;  
@@ -283,8 +293,8 @@ BEGIN
 						  ------------ Attachment --------
 						  INSERT [dbo].[Attachment]([ModuleId],[ReferenceId],[MasterCompanyId],[CreatedBy],
 								 [CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
-						  SELECT @AttachmentModuleId,@NewID,[MasterCompanyId],[CreatedBy],
-								 [CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted]
+						  SELECT @AttachmentModuleId,@NewID,[MasterCompanyId],@Username,
+								 GETUTCDATE(),@Username,GETUTCDATE(),[IsActive],[IsDeleted]
 						  FROM [dbo].[Attachment] WITH(NOLOCK)
 						  WHERE [AttachmentId] = @AttachmentId
 						  AND [ReferenceId] = @ReferenceId;
@@ -297,7 +307,7 @@ BEGIN
 								 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 							     [DocumentTypeId],[ExpirationDate],[ReferenceIndex],[ModuleType])
 					 SELECT [ModuleId],@NewID,@NewAttachmentId,[DocName],[DocMemo],[DocDescription],[MasterCompanyId],
-								 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+								 @Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],
 								 [DocumentTypeId],[ExpirationDate],[ReferenceIndex],[ModuleType]
 					 FROM [dbo].[CommonDocumentDetails] WITH(NOLOCK) 
 					 WHERE [CommonDocumentDetailId] = @CommonDocumentDetailId
@@ -311,7 +321,7 @@ BEGIN
 							[CreatedDate],[UpdatedDate],[CreatedBy],[UpdatedBy],[IsActive],[IsDeleted],[Name],
 							[Memo],[TypeId])
 					 SELECT @NewAttachmentId,[FileName],[Description],[Link],[FileFormat],[FileSize],[FileType],
-							[CreatedDate],[UpdatedDate],[CreatedBy],[UpdatedBy],[IsActive],[IsDeleted],[Name],
+							GETUTCDATE(),GETUTCDATE(),@Username,@Username,[IsActive],[IsDeleted],[Name],
 							[Memo],[TypeId]
 					 FROM [dbo].[AttachmentDetails] WITH(NOLOCK) WHERE [AttachmentId] = @AttachmentId;
 

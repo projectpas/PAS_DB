@@ -15,7 +15,7 @@
      
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[QuickBooks_GetNewCustomerListForCreateCustomer]
+CREATE PROCEDURE [dbo].[GetCustomerListForCreateCustomerInIntegrationAccounting]
 	@IntegrationTypeId INT = NULL
 AS
 BEGIN
@@ -27,7 +27,7 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode, C.MasterCompanyId,
+			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode,
 					CON.FirstName + ' ' + CON.LastName AS FullName,
 					CON.FirstName,
 					CON.LastName,
@@ -47,8 +47,7 @@ BEGIN
 					UPPER(AD.StateOrProvince) StateOrProvince,
 					AD.PostalCode,
 					AD.CountryId,
-					UPPER(CT.countries_name) Country,
-					C.UpdatedBy
+					UPPER(CT.countries_name) Country				
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId

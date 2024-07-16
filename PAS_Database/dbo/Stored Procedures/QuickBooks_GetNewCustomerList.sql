@@ -15,47 +15,18 @@
      
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[QuickBooks_GetNewCustomerListForCreateCustomer]
-	@IntegrationTypeId INT = NULL
+CREATE PROCEDURE [dbo].[QuickBooks_GetNewCustomerList]
+	@MasterCompanyId BIGINT = NULL
 AS
 BEGIN
 	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-
-		-- FOR QuickBooks
-		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
-		BEGIN
-			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode, C.MasterCompanyId,
-					CON.FirstName + ' ' + CON.LastName AS FullName,
-					CON.FirstName,
-					CON.LastName,
-					CON.MiddleName,
-					CON.Prefix,
-					CON.Suffix,
-					CON.Email,
-					CON.WorkPhone AS CustomerPhone,
-					C.Email,
-					CON.ContactTitle,
-					CON.Fax, 
-					CON.Notes,
-					CON.Tag,
-					UPPER(AD.AddressId) AS AddressId,
-					UPPER(AD.Line1) + ' ' + UPPER(AD.Line2) + ' ' + UPPER(AD.Line3) AS AddressLine1,
-					UPPER(AD.City) AS City,
-					UPPER(AD.StateOrProvince) StateOrProvince,
-					AD.PostalCode,
-					AD.CountryId,
-					UPPER(CT.countries_name) Country,
-					C.UpdatedBy
-			FROM dbo.Customer C WITH(NOLOCK) 
-				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
-				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
-				JOIN dbo.[Address] AD WITH (NOLOCK) ON C.AddressId = AD.AddressId
-				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
-			WHERE ISNULL(C.QuickBooksCustomerId, 0) = 0 AND ISNULL(C.IsUpdated, 0) = 1 
-		END
+	
+		SELECT * FROM dbo.Customer C WITH(NOLOCK) 
+		WHERE CustomerId = 1
+		
 	END TRY    
 	BEGIN CATCH      
 
@@ -63,7 +34,7 @@ BEGIN
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			,@AdhocComments VARCHAR(150) = 'GetCustomerList'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS varchar(100))  			                                           
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

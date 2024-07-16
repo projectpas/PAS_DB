@@ -18,8 +18,9 @@
     1    03/23/2020   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    02/02/2024   Devendra Shekh	Updated for revised Part Panry and Condition
+	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
      
- EXECUTE [sp_workOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
+ EXECUTE [sp_workOrderReleaseFromPDFData] 2555
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
@@ -52,7 +53,8 @@ BEGIN
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
 						--,UPPER(wro.[Batchnumber]) as Batchnumber
-					   ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
+					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' THEN UPPER(wro.[Batchnumber]) ELSE CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END END AS Batchnumber
+					   --,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
 					   ,CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]

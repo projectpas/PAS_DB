@@ -17,11 +17,12 @@
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Subhash Saliya Created
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
+	3    07/16/2024   Devendra Shekh Added Case For Status
 
      
  EXECUTE [sp_GetWOShippingParentList] 34, 39
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetWOShippingParentList]
+CREATE     Procedure [dbo].[sp_GetWOShippingParentList]
 @WorkOrderId  bigint,
 @WorkOrderPartId bigint
 AS
@@ -43,7 +44,7 @@ BEGIN
 					wop.ID as WorkOrderPartId,
 					SUM(ISNULL(wopt.QtyToShip, 0)) - SUM(ISNULL(wosi.QtyShipped,0)) as QtyRemaining,
 					--CASE WHEN SUM(ISNULL(wopt.QtyToShip, 0)) = SUM(ISNULL(wosi.QtyShipped, 0)) THEN 'Fullfilled' ELSE 'Fullfilling' END as [Status], 
-					SS.[Status] As [Status],
+					CASE WHEN SS.[Status] IS NULL THEN 'Ready' ELSE SS.[Status] END As [Status],
 					1 as ItemNo,
 					isnull(cds.ShipViaId,0) as ShipViaId
 				FROM DBO.WorkOrderPartNumber wop WITH(NOLOCK)

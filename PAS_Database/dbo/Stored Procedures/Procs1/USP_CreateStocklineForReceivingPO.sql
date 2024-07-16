@@ -565,7 +565,7 @@ BEGIN
                         DECLARE @SelectedIsSameDetailsForAllParts BIT = 0;
                         DECLARE @IsTimeLIfe BIT
 
-                        SELECT @QtyAdded = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,
+                        SELECT @QtyAdded = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Quantity] ELSE @QtyToReceive END END,
                                @SelectedIsSameDetailsForAllParts = IsSameDetailsForAllParts,
                                @PurchaseOrderUnitCostAdded = PurchaseOrderUnitCost,
                                @IsTimeLIfe = [IsStkTimeLife]
@@ -736,6 +736,16 @@ BEGIN
                                   AND IsSameDetailsForAllParts = 1
                                   AND IsParent = 1;
                         END
+						ELSE IF(@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts = 0)
+						BEGIN
+							UPDATE dstl
+                            SET dstl.StockLineId = @NewStocklineId,
+                                dstl.StockLineNumber = @StockLineNumber,
+                                dstl.ControlNumber = @ControlNumber,
+                                dstl.ReceiverNumber = @ReceiverNumber, ForStockQty = @QtyAdded 
+                            FROM DBO.StocklineDraft dstl
+                            WHERE StockLineDraftId = @SelectedStockLineDraftId;
+						END
                         ELSE
                         BEGIN
                             UPDATE dstl

@@ -5,6 +5,7 @@
 
     1    No-Data
 	2.   28/05/2024   Amit Ghediya     Update for get Item Details from Item Master table.
+	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
@@ -42,6 +43,8 @@ BEGIN
 		DECLARE @ModuleId int =8;
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -128,7 +131,7 @@ BEGIN
 					(ISNULL(@level4,'') ='' OR level4 LIKE '%' + @level4 + '%') AND	
 					(ISNULL(@isVerified,'') ='' OR isVerified LIKE '%' + @isVerified + '%') AND	
 					(ISNULL(@verifiedDate,'') ='' OR CAST(verifiedDate AS Date)=CAST(@verifiedDate AS date)) AND					
-					(ISNULL(@addedDate,'') ='' OR CAST(addedDate AS Date)=CAST(@addedDate AS date)) AND
+					(ISNULL(@addedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(addedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@addedDate AS date)) AND
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND

@@ -248,8 +248,8 @@ BEGIN
 				   pop.UnitCost AS 'POUnitCost',
 				   (pop.UnitCost * stk.RRQty) AS 'POExtCost',
 				   stk.RRQty AS 'InvoicedQty',
-				   pop.UnitCost AS 'InvoicedUnitCost',
-				   (pop.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
+				   stk.RepairOrderUnitCost AS 'InvoicedUnitCost',
+				   (stk.RepairOrderUnitCost * stk.RRQty) AS 'InvoicedExtCost',
 				   (stk.RRQty)as 'RemainingRRQty',
 				   pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 				   2 AS 'Type',
@@ -262,7 +262,7 @@ BEGIN
 				AND pop.RepairOrderPartRecordId=@PurchaseOrderPartRecordId AND POP.isParent  = 1
 				AND ISNULL((SELECT COUNT(POS.RepairOrderPartRecordId) FROM dbo.RepairOrderPart POS WITH(NOLOCK) WHERE POS.ParentId =@PurchaseOrderPartRecordId ),0) = 0			
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
+				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
 
 				UNION ALL
 			
@@ -282,8 +282,8 @@ BEGIN
 				   pop.UnitCost AS 'POUnitCost',
 				   (pop.UnitCost * stk.RRQty) AS 'POExtCost',
 				   stk.RRQty AS 'InvoicedQty',
-				   pop.UnitCost AS 'InvoicedUnitCost',
-				   (pop.UnitCost * stk.RRQty) AS 'InvoicedExtCost',
+				   stk.RepairOrderUnitCost AS 'InvoicedUnitCost',
+				   (stk.RepairOrderUnitCost * stk.RRQty) AS 'InvoicedExtCost',
 				   (stk.RRQty)as 'RemainingRRQty',
 				   pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 				   2 AS 'Type',
@@ -294,7 +294,7 @@ BEGIN
 				INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 				WHERE po.RepairOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
+				     stk.SerialNumber,po.RepairOrderId,po.RepairOrderNumber,pop.QuantityOrdered,stk.RepairOrderUnitCost,pop.UnitCost,stk.RRQty,pop.RepairOrderPartRecordId
 					 				
 				UNION
 				
@@ -313,8 +313,8 @@ BEGIN
 				   pop.UnitCost AS 'POUnitCost',
 				   (pop.UnitCost * stkdf.Qty) AS 'POExtCost',
 				   stkdf.Qty AS 'InvoicedQty',
-				   pop.UnitCost AS 'InvoicedUnitCost',
-				   (pop.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
+				   stkdf.UnitCost AS 'InvoicedUnitCost',
+				   (stkdf.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
 				   (stk.RRQty) AS 'RemainingRRQty',
 				   pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 				   2 AS 'Type',
@@ -345,8 +345,8 @@ BEGIN
 				   pop.UnitCost AS 'POUnitCost',
 				   (pop.UnitCost * stkdf.Qty) AS 'POExtCost',
 				   stkdf.Qty AS 'InvoicedQty',
-				   pop.UnitCost AS 'InvoicedUnitCost',
-				   (pop.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
+				   stkdf.UnitCost AS 'InvoicedUnitCost',
+				   (stkdf.UnitCost * stkdf.Qty) AS 'InvoicedExtCost',
 				   (stk.RRQty) AS 'RemainingRRQty',
 				   pop.RepairOrderPartRecordId AS 'PurchaseOrderPartRecordId',
 				   2 AS 'Type',

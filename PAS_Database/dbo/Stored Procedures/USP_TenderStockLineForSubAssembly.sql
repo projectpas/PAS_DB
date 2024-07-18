@@ -21,6 +21,8 @@
     3    01/23/2024		Devendra Shekh		serial Number issue resolved    
 	4    01/29/2024		Hemant Saliya		Resolved Error 
 	5 	 22/03/2024     Moin Bloch          Added New Field @EvidenceId
+	6 	 18/07/2024     Moin Bloch          Added @LocationId Field
+	
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=4185,@WorkFlowWorkOrderId=3646,@WorkOrderMaterialsId=16481
 **************************************************************/
@@ -220,7 +222,7 @@ BEGIN
 						   WHERE iM.ItemMasterId = @MaterialItemMasterId)
 
 				SELECT @UnitOfMeasureId = PurchaseUnitOfMeasureId, @IsSerialized = IsSerialized,
-					   @ManufacturerId = ManufacturerId, @ReceivedDate = GETDATE(), @SiteId = SiteId, @WarehouseId = WarehouseId, @ShelfId = ShelfId, @BinId = BinId FROM itemData
+					   @ManufacturerId = ManufacturerId, @ReceivedDate = GETDATE(), @SiteId = SiteId, @WarehouseId = WarehouseId, @LocationId= LocationId, @ShelfId = ShelfId, @BinId = BinId FROM itemData
 
 				IF(@WOTypeId = @TearDownWO)
 				BEGIN
@@ -326,8 +328,9 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_TenderStockLineForSubAssembly' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + '@Parameter2 = '''+ ISNULL(@WorkFlowWorkOrderId, '') 
-													+ '@Parameter3 = '''+ ISNULL(@WorkOrderMaterialsId, '') +''
+		      , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))
+			                                       + '@Parameter2 = ''' + CAST(ISNULL(@WorkFlowWorkOrderId, '') AS VARCHAR(100))
+												   + '@Parameter3 = ''' + CAST(ISNULL(@WorkOrderMaterialsId, '') AS VARCHAR(100)) + '' 		 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

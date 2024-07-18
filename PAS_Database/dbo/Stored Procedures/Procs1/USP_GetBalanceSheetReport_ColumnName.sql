@@ -13,6 +13,8 @@
 	1    31/08/2023   Rajesh Gami   Created
 	2    19/12/2023   Moin Bloch    Updated (Added Calander Period Name When we getting 0 Month)
 	3    01/02/2024   Hemnat Saliya Handle ADJ- Period case
+	4    18/07/2024   Hemnat Saliya Added isAccountPeriod for Period Count
+
 **************************************************************/  
 
 /*************************************************************             
@@ -90,7 +92,8 @@ BEGIN
 			   isNumString BIT,
 			   isRightAlign BIT,			   
 			   PeriodId INT,  
-			   PeriodName VARCHAR(50)  
+			   PeriodName VARCHAR(50),
+			   [isAccountPeriod] BIT NULL,
 		  ) 
 
 		  IF(ISNULL(@StartAccountingPeriodId, 0) = ISNULL(@EndAccountingPeriodId, 0))
@@ -149,11 +152,11 @@ BEGIN
 		  WHERE L.ReportingStructureId = @ReportingStructureId AND L.IsDeleted = 0 and L.MasterCompanyId = @MasterCompanyId  
 		  ORDER BY L.SequenceNumber 
 
-		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)
-		  VALUES(0, 'name', '', 0, 0)
+		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign,[isAccountPeriod])
+		  VALUES(0, 'name', '', 0, 0, 0)
 
-		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign)  
-		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1 FROM #TempTable 
+		  INSERT INTO #AccPeriodTempTable(PeriodId,PeriodName, fieldGridWidth, isNumString, isRightAlign,[isAccountPeriod])  
+		  SELECT DISTINCT PeriodId,PeriodName, '', 1, 1, 1 FROM #TempTable 
 		  		
 		  DECLARE @PeriodId BIGINT;
 		  SELECT TOP 1 @PeriodId = [PeriodId] FROM #AccPeriodTempTable WHERE ISNULL([PeriodId], 0) > 0
@@ -178,7 +181,7 @@ BEGIN
 			  -- ORDER BY AccountingCalendarId 
 		  END		 
 
-		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1 WHERE PeriodName = 'Other'
+		  UPDATE #AccPeriodTempTable SET PeriodId = 999999, PeriodName = 'Total', fieldGridWidth = '', isNumString = 1, isRightAlign = 1, [isAccountPeriod] = 0 WHERE PeriodName = 'Other'
 
 		  UPDATE #AccPeriodTempTable SET headerName = PeriodName, fieldName = REPLACE(PeriodName,' ','')  
 

@@ -13,6 +13,7 @@
  ** --   --------     -------           --------------------------------            
     1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    06/29/2024   Abhishek Jirawla   Adding flag to return only specified status for pending Approval
+	3    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -57,7 +58,9 @@ BEGIN
     DECLARE @RecordFrom int;  
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
-    DECLARE @WorkOrderStatusId int;   
+    DECLARE @WorkOrderStatusId int;  
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
       
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
@@ -184,9 +187,9 @@ BEGIN
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@quoteStatus,'') ='' OR quoteStatus like '%' + @quoteStatus+'%') AND  
       --(IsNull(@StatusId,0) = 0 OR quoteStatusId = @StatusId) AND  
-      (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
+      (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=Cast(@CreatedDate as date)) AND  
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
-      (IsNull(@OpenDate,'') ='' OR Cast(OpenDate as Date)=Cast(@OpenDate as date)) AND  
+      (IsNull(@OpenDate,'') ='' OR CAST(OpenDate AS date)=Cast(@OpenDate as date)) AND  
       (IsNull(@estCompletionDate,'') ='' OR Cast(estCompletionDate as Date)=Cast(@estCompletionDate as date)) AND  
       (IsNull(@promiseDate,'') ='' OR Cast(promisedDate as Date)=Cast(@promiseDate as date)) AND  
       (IsNull(@EstShipDate,'') ='' OR Cast(estShipDate as Date)=Cast(@EstShipDate as date)) AND  

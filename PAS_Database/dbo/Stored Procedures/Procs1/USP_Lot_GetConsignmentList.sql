@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    27/07/2023   Rajesh Gami     Created
+	2    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetConsignmentList] 
@@ -37,6 +38,8 @@ BEGIN
 	BEGIN
 		DECLARE @Count Int;
 		DECLARE @RecordFrom int;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 
 		IF @SortColumn IS NULL
@@ -81,8 +84,8 @@ BEGIN
 					(ConsignmentNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ConsigneeName LIKE '%' + @GlobalFilter + '%') OR
 					(ConsignmentName LIKE '%' + @GlobalFilter + '%') OR
-					(CreatedBy like '%' + @GlobalFilter + '%') OR
-					(CreatedDate like '%' + @GlobalFilter + '%')))
+					(CreatedBy like '%' + @GlobalFilter + '%') ))
+					--(CreatedDate like '%' + @GlobalFilter + '%')))
 					OR
 					(@GlobalFilter = '' AND (ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 					(ISNULL(@ConsignmentNumber, '') = '' OR ConsignmentNumber LIKE '%' + @ConsignmentNumber + '%') AND
@@ -91,7 +94,7 @@ BEGIN
 					(ISNULL(@CreatedBy, '') = '' OR CreatedBy  like '%'+ @CreatedBy + '%') AND
 					(ISNULL(@HowCalculate, '') = '' OR HowCalculate  like '%'+ @HowCalculate + '%') AND
 					(IsNull(@CalculateValue, 0) = 0 OR CAST(CalculateValue as VARCHAR(10)) like @CalculateValue) AND
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date) = CAST(CreatedDate AS date))
+					(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date) = CAST(@CreatedDate AS date))
 					)
 				  )
 

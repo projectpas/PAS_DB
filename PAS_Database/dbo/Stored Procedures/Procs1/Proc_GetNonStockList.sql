@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [Proc_GetNonStockList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used GET lIST Non Stockline Details.    
@@ -17,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/04/2020   Subhash Saliya Created
+	2   17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 
      
 --  EXEC [Proc_GetNonStockList] 1
@@ -72,7 +72,8 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
 		DECLARE @MSModuelId INT = 11; -- For Non Stockline
-
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	    SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;	
 		
 		IF @SortColumn IS NULL
@@ -184,7 +185,7 @@ BEGIN
 						(ISNULL(@Acquired,'') ='' OR Acquired LIKE '%' + @Acquired + '%') AND					
 						(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
-						(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND
+						(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND
 						(ISNULL(@OrderDate,'') ='' OR CAST(OrderDate AS Date)=CAST(@OrderDate AS date)) AND					
 						(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS Date)=CAST(@EntryDate AS date)) AND
 						(ISNULL(@MfgExpirationDate,'') ='' OR CAST(MfgExpirationDate AS Date)=CAST(@MfgExpirationDate AS date)) AND
@@ -337,7 +338,7 @@ BEGIN
 						(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND
 						(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 						(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
-						(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS Date)=CAST(@ReceivedDate AS date)) AND
+						(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND
 						(ISNULL(@OrderDate,'') ='' OR CAST(OrderDate AS Date)=CAST(@OrderDate AS date)) AND					
 						(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS Date)=CAST(@EntryDate AS date)) AND
 						(ISNULL(@MfgExpirationDate,'') ='' OR CAST(MfgExpirationDate AS Date)=CAST(@MfgExpirationDate AS date)) AND

@@ -13,7 +13,8 @@
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
    
-    2    23 Nov 2023    BHARGAV SALIYA               Add HasSubAssy                                            
+    2    23 Nov 2023    BHARGAV SALIYA               Add HasSubAssy  
+	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
@@ -49,6 +50,8 @@ BEGIN
 		DECLARE @RecordFrom int;		
 		DECLARE @Count Int;
 		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -139,7 +142,7 @@ BEGIN
 					(ISNULL(@StockType,'') ='' OR StockType LIKE '%' + @StockType + '%') AND	
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
+					(ISNULL(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 

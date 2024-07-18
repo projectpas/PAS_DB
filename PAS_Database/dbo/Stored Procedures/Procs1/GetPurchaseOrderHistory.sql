@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPurchaseOrderHistory]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get purchase order history   
@@ -18,6 +17,7 @@
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
 	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
+	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -110,6 +110,8 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
+					(IsNull(@PODate,'') ='' OR CAST(PODate AS date)=Cast(@PODate as date)) AND  
+					(IsNull(@EstDeliveryDate,'') ='' OR CAST(ReceivedDate AS date)=Cast(@EstDeliveryDate as date)) AND  
 					--(ISNULL(@UnitCost,'') ='' OR UnitCost LIKE '%' + @UnitCost + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
@@ -174,6 +176,8 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
+					(IsNull(@PODate,'') ='' OR CAST(PODate AS date)=Cast(@PODate as date)) AND  
+					(IsNull(@EstDeliveryDate,'') ='' OR CAST(ReceivedDate AS date)=Cast(@EstDeliveryDate as date)) AND  
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 

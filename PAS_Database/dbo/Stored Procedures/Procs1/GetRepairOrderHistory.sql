@@ -17,6 +17,7 @@
     1    01/04/2024   Vishal Suthar		Modified the SP to convert outer join for the performance issue
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
     3    02-07-2024   Sahdev Saliya     Added Global Filters and Sorting (UnitCost)
+	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -108,6 +109,8 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
+					(IsNull(@PODate,'') ='' OR CAST(PODate AS date)=Cast(@PODate as date)) AND  
+					(IsNull(@EstDeliveryDate,'') ='' OR CAST(ReceivedDate AS date)=Cast(@EstDeliveryDate as date)) AND  
 					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
@@ -174,6 +177,8 @@ BEGIN
 					(ISNULL(@Partnumber,'') ='' OR PartNumber LIKE '%' + @Partnumber + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
+					(IsNull(@PODate,'') ='' OR CAST(PODate AS date)=Cast(@PODate as date)) AND  
+					(IsNull(@EstDeliveryDate,'') ='' OR CAST(ReceivedDate AS date)=Cast(@EstDeliveryDate as date)) AND  
 					(ISNULL(@QuoteNumber,'') ='' OR QuoteNumber LIKE '%' + @QuoteNumber + '%') AND
 					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))

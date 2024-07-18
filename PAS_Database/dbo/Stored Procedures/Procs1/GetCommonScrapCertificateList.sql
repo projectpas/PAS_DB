@@ -17,6 +17,7 @@
     1    17/10/2022   SUBHASH Saliya Created 
     2    24/01/2024   Bhargav Saliya Add Field [StockLineNumber] 
     3    16/04/2024   Moin Bloch      Added New Field Scrap Certificate Date	
+	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
@@ -57,7 +58,8 @@ BEGIN
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
     DECLARE @WorkOrderStatusId int;   
-      
+    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId   
     IF OBJECT_ID(N'tempdb..#TempResult') IS NOT NULL  
     BEGIN  
     DROP TABLE #TempResult   
@@ -190,7 +192,7 @@ BEGIN
       (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
       (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
       (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') AND  
-      (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) AND  
+      (IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc )AS date)=Cast(@CreatedDate as date)) AND  
       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and  
       (IsNull(@ScrapReason,'') ='' OR ScrapReason like '%' + @ScrapReason+'%') AND  
       (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  

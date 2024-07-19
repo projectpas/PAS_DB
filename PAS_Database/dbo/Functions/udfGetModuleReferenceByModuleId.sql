@@ -103,6 +103,10 @@ BEGIN
 		BEGIN
 			SELECT @ReferenceNumber = SO.SalesOrderNumber FROM DBO.SalesOrder SO WITH (NOLOCK) WHERE SO.SalesOrderId = @ReferenceId;
 		END
+		IF (@SubModuleName = 'SalesQuote')
+		BEGIN
+			SELECT @ReferenceNumber = SOQ.SalesOrderQuoteNumber FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @ReferenceId;
+		END
 		IF (@SubModuleName = 'WorkOrderMaterials')
 		BEGIN
 			SELECT @ReferenceNumber = IM.partnumber FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId WHERE WOM.WorkOrderMaterialsId = @ReferenceId;

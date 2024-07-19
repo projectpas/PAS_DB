@@ -3067,6 +3067,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_SaveRequestParamsDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_ACHByManagementStructId.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSettings.sql" />
+    <Build Include="dbo\Stored Procedures\ConvertSOQToSO.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

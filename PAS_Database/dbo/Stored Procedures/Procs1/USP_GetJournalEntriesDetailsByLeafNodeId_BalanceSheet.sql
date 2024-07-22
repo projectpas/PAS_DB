@@ -555,7 +555,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN ''
 											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
 													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN ExchC.[Name]
-											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN ''
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN CASE WHEN SPBD.[CustomerId] > 0 THEN ISNULL(UPPER(SPBD.[CustomerName]),'') ELSE ISNULL(UPPER(SPBD.[VendorName]),'') END  
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN ''
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN ''
 											WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN ''
@@ -590,7 +590,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
 											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
 													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.ExchangeSalesOrderId
-											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 0
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN SPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId
@@ -628,6 +628,7 @@ BEGIN
 			  ) AND CMBD.ModuleId = @CustomerRefundModuleId			  			  
 			  LEFT JOIN [dbo].[ExchangeBatchDetails] EXBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = EXBD.JournalBatchDetailId 
 			  LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = NPOBD.JournalBatchDetailId 
+			  LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SPBD.JournalBatchDetailId 			  
 			  LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
 			  LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
 			  LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId

@@ -26,9 +26,10 @@
 	9    16/10/2023   Devendra Shekh	timelife issue resolved
 	10   02/02/2024	  Bhargav Saliya    Filter with 'CustomerName'.
 	11   18/04/2024	  Moin Bloch        Added new field 'IsTurnIn' for list
-	12   17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	12   17/07/2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	13   22/07/2024   Vishal Suthar     Commented above change as for the performance issue
     
--- EXEC [ProcStockList] 947    
+-- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,@PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@CompanyName=NULL,@BuName=NULL,@DeptName=NULL,@DivName=NULL,@RevisedPN=NULL,@AWB=NULL,@ReceivedDate=NULL,@TraceableToName=NULL,@TaggedByName=NULL,@TagType=NULL,@TagDate=NULL,@ExpirationDate=NULL,@ControlNumber=NULL,@IdNumber=NULL,@Manufacturer=NULL,@PartCertificationNumber=NULL,@CertifiedBy=NULL,@CertifiedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=98,@MasterCompanyId=11,@IsCustomerStock=NULL,@ItemMasterId=0,@StockLineIds=NULL,@obtainFrom=NULL,@ownerName=NULL,@LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,@CustomerName=NULL,@IsTurnIn=NULL
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[ProcStockList]
 	@PageNumber int = NULL,        
@@ -97,8 +98,8 @@ BEGIN
 	  DECLARE @IsActive bit;        
 	  DECLARE @ISCS bit;        
 	  DECLARE @ISECS bit;        
-	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	  SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+	  --DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	  --SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
 	  SET @MSModuelId = 2;   -- For Stockline        
         
@@ -275,7 +276,8 @@ BEGIN
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND    
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and   
-		  (ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		  --(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		  (ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
 		  (ISNULL(@ItemCategory,'') ='' OR ItemCategory LIKE '%' + @ItemCategory + '%') AND        
@@ -523,7 +525,8 @@ BEGIN
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND        
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
-		(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		--(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
 		(ISNULL(@ItemCategory,'') ='' OR ItemCategory LIKE '%' + @ItemCategory + '%') AND        
@@ -777,7 +780,8 @@ BEGIN
 		  (ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND   
 		  (ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
 		  (ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and        
-		  (ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		  --(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		  (ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		  (ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		  (ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
 		  (ISNULL(@ItemCategory,'') ='' OR ItemCategory LIKE '%' + @ItemCategory + '%') AND        
@@ -1026,7 +1030,8 @@ BEGIN
 		(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND        
 		(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND  
 		(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND    
-		(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		--(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ReceivedDate, @CurrntEmpTimeZoneDesc )AS date)=CAST(@ReceivedDate AS date)) AND        
+		(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS date)=CAST(@ReceivedDate AS date)) AND        
 		(ISNULL(@ExpirationDate,'') ='' OR CAST(ExpirationDate AS Date)=CAST(@ExpirationDate AS date)) AND             
 		(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date)=CAST(@TagDate AS date)) AND        
 		(ISNULL(@ItemCategory,'') ='' OR ItemCategory LIKE '%' + @ItemCategory + '%') AND        

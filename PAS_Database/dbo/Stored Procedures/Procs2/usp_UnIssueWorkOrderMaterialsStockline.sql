@@ -3,7 +3,7 @@
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
   
-EXEC [usp_IssueWorkOrderMaterialsStockline] 
+EXEC [usp_UnIssueWorkOrderMaterialsStockline] 
 ************************************************************** 
 ** Change History 
 **************************************************************   
@@ -15,6 +15,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 4    04/08/2023      Satish Gohil	    Seprate Accounting Entry WO Type Wise
 ** 5    08/18/2023      AMIT GHEDIYA	    Update historytext for WOhistory.
 ** 6    02/19/2024		HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
+** 7    07/22/2024		Devendra Shekh	    Modified For Same JE Changes
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -26,7 +27,7 @@ INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'A
 
 EXEC dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[usp_UnIssueWorkOrderMaterialsStockline]
+CREATE   PROCEDURE [dbo].[usp_UnIssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -71,6 +72,11 @@ BEGIN
                     DECLARE @ModuleName varchar(200)='WOP-PartsIssued';
                     DECLARE @UpdateBy varchar(200);
 					DECLARE @IsKit BIGINT = 0;
+
+					DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
+					DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
+					DECLARE @WOBatchCount INT = 0;
+					DECLARE @IWOBatchCount INT = 0;
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
@@ -348,8 +354,10 @@ BEGIN
 						BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
-								EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
-								@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+								--EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
+								--@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+								INSERT INTO @WOBatchTriggerType VALUES
+								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
 							END
 						END
 						
@@ -357,13 +365,41 @@ BEGIN
 						BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
-								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
-								@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
+								--@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+								INSERT INTO @IWOBatchTriggerType VALUES
+								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
 							END
 						END
 
 						SET @slcount = @slcount + 1;
 					END;
+
+					/*** Same JE Changes : Start ***/
+					SELECT @WOBatchCount = COUNT(@ReferencePieceId) FROM @WOBatchTriggerType;
+					SELECT @IWOBatchCount = COUNT(@ReferencePieceId) FROM @IWOBatchTriggerType;
+
+					DECLARE @IsRestrictNew INT;
+					DECLARE @IsAccountByPassNew BIT;
+
+					EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrictNew OUTPUT, @IsAccountByPassNew OUTPUT;
+
+					IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
+					BEGIN
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						BEGIN
+							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+						END
+					END
+
+					IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
+					BEGIN
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+						BEGIN
+							EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+						END
+					END
+					/*** Same JE Changes : End ***/
 
 					SELECT * FROM #tmpIgnoredStockline
 

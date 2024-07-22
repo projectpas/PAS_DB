@@ -26,11 +26,12 @@
 	10   07/07/2023   Amit Ghediya		    Removed Duplicated populated items.
 	11   07/07/2023   Moin Bloch            Addred Receiving Qty Field
 	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
-	13   19-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
+	13   22/07/2024   Amit Ghediya		    Optimization sp.
+	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
+CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
 @PageNumber INT,  
 @PageSize INT,  
 @SortColumn VARCHAR(50)=null,  
@@ -147,8 +148,13 @@ BEGIN
 			RMAD.ModuleId,
 			RMS.QtyShipped,
 			RMAD.VendorRMADetailId,
-			RQTY.QuantityReceived,
-			SL.Condition as 'Condition'
+			(SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[Stockline] SL WITH(NOLOCK)
+				WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]
+				AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId]
+				AND SL.[IsParent] = 1
+				AND SL.[IsDeleted] = 0
+			)AS QuantityReceived,
+			SL.Condition
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 		LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
@@ -162,14 +168,14 @@ BEGIN
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
 		LEFT JOIN [DBO].[RMAShipping] SI WITH (NOLOCK) ON RMS.RMAShippingId = SI.RMAShippingId
-		OUTER APPLY(
-			SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS QuantityReceived 
-			FROM [dbo].[Stockline] SL WITH(NOLOCK) 
-			WHERE SL.[VendorRMAId] = RMA.[VendorRMAId] 
-			  AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId] 
-			  AND SL.[IsParent] = 1 
-			  AND SL.[IsDeleted] = 0		
-		) AS RQTY
+		--OUTER APPLY(
+		--	SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS QuantityReceived 
+		--	FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+		--	WHERE SL.[VendorRMAId] = RMA.[VendorRMAId] 
+		--	  AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId] 
+		--	  AND SL.[IsParent] = 1 
+		--	  AND SL.[IsDeleted] = 0		
+		--) AS RQTY
 
 		WHERE RMA.[MasterCompanyId] = @MasterCompanyId AND (@StatusType IS NULL OR RMA.VendorRMAStatusId = @StatusType )  --RMA.VendorRMAStatusId = CASE WHEN @StatusType = 0 THEN RMA.VendorRMAStatusId  ELSE @StatusType END --AND RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
 		),
@@ -324,303 +330,337 @@ BEGIN
 				RMA.RMANumber AS 'VendorRMANumber',				
 				0 AS ModuleId,				
 				0 AS QtyShipped,
-				0 AS VendorRMADetailId
-				--RQTY.QuantityReceived
+				0 AS VendorRMADetailId,
+				(SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS QuantityReceived 
+					FROM [dbo].[Stockline] SL WITH(NOLOCK) 
+					WHERE SL.[VendorRMAId] = RMA.[VendorRMAId] 
+				   AND SL.[IsParent] = 1 
+				   AND SL.[IsDeleted] = 0		
+				) AS QuantityReceived,
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(SL.Quantity), 101) AS VARCHAR(MAX))  END) AS 'QuantityReceivedType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(P.partnumber) END) AS 'PartNumberType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(P.PartDescription) END) AS 'PartDescriptionType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(RMAD.SerialNumber) END)  AS 'SerialNumberType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END) END) AS 'ReferenceNumberType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(SL.StockLineId), 101) AS VARCHAR(MAX)) END)AS 'StockLineIdType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(SL.StockLineNumber) END) AS 'StockLineNumberType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(SL.Condition) END) AS 'Condition',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(VS.VendorRMAStatus) END) AS 'RMAStatusType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(RMAR.Reason) END) AS 'ReasonType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(RMAD.Qty), 101) AS VARCHAR(MAX)) END) AS 'QtyType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(RMAD.UnitCost), 101) AS VARCHAR(MAX)) END) AS 'UnitCostType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(RMAD.ExtendedCost), 101) AS VARCHAR(MAX)) END) AS 'ExtendedCostType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(RMAD.ReferenceId), 101) AS VARCHAR(MAX)) END) AS  'ReferenceIdType',
+				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(RMAD.Notes) END) AS 'MemoType',
+				(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 Then 'Multiple' ELse MAX(VSS.VendorRMAStatus) END) AS 'VendorRMADetailStatusType'
 			FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 			INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 			LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
 			LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
-			--OUTER APPLY(
-			--SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS QuantityReceived 
-			--	FROM [dbo].[Stockline] SL WITH(NOLOCK) 
-			--	WHERE SL.[VendorRMAId] = RMA.[VendorRMAId] 
-			--	  AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId] 
-			--	  AND SL.[IsParent] = 1 
-			--	  AND SL.[IsDeleted] = 0		
-			--) AS RQTY
+			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.VendorRMADetailId = SL.VendorRMADetailId
+			LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD.ItemMasterId = P.ItemMasterId
+			LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
+			LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
+			LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMA.VendorRMAStatusId = VS.VendorRMAStatusId
+			LEFT JOIN [DBO].[VendorRMAStatus] VSS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VSS.VendorRMAStatusId
+			LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
 			WHERE RMA.[MasterCompanyId] = @MasterCompanyId AND (@StatusType IS NULL OR RMA.VendorRMAStatusId = @StatusType) --AND RMAD.VendorRMAId IS NOT NULL AND RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
+			GROUP BY RMA.[VendorRMAId],
+					 V.[VendorId],
+					 V.[VendorName],
+					 V.[VendorCode],
+					 RMA.[RMANumber],
+					 RMA.[OpenDate],
+					 RMA.[VendorRMAStatusId],
+					 RMA.[CreatedDate], 
+					 RMA.[UpdatedDate], 
+					 RMA.[UpdatedBy], 
+					 RMA.[CreatedBy],
+					 VCM.[VendorCreditMemoId],
+					 SL.[VendorRMADetailId]
 			)
-			,RQTYCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.QuantityReceived END) AS 'QuantityReceivedType',A.QuantityReceived 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN CAST(ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS varchar(100)) != '' THEN ',' ELSE '' END + CAST(ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS VARCHAR(100))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.VendorRMADetailId = SL.VendorRMADetailId 
-							  AND SL.[VendorRMAId] = RMA.[VendorRMAId] AND SL.[IsParent] = 1 AND SL.[IsDeleted] = 0
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') QuantityReceived
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.QuantityReceived
-			)
-			,PartCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.PartNumber END) AS 'PartNumberType',A.PartNumber 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN P.partnumber != '' THEN ',' ELSE '' END + P.partnumber
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD_A.ItemMasterId = P.ItemMasterId
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') PartNumber
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.PartNumber
-			)
-			,PartDescCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.PartDescription END) AS 'PartDescriptionType',A.PartDescription 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN P.PartDescription != '' THEN ',' ELSE '' END + P.PartDescription
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD_A.ItemMasterId = P.ItemMasterId
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') PartDescription
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				Group By RMAD.VendorRMAId, A.PartDescription
-			)
-			,SNumberCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.SerialNumber END) AS 'SerialNumberType',A.SerialNumber 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN RMAD_A.SerialNumber != '' THEN ',' ELSE '' END + RMAD_A.SerialNumber
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') SerialNumber
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.SerialNumber
-			)
-			,RefrenceCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ReferenceNumber END) AS 'ReferenceNumberType',A.ReferenceNumber 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) On RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + (CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END)
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId
-							  LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
-							  LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') ReferenceNumber
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.ReferenceNumber
-			)
-			,StockIdCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineId END) AS 'StockLineIdType',A.StockLineId 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + CAST(SL.StockLineId AS VARCHAR(100))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							
-							   Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') StockLineId
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.StockLineId
-			)
-			,StockNumCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineNumber END) AS 'StockLineNumberType',A.StockLineNumber 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN SL.StockLineNumber != '' THEN ',' ELSE '' END + SL.StockLineNumber
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							 
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') StockLineNumber
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.StockLineNumber
-			)
+			--,RQTYCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.QuantityReceived END) AS 'QuantityReceivedType',A.QuantityReceived 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN CAST(ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS varchar(100)) != '' THEN ',' ELSE '' END + CAST(ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) AS VARCHAR(100))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.VendorRMADetailId = SL.VendorRMADetailId 
+			--				  AND SL.[VendorRMAId] = RMA.[VendorRMAId] AND SL.[IsParent] = 1 AND SL.[IsDeleted] = 0
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') QuantityReceived
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.QuantityReceived
+			--)
+			--,PartCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.PartNumber END) AS 'PartNumberType',A.PartNumber 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN P.partnumber != '' THEN ',' ELSE '' END + P.partnumber
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD_A.ItemMasterId = P.ItemMasterId
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') PartNumber
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.PartNumber
+			--)
+			--,PartDescCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.PartDescription END) AS 'PartDescriptionType',A.PartDescription 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN P.PartDescription != '' THEN ',' ELSE '' END + P.PartDescription
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD_A.ItemMasterId = P.ItemMasterId
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') PartDescription
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	Group By RMAD.VendorRMAId, A.PartDescription
+			--)
+			--,SNumberCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.SerialNumber END) AS 'SerialNumberType',A.SerialNumber 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN RMAD_A.SerialNumber != '' THEN ',' ELSE '' END + RMAD_A.SerialNumber
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') SerialNumber
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.SerialNumber
+			--)
+			--,RefrenceCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ReferenceNumber END) AS 'ReferenceNumberType',A.ReferenceNumber 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) On RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + (CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END)
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId
+			--				  LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
+			--				  LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') ReferenceNumber
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.ReferenceNumber
+			--)
+			--,StockIdCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineId END) AS 'StockLineIdType',A.StockLineId 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + CAST(SL.StockLineId AS VARCHAR(100))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							
+			--				   Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') StockLineId
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.StockLineId
+			--)
+			--,StockNumCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineNumber END) AS 'StockLineNumberType',A.StockLineNumber 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN SL.StockLineNumber != '' THEN ',' ELSE '' END + SL.StockLineNumber
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							 
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') StockLineNumber
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.StockLineNumber
+			--)
 
-			,StockCondCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineNumber END) AS 'Condition',A.StockLineNumber 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN SL.Condition != '' THEN ',' ELSE '' END + SL.Condition
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							 
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') StockLineNumber
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.StockLineNumber
-			),
+			--,StockCondCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.StockLineNumber END) AS 'Condition',A.StockLineNumber 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN SL.Condition != '' THEN ',' ELSE '' END + SL.Condition
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD_A.StockLineId = SL.StockLineId							 
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') StockLineNumber
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.StockLineNumber
+			--),
 
-			StatusCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMAStatus END) AS 'RMAStatusType',A.VendorRMAStatus 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN VS.VendorRMAStatus != '' THEN ',' ELSE '' END + VS.VendorRMAStatus
-							  FROM [DBO].[VendorRMA] RMAD_A
-							   LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD_A.VendorRMAStatusId = VS.VendorRMAStatusId
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') VendorRMAStatus
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.VendorRMAStatus
-			),
-			ReasonCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMAReturnReason END) AS 'ReasonType',A.VendorRMAReturnReason 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN RMAR.Reason != '' THEN ',' ELSE '' END + RMAR.Reason
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD_A.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') VendorRMAReturnReason
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.VendorRMAReturnReason
-			),
-			QtyCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.Qty END) AS 'QtyType',A.Qty 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) On RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + CAST(RMAD_A.Qty AS VARCHAR(100))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') Qty
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.Qty
-			),
-			UCostCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.UnitCost END)  AS 'UnitCostType',A.UnitCost 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + CAST(RMAD_A.UnitCost AS VARCHAR(100)) --CONVERT(VARCHAR, CONVERT(DECIMAL, RMAD_A.UnitCost))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') UnitCost
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.UnitCost
-			),
-			ECostCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ExtendedCost END)  AS 'ExtendedCostType',A.ExtendedCost 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + CAST(RMAD_A.ExtendedCost AS VARCHAR(100))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') ExtendedCost
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.ExtendedCost
-			),
-			RefrenceIdCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ReferenceId END)  AS 'ReferenceIdType',A.ReferenceId 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT ',' + CAST(RMAD_A.ReferenceId AS VARCHAR(100))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') ReferenceId
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.ReferenceId
-			),
-			NotesCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.Memo END) AS 'MemoType',A.Memo 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					   STUFF((SELECT CASE WHEN RMAD_A.Notes != '' THEN ',' ELSE '' END + (select [dbo].[fn_parsehtml] (RMAD_A.Notes))
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') Memo
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.Memo
-			),
-			RMAStatusCTE AS(
-				SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMADetailStatus END) AS 'VendorRMADetailStatusType',A.VendorRMADetailStatus 
-				FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
-				LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
-				OUTER APPLY(
-					SELECT 
-					  STUFF((SELECT ',' + VS.VendorRMAStatus
-							  FROM [DBO].[VendorRMADetail] RMAD_A
-							  LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD_A.VendorRMAStatusId = VS.VendorRMAStatusId
-							  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
-							  FOR XML PATH('')), 1, 1, '') VendorRMADetailStatus
-				) A 
-				WHERE RMAD.VendorRMAId IS NOT NULL
-				GROUP BY RMAD.VendorRMAId, A.VendorRMADetailStatus
-			),
+			--,StatusCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMAStatus END) AS 'RMAStatusType',A.VendorRMAStatus 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN VS.VendorRMAStatus != '' THEN ',' ELSE '' END + VS.VendorRMAStatus
+			--				  FROM [DBO].[VendorRMA] RMAD_A
+			--				   LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD_A.VendorRMAStatusId = VS.VendorRMAStatusId
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') VendorRMAStatus
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.VendorRMAStatus
+			--),
+			--,ReasonCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMAReturnReason END) AS 'ReasonType',A.VendorRMAReturnReason 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN RMAR.Reason != '' THEN ',' ELSE '' END + RMAR.Reason
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD_A.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') VendorRMAReturnReason
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.VendorRMAReturnReason
+			--),
+			--,QtyCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.Qty END) AS 'QtyType',A.Qty 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) On RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + CAST(RMAD_A.Qty AS VARCHAR(100))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') Qty
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.Qty
+			--),
+			--,UCostCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.UnitCost END)  AS 'UnitCostType',A.UnitCost 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + CAST(RMAD_A.UnitCost AS VARCHAR(100)) --CONVERT(VARCHAR, CONVERT(DECIMAL, RMAD_A.UnitCost))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') UnitCost
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.UnitCost
+			--),
+			--,ECostCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ExtendedCost END)  AS 'ExtendedCostType',A.ExtendedCost 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + CAST(RMAD_A.ExtendedCost AS VARCHAR(100))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') ExtendedCost
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.ExtendedCost
+			--),
+			--,RefrenceIdCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.ReferenceId END)  AS 'ReferenceIdType',A.ReferenceId 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT ',' + CAST(RMAD_A.ReferenceId AS VARCHAR(100))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') ReferenceId
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.ReferenceId
+			--),
+			--,NotesCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.Memo END) AS 'MemoType',A.Memo 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		   STUFF((SELECT CASE WHEN RMAD_A.Notes != '' THEN ',' ELSE '' END + (select [dbo].[fn_parsehtml] (RMAD_A.Notes))
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') Memo
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.Memo
+			--),
+			--,RMAStatusCTE AS(
+			--	SELECT RMAD.VendorRMAId,(CASE WHEN COUNT(RMAD.VendorRMAId) > 1 THEN 'Multiple' ELSE A.VendorRMADetailStatus END) AS 'VendorRMADetailStatusType',A.VendorRMADetailStatus 
+			--	FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
+			--	LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.VendorRMAId=RMAD.VendorRMAId 
+			--	OUTER APPLY(
+			--		SELECT 
+			--		  STUFF((SELECT ',' + VS.VendorRMAStatus
+			--				  FROM [DBO].[VendorRMADetail] RMAD_A
+			--				  LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD_A.VendorRMAStatusId = VS.VendorRMAStatusId
+			--				  Where RMAD.VendorRMAId = RMAD_A.VendorRMAId
+			--				  FOR XML PATH('')), 1, 1, '') VendorRMADetailStatus
+			--	) A 
+			--	WHERE RMAD.VendorRMAId IS NOT NULL
+			--	GROUP BY RMAD.VendorRMAId, A.VendorRMADetailStatus
+			--)
+			,
 		FinalResult AS (  
-		SELECT M.VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, ST.VendorRMAStatus, ST.RMAStatusType,  RST.VendorRMAReturnReason, RST.ReasonType ,ShippedDate, ShipRefrence,   
-		  RT.ReferenceNumber, RT.ReferenceNumberType, PT.Partnumber, PT.PartNumberType, STKT.StockLineId, STKT.StockLineIdType, SNT.SerialNumber, SNT.SerialNumberType, STNT.StockLineNumber, STNT.StockLineNumberType, PDT.PartDescription, PDT.PartDescriptionType, QT.Qty, QT.QtyType, UCT.UnitCost, UCT.UnitCostType, ECT.ExtendedCost, ECT.ExtendedCostType,  RIT.ReferenceId, RIT.ReferenceIdType, 
-		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef, NT.Memo, Nt.MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, 
-		  VendorCreditMemoId, RMAS.VendorRMADetailStatus, RMAS.VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QTY.QuantityReceivedType,QTY.QuantityReceived , Condition FROM Result M
-		  LEFT JOIN RQTYCTE QTY ON M.VendorRMAId=QTY.VendorRMAId
-		  LEFT JOIN PartCTE PT ON M.VendorRMAId=PT.VendorRMAId
-		  LEFT JOIN PartDescCTE PDT ON M.VendorRMAId=PDT.VendorRMAId
-		  LEFT JOIN SNumberCTE SNT ON M.VendorRMAId=SNT.VendorRMAId
-		  LEFT JOIN RefrenceCTE RT ON M.VendorRMAId=RT.VendorRMAId
-		  LEFT JOIN StockIdCTE STKT ON M.VendorRMAId=STKT.VendorRMAId
-		  LEFT JOIN StockNumCTE STNT ON M.VendorRMAId=STNT.VendorRMAId
-		  LEFT JOIN StatusCTE ST ON M.VendorRMAId=ST.VendorRMAId
-		  LEFT JOIN ReasonCTE RST ON M.VendorRMAId=RST.VendorRMAId
-		  LEFT JOIN QtyCTE QT ON M.VendorRMAId=QT.VendorRMAId
-		  LEFT JOIN UCostCTE UCT ON M.VendorRMAId=UCT.VendorRMAId
-		  LEFT JOIN ECostCTE ECT ON M.VendorRMAId=ECT.VendorRMAId
-		  LEFT JOIN RefrenceIdCTE RIT ON M.VendorRMAId=RIT.VendorRMAId
-		  LEFT JOIN NotesCTE NT ON M.VendorRMAId=NT.VendorRMAId
-		  LEFT JOIN RMAStatusCTE RMAS ON M.VendorRMAId=RMAS.VendorRMAId
-		  LEFT JOIN StockCondCTE SC ON M.VendorRMAId=SC.VendorRMAId
+		SELECT M.VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId,RMAStatusType, ReasonType ,ShippedDate, ShipRefrence,   
+		  ReferenceNumberType, PartNumberType,StockLineIdType, SerialNumberType, StockLineNumberType,PartDescriptionType, QtyType, UnitCostType, ExtendedCostType,  ReferenceIdType, 
+		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef,MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, 
+		  VendorCreditMemoId, VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceivedType,Condition FROM Result M
+		  --LEFT JOIN RQTYCTE QTY ON M.VendorRMAId=QTY.VendorRMAId
+		  --LEFT JOIN PartCTE PT ON M.VendorRMAId=PT.VendorRMAId
+		  --LEFT JOIN PartDescCTE PDT ON M.VendorRMAId=PDT.VendorRMAId
+		  --LEFT JOIN SNumberCTE SNT ON M.VendorRMAId=SNT.VendorRMAId
+		  --LEFT JOIN RefrenceCTE RT ON M.VendorRMAId=RT.VendorRMAId
+		  --LEFT JOIN StockIdCTE STKT ON M.VendorRMAId=STKT.VendorRMAId
+		  --LEFT JOIN StockNumCTE STNT ON M.VendorRMAId=STNT.VendorRMAId
+		  --LEFT JOIN StatusCTE ST ON M.VendorRMAId=ST.VendorRMAId
+		  --LEFT JOIN ReasonCTE RST ON M.VendorRMAId=RST.VendorRMAId
+		  --LEFT JOIN QtyCTE QT ON M.VendorRMAId=QT.VendorRMAId
+		  --LEFT JOIN UCostCTE UCT ON M.VendorRMAId=UCT.VendorRMAId
+		  --LEFT JOIN ECostCTE ECT ON M.VendorRMAId=ECT.VendorRMAId
+		  --LEFT JOIN RefrenceIdCTE RIT ON M.VendorRMAId=RIT.VendorRMAId
+		  --LEFT JOIN NotesCTE NT ON M.VendorRMAId=NT.VendorRMAId
+		  --LEFT JOIN RMAStatusCTE RMAS ON M.VendorRMAId=RMAS.VendorRMAId
+		  --LEFT JOIN StockCondCTE SC ON M.VendorRMAId=SC.VendorRMAId
 		WHERE (  
 		 (@GlobalFilter <>'' AND ((RMANumber LIKE '%' +@GlobalFilter+'%' ) OR   
 		   (OpenDate LIKE '%' +@GlobalFilter+'%') OR  
-		   (ST.VendorRMAStatus LIKE '%' +@GlobalFilter+'%') OR  
-		   (RST.VendorRMAReturnReason LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.RMAStatusType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.ReasonType LIKE '%' +@GlobalFilter+'%') OR  
 		   (ShippedDate LIKE '%' +@GlobalFilter+'%') OR  
 		   (ShipRefrence LIKE '%'+@GlobalFilter+'%') OR  
-		   (RT.ReferenceNumber LIKE '%' +@GlobalFilter+'%') OR  
-		   (PT.Partnumber LIKE '%' +@GlobalFilter+'%') OR  
-		   (SNT.SerialNumber LIKE '%' +@GlobalFilter+'%') OR  
-		   (STNT.StockLineNumber LIKE '%' +@GlobalFilter+'%') OR  
-		   (PDT.PartDescription LIKE '%' +@GlobalFilter+'%') OR  
-		   (QT.Qty LIKE '%' +@GlobalFilter+'%') OR  
-		   (CAST(UCT.UnitCost AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR  
-		   (CAST(ECT.ExtendedCost AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR 
+		   (M.ReferenceNumberType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.SerialNumberType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.StockLineNumberType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.QtyType LIKE '%' +@GlobalFilter+'%') OR  
+		   (CAST(M.UnitCostType AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR  
+		   (CAST(M.ExtendedCostType AS NVARCHAR(10)) LIKE '%' +@GlobalFilter+'%') OR 
 		   (ReplacementDate LIKE '%' +@GlobalFilter+'%') OR
 		   (ReceiverID LIKE '%' +@GlobalFilter+'%') OR  
 		   (RefundedDate LIKE '%' +@GlobalFilter+'%') OR  
 		   (RefundedRef LIKE '%' +@GlobalFilter+'%') OR  
 		   (VendorName LIKE '%' +@GlobalFilter+'%') OR  
-		   (NT.Memo LIKE '%' +@GlobalFilter+'%') OR  
+		   (M.MemoType LIKE '%' +@GlobalFilter+'%') OR  
 		   (CreatedDate LIKE '%' +@GlobalFilter+'%') OR  
 		   (UpdatedDate LIKE '%' +@GlobalFilter+'%') OR
 		   (Condition LIKE '%' +@GlobalFilter+'%') 
@@ -628,58 +668,58 @@ BEGIN
 		   OR     
 		   (@GlobalFilter='' AND (ISNULL(@RMANumber,'') ='' OR RMANumber LIKE  '%'+ @RMANumber+'%') AND   
 		   (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND  
-		   (ISNULL(@VendorRMAStatus,'') ='' OR ST.VendorRMAStatus LIKE  '%'+@VendorRMAStatus+'%') AND  
-		   (ISNULL(@VendorRMAReturnReason,'') ='' OR RST.VendorRMAReturnReason LIKE '%'+@VendorRMAReturnReason+'%') AND  
+		   (ISNULL(@VendorRMAStatus,'') ='' OR RMAStatusType LIKE  '%'+@VendorRMAStatus+'%') AND  
+		   (ISNULL(@VendorRMAReturnReason,'') ='' OR ReasonType LIKE '%'+@VendorRMAReturnReason+'%') AND  
 		   (ISNULL(@ShippedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ShippedDate , @CurrntEmpTimeZoneDesc )AS date) = CAST(@ShippedDate AS DATE)) AND
-		   (ISNULL(@ReferenceNumber,'') ='' OR RT.ReferenceNumber LIKE '%'+@ReferenceNumber+'%') AND  
-		   (ISNULL(@Partnumber,'') ='' OR PT.Partnumber LIKE '%'+ @Partnumber+'%') AND  
-		   (ISNULL(@SerialNumber,'') ='' OR SNT.SerialNumber LIKE '%'+ @SerialNumber+'%') AND  
-		   (ISNULL(@StockLineNumber,'') ='' OR STNT.StockLineNumber LIKE '%'+ @StockLineNumber +'%') AND  
-		   (ISNULL(@PartDescription,'') ='' OR PDT.PartDescription LIKE '%'+ @PartDescription +'%') AND  
-		   (ISNULL(@Qty,'') ='' OR QT.QtyType = @Qty ) AND  
-		   (ISNULL(@UnitCost,'') ='' OR CAST(UCT.UnitCostType AS VARCHAR(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
+		   (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumberType LIKE '%'+@ReferenceNumber+'%') AND  
+		   (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%') AND  
+		   (ISNULL(@SerialNumber,'') ='' OR SerialNumberType LIKE '%'+ @SerialNumber+'%') AND  
+		   (ISNULL(@StockLineNumber,'') ='' OR StockLineNumberType LIKE '%'+ @StockLineNumber +'%') AND  
+		   (ISNULL(@PartDescription,'') ='' OR PartDescriptionType LIKE '%'+ @PartDescription +'%') AND  
+		   (ISNULL(@Qty,'') ='' OR QtyType = @Qty ) AND  
+		   (ISNULL(@UnitCost,'') ='' OR CAST(UnitCostType AS VARCHAR(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
 		   (ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCostType AS VARCHAR(10)) LIKE '%' + CAST(@ExtendedCost AS VARCHAR(10))+ '%') AND
 		   (ISNULL(@ReplacementDate,'') ='' OR Cast(ReplacementDate AS DATE) = CAST(@ReplacementDate AS DATE)) AND 
 		   (ISNULL(@VendorRMADetailStatus,'') ='' OR VendorRMADetailStatusType LIKE  '%'+@VendorRMADetailStatus+'%') AND  	   
 		   (ISNULL(@RefundedRef,'') ='' OR RefundedRef LIKE '%'+@RefundedRef+'%') AND  
 		   (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+@VendorName+'%') AND  
 		   (ISNULL(@QtyShipped,'') ='' OR CAST(QtyShipped AS varchar(10)) LIKE '%' + CAST(@QtyShipped AS VARCHAR(10))+ '%') AND
-		   (ISNULL(@Memo,'') ='' OR NT.Memo LIKE '%'+@Memo+'%') AND  
+		   (ISNULL(@Memo,'') ='' OR MemoType LIKE '%'+@Memo+'%') AND  
 		   (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
 		   (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
 		   (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND  
 		   (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
-		   (ISNULL(@Condition,'') ='' OR SC.Condition LIKE '%'+@Condition+'%') 
+		   (ISNULL(@Condition,'') ='' OR Condition LIKE '%'+@Condition+'%') 
 		   )  
 		   )),  
 		  ResultCount AS (SELECT COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
 
-		  SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, VendorRMAStatus, RMAStatusType, VendorRMAReturnReason, ReasonType, ShippedDate, ShipRefrence,   
-		  ReferenceNumber, ReferenceNumberType, Partnumber, PartNumberType, StockLineId, StockLineIdType, SerialNumber, SerialNumberType, StockLineNumber, StockLineNumberType, PartDescription, PartDescriptionType, Qty, QtyType, UnitCost, UnitCostType , ExtendedCost, ExtendedCostType,  ReferenceId, ReferenceIdType, 
-		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef, Memo,  MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, 
-		  VendorRMADetailStatus,VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceived,QuantityReceivedType , Condition , NumberOfItems FROM FinalResult, ResultCount  
+		  SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, OpenDate, VendorRMAStatusId, RMAStatusType, ReasonType, ShippedDate, ShipRefrence,   
+		  ReferenceNumberType, PartNumberType, StockLineIdType, SerialNumberType, StockLineNumberType, PartDescriptionType, QtyType, UnitCostType ,ExtendedCostType,  ReferenceIdType, 
+		  ReplacementDate, ReceiverID, RefundedDate, RefundedRef,MemoType, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, VendorCreditMemoId, 
+		  VendorRMADetailStatusType, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId,QuantityReceivedType , Condition , NumberOfItems FROM FinalResult, ResultCount  
   
 		  ORDER BY    
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='RMANUMBER')  THEN RMANumber END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='OPENDATE')  THEN OpenDate END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRMASTATUS')  THEN VendorRMAStatus END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORRMARETURNREASON')  THEN VendorRMAReturnReason END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='RMASTATUSTYPE')  THEN RMAStatusType END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='REASONTYPE')  THEN ReasonType END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='SHIPPEDDATE')  THEN ShippedDate END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='SHIPREFRENCE')  THEN ShipRefrence END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='REFERENCENUMBER')  THEN ReferenceNumber END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN Partnumber END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END ASC,  
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC, 
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='QTY')  THEN Qty END ASC, 
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='UNITCOST')  THEN UnitCost END ASC, 
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END ASC, 
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='REFERENCENUMBERTYPE')  THEN ReferenceNumberType END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBERTYPE')  THEN SerialNumberType END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='STOCKLINENUMBERTYPE')  THEN StockLineNumberType END ASC,  
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTIONTYPE')  THEN PartDescriptionType END ASC, 
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='QTYTYPE')  THEN QtyType END ASC, 
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='UNITCOSTTYPE')  THEN UnitCostType END ASC, 
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='EXTENDEDCOSTTYPE')  THEN ExtendedCostType END ASC, 
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='REPLACEMENTDATE')  THEN ReplacementDate END ASC, 
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVERID')  THEN ReceiverID END ASC, 
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='REFUNDEDDATE')  THEN RefundedDate END ASC, 
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='REFUNDEDREF')  THEN RefundedRef END ASC, 
-		  CASE WHEN (@SortOrder=1 AND @SortColumn='MEMO')  THEN Memo END ASC, 
+		  CASE WHEN (@SortOrder=1 AND @SortColumn='MEMOTYPE')  THEN MemoType END ASC, 
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
@@ -689,23 +729,23 @@ BEGIN
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRMAID')  THEN VendorRMAId END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RMANUMBER')  THEN RMANumber END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='OPENDATE')  THEN OpenDate END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRMASTATUS')  THEN VendorRMAStatus END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORRMARETURNREASON')  THEN VendorRMAReturnReason END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RMASTATUSTYPE')  THEN RMAStatusType END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REASONTYPE')  THEN ReasonType END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='SHIPPEDDATE')  THEN ShippedDate END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='SHIPREFRENCE')  THEN ShipRefrence END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REFERENCENUMBER')  THEN ReferenceNumber END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN Partnumber END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END DESC,  
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC, 
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='QTY')  THEN Qty END DESC, 
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UNITCOST')  THEN UnitCost END DESC, 
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END DESC, 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REFERENCENUMBERTYPE')  THEN ReferenceNumberType END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBERTYPE')  THEN SerialNumberType END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINENUMBERTYPE')  THEN StockLineNumberType END DESC,  
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTIONTYPE')  THEN PartDescriptionType END DESC, 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='QTYTYPE')  THEN QtyType END DESC, 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UNITCOSTTYPE')  THEN UnitCostType END DESC, 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='EXTENDEDCOSTTYPE')  THEN ExtendedCostType END DESC, 
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REPLACEMENTDATE')  THEN ReplacementDate END DESC, 
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVERID')  THEN ReceiverID END DESC, 
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REFUNDEDDATE')  THEN RefundedDate END DESC, 
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='REFUNDEDREF')  THEN RefundedRef END DESC, 
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='MEMO')  THEN Memo END DESC, 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='MEMOTYPE')  THEN MemoType END DESC, 
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  

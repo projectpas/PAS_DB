@@ -3072,6 +3072,7 @@
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionForWO.sql" />
     <Build Include="dbo\User Defined Types\BatchTriggerWorkOrderType.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

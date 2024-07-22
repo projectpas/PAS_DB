@@ -24,7 +24,7 @@ CREATE   PROCEDURE [dbo].[UpdateVendorRFQPOChargesAmount]
 @Opr int,
 @VendorRFQPOChargeId bigint,
 @IsDelete bit,
-@UpdatedBy VARCHAR
+@UpdatedBy VARCHAR(50)=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -32,11 +32,11 @@ BEGIN
 	BEGIN TRY
 	IF(@Opr=1)
 	BEGIN
-		UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] -= ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
+		UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] = ISNULL([TotalCharges],0) -  ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
 	END
 	ELSE
 	BEGIN
-	    UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] += ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
+	    UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] = ISNULL([TotalCharges],0) + ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
 	END
 	UPDATE  VendorRFQPOCharges
 	SET		IsDeleted = @IsDelete,

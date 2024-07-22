@@ -9,17 +9,17 @@
     [PartDiscription]                      VARCHAR (MAX)  NULL,
     [Manufacturer]                         VARCHAR (200)  NULL,
     [SerialNumber]                         VARCHAR (200)  NULL,
-    [IstheIDPlatemissing]                  BIT            NULL,
-    [DothePNsonunitID]                     BIT            NULL,
-    [IstheShippingContainerDamaged]        BIT            NULL,
-    [Doestheunithavephysicaldamage]        BIT            NULL,
-    [Doestheunithavelooseormissingparts]   BIT            NULL,
-    [Arethecapsshuntsorclipsmissing]       BIT            NULL,
-    [Aretheconnectorspinsdamaged]          BIT            NULL,
-    [Isthereaservicehistoryforthisunit]    BIT            NULL,
-    [AreXXXXXXwarrantysealstamperedwith]   BIT            NULL,
-    [Doestheunithaswarranty]               BIT            NULL,
-    [HavetheotherRSsseals]                 BIT            NULL,
+    [IstheIDPlatemissing]                  INT            NULL,
+    [DothePNsonunitID]                     INT            NULL,
+    [IstheShippingContainerDamaged]        INT            NULL,
+    [Doestheunithavephysicaldamage]        INT            NULL,
+    [Doestheunithavelooseormissingparts]   INT            NULL,
+    [Arethecapsshuntsorclipsmissing]       INT            NULL,
+    [Aretheconnectorspinsdamaged]          INT            NULL,
+    [Isthereaservicehistoryforthisunit]    INT            NULL,
+    [AreXXXXXXwarrantysealstamperedwith]   INT            NULL,
+    [Doestheunithaswarranty]               INT            NULL,
+    [HavetheotherRSsseals]                 INT            NULL,
     [Notes]                                NVARCHAR (MAX) NULL,
     [WorkRequested]                        NVARCHAR (MAX) NULL,
     [SpecialInstructions]                  NVARCHAR (MAX) NULL,
@@ -38,6 +38,8 @@
     CONSTRAINT [PK_WOInspectionChecklist] PRIMARY KEY CLUSTERED ([WOInspectionId] ASC),
     CONSTRAINT [FK_WOInspectionChecklist_ReceivingCustomerWorkId] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId])
 );
+
+
 
 
 GO

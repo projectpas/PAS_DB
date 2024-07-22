@@ -3068,6 +3068,9 @@
     <Build Include="dbo\Stored Procedures\USP_ACHByManagementStructId.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSettings.sql" />
     <Build Include="dbo\Stored Procedures\ConvertSOQToSO.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerForInternalWOBasedonDistribution.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionForWO.sql" />
+    <Build Include="dbo\User Defined Types\BatchTriggerWorkOrderType.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById.sql" />
   </ItemGroup>
   <ItemGroup>

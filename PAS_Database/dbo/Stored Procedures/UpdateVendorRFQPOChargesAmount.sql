@@ -32,11 +32,11 @@ BEGIN
 	BEGIN TRY
 	IF(@Opr=1)
 	BEGIN
-		UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] -= @BillingAmount where VendorRFQPurchaseOrderId = @VendorRFQPOId;
+		UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] -= ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
 	END
 	ELSE
 	BEGIN
-	    UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] += @BillingAmount where VendorRFQPurchaseOrderId = @VendorRFQPOId;
+	    UPDATE dbo.[VendorRFQPurchaseOrder] SET [TotalCharges] += ISNULL(@BillingAmount,0) where VendorRFQPurchaseOrderId = @VendorRFQPOId;
 	END
 	UPDATE  VendorRFQPOCharges
 	SET		IsDeleted = @IsDelete,

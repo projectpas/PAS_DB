@@ -27,6 +27,7 @@
 	10   07/07/2023   Amit Ghediya		    Removed Duplicated populated items.
 	11   07/07/2023   Moin Bloch            Addred Receiving Qty Field
 	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
+	13   22/07/2024   Amit Ghediya		    Optimization sp.
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/

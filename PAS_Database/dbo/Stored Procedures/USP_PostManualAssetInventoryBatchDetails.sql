@@ -16,6 +16,7 @@
  ** --   --------			-------				--------------------------------          
 	1    09/01/2023          Moin Bloch          Created
 	2    14/02/2023		     Moin Bloch			 Updated Used Distribution Setup Code Insted of Name 
+	3    07/23/2024			 AMIT GHEDIYA		 Update new Destribution.
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
@@ -119,7 +120,7 @@ BEGIN
 		IF(ISNULL(@TotalAmount,0) > 0)
 		BEGIN	
 		    SELECT @MasterCompanyId = [MasterCompanyId], @UpdateBy = [CreatedBy],@CurrentManagementStructureId = [ManagementStructureId] FROM [dbo].[AssetInventory] WITH(NOLOCK) WHERE [AssetInventoryId] = @AssetInventoryId;			
-			SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('ManualAssetInventory');	
+			SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode]) = UPPER('ASSETACQUISITION');	
 			SELECT @StatusId = [Id],@StatusName = [name] FROM [dbo].[BatchStatus] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('Open');
 			SELECT TOP 1 @JournalTypeId = [JournalTypeId] FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId;
 			SELECT @JournalBatchHeaderId = [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [StatusId] = @StatusId;
@@ -279,7 +280,7 @@ BEGIN
 							GETUTCDATE(),
 							1,
 							0,
-							@JournalTypeCode);    
+							'ASSETAC');    
                            
 				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY();   
 				
@@ -370,7 +371,7 @@ BEGIN
 			             @GlAccountId = [GlAccountId],
 						 @GlAccountNumber = [GlAccountNumber],
 						 @GlAccountName = [GlAccountName] 
-			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('MAST_ASSET_GRNI') 
+			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('GOODSRECEIPTNOTINVOICED') 
 			         AND [DistributionMasterId] = @DistributionMasterId;
 					 
 			INSERT INTO [dbo].[CommonBatchDetails]
@@ -494,7 +495,7 @@ BEGIN
 				            @StockType,
 							@CommonBatchDetailId)
 
-			 -----Asset - INVENTORY--------
+			 -----Fixed Asset--------
 			 				
 			 SELECT TOP 1 @DistributionSetupId = [ID],
 			              @DistributionName = [Name],
@@ -504,7 +505,7 @@ BEGIN
 						  --@GlAccountNumber = [GlAccountNumber],
 						  --@GlAccountName = GlAccountName 
 			         FROM [dbo].[DistributionSetup] WITH(NOLOCK)					
-					WHERE UPPER([DistributionSetupCode]) = UPPER('RPOASSETINV')
+					WHERE UPPER([DistributionSetupCode]) = UPPER('FIXEDASSETAC')
 			          AND [DistributionMasterId] = @DistributionMasterId;
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
@@ -628,7 +629,7 @@ BEGIN
 				            @StockType,
 							@CommonBatchDetailId)
 
-			 -----Asset - INVENTORY--------
+			 -----Fixed Asset--------
 
 			SET @TotalDebit = 0;
 			SET @TotalCredit = 0;

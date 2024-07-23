@@ -14,6 +14,7 @@
     [IsActive]                           BIT            CONSTRAINT [CustomerShipping_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                          BIT            CONSTRAINT [CustomerShipping_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ShipViaId]                          BIGINT         NULL,
+    [ShippingTermsId]                    BIGINT         NULL,
     CONSTRAINT [PK_CustomerShipping] PRIMARY KEY CLUSTERED ([CustomerDomensticShippingShipViaId] ASC),
     CONSTRAINT [FK_CustomerShipping_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_CustomerShipping_CustomerShippingAddress] FOREIGN KEY ([CustomerDomensticShippingId]) REFERENCES [dbo].[CustomerDomensticShipping] ([CustomerDomensticShippingId]),
@@ -21,6 +22,8 @@
     CONSTRAINT [FK_CustomerShipping_ShippingViaId] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [Unique_CustomerShipping] UNIQUE NONCLUSTERED ([CustomerId] ASC, [CustomerDomensticShippingId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

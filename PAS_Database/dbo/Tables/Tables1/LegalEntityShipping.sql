@@ -14,6 +14,7 @@
     [IsDeleted]                    BIT            CONSTRAINT [LegalEntityShipping_DC_IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsPrimary]                    BIT            DEFAULT ((0)) NOT NULL,
     [ShipViaId]                    BIGINT         NOT NULL,
+    [ShippingTermsId]              BIGINT         NULL,
     CONSTRAINT [PK_LegalEntityShipping] PRIMARY KEY CLUSTERED ([LegalEntityShippingId] ASC),
     CONSTRAINT [FK_LegalEntityShipping_LegalEntity] FOREIGN KEY ([LegalEntityId]) REFERENCES [dbo].[LegalEntity] ([LegalEntityId]),
     CONSTRAINT [FK_LegalEntityShipping_LegalEntityShippingAddress] FOREIGN KEY ([LegalEntityShippingAddressId]) REFERENCES [dbo].[LegalEntityShippingAddress] ([LegalEntityShippingAddressId]),
@@ -21,6 +22,8 @@
     CONSTRAINT [FK_LegalEntityShipping_ShippingViaId] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
     CONSTRAINT [Unique_LegalEntityShipping] UNIQUE NONCLUSTERED ([LegalEntityShippingAddressId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

@@ -16,6 +16,7 @@
     [IsActive]                BIT            CONSTRAINT [VendorShipping_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT            CONSTRAINT [VendorShipping_DC_Delete] DEFAULT ((0)) NOT NULL,
     [ShipViaId]               BIGINT         NULL,
+    [ShippingTermsId]         BIGINT         NULL,
     CONSTRAINT [PK_VendorShipping] PRIMARY KEY CLUSTERED ([VendorShippingId] ASC),
     CONSTRAINT [FK_VendorShipping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_VendorShipping_ShippingViaId] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId]),
@@ -23,6 +24,8 @@
     CONSTRAINT [FK_VendorShipping_VendorShippingAddress] FOREIGN KEY ([VendorShippingAddressId]) REFERENCES [dbo].[VendorShippingAddress] ([VendorShippingAddressId]),
     CONSTRAINT [Unique_VendorShipping] UNIQUE NONCLUSTERED ([VendorId] ASC, [VendorShippingAddressId] ASC, [ShipViaId] ASC, [ShippingAccountInfo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

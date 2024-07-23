@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [dbo].[usp_createAllShipVia]            
  ** Author:   Deep Patel
  ** Description: This stored procedure is used save all ship via based on type
@@ -10,6 +9,13 @@
  @UserType varchar(60)   
          
  ** RETURN VALUE:              
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    2    23/07/2024   Bhargav Saliya	Added ShippingTerms.
+     
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_createAllShipVia]    
 (    
@@ -26,7 +32,8 @@ CREATE PROCEDURE [dbo].[usp_createAllShipVia]
   @ShippingViaId bigint,
   @MasterCompanyId int,
   @CreatedBy varchar(256),
-  @UpdatedBy varchar(256)
+  @UpdatedBy varchar(256),
+  @ShippingTerms varchar(100) = null
 )    
 AS    
 BEGIN   
@@ -58,7 +65,8 @@ BEGIN
 						[ShippingViaId] = @ShippingViaId,
 						[MasterCompanyId] = @MasterCompanyId,
 						[UpdatedBy] = @UpdatedBy,
-						[UpdatedDate] = GETDATE()
+						[UpdatedDate] = GETDATE(),
+						[ShippingTerms] = @ShippingTerms
 					WHERE AllShipViaId = @AllShipViaId
 
 			END
@@ -66,9 +74,9 @@ BEGIN
 			BEGIN
 				INSERT INTO [dbo].[AllShipVia]
 					   ([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],[ShippingAccountNo],[ShipVia]
-					   ,[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					   ,[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[ShippingTerms])
 				 VALUES(@ReferenceId,@ModuleId,@UserType,@ShipViaId,@ShippingCost,@HandlingCost,@IsModuleShipVia,@ShippingAccountNo,@ShipVia,
-						@ShippingViaId,@MasterCompanyId,@CreatedBy,@UpdatedBy,GETDATE(),GETDATE(),1,0)  
+						@ShippingViaId,@MasterCompanyId,@CreatedBy,@UpdatedBy,GETDATE(),GETDATE(),1,0,@ShippingTerms)  
 				SET @AllShipViaId=SCOPE_IDENTITY()		
 			END
 		COMMIT  TRANSACTION

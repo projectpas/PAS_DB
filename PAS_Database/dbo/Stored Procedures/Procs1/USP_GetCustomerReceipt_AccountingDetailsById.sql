@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [GetAccountingDetailsViewById]             
  ** Author:  Shrey Chandegara  
  ** Description: This stored procedure is used GetJournalBatchDetailsById for customer receipt batch  
@@ -8,16 +8,17 @@
  ** PARAMETERS: @SalesOrderId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    09/05/2023		Devendra Shekh			Created  
 	2    14/03/2024		Moin Bloch			    Modified(Added CntrlNum)
-       
+    3    15/07/2024     Sahdev Saliya           Added (AccountingPeriod)
+
 -- exec USP_GetCustomerReceipt_AccountingDetailsById 10152  
-************************************************************************/   
+************************/   
 CREATE   PROCEDURE [dbo].[USP_GetCustomerReceipt_AccountingDetailsById]    
 @ReferenceId bigint    
 AS    
@@ -76,6 +77,7 @@ BEGIN
           ,le.CompanyName AS LegalEntityName  
           ,BD.JournalTypeNumber,BD.CurrentNumber  
 		  ,BS.Name AS 'Status'
+		  ,BD.AccountingPeriod AS 'AcctingPeriod'
 		  ,CR.Code AS Currency  
           ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		  ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2

@@ -2209,7 +2209,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingCalendarYearDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingPeriodDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressById.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressDetailsByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressOnlyByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAddEditID.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAssetEditID.sql" />
@@ -3071,8 +3070,37 @@
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerForInternalWOBasedonDistribution.sql" />
     <Build Include="dbo\Stored Procedures\USP_BatchTriggerBasedonDistributionForWO.sql" />
     <Build Include="dbo\User Defined Types\BatchTriggerWorkOrderType.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById_1.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOChargesAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOCharges.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargeNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPOChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPOChargesList.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQPOChargesType.sql" />
+    <Build Include="dbo\Tables\VendorRFQROFreightAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQROFreight.sql" />
+    <Build Include="dbo\Tables\VendorRFQROChargesAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQROCharges.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQROFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQROChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQROFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQROChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQROPartById.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQROFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQROChargesList.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQROFreightType.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQROChargesType.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOChargesAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOCharges.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargeNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPOChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPOChargesList.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQPOChargesType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAddressDetailsByUser.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

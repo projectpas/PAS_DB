@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿/*********************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -8,9 +8,9 @@
  ** PARAMETERS: @WorkOrderId bigint,@WorkOrderPartNumberId bigint
          
  ** RETURN VALUE:           
- **************************************************************           
+ **********************           
  ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/10/2022							Created
@@ -21,10 +21,11 @@
 	6    10/05/2024  Moin Bloch             Added IsUpdated
 	7    16/05/2024  HEMANT SALITA          Updated for Reverse A/C Entry
 	8    17/05/2024  Moin Bloch             Added Union For Invoice Entry
-	
+	9    15/07/2024  Sahdev Saliya          Added (AccountingPeriod)
+
 --EXEC [GetAccountingDetailsViewpopupById] 3949,3472
 
-************************************************************************/
+************************/
 
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
@@ -87,7 +88,8 @@ BEGIN
 				 ,jbd.DistributionName    
 				 ,le.CompanyName as LegalEntityName    
 				 ,BD.JournalTypeNumber,BD.CurrentNumber
-				 ,WBD.StocklineId  
+				 ,WBD.StocklineId
+				 ,BD.AccountingPeriod AS 'AcctingPeriod'
 				 ,SL.StockLineNumber as StocklineNumber
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN '' ELSE EMPEX.Description END AS ExpertiseName
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN 
@@ -176,6 +178,7 @@ BEGIN
 				 ,le.CompanyName as LegalEntityName    
 				 ,BD.JournalTypeNumber,BD.CurrentNumber
 				 ,WBD.StocklineId  
+				 ,BD.AccountingPeriod AS 'AcctingPeriod'
 				 ,SL.StockLineNumber as StocklineNumber
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN '' ELSE EMPEX.Description END AS ExpertiseName
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN 

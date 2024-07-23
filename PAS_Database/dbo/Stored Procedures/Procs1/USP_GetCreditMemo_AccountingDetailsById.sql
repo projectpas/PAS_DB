@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [USP_GetCreditMemo_AccountingDetailsById]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used to GetJournalBatchDetailsById for customer credit memo
@@ -8,17 +8,18 @@
  ** PARAMETERS: @ReferenceId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    09/06/2023		Devendra Shekh			Created  
 	2    22/04/2024		Moin Bloch			    Added  Acconting Detail For StandAloneCMModuleId
 	3    23/04/2024     Moin Bloch	            Updated Added Document Number For List 
+	4    16/07/2024     Sahdev Saliya           Added (AccountingPeriod)
        
--- exec USP_GetCreditMemo_AccountingDetailsById 191,53
-************************************************************************/   
+-- exec USP_GetCreditMemo_AccountingDetailsById 225,0
+************************/   
 CREATE   PROCEDURE [dbo].[USP_GetCreditMemo_AccountingDetailsById]    
 @ReferenceId bigint,
 @ModuleId bigint
@@ -98,6 +99,7 @@ BEGIN
 			  ,JBD.[DistributionName]  
 			  ,LET.[CompanyName] AS LegalEntityName  
 			  ,BTD.[JournalTypeNumber]  
+			  ,JBH.AccountingPeriod AS 'AcctingPeriod'
 			  ,BTD.[CurrentNumber]  
 			  ,BS.Name AS 'Status'
 			  --,'' AS [Currency]  
@@ -176,6 +178,7 @@ BEGIN
 			  ,LET.[CompanyName] AS LegalEntityName  
 			  ,BTD.[JournalTypeNumber]  
 			  ,BTD.[CurrentNumber]  
+			  ,JBH.AccountingPeriod AS 'AcctingPeriod'
 			  ,BS.Name AS 'Status'
 			  --,'' AS [Currency]  
 			  ,CR.Code AS Currency  

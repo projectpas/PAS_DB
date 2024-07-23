@@ -1,4 +1,11 @@
-﻿/*************************************************************           
+﻿USE [PAS_DEV]
+GO
+/****** Object:  StoredProcedure [dbo].[USP_GetAddressDetailsByUser]    Script Date: 7/23/2024 3:24:00 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/*************************************************************           
  ** File:   [USP_GetAddressDetailsByUser]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Billing & Shiping Address for Purchage Order    
@@ -18,7 +25,6 @@
     1    09/23/2020   Hemant Saliya		Created
     2    07/01/2021   Vishal Suthar		Added Attention field
 	3    06/29/2023   Amit Ghediya		Added Vendor RMA both ship/bill address.
-	4	 07/23/2024	  Bhargav Saliya    Added/get ShippingTerms
      
  EXECUTE [USP_GetAddressDetailsByUser] 9, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
@@ -27,7 +33,7 @@
   EXECUTE [USP_GetAddressDetailsByUser] 45, 34, 'Bill',53 --VendorRMA
 **************************************************************/ 
     
-CREATE    PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
+ALTER    PROCEDURE [dbo].[USP_GetAddressDetailsByUser]    
 (    
 @UserTypeId BIGINT,   
 @UserId BIGINT,
@@ -128,12 +134,9 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.LegalEntityShippingAddressId as ShippingId,
-						ST.ShippingTermsId,
-						ST.[Name] AS ShippingTerms
+						lec.LegalEntityShippingAddressId as ShippingId
 				FROM dbo.LegalEntityShipping lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
-					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE LegalEntityId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 
@@ -291,12 +294,9 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.CustomerDomensticShippingId as ShippingId,
-						ST.ShippingTermsId,
-						ST.[Name] AS ShippingTerms
+						lec.CustomerDomensticShippingId as ShippingId
 				FROM dbo.CustomerDomensticShippingShipVia lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
-					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE CustomerId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 
@@ -453,12 +453,9 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.VendorShippingAddressId as ShippingId,
-						ST.ShippingTermsId,
-						ST.[Name] AS ShippingTerms
+						lec.VendorShippingAddressId as ShippingId
 				FROM dbo.VendorShipping lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
-					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE VendorId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 

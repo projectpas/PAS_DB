@@ -17,7 +17,10 @@
     [IsActive]                BIT            NOT NULL,
     [IsDeleted]               BIT            NOT NULL,
     [ShipViaId]               BIGINT         NULL,
+    [ShippingTermsId]         BIGINT         NULL,
     CONSTRAINT [PK_VendorShippingAudit] PRIMARY KEY CLUSTERED ([AuditVendorShippingId] ASC),
     CONSTRAINT [FK_VendorShippingAudit_VendorShipping] FOREIGN KEY ([VendorShippingId]) REFERENCES [dbo].[VendorShipping] ([VendorShippingId])
 );
+
+
 

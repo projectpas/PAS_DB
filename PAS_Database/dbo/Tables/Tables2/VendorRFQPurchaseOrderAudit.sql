@@ -43,8 +43,11 @@
     [TotalFreight]                  DECIMAL (18, 2) NULL,
     [ChargesBilingMethodId]         INT             NULL,
     [TotalCharges]                  DECIMAL (18, 2) NULL,
+    [VendorReference]               VARCHAR (100)   NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrderAudit] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderAuditId] ASC)
 );
+
+
 
 
 

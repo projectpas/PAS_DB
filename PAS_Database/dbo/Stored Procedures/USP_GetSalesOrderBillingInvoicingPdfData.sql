@@ -15,8 +15,9 @@
  ** --   --------     -------		--------------------------------          
     1    20/02/2024   Moin Bloch     Created
 	2	 29/03/2024   Bhargav Saliya  Get CreditTermsName and NetDays From SO instead of CreditTerms
+	3	 07/27/2024   Bhargav Saliya  Get/added ShippingTerms
      
--- EXEC USP_GetSalesOrderBillingInvoicingPdfData 10383
+-- EXEC USP_GetSalesOrderBillingInvoicingPdfData 631
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
@@ -34,7 +35,8 @@ BEGIN
 	SELECT @Vendor = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
 	SELECT @Company = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Company';
 	SELECT @SalesOrderId = [SalesOrderId] FROM dbo.SalesOrderBillingInvoicing WITH(NOLOCK) WHERE [SOBillingInvoicingId] = @SObillingInvoicingId;
-
+	DECLARE @moduleId BIGINT;
+	SET @moduleId = (SELECT ModuleId FROM dbo.module WHERE CodePrefix = 'SO');
 
 	SELECT TOP 1 
 			1 AS ItemNo,
@@ -144,7 +146,8 @@ BEGIN
 			bi.InvoiceDate AS NewDateAndTime,
 			bi.InvoiceDate AS NewDueDate,
 			bi.ShipToUserType,
-			bi.BillToUserType
+			bi.BillToUserType,
+			ShippingTerms = posv.ShippingTerms
 		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
 		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
 		 LEFT JOIN  [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -182,6 +185,7 @@ BEGIN
 		 LEFT JOIN  [dbo].[Countries] AS shipToCountry WITH(NOLOCK) ON saos.ShipToCountryId = shipToCountry.countries_id
 		 LEFT JOIN  [dbo].[PurchaseOrder] AS po WITH(NOLOCK) ON sl.PurchaseOrderId = po.PurchaseOrderId
 		 LEFT JOIN  [dbo].[RepairOrder] AS ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId
+		 LEFT JOIN  [dbo].AllShipVia posv WITH(NOLOCK) ON so.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @moduleId
 		 WHERE bi.SOBillingInvoicingId = @SOBillingInvoicingId AND bi.IsActive = 1 AND bi.IsDeleted = 0;
 
  END TRY      

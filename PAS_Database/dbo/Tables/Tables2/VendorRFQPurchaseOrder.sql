@@ -40,6 +40,8 @@
     [IsFromBulkPO]                 BIT             NULL,
     [FreightBilingMethodId]        INT             NULL,
     [TotalFreight]                 DECIMAL (18, 2) NULL,
+    [ChargesBilingMethodId]        INT             NULL,
+    [TotalCharges]                 DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrder] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderId] ASC),
     FOREIGN KEY ([StatusId]) REFERENCES [dbo].[VendorRFQStatus] ([VendorRFQStatusId]),
     FOREIGN KEY ([StatusId]) REFERENCES [dbo].[VendorRFQStatus] ([VendorRFQStatusId]),
@@ -49,6 +51,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrder_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 
 
 

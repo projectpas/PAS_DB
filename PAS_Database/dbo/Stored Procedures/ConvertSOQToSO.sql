@@ -29,7 +29,9 @@ CREATE   PROCEDURE [dbo].[ConvertSOQToSO]
 	@TransferCharges BIT = NULL,
 	@TransferFreight BIT = NULL,
 	@TransferMemos BIT = NULL,
-	@TransferNotes BIT = NULL
+	@TransferNotes BIT = NULL,
+	@SalesOrderId BIGINT OUTPUT,
+	@CustomerId BIGINT OUTPUT
 AS
 BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -79,10 +81,7 @@ BEGIN
 			ELSE IF UPPER((SELECT CustomerTypeName FROM #customerTypeResult)) = 'CUSTOMER'
 			BEGIN
 				-- Fetch customerFinData
-				SELECT TOP 1 *
-				INTO #customerFinData
-				FROM CustomerFinancial
-				WHERE CustomerId = (SELECT CustomerId FROM #salesView);
+				SELECT TOP 1 * INTO #customerFinData FROM CustomerFinancial WHERE CustomerId = (SELECT CustomerId FROM #salesView);
 
 				-- Check customerFinData and isCreditTermsRequired
 				IF EXISTS (SELECT 1 FROM #customerFinData) AND @isCreditTermsRequired = 0
@@ -136,11 +135,11 @@ BEGIN
 	DECLARE @SalesOrderCodePrefix INT = 26;
 	DECLARE @FulfillingStatusId INT = 10;
 	DECLARE @mastCompanyId INT;
-	DECLARE @CustomerId INT;
+	--DECLARE @CustomerId INT;
 	DECLARE @CreditTermsId INT;
 	DECLARE @CreditLimit DECIMAL(18, 2);
 	DECLARE @CreditTermsName VARCHAR(100);
-	DECLARE @SalesOrderId INT;
+	--DECLARE @SalesOrderId INT;
 	DECLARE @CurrentNumber BIGINT;
 	DECLARE @CurrentDateTime DATETIME = GETUTCDATE();
 	DECLARE @ClosedPartStatusId INT = 10;
@@ -207,6 +206,8 @@ BEGIN
 	FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 	
 	SELECT @SalesOrderId = SCOPE_IDENTITY();
+
+	SELECT @CustomerId = SO.CustomerId FROM DBO.SalesOrder SO WITH (NOLOCK) WHERE SO.SalesOrderId = @SalesOrderId;
 
 	-- Fetch SalesOrder settings
 	DECLARE @soqSettingApprovalRule BIT;
@@ -383,6 +384,8 @@ BEGIN
 	EXEC ReallocateItemNo @SalesOrderId;
 
    END
+
+   SELECT @SalesOrderId, @CustomerId;
 
    COMMIT TRANSACTION
   END TRY

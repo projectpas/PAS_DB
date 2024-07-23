@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [GetAccountingDetailsViewById]             
  ** Author:  Shrey Chandegara  
  ** Description: This stored procedure is used GetJournalBatchDetailsById  
@@ -8,9 +8,9 @@
  ** PARAMETERS: @SalesOrderId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author  Change Description              
  ** --   --------     -------  --------------------------------            
     1    06/07/2023  Shrey Chandegara     Created  
@@ -18,9 +18,10 @@
     3    20/10/2023  Bhargav Saliya       Export Data Convert Into Upper Case   
 	4    30/11/2023  Moin Bloch           Added Lot Number 
 	5    10/05/2023  Moin Bloch           Added IsUpdated
+	6    16/07/2024  Sahdev Saliya        Added (AccountingPeriod)
 
 -- exec GetAccountingDetailsViewById 531   
-************************************************************************/   
+************************/   
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewById]    
 @SalesOrderId bigint    
 AS    
@@ -78,7 +79,8 @@ BEGIN
                  ,le.CompanyName as LegalEntityName    
                  ,BD.JournalTypeNumber 
 				 ,UPPER(BS.[Name]) AS JEStatus
-                 ,BD.CurrentNumber    
+                 ,BD.CurrentNumber  
+				 ,BD.AccountingPeriod AS 'AcctingPeriod'
                  ,CR.Code AS Currency  
           ,UPPER(SSD.Level1Name) AS level1,      
            UPPER(SSD.Level2Name) AS level2,     

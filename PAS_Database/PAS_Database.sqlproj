@@ -2209,7 +2209,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingCalendarYearDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingPeriodDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressById.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressDetailsByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressOnlyByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAddEditID.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAssetEditID.sql" />
@@ -3101,6 +3100,7 @@
     <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPOChargesDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorRFQPOChargesList.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQPOChargesType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAddressDetailsByUser.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

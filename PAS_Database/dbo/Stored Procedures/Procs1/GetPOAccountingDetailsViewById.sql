@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [GetPOAccountingDetailsViewById]             
  ** Author:  Ayesha Sultana
  ** Description: This stored procedure is used Get JournalBatchDetailsById for PO List
@@ -6,16 +6,18 @@
  ** Date:   18/09/2023    
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    18-9-2023		Ayesha Sultana		Created  
 	2    20/10/2023     Bhargav Saliya      Export Data Convert Into Upper Case
 	3    27/11/2023     Moin Bloch          Added LotNumber
 	4    10/05/2023     Moin Bloch          Added IsUpdated
-************************************************************************/   
+	5    16/07/2024     Sahdev Saliya       Added (AccountingPeriod)
+
+************************/   
 CREATE   PROCEDURE [dbo].[GetPOAccountingDetailsViewById]    
 @ReferenceId bigint    
 AS    
@@ -71,6 +73,7 @@ BEGIN
             ,LE.[CompanyName] AS LegalEntityName  
             ,BD.[JournalTypeNumber]
 			,BD.[CurrentNumber] 
+			,BD.AccountingPeriod AS 'AcctingPeriod'
 		    ,BS.[Name] AS 'Status'
             ,CAST(MSL1.[Code] AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		    ,CAST(MSL2.[Code] AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2

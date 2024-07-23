@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [USP_GetVendorCreditMemo_AccountingDetailsById]             
  ** Author:  Devendra Shekh 
  ** Description: This stored procedure is used to GetJournalBatchDetailsById for vendor credit memo
@@ -8,17 +8,19 @@
  ** PARAMETERS: @ReferenceId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    09/11/2023		Devendra Shekh			Created  
     3    20/10/2023     Bhargav Saliya         Export Data Convert Into Upper Case   
 	4    20-03-2024     Shrey Chandegara       Add @VendorCMIds
 	5    10/05/2023     Moin Bloch             Added IsUpdated
+	6    16/07/2024     Sahdev Saliya          Added (AccountingPeriod)
+
 -- exec USP_GetVendorCreditMemo_AccountingDetailsById 90
-************************************************************************/   
+************************/   
  CREATE      PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
 @ReferenceId bigint
 AS    
@@ -74,7 +76,8 @@ BEGIN
           ,LET.[CompanyName] AS LegalEntityName  
 		  ,VDR.VendorName AS [VendorName]  
           ,BD.JournalTypeNumber
-		  ,BD.CurrentNumber  
+		  ,BD.CurrentNumber 
+		  ,BD.AccountingPeriod AS 'AcctingPeriod'
 		  ,UPPER(BS.Name) AS 'Status'
 		  ,UPPER(CR.Code) AS Currency  
 		  --,'' AS [Currency]  

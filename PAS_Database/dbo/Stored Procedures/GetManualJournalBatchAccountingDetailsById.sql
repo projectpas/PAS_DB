@@ -3,17 +3,19 @@
 -- Create date: <01-03-2024>
 -- Description:	<This stored procedure is used Get JournalBatchDetailsById for Manual Journal Batch>
 
-/*************************************************************   
+/*********************   
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
 	2    13-03-2024     Abhishek Jirawla		Modified
 	3    13-03-2024     Abhishek Jirawla		Added journal number
-************************************************************************/ 
+	4    16-07-2024     Sahdev Saliya           Added (AccountingPeriod)
+
+************************/ 
 --[dbo].[GetManualJournalBatchAccountingDetailsById] 328
 -- =============================================
 CREATE PROCEDURE [dbo].[GetManualJournalBatchAccountingDetailsById]
@@ -66,6 +68,7 @@ SELECT CBD.CommonJournalBatchDetailId
             ,LE.CompanyName AS LegalEntityName  
             ,BD.JournalTypeNumber
 			,BD.CurrentNumber  
+			,BD.AccountingPeriod AS 'AcctingPeriod'
 		    ,BS.[Name] AS 'Status'
             ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		    ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2

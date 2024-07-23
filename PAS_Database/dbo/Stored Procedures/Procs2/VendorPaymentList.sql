@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [VendorPaymentList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorPaymentList
@@ -36,6 +35,7 @@
 	19   08/04/2024   AMIT GHEDIYA    Get Vendor Payment Control Num.
 	20   03/06/2024   AMIT GHEDIYA    Update for get CheckNumber from condition.
 	21   19/06/2024   Abhishek Jirawla Add Legal Entity and returning data in capital. Update Invoiced Date to InvoiceDate instead of Due date
+	22   19-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -90,7 +90,8 @@ BEGIN
 	DECLARE @NonPOInvoiceHeaderStatusId INT;
 	DECLARE @StatusId VARCHAR(50) = '3,6';
 	DECLARE @PrintFullStatusId VARCHAR(50) = '3,10';
-
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 	SELECT @NonPOInvoiceHeaderStatusId = NonPOInvoiceHeaderStatusId FROM [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Posted';
 	SELECT @Check = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check';
 	SELECT @DomesticWire = [VendorPaymentMethodId] FROM [dbo].[VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
@@ -557,7 +558,8 @@ BEGIN
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
        (ISNULL(@InvociedDate,'') ='' OR CAST([InvociedDate] AS DATE) = CAST(@InvociedDate AS DATE)) AND  
        (ISNULL(@EntryDate,'') ='' OR CAST([EntryDate] AS DATE) = CAST(@EntryDate AS DATE)) AND
-	   (ISNULL(@DueDate,'') ='' OR CAST([DueDate] AS DATE) = CAST(@DueDate AS DATE)) AND 
+	   (ISNULL(@DueDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal([DueDate] , @CurrntEmpTimeZoneDesc )AS date) = CAST(@DueDate AS DATE)) AND
+	   --(ISNULL(@DueDate,'') ='' OR CAST([DueDate] AS DATE) = CAST(@DueDate AS DATE)) AND 
 	   (ISNULL(@DaysPastDue,'') ='' OR DaysPastDue LIKE '%'+@DaysPastDue+'%') AND  
        (ISNULL(@OriginalTotal,'') ='' OR [OriginalTotal] LIKE '%'+ @OriginalTotal+'%') AND  
        (ISNULL(@RRTotal,'') ='' OR [RRTotal] LIKE '%'+@RRTotal+'%') AND  	   

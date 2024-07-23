@@ -2209,7 +2209,6 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingCalendarYearDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAccountingPeriodDetails.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressById.sql" />
-    <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressDetailsByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetAddressOnlyByUser.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAddEditID.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetAllAssetEditID.sql" />

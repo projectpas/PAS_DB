@@ -9,10 +9,11 @@
  **************************************************************             
  ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    05/01/2022  Moin Bloch     Created  
-	2    05/22/2023  Satish Gohil   Remove Automatic (-)
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    05/01/2022  Moin Bloch			Created  
+	2    05/22/2023  Satish Gohil		Remove Automatic (-)
+	3    07/19/2024  Abhishek Jirawla   Adding Freight and Charges from VendorRFQRO
 -- EXEC [PROCConvertVendorRFQROToRepairOrder] 13,0,0,2,25,1,1  
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[PROCConvertVendorRFQROToRepairOrder]  
@@ -41,180 +42,279 @@ BEGIN
   DECLARE @CreateBy VARCHAR(100)='';  
   DECLARE @UpdateBy VARCHAR(100)='';  
   DECLARE @RID BIGINT=0;  
-  IF(@Opr = 1)  
-  BEGIN  
-   IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
-   BEGIN     
-    SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
-      WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
+	IF(@Opr = 1)  
+	BEGIN  
+		IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
+		BEGIN     
+			SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
+			WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
   
-    SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM dbo.RepairOrderSettingMaster WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;  
+			SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM dbo.RepairOrderSettingMaster WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;  
        
-    IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)  
-    BEGIN  
-     SET @RepairOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));  
-     INSERT INTO [dbo].[RepairOrder]([RepairOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
-             [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
-             [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
-             [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
-             [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-             [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
-            SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
-             [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
-             [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
-             [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
-             [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-             0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
-             FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
+			IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)  
+			BEGIN  
+				SET @RepairOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));  
+				INSERT INTO [dbo].[RepairOrder]([RepairOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
+					 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
+					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
+					 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
+					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
+					 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
+					SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
+					 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
+					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
+					 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
+					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
+					 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
+					 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
-     UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
+				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
       
-        --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
-     --UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber   
-     --           WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
-     SET @RID=IDENT_CURRENT('RepairOrder');  
-     SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],  
-         @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]  
-        FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
-     EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0  
+				
+				SET @RID=IDENT_CURRENT('RepairOrder');  
+				SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],  
+					@CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]  
+				FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
+
+				EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0  
   
-     IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
-           BEGIN  
-                 INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
-          SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
-         FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+				IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
+				BEGIN  
+					INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
+					  SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
+					 FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
   
-     INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-           [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
-           [IsActive] ,[IsDeleted])  
-         SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-          [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,  
-          1,0   
-        FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+					   [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
+					   [IsActive] ,[IsDeleted])  
+					 SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+					  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,  
+					  1,0   
+					FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+				 END    
+
+				 -- Inserting RFQ RO Charges into RO Charges
+				INSERT INTO [dbo].[RepairOrderCharges]
+				([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+				FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+
+				-- Inserting RFQ RO Freight into RO Freight
+				INSERT INTO [dbo].[RepairOrderFreight]
+				([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+				[ManufacturerId],[Manufacturer])
+				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+				[ManufacturerId],[Manufacturer]
+				FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+
+				SELECT @Result = IDENT_CURRENT('RepairOrder');
+
+			END  
+			ELSE  
+			BEGIN       
+				SELECT @Result = 0;  
+			END 
+			
+		END  
+		ELSE  
+		BEGIN     
+		SELECT @Result = -1;  
+		END  
+	END   
+	IF(@Opr = 2)  
+	BEGIN  
+		IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
+		BEGIN     
+			SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
+			WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
   
-     END    
-     SELECT @Result = IDENT_CURRENT('RepairOrder');          
-    END  
-    ELSE  
-    BEGIN       
-     SELECT @Result = 0;  
-    END  
-   END  
-      ELSE  
-      BEGIN     
-        SELECT @Result = -1;  
-      END  
-  END   
-  IF(@Opr = 2)  
-  BEGIN  
-   IF NOT EXISTS (SELECT 1 FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
-   BEGIN     
-    SELECT @CurrentNummber = [CurrentNummber],@CodePrefix = [CodePrefix],@CodeSufix = [CodeSufix] FROM dbo.CodePrefixes WITH(NOLOCK)  
-      WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
-  
-    SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM dbo.RepairOrderSettingMaster WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;  
+			SELECT TOP 1 @IsEnforceApproval = [IsEnforceApproval] FROM dbo.RepairOrderSettingMaster WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;  
        
-    IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)  
-    BEGIN  
-     SET @RepairOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));  
-     INSERT INTO [dbo].[RepairOrder]([RepairOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
-             [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
-             [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
-             [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
-             [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-             [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
-            SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
-             [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
-             [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
-             [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
-             [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-             0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
-             FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
+			IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)  
+			BEGIN  
+				SET @RepairOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));  
+				 INSERT INTO [dbo].[RepairOrder]([RepairOrderNumber],[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
+						 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
+						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
+						 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
+						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
+						 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
+						SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
+						 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
+						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
+						 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
+						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
+						 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
+						 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
-     UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
+				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
       
-        --UPDATE dbo.VendorRFQRepairOrder SET StatusId=2,[Status] = 'Pending' WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
-     --UPDATE dbo.VendorRFQRepairOrderPart SET [RepairOrderId] = IDENT_CURRENT('RepairOrder'),[RepairOrderNumber] = @RepairOrderNumber   
-     --           WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
-     SET @RID=IDENT_CURRENT('RepairOrder');  
-     SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],  
-         @CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]  
-        FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
-     EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0  
-     IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
-           BEGIN  
-                 INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
-          SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
-         FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+        
+				SET @RID=IDENT_CURRENT('RepairOrder');  
+
+				SELECT @MSID=[ManagementStructureId],@MCID=[MasterCompanyId],  
+					@CreateBy=[CreatedBy],@UpdateBy=[UpdatedBy]  
+				FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId]=@VendorRFQRepairOrderId;  
+
+				EXEC [DBO].[PROCAddROMSData] @RID,@MSID,@MCID,@CreateBy,@UpdateBy,24,1,0  
+
+
+				IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
+				BEGIN  
+					INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
+					  SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
+					 FROM [dbo].[AllAddress] WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
   
-     INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-           [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
-           [IsActive] ,[IsDeleted])  
-         SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-          [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,  
-          1,0   
-        FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+					 INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+						   [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
+						   [IsActive] ,[IsDeleted])  
+						 SELECT IDENT_CURRENT('RepairOrder'),14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+						  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE() ,  
+						  1,0   
+						FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
   
-     END    
+				END    
+
+				 -- Inserting RFQ RO Charges into RO Charges
+				INSERT INTO [dbo].[RepairOrderCharges]
+				([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+				FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+
+				-- Inserting RFQ RO Freight into RO Freight
+				INSERT INTO [dbo].[RepairOrderFreight]
+				([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+				[ManufacturerId],[Manufacturer])
+				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+				[ManufacturerId],[Manufacturer]
+				FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+
+				SELECT @Result = IDENT_CURRENT('RepairOrder');          
+			END  
+			ELSE  
+			BEGIN       
+			 SELECT @Result = 0;  
+			END  
+		END  
+		ELSE  
+		BEGIN   
   
-     SELECT @Result = IDENT_CURRENT('RepairOrder');          
-    END  
-    ELSE  
-    BEGIN       
-     SELECT @Result = 0;  
-    END  
-   END  
-      ELSE  
-      BEGIN   
-  
-    SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);    
+			SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);    
        
-    IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
-       BEGIN  
-     IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @Result AND ModuleId = 14)  
-     BEGIN  
-        INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
-          SELECT @Result,14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
-           [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
-           [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
-           [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
-         FROM [dbo].[AllAddress] where [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
-     END  
-       END  
+			IF EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
+			BEGIN  
+				IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WITH(NOLOCK) WHERE [ReffranceId] = @Result AND ModuleId = 14)  
+				BEGIN  
+					INSERT INTO [dbo].[AllAddress]([ReffranceId],[ModuleId],[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])  
+					  SELECT @Result,14,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],  
+					   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],  
+					   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],  
+					   [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]  
+					 FROM [dbo].[AllAddress] where [ReffranceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+				END  
+			END  
   
-    IF EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
-       BEGIN  
-     IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @Result AND ModuleId = 14)  
-     BEGIN  
-      INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-           [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
-           [IsActive] ,[IsDeleted])  
-         SELECT @Result,14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
-          [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),  
-          1,0   
-        FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
-     END  
-    END    
-  
-    -- SELECT @Result = (SELECT RepairOrderId FROM dbo.RepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId);        
-      END  
-  END  
- END  
+			IF EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32)  
+			BEGIN  
+				IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH(NOLOCK) WHERE [ReferenceId] = @Result AND ModuleId = 14)  
+				BEGIN  
+					INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+					   [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,  
+					   [IsActive] ,[IsDeleted])  
+					 SELECT @Result,14,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],  
+					  [ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),  
+					  1,0   
+					FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
+				END  
+			END   
+			
+			IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROCharges] WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
+			BEGIN  
+				IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderCharges] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
+				BEGIN  
+					-- Inserting RFQ RO Charges into RO Charges
+					INSERT INTO [dbo].[RepairOrderCharges]
+					([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+					,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+					,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+					,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+					SELECT @Result,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+					,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+					,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+					,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+					FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				END
+			END
+
+			IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROFreight] WITH(NOLOCK) WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId)  
+			BEGIN  
+				IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderFreight] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
+				BEGIN 
+					-- Inserting RFQ RO Freight into RO Freight
+					INSERT INTO [dbo].[RepairOrderFreight]
+					([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+					[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+					[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+					[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+					[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+					[ManufacturerId],[Manufacturer])
+					SELECT @Result,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+					[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+					[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+					[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+					[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+					[ManufacturerId],[Manufacturer]
+					FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				END
+			END
+
+      
+		END  
+	END  
+END  
  COMMIT  TRANSACTION  
  END TRY   
  BEGIN CATCH        

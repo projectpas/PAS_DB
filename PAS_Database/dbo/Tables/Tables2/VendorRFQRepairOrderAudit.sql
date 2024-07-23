@@ -38,6 +38,12 @@
     [IsActive]                    BIT             CONSTRAINT [DF_VendorRFQRepairOrderAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                   BIT             CONSTRAINT [DF_VendorRFQRepairOrderAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [PDFPath]                     NVARCHAR (100)  NULL,
+    [FreightBilingMethodId]       INT             NULL,
+    [TotalFreight]                DECIMAL (18, 2) NULL,
+    [ChargesBilingMethodId]       INT             NULL,
+    [TotalCharges]                DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderAudit] PRIMARY KEY CLUSTERED ([VendorRFQRepairOrderAuditId] ASC)
 );
+
+
 

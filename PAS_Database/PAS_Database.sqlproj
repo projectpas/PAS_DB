@@ -3072,6 +3072,14 @@
     <Build Include="dbo\User Defined Types\BatchTriggerWorkOrderType.sql" />
     <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById_1.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOChargesAudit.sql" />
+    <Build Include="dbo\Tables\VendorRFQPOCharges.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargeNameColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertVendorRFQPOChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorRFQPOChargesList.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQPOChargesType.sql" />
     <Build Include="dbo\Tables\VendorRFQROFreightAudit.sql" />
     <Build Include="dbo\Tables\VendorRFQROFreight.sql" />
     <Build Include="dbo\Tables\VendorRFQROChargesAudit.sql" />

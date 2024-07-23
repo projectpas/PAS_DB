@@ -15,6 +15,9 @@
     [IsDeleted]                    BIT            NULL,
     [IsPrimary]                    BIT            NULL,
     [ShipViaId]                    BIGINT         NULL,
+    [ShippingTermsId]              BIGINT         NULL,
     CONSTRAINT [PK_LegalEntityShippingAudit] PRIMARY KEY CLUSTERED ([AuditLegalEntityShippingId] ASC)
 );
+
+
 

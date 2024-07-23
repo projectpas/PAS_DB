@@ -18,6 +18,7 @@
     1    09/23/2020   Hemant Saliya		Created
     2    07/01/2021   Vishal Suthar		Added Attention field
 	3    06/29/2023   Amit Ghediya		Added Vendor RMA both ship/bill address.
+	4	 07/23/2024	  Bhargav Saliya    Added/get ShippingTerms
      
  EXECUTE [USP_GetAddressDetailsByUser] 9, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
@@ -127,9 +128,12 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.LegalEntityShippingAddressId as ShippingId
+						lec.LegalEntityShippingAddressId as ShippingId,
+						ST.ShippingTermsId,
+						ST.[Name] AS ShippingTerms
 				FROM dbo.LegalEntityShipping lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
+					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE LegalEntityId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 
@@ -287,9 +291,12 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.CustomerDomensticShippingId as ShippingId
+						lec.CustomerDomensticShippingId as ShippingId,
+						ST.ShippingTermsId,
+						ST.[Name] AS ShippingTerms
 				FROM dbo.CustomerDomensticShippingShipVia lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
+					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE CustomerId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 
@@ -446,9 +453,12 @@ BEGIN
 						lec.Memo,
 						lec.IsPrimary,
 						sv.ShippingViaId AS ShipViaId,
-						lec.VendorShippingAddressId as ShippingId
+						lec.VendorShippingAddressId as ShippingId,
+						ST.ShippingTermsId,
+						ST.[Name] AS ShippingTerms
 				FROM dbo.VendorShipping lec WITH (NOLOCK) 
 					JOIN dbo.ShippingVia sv WITH (NOLOCK)  ON sv.ShippingViaId = lec.ShipViaId
+					LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = lec.ShippingTermsId
 				WHERE VendorId = @UserId AND ISNULL(lec.IsDeleted,0) = 0 AND ISNULL(lec.IsActive,1) = 1
 			END
 

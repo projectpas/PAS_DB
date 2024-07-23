@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.
@@ -28,10 +27,11 @@
 	11   07/07/2023   Moin Bloch            Addred Receiving Qty Field
 	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
+	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
+CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
 @PageNumber INT,  
 @PageSize INT,  
 @SortColumn VARCHAR(50)=null,  
@@ -78,6 +78,8 @@ BEGIN
    BEGIN  
     DECLARE @RecordFrom int;  
     DECLARE  @VendorRMADetailStatus VARCHAR(100)= NULL;  
+	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
     SET @RecordFrom = (@PageNumber-1) * @PageSize;  
     IF @IsDeleted IS NULL  
     BEGIN  
@@ -212,7 +214,7 @@ BEGIN
        (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND  
        (ISNULL(@VendorRMAStatus,'') ='' OR RMAStatusType LIKE  '%'+@VendorRMAStatus+'%') AND  
        (ISNULL(@VendorRMAReturnReason,'') ='' OR ReasonType LIKE '%'+@VendorRMAReturnReason+'%') AND  
-       (ISNULL(@ShippedDate,'') ='' OR CAST(ShippedDate AS DATE) = CAST(@ShippedDate AS DATE)) AND
+       (ISNULL(@ShippedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ShippedDate , @CurrntEmpTimeZoneDesc )AS date) = CAST(@ShippedDate AS DATE)) AND
 	   (ISNULL(@ShipRefrence,'') ='' OR ShipRefrence LIKE '%'+@ShipRefrence+'%') AND
        (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumberType LIKE '%'+@ReferenceNumber+'%') AND  
        (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%') AND  
@@ -668,7 +670,7 @@ BEGIN
 		   (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND  
 		   (ISNULL(@VendorRMAStatus,'') ='' OR RMAStatusType LIKE  '%'+@VendorRMAStatus+'%') AND  
 		   (ISNULL(@VendorRMAReturnReason,'') ='' OR ReasonType LIKE '%'+@VendorRMAReturnReason+'%') AND  
-		   (ISNULL(@ShippedDate,'') ='' OR Cast(ShippedDate AS DATE) = CAST(@ShippedDate AS DATE)) AND
+		   (ISNULL(@ShippedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(ShippedDate , @CurrntEmpTimeZoneDesc )AS date) = CAST(@ShippedDate AS DATE)) AND
 		   (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumberType LIKE '%'+@ReferenceNumber+'%') AND  
 		   (ISNULL(@Partnumber,'') ='' OR PartNumberType LIKE '%'+ @Partnumber+'%') AND  
 		   (ISNULL(@SerialNumber,'') ='' OR SerialNumberType LIKE '%'+ @SerialNumber+'%') AND  

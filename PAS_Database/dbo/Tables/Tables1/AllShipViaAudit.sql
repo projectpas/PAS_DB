@@ -18,6 +18,9 @@
     [UpdatedDate]       DATETIME2 (7)   CONSTRAINT [DF_AllShipViaAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]          BIT             CONSTRAINT [DF_AllShipViaAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]         BIT             CONSTRAINT [DF_AllShipViaAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [ShippingTerms]     VARCHAR (100)   NULL,
     CONSTRAINT [PK_AllShipViaAudit] PRIMARY KEY CLUSTERED ([AllShipViaAuditId] ASC)
 );
+
+
 

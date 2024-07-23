@@ -10,6 +10,7 @@ EXEC [RPT_GetViewSalesOrderById]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
+   2	07/23/2024  Bhargav Saiya	Addes ShippingTerms
 
 EXEC RPT_GetViewSalesOrderById 782
 
@@ -141,7 +142,8 @@ BEGIN
 			saemp.EmployeeId,
 			msd.EntityMSID AS EntityStructureId,
 			ISNULL(msd.LastMSLevel, '') AS LastMSLevel,
-			ISNULL(msd.AllMSlevels, '') AS AllMSlevelsr
+			ISNULL(msd.AllMSlevels, '') AS AllMSlevelsr,
+			ShippingTerms = posv.ShippingTerms
 		FROM dbo.SalesOrder soq WITH(NOLOCK)
 		LEFT JOIN dbo.SalesOrderQuote soqt WITH(NOLOCK) ON soq.SalesOrderQuoteId = soqt.SalesOrderQuoteId
 		LEFT JOIN dbo.MasterSalesOrderQuoteTypes qty WITH(NOLOCK) ON soq.TypeId = qty.Id

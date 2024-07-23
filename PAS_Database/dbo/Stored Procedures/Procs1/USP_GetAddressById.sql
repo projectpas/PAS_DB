@@ -25,6 +25,7 @@
     1    12/28/2020   Deep Patel	Changes related to AllAddress Common table.
 	2    06/29/2023   Amit Ghediya	Changes related to get Vendor Address of VendorRMA Bill/Ship Address.
 	3	 03/04/2024   Bhargav Saliya Resolved Ship-To address issue in Shipping (Single Part) 
+	4	 07/23/2024	  Bhargav Saliya Added ShippingTerms
      
 exec dbo.USP_GetAddressById @Id=111,@AddressType=N'VendorRMA',@ModuleID=0
 **************************************************************/ 
@@ -99,7 +100,8 @@ BEGIN
 				ISNULL(POAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(POAS.Country, '') AS BillToCountryName,
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
-				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(POSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].PurchaseOrder PO WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.PurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
@@ -161,7 +163,8 @@ BEGIN
 				ISNULL(SOQAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(SOQAS.Country, '') AS BillToCountryName,
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
-				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(SOQSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].SalesOrderQuote SOQ WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
@@ -223,7 +226,8 @@ BEGIN
 				ISNULL(SOQAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(SOQAS.Country, '') AS BillToCountryName,
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
-				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(SOQSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].SalesOrder SO WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON SO.SalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
@@ -285,7 +289,8 @@ BEGIN
 				ISNULL(SOQAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(SOQAS.Country, '') AS BillToCountryName,
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
-				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(SOQSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].RepairOrder RO WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress ROQA WITH (NOLOCK) ON RO.RepairOrderId = ROQA.ReffranceId AND ROQA.IsShippingAdd = 1 and ROQA.ModuleId = @ModuleID
@@ -347,7 +352,8 @@ BEGIN
 				ISNULL(SOQAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(SOQAS.Country, '') AS BillToCountryName,
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
-				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(SOQSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].ExchangeQuote EQ WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON EQ.ExchangeQuoteId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
@@ -409,7 +415,8 @@ BEGIN
 				ISNULL(SOQAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(SOQAS.Country, '') AS BillToCountryName,
 				ISNULL(SOQAS.StateOrProvince, '') AS BillToState,
-				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(SOQAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(SOQSV.ShippingTerms, '') AS ShippingTerms
 			
 			FROM [DBO].ExchangeSalesOrder ExchSO WITH (NOLOCK)
 				LEFT JOIN [DBO].AllAddress SOQA WITH (NOLOCK) ON ExchSO.ExchangeSalesOrderId = SOQA.ReffranceId AND SOQA.IsShippingAdd = 1 and SOQA.ModuleId = @ModuleID
@@ -469,7 +476,8 @@ BEGIN
 				ISNULL(POAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(POAS.Country, '') AS BillToCountryName,
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
-				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(POSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].VendorRFQPurchaseOrder PO WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.VendorRFQPurchaseOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
@@ -529,7 +537,8 @@ BEGIN
 				ISNULL(POAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(POAS.Country, '') AS BillToCountryName,
 				ISNULL(POAS.StateOrProvince, '') AS BillToState,
-				ISNULL(POAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(POAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(POSV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].VendorRFQRepairOrder PO WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress POA WITH (NOLOCK) ON PO.VendorRFQRepairOrderId = POA.ReffranceId AND POA.IsShippingAdd = 1 and POA.ModuleId = @ModuleID
@@ -590,7 +599,8 @@ BEGIN
 				ISNULL(RMAAS.CountryId, 0) AS BillToCountryId,
 				ISNULL(RMAAS.Country, '') AS BillToCountryName,
 				ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
-				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
+				ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode,
+				ISNULL(RMASV.ShippingTerms, '') AS ShippingTerms
 			
 		FROM [DBO].CustomerRMAHeader CRMA  WITH (NOLOCK)
 			LEFT JOIN [DBO].AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleID

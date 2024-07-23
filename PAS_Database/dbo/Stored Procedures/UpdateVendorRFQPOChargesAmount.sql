@@ -24,7 +24,7 @@ CREATE   PROCEDURE [dbo].[UpdateVendorRFQPOChargesAmount]
 @Opr int,
 @VendorRFQPOChargeId bigint,
 @IsDelete bit,
-@UpdatedBy VARCHAR
+@UpdatedBy VARCHAR(50)=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

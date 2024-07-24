@@ -1,4 +1,4 @@
-﻿/*********************             
+﻿/*******             
  ** File:   [GetPOAccountingDetailsViewById]             
  ** Author:  Ayesha Sultana
  ** Description: This stored procedure is used Get JournalBatchDetailsById for PO List
@@ -6,9 +6,9 @@
  ** Date:   18/09/2023    
            
  ** RETURN VALUE:             
- **********************             
+ ********             
  ** Change History             
- **********************             
+ ********             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    18-9-2023		Ayesha Sultana		Created  
@@ -16,8 +16,9 @@
 	3    27/11/2023     Moin Bloch          Added LotNumber
 	4    10/05/2023     Moin Bloch          Added IsUpdated
 	5    16/07/2024     Sahdev Saliya       Added (AccountingPeriod)
+	6    23/07/2024     Sahdev Saliya       Set JournalTypeNumber Order by desc 
 
-************************/   
+********/   
 CREATE   PROCEDURE [dbo].[GetPOAccountingDetailsViewById]    
 @ReferenceId bigint    
 AS    
@@ -105,7 +106,8 @@ BEGIN
 		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
 		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId  
-     WHERE SLBD.[PoId] = @ReferenceId     
+     WHERE SLBD.[PoId] = @ReferenceId  
+	 order by BD.JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

@@ -3,15 +3,16 @@
 -- Create date: <01-03-2024>
 -- Description:	<This stored procedure is used Get AccountingDetailsById for Asset Inventory Batch>
 
-/*************************************************************   
+/*********************   
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
-************************************************************************/ 
+	2    23-07-2024     Sahdev Saliya           Added (AccountingPeriod And Set JournalTypeNumber Order by desc) 
+************************/ 
 --[dbo].[GetAssetInventoryBatchAccountingDetailsById] 328
 -- =============================================
 CREATE PROCEDURE [dbo].[GetAssetInventoryBatchAccountingDetailsById]
@@ -63,6 +64,7 @@ BEGIN
             ,LE.CompanyName AS LegalEntityName  
             ,BD.JournalTypeNumber
 			,BD.CurrentNumber  
+			,BD.AccountingPeriod AS 'AcctingPeriod'
 		    ,BS.[Name] AS 'Status'
             ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		    ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2
@@ -96,6 +98,7 @@ BEGIN
 		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId		
      WHERE SBD.PoId = @ReferenceId     
+	 order by BD.JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

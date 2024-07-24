@@ -22,6 +22,7 @@
 	6    09/01/2023   Hemant Saliya  Added MS Filters	
 	7    10/23/2023   Hemant Saliya  Updated for All GL Account List
 	8    01/25/2024   Hemant Saliya  Remove Manual Journal from Reports
+	9    07/24/2024   MOIN BLOCH     ADDDED IS ISDELETED FLAG
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=5,@AccountingPeriodId=194,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'5!8!11,10!12'
@@ -468,7 +469,7 @@ BEGIN
 				INSERT INTO #TempResults(GlAccountId, MasterCompanyId, AccountNum,AccountName)
 				SELECT GlAccountId, MasterCompanyId, GL.AccountCode, AccountName
 				FROM dbo.GLAccount GL
-				WHERE GL.GlAccountId NOT IN (SELECT GlAccountId FROM #TempResults) AND GL.MasterCompanyId = @masterCompanyId
+				WHERE GL.GlAccountId NOT IN (SELECT GlAccountId FROM #TempResults) AND GL.MasterCompanyId = @masterCompanyId AND GL.IsActive = 1 AND GL.IsDeleted = 0
 
 				UPDATE #TempResults SET Level1Name = ESS.Level1Name, Level2Name = ESS.Level2Name, Level3Name = ESS.Level3Name, Level4Name = ESS.Level4Name,
 						Level5Name = ESS.Level5Name, Level6Name = ESS.Level6Name, Level7Name = ESS.Level7Name, Level8Name = ESS.Level8Name, Level9Name = ESS.Level9Name, Level10Name = ESS.Level10Name

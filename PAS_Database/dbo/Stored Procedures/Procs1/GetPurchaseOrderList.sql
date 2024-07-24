@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:   [GetPurchaseOrderList]                 
  ** Author:   Vishal Suthar        
  ** Description: Get Data for Purchase Order listing      
@@ -13,9 +12,10 @@
  **************************************************************                 
  ** Change History                 
  **************************************************************                 
- ** SN   Date           Author    Change Description                  
- ** --   --------  ------------- --------------------------------                
-    01  03-July-2023 Vishal Suthar Removed script of "MULTIPLE" hover over      
+ ** SN   Date           Author			Change Description                  
+ ** --   --------		-------------		--------------------------------                
+    01  03-July-2023	Vishal Suthar		Removed script of "MULTIPLE" hover over      
+    02  23-July-2024	Vishal Suthar		Removed Transaction from the SP
            
 -- EXEC GetPurchaseOrderList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'Open',@GlobalFilter=N'',@PurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@ApprovedBy=NULL,@CreatedBy=NULL,@CreatedDate=
   
@@ -88,7 +88,7 @@ BEGIN
  END        
         
  BEGIN TRY      
- BEGIN TRANSACTION      
+ --BEGIN TRANSACTION      
  BEGIN       
  IF(@ViewType = 'poview')      
  BEGIN      
@@ -541,12 +541,12 @@ BEGIN
 	  FETCH NEXT @PageSize ROWS ONLY      
  END      
  END      
- COMMIT  TRANSACTION      
+ --COMMIT  TRANSACTION      
  END TRY          
  BEGIN CATCH            
-  IF @@trancount > 0      
-   PRINT 'ROLLBACK'      
-   ROLLBACK TRAN;      
+  --IF @@trancount > 0      
+  -- PRINT 'ROLLBACK'      
+  -- ROLLBACK TRAN;      
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()       
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------      
             , @AdhocComments     VARCHAR(150)    = 'GetPublicationViewList'       

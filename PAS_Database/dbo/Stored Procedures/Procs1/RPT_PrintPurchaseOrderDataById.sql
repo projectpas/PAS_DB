@@ -11,11 +11,12 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/03/2023  Amit Ghediya    Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/03/2023  Amit Ghediya		Created
+    2    07/23/2024  Vishal Suthar		Added DISTINCT in the result set
      
--- EXEC RPT_PrintPurchaseOrderDataById 629
+-- EXEC RPT_PrintPurchaseOrderDataById 5103
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
 @PurchaseOrderId BIGINT
@@ -49,7 +50,7 @@ BEGIN
 		
 		SET @VendorWarningListName = 'Create Purchase Order';
 
-		SELECT PO.[PurchaseOrderId] AS 'PurchaseOrderId',
+		SELECT DISTINCT PO.[PurchaseOrderId] AS 'PurchaseOrderId',
 			   PO.[MasterCompanyId] AS 'MasterCompanyId',
 			   PO.[PurchaseOrderNumber] AS 'PurchaseOrderNumber',
 			   PO.[ChargesBilingMethodId] AS 'ChargesBilingMethodId',

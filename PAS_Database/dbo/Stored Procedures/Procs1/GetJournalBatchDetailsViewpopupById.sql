@@ -49,6 +49,7 @@
  33	  10/05/2024  Moin Bloch		     added Lot Number IsUpdated
  34	  25/06/2024  Devendra Shekh		 added CustomerName for 'CMDA'
  35	  03/07/2024  Abhishek Jirawla		 added MS level for 'CKS'
+ 36	  03/07/2024  AMIT GHEDIYA			 Get New Asset data.
 
  EXEC GetJournalBatchDetailsViewpopupById 1085,0,'EXPS'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -244,7 +245,8 @@ BEGIN
 						LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 				WHERE JBD.JournalBatchDetailId =@JournalBatchDetailId AND JBD.IsDeleted = @IsDeleted  
 			END  
-			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST'))        
+			IF(UPPER(@Module) = UPPER('RPO') OR UPPER(@Module) = UPPER('RRO') OR UPPER(@Module) = UPPER('RECPO') OR UPPER(@Module) = UPPER('RECRO') OR UPPER(@Module) = UPPER('AST')
+				OR UPPER(@Module) = UPPER('ASSETAC') OR UPPER(@Module) = UPPER('ASSETSALE') OR UPPER(@Module) = UPPER('ASSETDEP'))        
 			BEGIN  
 				DECLARE @NONStockModuleID INT = 11;  
 				DECLARE @ModuleID INT = 2;  

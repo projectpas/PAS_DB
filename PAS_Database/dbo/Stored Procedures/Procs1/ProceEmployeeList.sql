@@ -1,4 +1,22 @@
-﻿CREATE PROCEDURE [dbo].[ProceEmployeeList]
+﻿/*************************************************************           
+ ** File:   [ProceEmployeeList]           
+ ** Author:  
+ ** Description: This stored procedure is used to Get Employee
+ ** Purpose:         
+ ** Date:      
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    2    23/07/2024   Bhargav Saliya     Get UserName
+     
+************************************************************************/
+CREATE PROCEDURE [dbo].[ProceEmployeeList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -21,7 +39,8 @@
 @IsDeleted bit = NULL,
 @EmployeeId bigint = NULL,
 @MasterCompanyId bigint = NULL,
-@IsSuperAdmin bit = NULL
+@IsSuperAdmin bit = NULL,
+@UserName  varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -76,14 +95,16 @@ BEGIN
 					t.CreatedBy,
                     t.UpdatedBy,					
 				    le.[Name] AS Company,
-					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype					
+					CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype,
+					ASP.UserName
 			   FROM dbo.Employee t WITH (NOLOCK)
 			        INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
 					INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
 					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND (EUR.EmployeeId = @EmployeeId OR @IsSuperAdmin = 1)
 					LEFT JOIN  dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
 			        LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
-					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId			        
+					LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId	
+					LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON T.EmployeeId = ASP.EmployeeId
 
 		 	  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
 			        AND t.MasterCompanyId=@MasterCompanyId	

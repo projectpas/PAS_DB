@@ -23,6 +23,7 @@
 	7    21/08/2023   Moin Bloch		Modify(Added Accounting MS Entry)    
 	8	 25/04/2024	  Abhishek Jirawla  Making the sold item inactive and also updating the status note to 'Inventory is Sold'
     9    12/07/2024   Amit Ghediya		Update new Distribution used. 
+   10    22/07/2024   Amit Ghediya		Update new BatchCode & J-Type Code as per new distribution.
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
@@ -162,10 +163,10 @@ BEGIN
 			FROM DBO.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@AssetInventoryId;
 
 			SET @Desc = 'Inventory Num -' + @AssetInventoryName;
-			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('AssetInventory')
+			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('ASSETSALEWRITEDOWNWRITEOFF')
 			
 			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
-			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='CASHRECEIVABLES';
+			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='CASHARTRADEAROTHERSALE';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
 			SELECT @JournalBatchHeaderId = JournalBatchHeaderId FROM [DBO].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
@@ -240,7 +241,7 @@ BEGIN
 				VALUES    
 				  (@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,
 				  @JournalTypeId,@JournalTypename,@CashAmount,@CashAmount,0,@MasterCompanyId,
-				  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode);    
+				  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETSALE');    
                            
 				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()    
 				UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  

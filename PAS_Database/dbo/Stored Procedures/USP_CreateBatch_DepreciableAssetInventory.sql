@@ -9,7 +9,8 @@
  **************************************************************           
  ** PR   Date			Author					Change Description            
  ** --   --------		-------					--------------------------------          
-    1    17/15/2024		Devendra Shekh			Created
+    1    07/15/2024		Devendra Shekh			Created
+	2    07/23/2024		AMIT GHEDIYA			Update new BatchCode,J-Type Code & update New Destribution as per new distribution.
 
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -178,7 +179,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('AssetInventory')
+		SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETPERIODICDEPRECIATION')
 
 		INSERT INTO #DepreciableInventory
 		( [AssetInventoryId], [Qty], [Amount], [ModuleName], [UpdateBy], [MasterCompanyId], [StockType], [SelectedAccountingPeriodId] )
@@ -211,7 +212,7 @@ BEGIN
 			FROM DBO.AssetInventory AI WITH(NOLOCK)
 			INNER JOIN DBO.Asset WITH(NOLOCK) on Asset.AssetRecordId=AI.AssetRecordId
 			WHERE AI.AssetInventoryId= @AssetInventoryId
-			Print @DeprFrequency
+			
 			SET @PercentageAmount = ISNULL((ISNULL(@ResidualPercentage,0) * ISNULL(@AssetTotalPrice,0) /100),0)
 			SET @MonthlyDepAmount = ISNULL((ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0)) / ISNULL(@AssetLife,0),0)
 
@@ -221,7 +222,7 @@ BEGIN
 				SET @MonthDIFF= DATEDIFF(month, CAST(@AssetCreateDate as date),CAST(getdate() as date))
 				SET @DividedDaysDIFF=isnull((isnull(@DATEDIFF,1)/30),0)
 				SET @ExistStatus=case when (@DividedDaysDIFF%1)= 0 then 'Even' else 'Odd' end
-				Print @ExistStatus
+				
 				IF (@MonthDIFF <=@AssetLife)
 				BEGIN
 					SET @DepreciationAmount = ISNULL(@MonthlyDepAmount,0)
@@ -233,7 +234,7 @@ BEGIN
 				SET @MonthDIFF= DATEDIFF(month, CAST(@AssetCreateDate as date),CAST(getdate() as date))
 				SET @DividedDaysDIFF=isnull((isnull(@DATEDIFF,1)/90),0)
 				SET @ExistStatus=case when (@DividedDaysDIFF%1)= 0 then 'Even' else 'Odd' end
-				Print @ExistStatus
+				
 				IF(@MonthDIFF <=@AssetLife)
 				BEGIN
 					SET @DepreciationAmount = (ISNULL(@MonthlyDepAmount,0) * 3)
@@ -245,7 +246,7 @@ BEGIN
 				SET @MonthDIFF= DATEDIFF(month, CAST(@AssetCreateDate as date),CAST(getdate() as date))
 				SET @DividedDaysDIFF=isnull((isnull(@DATEDIFF,1)/365),0)
 				SET @ExistStatus=case when (@DividedDaysDIFF%1)= 0 then 'Even' else 'Odd' end
-				Print @ExistStatus
+				
 				IF(@MonthDIFF <=@AssetLife)
 				BEGIN
 					SET @DepreciationAmount = (ISNULL(@MonthlyDepAmount,0) * 12)
@@ -293,10 +294,9 @@ BEGIN
 			BEGIN
 				SET @SelectedAccountingPeriodId = NULL
 			END
-
-			IF((@JournalTypeCode ='AST') and @IsAccountByPass=0)
+			
+			IF((@JournalTypeCode ='AST-DEPR') and @IsAccountByPass=0)
 			BEGIN
-
 				IF(@SelectedAccountingPeriodId = NULL)
 				BEGIN
 					SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
@@ -349,7 +349,7 @@ BEGIN
 					INSERT INTO [dbo].[BatchHeader]
 						([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
 					VALUES
-						(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'AST');
+						(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETDEP');
             	          
 					SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 					Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
@@ -366,8 +366,8 @@ BEGIN
 						Update dbo.BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
 				END
-
-				IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetPeriodDepreciation')
+				
+				IF(UPPER(@DistributionCode) = UPPER('ASSETPERIODICDEPRECIATION') AND UPPER(@StockType) = 'AssetPeriodDepreciation')
 				BEGIN
 					SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 					,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
@@ -394,7 +394,7 @@ BEGIN
 						------Depreciation Expense -----------
 
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
-						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSE') 
+						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSEDEP') 
 						AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@DeprExpenseGLAccountId 
@@ -445,7 +445,7 @@ BEGIN
 						SET @Amount = isnull(@DepreciationAmount,0);
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType
 						FROM dbo.DistributionSetup WITH(NOLOCK)  
-						WHERE UPPER(DistributionSetupCode) =UPPER('ACCUMULATEDDEPRECIATION') AND 
+						WHERE UPPER(DistributionSetupCode) =UPPER('ACCUMULATEDDEPRECIATIONDEP') AND 
 						DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 					
 						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AdDepsGLAccountId
@@ -758,7 +758,6 @@ BEGIN
 			
 				IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetWriteDown')
 				BEGIN
-					print 'AssetWriteDown'
 					SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 					,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
 					,@AssetInventoryName=InventoryNumber

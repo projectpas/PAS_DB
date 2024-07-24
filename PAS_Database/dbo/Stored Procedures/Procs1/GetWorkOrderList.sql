@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetWorkOrderList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get work order List for both MPN and WO View
@@ -16,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    06/28/2023   Vishal Suthar Added history
     2    08/01/2023   Vishal Suthar Converting all the data in Upper case which was creating an issue in download
+	3    23 Jul2023   Rajesh Gami   Improve Performance
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -61,8 +63,8 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
-  BEGIN TRANSACTION  
-   BEGIN   
+  --BEGIN TRANSACTION  
+  -- BEGIN   
     DECLARE @RecordFrom int;  
     DECLARE @IsActive bit=1  
     DECLARE @Count Int;  
@@ -196,10 +198,10 @@ BEGIN
         JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
         JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
         JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
-        JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
-        LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
+        JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
         JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
-        JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId   
+        JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId  
+		LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
         LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
         LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
         --LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
@@ -243,7 +245,8 @@ BEGIN
         (IsNull(@WorkOrderStatusType,'') ='' OR WorkOrderStatusType like '%' + @WorkOrderStatusType+'%') AND  
         (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
         (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-        (IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
+        --(IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
+		(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS date)=CAST(@OpenDate AS date)) AND 
         (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
         (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
         (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
@@ -350,213 +353,61 @@ BEGIN
           UPPER(WO.UpdatedBy) AS UpdatedBy,
           WO.IsActive,
           WO.IsDeleted,
-          UPPER(WT.Description) AS WorkOrderType
+          UPPER(WT.Description) AS WorkOrderType,
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartNumber End)  as 'PartNumberType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartNumber End)  as 'PartNumber',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartDescription End)  as 'PartDescriptionType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartDescription End)  as 'PartDescription',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.ManufacturerName End)  as 'ManufacturerNameType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.ManufacturerName End)  as 'ManufacturerName',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse SC.WorkScopeCode End)  as 'WorkScopeType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse SC.WorkScopeCode End)  as 'WorkScopeDescription',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse P.Description End)  as 'PriorityType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse P.Description End)  as 'PriorityDescription',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOS.Code + '-' + WOS.Stage End)  as 'StageType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOS.Code + '-' + WOS.Stage End)  as 'WOStageDescription',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOST.Description End)  as 'WorkOrderStatusType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOST.Description End)  as 'WorkOrderStatus',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELSE WPN.CustomerRequestDate End)  as 'CustomerRequestDateType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELSE WPN.CustomerRequestDate End)  as 'CustomerRequestDate',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.PromisedDate End)  as 'PromisedDateType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.PromisedDate End)  as 'PromisedDate',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.EstimatedShipDate End)  as 'EstimatedShipDateType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.EstimatedShipDate End)  as 'EstimatedShipDate',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse (CONVERT(VARCHAR, (Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 110)) End)  as 'EstimatedCompletionDateType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse (CONVERT(VARCHAR, (Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 110)) End)  as 'EstimatedCompletionDate',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emp.FirstName + ' ' + emp.LastName End)  as 'TechNameType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emp.FirstName + ' ' + emp.LastName End)  as 'TechName',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emps.StationName End)  as 'TechStationType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emps.StationName End)  as 'TechStation',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.CustomerReference End)  as 'CustomerReferenceType',
+		  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.CustomerReference End)  as 'CustomerReference'
+
           FROM dbo.WorkOrder WO WITH (NOLOCK)   
           JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
           JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
+		  LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
+		  LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
+		  LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId
+		  LEFT JOIN dbo.WorkOrderStage WOS WITH(NOLOCK) On WPN.WorkOrderStageId  = WOS.WorkOrderStageId
+		  LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
+		  LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
+		  LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
-          AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId)  
-          )),  
-          PartCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType', A.PartNumber from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + I.partnumber  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.ItemMaster I WITH(NOLOCK) On WOPN.ItemMasterId  = I.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') PartNumber  
-          ) A   
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted )  
-          GROUP BY WO.WorkOrderId, A.PartNumber),  
-  
-          PartDescCTE AS(  
-          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PartDescriptionType', A.PartDescription from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + im.PartDescription  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') PartDescription  
-          ) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.PartDescription),
+          AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))
 		  
-		  ManufacturerCTE AS(  
-          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.ManufacturerName End)  as 'ManufacturerNameType', A.ManufacturerName from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + im.ManufacturerName  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') ManufacturerName  
-          ) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.ManufacturerName), 
-  
-          WorkScopeCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.WorkScopeDescription End)  as 'WorkScopeType', A.WorkScopeDescription from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + SC.WorkScopeCode  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WOPN.WorkOrderScopeId  = SC.WorkScopeId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') WorkScopeDescription  
-          ) A  
-          Where WO.MasterCompanyId = @MasterCompanyId AND (WO.IsDeleted=@IsDeleted)  
-          Group By WO.WorkOrderId, A.WorkScopeDescription),  
-  
-          PriorityCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.PriorityDescription End)  as 'PriorityType', A.PriorityDescription from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + P.Description  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.Priority P WITH(NOLOCK) On WOPN.WorkOrderPriorityId  = P.PriorityId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') PriorityDescription  
-          ) A  
-          Where (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          Group By WO.WorkOrderId, A.PriorityDescription),  
-  
-          StageCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.WOStageDescription End)  as 'StageType', A.WOStageDescription from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + WOS.Code + '-' + WOS.Stage   
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.WorkOrderStage WOS WITH(NOLOCK) On WOPN.WorkOrderStageId  = WOS.WorkOrderStageId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') WOStageDescription  
-          ) A  
-          Where (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)   
-          Group By WO.WorkOrderId, A.WOStageDescription),  
-  
-          WOStatusCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.WorkOrderStatus End)  as 'WorkOrderStatusType', A.WorkOrderStatus from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + WOST.Description  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WOPN.WorkOrderStatusId  = WOST.Id  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') WorkOrderStatus  
-          ) A  
-          Where (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          Group By WO.WorkOrderId, A.WorkOrderStatus),  
-  
-          CRDateCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELSE A.CustomerRequestDate End)  as 'CustomerRequestDateType', A.CustomerRequestDate from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(SELECT STUFF((SELECT ',' + CONVERT(VARCHAR, WOPN.CustomerRequestDate, 110)   
-             FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)            
-             WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0  
-             FOR XML PATH('')), 1, 1, '') CustomerRequestDate) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.CustomerRequestDate),  
-  
-          PromisedDateCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.PromisedDate End)  as 'PromisedDateType', A.PromisedDate from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(SELECT STUFF((SELECT ',' + CONVERT(VARCHAR, WOPN.PromisedDate, 110)  
-             FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)          
-             WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0  
-             FOR XML PATH('')), 1, 1, '') PromisedDate) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.PromisedDate),  
-  
-          ESShipDateCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.EstimatedShipDate End)  as 'EstimatedShipDateType', A.EstimatedShipDate from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(SELECT STUFF((SELECT ',' + CONVERT(VARCHAR, WOPN.EstimatedShipDate, 110)    
-             FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)           
-             WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0  
-             FOR XML PATH('')), 1, 1, '') EstimatedShipDate) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.EstimatedShipDate),  
-           
-          ESCompDateCTE AS(  
-          SELECT WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.EstimatedCompletionDate End)  as 'EstimatedCompletionDateType', A.EstimatedCompletionDate from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(SELECT STUFF((SELECT ',' + CONVERT(VARCHAR, (Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 110)    
-             FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)          
-             WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0  
-             FOR XML PATH('')), 1, 1, '') EstimatedCompletionDate) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.EstimatedCompletionDate),  
-  
-          TechNameCTE AS(  
-          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.TechName End)  as 'TechNameType', A.TechName from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + emp.FirstName + ' ' + emp.LastName  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              JOIN dbo.Employee emp WITH(NOLOCK) On WOPN.TechnicianId  = emp.EmployeeId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') TechName  
-          ) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.TechName),  
-  
-          TechStationCTE AS(  
-          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.TechStation End)  as 'TechStationType', A.TechStation from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + emp.StationName  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
-              LEFT JOIN dbo.EmployeeStation emp WITH(NOLOCK) On WOPN.TechStationId  = emp.EmployeeStationId  
-              Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') TechStation  
-          ) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.TechStation),  
-  
-          CustRefCTE AS(  
-          Select WO.WorkOrderId,(CASE WHEN Count(WOPN.ID) > 1 Then 'Multiple' ELse A.CustomerReference End)  as 'CustomerReferenceType', A.CustomerReference from WorkOrder WO WITH(NOLOCK)  
-          LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) On WO.WorkOrderId = WOPN.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
-          OUTER APPLY(  
-           SELECT   
-            STUFF((SELECT ',' + WOPN.CustomerReference  
-              FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)          
-              WHERE WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') CustomerReference  
-          ) A  
-          WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = @IsDeleted)  
-          GROUP BY WO.WorkOrderId, A.CustomerReference),  
-  
-          Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PT.PartNumber) AS PartNos, UPPER(PT.PartNumberType) AS PartNoType, UPPER(PT.PartNumberType) AS PartNumberType, UPPER(PD.PartDescription) AS PNDescription, UPPER(PD.PartDescriptionType) AS PNDescriptionType, UPPER(MN.ManufacturerName) AS ManufacturerName, UPPER(MN.ManufacturerNameType) AS ManufacturerNameType,
-              CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WS.WorkScopeDescription) AS WorkScope, UPPER(WS.WorkScopeType) AS WorkScopeType,
-              UPPER(PC.PriorityDescription) AS Priority, UPPER(PC.PriorityType) PriorityType, UPPER(SC.WOStageDescription) AS Stage, UPPER(SC.StageType) StageType, UPPER(WOSC.WorkOrderStatus) WorkOrderStatus,
-              UPPER(WOSC.WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CRC.CustomerRequestDate,   
-              CRC.CustomerRequestDateType, PMC.PromisedDate, PMC.PromisedDateType, ESC.EstimatedShipDate, ESC.EstimatedShipDateType,   
-              EC.EstimatedCompletionDate, EC.EstimatedCompletionDateType, UPPER(TN.TechName) TechName, UPPER(TN.TechNameType) TechNameType, UPPER(TS.TechStation) TechStation, UPPER(TS.TechStationType) TechStationType, UPPER(CR.CustomerReference) CustomerReference, UPPER(CR.CustomerReferenceType) CustomerReferenceType
+		  GROUP BY WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy,
+		  WO.UpdatedBy,WO.IsActive,WO.IsDeleted,WT.Description,I.PartNumber,I.PartDescription,I.ManufacturerName,SC.WorkScopeCode,P.Description,
+		  WOS.Code, WOS.Stage,WOST.Description,WPN.CustomerRequestDate,WPN.PromisedDate,WPN.EstimatedShipDate,emp.FirstName,emp.LastName,
+		  emps.StationName, WPN.CustomerReference), 
+  																																			  
+          Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PartNumber) AS PartNos, UPPER(PartNumberType) AS PartNoType, UPPER(PartNumberType) AS PartNumberType, UPPER(PartDescription) AS PNDescription, UPPER(PartDescriptionType) AS PNDescriptionType, UPPER(ManufacturerName) AS ManufacturerName, UPPER(ManufacturerNameType) AS ManufacturerNameType,
+              CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WorkScopeDescription) AS WorkScope, UPPER(WorkScopeType) AS WorkScopeType,
+              UPPER(PriorityDescription) AS Priority, UPPER(PriorityType) PriorityType, UPPER(WOStageDescription) AS Stage, UPPER(StageType) StageType, UPPER(WorkOrderStatus) WorkOrderStatus,
+              UPPER(WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CustomerRequestDate,   
+              CustomerRequestDateType, PromisedDate, PromisedDateType, EstimatedShipDate, EstimatedShipDateType,   
+              EstimatedCompletionDate, EstimatedCompletionDateType, UPPER(TechName) TechName, UPPER(TechNameType) TechNameType, UPPER(TechStation) TechStation, UPPER(TechStationType) TechStationType, UPPER(CustomerReference) CustomerReference, UPPER(CustomerReferenceType) CustomerReferenceType
           FROM Main M   
-          LEFT JOIN PartCTE PT On M.WorkOrderId = PT.WorkOrderId  
-          LEFT JOIN PartDescCTE PD On M.WorkOrderId = PD.WorkOrderId 
-		  LEFT JOIN ManufacturerCTE MN On M.WorkOrderId = MN.WorkOrderId
-          LEFT JOIN WorkScopeCTE WS On M.WorkOrderId = WS.WorkOrderId  
-          LEFT JOIN PriorityCTE PC On M.WorkOrderId = PC.WorkOrderId  
-          LEFT JOIN StageCTE SC On M.WorkOrderId = SC.WorkOrderId  
-          LEFT JOIN WOStatusCTE WOSC On M.WorkOrderId = WOSC.WorkOrderId  
-          LEFT JOIN CRDateCTE CRC On M.WorkOrderId = CRC.WorkOrderId  
-          LEFT JOIN PromisedDateCTE PMC On M.WorkOrderId = PMC.WorkOrderId  
-          LEFT JOIN ESShipDateCTE ESC On M.WorkOrderId = ESC.WorkOrderId  
-          LEFT JOIN ESCompDateCTE EC On M.WorkOrderId = EC.WorkOrderId  
-          LEFT JOIN TechNameCTE TN On M.WorkOrderId = TN.WorkOrderId  
-          LEFT JOIN TechStationCTE TS On M.WorkOrderId = TS.WorkOrderId  
-          LEFT JOIN CustRefCTE CR On M.WorkOrderId = CR.WorkOrderId  
           ),  
          ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
           SELECT * INTO #TempResult1 from  Result  
@@ -594,7 +445,8 @@ BEGIN
            (IsNull(@TechStation,'') ='' OR TechStation like '%' + @TechStation+'%') AND  
            (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
            (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND  
-           (IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND  
+           --(IsNull(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND 
+		   (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS date)=CAST(@OpenDate AS date)) AND
            (IsNull(@CustReqDate,'') ='' OR Cast(CustomerRequestDate as Date)=Cast(@CustReqDate as date)) AND  
            (IsNull(@PromiseDate,'') ='' OR Cast(PromisedDate as Date)=Cast(@PromiseDate as date)) AND  
            (IsNull(@EstShipDate,'') ='' OR Cast(EstimatedShipDate as Date)=Cast(@EstShipDate as date)) AND  
@@ -692,14 +544,14 @@ BEGIN
     DROP TABLE #TempResult1  
     END  
   
-   END  
-  COMMIT  TRANSACTION  
+  -- END  
+  --COMMIT  TRANSACTION  
   
   END TRY      
   BEGIN CATCH        
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
+    --ROLLBACK TRAN;  
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

@@ -28,7 +28,7 @@
 	11   18/04/2024	  Moin Bloch        Added new field 'IsTurnIn' for list
 	12   17/07/2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	13   22/07/2024   Vishal Suthar     Commented above change as for the performance issue
-    
+    13   23/07/2024   Rajesh Gami		Optimize the SP
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,@PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@CompanyName=NULL,@BuName=NULL,@DeptName=NULL,@DivName=NULL,@RevisedPN=NULL,@AWB=NULL,@ReceivedDate=NULL,@TraceableToName=NULL,@TaggedByName=NULL,@TagType=NULL,@TagDate=NULL,@ExpirationDate=NULL,@ControlNumber=NULL,@IdNumber=NULL,@Manufacturer=NULL,@PartCertificationNumber=NULL,@CertifiedBy=NULL,@CertifiedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=98,@MasterCompanyId=11,@IsCustomerStock=NULL,@ItemMasterId=0,@StockLineIds=NULL,@obtainFrom=NULL,@ownerName=NULL,@LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,@CustomerName=NULL,@IsTurnIn=NULL
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[ProcStockList]
@@ -97,7 +97,7 @@ BEGIN
 	  DECLARE @Count Int;        
 	  DECLARE @IsActive bit;        
 	  DECLARE @ISCS bit;        
-	  DECLARE @ISECS bit;        
+	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL;        
 	  --DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	  --SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
@@ -134,10 +134,11 @@ BEGIN
 	  BEGIN        
 	   SET @ISECS = 1        
 	  END        
-        
+       SET @IsCustomerStockInline = (CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else NULL END) 
+	   SET @isElse = (CASE WHEN @IsCustomerStockInline IS NULL THEN 1 ELSE 0  END)
   BEGIN TRY        
-  BEGIN TRANSACTION        
-   BEGIN       
+  --BEGIN TRANSACTION        
+  -- BEGIN       
 	 IF(@IsALTStock  IS NULL OR @IsALTStock = 0)    
 	 BEGIN     
 	  IF @stockTypeId = 1 -- Qty OH > 0        
@@ -201,11 +202,9 @@ BEGIN
 	   lot.LotNumber,
 	   (ISNULL(ct.Name,'')) 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
-	   (SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-       	
-	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage,        
-		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = stl.WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = stl.StockLineId) as rsworkOrderId--,        
+		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
+		WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage
+		--'' AS WorkOrderStage 
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -217,9 +216,15 @@ BEGIN
 		  LEFT JOIN dbo.Customer ct WITH (NOLOCK) ON ct.CustomerId = stl.CustomerId
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
-		 AND stl.IsParent = 1 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsParent = 1 
+		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	   SELECT * INTO #TempResults FROM  Result        
+	   
+	   SELECT *,
+	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus, 
+	   (SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = StockLineId) as rsworkOrderId 
+	   INTO #TempResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
@@ -450,10 +455,10 @@ BEGIN
 		Stl.SiteId,
 		(ISNULL(ct.Name,'')) 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
+		--'' as WorkOrderStage  
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
-	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
-		(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=stl.StockLineId) as rsworkOrderId--,        
+	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage        
+      
 		FROM  DBO.StockLine stl WITH (NOLOCK)        
 		 INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -467,9 +472,12 @@ BEGIN
   
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
-		AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
+		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
+		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	  SELECT * INTO #TempResult FROM  Result        
+	  SELECT *,
+	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        
+		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=StockLineId) as rsworkOrderId INTO #TempResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
@@ -705,9 +713,8 @@ BEGIN
 	   ISNULL(stl.CustomerId,0) as CustomerId,
 	   (SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
    
-	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage,        
-		(SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = stl.WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = stl.StockLineId) as rsworkOrderId--,        
+	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage        
+		     
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -720,9 +727,13 @@ BEGIN
 	   LEFT JOIN dbo.Lot lot WITH (NOLOCK) ON lot.LotId = stl.LotId 
 		WHERE ALT.MappingType = 1 AND ALT.IsDeleted = 0 AND ALT.IsActive = 1 AND stl.MasterCompanyId=@MasterCompanyId  AND ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
-		 AND stl.IsParent = 1 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsParent = 1 
+		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	   SELECT * INTO #TempALTResults FROM  Result        
+	   SELECT *,
+	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
+		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = StockLineId) as rsworkOrderId INTO #TempALTResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartNumber LIKE '%' +@GlobalFilter+'%') OR         
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
@@ -953,9 +964,8 @@ BEGIN
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
 		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
-	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage,        
-		(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=stl.WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=stl.StockLineId) as rsworkOrderId--,        
+	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage        
+		    
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
 	   INNER JOIN DBO.ItemMaster IMAl WITH (NOLOCK) ON ALT.ItemMasterId = IMAl.ItemMasterId --MAINPART    
@@ -971,9 +981,13 @@ BEGIN
 	.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,    
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
-		AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
+		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
+		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
-	  SELECT * INTO #TempALTResult FROM  Result        
+	  SELECT *,
+	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
+	   (SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=StockLineId) as rsworkOrderId
+		INTO #TempALTResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
@@ -1145,14 +1159,14 @@ BEGIN
 		FETCH NEXT @PageSize ROWS ONLY        
 	  END        
 	 END       
-   END        
-  COMMIT  TRANSACTION        
+  -- END        
+  --COMMIT  TRANSACTION        
         
   END TRY            
   BEGIN CATCH              
    IF @@trancount > 0        
     PRINT 'ROLLBACK'        
-    ROLLBACK TRAN;        
+    --ROLLBACK TRAN;        
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()         
         
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------        

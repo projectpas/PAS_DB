@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -28,8 +29,16 @@
 	11   18/04/2024	  Moin Bloch        Added new field 'IsTurnIn' for list
 	12   17/07/2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	13   22/07/2024   Vishal Suthar     Commented above change as for the performance issue
-    13   23/07/2024   Rajesh Gami		Optimize the SP
--- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,@PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@CompanyName=NULL,@BuName=NULL,@DeptName=NULL,@DivName=NULL,@RevisedPN=NULL,@AWB=NULL,@ReceivedDate=NULL,@TraceableToName=NULL,@TaggedByName=NULL,@TagType=NULL,@TagDate=NULL,@ExpirationDate=NULL,@ControlNumber=NULL,@IdNumber=NULL,@Manufacturer=NULL,@PartCertificationNumber=NULL,@CertifiedBy=NULL,@CertifiedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=98,@MasterCompanyId=11,@IsCustomerStock=NULL,@ItemMasterId=0,@StockLineIds=NULL,@obtainFrom=NULL,@ownerName=NULL,@LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,@CustomerName=NULL,@IsTurnIn=NULL
+	14   22/07/2024   Rajesh Gami       Optimized for Performance Issue
+	14   25/07/2024   Rajesh Gami       Remove inner query for the get WorkOrderStage due to performance issue
+	
+-- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
+@PartNumber=NULL,@PartDescription=NULL,@ItemGroup=NULL,@UnitOfMeasure=NULL,@SerialNumber=NULL,@GlAccountName=NULL,@ItemCategory=NULL,@Condition=NULL,@QuantityAvailable=NULL,
+@QuantityOnHand=NULL,@CompanyName=NULL,@BuName=NULL,@DeptName=NULL,@DivName=NULL,@RevisedPN=NULL,@AWB=NULL,@ReceivedDate=NULL,@TraceableToName=NULL,@TaggedByName=NULL,
+@TagType=NULL,@TagDate=NULL,@ExpirationDate=NULL,@ControlNumber=NULL,@IdNumber=NULL,@Manufacturer=NULL,@PartCertificationNumber=NULL,@CertifiedBy=NULL,@CertifiedDate=NULL,
+@UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=98,@MasterCompanyId=11,@IsCustomerStock=NULL,@ItemMasterId=0,@StockLineIds=NULL,@obtainFrom=NULL,@ownerName=NULL,
+@LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
+@CustomerName=NULL,@IsTurnIn=NULL
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[ProcStockList]
 	@PageNumber int = NULL,        
@@ -98,8 +107,6 @@ BEGIN
 	  DECLARE @IsActive bit;        
 	  DECLARE @ISCS bit;        
 	  DECLARE @ISECS bit, @isElse bit =0, @IsCustomerStockInline bit = NULL;        
-	  --DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	  --SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
 	  SET @RecordFROM = (@PageNumber-1)*@PageSize;         
 	  SET @MSModuelId = 2;   -- For Stockline        
         
@@ -202,9 +209,7 @@ BEGIN
 	   lot.LotNumber,
 	   (ISNULL(ct.Name,'')) 'CustomerName',
 	   ISNULL(stl.CustomerId,0) as CustomerId, 
-		(SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-		WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage
-		--'' AS WorkOrderStage 
+	   '' AS WorkOrderStage --Remove Workorderstage due to performance issue  
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -455,9 +460,7 @@ BEGIN
 		Stl.SiteId,
 		(ISNULL(ct.Name,'')) 'CustomerName',
 		ISNULL(stl.CustomerId,0) as CustomerId,
-		--'' as WorkOrderStage  
-		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
-	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage        
+		'' as WorkOrderStage        
       
 		FROM  DBO.StockLine stl WITH (NOLOCK)        
 		 INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId         
@@ -711,9 +714,7 @@ BEGIN
 	    Stl.Site,
 	   Stl.SiteId,
 	   ISNULL(stl.CustomerId,0) as CustomerId,
-	   (SELECT TOP 1 WOS.CodeDescription  FROM dbo.WorkOrder wo WITH (NOLOCK) INNER JOIN dbo.WorkOrderPartNumber wop WITH (NOLOCK) ON wop.WorkOrderId = wo.WorkOrderId INNER JOIN WorkOrderStage wos WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-   
-	WHERE WO.WorkOrderId = stl.WorkOrderId AND wop.StockLineId = stl.StockLineId) AS WorkOrderStage        
+	   '' AS WorkOrderStage        
 		     
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -963,8 +964,7 @@ BEGIN
 		Stl.Site,
 		Stl.SiteId,
 		ISNULL(stl.CustomerId,0) as CustomerId,
-		(SELECT TOP 1 wos.CodeDescription  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId=wo.WorkOrderId inner join DBO.WorkOrderStage wos WITH (NOLOCK) on wop.WorkOrderStageId=wos.WorkOrderStageId    
-	   WHERE wo.WorkOrderId=stl.WorkOrderId and wop.StockLineId=stl.StockLineId) as WorkOrderStage        
+		'' as WorkOrderStage        
 		    
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    

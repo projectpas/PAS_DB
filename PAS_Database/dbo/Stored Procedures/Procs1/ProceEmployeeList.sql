@@ -143,7 +143,8 @@ BEGIN
 					(Company LIKE '%' +@GlobalFilter+'%') OR
 					(Paytype LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
-					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))	
+					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR 
+					(UserName LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@EmployeeCode,'') ='' OR EmployeeCode LIKE '%' + @EmployeeCode+'%') AND
 					(ISNULL(@FirstName,'') ='' OR FirstName LIKE '%' + @FirstName + '%') AND
@@ -157,7 +158,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@UserName,'') ='' OR UserName LIKE '%' + @UserName + '%'))
 				   )
 
 			SELECT @Count = COUNT(EmployeeId) FROM #TempResult			
@@ -188,7 +190,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='UserName')  THEN UserName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UserName')  THEN UserName END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 

@@ -318,7 +318,7 @@ BEGIN
 			SOQA.[CustomerStatusId], SOQA.[InternalStatusId], SOQA.[CustomerMemo], SOQA.[MasterCompanyId], SOQA.[CreatedBy], SOQA.[UpdatedBy], SOQA.[CreatedDate], SOQA.[UpdatedDate], SOQA.[IsActive], SOQA.[IsDeleted],
 			SOQA.[InternalApprovedBy], SOQA.[CustomerApprovedBy], SOQA.[ApprovalAction], SOQA.[CustomerStatus], SOQA.[InternalStatus], SOQA.[RejectedById], SOQA.[RejectedByName], SOQA.[RejectedDate],
 			SOQA.[InternalRejectedById], SOQA.[InternalRejectedByName], SOQA.[InternalRejectedDate], SOQA.[InternalSentToId], SOQA.[InternalSentToName], SOQA.[InternalSentById]
-			FROM DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) WHERE SOQA.SalesOrderQuoteId = @SalesOrderQuoteId;
+			FROM DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) WHERE SOQA.SalesOrderQuotePartId = @CurrentSOQPartId;
 		END
 
 		IF (@ReserveStockline = 1)

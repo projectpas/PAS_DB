@@ -22,6 +22,8 @@
 	6    09/01/2023   Hemant Saliya  Added MS Filters	
 	7    10/23/2023   Hemant Saliya  Updated for All GL Account List
 	8    01/25/2024   Hemant Saliya  Remove Manual Journal from Reports
+	9    07/24/2024   MOIN BLOCH     ADDED IS ISDELETED FLAG
+	10   07/25/2024   MOIN BLOCH     ADDED ReportLayoutId 
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=5,@AccountingPeriodId=194,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'5!8!11,10!12'
@@ -34,7 +36,8 @@ CREATE   PROCEDURE [dbo].[USP_GetTrailBalanceReportData]
 	@AccountingPeriodId BIGINT = NULL,
 	@IsSupressZero BIT = NULL,
 	@IsShortMS BIT = NULL,
-	@strFilter VARCHAR(MAX) = NULL
+	@strFilter VARCHAR(MAX) = NULL,
+	@ReportLayoutId BIGINT = NULL
 )
 AS
 BEGIN
@@ -52,6 +55,9 @@ BEGIN
 		DECLARE @StatisticalGLAccountTypeId BIGINT;
 		DECLARE @PeriodName VARCHAR(100) = '';
 		DECLARE @xml XML;
+		DECLARE @PeriodReportLayOutId BIGINT; 
+
+		SELECT @PeriodReportLayOutId = [ReportLayOutId] FROM dbo.ReportLayOut WITH(NOLOCK) WHERE UPPER([ReportLayOutName]) = 'TRIAL BALANCE(PERIOD)';
 
 		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 		BEGIN    
@@ -423,13 +429,22 @@ BEGIN
 						GROUP BY T1.GlAccountId, T1.EntityStructureId
 			) results WHERE results.GlAccountId = #TempResults.GlAccountId AND results.EntityStructureId = #TempResults.EntityStructureId
 
-			
-			SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
-				Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
-			FROM #TempResults 
-			WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
-			ORDER BY CAST(AccountNum AS BIGINT)
-
+			IF(@PeriodReportLayOutId = @ReportLayoutId)
+			BEGIN
+				SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
+					Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
+				FROM #TempResults 
+				WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
+				ORDER BY CAST(AccountNum AS BIGINT)
+			END
+			ELSE
+			BEGIN
+				SELECT  GlAccountId,EntityStructureId, AccountNum,AccountName,Level1Name,Level2Name,Level3Name,Level4Name,Level5Name,Level6Name,
+						Level7Name,Level8Name,Level9Name,Level10Name,MonthlyCreditAmount AS Credit,MonthlyDebitAmount AS Debit, YTDCreditAmount AS CR,YTDDebitAmount AS DR 
+					FROM #TempResults 
+					WHERE MonthlyCreditAmount > 0 OR MonthlyDebitAmount > 0 OR YTDCreditAmount > 0 OR YTDDebitAmount > 0 --AND AccountNum LIKE '%[0-9]%'
+					ORDER BY CAST(AccountNum AS BIGINT)
+			END
 		END
 		ELSE
 		BEGIN 
@@ -468,7 +483,7 @@ BEGIN
 				INSERT INTO #TempResults(GlAccountId, MasterCompanyId, AccountNum,AccountName)
 				SELECT GlAccountId, MasterCompanyId, GL.AccountCode, AccountName
 				FROM dbo.GLAccount GL
-				WHERE GL.GlAccountId NOT IN (SELECT GlAccountId FROM #TempResults) AND GL.MasterCompanyId = @masterCompanyId
+				WHERE GL.GlAccountId NOT IN (SELECT GlAccountId FROM #TempResults) AND GL.MasterCompanyId = @masterCompanyId AND GL.IsActive = 1 AND GL.IsDeleted = 0
 
 				UPDATE #TempResults SET Level1Name = ESS.Level1Name, Level2Name = ESS.Level2Name, Level3Name = ESS.Level3Name, Level4Name = ESS.Level4Name,
 						Level5Name = ESS.Level5Name, Level6Name = ESS.Level6Name, Level7Name = ESS.Level7Name, Level8Name = ESS.Level8Name, Level9Name = ESS.Level9Name, Level10Name = ESS.Level10Name

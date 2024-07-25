@@ -99,33 +99,33 @@ BEGIN
 					FROM [dbo].[AllShipVia] WHERE [ReferenceId] = @VendorRFQRepairOrderId AND ModuleId = 32;  
 				 END    
 
-				 -- Inserting RFQ RO Charges into RO Charges
-				INSERT INTO [dbo].[RepairOrderCharges]
-				([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-				,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-				,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
-				FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				-- -- Inserting RFQ RO Charges into RO Charges
+				--INSERT INTO [dbo].[RepairOrderCharges]
+				--([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				--,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				--,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				--,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+				--SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				--,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				--,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				--,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+				--FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-				-- Inserting RFQ RO Freight into RO Freight
-				INSERT INTO [dbo].[RepairOrderFreight]
-				([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
-				[ManufacturerId],[Manufacturer])
-				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-				[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
-				[ManufacturerId],[Manufacturer]
-				FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				---- Inserting RFQ RO Freight into RO Freight
+				--INSERT INTO [dbo].[RepairOrderFreight]
+				--([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				--[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				--[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				--[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				--[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+				--[ManufacturerId],[Manufacturer])
+				--SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				--[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				--[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				--[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				--[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+				--[ManufacturerId],[Manufacturer]
+				--FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
 				SELECT @Result = IDENT_CURRENT('RepairOrder');
 
@@ -201,33 +201,33 @@ BEGIN
   
 				END    
 
-				 -- Inserting RFQ RO Charges into RO Charges
-				INSERT INTO [dbo].[RepairOrderCharges]
-				([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-				,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-				,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-				,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-				,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
-				FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				-- -- Inserting RFQ RO Charges into RO Charges
+				--INSERT INTO [dbo].[RepairOrderCharges]
+				--([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				--,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				--,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				--,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+				--SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+				--,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+				--,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+				--,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+				--FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
-				-- Inserting RFQ RO Freight into RO Freight
-				INSERT INTO [dbo].[RepairOrderFreight]
-				([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
-				[ManufacturerId],[Manufacturer])
-				SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-				[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-				[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-				[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-				[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
-				[ManufacturerId],[Manufacturer]
-				FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+				---- Inserting RFQ RO Freight into RO Freight
+				--INSERT INTO [dbo].[RepairOrderFreight]
+				--([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				--[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				--[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				--[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				--[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+				--[ManufacturerId],[Manufacturer])
+				--SELECT IDENT_CURRENT('RepairOrder'),[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+				--[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+				--[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+				--[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+				--[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+				--[ManufacturerId],[Manufacturer]
+				--FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
 
 				SELECT @Result = IDENT_CURRENT('RepairOrder');          
 			END  
@@ -271,45 +271,45 @@ BEGIN
 				END  
 			END   
 			
-			IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROCharges] WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
-			BEGIN  
-				IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderCharges] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
-				BEGIN  
-					-- Inserting RFQ RO Charges into RO Charges
-					INSERT INTO [dbo].[RepairOrderCharges]
-					([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-					,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-					,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-					,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-					SELECT @Result,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
-					,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
-					,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
-					,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
-					FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
-				END
-			END
+			--IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROCharges] WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId)  
+			--BEGIN  
+			--	IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderCharges] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
+			--	BEGIN  
+			--		-- Inserting RFQ RO Charges into RO Charges
+			--		INSERT INTO [dbo].[RepairOrderCharges]
+			--		([RepairOrderId],[RepairOrderPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+			--		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+			--		,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+			--		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+			--		SELECT @Result,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+			--		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+			--		,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+			--		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+			--		FROM [dbo].[VendorRFQROCharges] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+			--	END
+			--END
 
-			IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROFreight] WITH(NOLOCK) WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId)  
-			BEGIN  
-				IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderFreight] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
-				BEGIN 
-					-- Inserting RFQ RO Freight into RO Freight
-					INSERT INTO [dbo].[RepairOrderFreight]
-					([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-					[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-					[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-					[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-					[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
-					[ManufacturerId],[Manufacturer])
-					SELECT @Result,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
-					[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
-					[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
-					[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
-					[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
-					[ManufacturerId],[Manufacturer]
-					FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
-				END
-			END
+			--IF EXISTS (SELECT 1 FROM dbo.[VendorRFQROFreight] WITH(NOLOCK) WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId)  
+			--BEGIN  
+			--	IF NOT EXISTS (SELECT 1 FROM dbo.[RepairOrderFreight] WITH(NOLOCK) WHERE [RepairOrderId] = @Result)  
+			--	BEGIN 
+			--		-- Inserting RFQ RO Freight into RO Freight
+			--		INSERT INTO [dbo].[RepairOrderFreight]
+			--		([RepairOrderId],[RepairOrderPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+			--		[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+			--		[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+			--		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+			--		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+			--		[ManufacturerId],[Manufacturer])
+			--		SELECT @Result,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+			--		[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+			--		[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+			--		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+			--		[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+			--		[ManufacturerId],[Manufacturer]
+			--		FROM [dbo].[VendorRFQROFreight] WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId;
+			--	END
+			--END
 
       
 		END  

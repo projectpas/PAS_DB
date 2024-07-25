@@ -3101,6 +3101,7 @@
     <Build Include="dbo\Stored Procedures\GetVendorRFQPOChargesList.sql" />
     <Build Include="dbo\User Defined Types\VendorRFQPOChargesType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAddressDetailsByUser.sql" />
+    <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQROChargesAndFreightToRepairOrder.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

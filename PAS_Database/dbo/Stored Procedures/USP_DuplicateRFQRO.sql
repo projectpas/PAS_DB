@@ -179,6 +179,44 @@ BEGIN
 					AND [ModuleID] = @ManagementStructurePartModuleId;
 					-----End ManagementStructureDetails Header---------
 
+					--------Start Charges Tab ---------------
+					 IF EXISTS (SELECT 1 FROM [dbo].[VendorRFQROCharges] WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND [VendorRFQROPartRecordId] = @VendorRFQROPartRecordId)    
+					 BEGIN 
+							INSERT INTO [dbo].[VendorRFQROCharges]
+							([VendorRFQRepairOrderId],[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+							,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+							,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+							,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
+							SELECT @NewID,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+							,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
+							,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
+							,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
+							FROM [dbo].[VendorRFQROCharges] WITH(NOLOCK) 
+							WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND [VendorRFQROPartRecordId] = @VendorRFQROPartRecordId;    
+					 END
+					 --------End Charges Tab  ---------------
+
+					 --------Start Freight Tab ---------------
+					 IF EXISTS (SELECT 1 FROM [dbo].[VendorRFQROFreight] WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND [VendorRFQROPartRecordId] = @VendorRFQROPartRecordId)    
+					 BEGIN 
+							INSERT INTO [dbo].[VendorRFQROFreight]
+							([VendorRFQRepairOrderId],[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+							[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+							[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+							[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+							[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
+							[ManufacturerId],[Manufacturer])
+							SELECT @NewID,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+							[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
+							[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
+							[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
+							[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
+							[ManufacturerId],[Manufacturer]
+							FROM [dbo].[VendorRFQROFreight] WITH(NOLOCK) 
+							WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId AND [VendorRFQROPartRecordId] = @VendorRFQROPartRecordId;    
+					 END
+					 --------End Freight Tab  ---------------
+
 					SET @ID = @ID + 1;
 				END
 		 END

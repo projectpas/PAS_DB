@@ -18,6 +18,7 @@
 	4    20-03-2024     Shrey Chandegara       Add @VendorCMIds
 	5    10/05/2023     Moin Bloch             Added IsUpdated
 	6    16/07/2024     Sahdev Saliya          Added (AccountingPeriod)
+	7    25/07/2024     Sahdev Saliya          Set JournalTypeNumber Order by desc
 
 -- exec USP_GetVendorCreditMemo_AccountingDetailsById 90
 ************************/   
@@ -117,6 +118,7 @@ BEGIN
 		LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 		LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = VDR.CurrencyId  
      WHERE VPBD.ReferenceID IN (SELECT value FROM STRING_SPLIT(@VendorCMIds, ',')) OR VPBD.ReferenceID = @ReferenceId
+	 order by BD.JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

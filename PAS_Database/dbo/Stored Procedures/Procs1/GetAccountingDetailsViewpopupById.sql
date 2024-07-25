@@ -22,6 +22,7 @@
 	7    16/05/2024  HEMANT SALITA          Updated for Reverse A/C Entry
 	8    17/05/2024  Moin Bloch             Added Union For Invoice Entry
 	9    15/07/2024  Sahdev Saliya          Added (AccountingPeriod)
+	10   25/07/2024  Sahdev Saliya          Set JournalTypeNumber Order by desc
 
 --EXEC [GetAccountingDetailsViewpopupById] 3949,3472
 
@@ -41,8 +42,10 @@ BEGIN
 	SELECT @WopJounralTypeid = ID FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'WIP' AND JournalTypeName = 'WIP-Parts Issued'
 	SELECT @WOIJounralTypeid = ID FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'WOI'
 
-   BEGIN         
-		SELECT    JBH.[BatchName]    
+   BEGIN    
+   SELECT * INTO #MyTempTableWO FROM
+		(SELECT DISTINCT   
+		          JBH.[BatchName]    
                  ,JBD.[LineNumber]    
                  ,JBD.[GlAccountId]    
                  ,JBD.[GlAccountNumber]    
@@ -216,7 +219,76 @@ BEGIN
 		LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = WBD.CustomerId
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
       --WHERE WBD.ReferenceId = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId    
-	    WHERE WBD.[ReferenceId] = @WorkOrderId AND ISNULL(WBD.InvoiceId ,0) > 0;
+	    WHERE WBD.[ReferenceId] = @WorkOrderId AND ISNULL(WBD.InvoiceId ,0) > 0) A
+
+		SELECT   [BatchName],    
+                 [LineNumber],    
+                 [GlAccountId],    
+                 [GlAccountNumber],    
+                 [GlAccountName],
+                 [TransactionDate],    
+                 [EntryDate],    
+                 [ReferenceId],    
+                 [ReferenceName],    
+                 [MPNPartId],    
+                 [MPNName],    
+                 [PiecePNId],    
+                 [PiecePN],    
+                 [JournalTypeId],    
+				 [JournalTypeName],
+                 [IsDebit],    
+                 [DebitAmount],    
+                 [CreditAmount],    
+                 [CustomerId],    
+                 [CustomerName], 
+                 [InvoiceId],    
+                 [InvoiceName],    
+                 [ARControlNum],    
+                 [CustRefNumber],    
+                 [ManagementStructureId],    
+                 [ModuleName],    
+                 [Qty],    
+                 [UnitPrice],    
+                 [LaborHrs],    
+                 [DirectLaborCost],    
+                 [OverheadCost],    
+                 [MasterCompanyId],    
+                 [CreatedBy],    
+                 [UpdatedBy],    
+                 [CreatedDate],    
+                 [UpdatedDate],    
+                 [IsActive],    
+                 [IsDeleted],    
+				 AllowManualJE,    
+				 LastMSLevel,    
+				 AllMSlevels,    
+				 IsManualEntry,    
+				 DistributionSetupId,   
+				 DistributionName,    
+				 LegalEntityName,    
+				 JournalTypeNumber,
+				 CurrentNumber,
+				 StocklineId, 
+				 AcctingPeriod,
+				 StockLineNumber, 
+				 [JournalTypeId], 
+				 ExpertiseName,
+				 EmployeeName,
+			     level1,      
+			     level2,     
+			     level3,     
+			     level4,     
+			     level5,     
+			     level6,     
+			     level7,     
+			     level8,     
+			     level9,     
+			     level10,  
+				 Currency,
+				 [LotNumber],
+				 IsUpdated
+		FROM #MyTempTableWO
+		order by JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

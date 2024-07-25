@@ -1,7 +1,24 @@
-﻿
-/*
-EXEC [dbo].[GetViewExchangeQuoteById] 138
-*/
+﻿/*************************************************************           
+ ** File:   [GetViewExchangeQuoteById]           
+ ** Author:   
+ ** Description: This stored procedure is used to get ExchangeQuote View Data    
+ ** Purpose:         
+ ** Date:       
+          
+ ** PARAMETERS:           
+ @POId varchar(60)   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    2    07/25/2024  Bhargav Saliya Get ShippingTerms
+
+--EXEC [dbo].[GetViewExchangeQuoteById] 138
+**************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetViewExchangeQuoteById]
 	@ExchangeQuoteId bigint
 AS
@@ -28,7 +45,7 @@ BEGIN
 				(SELECT TOP 1 ISNULL(BillingAmount, 0) FROM DBO.ExchangeQuoteCharges MISC WHERE MISC.ExchangeQuoteId = @ExchangeQuoteId AND MISC.IsActive = 1 AND MISC.IsDeleted = 0) AS Misc,
 				custfc.CurrencyId, cur.Code AS CurrencyName, msd.EntityMSID AS EntityStructureId, msd.LastMSLevel, msd.AllMSlevels, soq.IsEnforceApproval AS IsEnforceApproval, soq.EnforceEffectiveDate AS EnforceEffectiveDate,
 				soq.EmployeeId, exchso.ExchangeSalesOrderNumber, exchso.ExchangeSalesOrderId, custAddress.Line1 AS CustomerAddress1, custAddress.Line2 AS CustomerAddress2, custAddress.City AS CustomerCity, custAddress.StateOrProvince AS CustomerState,
-				custAddress.PostalCode AS CustomerPostalCode, cconc.countries_name AS CustomerCountry,soq.CustomerServiceRepName AS CustomerSeviceRepName,soq.CreditTermName AS CreditTerms
+				custAddress.PostalCode AS CustomerPostalCode, cconc.countries_name AS CustomerCountry,soq.CustomerServiceRepName AS CustomerSeviceRepName,soq.CreditTermName AS CreditTerms,ISNULL(AllShipVia.ShippingTerms, '') AS ShippingTerms
 				FROM 
 				DBO.ExchangeQuote soq WITH (NOLOCK)
 				INNER JOIN DBO.ExchangeManagementStructureDetails msd WITH (NOLOCK) ON soq.ExchangeQuoteId = msd.ReferenceID AND msd.ModuleID = 58

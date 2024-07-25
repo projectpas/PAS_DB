@@ -35,7 +35,7 @@ BEGIN TRY
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
-		FROM [dbo].[VendorRFQROCharges] 
+		FROM [dbo].[VendorRFQROCharges]  WITH(NOLOCK)
 		WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND VendorRFQROPartRecordId = @VendorRFQROPartRecordId;
 	END
 
@@ -55,7 +55,7 @@ BEGIN TRY
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
 		[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
 		[ManufacturerId],[Manufacturer]
-		FROM [dbo].[VendorRFQROFreight] 
+		FROM [dbo].[VendorRFQROFreight]  WITH(NOLOCK)
 		WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND VendorRFQROPartRecordId = @VendorRFQROPartRecordId;
 
 	END
@@ -75,7 +75,7 @@ BEGIN TRY
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
-		FROM [dbo].[VendorRFQROCharges] 
+		FROM [dbo].[VendorRFQROCharges]  WITH(NOLOCK)
 		WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND VendorRFQROPartRecordId = @VendorRFQROPartRecordId;
 
 		-- Inserting RFQ RO Freight into RO Freight
@@ -92,7 +92,7 @@ BEGIN TRY
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
 		[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LineNum],
 		[ManufacturerId],[Manufacturer]
-		FROM [dbo].[VendorRFQROFreight] 
+		FROM [dbo].[VendorRFQROFreight]  WITH(NOLOCK)
 		WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND VendorRFQROPartRecordId = @VendorRFQROPartRecordId;
 	END
   

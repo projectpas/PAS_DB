@@ -24,8 +24,7 @@
 	8    17/05/2024  Moin Bloch             Added Union For Invoice Entry
 	9    15/07/2024  Sahdev Saliya          Added (AccountingPeriod)
 	10   25/07/2024  Sahdev Saliya          Set JournalTypeNumber Order by desc
-
-	10   25/07/2024  Moin Bloch             Added IsReversedJE
+	11   25/07/2024  Moin Bloch             Added IsReversedJE
 	
 --EXEC [GetAccountingDetailsViewpopupById] 3949,3472
 
@@ -291,7 +290,8 @@ BEGIN
 			     level10,  
 				 Currency,
 				 [LotNumber],
-				 IsUpdated
+				 IsUpdated,
+				 IsReversedJE
 		FROM #MyTempTableWO
 		order by JournalTypeNumber desc
   END    

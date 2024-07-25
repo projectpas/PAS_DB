@@ -12,10 +12,11 @@
  ** --   --------		 -------			--------------------------------            
     1    01-03-2024		Abhishek Jirawla		Created
 	2    23-07-2024     Sahdev Saliya           Added (AccountingPeriod And Set JournalTypeNumber Order by desc) 
+	3    25-07-2024     AMIT GHEDIYA            Updated for get manual asset entry get from stocklineId not from PoId.
 ************************/ 
 --[dbo].[GetAssetInventoryBatchAccountingDetailsById] 328
 -- =============================================
-CREATE PROCEDURE [dbo].[GetAssetInventoryBatchAccountingDetailsById]
+CREATE   PROCEDURE [dbo].[GetAssetInventoryBatchAccountingDetailsById]
 @ReferenceId bigint 
 AS
 BEGIN	
@@ -77,7 +78,7 @@ BEGIN
 		    ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
 		    ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
    FROM DBO.AssetInventory AI WITH(NOLOCK) 				
-		INNER JOIN DBO.StocklineBatchDetails  SBD WITH(NOLOCK) ON  AI.AssetInventoryId = SBD.PoId 	
+		INNER JOIN DBO.StocklineBatchDetails  SBD WITH(NOLOCK) ON  AI.AssetInventoryId = SBD.StocklineId 	
 		INNER JOIN DBO.CommonBatchDetails  CBD WITH(NOLOCK) ON  SBD.CommonJournalBatchDetailId = CBD.CommonJournalBatchDetailId 	
 		--INNER JOIN DBO.ManualJournalPaymentBatchDetails MJPBD WITH(NOLOCK) ON MJPBD.CommonJournalBatchDetailId = CBD.CommonJournalBatchDetailId
 		INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId
@@ -97,7 +98,7 @@ BEGIN
 		LEFT JOIN dbo.ManagementStructureLevel MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
 		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId		
-     WHERE SBD.PoId = @ReferenceId     
+     WHERE SBD.StocklineId = @ReferenceId     
 	 order by BD.JournalTypeNumber desc
   END    
   END TRY    

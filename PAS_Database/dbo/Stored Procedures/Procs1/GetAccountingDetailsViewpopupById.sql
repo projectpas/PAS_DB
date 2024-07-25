@@ -1,4 +1,5 @@
-﻿/*********************           
+﻿
+/***********************************************************************************************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -8,9 +9,9 @@
  ** PARAMETERS: @WorkOrderId bigint,@WorkOrderPartNumberId bigint
          
  ** RETURN VALUE:           
- **********************           
+ ***********************************************************************************************           
  ** Change History           
- **********************           
+ ***********************************************************************************************           
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/10/2022							Created
@@ -22,10 +23,11 @@
 	7    16/05/2024  HEMANT SALITA          Updated for Reverse A/C Entry
 	8    17/05/2024  Moin Bloch             Added Union For Invoice Entry
 	9    15/07/2024  Sahdev Saliya          Added (AccountingPeriod)
-
+	10   25/07/2024  Moin Bloch             Added IsReversedJE
+	
 --EXEC [GetAccountingDetailsViewpopupById] 3949,3472
 
-************************/
+*************************************************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetAccountingDetailsViewpopupById]    
 @WorkOrderId bigint,    
@@ -109,7 +111,8 @@ BEGIN
 			     UPPER(MSD.Level9Name) AS level9,     
 			     UPPER(MSD.Level10Name) AS level10,     
 				 JBD.[LotNumber],
-				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
+				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated,
+				 CASE WHEN BD.IsReversedJE = 1 THEN 1 ELSE 0 END AS IsReversedJE
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
 		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
 		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      
@@ -198,7 +201,8 @@ BEGIN
 			     UPPER(MSD.Level9Name) AS level9,     
 			     UPPER(MSD.Level10Name) AS level10,     
 				 JBD.[LotNumber],
-				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
+				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated,
+				 CASE WHEN BD.IsReversedJE = 1 THEN 1 ELSE 0 END AS IsReversedJE
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
 		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
 		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      

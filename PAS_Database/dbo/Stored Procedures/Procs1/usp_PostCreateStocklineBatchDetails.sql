@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [usp_PostCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -19,6 +18,7 @@
 	6    27/11/2023   Moin Bloch    Modify(Added LotId and LotNumber)
 	7    14/12/2023   Moin Bloch    Modify(Skip Record If Sockline Exists)
 	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
+	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -128,7 +128,8 @@ BEGIN
 		DECLARE @Shelf VARCHAR(100)='';
 		DECLARE @Desc VARCHAR(100);
 		DECLARE @CommonJournalBatchDetailId BIGINT=0;
-		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @AccountMSModuleId INT = 0;
+		DECLARE @AssetStockType VARCHAR(256)= 0;
 
 		IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 		BEGIN    
@@ -149,7 +150,16 @@ BEGIN
 		INSERT INTO #StocklinePostType ([StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType])
 		SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM @tbl_PostStocklineBatchType
 		
-		SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
+		SELECT @AssetStockType = [StockType] FROM #StocklinePostType;
+
+		IF(UPPER(@AssetStockType) = 'ASSET')
+		BEGIN
+			 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETACQUISITION')
+		END
+		ELSE
+		BEGIN
+			 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
+		END
 					  
 		SELECT @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
 		SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
@@ -158,7 +168,7 @@ BEGIN
 		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 		SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
 					  
-		SELECT @Amount = SUM(Amount) FROM #StocklinePostType
+		SELECT @Amount = SUM(Amount) FROM #StocklinePostType;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		DECLARE @IsRestrict BIT;
@@ -168,7 +178,7 @@ BEGIN
 			   		 
 		IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN
-			IF(@JournalTypeCode ='RPO')
+			IF(@JournalTypeCode ='RPO' OR @JournalTypeCode = 'AST-AC')
 			BEGIN
 				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
 				FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
@@ -246,10 +256,21 @@ BEGIN
 					SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
 					SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 
-					INSERT INTO [dbo].[BatchHeader]
-						([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
-					VALUES
-						(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'RPO');
+					IF(UPPER(@AssetStockType) = 'ASSET')
+					BEGIN
+						INSERT INTO [dbo].[BatchHeader]
+							([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
+						VALUES
+							(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETAC');
+					END
+					ELSE
+					BEGIN
+						INSERT INTO [dbo].[BatchHeader]
+							([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
+						VALUES
+							(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'RPO');
+					END
+					
             				          
 					SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 					SELECT @JlBatchHeaderId = SCOPE_IDENTITY()
@@ -504,7 +525,7 @@ BEGIN
 							END
 						END
 							
-						IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline') AND UPPER(@StockType) = 'ASSET')
+						IF(UPPER(@DistributionCode) = UPPER('ASSETACQUISITION') AND UPPER(@StockType) = 'ASSET')
 						BEGIN
 							SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 							,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
@@ -526,7 +547,7 @@ BEGIN
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
 							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
-							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOASSETINV') AND
+							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
 							DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 							SELECT TOP 1 @GlAccountId=SL.AcquiredGLAccountId,@GlAccountNumber=GL.AccountCode,@GlAccountName=GL.AccountName 
@@ -536,6 +557,7 @@ BEGIN
 
 							IF(ISNULL(@Amount,0) > 0)
 							BEGIN
+								-----Fixed Asset--------
 								INSERT INTO [dbo].[CommonBatchDetails]
 									(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 								VALUES
@@ -559,7 +581,7 @@ BEGIN
 								-----Goods Received Not Invoiced (GRNI)--------
 								SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
 								@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType 
-								FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPOGRNI') 
+								FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED') 
 								AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 								INSERT INTO [dbo].[CommonBatchDetails]

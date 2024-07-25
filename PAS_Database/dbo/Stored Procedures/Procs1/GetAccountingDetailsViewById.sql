@@ -19,6 +19,7 @@
 	4    30/11/2023  Moin Bloch           Added Lot Number 
 	5    10/05/2023  Moin Bloch           Added IsUpdated
 	6    16/07/2024  Sahdev Saliya        Added (AccountingPeriod)
+	7    25/07/2024  Sahdev Saliya        Set JournalTypeNumber Order by desc
 
 -- exec GetAccountingDetailsViewById 531   
 ************************/   
@@ -106,7 +107,8 @@ BEGIN
 	 LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = SBD.CustomerId  
 	 LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId  
 	 LEFT JOIN  [dbo].[BatchStatus] BS WITH(NOLOCK) ON BS.Id = BD.StatusId 
-     WHERE SBD.SalesOrderId = @SalesOrderId       
+     WHERE SBD.SalesOrderId = @SalesOrderId 
+	 order by BD.JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

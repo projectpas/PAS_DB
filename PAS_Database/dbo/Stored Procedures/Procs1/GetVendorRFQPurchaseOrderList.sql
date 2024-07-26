@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]  
+﻿/*************************************************************               
+ ** File:   [GetVendorRFQPurchaseOrderList]               
+ ** Author:   -    
+ ** Description: This stored procedure is used to GetVendorRFQPurchaseOrderList      
+ ** Purpose:             
+ ** Date: -            
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author			Change Description                
+ ** --   --------     -------			--------------------------------              
+	1    	-	         -              Created    
+	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
+
+**************************************************************/  
+
+CREATE   PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]  
 @PageNumber int = 1,  
 @PageSize int = 10,  
 @SortColumn varchar(50)=NULL,  
@@ -102,12 +118,9 @@ BEGIN
      VPOP.UnitCost,  
      VPOP.QuantityOrdered,
 	 VPOP.IsNoQuote,
-	  (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNoType',    
-       
-   (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNoType',    
-  
-   (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(SubWorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse  MAX(SubWorkOrderRefNumber.RefNumber) End)  as 'SubWorkOrderNoType',    
-  
+	 (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNoType',    
+	 (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNoType',    
+     (CASE WHEN COUNT(VPOP.VendorRFQPOPartRecordId) > 1 AND MAX(SubWorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse  MAX(SubWorkOrderRefNumber.RefNumber) End)  as 'SubWorkOrderNoType',    
      --VPOP.WorkOrderNo as 'WorkOrderNoType',  
      --VPOP.SubWorkOrderNo as 'SubWorkOrderNoType',  
      --VPOP.SalesOrderNo as 'SalesOrderNoType',  
@@ -130,23 +143,21 @@ BEGIN
       LEFT OUTER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = VPOP.VendorRFQPOPartRecordId 
 	  
 	   OUTER APPLY(    
-  SELECT case when COUNT(*) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'  
+  SELECT case when COUNT(1) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'  
    FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
    LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId  
    WHERE POPR.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
    and POPR.ModuleId = 1
-  -- group by popr.PurchaseOrderPartId,popr.ReferenceId,I.WorkOrderNum
   ) AS WorkOrderRefNumber 
     OUTER APPLY(    
-  SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'
+  SELECT  case when COUNT(1) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'
    FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
    LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId 
    WHERE POPR.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
    and POPR.ModuleId = 3
-  -- group by popr.PurchaseOrderPartId,popr.ReferenceId,S.SalesOrderNumber
   ) AS SalesOrderRefNumber 
     OUTER APPLY(    
-  SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(SWO.SubWorkOrderNo) end 'RefNumber'
+  SELECT  case when COUNT(1) > 1 then 'Multiple' else MAX(SWO.SubWorkOrderNo) end 'RefNumber'
    FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
    LEFT JOIN  [DBO].[SubWorkOrder] SWO WITH (NOLOCK) On POPR.ReferenceId = SWO.SubWorkOrderId  
    WHERE POPR.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
@@ -154,12 +165,8 @@ BEGIN
 		) AS SubWorkOrderRefNumber 
 
      WHERE ((PO.IsDeleted = @IsDeleted) AND (VPOP.IsDeleted = 0) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
-         --AND EMS.EmployeeId =  @EmployeeId   
       AND PO.MasterCompanyId = @MasterCompanyId   
-
 		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels 
-
-      --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)  
    ), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult FROM  Result  
     WHERE ((@GlobalFilter <>'' AND ((VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
@@ -178,10 +185,10 @@ BEGIN
      (WorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
      (SubWorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
      (SalesOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
-     --(Level1Type LIKE '%' +@mgmtStructure+'%') OR  
-     --(Level2Type LIKE '%' +@mgmtStructure+'%') OR  
-     --(Level3Type LIKE '%' +@mgmtStructure+'%') OR  
-     --(Level4Type LIKE '%' +@mgmtStructure+'%') OR  
+     (Level1Type LIKE '%' +@mgmtStructure+'%') OR  
+     (Level2Type LIKE '%' +@mgmtStructure+'%') OR  
+     (Level3Type LIKE '%' +@mgmtStructure+'%') OR  
+     (Level4Type LIKE '%' +@mgmtStructure+'%') OR  
      (PurchaseOrderNumberType LIKE '%' +@GlobalFilter+'%') OR  
      ([Status]  LIKE '%' +@GlobalFilter+'%')))  
      OR     

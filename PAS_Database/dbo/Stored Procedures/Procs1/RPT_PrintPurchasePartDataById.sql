@@ -29,7 +29,6 @@ BEGIN
 		
 		DECLARE @PurchaseOrderPartRecordId BIGINT,@POPart BIGINT,@TotalRecord BIGINT,
 			    @CurrencyCode VARCHAR(50),@ChargesBilingMethodId INT,@FreightBilingMethodId INT,
-				@ChargeFaltRate DECIMAL(18,2),@FreightFaltRate DECIMAL(18,2),
 				@FlatRateId INT = 3;
 		SELECT @POPart = ManagementStructureModuleId FROM ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'POHeader';
 
@@ -41,9 +40,7 @@ BEGIN
 
 		SELECT @CurrencyCode = CU.Code, 
 			   @ChargesBilingMethodId = PO.ChargesBilingMethodId, 
-			   @FreightBilingMethodId = PO.FreightBilingMethodId,
-			   @ChargeFaltRate = TotalCharges,
-			   @FreightFaltRate = TotalFreight
+			   @FreightBilingMethodId = PO.FreightBilingMethodId
 			FROM [DBO].[purchaseorder] PO
 			LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] MS WITH (NOLOCK) ON PO.ManagementStructureId = MS.MSDetailsId
 			LEFT JOIN [DBO].[ManagementStructurelevel] MS1 WITH (NOLOCK) ON MS.level1Id = MS1.id

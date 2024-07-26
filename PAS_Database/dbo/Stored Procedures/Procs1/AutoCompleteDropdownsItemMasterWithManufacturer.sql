@@ -14,8 +14,9 @@
  ** --   --------     -------			--------------------------------            
     1    15/02/2023   Rajesh Gami		Created  
 	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
+	3    07/26/2024   Vishal Suthar		Modified StartWith condition and removed join with stockline table to improve the performance
        
---EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,100,'',1  
+--EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 **************************************************************/
 CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
@@ -32,7 +33,7 @@ BEGIN
   
   IF(@IsActive = 1)  
    BEGIN    
-     SELECT DISTINCT TOP 50   
+     SELECT DISTINCT TOP 20   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,   
@@ -45,7 +46,7 @@ BEGIN
       Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
       Im.Figure,  
       Im.Item,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),  
+      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
       CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
         WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
         WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
@@ -55,13 +56,13 @@ BEGIN
       isnull(rp. RevisedPart,'')  AS RevisedPart,  
       Im.isSerialized AS IsSerialized,  
       Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
+      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification 
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
-     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))      
+     WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
       UNION       
      SELECT DISTINCT Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
@@ -74,7 +75,7 @@ BEGIN
       Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
       Im.Figure,  
       Im.Item,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),  
+      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
       CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
         WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
         WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
@@ -84,7 +85,7 @@ BEGIN
       isnull(rp. RevisedPart, '')  AS RevisedPart,  
       Im.isSerialized AS IsSerialized,  
       Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
+      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
@@ -95,7 +96,7 @@ BEGIN
    End  
    ELSE  
    BEGIN  
-    SELECT DISTINCT TOP 50   
+    SELECT DISTINCT TOP 20   
       Im.ItemMasterId,  
       Im.ItemMasterId AS Value,   
       Im.partnumber AS PartNumber,    
@@ -105,7 +106,7 @@ BEGIN
       Im.ManufacturerId,   
       Im.GLAccountId,  
       Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),  
+      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
       CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
         WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
         WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
@@ -115,13 +116,13 @@ BEGIN
       isnull(rp. RevisedPart, '')  AS RevisedPart,  
       Im.isSerialized AS IsSerialized,  
       Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
+      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 	 LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
       LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'  
+    WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
     UNION   
     SELECT DISTINCT TOP 20   
       Im.ItemMasterId,  
@@ -133,7 +134,7 @@ BEGIN
       Im.ManufacturerId,   
       Im.GLAccountId,  
       Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),  
+      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
       CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
         WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
         WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
@@ -143,7 +144,7 @@ BEGIN
       isnull(rp. RevisedPart, '')  AS RevisedPart,  
       Im.isSerialized AS IsSerialized,  
       Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId),
+      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
 	  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
       LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  

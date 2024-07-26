@@ -59,13 +59,13 @@ BEGIN
 					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 					 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
 					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-					 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
+					 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])  
 					SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
 					 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
 					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 					 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
 					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-					 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
+					 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
 					 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
@@ -158,13 +158,13 @@ BEGIN
 						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 						 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
 						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-						 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId])  
+						 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])  
 						SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
 						 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
 						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 						 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
 						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-						 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  
+						 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  , [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
 						 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  

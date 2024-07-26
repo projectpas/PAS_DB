@@ -57,8 +57,12 @@ BEGIN
   DECLARE @MSSID BIGINT=0;    
   DECLARE @CreatBy VARCHAR(100)='';    
   DECLARE @UpdatBy VARCHAR(100)='';    
-  DECLARE @POPID BIGINT=0;    
+  DECLARE @POPID BIGINT=0;  
+  DECLARE @TotalRecord BIGINT=0;
+  DECLARE @MinId BIGINT=0;
+  DECLARE @ItemMasterId BIGINT=0;
   DECLARE @id int;    
+
   IF(@Opr = 1)    
   BEGIN    
    IF NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId )    
@@ -170,28 +174,29 @@ BEGIN
                             FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPurchaseOrderId]=@VendorRFQPurchaseOrderId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0
 
 		SET @POPartID = IDENT_CURRENT('PurchaseOrderPart');
+
+			INSERT INTO [dbo].[PurchaseOrderFreight]
+			   ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
+			   ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
+			   ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
+			SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
+				,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
+			    ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
+			FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
+			LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART WITH(NOLOCK) ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
+			WHERE VRF.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND ISNULL(PART.[IsNoQuote], 0) = 0
 	
-		INSERT INTO [dbo].[PurchaseOrderFreight]
-           ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
-           ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
-           ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
-		SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
-			,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
-            ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
-		FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
-		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART WITH(NOLOCK) ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
-		WHERE VRF.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PART.[IsNoQuote], 0) = 0			
-	
-		INSERT INTO [dbo].[PurchaseOrderCharges]
-			([PurchaseOrderId] ,[PurchaseOrderPartRecordId] ,[ChargesTypeId] ,[VendorId] ,[Quantity] ,[MarkupPercentageId] ,[Description] ,[UnitCost] ,[ExtendedCost] ,[MasterCompanyId] ,[MarkupFixedPrice]
-			,[BillingMethodId] ,[BillingAmount] ,[BillingRate] ,[HeaderMarkupId] ,[RefNum] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[HeaderMarkupPercentageId] ,[VendorName]
-			,[ChargeName] ,[MarkupName] ,[ItemMasterId] ,[PartNumber] ,[ConditionId] ,[LineNum] ,[ManufacturerId] ,[Manufacturer] ,[UOMId])
-		SELECT @PID,@POPartID,VRC.[ChargesTypeId] ,VRC.[VendorId] ,VRC.[Quantity] ,VRC.[MarkupPercentageId] ,VRC.[Description] ,VRC.[UnitCost] ,VRC.[ExtendedCost] ,VRC.[MasterCompanyId] ,VRC.[MarkupFixedPrice]
-			,VRC.[BillingMethodId] ,VRC.[BillingAmount] ,VRC.[BillingRate] ,VRC.[HeaderMarkupId] ,VRC.[RefNum] ,VRC.[CreatedBy] ,VRC.[UpdatedBy] ,GETDATE(),GETDATE() ,VRC.[IsActive] ,VRC.[IsDeleted] ,VRC.[HeaderMarkupPercentageId] ,VRC.[VendorName]
-			,VRC.[ChargeName] ,VRC.[MarkupName] ,VRC.[ItemMasterId] ,VRC.[PartNumber] ,VRC.[ConditionId] ,VRC.[LineNum] ,VRC.[ManufacturerId] ,VRC.[Manufacturer] ,VRC.[UOMId]
-		FROM DBO.[VendorRFQPOCharges] VRC WITH(NOLOCK)
-		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PRPART WITH(NOLOCK) ON PRPART.VendorRFQPOPartRecordId = VRC.VendorRFQPOPartRecordId
-		WHERE VRC.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PRPART.[IsNoQuote], 0) = 0
+			INSERT INTO [dbo].[PurchaseOrderCharges]
+				([PurchaseOrderId] ,[PurchaseOrderPartRecordId] ,[ChargesTypeId] ,[VendorId] ,[Quantity] ,[MarkupPercentageId] ,[Description] ,[UnitCost] ,[ExtendedCost] ,[MasterCompanyId] ,[MarkupFixedPrice]
+				,[BillingMethodId] ,[BillingAmount] ,[BillingRate] ,[HeaderMarkupId] ,[RefNum] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[HeaderMarkupPercentageId] ,[VendorName]
+				,[ChargeName] ,[MarkupName] ,[ItemMasterId] ,[PartNumber] ,[ConditionId] ,[LineNum] ,[ManufacturerId] ,[Manufacturer] ,[UOMId])
+			SELECT @PID,@POPartID,VRC.[ChargesTypeId] ,VRC.[VendorId] ,VRC.[Quantity] ,VRC.[MarkupPercentageId] ,VRC.[Description] ,VRC.[UnitCost] ,VRC.[ExtendedCost] ,VRC.[MasterCompanyId] ,VRC.[MarkupFixedPrice]
+				,VRC.[BillingMethodId] ,VRC.[BillingAmount] ,VRC.[BillingRate] ,VRC.[HeaderMarkupId] ,VRC.[RefNum] ,VRC.[CreatedBy] ,VRC.[UpdatedBy] ,GETDATE(),GETDATE() ,VRC.[IsActive] ,VRC.[IsDeleted] ,VRC.[HeaderMarkupPercentageId] ,VRC.[VendorName]
+				,VRC.[ChargeName] ,VRC.[MarkupName] ,VRC.[ItemMasterId] ,VRC.[PartNumber] ,VRC.[ConditionId] ,VRC.[LineNum] ,VRC.[ManufacturerId] ,VRC.[Manufacturer] ,VRC.[UOMId]
+			FROM DBO.[VendorRFQPOCharges] VRC WITH(NOLOCK)
+			LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PRPART WITH(NOLOCK) ON PRPART.VendorRFQPOPartRecordId = VRC.VendorRFQPOPartRecordId
+			WHERE VRC.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND ISNULL(PRPART.[IsNoQuote], 0) = 0 
+
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;    
         
@@ -380,31 +385,33 @@ BEGIN
          VRFQP.[MasterCompanyId],VRFQP.[CreatedBy],VRFQP.[UpdatedBy],    
          GETDATE(),GETDATE(),VRFQP.[IsActive],VRFQP.[IsDeleted],NULL,VRFQP.[PromisedDate],VRFQP.VendorRFQPOPartRecordId,
 		 VRFQP.[TraceableTo], VRFQP.[TraceableToName], VRFQP.[TraceableToType], VRFQP.[TagTypeId], VRFQP.[TaggedByType], VRFQP.[TaggedBy], VRFQP.[TaggedByName], VRFQP.[TaggedByTypeName], VRFQP.[TagDate]
-                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId;   
+                            FROM dbo.VendorRFQPurchaseOrderPart VRFQP WITH(NOLOCK) WHERE VRFQP.[VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId AND ISNULL(VRFQP.[IsNoQuote], 0) = 0;   
 			
 		SET @POPartID = IDENT_CURRENT('PurchaseOrderPart');
 
-		INSERT INTO [dbo].[PurchaseOrderFreight]
-           ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
-           ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
-           ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
-		SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
-			,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
-            ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
-		FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
-		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART WITH(NOLOCK) ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
-		WHERE VRF.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PART.[IsNoQuote], 0) = 0		
 
-		INSERT INTO [dbo].[PurchaseOrderCharges]
-			([PurchaseOrderId] ,[PurchaseOrderPartRecordId] ,[ChargesTypeId] ,[VendorId] ,[Quantity] ,[MarkupPercentageId] ,[Description] ,[UnitCost] ,[ExtendedCost] ,[MasterCompanyId] ,[MarkupFixedPrice]
-			,[BillingMethodId] ,[BillingAmount] ,[BillingRate] ,[HeaderMarkupId] ,[RefNum] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[HeaderMarkupPercentageId] ,[VendorName]
-			,[ChargeName] ,[MarkupName] ,[ItemMasterId] ,[PartNumber] ,[ConditionId] ,[LineNum] ,[ManufacturerId] ,[Manufacturer] ,[UOMId])
-		SELECT @PID,@POPartID,VRC.[ChargesTypeId] ,VRC.[VendorId] ,VRC.[Quantity] ,VRC.[MarkupPercentageId] ,VRC.[Description] ,VRC.[UnitCost] ,VRC.[ExtendedCost] ,VRC.[MasterCompanyId] ,VRC.[MarkupFixedPrice]
-			,VRC.[BillingMethodId] ,VRC.[BillingAmount] ,VRC.[BillingRate] ,VRC.[HeaderMarkupId] ,VRC.[RefNum] ,VRC.[CreatedBy] ,VRC.[UpdatedBy] ,GETDATE(),GETDATE() ,VRC.[IsActive] ,VRC.[IsDeleted] ,VRC.[HeaderMarkupPercentageId] ,VRC.[VendorName]
-			,VRC.[ChargeName] ,VRC.[MarkupName] ,VRC.[ItemMasterId] ,VRC.[PartNumber] ,VRC.[ConditionId] ,VRC.[LineNum] ,VRC.[ManufacturerId] ,VRC.[Manufacturer] ,VRC.[UOMId]
-		FROM DBO.[VendorRFQPOCharges] VRC WITH(NOLOCK)
-		LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PRPART WITH(NOLOCK) ON PRPART.VendorRFQPOPartRecordId = VRC.VendorRFQPOPartRecordId
-		WHERE VRC.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId AND ISNULL(PRPART.[IsNoQuote], 0) = 0
+			INSERT INTO [dbo].[PurchaseOrderFreight]
+			   ([PurchaseOrderId],[PurchaseOrderPartRecordId],[ItemMasterId],[PartNumber] ,[ShipViaId],[ShipViaName],[MarkupPercentageId] ,[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId]
+			   ,[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName]
+			   ,[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
+			SELECT @PID,@POPartID,VRF.ItemMasterId,VRF.PartNumber,VRF.ShipViaId,VRF.ShipViaName,VRF.MarkupPercentageId,VRF.[MarkupFixedPrice],VRF.[HeaderMarkupId],VRF.[BillingMethodId]
+				,VRF.[BillingRate],VRF.[BillingAmount],VRF.[HeaderMarkupPercentageId],VRF.[Weight],VRF.[UOMId],VRF.[UOMName],VRF.[Length],VRF.[Width],VRF.[Height],VRF.[DimensionUOMId],VRF.[DimensionUOMName],VRF.[CurrencyId],VRF.[CurrencyName]
+			    ,VRF.[Amount],VRF.[Memo],VRF.[MasterCompanyId],VRF.[CreatedBy],VRF.[UpdatedBy],GETDATE(),GETDATE(),VRF.[IsActive],VRF.[IsDeleted],VRF.[LineNum],VRF.[ManufacturerId],VRF.[Manufacturer]
+			FROM DBO.[VendorRFQPOFreight] VRF WITH(NOLOCK) 
+			LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PART WITH(NOLOCK) ON PART.VendorRFQPOPartRecordId = VRF.VendorRFQPOPartRecordId
+			WHERE VRF.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND ISNULL(PART.[IsNoQuote], 0) = 0
+	
+			INSERT INTO [dbo].[PurchaseOrderCharges]
+				([PurchaseOrderId] ,[PurchaseOrderPartRecordId] ,[ChargesTypeId] ,[VendorId] ,[Quantity] ,[MarkupPercentageId] ,[Description] ,[UnitCost] ,[ExtendedCost] ,[MasterCompanyId] ,[MarkupFixedPrice]
+				,[BillingMethodId] ,[BillingAmount] ,[BillingRate] ,[HeaderMarkupId] ,[RefNum] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted] ,[HeaderMarkupPercentageId] ,[VendorName]
+				,[ChargeName] ,[MarkupName] ,[ItemMasterId] ,[PartNumber] ,[ConditionId] ,[LineNum] ,[ManufacturerId] ,[Manufacturer] ,[UOMId])
+			SELECT @PID,@POPartID,VRC.[ChargesTypeId] ,VRC.[VendorId] ,VRC.[Quantity] ,VRC.[MarkupPercentageId] ,VRC.[Description] ,VRC.[UnitCost] ,VRC.[ExtendedCost] ,VRC.[MasterCompanyId] ,VRC.[MarkupFixedPrice]
+				,VRC.[BillingMethodId] ,VRC.[BillingAmount] ,VRC.[BillingRate] ,VRC.[HeaderMarkupId] ,VRC.[RefNum] ,VRC.[CreatedBy] ,VRC.[UpdatedBy] ,GETDATE(),GETDATE() ,VRC.[IsActive] ,VRC.[IsDeleted] ,VRC.[HeaderMarkupPercentageId] ,VRC.[VendorName]
+				,VRC.[ChargeName] ,VRC.[MarkupName] ,VRC.[ItemMasterId] ,VRC.[PartNumber] ,VRC.[ConditionId] ,VRC.[LineNum] ,VRC.[ManufacturerId] ,VRC.[Manufacturer] ,VRC.[UOMId]
+			FROM DBO.[VendorRFQPOCharges] VRC WITH(NOLOCK)
+			LEFT JOIN dbo.[VendorRFQPurchaseOrderPart] PRPART WITH(NOLOCK) ON PRPART.VendorRFQPOPartRecordId = VRC.VendorRFQPOPartRecordId
+			WHERE VRC.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId AND ISNULL(PRPART.[IsNoQuote], 0) = 0
+									
     
      UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;             
     

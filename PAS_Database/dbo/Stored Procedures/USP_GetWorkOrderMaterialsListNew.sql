@@ -137,7 +137,7 @@ SET NOCOUNT ON
 				CREATE TABLE #finalMaterialListResult
 				(
 					[RecordID] BIGINT NOT NULL IDENTITY, 						 
-					[PartNumber] [varchar](50) NULL,
+					[PartNumber] [varchar](200) NULL,
 					[PartDescription] [varchar](1000) NULL,
 					[StocklinePartNumber] [varchar](50) NULL,
 					[StocklinePartDescription] [varchar](500)  NULL,
@@ -147,7 +147,7 @@ SET NOCOUNT ON
 					[WOQMaterialKitMappingId] [bigint] NULL, 	
 					[KitId] [bigint] NULL,
 					[ItemGroup] [varchar](250) NULL,
-					[ManufacturerName] [varchar](50) NULL,
+					[ManufacturerName] [varchar](200) NULL,
 					[WorkOrderNumber] [varchar](500) NULL,
 					[SubWorkOrderNo] [varchar](100) NULL,					
 					[SalesOrder] [varchar](20) NULL,

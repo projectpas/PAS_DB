@@ -72,13 +72,16 @@
     [IsTraveler]                 BIT             NULL,
     [AllowInvoiceBeforeShipping] BIT             NULL,
     [WOFPrintDate]               DATETIME2 (7)   NULL,
-    [CurrentSerialNumber]        BIGINT          NULL,
+    [CurrentSerialNumber]        VARCHAR (100)   NULL,
     [StocklineCost]              DECIMAL (18, 2) NULL,
     [TendorStocklineCost]        DECIMAL (18, 2) NULL,
     [RevisedSerialNumber]        VARCHAR (50)    NULL,
     [IsROCreated]                BIT             NULL,
+    [PartNumber]                 VARCHAR (200)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

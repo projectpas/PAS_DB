@@ -16,9 +16,10 @@
     [ShowAsTopMenu]      BIT             DEFAULT ((0)) NULL,
     [NewModuleIcon]      VARCHAR (100)   NULL,
     [NewMenuName]        NVARCHAR (1000) NULL,
-    CONSTRAINT [PK__ModuleHi__3214EC072ABE11CD] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK__ModuleHie__Paren__68536ACF] FOREIGN KEY ([ParentId]) REFERENCES [dbo].[ModuleHierarchyMaster] ([Id])
+    CONSTRAINT [tmp_ms_xx_constraint_PK__ModuleHi__3214EC072ABE11CD1] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
+
+
 
 
 

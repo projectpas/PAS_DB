@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
+﻿/*************************************************************               
+ ** File:   [SP_GetVendorRFQPNViewList]               
+ ** Author:   -    
+ ** Description: This stored procedure is used to GetVendorRFQPNViewList      
+ ** Purpose:             
+ ** Date: -            
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author			Change Description                
+ ** --   --------     -------			--------------------------------              
+	1    	-	         -              Created    
+	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
+
+**************************************************************/  
+
+CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
 @PageNumber int = 1,  
 @PageSize int = 10,  
 @SortColumn varchar(50)=NULL,  
@@ -43,7 +59,7 @@ SET NOCOUNT ON;
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED   
   DECLARE @RecordFrom int;  
   DECLARE @IsActive bit=1  
-  DECLARE @Count Int;  
+  DECLARE @Count Int,@TotalCount int = 0;  
   SET @RecordFrom = (@PageNumber-1)*@PageSize;  
   
   IF @IsDeleted IS NULL  
@@ -68,112 +84,47 @@ SET NOCOUNT ON;
   END    
   DECLARE @MSModuleID INT = 20; -- Vendor RFQ PO Management Structure Module ID  
   BEGIN TRY  
-  BEGIN TRANSACTION  
-  BEGIN   
+	DECLARE @OpenDateConverted datetime = NULL;
+	DECLARE @CreatedDateConverted datetime = NULL;
+	DECLARE @NeedByDateConverted datetime = NULL;
+	DECLARE @PromisedDateConverted datetime = NULL;
+
+	IF (@OpenDate IS NOT NULL AND ISDATE(@OpenDate) = 1)
+		SET @OpenDateConverted = CAST(@OpenDate AS datetime);
+
+	IF (@CreatedDate IS NOT NULL AND ISDATE(@CreatedDate) = 1)
+		SET @CreatedDateConverted = CAST(@CreatedDate AS datetime);
+
+	IF (@NeedByDate IS NOT NULL AND ISDATE(@NeedByDate) = 1)
+		SET @NeedByDateConverted = CAST(@NeedByDate AS datetime);
+
+	IF (@PromisedDate IS NOT NULL AND ISDATE(@PromisedDate) = 1)
+		SET @PromisedDateConverted = CAST(@PromisedDate AS datetime);
+		
+  --BEGIN TRANSACTION  
+  --BEGIN   
   
   ;WITH Main AS(           
        SELECT PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,  
      PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.[Status],  
-     PO.Requisitioner AS RequestedBy--,   
-     --B.UnitCost,  
-     --A.QuantityOrdered  
+     PO.Requisitioner AS RequestedBy
      FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)  
-     --INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId       
      INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId  
      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
      INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
       WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
-        --AND EMS.EmployeeId =  @EmployeeId   
-      AND PO.MasterCompanyId = @MasterCompanyId   
-      --AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)  
-   ),   
-     
-   DatesCTE AS(  
-       Select PO.VendorRFQPurchaseOrderId,   
-       A.NeedByDate,  
-       (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse A.NeedByDate End)  as 'NeedByDateType',  
-       A.PromisedDate,  
-       (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse A.PromisedDate End)  as 'PromisedDateType'  
-       from VendorRFQPurchaseOrder PO WITH (NOLOCK)  
-       Left Join VendorRFQPurchaseOrderPart SP WITH (NOLOCK) On PO.VendorRFQPurchaseOrderId = SP.VendorRFQPurchaseOrderId  
-       Outer Apply(  
-        SELECT   
-           STUFF((SELECT ',' + CONVERT(VARCHAR, NeedByDate, 101)--CAST(CustomerRequestDate as varchar)  
-            FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK) Where S.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId  
-            AND S.IsActive = 1 AND S.IsDeleted = 0  
-            FOR XML PATH('')), 1, 1, '') NeedByDate,  
-           STUFF((SELECT ',' + CONVERT(VARCHAR, PromisedDate, 101)--CAST(PromisedDate as varchar)  
-            FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK) Where S.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId  
-            AND S.IsActive = 1 AND S.IsDeleted = 0  
-            FOR XML PATH('')), 1, 1, '') PromisedDate             
-       ) A  
-       Where ((PO.IsDeleted = @IsDeleted) AND (SP.IsDeleted = 0) and (@StatusID is null or PO.StatusId = @StatusID))  
-         
-       Group By PO.VendorRFQPurchaseOrderId, A.NeedByDate, A.PromisedDate  
-   ),PartCTE AS(  
-         Select SO.VendorRFQPurchaseOrderId,(Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber   
-         from VendorRFQPurchaseOrder SO WITH (NOLOCK)  
-         Left Join VendorRFQPurchaseOrderPart SP WITH (NOLOCK) On SO.VendorRFQPurchaseOrderId = SP.VendorRFQPurchaseOrderId  
-         Outer Apply(  
-          SELECT   
-             STUFF((SELECT ',' + I.partnumber  
-              FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK)  
-              Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-              Where S.VendorRFQPurchaseOrderId = SO.VendorRFQPurchaseOrderId  
-              AND S.IsActive = 1 AND S.IsDeleted = 0  
-              FOR XML PATH('')), 1, 1, '') PartNumber  
-         ) A  
-         Where ((SO.IsDeleted = @IsDeleted) and (@StatusID is null or so.StatusId = @StatusID))  
-         AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-         Group By SO.VendorRFQPurchaseOrderId, A.PartNumber  
-         ),  
-      PartDescCTE AS(  
-      Select SO.VendorRFQPurchaseOrderId, (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PartDescriptionType', A.PartDescription   
-      from VendorRFQPurchaseOrder SO WITH (NOLOCK)  
-      Left Join VendorRFQPurchaseOrderPart SP WITH (NOLOCK) On SO.VendorRFQPurchaseOrderId = SP.VendorRFQPurchaseOrderId  
-      Outer Apply(  
-       SELECT   
-          STUFF((SELECT ', ' + I.PartDescription  
-           FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK)  
-           Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-           Where S.VendorRFQPurchaseOrderId = SO.VendorRFQPurchaseOrderId  
-           AND S.IsActive = 1 AND S.IsDeleted = 0  
-           FOR XML PATH('')), 1, 1, '') PartDescription  
-      ) A   
-      Where ((SO.IsDeleted = @IsDeleted) and (@StatusID is null or SO.StatusId = @StatusID))  
-      AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Group By SO.VendorRFQPurchaseOrderId,A.PartDescription  
-  
-        
-     
-   ),  
-   LastMSLevelCTE AS(  
-   Select SO.VendorRFQPurchaseOrderId, (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse A.LastMSLevel End)  as 'LastMSLevel', A.LastMSLevel  as lastMSLevelType  
-      from VendorRFQPurchaseOrder SO WITH (NOLOCK)  
-      Left Join VendorRFQPurchaseOrderPart SP WITH (NOLOCK) On SO.VendorRFQPurchaseOrderId = SP.VendorRFQPurchaseOrderId  
-      Outer Apply(  
-       SELECT   
-          STUFF((SELECT CASE WHEN LEN(MSD.LastMSLevel) >0 then ',' ELSE '' END + MSD.LastMSLevel  
-           FROM VendorRFQPurchaseOrderPart S WITH (NOLOCK)  
-           LEFT JOIN dbo.PurchaseOrderManagementStructureDetails MSD ON MSD.ModuleID = 21 AND MSD.ReferenceID = S.VendorRFQPOPartRecordId  
-           Where S.VendorRFQPurchaseOrderId = SO.VendorRFQPurchaseOrderId  
-           AND S.IsActive = 1 AND S.IsDeleted = 0  
-           FOR XML PATH('')), 1, 1, '') LastMSLevel  
-      ) A   
-      Where ((SO.IsDeleted = @IsDeleted) and (@StatusID is null or SO.StatusId = @StatusID))  
-      AND SP.IsActive = 1 AND SP.IsDeleted = 0  
-      Group By SO.VendorRFQPurchaseOrderId,A.LastMSLevel  
-   ),result as(  
-   SELECT DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
+      AND PO.MasterCompanyId = @MasterCompanyId )   
+   
+   SELECT 
+	DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
      M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],  
      M.RequestedBy AS RequestedBy,  
-     --M.UnitCost,  
-     --M.QuantityOrdered,  
      (Select SUM(QuantityOrdered) as QuantityOrdered from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
      Where VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND IsDeleted=0 AND IsActive=1) as QuantityOrdered,  
      (Select SUM(UnitCost) as UnitCost from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
      Where VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND IsDeleted=0 AND IsActive=1) as UnitCost,  
-     PC.PartNumber,PDC.PartDescription,PC.PartNumberType,PDC.PartDescriptionType,  
+	 (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse SP.PartDescription End)  as 'PartDescription',
+	 (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse SP.PartDescription End)  as 'PartDescriptionType',
      (Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
       FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
       WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1 ) > 1 --AND LEN(isnull(SP.StockType,'')) >0  
@@ -194,22 +145,7 @@ SET NOCOUNT ON;
       WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1 ) > 1 --AND LEN(isnull(SP.Condition,'')) >0  
       )Then 'Multiple' ELse  isnull(SP.Condition,'')   End)  
       as 'ConditionType',  
-        
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1 AND LEN(isnull(SP.WorkOrderNo,'')) >0) > 1   
-      --) Then 'Multiple' ELse  isnull(SP.WorkOrderNo,'')   End)  
-      --as 'WorkOrderNoType',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1 AND LEN(isnull(SP.SubWorkOrderNo,'')) >0) > 1   
-      --) Then 'Multiple' ELse  isnull(SP.SubWorkOrderNo,'')   End)  
-      --as 'SubWorkOrderNoType',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1 AND LEN(isnull(SP.SalesOrderNo,'')) >0) > 1   
-      --) Then 'Multiple' ELse  isnull(SP.SalesOrderNo,'')   End)  
-      --as 'SalesOrderNoType',  
+
       (Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
       FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
       WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1) > 1 --AND LEN(isnull(SP.PurchaseOrderNumber,'')) >0  
@@ -220,163 +156,140 @@ SET NOCOUNT ON;
       WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1) > 1  --AND LEN(isnull(SP.Memo,'')) >0  
       ) Then 'Multiple' ELse  isnull(SP.Memo,'')   End)  
       as 'MemoType',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId ) > 1  --AND LEN(isnull(SP.Level1,'')) >0  
-      --) Then 'Multiple' ELse  isnull(SP.Level1,'')   End)  
-      --as 'Level1Type',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level2,'')) >0) > 1    
-      -- ) Then 'Multiple' ELse  isnull(SP.Level2,'')   End)  
-      --as 'Level2Type',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level3,'')) >0) > 1    
-      --) Then 'Multiple' ELse  isnull(SP.Level3,'')   End)  
-      --as 'Level3Type',  
-      --(Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      --FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND LEN(isnull(SP.Level4,'')) >0) > 1    
-      -- ) Then 'Multiple' ELse  isnull(SP.Level4,'')   End)  
-      --as 'Level4Type',  
       '' AS Level1Type,  
       '' AS Level2Type,  
       '' AS Level3Type,  
-      '' AS Level4Type,  
-      (Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
-      FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
-      --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = VRPP.VendorRFQPurchaseOrderId  
-      WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1) > 1  --AND LEN(isnull(SP.Level1,'')) >0  
-      ) Then 'Multiple' ELse  isnull(MSD.LastMSLevel,'')   End)  
-      as 'LastMSLevel',  
+      '' AS Level4Type,
       (Case When ((SELECT Count(VRPP.VendorRFQPurchaseOrderId)   
       FROM  dbo.VendorRFQPurchaseOrderPart VRPP   
       WHERE VRPP.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND VRPP.IsDeleted=0 AND VRPP.IsActive=1) > 1  --AND LEN(isnull(SP.Level1,'')) >0  
       ) Then 'Multiple' ELse  isnull(MSD.AllMSlevels,'')   End)  
-      as 'AllMSlevels',  
-      D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,LMC.LastMSLevelType  
-      --,MSD.LastMSLevel,MSD.AllMSlevels  
-     --,MFC.Manufacturer,MFC.ManufacturerType,PRC.Priority,PRC.PriorityType,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType  
-     --,conC.Condition,conC.ConditionType,woc.WorkOrderNo,woc.WorkOrderNoType,SubWorkOrderNo,SubWorkOrderNoType,SalesOrderNo,SalesOrderNoType,  
-     --PurchaseOrderNumber,PurchaseOrderNumberType  
-       , (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNoType',    
-       
-   (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNoType',    
-  
-   (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(SubWorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse  MAX(SubWorkOrderRefNumber.RefNumber) End)  as 'SubWorkOrderNoType'  
-
-
-     from Main M  
-     LEFT JOIN PartCTE PC ON PC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId  
-     LEFT JOIN PartDescCTE PDC ON PDC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId  
+      as 'AllMSlevels',
+	  --SP.NeedByDate as 'NeedByDateType',
+	  COUNT(SP.VendorRFQPurchaseOrderId) as VendorRFQPurchaseOrderIdCount,
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.NeedByDate, 101)  End)  as 'NeedByDate',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.NeedByDate, 101) End)  as 'NeedByDateType',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.PromisedDate, 101) End)  as 'PromisedDate',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.PromisedDate, 101) End)  as 'PromisedDateType',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse SP.PartNumber End)  as 'PartNumberType',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse SP.PartNumber End)  as 'PartNumber',   
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MSD.LastMSLevel End)  as 'LastMSLevel',
+	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MSD.LastMSLevel End)  as 'LastMSLevelType',
+      (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNoType',    
+	  (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNoType',    
+	  (CASE WHEN COUNT(SP.VendorRFQPOPartRecordId) > 1 AND MAX(SubWorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse  MAX(SubWorkOrderRefNumber.RefNumber) End)  as 'SubWorkOrderNoType'  
+     INTO #TEMPRes
+	 from Main M  
      LEFT JOIN VendorRFQPurchaseOrderPart SP ON SP.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId AND SP.IsDeleted=0 AND SP.IsActive=1  
-     LEFT JOIN DatesCTE D ON D.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId   
-     LEFT JOIN dbo.PurchaseOrderManagementStructureDetails MSD ON MSD.ModuleID = 21 AND MSD.ReferenceID = SP.VendorRFQPOPartRecordId  
-     LEFT JOIN LastMSLevelCTE LMC ON LMC.VendorRFQPurchaseOrderId=M.VendorRFQPurchaseOrderId  
-
-
-
+     LEFT JOIN dbo.PurchaseOrderManagementStructureDetails MSD ON MSD.ModuleID = 21 AND MSD.ReferenceID = SP.VendorRFQPOPartRecordId 
 	   OUTER APPLY(    
-         SELECT case when COUNT(*) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'  
+         SELECT case when COUNT(1) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'  
           FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
           LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId  
           WHERE POPR.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
           and POPR.ModuleId = 1
-         -- group by popr.PurchaseOrderPartId,popr.ReferenceId,I.WorkOrderNum
          ) AS WorkOrderRefNumber 
            OUTER APPLY(    
-         SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'
+         SELECT  case when COUNT(1) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'
           FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
           LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId 
           WHERE POPR.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
           and POPR.ModuleId = 3
-         -- group by popr.PurchaseOrderPartId,popr.ReferenceId,S.SalesOrderNumber
          ) AS SalesOrderRefNumber 
            OUTER APPLY(    
-         SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(SWO.SubWorkOrderNo) end 'RefNumber'
+         SELECT  case when COUNT(1) > 1 then 'Multiple' else MAX(SWO.SubWorkOrderNo) end 'RefNumber'
           FROM dbo.VendorRFQPurchaseOrderPartReference popr WITH (NOLOCK) 
           LEFT JOIN  [DBO].[SubWorkOrder] SWO WITH (NOLOCK) On POPR.ReferenceId = SWO.SubWorkOrderId  
           WHERE POPR.VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId 
           and POPR.ModuleId = 5
-		) AS SubWorkOrderRefNumber 
+		) AS SubWorkOrderRefNumber   
+    
+     GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
+     M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,  
+     RequestedBy,SP.PartNumber,SP.PartDescription, 
+     SP.StockType ,
+	 SP.VendorRFQPurchaseOrderId
+     ,SP.Manufacturer,SP.Priority,SP.NeedByDate,SP.PromisedDate,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4  
+     ,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId  
 
-
-  
+   --CTE_Count AS (Select COUNT(VendorRFQPurchaseOrderId) AS NumberOfItems FROM result)  
+   --SELECT @Count = COUNT(VendorRFQPurchaseOrderId) FROM #TempResult 
+   --select * from #TEMPRes
+  SELECT * INTO #TEMPData FROM #TEMPRes
     WHERE ((@GlobalFilter <>'' AND ((VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
-     (M.CreatedBy LIKE '%' +@GlobalFilter+'%') OR  
-     (M.UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
+     (CreatedBy LIKE '%' +@GlobalFilter+'%') OR  
+     (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR   
      (VendorName LIKE '%' +@GlobalFilter+'%') OR    
      (RequestedBy LIKE '%' +@GlobalFilter+'%') OR  
      (PartNumberType LIKE '%' +@GlobalFilter+'%') OR  
      (PartDescriptionType LIKE '%' +@GlobalFilter+'%') OR  
-     (SP.StockType LIKE '%' +@GlobalFilter+'%') OR  
-     (Manufacturer LIKE '%' +@GlobalFilter+'%') OR  
-     (Priority LIKE '%' +@GlobalFilter+'%') OR  
-     (Condition LIKE '%' +@GlobalFilter+'%') OR  
+     (StockTypeType LIKE '%' +@GlobalFilter+'%') OR  
+     (ManufacturerType LIKE '%' +@GlobalFilter+'%') OR  
+     (PriorityType LIKE '%' +@GlobalFilter+'%') OR  
+     (ConditionType LIKE '%' +@GlobalFilter+'%') OR  
      (UnitCost LIKE '%' +@GlobalFilter+'%') OR  
      (QuantityOrdered LIKE '%' +@GlobalFilter+'%') OR  
-     (WorkOrderNo LIKE '%' +@GlobalFilter+'%') OR  
-     (SubWorkOrderNo LIKE '%' +@GlobalFilter+'%') OR  
-     (SalesOrderNo LIKE '%' +@GlobalFilter+'%') OR  
-     (PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
+     (WorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
+     (SubWorkOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
+     (SalesOrderNoType LIKE '%' +@GlobalFilter+'%') OR  
+     (PurchaseOrderNumberType LIKE '%' +@GlobalFilter+'%') OR  
      (NeedByDateType LIKE '%' +@GlobalFilter+'%') OR  
      (PromisedDateType LIKE '%' +@GlobalFilter+'%') OR  
      ([Status]  LIKE '%' +@GlobalFilter+'%')))  
      OR     
      (@GlobalFilter='' AND (ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber+'%') AND   
-     (ISNULL(@CreatedBy,'') ='' OR M.CreatedBy LIKE '%' + @CreatedBy + '%') AND  
-     (ISNULL(@UpdatedBy,'') ='' OR M.UpdatedBy LIKE '%' + @UpdatedBy + '%') AND       
+     (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND  
+     (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND       
      (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND  
      (ISNULL(@RequestedBy,'') ='' OR RequestedBy LIKE '%' + @RequestedBy + '%') AND  
      (ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status + '%') AND           
-     (ISNULL(@OpenDate,'') ='' OR CAST(M.OpenDate AS Date) = CAST(@OpenDate AS date)) AND           
-     (ISNULL(@CreatedDate,'') ='' OR CAST(M.CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND  
+     (ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND           
+     (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND  
      (ISNULL(@NeedByDate,'') ='' OR NeedByDateType LIKE '%' + @NeedByDate + '%') AND  
      (ISNULL(@PromisedDate,'') ='' OR PromisedDateType LIKE '%' + @PromisedDate + '%') AND  
-     (ISNULL(@PartNumber,'') ='' OR PC.PartNumber LIKE '%' + @PartNumber + '%') AND  
-     (ISNULL(@PartDescription,'') ='' OR PDC.PartDescription LIKE '%' + @PartDescription + '%') AND  
-     (ISNULL(@StockType,'') ='' OR StockType LIKE '%' + @StockType + '%') AND  
-     (ISNULL(@Manufacturer,'') ='' OR Manufacturer LIKE '%' + @Manufacturer + '%') AND  
-     (ISNULL(@Priority,'') ='' OR Priority LIKE '%' + @Priority + '%') AND  
-     (ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND  
+     (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND  
+     (ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND  
+     (ISNULL(@StockType,'') ='' OR StockTypeType LIKE '%' + @StockType + '%') AND  
+     (ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND  
+     (ISNULL(@Priority,'') ='' OR PriorityType LIKE '%' + @Priority + '%') AND  
+     (ISNULL(@Condition,'') ='' OR ConditionType LIKE '%' + @Condition + '%') AND  
      (ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND  
      (ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND  
-     (ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNo LIKE '%' + @WorkOrderNo + '%') AND  
-     (ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNo LIKE '%' + @SubWorkOrderNo + '%') AND  
-     (ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNo LIKE '%' + @SalesOrderNo + '%') AND  
-     (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND  
-     (ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND  
-     (ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @mgmtStructure + '%') AND  
-     (ISNULL(@Level2Type,'') ='' OR Level2 LIKE '%' + @Level2Type + '%') AND  
-     (ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND  
-     (ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
-     (ISNULL(@UpdatedDate,'') ='' OR CAST(M.UpdatedDate AS date)=CAST(@UpdatedDate AS date)))  
-       )  
-       GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
-     M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,  
-     RequestedBy,PC.PartNumber,PDC.PartDescription,pc.PartNumberType,pdc.PartDescriptionType,  
-     SP.StockType  
-     ,SP.Manufacturer,SP.Priority,D.NeedByDate,D.PromisedDate,D.NeedByDateType,D.PromisedDateType,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4  
-     ,SP.Condition,SP.WorkOrderNo,SP.SubWorkOrderNo,SP.SalesOrderNo,SP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels,LMC.LastMSLevelType--,Level1,Level2,Level3,Level4,Memo--,PurchaseOrderId  
-   ),   
-   CTE_Count AS (Select COUNT(VendorRFQPurchaseOrderId) AS NumberOfItems FROM result)  
-   --SELECT @Count = COUNT(VendorRFQPurchaseOrderId) FROM #TempResult     
-  
+     (ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNoType LIKE '%' + @WorkOrderNo + '%') AND  
+     (ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND  
+     (ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND  
+     (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND  
+     (ISNULL(@Memo,'') ='' OR MemoType LIKE '%' + @Memo + '%') AND  
+     --(ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @mgmtStructure + '%') AND  
+     --(ISNULL(@Level2Type,'') ='' OR Level2 LIKE '%' + @Level2Type + '%') AND  
+     --(ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND  
+     --(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
+     (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))) )
+	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #TEMPData)
    SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
      ,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,  
-     ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
+     ManufacturerType,PriorityType,
+	 NeedByDate,
+	 PromisedDate,
+	 NeedByDateType,
+	 PromisedDateType,
+	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
        
-     ,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType  
-     FROM result,CTE_Count  
+     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType ,VendorRFQPurchaseOrderIdCount 
+     FROM #TEMPData  
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
      ,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,  
-     ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
+     ManufacturerType,PriorityType,
+	 NeedByDate,
+	 PromisedDate,
+	 NeedByDateType,
+	 PromisedDateType,
+	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType 
        
-     ,NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType  
+     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType,VendorRFQPurchaseOrderIdCount  
    ORDER BY    
    CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,  
    CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,  
@@ -432,13 +345,21 @@ SET NOCOUNT ON;
   
    OFFSET @RecordFrom ROWS   
    FETCH NEXT @PageSize ROWS ONLY  
-  END  
-  COMMIT  TRANSACTION  
+  --END  
+  --COMMIT  TRANSACTION  
  END TRY      
  BEGIN CATCH        
   IF @@trancount > 0  
    PRINT 'ROLLBACK'  
-   ROLLBACK TRAN;  
+   --ROLLBACK TRAN;  
+   SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             , @AdhocComments     VARCHAR(150)    = 'GetVendorRFQPurchaseOrderList'   

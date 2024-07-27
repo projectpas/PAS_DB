@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12-10-2022  Deep Patel     Created
+    2    26-07-2024  Shrey Chandegara     Modified For Enter value of ChargesBilingMethodId
 -- EXEC UpdateRepairOrderChargeNameColumnsWithId 8,0
 ************************************************************************/
 CREATE PROCEDURE [dbo].[UpdateRepairOrderChargeNameColumnsWithId]
@@ -32,6 +33,13 @@ BEGIN
 			LEFT JOIN DBO.Charge c WITH (NOLOCK) ON soc.ChargesTypeId = c.ChargeId
 			LEFT JOIN DBO.[Percent] p WITH (NOLOCK) ON soc.MarkupPercentageId = p.PercentId
 			Where soc.RepairOrderId = @RepairOrderId
+
+			IF EXISTS(SELECT RepairOrderChargesId FROM DBO.[RepairOrderCharges] WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId)
+			BEGIN
+				UPDATE RepairOrder
+				SET ChargesBilingMethodId = (SELECT Top 1(BillingMethodId)  FROM DBO.[RepairOrderCharges] WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId)
+				Where RepairOrderId = @RepairOrderId
+			END
 		END
 		COMMIT  TRANSACTION
 

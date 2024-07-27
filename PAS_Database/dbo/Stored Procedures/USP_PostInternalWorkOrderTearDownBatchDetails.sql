@@ -134,7 +134,7 @@ BEGIN
 
 			SELECT @ItemmasterId = WOP.[ItemMasterId], 
 				   @CustRefNumber = WOP.[CustomerReference],	
-				   @MPNName  = partnumber 
+				   @MPNName  = ITM.partnumber 
 			  FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) 	
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.ItemMasterId = ITM.ItemMasterId 
 			  WHERE WOP.[WorkOrderId] = @WorkOrderId 

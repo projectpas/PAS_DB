@@ -20,7 +20,7 @@
 	3    02/02/2024   Devendra Shekh	Updated for revised Part Panry and Condition
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
      
- EXECUTE [sp_workOrderReleaseFromPDFData] 2555
+ EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
@@ -33,7 +33,6 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		BEGIN TRANSACTION
 			BEGIN  
 			    DECLARE @MSModuleId INT;
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
@@ -46,26 +45,27 @@ BEGIN
 					  ,wro.[OrganizationName]
 					  ,wro.[InvoiceNo]
 					  ,wro.[ItemName]
-					  --,UPPER(wro.[Description]) as Description
 					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber
 					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description
-					  --,UPPER(wop.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-						--,UPPER(wro.[Batchnumber]) as Batchnumber
-					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' THEN UPPER(wro.[Batchnumber]) ELSE CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END END AS Batchnumber
-					   --,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
-					   ,CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status]
+					  ,CASE WHEN ISNULL(wop.RevisedSerialNumber , '') != '' THEN UPPER(wop.RevisedSerialNumber) 
+								ELSE CASE WHEN ISNULL(wro.[Batchnumber], '') != '' THEN UPPER(wro.[Batchnumber])
+									   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE 'NA' END 
+								END
+						END AS Batchnumber
+					  ,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
+					   --,CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
 					  ,wro.[approved]
 					  ,wro.[Nonapproved]
 					  ,wro.[AuthorisedSign]
-					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [AuthorizationNo]
+					  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [AuthorizationNo]
 					  ,wro.[PrintedName]
 					  ,wro.[Date]
 					  ,wro.[AuthorisedSign2]
-					  ,UPPER(case when wro.[is8130from] = 1 then le.FAALicense else le.EASALicense end) as [ApprovalCertificate]
+					  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [ApprovalCertificate]
 					  ,wro.[PrintedName2]
 					  ,wro.[Date2]
 					  ,wro.[CFR]
@@ -85,10 +85,11 @@ BEGIN
 					  ,wop.[islocked]
 					  ,wro.[PDFPath]
 					  ,wop.[IsFinishGood] AS IsFinishGood
-					  ,case when wro.[is8130from] = 1 then '8130 Form' else '9130 Form' end as FormType 
+					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Form' ELSE '9130 Form' END AS FormType 
 					  ,wop.ManagementStructureId as ManagementStructureId   
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
+					   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
 					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId and WorkOrderSettlementId=9
@@ -98,13 +99,11 @@ BEGIN
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.ReleaseFromId=@ReleaseFromId
 			END
-		COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
-				ROLLBACK TRAN;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

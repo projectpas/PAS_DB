@@ -11,6 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    07/05/2024   HEMANT SALIYA      Created  
+	2    27/07/2024   HEMANT SALIYA      Updated For Serial Number, Cust Reference, and PartNumber  
    
 exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
@@ -101,7 +102,6 @@ BEGIN
 			WHERE WO.WorkOrderId = @WorkOrderId
 
 			UPDATE dbo.Stockline SET CustomerId =  @CustomerId , 
-				--Memo = REPLACE(SL.Memo, '</p>','<br>') + 'Updated Customer from WO : ' + WO.WorkOrderNum + ' </p>'	,
 				Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
@@ -217,20 +217,13 @@ BEGIN
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE WorkOrderPartNumber SET RevisedPartNumber = IM.PartNumber, RevisedPartDescription = IM.PartDescription, IsPMA = IM.IsPma, IsDER = IM.IsDER,
+			UPDATE WorkOrderPartNumber SET PartNumber = IM.PartNumber, RevisedPartNumber = IM.PartNumber, RevisedPartDescription = IM.PartDescription, IsPMA = IM.IsPma, IsDER = IM.IsDER,
 				   IsFinishGood = CASE WHEN ISNULL(IsFinishGood, 0) > 0 THEN 0 ELSE IsFinishGood END,
 				   IsClosed = CASE WHEN ISNULL(IsClosed, 0) > 0 THEN 0 ELSE IsClosed END,
 				   ClosedDate = NULL
-				   --WorkOrderStageId = NULL,
-				   --WorkOrderStatusId = NULL
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WOP.RevisedItemmasterid
 			WHERE WOP.ID = @WorkOrderPartNoId
-
-			UPDATE WorkOrderSettlementDetails SET RevisedPartId = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
-				IsMastervalue = 1, Isvalue_NA = 0
-			FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
-			WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
 
 			UPDATE dbo.Stockline SET ItemMasterId =  @ItemMasterId , 
 					Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
@@ -272,6 +265,17 @@ BEGIN
 			FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK)
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOQD.WOPartNoId
 			WHERE WOP.WorkOrderId = @WorkOrderId 
+
+			UPDATE Work_ReleaseFrom_8130 SET PartNumber = IM.partnumber, [Description] = IM.PartDescription
+			FROM dbo.Work_ReleaseFrom_8130 WRF WITH(NOLOCK) 
+			JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WRF.workOrderPartNoId
+			JOIN ItemMaster IM ON IM.ItemMasterId = WOP.ItemMasterId
+			WHERE WRF.workOrderPartNoId = @WorkOrderPartNoId
+
+			UPDATE WorkOrderSettlementDetails SET RevisedPartId = @ItemMasterId, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE(),
+				IsMastervalue = 1, Isvalue_NA = 0
+			FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
+			WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
 
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
@@ -351,11 +355,16 @@ BEGIN
 			FROM dbo.ReceivingCustomerWork RC WITH(NOLOCK) 
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ReceivingCustomerWorkId = RC.ReceivingCustomerWorkId
 			WHERE WOP.ID = @WorkOrderPartNoId
+			
+			PRINT '4.3'
+			UPDATE Work_ReleaseFrom_8130 SET Batchnumber = @SerialNumber
+			FROM dbo.Work_ReleaseFrom_8130 WRF WITH(NOLOCK) 				
+			WHERE WRF.workOrderPartNoId = @WorkOrderPartNoId
 			PRINT '4.0'
 
 			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
-			SELECT @ExistingValue = CASE WHEN ISNULL(@ExistingValue,'') = '' THEN 'Ser Num Not Provided' ELSE @ExistingValue END
+			SELECT @ExistingValue = CASE WHEN ISNULL(@ExistingValue,'') = '' THEN 'Serial Number Not Provided' ELSE @ExistingValue END
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));

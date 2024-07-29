@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_DuplicateRFQPO]             
  ** Author:  Amit Ghediya 
  ** Description: This stored procedure is used to Make Duplicate vendor RFQ PO to New vendor RFQ PO  
@@ -13,6 +12,7 @@
  ** PR		Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
    1		02/07/2024		Amit Ghediya		Created
+   2        29/07/2024		Rajesh Gami			Added Freight and Charges table logic
 
 -- EXEC [USP_DuplicateRFQPO] 78,0,1,61
 ************************************************************************/  
@@ -25,7 +25,7 @@ AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
-		 DECLARE @CurrentNummber BIGINT,
+		 DECLARE @CurrentNummber BIGINT,@ItemMasterId BIGINT = 0,
 				 @CodePrefix VARCHAR(50),
 				 @CodeSufix VARCHAR(50),
 				 @RepairOrderNumber VARCHAR(250),
@@ -87,12 +87,14 @@ BEGIN
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],[RequestedBy],    
 					[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],Memo,Notes,    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath],[IsFromBulkPO])    
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath],[IsFromBulkPO],FreightBilingMethodId,TotalFreight,
+					ChargesBilingMethodId,TotalCharges,VendorReference)    
          SELECT @VendorRFQPurchaseOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],@CreditTermsId,@Terms,@CreditLimit,[RequestedBy],    
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
-					[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,PDFPath,IsFromBulkPO    
+					[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,PDFPath,IsFromBulkPO,FreightBilingMethodId,TotalFreight,
+					ChargesBilingMethodId,TotalCharges,VendorReference  
          FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
 
@@ -164,7 +166,41 @@ BEGIN
 					------End Part table -----------
 
 					SET @NewPartID = IDENT_CURRENT('VendorRFQPurchaseOrderPart');  
+					SET @ItemMasterId = (SELECT TOP 1 ItemMasterId FROM DBO.VendorRFQPurchaseOrderPart WHERE VendorRFQPOPartRecordId = @NewPartID)
+					 /**************START:  RFQ PO Freight Data Copy ***************/
+					 IF EXISTS (SELECT 1 FROM [dbo].[VendorRFQPOFreight] WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ItemMasterId = @ItemMasterId AND LineNum = @Id AND ISNULL(IsDeleted,0) = 0)
+					 BEGIN
+						INSERT INTO [dbo].[VendorRFQPOFreight]
+						   ([VendorRFQPurchaseOrderId],[VendorRFQPOPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice]
+						   ,[HeaderMarkupId],[BillingMethodId],[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],[Width],[Height]
+						   ,[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate]
+						   ,[UpdatedDate],[IsActive],[IsDeleted],[LineNum],[ManufacturerId],[Manufacturer])
+						SELECT
+						   @NewID ,@NewPartID,ItemMasterId,PartNumber ,ShipViaId ,ShipViaName ,MarkupPercentageId ,MarkupFixedPrice ,HeaderMarkupId ,BillingMethodId ,BillingRate
+						   ,BillingAmount ,HeaderMarkupPercentageId,Weight ,UOMId ,UOMName ,Length ,Width ,Height,DimensionUOMId ,DimensionUOMName ,CurrencyId,CurrencyName,Amount
+						   ,Memo ,@MasterCompanyId,CreatedBy ,UpdatedBy ,GETUTCDATE() ,GETUTCDATE(),IsActive,IsDeleted ,@Id,ManufacturerId,Manufacturer 
+						FROM [dbo].[VendorRFQPOFreight] WITH(NOLOCK) 
+						WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ISNULL(IsDeleted,0) = 0 AND ItemMasterId = @ItemMasterId AND LineNum = @Id
+					 END
+					 /************** END:  RFQ PO Freight Data Copy ***************/
 
+					 /**************START:  RFQ PO Charges Data Copy ***************/
+					 IF EXISTS (SELECT 1 FROM [dbo].[VendorRFQPOCharges] WITH(NOLOCK) WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ItemMasterId = @ItemMasterId AND LineNum = @Id AND ISNULL(IsDeleted,0) = 0)
+					 BEGIN
+						INSERT INTO [dbo].[VendorRFQPOCharges]
+					   ([VendorRFQPurchaseOrderId],[VendorRFQPOPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description],[UnitCost],[ExtendedCost]
+					   ,[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId],[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate]
+					   ,[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[VendorName],[ChargeName],[MarkupName],[ItemMasterId],[PartNumber]
+					   ,[ConditionId],[LineNum],[ManufacturerId],[Manufacturer],[UOMId])
+					 SELECT
+						@NewID,@NewPartID,ChargesTypeId,VendorId ,Quantity,MarkupPercentageId,Description ,UnitCost,ExtendedCost,@MasterCompanyId,MarkupFixedPrice,BillingMethodId
+					   ,BillingAmount,BillingRate,HeaderMarkupId,RefNum,CreatedBy,UpdatedBy,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted ,HeaderMarkupPercentageId,VendorName,ChargeName
+					   ,MarkupName,ItemMasterId,PartNumber,ConditionId,@Id,ManufacturerId ,Manufacturer,UOMId 
+					   FROM DBO.VendorRFQPOCharges WITH(NOLOCK)  
+					   WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ISNULL(IsDeleted,0) = 0 AND ItemMasterId = @ItemMasterId AND LineNum = @Id
+					 END
+					 
+					 /************** END:  RFQ PO Charges Data Copy ***************/
 					----- Start Add ManagementStructureDetails Header Data----
 					INSERT INTO [dbo].[PurchaseOrderManagementStructureDetails]([ModuleID],[ReferenceID],[EntityMSID],
 		 	   				[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
@@ -298,6 +334,8 @@ BEGIN
 				END
 		 END
 		 -------End Document Tab ---------------
+
+		
 
 		 SELECT @Result = @NewID;
   

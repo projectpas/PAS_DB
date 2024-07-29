@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
@@ -11,10 +12,11 @@
  ** --   --------     -------			--------------------------------              
 	1    	-	         -              Created    
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
+	3    29/07/2024   Rajesh Gami		Duplicate record    
 
 **************************************************************/  
 
-CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
+CREATE PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
 @PageNumber int = 1,  
 @PageSize int = 10,  
 @SortColumn varchar(50)=NULL,  
@@ -265,10 +267,20 @@ SET NOCOUNT ON;
      --(ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND  
      --(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
      (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))) )
-	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #TEMPData)
-   SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
+
+
+	 SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,  
+     ,RequestedBy,
+	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
+	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
+	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
+	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescriptionType) End)  as 'PartDescriptionType',
+	 --MAX(PartNumber),
+	 --MAX(PartDescription),
+	 --MAX(PartNumberType),
+	 --MAX(PartDescriptionType),
+	 StockTypeType,  
      ManufacturerType,PriorityType,
 	 NeedByDate,
 	 PromisedDate,
@@ -277,11 +289,50 @@ SET NOCOUNT ON;
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
        
      ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType ,VendorRFQPurchaseOrderIdCount 
-     FROM #TEMPData  
+   INTO #finalTemp FROM #TEMPData td
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,PartNumber,PartDescription,PartNumberType,PartDescriptionType,StockTypeType,  
+     ,RequestedBy,
+	 --PartNumber,PartDescription,PartNumberType,PartDescriptionType,
+	 StockTypeType,  
+     ManufacturerType,PriorityType,
+	 NeedByDate,
+	 PromisedDate,
+	 NeedByDateType,
+	 PromisedDateType,
+	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType 
+       
+     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType,VendorRFQPurchaseOrderIdCount 
+
+	 	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #finalTemp)
+   SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
+     UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
+     ,RequestedBy,
+	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
+	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
+	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
+	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescriptionType) End)  as 'PartDescriptionType',
+	PartNumber,
+	PartDescription,
+	PartNumberType,
+	PartDescriptionType,
+	 StockTypeType,  
+     ManufacturerType,PriorityType,
+	 NeedByDate,
+	 PromisedDate,
+	 NeedByDateType,
+	 PromisedDateType,
+	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
+       
+     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType ,VendorRFQPurchaseOrderIdCount 
+     FROM #finalTemp td  
+   group by  
+   VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
+     UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
+     ,RequestedBy,
+	 PartNumber,PartDescription,PartNumberType,PartDescriptionType,
+	 StockTypeType,  
      ManufacturerType,PriorityType,
 	 NeedByDate,
 	 PromisedDate,

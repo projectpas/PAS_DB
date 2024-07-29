@@ -1,4 +1,4 @@
-﻿/*********************           
+﻿/*******           
  ** File:   [USP_GetGLAllocationDetailsHistoryById]           
  ** Author:   SAHDEV SALIYA
  ** Description: Get Data for GetGLAllocationDetailsHistory
@@ -10,15 +10,16 @@
          
  ** RETURN VALUE:           
   
- **********************           
+ ********           
   ** Change History           
- **********************           
+ ********           
  ** PR   Date         Author		  Change Description            
  ** --   --------     -------		  --------------------------------          
     1    03-07-2024   SAHDEV SALIYA   Created
+	2    26-07-2024   SAHDEV SALIYA   Set DistributionSetupAuditId Order by desc
 
-	exec [USP_GetGLAllocationDetailsHistoryById] 1,1
-**********************/ 
+	exec [USP_GetGLAllocationDetailsHistoryById] 16,1
+********/ 
 
 CREATE      PROCEDURE [dbo].[USP_GetGLAllocationDetailsHistoryById]
 	@journalTypeID bigint = null,
@@ -47,7 +48,8 @@ BEGIN
 					Dt.GlAccountName
 				FROM DBO.DistributionSetupAudit DT  WITH(NOLOCK)
 				LEFT JOIN DBO.JournalType JT WITH (NOLOCK) ON JT.ID = DT.JournalTypeId
-				WHERE DT.JournalTypeId = @journalTypeID and Dt.MasterCompanyId = @MasterCompanyId;
+				WHERE DT.JournalTypeId = @journalTypeID and Dt.MasterCompanyId = @MasterCompanyId
+				ORDER BY DT.DistributionSetupAuditId DESC;
 
 			END
 		COMMIT  TRANSACTION

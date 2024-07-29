@@ -22,6 +22,7 @@
 	6    17-01-2024   Shrey Chandegara  Update for asset attributetype and glaccounts changes
 	7    05-07-2024   Moin Bloch        Modified the SP to set RRQty  PN-8032
 	8    15-07-2024   Devendra Shekh    Modified For Account BatchDetail Entry
+	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -757,7 +758,7 @@ BEGIN
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
                         END
 
-                        /* Update ItemMasterPurchaseSale */
+                        /* Update ItemMasterPurchaseSale*/
                         IF EXISTS
                         (
                             SELECT TOP 1
@@ -780,13 +781,24 @@ BEGIN
                             DECLARE @PP_UnitPurchasePrice DECIMAL(18, 2) = 0;
                             DECLARE @PP_PurchaseDiscPerc DECIMAL(18, 2) = 0;
 
+							DECLARE @PP_MarkUpPerc BIGINT = 0;
+							DECLARE @PP_newUnitSalePrice DECIMAL(18, 2) = 0;
+							DECLARE @PP_newMarkUpAmount DECIMAL(18, 2) = 0;
+							DECLARE @PP_FlatPrice DECIMAL(18, 2) = 0;
+
                             SELECT @POP_UnitCost = POP.UnitCost,
                                    @POP_VendorListPrice = POP.VendorListPrice,
                                    @POP_DiscountPerUnit = POP.DiscountPerUnit,
                                    @POP_DiscountPercent = POP.DiscountPercent,
                                    @POP_DiscountPercentValue = POP.DiscountPercentValue,
-                                   @POP_ConditionId = POP.ConditionId
+                                   @POP_ConditionId = POP.ConditionId,
+								   @PP_FlatPrice = IMP.SP_FSP_FlatPriceAmount,
+								   @PP_MarkUpPerc = p.PercentValue
+
+
                             FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
+							LEFT JOIN dbo.ItemMasterPurchaseSale IMP WITH (NOLOCK) ON POP.ItemMasterId = IMP.ItemMasterId AND POP.ConditionId = IMP.ConditionId
+							LEFT JOIN dbo.[Percent] P WITH (NOLOCK) ON P.PercentId = IMP.sP_CalSPByPP_MarkUpPercOnListPrice
                             WHERE POP.PurchaseOrderId = @PurchaseOrderId
                                   AND POP.ItemMasterId = @ItemMasterId
                                   AND POP.ConditionId = @ConditionId;
@@ -809,6 +821,16 @@ BEGIN
                                 SET @PP_UnitPurchasePrice = ISNULL(@StkPurchaseOrderUnitCost, 0);
                                 SET @PP_PurchaseDiscPerc = @POP_DiscountPercent;
                             END
+							IF(ISNULL(@PP_MarkUpPerc , 0) > 0)
+							BEGIN
+								SET @PP_newMarkUpAmount =  ((ISNULL(@PP_UnitPurchasePrice, 0) * ISNULL(@PP_MarkUpPerc, 0)) / 100);
+								SET @PP_newUnitSalePrice = (ISNULL(@PP_newMarkUpAmount, 0)  + ISNULL(@PP_UnitPurchasePrice, 0));
+							END
+							ELSE
+							BEGIN
+								SET @PP_newUnitSalePrice = ISNULL(@PP_UnitPurchasePrice, 0) + ISNULL(@PP_FlatPrice, 0);
+							END
+
 
                             IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.ItemMasterPurchaseSale IMPS WITH (NOLOCK) WHERE IMPS.ItemMasterId = @ItemMasterId AND IMPS.ConditionId = @ConditionId)
                             BEGIN
@@ -926,6 +948,10 @@ BEGIN
                                     IMPS.PP_PurchaseDiscAmount = @PP_PurchaseDiscAmount,
                                     IMPS.PP_UnitPurchasePrice = @PP_UnitPurchasePrice,
                                     IMPS.PP_PurchaseDiscPerc = @PP_PurchaseDiscPerc,
+
+									IMPS.SP_CalSPByPP_MarkUpAmount = @PP_newMarkUpAmount,
+									IMPS.SP_CalSPByPP_UnitSalePrice = @PP_newUnitSalePrice,
+
                                     IMPS.UpdatedBy = @UpdatedBy,
                                     IMPS.UpdatedDate = GETUTCDATE()
                                 FROM DBO.ItemMasterPurchaseSale IMPS

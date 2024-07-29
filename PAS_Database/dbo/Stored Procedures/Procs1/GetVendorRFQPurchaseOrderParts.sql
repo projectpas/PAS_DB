@@ -15,6 +15,7 @@
  ** --   --------     -------  --------------------------------                
     1    04/01/2022  Moin Bloch     Created      
 	2    04/12/2023  Moin Bloch     UPdated (Added Traceable & Tagged fields)  
+	3   29-07-2024  Shrey Chandegara     Modified for add freight and charges count  
            
 -- EXEC [GetVendorRFQPurchaseOrderParts] 33     
 ************************************************************************/      
@@ -86,6 +87,8 @@ BEGIN
      ,POMSD.[LastMSLevel] AS LastMSLevel      
      ,POMSD.[AllMSlevels] AS AllMSlevels  
 	 ,PP.IsNoQuote
+	 ,(SELECT COUNT(VPF.VendorRFQPOFreightId) FROM DBO.VendorRFQPOFreight VPF WITH(NOLOCK) WHERE VPF.VendorRFQPOPartRecordId = pp.VendorRFQPOPartRecordId AND VPF.IsDeleted = 0) AS 'POFrightsCount'
+	 ,(SELECT COUNT(VPC.VendorRFQPOChargeId) FROM DBO.VendorRFQPOCharges VPC WITH(NOLOCK) WHERE VPC.VendorRFQPOPartRecordId = pp.VendorRFQPOPartRecordId AND VPC.IsDeleted = 0) AS 'POChargesCount'
     FROM [dbo].[VendorRFQPurchaseOrderPart] PP WITH (NOLOCK)       
     LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON PP.PurchaseOrderId = PO.PurchaseOrderId      
     JOIN [dbo].[PurchaseOrderManagementStructureDetails] POMSD ON PP.VendorRFQPOPartRecordId = POMSD.ReferenceID AND POMSD.ModuleID = 21      

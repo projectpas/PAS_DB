@@ -109,7 +109,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure UOM WITH(NOLOCK) on ROA.UOMId = UOM.UnitOfMeasureId
 			LEFT JOIN dbo.Charge C WITH(NOLOCK) on ROA.ChargesTypeId = C.ChargeId
 			LEFT JOIN dbo.Vendor V WITH(NOLOCK) on ROA.VendorId = V.VendorId
-		  WHERE [VendorRFQROChargesId]=@VendorRFQROId and ChargeName is not null;
+		  WHERE [VendorRFQROChargesId]=@VendorRFQROId;
 	END
 	END TRY    
 	BEGIN CATCH

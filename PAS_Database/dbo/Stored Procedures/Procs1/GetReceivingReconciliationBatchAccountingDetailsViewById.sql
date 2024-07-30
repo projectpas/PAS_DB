@@ -3,17 +3,19 @@
 -- Create date: <5-10-2023>
 -- Description:	<This stored procedure is used Get JournalBatchDetailsById for Recieving Reconciliation Batch>
 
-/*********************   
+/*******   
  ** RETURN VALUE:             
- **********************             
+ ********             
  ** Change History             
- **********************             
+ ********             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    05-10-2023		Ayesha Sultana		Created  
 	2    31/10/2023     Bhargav Saliya      Export Data Convert In To Upper Case
 	3    22/07/2024     Sahdev Saliya       Added (AccountingPeriod)
-************************/ 
+	4    29/07/2024     Sahdev Saliya       Set JournalTypeNumber Order by desc 
+
+********/ 
 --[dbo].[GetReceivingReconciliationBatchAccountingDetailsViewById] 146
 -- =============================================
 CREATE     PROCEDURE [dbo].[GetReceivingReconciliationBatchAccountingDetailsViewById]
@@ -72,7 +74,7 @@ BEGIN
             ,LE.CompanyName AS LegalEntityName  
             ,BD.JournalTypeNumber
 			,BD.CurrentNumber  
-			,BD.AccountingPeriod AS 'AcctingPeriod'
+			,BD.AccountingPeriod AS 'AccountingPeriod'
 		    ,BS.[Name] AS 'Status'
             ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		    ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2
@@ -105,6 +107,7 @@ BEGIN
 		LEFT JOIN dbo.ManagementStructureLevel MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
 		LEFT JOIN dbo.LegalEntity le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId		
      WHERE RRH.ReceivingReconciliationId = @ReferenceId     
+	 order by BD.JournalTypeNumber desc
   END    
   END TRY    
  BEGIN CATCH          

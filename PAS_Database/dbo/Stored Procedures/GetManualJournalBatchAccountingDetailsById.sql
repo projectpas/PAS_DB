@@ -68,7 +68,7 @@ SELECT CBD.CommonJournalBatchDetailId
             ,LE.CompanyName AS LegalEntityName  
             ,BD.JournalTypeNumber
 			,BD.CurrentNumber  
-			,BD.AccountingPeriod AS 'AcctingPeriod'
+			,BD.AccountingPeriod AS 'AccountingPeriod'
 		    ,BS.[Name] AS 'Status'
             ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		    ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2

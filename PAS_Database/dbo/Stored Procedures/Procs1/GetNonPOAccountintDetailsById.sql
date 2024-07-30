@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+﻿/*********************             
  ** File:   [GetNonPOAccountintDetailsById]             
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used GetNonPOAccountintDetailsById  
@@ -8,9 +8,9 @@
  ** PARAMETERS: @JournalBatchHeaderId bigint  
            
  ** RETURN VALUE:             
- **************************************************************             
+ **********************             
  ** Change History             
- **************************************************************             
+ **********************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------		--------------------------------            
  1    10/10/2022  Devendra Shekh		 Created  
@@ -18,9 +18,10 @@
  3    30/10/2022  Devendra Shekh		 changes for curreny and managementstructure  
  4    31/10/2023  Bhargav Saliya		Export Data Convert In To Upper Case 
  5    01/11/2023  Devendra Shekh		added referenceName
+ 6    29/07/2024  Sahdev Saliya         Added (AccountingPeriod) AND  Set JournalTypeNumber Order by desc
 
   exec [GetNonPOAccountintDetailsById] 1
-************************************************************************/  
+************************/  
 CREATE   PROCEDURE [dbo].[GetNonPOAccountintDetailsById]  
 	@NonPOInvoiceId BIGINT
 AS  
@@ -69,6 +70,7 @@ BEGIN
 		  ,BD.[JournalTypeNumber]  
           ,BD.[CurrentNumber] 
           ,le.CompanyName AS LegalEntityName  
+		  ,BD.AccountingPeriod AS 'AccountingPeriod'
 		  ,BS.Name AS 'Status'
 		  ,UPPER(@DocNum) AS 'ReferenceName'
 		  ,UPPER(NPD.[VendorName]) AS [VendorName]
@@ -108,7 +110,8 @@ BEGIN
 		LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 		LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = @CurrencyId
 		WHERE NPD.NonPOInvoiceId = @NonPOInvoiceId and JBD.IsDeleted = 0  
-		ORDER BY DS.DisplayNumber ASC;  
+		ORDER BY DS.DisplayNumber ASC, BD.JournalTypeNumber DESC;
+		
 	END
 
     END TRY  

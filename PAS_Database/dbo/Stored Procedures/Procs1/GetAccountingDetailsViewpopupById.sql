@@ -94,7 +94,7 @@ BEGIN
 				 ,le.CompanyName as LegalEntityName    
 				 ,BD.JournalTypeNumber,BD.CurrentNumber
 				 ,WBD.StocklineId
-				 ,BD.AccountingPeriod AS 'AcctingPeriod'
+				 ,BD.AccountingPeriod AS 'AccountingPeriod'
 				 ,SL.StockLineNumber as StocklineNumber
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN '' ELSE EMPEX.Description END AS ExpertiseName
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN 
@@ -184,7 +184,7 @@ BEGIN
 				 ,le.CompanyName as LegalEntityName    
 				 ,BD.JournalTypeNumber,BD.CurrentNumber
 				 ,WBD.StocklineId  
-				 ,BD.AccountingPeriod AS 'AcctingPeriod'
+				 ,BD.AccountingPeriod AS 'AccountingPeriod'
 				 ,SL.StockLineNumber as StocklineNumber
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN '' ELSE EMPEX.Description END AS ExpertiseName
 				 ,CASE WHEN @WopJounralTypeid = JBD.[JournalTypeId] THEN 
@@ -273,7 +273,7 @@ BEGIN
 				 JournalTypeNumber,
 				 CurrentNumber,
 				 StocklineId, 
-				 AcctingPeriod,
+				 AccountingPeriod,
 				 StockLineNumber, 
 				 [JournalTypeId], 
 				 ExpertiseName,

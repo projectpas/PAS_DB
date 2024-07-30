@@ -145,13 +145,13 @@ BEGIN
 			FROM dbo.WorkOrderApproval WOQA
 			WHERE WOQA.WorkOrderId = @WorkOrderId
 
-			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, 
+			UPDATE WorkOrderShipping SET CustomerId = @CustomerId, ShipToName = WO.CustomerName, ShipToCustomerId = @CustomerId,
 				ShipToSiteName = CDS.SiteName, ShipToSiteId = CDS.CustomerDomensticShippingId, ShipToAddress1 = ADS.Line1,
 				ShipToAddress2 = ADS.Line2 + ' ' + ADS.Line3, ShipToCity = ADS.City, ShipToState = ADS.StateOrProvince, ShipToZip = ADS.PostalCode,
 				ShipToCountryId = ADS.CountryId,
 				SoldToName = WO.CustomerName, SoldToSiteName = CBD.SiteName, SoldToSiteId = CBD.CustomerBillingAddressId, SoldToAddress1 = ADB.Line1,
 				SoldToAddress2 = ADB.Line2 + ' ' + ADB.Line3, SoldToCity = ADB.City, SoldToState = ADB.StateOrProvince, SoldToZip = ADB.PostalCode,
-				SoldToCountryId = ADB.CountryId
+				SoldToCountryId = ADB.CountryId 
 			FROM dbo.WorkOrderShipping WOS WITH(NOLOCK) 
 				JOIN dbo.WorkOrderShippingItem WOSI WITH(NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOSI.WorkOrderPartNumId

@@ -78,7 +78,7 @@ BEGIN
 		  ,VDR.VendorName AS [VendorName]  
           ,BD.JournalTypeNumber
 		  ,BD.CurrentNumber 
-		  ,BD.AccountingPeriod AS 'AcctingPeriod'
+		  ,BD.AccountingPeriod AS 'AccountingPeriod'
 		  ,UPPER(BS.Name) AS 'Status'
 		  ,UPPER(CR.Code) AS Currency  
 		  --,'' AS [Currency]  

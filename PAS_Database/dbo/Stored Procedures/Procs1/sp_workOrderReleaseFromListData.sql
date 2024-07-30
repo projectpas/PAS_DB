@@ -19,7 +19,7 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    05/12/2023   Hemant  Saliya Updated for revised Part Panry and Condition
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
-
+ ** 5    07/29/2024   HEMANT SALIYA  Updated For Get Part Number, Serial NUmber and Condition from Work Order Part table
      
  EXECUTE [sp_workOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
@@ -34,9 +34,6 @@ BEGIN
 	SET NOCOUNT ON;
 
 		BEGIN TRY
-		--BEGIN TRANSACTION
-		--	BEGIN  
-
 			    DECLARE @MSModuleId INT;
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 				 SELECT 
@@ -47,17 +44,16 @@ BEGIN
 					  ,wro.[OrganizationName]
 					  ,wro.[InvoiceNo]
 					  ,wro.[ItemName]
-					  --,UPPER(wro.[Description]) as Description
 					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber
 					  ,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description
-					  --,UPPER(wop.[PartNumber]) as PartNumber
 					  ,wro.[Reference]
 					  ,wro.[Quantity]
-					  --,UPPER(wro.[Batchnumber]) as Batchnumber 
-					  --,CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END AS Batchnumber
-					  ,CASE WHEN ISNULL(UPPER(wro.[Batchnumber]), '') != '' THEN UPPER(wro.[Batchnumber]) ELSE CASE WHEN isnull(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(wop.RevisedSerialNumber) ELSE UPPER(wro.[Batchnumber]) END END AS Batchnumber
-					  --,wro.[status]
-					  ,CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status]
+					  ,CASE WHEN ISNULL(wop.RevisedSerialNumber , '') != '' THEN UPPER(wop.RevisedSerialNumber) 
+								ELSE CASE WHEN ISNULL(wro.[Batchnumber], '') != '' THEN UPPER(wro.[Batchnumber])
+									   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE 'NA' END 
+								END
+						END AS Batchnumber
+					  ,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
 					  ,wro.[Remarks]
 					  ,wro.[Certifies]
 					  ,wro.[approved]
@@ -91,6 +87,7 @@ BEGIN
 					  ,wro.[EmployeeId]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
+					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
 					  LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
@@ -99,9 +96,6 @@ BEGIN
 					  LEFT JOIN DBO.LegalEntity  le  WITH(NOLOCK) on le.LegalEntityId   = MSL.LegalEntityId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.WorkOrderId=@WorkorderId AND wro.workOrderPartNoId =@workOrderPartNoId  
-		--	END
-		--COMMIT  TRANSACTION
-
 		END TRY    
 		BEGIN CATCH      
 			IF @@trancount > 0

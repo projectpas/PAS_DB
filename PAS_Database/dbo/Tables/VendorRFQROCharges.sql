@@ -36,3 +36,17 @@
     CONSTRAINT [PK_VendorRFQROCharges] PRIMARY KEY CLUSTERED ([VendorRFQROChargesId] ASC)
 );
 
+
+
+
+GO
+
+CREATE   TRIGGER [dbo].[Trg_VendorRFQROChargesAudit]
+ON  [dbo].[VendorRFQROCharges]
+   AFTER INSERT,DELETE,UPDATE
+AS
+BEGIN
+	INSERT INTO [dbo].[VendorRFQROChargesAudit]
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

@@ -1048,7 +1048,6 @@
     <Build Include="dbo\Tables\Tables1\StocklineAdjustmentReasonAudit.sql" />
     <Build Include="dbo\Tables\Tables1\StocklineAdjustmentStatus.sql" />
     <Build Include="dbo\Tables\Tables1\StockLineAdjustmentType.sql" />
-    <Build Include="dbo\Tables\Tables1\StocklineAudit.sql" />
     <Build Include="dbo\Tables\Tables1\StocklineBatchDetails.sql" />
     <Build Include="dbo\Tables\Tables1\StockLineBulkUploadFile.sql" />
     <Build Include="dbo\Tables\Tables1\StocklineDraft.sql" />
@@ -1273,7 +1272,6 @@
     <Build Include="dbo\Tables\Tables2\WorkOrderApprovalAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAssets.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderAssetsAudit.sql" />
-    <Build Include="dbo\Tables\Tables2\WorkOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderBatchDetails.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderBillingInvoicing.sql" />
     <Build Include="dbo\Tables\Tables2\WorkOrderBillingInvoicingAudit.sql" />
@@ -3103,6 +3101,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAddressDetailsByUser.sql" />
     <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQROChargesAndFreightToRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsListNew.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderMaterialsListNew.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

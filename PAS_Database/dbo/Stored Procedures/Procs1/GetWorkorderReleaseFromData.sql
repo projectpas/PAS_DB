@@ -12,7 +12,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 1    05/26/2023  HEMANT SALIYA    Updated For WorkOrder Settings
 ** 2    09/29/2023  HEMANT SALIYA    Updated For Notes in Remarks
 ** 3    01/01/2024  Devendra Shekh   updated for SerialNumber(Batchnumber)
-** 4    02/08/2024  Shrey Chandegara  Updated for status (add case condition in status)
+** 4    02/08/2024  Shrey Chandegara Updated for status (add case condition in status)
+** 5    07/29/2024  HEMANT SALIYA    Updated For Get Part Number, Serial NUmber and Condition from Work Order Part table
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1
 **************************************************************/ 
@@ -48,13 +49,16 @@ BEGIN
 			  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
 			  wo.WorkOrderNum AS InvoiceNo,  
 			  '1' AS ItemName,  
-			  CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
-			  CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
+			  --Commented By Hemant to Get Updated Details From Work Order Part Number
+			  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS Description,  
+			  --CASE WHEN ISNULL(wosc.RevisedPartId,0) >0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS PartNumber,  
+			  wop.RevisedPartDescription AS [Description],
+			  wop.RevisedPartNumber AS PartNumber,  
 			  wop.CustomerReference AS Reference,  
 			  wop.Quantity AS Quantity,  
-			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(case when isnull(sl.SerialNumber,'') = '' then 'NA' ELSE sl.SerialNumber end)
-			  ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-			  CASE WHEN ISNULL(wosc.ConditionId,0) > 0 THEN wosc.conditionName ELSE C.Memo END AS [status],
+			  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN 'NA' ELSE sl.SerialNumber END)
+						ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
+			  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status],
 			  '' as Certifies,   
 			  0 AS approved ,  
 			  0 AS Nonapproved,  

@@ -231,6 +231,8 @@
 
 
 
+
+
 GO
 
 
@@ -248,7 +250,7 @@ BEGIN
 
 
 
-	INSERT INTO [dbo].[StockLineAudit]
+	INSERT INTO PAS_DEV_logs.[dbo].[StockLineAudit]
 
 	SELECT * FROM INSERTED
 

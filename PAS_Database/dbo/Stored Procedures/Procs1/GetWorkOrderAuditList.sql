@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/03/2021   Subhash Saliya Created
 	2    05/01/2024   Moin Bloch     Removed Transaction Due to Select Statemet
+	3	 07/20/2024	  Bhargav Saliya Move Audit Table in backup DB
      
  EXECUTE [GetWorkOrderAuditList] 3544
 **************************************************************/ 
@@ -54,7 +55,7 @@ BEGIN
                      wo.MasterCompanyId,
                      wo.UpdatedBy,
                      wo.UpdatedDate
-				FROM dbo.WorkOrderAudit wo WITH(NOLOCK)				
+				FROM PAS_DEV_logs.dbo.WorkOrderAudit wo WITH(NOLOCK)				
 				WHERE wo.WorkOrderId = @WorkOrderId
 			
 		END TRY    

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [dbo].[usp_createAllShipVia]            
  ** Author:   Deep Patel
  ** Description: This stored procedure is used save all ship via based on type
@@ -15,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     2    23/07/2024   Bhargav Saliya	Added ShippingTerms.
+	3    29/07/2024   Rajesh Gami    	Check the condition AllShipViaId is already exist or not by ref.id and module Id to avoid insert the duplicate record.
      
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_createAllShipVia]    
@@ -50,7 +52,7 @@ BEGIN
 			--BEGIN
 			--SET @IntertedSiteId = @SiteId
 			--END
-
+			SET @AllShipViaId = (CASE WHEN @AllShipViaId = 0 THEN (SELECT TOP 1 AllShipViaId FROM DBO.AllShipVia WITH(NOLOCK) WHERE ReferenceId = @ReferenceId AND ModuleId = @ModuleId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0) ELSE @AllShipViaId END)
 			IF(@AllShipViaId > 0)
 			BEGIN
 				UPDATE [dbo].[AllShipVia]

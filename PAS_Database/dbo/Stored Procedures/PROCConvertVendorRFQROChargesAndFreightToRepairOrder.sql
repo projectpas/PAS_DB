@@ -18,6 +18,7 @@ CREATE     PROCEDURE [dbo].[PROCConvertVendorRFQROChargesAndFreightToRepairOrder
 @RepairOrderId bigint,    
 @VendorRFQRepairOrderId bigint,  
 @VendorRFQROPartRecordId bigint,
+@RepairOrderPartRecordId bigint,
 @Opr int
 AS  
 BEGIN  
@@ -31,7 +32,7 @@ BEGIN TRY
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-		SELECT @RepairOrderId,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+		SELECT @RepairOrderId,@RepairOrderPartRecordId,[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
@@ -49,7 +50,7 @@ BEGIN TRY
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
 		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
 		[ManufacturerId],[Manufacturer])
-		SELECT @RepairOrderId,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+		SELECT @RepairOrderId,@RepairOrderPartRecordId,[ItemMasterId],[PartNumber],[ShipViaId],
 		[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
 		[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
@@ -71,7 +72,7 @@ BEGIN TRY
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-		SELECT @RepairOrderId,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+		SELECT @RepairOrderId,@RepairOrderPartRecordId,[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
 		,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 		,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 		,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
@@ -86,7 +87,7 @@ BEGIN TRY
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
 		[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
 		[ManufacturerId],[Manufacturer])
-		SELECT @RepairOrderId,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+		SELECT @RepairOrderId,@RepairOrderPartRecordId,[ItemMasterId],[PartNumber],[ShipViaId],
 		[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
 		[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
 		[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],

@@ -43,3 +43,17 @@
     CONSTRAINT [FK_VendorRFQROFreight_UOM] FOREIGN KEY ([UOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
 
+
+
+
+GO
+
+CREATE   TRIGGER [dbo].[Trg_VendorRFQROFreightAudit]
+ON  [dbo].[VendorRFQROFreight]
+   AFTER INSERT,DELETE,UPDATE
+AS
+BEGIN
+	INSERT INTO [dbo].[VendorRFQROFreightAudit]
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

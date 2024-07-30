@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <07/30/2021>  
 ** Description: <Delete WO Details and Reverse MPN Stockline>  
@@ -11,6 +10,7 @@ Exec [ReverseWorkOrder]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    07/04/2022  Hemant Saliya    Delete WO Details And Reverse MPN Stockline
+   2    07/20/2024  Bhargav Saliya   Move Audit Table in backup DB
 
 EXEC dbo.ReverseWorkOrder 286,'Admin'
 
@@ -288,7 +288,7 @@ AS
 						/*Work Order Quote*/
 						DELETE FROM WorkOrderQuote WHERE WorkOrderId = @WorkOrderId
 
-						DELETE FROM WorkOrderAudit WHERE WorkOrderId = @WorkOrderId
+						DELETE FROM PAS_DEV_logs.dbo.WorkOrderAudit WHERE WorkOrderId = @WorkOrderId
 						DELETE FROM WorkOrder WHERE WorkOrderId = @WorkOrderId
 					END
 					  

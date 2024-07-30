@@ -13,6 +13,7 @@
  ** PR		Date			Author				Change Description              
  ** --		--------		-------				--------------------------------            
    1		05/07/2024		Amit Ghediya		Created
+   2		29/07/2024		Abhishek Jirawla	Modified Part record in freights and charges
 
 -- EXEC [USP_DuplicateRFQRO] 78,1,61
 ************************************************************************/  
@@ -87,12 +88,12 @@ BEGIN
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],[RequisitionerId],    
 					[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath])    
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])    
          SELECT @VendorRFQRepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],@CreditTermsId,@Terms,@CreditLimit,[RequisitionerId],    
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
-					[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,PDFPath   
+					[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,PDFPath, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
          FROM [dbo].[VendorRFQRepairOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 
@@ -187,7 +188,7 @@ BEGIN
 							,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 							,[RefNum],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 							,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId])
-							SELECT @NewID,[VendorRFQROPartRecordId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
+							SELECT @NewID,@NewPartID,[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],[Description]
 							,[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId]
 							,[RefNum],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId]
 							,[ConditionId],[LineNum],[PartNumber],[ManufacturerId],[Manufacturer],[UOMId]
@@ -206,7 +207,7 @@ BEGIN
 							[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],
 							[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LineNum],
 							[ManufacturerId],[Manufacturer])
-							SELECT @NewID,[VendorRFQROPartRecordId],[ItemMasterId],[PartNumber],[ShipViaId],
+							SELECT @NewID,@NewPartID,[ItemMasterId],[PartNumber],[ShipViaId],
 							[ShipViaName],[MarkupPercentageId],[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],
 							[BillingRate],[BillingAmount],[HeaderMarkupPercentageId],[Weight],[UOMId],[UOMName],[Length],
 							[Width],[Height],[DimensionUOMId],[DimensionUOMName],[CurrencyId],[CurrencyName],[Amount],[Memo],

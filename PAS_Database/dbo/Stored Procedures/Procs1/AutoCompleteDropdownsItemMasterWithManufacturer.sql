@@ -20,7 +20,7 @@
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 **************************************************************/
-CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
+CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
 @IsActive bit = true,  
 @Count VARCHAR(10) = '0',  
@@ -36,122 +36,125 @@ BEGIN
   IF(@IsActive = 1)  
    BEGIN    
      SELECT DISTINCT TOP 20   
-      Im.ItemMasterId,  
-      Im.ItemMasterId AS Value,   
-      Im.partnumber AS PartNumber,   
-         --(IM.partnumber +' - '+ M.[Name]) As Label,  
-      im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
-         Im.PartDescription,   
-      Im.ItemClassificationId,   
-      Im.ManufacturerId,   
-      Im.GLAccountId,  
-      Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      Im.Figure,  
-      Im.Item,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
-      CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
-        WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
-        WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
-        ELSE 'OEM'  
-      END AS StockType,  
-      M.Name As Manufacturer,  
-      isnull(rp. RevisedPart,'')  AS RevisedPart,  
-      Im.isSerialized AS IsSerialized,  
-      Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-	  Ic.ItemClassificationCode as ItemClassification 
+		  Im.ItemMasterId,  
+		  Im.ItemMasterId AS Value,   
+		  Im.partnumber AS PartNumber,   
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  Im.PartDescription,   
+		  Im.ItemClassificationId,   
+		  Im.ManufacturerId,   
+		  Im.GLAccountId,  
+		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  Im.Figure,  
+		  Im.Item,  
+		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
+		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
+			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
+			WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
+			ELSE 'OEM'  
+		  END AS StockType,  
+		  M.Name As Manufacturer,  
+		  isnull(rp. RevisedPart,'')  AS RevisedPart,  
+		  Im.isSerialized AS IsSerialized,  
+		  Im.isTimeLife AS IsTimeLife,  
+		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
+		  Ic.ItemClassificationCode as ItemClassification 
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-      LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-      LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
-	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
+		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
-      UNION       
+     
+	 UNION   
+	 
      SELECT DISTINCT Im.ItemMasterId,  
-      Im.ItemMasterId AS Value,   
-      Im.partnumber AS PartNumber,   
-      im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
-         Im.PartDescription,   
-      Im.ItemClassificationId,   
-      Im.ManufacturerId,   
-      Im.GLAccountId,  
-      Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      Im.Figure,  
-      Im.Item,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
-      CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
-        WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
-        WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
-        ELSE 'OEM'  
-      END AS StockType,  
-      M.Name As Manufacturer,  
-      isnull(rp. RevisedPart, '')  AS RevisedPart,  
-      Im.isSerialized AS IsSerialized,  
-      Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-	  Ic.ItemClassificationCode as ItemClassification
+		  Im.ItemMasterId AS Value,   
+		  Im.partnumber AS PartNumber,   
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  Im.PartDescription,   
+		  Im.ItemClassificationId,   
+		  Im.ManufacturerId,   
+		  Im.GLAccountId,  
+		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  Im.Figure,  
+		  Im.Item,  
+		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
+		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
+			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
+			WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
+			ELSE 'OEM'  
+		  END AS StockType,  
+		  M.Name As Manufacturer,  
+		  isnull(rp. RevisedPart, '')  AS RevisedPart,  
+		  Im.isSerialized AS IsSerialized,  
+		  Im.isTimeLife AS IsTimeLife,  
+		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
+		  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-      LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-      LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
+		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-    ORDER BY Label      
+	 ORDER BY Label      
    End  
    ELSE  
    BEGIN  
     SELECT DISTINCT TOP 20   
-      Im.ItemMasterId,  
-      Im.ItemMasterId AS Value,   
-      Im.partnumber AS PartNumber,    
-      im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
-         Im.PartDescription,   
-      Im.ItemClassificationId,   
-      Im.ManufacturerId,   
-      Im.GLAccountId,  
-      Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
-      CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
-        WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
-        WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
-        ELSE 'OEM'  
-      END AS StockType,  
-      M.Name As Manufacturer,  
-      isnull(rp. RevisedPart, '')  AS RevisedPart,  
-      Im.isSerialized AS IsSerialized,  
-      Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-	  Ic.ItemClassificationCode as ItemClassification
+		  Im.ItemMasterId,  
+		  Im.ItemMasterId AS Value,   
+		  Im.partnumber AS PartNumber,    
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  Im.PartDescription,   
+		  Im.ItemClassificationId,   
+		  Im.ManufacturerId,   
+		  Im.GLAccountId,  
+		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
+		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
+			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
+			WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
+			ELSE 'OEM'  
+		  END AS StockType,  
+		  M.Name As Manufacturer,  
+		  isnull(rp. RevisedPart, '')  AS RevisedPart,  
+		  Im.isSerialized AS IsSerialized,  
+		  Im.isTimeLife AS IsTimeLife,  
+		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
+		  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-	 LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
-      LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-      LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
+		LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
-    UNION   
+    
+	UNION   
+
     SELECT DISTINCT TOP 20   
-      Im.ItemMasterId,  
-      Im.ItemMasterId AS Value,    
-      Im.partnumber AS PartNumber,  
-      im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
-         Im.PartDescription,   
-      Im.ItemClassificationId,   
-      Im.ManufacturerId,   
-      Im.GLAccountId,  
-      Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
-      UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
-      CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
-        WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
-        WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
-        ELSE 'OEM'  
-      END AS StockType,  
-      M.Name As Manufacturer,  
-      isnull(rp. RevisedPart, '')  AS RevisedPart,  
-      Im.isSerialized AS IsSerialized,  
-      Im.isTimeLife AS IsTimeLife,  
-      ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-	  Ic.ItemClassificationCode as ItemClassification
+		  Im.ItemMasterId,  
+		  Im.ItemMasterId AS Value,    
+		  Im.partnumber AS PartNumber,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  Im.PartDescription,   
+		  Im.ItemClassificationId,   
+		  Im.ManufacturerId,   
+		  Im.GLAccountId,  
+		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
+		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
+			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
+			WHEN Im.IsPma = 0 AND IM.IsDER = 1 THEN 'DER'  
+			ELSE 'OEM'  
+		  END AS StockType,  
+		  M.Name As Manufacturer,  
+		  isnull(rp. RevisedPart, '')  AS RevisedPart,  
+		  Im.isSerialized AS IsSerialized,  
+		  Im.isTimeLife AS IsTimeLife,  
+		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
+		  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
-      LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-	  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
-      LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
+		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   
    END  

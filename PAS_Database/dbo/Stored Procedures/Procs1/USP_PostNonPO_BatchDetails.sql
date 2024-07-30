@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿/*********************           
  ** File:   [USP_PostNonPO_BatchDetails]           
  ** Author: Devendra Shekh
  ** Description: This stored procedure is used to insert accounting batch details for non po
@@ -9,9 +9,9 @@
          
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date				 Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    10-OCT-2023		 Devendra Shekh			Created	
@@ -23,9 +23,10 @@
     7    09-JAN-2024         Moin Bloch             Modify(Replace Invocedate instead of GETUTCDATE() in Invoice) 
 	8    14/02/2023	         Moin Bloch	            Updated Used Distribution Setup Code Insted of Name 
 	9    03/04/2024			 HEMANT SALIYA	        Updated for Restrict Accounting Entry by Master Company
+	10   29/07/2024          Sahdev Saliya          Updated For Add AccountingPeriodId, AccountingPeriod In BatchDetails
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
-**************************************************************/
+**********************/
 
 CREATE   PROCEDURE [dbo].[USP_PostNonPO_BatchDetails]
 (
@@ -242,10 +243,10 @@ BEGIN
 				BEGIN
 					INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 					[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
-					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId], [AccountingPeriod])
 					VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), 
 					@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, 'Non PO Invoice', 
-					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
+					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 
 					SET @BatchDetailCount = @BatchDetailCount + 1
 					SET @JournalBatchDetailId = SCOPE_IDENTITY()

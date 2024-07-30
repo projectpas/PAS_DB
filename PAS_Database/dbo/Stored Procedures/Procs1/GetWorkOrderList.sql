@@ -18,6 +18,7 @@
     1    06/28/2023   Vishal Suthar Added history
     2    08/01/2023   Vishal Suthar Converting all the data in Upper case which was creating an issue in download
 	3    23 Jul2023   Rajesh Gami   Improve Performance
+	4    30/07/2024   HEMANT SALIYA Serial Number Changes
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -190,7 +191,8 @@ BEGIN
         UPPER(WT.Description) AS WorkOrderType,
         UPPER(EMP.FirstName + ' ' + EMP.LastName) AS TechName,
         UPPER(EMPS.StationName) AS TechStation,
-        UPPER(STL.SerialNumber) AS SerialNumber,
+        --UPPER(STL.SerialNumber) AS SerialNumber,
+		CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(STL.SerialNumber) END AS SerialNumber,
         UPPER(WPN.CustomerReference) AS CustomerReference,
         UPPER(WPN.CustomerReference) AS CustomerReferenceType
        FROM WorkOrder WO WITH(NOLOCK)  

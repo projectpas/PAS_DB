@@ -99,7 +99,7 @@ BEGIN
 			  ,JBD.[DistributionName]  
 			  ,LET.[CompanyName] AS LegalEntityName  
 			  ,BTD.[JournalTypeNumber]  
-			  ,JBH.AccountingPeriod AS 'AcctingPeriod'
+			  ,JBH.AccountingPeriod AS 'AccountingPeriod'
 			  ,BTD.[CurrentNumber]  
 			  ,BS.Name AS 'Status'
 			  --,'' AS [Currency]  
@@ -178,7 +178,7 @@ BEGIN
 			  ,LET.[CompanyName] AS LegalEntityName  
 			  ,BTD.[JournalTypeNumber]  
 			  ,BTD.[CurrentNumber]  
-			  ,JBH.AccountingPeriod AS 'AcctingPeriod'
+			  ,JBH.AccountingPeriod AS 'AccountingPeriod'
 			  ,BS.Name AS 'Status'
 			  --,'' AS [Currency]  
 			  ,CR.Code AS Currency  

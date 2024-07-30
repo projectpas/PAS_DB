@@ -77,7 +77,7 @@ BEGIN
           ,le.CompanyName AS LegalEntityName  
           ,BD.JournalTypeNumber,BD.CurrentNumber  
 		  ,BS.Name AS 'Status'
-		  ,BD.AccountingPeriod AS 'AcctingPeriod'
+		  ,BD.AccountingPeriod AS 'AccountingPeriod'
 		  ,CR.Code AS Currency  
           ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
 		  ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2

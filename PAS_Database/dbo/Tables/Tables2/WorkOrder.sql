@@ -57,6 +57,8 @@
 
 
 
+
+
 GO
 
 
@@ -105,6 +107,7 @@ GO
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
     2    18/03/2024   Bhargav Saliya    Add New Fields [PercentId],[Days],[NetDays]
+	3	 07/20/2024	  Bhargav Saliya    Move Audit Table in backup DB
 	
 **************************************************************/ 
 CREATE     TRIGGER [dbo].[Trg_WorkOrderAudit]
@@ -123,7 +126,7 @@ BEGIN
 
 	SELECT @Status=Status FROM WorkOrderStatus WHERE Id=@StatusId
 
-	SELECT @ContactName=C.FirstName+' '+C.LastName,@ContactPhone=C.WorkPhone+' '+c.WorkPhoneExtn FROM CustomerContact CC
+	SELECT @ContactName=C.FirstName+' '+C.LastName,@ContactPhone=C.WorkPhone+' '+ c.WorkPhoneExtn FROM CustomerContact CC
 	INNER JOIN Contact C ON CC.ContactId=C.ContactId
 	WHERE CustomerContactId=@ContactId
 
@@ -131,10 +134,10 @@ BEGIN
 	SELECT @CSR=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@CSRId
 	SELECT @Employee=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@EmployeeId
 	
-	INSERT INTO [dbo].[WorkOrderAudit] 
+	INSERT INTO [PAS_DEV_logs].[dbo].[WorkOrderAudit] 
 
     SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
-	MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
+	MasterCompanyId,CreatedBy,UpdatedBy,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
 	Memo, Notes, CustomerContactId, @Status, CustomerName,
 	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId,IsManualForm,PercentId,Days,NetDays
 	FROM INSERTED 

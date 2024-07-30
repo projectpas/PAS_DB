@@ -12,7 +12,7 @@
     1	07/26/2024    Devendra Shekh			Created
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
-exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4257,@WFWOId=3782,@ShowPendingToIssue=0
+exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=4,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4270,@WFWOId=3795,@ShowPendingToIssue=0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 (    
@@ -507,7 +507,7 @@ SET NOCOUNT ON
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						NULL AS ReceivedDate,
-						WOM.POId,
+						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
 						ISNULL(MSTL.Quantity,0) AS StocklineQuantity,
 						ISNULL((CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
@@ -526,7 +526,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						WOM.IsDeferred,
+						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						T.Description AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,
@@ -738,7 +738,7 @@ SET NOCOUNT ON
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						NULL AS ReceivedDate,
-						WOM.POId,
+						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
 						ISNULL(MSTL.Quantity,0) AS StocklineQuantity,
 						ISNULL(WOM.QtyToTurnIn,0) AS PartQtyToTurnIn,
@@ -754,7 +754,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						WOM.IsDeferred,
+						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						T.Description AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,
@@ -973,7 +973,7 @@ SET NOCOUNT ON
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
-						WOM.POId,
+						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
 						MSTL.Quantity AS StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
@@ -992,7 +992,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						WOM.IsDeferred,
+						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						T.Description AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,
@@ -1203,7 +1203,7 @@ SET NOCOUNT ON
 						WOM.PONum,
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
-						WOM.POId,
+						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
 						ISNULL(MSTL.Quantity, 0) AS StocklineQuantity,
 						WOM.QtyToTurnIn AS PartQtyToTurnIn,
@@ -1219,7 +1219,7 @@ SET NOCOUNT ON
 						IM.ItemClassificationId,
 						IM.PurchaseUnitOfMeasureId,
 						WOM.Memo,
-						WOM.IsDeferred,
+						ISNULL(WOM.IsDeferred, 0),
 						WOM.TaskId,
 						T.Description AS TaskName,
 						MM.Name AS MandatoryOrSupplemental,

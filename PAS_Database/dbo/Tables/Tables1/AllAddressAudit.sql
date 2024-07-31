@@ -15,7 +15,7 @@
     [ShippingAccountNo] VARCHAR (100)  NULL,
     [Memo]              NVARCHAR (MAX) NULL,
     [ContactId]         BIGINT         NOT NULL,
-    [ContactName]       VARCHAR (50)   NULL,
+    [ContactName]       VARCHAR (200)  NULL,
     [ContactPhoneNo]    VARCHAR (50)   NULL,
     [Line1]             VARCHAR (50)   NULL,
     [Line2]             VARCHAR (50)   NULL,
@@ -35,4 +35,6 @@
     [IsPrimary]         BIT            CONSTRAINT [DF_AllAddressAudit_IsPrimary] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_AllAddressAudit] PRIMARY KEY CLUSTERED ([AllAddressAuditId] ASC)
 );
+
+
 

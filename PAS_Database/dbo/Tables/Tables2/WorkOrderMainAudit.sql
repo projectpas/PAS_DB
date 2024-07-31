@@ -3,7 +3,7 @@
     [WorkOrderId]             BIGINT         NOT NULL,
     [WorkOrderNum]            VARCHAR (20)   NULL,
     [CustomerId]              BIGINT         NULL,
-    [CustomerName]            VARCHAR (50)   NULL,
+    [CustomerName]            VARCHAR (100)  NULL,
     [CustomerCode]            VARCHAR (20)   NULL,
     [CustomerRef]             VARCHAR (20)   NULL,
     [CustomerContact]         VARCHAR (50)   NULL,
@@ -37,4 +37,6 @@
     [IsActive]                BIT            NOT NULL,
     CONSTRAINT [PK_WorkOrderMainAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
+
+
 

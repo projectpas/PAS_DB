@@ -14,7 +14,7 @@
     [StatusName]               VARCHAR (50)    NULL,
     [StatusChangeDate]         DATETIME2 (7)   CONSTRAINT [DF_ExchangeQuote_StatusChangeDate] DEFAULT (getdate()) NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
-    [CustomerName]             VARCHAR (50)    NULL,
+    [CustomerName]             VARCHAR (100)   NULL,
     [CustomerCode]             VARCHAR (50)    NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
     [CreditLimit]              DECIMAL (18, 2) NULL,
@@ -37,7 +37,7 @@
     [ManagementStructureId]    BIGINT          NULL,
     [EmployeeId]               BIGINT          NULL,
     [IsApproved]               BIT             CONSTRAINT [DF_ExchangeQuote_IsApproved] DEFAULT ((0)) NULL,
-    [CustomerContactName]      VARCHAR (100)   NULL,
+    [CustomerContactName]      VARCHAR (200)   NULL,
     [CustomerContactEmail]     VARCHAR (100)   NULL,
     [ValidForDays]             INT             DEFAULT ((0)) NOT NULL,
     [CustomerSeviceRepId]      BIGINT          NULL,
@@ -73,6 +73,8 @@
     CONSTRAINT [FK_ExchangeQuote_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_ExchangeQuote_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[ExchangeStatus] ([ExchangeStatusId])
 );
+
+
 
 
 

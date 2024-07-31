@@ -2,7 +2,7 @@
     [CustomerCCPaymentsAuditId]       BIGINT        IDENTITY (1, 1) NOT NULL,
     [CustomerCCPaymentsId]            BIGINT        NOT NULL,
     [LegalEntityId]                   BIGINT        NOT NULL,
-    [CustomerName]                    VARCHAR (50)  NULL,
+    [CustomerName]                    VARCHAR (100) NULL,
     [CompanyBankAccount]              BIGINT        NOT NULL,
     [MerchantID]                      VARCHAR (230) NULL,
     [CurrencyId]                      VARCHAR (50)  NULL,
@@ -30,4 +30,6 @@
     [IsDeleted]                       BIT           CONSTRAINT [CustomerCCPaymentsAudit_DC_Delete] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CustomerCCPaymentsAudit] PRIMARY KEY CLUSTERED ([CustomerCCPaymentsAuditId] ASC)
 );
+
+
 

@@ -70,7 +70,7 @@ BEGIN
 		  ,BD.[JournalTypeNumber]  
           ,BD.[CurrentNumber] 
           ,le.CompanyName AS LegalEntityName  
-		  ,BD.AccountingPeriod AS 'AcctingPeriod'
+		  ,BD.AccountingPeriod AS 'AccountingPeriod'
 		  ,BS.Name AS 'Status'
 		  ,UPPER(@DocNum) AS 'ReferenceName'
 		  ,UPPER(NPD.[VendorName]) AS [VendorName]

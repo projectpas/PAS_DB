@@ -7,9 +7,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author					Change Description            
- ** --   --------     -------				--------------------------------          
-    1	07/26/2024    Devendra Shekh			Created
+ ** PR   Date				Author					Change Description            
+ ** --   --------			-------				--------------------------------          
+    1	07/26/2024		Devendra Shekh			Created
+	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=4,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4270,@WFWOId=3795,@ShowPendingToIssue=0
@@ -1324,6 +1325,32 @@ SET NOCOUNT ON
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='isDeferred')  THEN isDeferred END ASC,  
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='memo')  THEN memo END ASC, 
 					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='expectedSerialNumber')  THEN expectedSerialNumber END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineExtendedCost')  THEN stocklineExtendedCost END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stockLineNumber')  THEN stockLineNumber END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='serialNumber')  THEN serialNumber END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineCondition')  THEN stocklineCondition END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineProvision')  THEN stocklineProvision END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQuantity')  THEN stocklineQuantity END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQtyReserved')  THEN stocklineQtyReserved END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQtytobeReserved')  THEN stocklineQtytobeReserved END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQtyIssued')  THEN stocklineQtyIssued END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQtyRemaining')  THEN stocklineQtyRemaining END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQtyToTurnIn')  THEN stocklineQtyToTurnIn END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineQuantityTurnIn')  THEN stocklineQuantityTurnIn END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stockLineQuantityOnHand')  THEN stockLineQuantityOnHand END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stockLineQuantityAvailable')  THEN stockLineQuantityAvailable END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stocklineUnitCost')  THEN stocklineUnitCost END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='controlNo')  THEN controlNo END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='controlId')  THEN controlId END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='costDate')  THEN costDate END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='roNextDlvrDate')  THEN roNextDlvrDate END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='receiver')  THEN receiver END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stockLineFigure')  THEN stockLineFigure END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='stockLineItem')  THEN stockLineItem END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='workOrderNumber')  THEN workOrderNumber END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='subWorkOrderNo')  THEN subWorkOrderNo END ASC, 
+					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='salesOrder')  THEN salesOrder END ASC, 
 
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='taskName')  THEN taskName END DESC,  
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='partNumber')  THEN partNumber END DESC,  
@@ -1359,7 +1386,33 @@ SET NOCOUNT ON
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='employeename')  THEN employeename END DESC,  
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='isDeferred')  THEN isDeferred END DESC,  
 					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='memo')  THEN memo END DESC, 
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='expectedSerialNumber')  THEN expectedSerialNumber END DESC
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='expectedSerialNumber')  THEN expectedSerialNumber END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineExtendedCost')  THEN stocklineExtendedCost END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineNumber')  THEN stockLineNumber END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='serialNumber')  THEN serialNumber END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineCondition')  THEN stocklineCondition END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineProvision')  THEN stocklineProvision END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQuantity')  THEN stocklineQuantity END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQtyReserved')  THEN stocklineQtyReserved END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQtytobeReserved')  THEN stocklineQtytobeReserved END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQtyIssued')  THEN stocklineQtyIssued END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQtyRemaining')  THEN stocklineQtyRemaining END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQtyToTurnIn')  THEN stocklineQtyToTurnIn END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineQuantityTurnIn')  THEN stocklineQuantityTurnIn END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineQuantityOnHand')  THEN stockLineQuantityOnHand END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineQuantityAvailable')  THEN stockLineQuantityAvailable END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stocklineUnitCost')  THEN stocklineUnitCost END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='controlNo')  THEN controlNo END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='controlId')  THEN controlId END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='costDate')  THEN costDate END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='repairOrderNumber')  THEN repairOrderNumber END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='roNextDlvrDate')  THEN roNextDlvrDate END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='receiver')  THEN receiver END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineFigure')  THEN stockLineFigure END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='stockLineItem')  THEN stockLineItem END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='workOrderNumber')  THEN workOrderNumber END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='subWorkOrderNo')  THEN subWorkOrderNo END DESC,
+					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='salesOrder')  THEN salesOrder END DESC;
 
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN

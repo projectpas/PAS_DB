@@ -81,7 +81,7 @@ BEGIN
                  ,BD.JournalTypeNumber 
 				 ,UPPER(BS.[Name]) AS JEStatus
                  ,BD.CurrentNumber  
-				 ,BD.AccountingPeriod AS 'AcctingPeriod'
+				 ,BD.AccountingPeriod AS 'AccountingPeriod'
                  ,CR.Code AS Currency  
           ,UPPER(SSD.Level1Name) AS level1,      
            UPPER(SSD.Level2Name) AS level2,     

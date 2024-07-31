@@ -3102,6 +3102,8 @@
     <Build Include="dbo\Stored Procedures\PROCConvertVendorRFQROChargesAndFreightToRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderMaterialsListNew.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetSubWorkOrderMaterialsListNew.sql" />
+    <Build Include="dbo\Tables\WorkOrderAudit.sql" />
+    <Build Include="dbo\Tables\StocklineAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

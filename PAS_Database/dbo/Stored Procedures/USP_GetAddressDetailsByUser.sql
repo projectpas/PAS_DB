@@ -19,6 +19,7 @@
     2    07/01/2021   Vishal Suthar		Added Attention field
 	3    06/29/2023   Amit Ghediya		Added Vendor RMA both ship/bill address.
 	4	 07/23/2024	  Bhargav Saliya    Added/get ShippingTerms
+	5	 07/31/2024	  Amit Ghediya      Added remaining ShippingTerms for VendorRMA.
      
  EXECUTE [USP_GetAddressDetailsByUser] 9, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
@@ -567,12 +568,20 @@ BEGIN
 						LEFT JOIN Countries SCO WITH (NOLOCK) ON SAD.CountryId = SCO.countries_id AND SCO.IsActive = 1
 						WHERE V.VendorId = @UserId;
 
-				select SV.ShippingViaId, SV.ShippingViaId AS ShipViaId, SV.Name,VS.ShippingAccountinfo,0 AS ShippingId,VS.IsPrimary,VS.Memo
+				select SV.ShippingViaId, 
+					   SV.ShippingViaId AS ShipViaId, 
+					   SV.Name,VS.ShippingAccountinfo,
+					   0 AS ShippingId,
+					   VS.IsPrimary,
+					   VS.Memo,
+					   ST.ShippingTermsId,
+					   ST.[Name] AS ShippingTerms
 					FROM Vendor V WITH (NOLOCK)
 						--LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON V.VendorId = VSA.VendorId AND VSA.IsActive = 1 --AND VSA.IsPrimary = 1
 						LEFT JOIN VendorShipping VS WITH (NOLOCK) ON V.VendorId = VS.VendorId AND VS.IsActive = 1
 						LEFT JOIN ShippingVia SV WITH (NOLOCK) ON  VS.ShipViaId = SV.ShippingViaId
 						LEFT JOIN VendorShippingAddress VSA WITH (NOLOCK) ON VS.VendorShippingAddressId = vsa.VendorShippingAddressId
+						LEFT JOIN DBO.ShippingTerms ST WITH (NOLOCK) ON ST.ShippingTermsId = VS.ShippingTermsId
 						WHERE V.VendorId = @UserId;
 
 				--SELECT 0 AS ShippingViaId,0 AS ShipViaId,'' AS Name,'' AS ShippingAccountInfo,'' AS Memo,VSA.IsPrimary AS IsPrimary,0 AS ShippingId

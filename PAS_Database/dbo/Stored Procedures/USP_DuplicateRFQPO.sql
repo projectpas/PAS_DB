@@ -13,6 +13,7 @@
  ** --		--------		-------				--------------------------------            
    1		02/07/2024		Amit Ghediya		Created
    2        29/07/2024		Rajesh Gami			Added Freight and Charges table logic
+   3        31-07-2024      Shrey Chandegara    Modify due to can't insert data in VendorRFQPOPartReference.
 
 -- EXEC [USP_DuplicateRFQPO] 78,0,1,61
 ************************************************************************/  
@@ -155,9 +156,9 @@ BEGIN
 					   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote])
 					SELECT @NewID,[ItemMasterId],[PartNumber],[PartDescription],
 						   [StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[PromisedDate],[ConditionId],[Condition],
-						   [QuantityOrdered],[UnitCost],[ExtendedCost],[WorkOrderId],[WorkOrderNo],[SubWorkOrderId],[SubWorkOrderNo],[SalesOrderId],
-						   [SalesOrderNo],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-						   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PurchaseOrderId],[PurchaseOrderNumber],[UOMId],[UnitOfMeasure],[TraceableTo],
+						   [QuantityOrdered],[UnitCost],[ExtendedCost],NULL,NULL,NULL,NULL,NULL,
+						   NULL,[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+						   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],NULL,NULL,[UOMId],[UnitOfMeasure],[TraceableTo],
 						   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote]
 					FROM [dbo].[VendorRFQPurchaseOrderPart] WITH(NOLOCK) 
 					WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
@@ -216,17 +217,17 @@ BEGIN
 					-----End ManagementStructureDetails Header---------
 
 					------- Start Part Refrence Data ------------
-					IF EXISTS(SELECT 1 FROM [dbo].[VendorRFQPurchaseOrderPartReference] WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId)
-					BEGIN
-							INSERT INTO VendorRFQPurchaseOrderPartReference([VendorRFQPurchaseOrderId],[VendorRFQPOPartRecordId],[ModuleId],[ReferenceId],[Qty],[RequestedQty],[IsReserved],[MasterCompanyId],
-								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-							SELECT @NewID,@NewPartID,[ModuleId],[ReferenceId],[Qty],[RequestedQty],[IsReserved],[MasterCompanyId],
-								   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
-							FROM [dbo].[VendorRFQPurchaseOrderPartReference] WITH(NOLOCK) 
-							WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
-							AND [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId
-							AND [MasterCompanyId] = @MasterCompanyId;
-					END
+					--IF EXISTS(SELECT 1 FROM [dbo].[VendorRFQPurchaseOrderPartReference] WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId)
+					--BEGIN
+					--		INSERT INTO VendorRFQPurchaseOrderPartReference([VendorRFQPurchaseOrderId],[VendorRFQPOPartRecordId],[ModuleId],[ReferenceId],[Qty],[RequestedQty],[IsReserved],[MasterCompanyId],
+					--			   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+					--		SELECT @NewID,@NewPartID,[ModuleId],[ReferenceId],[Qty],[RequestedQty],[IsReserved],[MasterCompanyId],
+					--			   [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+					--		FROM [dbo].[VendorRFQPurchaseOrderPartReference] WITH(NOLOCK) 
+					--		WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
+					--		AND [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId
+					--		AND [MasterCompanyId] = @MasterCompanyId;
+					--END
 					------ End Part Refrence Data-----------
 
 					SET @ID = @ID + 1;

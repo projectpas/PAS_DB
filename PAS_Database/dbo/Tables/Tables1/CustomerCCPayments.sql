@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[CustomerCCPayments] (
     [CustomerCCPaymentsId]            BIGINT        IDENTITY (1, 1) NOT NULL,
     [LegalEntityId]                   BIGINT        NOT NULL,
-    [CustomerName]                    VARCHAR (50)  NULL,
+    [CustomerName]                    VARCHAR (100) NULL,
     [CompanyBankAccount]              BIGINT        NOT NULL,
     [MerchantID]                      VARCHAR (230) NULL,
     [CurrencyId]                      VARCHAR (50)  NULL,
@@ -29,6 +29,8 @@
     [IsDeleted]                       BIT           CONSTRAINT [CustomerCCPayments_DC_Delete] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CustomerCCPayments] PRIMARY KEY CLUSTERED ([CustomerCCPaymentsId] ASC)
 );
+
+
 
 
 GO

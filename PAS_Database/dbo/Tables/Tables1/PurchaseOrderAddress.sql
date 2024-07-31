@@ -11,7 +11,7 @@
     [ShippingAccountNo] VARCHAR (100)  NULL,
     [Memo]              NVARCHAR (MAX) NULL,
     [ContactId]         BIGINT         DEFAULT ((0)) NOT NULL,
-    [ContactName]       VARCHAR (50)   NULL,
+    [ContactName]       VARCHAR (200)  NULL,
     [MasterCompanyId]   INT            NOT NULL,
     [CreatedBy]         VARCHAR (256)  NOT NULL,
     [UpdatedBy]         VARCHAR (256)  NOT NULL,
@@ -30,6 +30,8 @@
     CONSTRAINT [PK_PurchaseOrderAddress] PRIMARY KEY CLUSTERED ([POAddressId] ASC),
     CONSTRAINT [FK_PurchaseOrderAddress_PurchaseOrder] FOREIGN KEY ([PurchaseOrderId]) REFERENCES [dbo].[PurchaseOrder] ([PurchaseOrderId])
 );
+
+
 
 
 GO

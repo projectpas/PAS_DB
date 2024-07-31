@@ -12,6 +12,7 @@
  ** --   --------		-------			--------------------------------          
     1    June/01/2023   Vishal Suthar	Created 
 	2    June/28/2024   Hemant Saliya	Updated for Aounting Entry for Close all Labor 
+	3    June/30/2024	Devendra Shekh	Modified For Same JE Changes
 
 EXEC USP_CompleteAllWorkOrderLabor 3395
 **************************************************************/
@@ -37,6 +38,11 @@ BEGIN
 
 				DECLARE @LoopID AS INT;
 				DECLARE @TotCount AS INT;
+
+				DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
+				DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
+				DECLARE @WOBatchCount INT = 0;
+				DECLARE @IWOBatchCount INT = 0;
 
 				SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 				SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
@@ -242,8 +248,9 @@ BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
 								PRINT '7.1.1'
-								 EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
-								 @DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy
+								 --EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
+								 --@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy
+								  INSERT INTO @WOBatchTriggerType VALUES (@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy)
 							END
 							PRINT '7.1'
 						END
@@ -253,8 +260,9 @@ BEGIN
 							PRINT '8'
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 							BEGIN
-								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
-								@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy
+								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
+								--@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy
+								INSERT INTO @IWOBatchTriggerType VALUES (@DistributionMasterId,@WorkOrderId,@WorkFlowWorkOrderId,@WorkOrderLaborId,0,0,0,@laborType,1,@TotalCost,@ModuleName,@MasterCompanyId,@UpdatedBy)
 							END
 							PRINT '8.1'
 						END
@@ -262,6 +270,32 @@ BEGIN
 
 					SET @LoopID = @LoopID + 1;
 				END
+
+				/*** Same JE Changes : Start ***/
+				SELECT @WOBatchCount = COUNT(ReferencePieceId) FROM @WOBatchTriggerType;
+				SELECT @IWOBatchCount = COUNT(ReferencePieceId) FROM @IWOBatchTriggerType;
+
+				DECLARE @IsRestrictNew INT;
+				DECLARE @IsAccountByPassNew BIT;
+
+				EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UserName, @IsRestrictNew OUTPUT, @IsAccountByPassNew OUTPUT;
+
+				IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
+				BEGIN
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					BEGIN
+						EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+					END
+				END
+
+				IF(ISNULL(@WOTypeId,0) = @InternalWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @IWOBatchCount > 0)
+				BEGIN
+					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
+					BEGIN
+						EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+					END
+				END
+				/*** Same JE Changes : End ***/
 			END
 		COMMIT  TRANSACTION
 

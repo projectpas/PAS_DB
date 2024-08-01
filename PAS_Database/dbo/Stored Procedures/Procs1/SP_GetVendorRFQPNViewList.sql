@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
@@ -70,7 +69,7 @@ SET NOCOUNT ON;
   END  
   IF @SortColumn IS NULL  
   BEGIN  
-   SET @SortColumn=Upper('CreatedDate')  
+   SET @SortColumn=Upper('VendorRFQPurchaseOrderId')  
   END   
   ELSE  
   BEGIN   
@@ -168,7 +167,6 @@ SET NOCOUNT ON;
       ) Then 'Multiple' ELse  isnull(MSD.AllMSlevels,'')   End)  
       as 'AllMSlevels',
 	  --SP.NeedByDate as 'NeedByDateType',
-	  COUNT(SP.VendorRFQPurchaseOrderId) as VendorRFQPurchaseOrderIdCount,
 	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.NeedByDate, 101)  End)  as 'NeedByDate',
 	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.NeedByDate, 101) End)  as 'NeedByDateType',
 	  (Case When Count(SP.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse CONVERT(varchar, SP.PromisedDate, 101) End)  as 'PromisedDate',
@@ -276,10 +274,7 @@ SET NOCOUNT ON;
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescriptionType) End)  as 'PartDescriptionType',
-	 --MAX(PartNumber),
-	 --MAX(PartDescription),
-	 --MAX(PartNumberType),
-	 --MAX(PartDescriptionType),
+
 	 StockTypeType,  
      ManufacturerType,PriorityType,
 	 NeedByDate,
@@ -288,7 +283,7 @@ SET NOCOUNT ON;
 	 PromisedDateType,
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
        
-     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType ,VendorRFQPurchaseOrderIdCount 
+     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType  
    INTO #finalTemp FROM #TEMPData td
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
@@ -303,7 +298,7 @@ SET NOCOUNT ON;
 	 PromisedDateType,
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType 
        
-     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType,VendorRFQPurchaseOrderIdCount 
+     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType 
 
 	 	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #finalTemp)
    SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
@@ -325,7 +320,7 @@ SET NOCOUNT ON;
 	 PromisedDateType,
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType  
        
-     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType ,VendorRFQPurchaseOrderIdCount 
+     ,@TotalCount as NumberOfItems,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType 
      FROM #finalTemp td  
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
@@ -340,8 +335,11 @@ SET NOCOUNT ON;
 	 PromisedDateType,
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType 
        
-     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType,VendorRFQPurchaseOrderIdCount  
+     ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType  
    ORDER BY    
+   
+   CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderId')  THEN VendorRFQPurchaseOrderId END ASC,  
+   CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderId')  THEN VendorRFQPurchaseOrderId END DESC,  
    CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,  
    CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,  
    CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,  

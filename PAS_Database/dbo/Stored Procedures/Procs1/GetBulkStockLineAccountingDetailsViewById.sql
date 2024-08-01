@@ -1,5 +1,4 @@
-﻿--===========================================
--- Author:		<Jevik Raiyani>
+﻿-- Author:		<Jevik Raiyani>
 -- Create date: <27-11-2023>
 -- Description:	<This stored procedure is used Get GetBulkStockLineAccountingDetailsViewById for Bulk stockline accounting list>
 -- =============================================
@@ -7,9 +6,11 @@
  ** Change History             
  **************************************************************             
  ** PR   Date			 Author				Change Description              
- ** --   --------		 -------			--------------------------------            
+ ** --   ----------===========================================
+		 -------			--------------------------------            
     1    27-11-2023		Jevik Raiyani		Created  
 	2    12-03-2024		AMIT GHEDIYA		Update join for mngmt get.
+	3    01-08-2024     Sahdev Saliya       Added (AccountingPeriod) And Set JournalTypeNumber Order by desc
 
 EXEC GetBulkStockLineAccountingDetailsViewById 119
 ************************************************************************/   
@@ -81,6 +82,7 @@ BEGIN
 					  ,'' AS [Bin]  
 					  ,'' AS [Shelf]  
 					  ,BD.JournalTypeNumber
+					  ,BD.AccountingPeriod AS 'AccountingPeriod'
 					  ,BD.CurrentNumber  
 					  ,0 AS [CustomerId],'' AS [CustomerName],0 AS [InvoiceId],'' AS [InvoiceName],'' AS [ARControlNum],'' AS [CustRefNumber],0 AS [ReferenceId],'' AS [ReferenceName]  
 					  ,BS.Name AS 'Status'
@@ -121,7 +123,7 @@ BEGIN
 					 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
 					 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 				 WHERE JBD.JournalBatchDetailId = @JournalBatchDetailId AND JBD.IsDeleted = 0  
-				 ORDER BY DS.DisplayNumber ASC;
+				 ORDER BY DS.DisplayNumber ASC,BD.JournalTypeNumber DESC;
   END    
   END TRY    
  BEGIN CATCH          

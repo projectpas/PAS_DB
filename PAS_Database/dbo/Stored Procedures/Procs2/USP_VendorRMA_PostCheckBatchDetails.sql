@@ -22,6 +22,7 @@
     6    27/11/2023   Moin Bloch    Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
 	7    02/26/2024   Bhargav Saliya Resoved Shipping Issue
 	8    02/27/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
+	9    08/01/2024	  Devendra Shekh Modified for ModuleId for VendorRMAPaymentBatchDetails
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -91,6 +92,7 @@ BEGIN
 		SELECT @CodeTypeId = CodeTypeId FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE CodeType = 'JournalType';
 
 		--SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VendorRMA')
+		SELECT @ModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='VendorRMA';
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -120,6 +122,7 @@ BEGIN
 			FROM [DBO].[VendorCreditMemoDetail] WITH(NOLOCK) WHERE VendorCreditMemoId = @VendorRMADetailId;
 
 			SELECT @VendorId = VendorId FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;
+			SELECT @ModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='VendorCreditMemo';
 		END
 		ELSE
 		BEGIN
@@ -301,8 +304,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 					
-					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Account Payable--------
 
@@ -332,8 +335,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
-					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Purchase Return/Inventory--------
 			END
@@ -365,8 +368,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].[VendorRMAPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Account Payable--------
 				 -----Account Receivabes Other--------
@@ -395,8 +398,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
-					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Account Payable--------
 			END
@@ -429,8 +432,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
-					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Inventory - Parts--------
 
@@ -460,8 +463,8 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 			
-					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId)
-					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId)
+					INSERT INTO [dbo].VendorRMAPaymentBatchDetails(JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,VendorId,CheckDate,CommonJournalBatchDetailId,StockLineId,ModuleId)
+					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@VendorCreditMemoId,@ExtNumber,@VendorId,@ExtDate,@CommonBatchDetailId,@stklineId,@ModuleId)
 					-- @VendorRMAId
 				 -----Account Payable--------
 			END

@@ -1,5 +1,4 @@
-﻿
-CREATE   PROCEDURE [dbo].[CreateBulkPO]
+﻿CREATE   PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
 	@loginUserName varchar(50) = NULL,
 	@employeeId bigint = NULL,
@@ -14,7 +13,7 @@ BEGIN
 		BEGIN TRANSACTION
 		BEGIN
 			DECLARE @TotalDistictRecord int = 0, @TotalRecord int = 0, @MainLoopId int = 0, @LoopVendorId bigint = 0,@ManagementStructureID bigint,@UpdatePOMainLoopId int = 0
-			DECLARE @OpenStatusId bigint, @WorkOrderMaterialsIds VARCHAR(MAX),@WorkOrderMaterialsKitIds VARCHAR(MAX)
+			DECLARE @FullfillStatusId bigint, @WorkOrderMaterialsIds VARCHAR(MAX),@WorkOrderMaterialsKitIds VARCHAR(MAX)
 			DECLARE @PriorityId bigint;
 			DECLARE @IsResale bit;
 			DECLARE @IsDeferredReceiver bit;
@@ -23,7 +22,7 @@ BEGIN
 			DECLARE @totalPartCount int; 
 			DECLARE @newPartLoopId int; 
 			SELECT @PriorityId = PriorityId, @IsResale = IsResale, @IsDeferredReceiver = IsDeferredReceiver, @IsEnforceApproval = IsEnforceApproval FROM DBO.PurchaseOrderSettingMaster WITH (NOLOCK) WHERE MasterCompanyId = 1;
-			--SELECT @OpenStatusId = POStatusId FROM DBO.POStatus WITH (NOLOCK) WHERE [Status] = 'Open';
+			SELECT TOP 1 @FullfillStatusId = POStatusId FROM DBO.POStatus WITH (NOLOCK) WHERE [Status] like '%Fulfilling%';
 			DECLARE @POPartId bigint
 			DECLARE @IdCodeTypeId BIGINT;
 			DECLARE @CurrentPONumber AS BIGINT;
@@ -224,30 +223,34 @@ BEGIN
 						EXEC dbo.[PROCAddPOMSData] @POPartId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,5,3,0
 											   
 				 /************ INSERT INTO Purchase Order Approval Table : By Pass the approval process for bulk PO ************/
-						INSERT INTO [dbo].[PurchaseOrderApproval]
-							   ([PurchaseOrderId] ,[PurchaseOrderPartId] ,[SentDate] ,[ApprovedDate] ,[ApprovedById] ,[ApprovedByName]  ,[StatusId]
-							   ,[StatusName] ,[ActionId] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted]
-							   ,[InternalSentToId] ,[InternalSentToName] ,[InternalSentById])
-						 VALUES
-							   (@NewPurchaseOrderId
-							   ,@POPartId
-							   ,GETDATE()
-							   ,GETDATE()
-							   ,@employeeId
-							   ,@loginUserName
-							   ,2
-							   ,'Approved'
-							   ,5
-							   ,@MstCompanyId
-							   ,@loginUserName
-							   ,@loginUserName
-							   ,GETDATE()
-							   ,GETDATE()
-							   ,1
-							   ,0
-							   ,@employeeId
-							   ,@loginUserName
-							   ,@employeeId)
+						IF EXISTS ((SELECT TOP 1 StatusId FROM #BulkPOItemType WHERE StatusId = @FullfillStatusId))
+						BEGIN
+							INSERT INTO [dbo].[PurchaseOrderApproval]
+								   ([PurchaseOrderId] ,[PurchaseOrderPartId] ,[SentDate] ,[ApprovedDate] ,[ApprovedById] ,[ApprovedByName]  ,[StatusId]
+								   ,[StatusName] ,[ActionId] ,[MasterCompanyId] ,[CreatedBy] ,[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted]
+								   ,[InternalSentToId] ,[InternalSentToName] ,[InternalSentById])
+							 VALUES
+								   (@NewPurchaseOrderId
+								   ,@POPartId
+								   ,GETDATE()
+								   ,GETDATE()
+								   ,@employeeId
+								   ,@loginUserName
+								   ,2
+								   ,'Approved'
+								   ,5
+								   ,@MstCompanyId
+								   ,@loginUserName
+								   ,@loginUserName
+								   ,GETDATE()
+								   ,GETDATE()
+								   ,1
+								   ,0
+								   ,@employeeId
+								   ,@loginUserName
+								   ,@employeeId)
+
+						END
 
 						set @totalPartCount = @totalPartCount - 1
 						set @newPartLoopId = @newPartLoopId+1

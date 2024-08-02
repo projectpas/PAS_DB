@@ -9,14 +9,15 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12-10-2022  Deep Patel     Created
+ ** PR   Date         Author			  Change Description            
+ ** --   --------     -------			  --------------------------------          
+    1    12-10-2022  Deep Patel			  Created
     2    26-07-2024  Shrey Chandegara     Modified For Enter value of ChargesBilingMethodId
+	3    02-08-2024  AMIT GHEDIYA		  Comment in RepairOrderCharges table name update, handle in PROCInsertRepairOrderChargesDetails sp.
 -- EXEC UpdateRepairOrderChargeNameColumnsWithId 8,0
 ************************************************************************/
 CREATE PROCEDURE [dbo].[UpdateRepairOrderChargeNameColumnsWithId]
-@RepairOrderId int
+@RepairOrderId INT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -24,15 +25,15 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 		BEGIN 
-			Update soc
-			SET VendorName = v.VendorName,
-			ChargeName = C.ChargeType,
-			MarkupName = p.PercentValue
-			FROM [dbo].RepairOrderCharges soc WITH (NOLOCK)
-			LEFT JOIN DBO.Vendor v WITH (NOLOCK) ON soc.VendorId = v.VendorId
-			LEFT JOIN DBO.Charge c WITH (NOLOCK) ON soc.ChargesTypeId = c.ChargeId
-			LEFT JOIN DBO.[Percent] p WITH (NOLOCK) ON soc.MarkupPercentageId = p.PercentId
-			Where soc.RepairOrderId = @RepairOrderId
+			--Update soc
+			--SET VendorName = v.VendorName,
+			--ChargeName = C.ChargeType,
+			--MarkupName = p.PercentValue
+			--FROM [dbo].RepairOrderCharges soc WITH (NOLOCK)
+			--LEFT JOIN DBO.Vendor v WITH (NOLOCK) ON soc.VendorId = v.VendorId
+			--LEFT JOIN DBO.Charge c WITH (NOLOCK) ON soc.ChargesTypeId = c.ChargeId
+			--LEFT JOIN DBO.[Percent] p WITH (NOLOCK) ON soc.MarkupPercentageId = p.PercentId
+			--Where soc.RepairOrderId = @RepairOrderId
 
 			IF EXISTS(SELECT RepairOrderChargesId FROM DBO.[RepairOrderCharges] WITH (NOLOCK) WHERE RepairOrderId = @RepairOrderId)
 			BEGIN

@@ -1,4 +1,22 @@
-﻿CREATE     PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
+﻿/*************************************************************           
+ ** File:   [PROCInsertRepairOrderChargesDetails]           
+ ** Author:  
+ ** Description: This stored procedure is used to Insert/Update RepairOrderCharges table data with name.
+ ** Purpose:         
+ ** Date:    
+ ** PARAMETERS: @TableRepairOrderChargesType
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			  Change Description            
+ ** --   --------     -------			  --------------------------------          
+    1    			  No-History
+	2    02-08-2024   AMIT GHEDIYA		  Handle for update VendorName etc.. name at Update & Insert Time.
+
+-- EXEC PROCInsertRepairOrderChargesDetails
+************************************************************************/
+CREATE       PROCEDURE [dbo].[PROCInsertRepairOrderChargesDetails](@TableRepairOrderChargesType RepairOrderChargesType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -19,9 +37,12 @@ BEGIN
 						TARGET.[RepairOrderPartRecordId] = SOURCE.RepairOrderPartRecordId,
 						TARGET.[ItemMasterId] = SOURCE.ItemMasterId,
 						TARGET.[ChargesTypeId] = SOURCE.ChargesTypeId,	
+						TARGET.[ChargeName] = (SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0)),
 						TARGET.[VendorId] = SOURCE.VendorId,	
+						TARGET.[VendorName] = (SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0)),
 						TARGET.[Quantity] = SOURCE.Quantity,	
-						TARGET.[MarkupPercentageId] = SOURCE.MarkupPercentageId,	
+						TARGET.[MarkupPercentageId] = SOURCE.MarkupPercentageId,
+						TARGET.[MarkupName] = (SELECT ISNULL(PercentValue,0) FROM [DBO].[Percent] WITH(NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0)),
 						TARGET.[MarkupFixedPrice] = SOURCE.MarkupFixedPrice,	
 						TARGET.[HeaderMarkupId] = SOURCE.HeaderMarkupId,	
 						TARGET.[BillingMethodId] = SOURCE.BillingMethodId,	
@@ -49,9 +70,12 @@ BEGIN
 							([RepairOrderId]
 							,[RepairOrderPartRecordId]
 							,[ChargesTypeId]
+							,[ChargeName] 
 							,[VendorId]
+							,[VendorName]
 							,[Quantity]
 							,[MarkupPercentageId]
+							,[MarkupName]
 							,[Description]
 							,[UnitCost]
 							,[ExtendedCost]
@@ -81,9 +105,12 @@ BEGIN
 							 (SOURCE.RepairOrderId
 							 ,SOURCE.RepairOrderPartRecordId
 							 ,SOURCE.ChargesTypeId
+							 ,(SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0))
 							 ,SOURCE.VendorId
+							 ,(SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0))
 							 ,SOURCE.Quantity
 							 ,SOURCE.MarkupPercentageId
+							 ,(SELECT ISNULL(PercentValue,0) FROM [DBO].[Percent] WITH(NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0))
 							 ,SOURCE.Description
 							 ,SOURCE.UnitCost
 							 ,SOURCE.ExtendedCost

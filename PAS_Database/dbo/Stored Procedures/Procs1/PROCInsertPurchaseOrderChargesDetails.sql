@@ -1,4 +1,4 @@
-﻿CREATE     PROCEDURE [dbo].[PROCInsertPurchaseOrderChargesDetails](@TablePurchaseOrderChargesType PurchaseOrderChargesType READONLY)  
+﻿CREATE  PROCEDURE [dbo].[PROCInsertPurchaseOrderChargesDetails](@TablePurchaseOrderChargesType PurchaseOrderChargesType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -19,9 +19,12 @@ BEGIN
 						TARGET.[PurchaseOrderPartRecordId] = SOURCE.PurchaseOrderPartRecordId,
 						TARGET.[ItemMasterId] = SOURCE.ItemMasterId,
 						TARGET.[ChargesTypeId] = SOURCE.ChargesTypeId,	
+						TARGET.[ChargeName] = (SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0)),
 						TARGET.[VendorId] = SOURCE.VendorId,	
+						TARGET.[VendorName] = (SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0)),
 						TARGET.[Quantity] = SOURCE.Quantity,	
-						TARGET.[MarkupPercentageId] = SOURCE.MarkupPercentageId,	
+						TARGET.[MarkupPercentageId] = SOURCE.MarkupPercentageId,
+						TARGET.[MarkupName] = (SELECT ISNULL(PercentValue,'') FROM [DBO].[Percent] WITH (NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0)),
 						TARGET.[MarkupFixedPrice] = SOURCE.MarkupFixedPrice,	
 						TARGET.[HeaderMarkupId] = SOURCE.HeaderMarkupId,	
 						TARGET.[BillingMethodId] = SOURCE.BillingMethodId,	
@@ -49,9 +52,12 @@ BEGIN
 							([PurchaseOrderId]
 							,[PurchaseOrderPartRecordId]
 							,[ChargesTypeId]
+							,[ChargeName]
 							,[VendorId]
+							,[VendorName]
 							,[Quantity]
 							,[MarkupPercentageId]
+							,[MarkupName]
 							,[Description]
 							,[UnitCost]
 							,[ExtendedCost]
@@ -81,9 +87,12 @@ BEGIN
 							 (SOURCE.PurchaseOrderId
 							 ,SOURCE.PurchaseOrderPartRecordId
 							 ,SOURCE.ChargesTypeId
+							 ,(SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0))
 							 ,SOURCE.VendorId
+							 ,(SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0))
 							 ,SOURCE.Quantity
 							 ,SOURCE.MarkupPercentageId
+							 ,(SELECT ISNULL(PercentValue,'') FROM [DBO].[Percent] WITH (NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0))
 							 ,SOURCE.Description
 							 ,SOURCE.UnitCost
 							 ,SOURCE.ExtendedCost
@@ -113,7 +122,7 @@ BEGIN
 
 					SELECT top 1 @PurchaseOrderId = PurchaseOrderId FROM @TablePurchaseOrderChargesType
 
-					EXEC UpdatePurchaseOrderChargeNameColumnsWithId @PurchaseOrderId
+					--EXEC UpdatePurchaseOrderChargeNameColumnsWithId @PurchaseOrderId
 					
 				END
 			COMMIT  TRANSACTION

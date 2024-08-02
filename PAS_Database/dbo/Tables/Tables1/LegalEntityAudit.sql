@@ -43,8 +43,12 @@
     [ShortDateTimeFormatId]   BIGINT        NULL,
     [LongDateTimeFormatId]    BIGINT        NULL,
     [TextTransformId]         BIGINT        NULL,
+    [EnableLockScreen]        BIT           NULL,
+    [TimeoutInMinutes]        INT           NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
 
 
 

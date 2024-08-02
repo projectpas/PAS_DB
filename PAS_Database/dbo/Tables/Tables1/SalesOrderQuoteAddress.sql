@@ -11,7 +11,7 @@
     [ShippingAccountNo]        VARCHAR (100) NULL,
     [Memo]                     VARCHAR (500) NULL,
     [ContactId]                BIGINT        NOT NULL,
-    [ContactName]              VARCHAR (50)  NULL,
+    [ContactName]              VARCHAR (200) NULL,
     [MasterCompanyId]          INT           NOT NULL,
     [CreatedBy]                VARCHAR (256) NOT NULL,
     [UpdatedBy]                VARCHAR (256) NOT NULL,
@@ -29,4 +29,6 @@
     [CountryId]                INT           NULL,
     CONSTRAINT [PK_SalesOrderQuoteAddress] PRIMARY KEY CLUSTERED ([SalesOrderQuoteAddressId] ASC)
 );
+
+
 

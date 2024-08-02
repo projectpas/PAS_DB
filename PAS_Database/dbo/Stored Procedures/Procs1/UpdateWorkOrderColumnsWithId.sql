@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2020   Hemant Saliya Created
 	2    07/19/2021   Hemant Saliya Added SP Call for WO Status Update
+	3    07/19/2021   Hemant Saliya Added Is NUll Condition
      
 -- EXEC [UpdateWorkOrderColumnsWithId] 6
 **************************************************************/
@@ -46,7 +47,7 @@ BEGIN
 
 				UPDATE WPN SET 
 					WPN.WorkScope = WS.WorkScopeCode,
-					WPN.RevisedConditionId = CASE WHEN WPN.RevisedConditionId > 0 THEN WPN.RevisedConditionId ELSE WPN.ConditionId END
+					WPN.RevisedConditionId = CASE WHEN ISNULL(WPN.RevisedConditionId, 0) > 0 THEN WPN.RevisedConditionId ELSE WPN.ConditionId END
 				FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 					JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
 					JOIN dbo.WorkScope WS WITH(NOLOCK) ON WPN.WorkOrderScopeId = WS.WorkScopeId

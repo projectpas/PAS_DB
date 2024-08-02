@@ -45,7 +45,7 @@
     [QuoteParentId]            BIGINT          NULL,
     [QuoteTypeName]            VARCHAR (50)    NULL,
     [AccountTypeName]          VARCHAR (50)    NULL,
-    [CustomerName]             VARCHAR (50)    NULL,
+    [CustomerName]             VARCHAR (100)   NULL,
     [SalesPersonName]          VARCHAR (50)    NULL,
     [CustomerServiceRepName]   VARCHAR (50)    NULL,
     [ProbabilityName]          VARCHAR (50)    NULL,
@@ -55,7 +55,7 @@
     [CurrencyName]             VARCHAR (50)    NULL,
     [CustomerWarningName]      VARCHAR (500)   NULL,
     [ManagementStructureName]  VARCHAR (50)    NULL,
-    [CustomerContactName]      VARCHAR (50)    NULL,
+    [CustomerContactName]      VARCHAR (200)   NULL,
     [VersionNumber]            VARCHAR (50)    NULL,
     [CustomerCode]             VARCHAR (50)    NULL,
     [CustomerContactEmail]     VARCHAR (50)    NULL,
@@ -74,6 +74,8 @@
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

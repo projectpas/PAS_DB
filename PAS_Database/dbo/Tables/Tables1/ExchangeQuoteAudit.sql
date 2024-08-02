@@ -15,7 +15,7 @@
     [StatusName]               VARCHAR (50)    NULL,
     [StatusChangeDate]         DATETIME2 (7)   CONSTRAINT [DF_ExchangeQuoteAudit_StatusChangeDate] DEFAULT (getdate()) NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
-    [CustomerName]             VARCHAR (50)    NULL,
+    [CustomerName]             VARCHAR (100)   NULL,
     [CustomerCode]             VARCHAR (50)    NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
     [CreditLimit]              DECIMAL (18, 2) NULL,
@@ -38,7 +38,7 @@
     [ManagementStructureId]    BIGINT          NULL,
     [EmployeeId]               BIGINT          NULL,
     [IsApproved]               BIT             CONSTRAINT [DF_ExchangeQuoteAudit_IsApproved] DEFAULT ((0)) NULL,
-    [CustomerContactName]      VARCHAR (100)   NULL,
+    [CustomerContactName]      VARCHAR (200)   NULL,
     [CustomerContactEmail]     VARCHAR (100)   NULL,
     [ValidForDays]             INT             DEFAULT ((0)) NOT NULL,
     [CustomerSeviceRepId]      BIGINT          NULL,
@@ -69,6 +69,8 @@
     [ChargeFlatRate]           DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
+
+
 
 
 

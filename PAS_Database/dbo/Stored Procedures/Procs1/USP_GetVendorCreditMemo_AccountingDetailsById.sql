@@ -19,11 +19,13 @@
 	5    10/05/2023     Moin Bloch             Added IsUpdated
 	6    16/07/2024     Sahdev Saliya          Added (AccountingPeriod)
 	7    25/07/2024     Sahdev Saliya          Set JournalTypeNumber Order by desc
+	8    08/01/2024		Devendra Shekh		   Added @ModuleId to param and where
 
--- exec USP_GetVendorCreditMemo_AccountingDetailsById 90
+-- exec USP_GetVendorCreditMemo_AccountingDetailsById 127, 80
 ************************/   
- CREATE      PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
-@ReferenceId bigint
+CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemo_AccountingDetailsById]    
+@ReferenceId bigint,
+@ModuleId int
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -35,12 +37,12 @@ BEGIN
 	SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 	DECLARE @VendorCMIds VARCHAR(50) = '';
 
-	SELECt @VendorCMIds = STUFF(
-		 (SELECT ',' + CAST(VendorCreditMemoId AS VARCHAR) FROM [dbo].[VendorCreditMemo] VCM
-		  WHERE VCM.VendorRMAId = VRM.VendorRMAId FOR XML PATH ('')), 1, 1, '') 
-		  FROM [dbo].[VendorRMA] VRM
-		  WHERE VRM.VendorRMAId = @ReferenceId
-		  GROUP BY vrm.VendorRMAId
+	--SELECt @VendorCMIds = STUFF(
+	--	 (SELECT ',' + CAST(VendorCreditMemoId AS VARCHAR) FROM [dbo].[VendorCreditMemo] VCM
+	--	  WHERE VCM.VendorRMAId = VRM.VendorRMAId FOR XML PATH ('')), 1, 1, '') 
+	--	  FROM [dbo].[VendorRMA] VRM
+	--	  WHERE VRM.VendorRMAId = @ReferenceId
+	--	  GROUP BY vrm.VendorRMAId
 
      SELECT JBD.CommonJournalBatchDetailId  
 		  ,VPBD.VendorRMAPaymentBatchDetilsId
@@ -117,7 +119,8 @@ BEGIN
 		LEFT JOIN [dbo].[LegalEntity] LET WITH(NOLOCK) ON MSL1.LegalEntityId = LET.LegalEntityId  
 		LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id
 		LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = VDR.CurrencyId  
-     WHERE VPBD.ReferenceID IN (SELECT value FROM STRING_SPLIT(@VendorCMIds, ',')) OR VPBD.ReferenceID = @ReferenceId
+     --WHERE VPBD.ReferenceID IN (SELECT value FROM STRING_SPLIT(@VendorCMIds, ',')) OR VPBD.ReferenceID = @ReferenceId
+     WHERE VPBD.ReferenceID = @ReferenceId AND ISNULL(VPBD.ModuleId, 0) = @ModuleId
 	 order by BD.JournalTypeNumber desc
   END    
   END TRY    

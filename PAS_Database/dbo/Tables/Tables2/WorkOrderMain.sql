@@ -2,7 +2,7 @@
     [WorkOrderId]             BIGINT         IDENTITY (1, 1) NOT NULL,
     [WorkOrderNum]            VARCHAR (20)   NULL,
     [CustomerId]              BIGINT         NULL,
-    [CustomerName]            VARCHAR (50)   NULL,
+    [CustomerName]            VARCHAR (100)  NULL,
     [CustomerCode]            VARCHAR (20)   NULL,
     [CustomerRef]             VARCHAR (20)   NULL,
     [CustomerContact]         VARCHAR (50)   NULL,
@@ -39,6 +39,8 @@
     CONSTRAINT [FK_WorkOrderMain_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_WorkOrderMain_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

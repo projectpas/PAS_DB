@@ -8,6 +8,9 @@
     [CheckDate]                     DATETIME2 (7) NULL,
     [CommonJournalBatchDetailId]    BIGINT        NOT NULL,
     [StockLineId]                   BIGINT        NULL,
+    [ModuleId]                      INT           NULL,
     CONSTRAINT [PK_VendorRMAPaymentBatchDetails] PRIMARY KEY CLUSTERED ([VendorRMAPaymentBatchDetilsId] ASC)
 );
+
+
 

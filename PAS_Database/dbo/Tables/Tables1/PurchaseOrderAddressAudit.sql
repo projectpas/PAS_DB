@@ -12,7 +12,7 @@
     [ShippingAccountNo]           VARCHAR (100)  NULL,
     [Memo]                        NVARCHAR (MAX) NULL,
     [ContactId]                   BIGINT         NOT NULL,
-    [ContactName]                 VARCHAR (50)   NULL,
+    [ContactName]                 VARCHAR (200)  NULL,
     [MasterCompanyId]             INT            NOT NULL,
     [CreatedBy]                   VARCHAR (256)  NOT NULL,
     [UpdatedBy]                   VARCHAR (256)  NOT NULL,
@@ -30,4 +30,6 @@
     [CountryId]                   INT            NULL,
     CONSTRAINT [PK_PurchaseOrderAddressAuditId] PRIMARY KEY CLUSTERED ([PurchaseOrderAddressAuditId] ASC)
 );
+
+
 

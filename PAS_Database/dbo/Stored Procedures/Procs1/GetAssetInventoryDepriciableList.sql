@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAssetInventoryDepriciableList]           
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used GetAssetInventoryDepriciableList
@@ -18,6 +17,7 @@
 	4    04/08/2024  Abhishek Jirawla   Added Selected Accounting Period Id to the sp
 	5    06/27/2024  Abhishek Jirawla   Returning Capital for export
 	6    07/16/2024  Devendra Shekh		Added lastDeprRunPeriod to List
+	7    08/05/2024  Devendra Shekh		Added lastDeprDate to List
 	
    EXEC [dbo].[GetAssetInventoryDepriciableList] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
 ************************************************************************/
@@ -72,7 +72,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryDepriciableList]
 @LegalentityId varchar(500) = null,
 @LastMSLevel varchar(50) = null,
 @SelectedAccountingPeriodId int = null,
-@LastDeprRunPeriod varchar(30) = null
+@LastDeprRunPeriod varchar(30) = null,
+@LastDeprDate datetime = null
 AS
 BEGIN
 
@@ -192,7 +193,8 @@ BEGIN
 								B.AccumlatedDepr,
 								B.NetBookValue,
 								B.NBVAfterDepreciation,
-								B.LastDeprRunPeriod
+								B.LastDeprRunPeriod,
+								B.DepreciationStartDate as LastDeprDate
 
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId								
@@ -225,7 +227,8 @@ BEGIN
 														ADH.AccumlatedDepr,
 														ADH.NetBookValue,
 														ADH.NBVAfterDepreciation,
-														ADH.LastDeprRunPeriod
+														ADH.LastDeprRunPeriod,
+														ADH.DepreciationStartDate
 										 FROM [dbo].AssetDepreciationHistory ADH WITH (NOLOCK)      			
 										 WHERE ADH.AssetInventoryId = ASM.AssetInventoryId 
 										 ORDER BY ADH.ID DESC
@@ -322,7 +325,8 @@ BEGIN
 								(ISNULL(@DepreciationMethod,'') ='' OR DepreciationMethod LIKE '%' + @DepreciationMethod+'%') AND
 								(ISNULL(@InstalledCost,'') ='' OR cast(InstalledCost as varchar(10)) LIKE '%' + @InstalledCost+'%') AND
 								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND
-								(ISNULL(@LastDeprRunPeriod,'') ='' OR LastDeprRunPeriod LIKE '%' + @LastDeprRunPeriod+'%') 
+								(ISNULL(@LastDeprRunPeriod,'') ='' OR LastDeprRunPeriod LIKE '%' + @LastDeprRunPeriod+'%') AND
+								(ISNULL(@LastDeprDate,'') ='' OR CAST(LastDeprDate AS DATE) = CAST(@LastDeprDate AS DATE))
 								))
 				
 						
@@ -360,6 +364,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 AND @SortColumn='InServiceDate')  THEN InServiceDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='LastDeprRunPeriod')  THEN LastDeprRunPeriod END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='LastDeprDate')  THEN LastDeprDate END ASC,
 
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETID')  THEN AssetId END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='ASSETNAME')  THEN Name END DESC,
@@ -390,7 +395,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InstalledCost')  THEN InstalledCost END DESC,
 					CASE WHEN (@SortOrder=-1 AND @SortColumn='InServiceDate')  THEN InServiceDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprRunPeriod')  THEN LastDeprRunPeriod END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprRunPeriod')  THEN LastDeprRunPeriod END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastDeprDate')  THEN LastDeprDate END DESC
 
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY

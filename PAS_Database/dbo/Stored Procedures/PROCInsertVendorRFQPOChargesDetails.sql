@@ -19,9 +19,12 @@ BEGIN
 						TARGET.[VendorRFQPOPartRecordId] = SOURCE.VendorRFQPOPartRecordId,
 						TARGET.[ItemMasterId] = SOURCE.ItemMasterId,
 						TARGET.[ChargesTypeId] = SOURCE.ChargesTypeId,	
+						TARGET.[ChargeName] = (SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0)),
 						TARGET.[VendorId] = SOURCE.VendorId,	
+						TARGET.[VendorName] = (SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0)),
 						TARGET.[Quantity] = SOURCE.Quantity,	
 						TARGET.[MarkupPercentageId] = SOURCE.MarkupPercentageId,	
+						TARGET.[MarkupName] = (SELECT ISNULL(PercentValue,'') FROM [DBO].[Percent] WITH (NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0)),
 						TARGET.[MarkupFixedPrice] = SOURCE.MarkupFixedPrice,	
 						TARGET.[HeaderMarkupId] = SOURCE.HeaderMarkupId,	
 						TARGET.[BillingMethodId] = SOURCE.BillingMethodId,	
@@ -49,9 +52,12 @@ BEGIN
 							([VendorRFQPurchaseOrderId]
 							,[VendorRFQPOPartRecordId]
 							,[ChargesTypeId]
+							,[ChargeName]
 							,[VendorId]
+							,[VendorName]
 							,[Quantity]
 							,[MarkupPercentageId]
+							,[MarkupName]
 							,[Description]
 							,[UnitCost]
 							,[ExtendedCost]
@@ -81,9 +87,12 @@ BEGIN
 							 (SOURCE.VendorRFQPurchaseOrderId
 							 ,SOURCE.VendorRFQPOPartRecordId
 							 ,SOURCE.ChargesTypeId
+							 ,(SELECT ISNULL(ChargeType,'') FROM [DBO].[Charge] WITH(NOLOCK) WHERE [ChargeId] = ISNULL(SOURCE.ChargesTypeId,0))
 							 ,SOURCE.VendorId
+							 ,(SELECT ISNULL(VendorName,'') FROM [DBO].[Vendor] WITH(NOLOCK) WHERE [VendorId] = ISNULL(SOURCE.VendorId,0))
 							 ,SOURCE.Quantity
 							 ,SOURCE.MarkupPercentageId
+							 ,(SELECT ISNULL(PercentValue,'') FROM [DBO].[Percent] WITH (NOLOCK) WHERE [PercentId] = ISNULL(SOURCE.MarkupPercentageId,0))
 							 ,SOURCE.Description
 							 ,SOURCE.UnitCost
 							 ,SOURCE.ExtendedCost
@@ -113,7 +122,7 @@ BEGIN
 
 					SELECT top 1 @VendorRFQPOId = VendorRFQPurchaseOrderId FROM @TableVendorRFQPOChargesType
 
-					EXEC UpdateVendorRFQPOChargeNameColumnsWithId @VendorRFQPOId
+					--EXEC UpdateVendorRFQPOChargeNameColumnsWithId @VendorRFQPOId
 					
 				END
 			COMMIT  TRANSACTION

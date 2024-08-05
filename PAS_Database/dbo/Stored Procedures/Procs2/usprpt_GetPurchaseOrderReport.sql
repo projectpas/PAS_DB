@@ -19,6 +19,7 @@
 	2    16-JUNE-2023   Devendra Shekh        made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra     IsDeleted and IsActive flag is added
 	4    10-APRL-2024   Shrey Chandegara   poage changes   ( DATEDIFF(DAY, PO.OpenDate, GETDATE()) to DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) )
+	5    05-AUG-2024   Shrey Chandegara   Changes for PO View AND PN View.
 	
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -51,9 +52,12 @@ BEGIN
 		@Level8 VARCHAR(MAX) = NULL,
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
+		@searchPOType VARCHAR(40) = NULL,
+		@IsPOView BIT = NULL,
 		@IsDownload BIT = NULL
 
 		DECLARE @ModuleID INT = 5; -- PO PART MS Module ID
+		DECLARE @ModuleIDForPO INT = (SELECT ManagementStructureModuleId FROM DBO.[ManagementStructureModule] WHERE ModuleName = 'POHeader')
 		SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
 		SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Date' 
@@ -99,9 +103,15 @@ BEGIN
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,
 
 			@level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10' 
-			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end
+			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 END,
+
+			@searchPOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchPOType' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchPOType END
 
 		  FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
+
+		 SET @IsPOView = CASE WHEN @searchPOType = 1 THEN 0 ELSE 1 END ;
+		 --SELECT @IsPOView as poview;
 
 		  IF ISNULL(@PageSize,0)=0
 			BEGIN 
@@ -131,6 +141,8 @@ BEGIN
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 			 
+			 IF(@IsPOView = 1)
+			 BEGIN
 			;WITH rptCTE (TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
 				 vendorcode, uom, Approver, requisitioner, qty, unitcost, curr, extamt, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10, masterCompanyId) AS (
@@ -152,8 +164,6 @@ BEGIN
 				ISNULL(POP.UnitCost,0) 'unitcost',
 				UPPER(POP.functionalcurrency) 'curr',
 				ISNULL(POP.ExtendedCost ,0) 'extamt',
-				--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.ExtendedCost , 'N', 'en-us') ELSE CAST('&nbsp;' + FORMAT(POP.ExtendedCost , 'N', 'en-us') AS VARCHAR(20)) END 'extamt',
-				--CAST('&nbsp;' + FORMAT(POP.ExtendedCost , 'N', 'en-us') AS VARCHAR(20)) 'extamt',
 				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.NeedByDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), POP.NeedByDate, 107) END 'needby',
 				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.EstDeliveryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), POP.EstDeliveryDate, 107) END 'prmsddate',
 				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(POP.EstDeliveryDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), POP.EstDeliveryDate, 107) END 'nextdeldate',
@@ -216,6 +226,90 @@ BEGIN
 					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				ORDER BY pn DESC
 				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+
+				END
+
+				ELSE
+				BEGIN
+					
+					  ;WITH rptCTE (TotalRecordsCount, ponum, podate,status, poage, vendorname,
+						 vendorcode, Approver, requisitioner, qty, unitcost,  extamt, level1, level2, level3, level4, level5, level6, level7, level8,
+						  level9, level10, masterCompanyId) AS (
+						  SELECT COUNT(1) OVER () AS TotalRecordsCount,				
+						UPPER(PO.PurchaseOrderNumber) 'ponum',
+						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PO.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PO.OpenDate, 107) END 'podate', 
+						UPPER(PO.status) 'status',
+						DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) AS 'poage',
+						UPPER(PO.VendorName) 'vendorname',
+						UPPER(PO.VendorCode) 'vendorcode',
+						UPPER(PO.Approvedby) 'Approver',
+						UPPER(PO.Requisitioner) 'requisitioner',
+						SUM(POP.QuantityOrdered) 'qty',
+						SUM(ISNULL(POP.UnitCost,0)) 'unitcost',
+						SUM(ISNULL(POP.ExtendedCost ,0)) 'extamt',
+						UPPER(MSD.Level1Name) AS level1,  
+						UPPER(MSD.Level2Name) AS level2, 
+						UPPER(MSD.Level3Name) AS level3, 
+						UPPER(MSD.Level4Name) AS level4, 
+						UPPER(MSD.Level5Name) AS level5, 
+						UPPER(MSD.Level6Name) AS level6, 
+						UPPER(MSD.Level7Name) AS level7, 
+						UPPER(MSD.Level8Name) AS level8, 
+						UPPER(MSD.Level9Name) AS level9, 
+						UPPER(MSD.Level10Name) AS level10,
+						PO.MasterCompanyId
+					FROM dbo.PurchaseOrder PO WITH (NOLOCK)
+						INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+						INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleIDForPO AND MSD.ReferenceID = PO.PurchaseOrderId
+						LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
+					WHERE PO.StatusId IN (SELECT value FROM String_split(@status, ',')) 
+						AND CAST(PO.opendate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  
+						AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
+						AND PO.mastercompanyid = @mastercompanyid
+						AND PO.IsDeleted = 0 AND PO.IsActive = 1
+						AND (ISNULL(@tagtype,'') ='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,ES.OrganizationTagTypeId), ',')))
+						AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
+						AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
+						AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
+						AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
+						AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
+						AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
+						AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
+						AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
+						AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
+						AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+						GROUP BY PO.PurchaseOrderNumber,PO.OpenDate,PO.status,PO.ClosedDate,PO.VendorName,PO.VendorCode,PO.Approvedby,PO.Requisitioner,MSD.Level1Name,MSD.Level2Name,
+						MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name,PO.MasterCompanyId
+						)
+
+					,FinalCTE (TotalRecordsCount, ponum, podate,status, poage, vendorname,
+						 vendorcode, Approver, requisitioner, qty, unitcost,  extamt, level1, level2, level3, level4, level5, level6, level7, level8,
+						  level9, level10, masterCompanyId)
+					  AS (SELECT DISTINCT TotalRecordsCount, ponum, podate,status, poage, vendorname,
+						 vendorcode, Approver, requisitioner, qty, unitcost,  extamt, level1, level2, level3, level4, level5, level6, level7, level8,
+						  level9, level10, masterCompanyId FROM rptCTE)
+
+					,WithTotal (masterCompanyId, TotalUnitCost, TotalExtAmt) 
+					  AS (SELECT masterCompanyId, 
+						FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,
+						FORMAT(SUM(extamt), 'N', 'en-us') TotalExtAmt
+						FROM FinalCTE
+						GROUP BY masterCompanyId)
+
+					  SELECT COUNT(2) OVER () AS TotalRecordsCount, ponum, podate, status, poage, vendorname,
+							vendorcode, Approver, requisitioner, qty,
+							FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
+							FORMAT(ISNULL(extamt,0) , 'N', 'en-us') 'extamt'    
+							,level1, level2, level3, level4, level5, level6, level7, level8,
+							level9, level10,
+							WC.TotalUnitCost,
+							WC.TotalExtAmt
+						FROM FinalCTE FC
+							INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+						ORDER BY ponum DESC
+						OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+
+				END
 
     COMMIT TRANSACTION
   END TRY

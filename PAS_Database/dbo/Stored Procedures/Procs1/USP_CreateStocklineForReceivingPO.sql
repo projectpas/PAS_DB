@@ -23,6 +23,7 @@
 	7    05-07-2024   Moin Bloch        Modified the SP to set RRQty  PN-8032
 	8    15-07-2024   Devendra Shekh    Modified For Account BatchDetail Entry
 	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
+	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -49,8 +50,10 @@ BEGIN
             DECLARE @CurrentIndex BIGINT;
 			DECLARE @StkCount INT = 0;
 			DECLARE @AstInvCount INT = 0;
+			DECLARE @NonStkCount INT = 0;
 			DECLARE @p2 dbo.PostStocklineBatchType;
 			DECLARE @p3 dbo.PostStocklineBatchType;
+			DECLARE @p4 dbo.PostStocklineBatchType;
 
             IF OBJECT_ID(N'tempdb..#POPartsToReceive') IS NOT NULL
             BEGIN
@@ -2213,6 +2216,16 @@ BEGIN
                             SET @NewNonStockInventoryId = SCOPE_IDENTITY();
                             EXEC USP_CreateStocklinePartHistory @NewNonStockInventoryId, 1, 0, 0, 0
 
+							/* Accounting Entry :- Insert Into Table*/
+							DECLARE @QtyAdded_NonStock INT = 0;
+							DECLARE @PurchaseOrderUnitCostAdded_NonStock DECIMAL(18, 2) = 0;
+
+							SELECT @QtyAdded_NonStock = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Quantity] ELSE @QtyToReceive END END,
+                               @PurchaseOrderUnitCostAdded_NonStock = UnitCost
+							FROM #tmpNonStockInventoryDraft WHERE NonStockInventoryDraftId = @TempNonStockId;
+
+							INSERT INTO @p4 VALUES (@NewNonStockInventoryId, @QtyAdded_NonStock, @PurchaseOrderUnitCostAdded_NonStock, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'NONSTOCK')
+
                             SELECT @MSId = MasterCompanyId,
                                    @NonStockMasterPartId = MasterPartId,
                                    @NonStockManufacturerId = ManufacturerId,
@@ -2444,6 +2457,7 @@ BEGIN
 
 			SELECT @StkCount = COUNT(StockLineId) FROM @p2;
 			SELECT @AstInvCount = COUNT(StockLineId) FROM @p3;
+			SELECT @NonStkCount = COUNT(StockLineId) FROM @p4;
 			/* Accounting Entry For StockLine*/
 			IF(@StkCount > 0)
 			BEGIN
@@ -2454,6 +2468,12 @@ BEGIN
 			IF(@AstInvCount > 0)
 			BEGIN
 				EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p3, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
+			END
+
+			/* Accounting Entry For NonStock*/
+			IF(@NonStkCount > 0)
+			BEGIN
+				EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p4, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
 			END
 
             EXEC DBO.UpdateStocklineDraftDetail @PurchaseOrderId;

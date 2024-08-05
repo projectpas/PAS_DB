@@ -11,6 +11,7 @@
  ** --   --------		-------					--------------------------------          
     1    07/15/2024		Devendra Shekh			Created
 	2    07/23/2024		AMIT GHEDIYA			Update new BatchCode,J-Type Code & update New Destribution as per new distribution.
+	3    08/05/2024		Devendra Shekh			JE Number issue Resolved
 
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -175,6 +176,7 @@ BEGIN
 		DECLARE @IntangibleWriteDownGLAccountId AS BIGINT = 0;
 		DECLARE @IntangibleWriteOffGLAccountId AS BIGINT = 0;
 		DECLARE @CrDrType int=0;
+		DECLARE @isNewJENum BIT = 0;
 
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -200,6 +202,8 @@ BEGIN
 			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM DBO.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
 			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM DBO.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 			SELECT @CurrentManagementStructureId =ManagementStructureId FROM DBO.AssetInventory WITH(NOLOCK)  WHERE AssetInventoryId=@AssetInventoryId and MasterCompanyId=@MasterCompanyId
+			SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
+			SET @isNewJENum = 0;
 
 			SELECT @AcquiredGLAccountId= AcquiredGLAccountId,@DeprExpenseGLAccountId= DeprExpenseGLAccountId,@AdDepsGLAccountId= AdDepsGLAccountId,
 			@AssetSaleGLAccountId=AssetSaleGLAccountId,@AssetWriteOffGLAccountId=AssetWriteOffGLAccountId,@AssetWriteDownGLAccountId=AssetWriteDownGLAccountId,
@@ -275,13 +279,14 @@ BEGIN
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
-				SELECT 
-					@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-						ELSE CAST(StartsFROM AS BIGINT) + 1 END 
-				FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
-
-				IF(@StartCount = 1)
+				IF(@JournalBatchDetailId = 0)
 				BEGIN
+					SET @isNewJENum = 1;
+					SELECT 
+						@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+							ELSE CAST(StartsFROM AS BIGINT) + 1 END 
+					FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+
 					SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 				END
 			END
@@ -777,8 +782,8 @@ BEGIN
 					SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 
-					SET @currentNo = @currentNo+1
-					SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+					--SET @currentNo = @currentNo+1
+					--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 					------Asset Account -----------
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
@@ -891,7 +896,10 @@ BEGIN
 				SET @TotalBalance =@TotalDebit-@TotalCredit
 				         
 				Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-				UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+				IF(@isNewJENum = 1)
+				BEGIN
+					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+				END
 			END
 
 			SET @StartCount += 1;

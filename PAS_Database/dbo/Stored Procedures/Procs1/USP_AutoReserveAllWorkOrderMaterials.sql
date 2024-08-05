@@ -17,9 +17,11 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 6    08/18/2023       AMIT GHEDIYA           Updated for historytext for Wohistory.
 ** 7    08/18/2023       HEMANT SALIYA          Updated for Condition Group Change
 ** 8    08/18/2023       HEMANT SALIYA          Updated for Module Id Changes
-** 7    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 9    06/27/2024       HEMANT SALIYA			Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 10   08/02/2024       HEMANT SALIYA			Fixed MTI stk Reserve Qty was not updating
 
-EXEC USP_AutoReserveAllWorkOrderMaterials 2858,0,0,98
+EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
+exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveAllWorkOrderMaterials]
 @WorkFlowWorkOrderId BIGINT,
@@ -43,6 +45,7 @@ BEGIN
 					DECLARE @ARCondition VARCHAR(50);
 					DECLARE @ARConditionId VARCHAR(50);
 					DECLARE @CustomerID BIGINT;
+					DECLARE @tmpStockLineId BIGINT;
 
 					DECLARE @ARcount INT = 1;
 					DECLARE @ARTotalCounts INT = 0;
@@ -253,7 +256,7 @@ BEGIN
 						AND SL.QuantityAvailable >= tblMS.MSQunatityRemaining
 
 						SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
-						SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
+						SELECT @TotalCountsBoth = MAX(ID) FROM #tmpReserveWOMaterialsStockline;
 
 						INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 						SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNumber], tblMS.[IdNumber], tblMS.[StockLineNumber] FROM #tmpReserveIssueWOMaterialsStockline tblMS  
@@ -347,7 +350,7 @@ BEGIN
 						--FOR FOR UPDATED STOCKLINE QTY
 						WHILE @countKitStockline <= @TotalCountsBoth
 						BEGIN
-							DECLARE @tmpKitStockLineId BIGINT;
+							DECLARE @tmpKitStockLineId BIGINT = 0;
 
 							SELECT @tmpKitStockLineId = StockLineId FROM #tmpReserveWOMaterialsStockline WHERE ID = @countKitStockline
 
@@ -357,7 +360,7 @@ BEGIN
 								QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.QuantityActReserved,0),
 								WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 							FROM dbo.Stockline SL JOIN #tmpReserveWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-							WHERE tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
+							WHERE tmpRSL.ID = @countKitStockline AND  Sl.StockLineId = @tmpKitStockLineId
 
 							SET @countKitStockline = @countKitStockline + 1;
 						END;
@@ -637,14 +640,14 @@ BEGIN
 
 							DECLARE @countStockline INT = 1;
 							DECLARE @TotalCountsBothKITAlt INT;
-							SELECT @TotalCountsBothKITAlt = COUNT(ID) FROM #tmpAutoReserveWOMKITAlt;
+							SELECT @TotalCountsBothKITAlt = MAX(ID) FROM #tmpAutoReserveWOMKITAlt;
 
 							--FOR FOR UPDATED STOCKLINE QTY
 							WHILE @countStockline <= @TotalCountsBothKITAlt
 							BEGIN
-								DECLARE @tmpStockLineId BIGINT;
-
-								SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOMKITAlt WHERE ID = @countStockline
+								DECLARE @RowNum1 INT = 0;
+								SET @tmpStockLineId = 0;
+								SELECT @tmpStockLineId = StockLineId, @RowNum1 = Row_Num  FROM #tmpAutoReserveWOMKITAlt WHERE ID = @countStockline
 
 								--FOR UPDATED STOCKLINE QTY
 								UPDATE dbo.Stockline
@@ -652,7 +655,7 @@ BEGIN
 									QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 									WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId
 								FROM dbo.Stockline SL JOIN #tmpAutoReserveWOMKITAlt tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-								WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+								WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum1
 
 								SET @countStockline = @countStockline + 1;
 							END;
@@ -912,13 +915,15 @@ BEGIN
 
 							SET @countStockline = 1;
 							DECLARE @TotalCountsBothAlt INT;
-							SELECT @TotalCountsBothAlt = COUNT(ID) FROM #tmpAutoReserveWOMMaterialsAlt;
+							SELECT @TotalCountsBothAlt = MAX(ID) FROM #tmpAutoReserveWOMMaterialsAlt;
 
 							--FOR FOR UPDATED STOCKLINE QTY
 							WHILE @countStockline <= @TotalCountsBothAlt
 							BEGIN
+								DECLARE @RowNum2 INT = 0;
+								SET @tmpStockLineId = 0;
 
-								SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOMMaterialsAlt WHERE ID = @countStockline
+								SELECT @tmpStockLineId = StockLineId, @RowNum2 = Row_Num  FROM #tmpAutoReserveWOMMaterialsAlt WHERE ID = @countStockline
 
 								--FOR UPDATED STOCKLINE QTY
 								UPDATE dbo.Stockline
@@ -926,7 +931,7 @@ BEGIN
 									QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 									WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 								FROM dbo.Stockline SL JOIN #tmpAutoReserveWOMMaterialsAlt tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-								WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+								WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum2
 
 								SET @countStockline = @countStockline + 1;
 							END;
@@ -1194,13 +1199,15 @@ BEGIN
 
 							SET @countStockline = 1;
 							DECLARE @TotalCountsBothKITEqu INT;
-							SELECT @TotalCountsBothKITEqu = COUNT(ID) FROM #tmpAutoReserveWOMKITEqu;
+							SELECT @TotalCountsBothKITEqu = MAX(ID) FROM #tmpAutoReserveWOMKITEqu;
 
 							--FOR FOR UPDATED STOCKLINE QTY
 							WHILE @countStockline <= @TotalCountsBothKITEqu
 							BEGIN
+								DECLARE @RowNum3 INT = 0;
+								SET @tmpStockLineId = 0;
 
-								SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOMKITEqu WHERE ID = @countStockline
+								SELECT @tmpStockLineId = StockLineId, @RowNum3 = Row_Num  FROM #tmpAutoReserveWOMKITEqu WHERE ID = @countStockline
 
 								--FOR UPDATED STOCKLINE QTY
 								UPDATE dbo.Stockline
@@ -1208,7 +1215,7 @@ BEGIN
 									QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 									WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId
 								FROM dbo.Stockline SL JOIN #tmpAutoReserveWOMKITEqu tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-								WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+								WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum3
 
 								SET @countStockline = @countStockline + 1;
 							END;
@@ -1407,9 +1414,6 @@ BEGIN
 
 						SELECT ROW_NUMBER() OVER (ORDER BY ID) AS Row_Num, * INTO #tmpAutoReserveWOMMaterialsEqu FROM #tmpAutoReserveWOMaterialsStocklineMaterialsEqu
 
-						--Select '#tmpAutoReserveWOMMaterialsEqu'
-						--Select * from #tmpAutoReserveWOMMaterialsEqu
-
 						IF((SELECT COUNT(1) FROM #tmpAutoReserveWOMMaterialsEqu) > 0)
 						BEGIN
 							SET @Autoslcount = 1;
@@ -1472,13 +1476,15 @@ BEGIN
 
 							SET @countStockline = 1;
 							DECLARE @TotalCountsBothEqu INT;
-							SELECT @TotalCountsBothEqu = COUNT(ID) FROM #tmpAutoReserveWOMMaterialsEqu;
+							SELECT @TotalCountsBothEqu = MAX(ID) FROM #tmpAutoReserveWOMMaterialsEqu;
 
 							--FOR FOR UPDATED STOCKLINE QTY
 							WHILE @countStockline <= @TotalCountsBothEqu
 							BEGIN
+								DECLARE @RowNum4 INT = 0;
+								SET @tmpStockLineId = 0;
 
-								SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOMMaterialsEqu WHERE ID = @countStockline
+								SELECT @tmpStockLineId = StockLineId, @RowNum4 = Row_Num FROM #tmpAutoReserveWOMMaterialsEqu WHERE ID = @countStockline
 
 								--FOR UPDATED STOCKLINE QTY
 								UPDATE dbo.Stockline
@@ -1486,7 +1492,7 @@ BEGIN
 									QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 									WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 								FROM dbo.Stockline SL JOIN #tmpAutoReserveWOMMaterialsEqu tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-								WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+								WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum4
 
 								SET @countStockline = @countStockline + 1;
 							END;
@@ -1753,13 +1759,15 @@ BEGIN
 						
 						SET @countStockline = 1;
 						DECLARE @TotalCountsBothWOM INT;
-						SELECT @TotalCountsBothWOM = COUNT(ID) FROM #tmpAutoReserveWOM;
+						SELECT @TotalCountsBothWOM = MAX(ID) FROM #tmpAutoReserveWOM;
 
 						--FOR FOR UPDATED STOCKLINE QTY
 						WHILE @countStockline <= @TotalCountsBothWOM
 						BEGIN
+							DECLARE @RowNum5 INT = 0;
+							SET @tmpStockLineId = 0 ;
 
-							SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOM WHERE ID = @countStockline
+							SELECT @tmpStockLineId = StockLineId, @RowNum5 = Row_Num  FROM #tmpAutoReserveWOM WHERE ID = @countStockline
 
 							--FOR UPDATED STOCKLINE QTY
 							UPDATE dbo.Stockline
@@ -1767,7 +1775,7 @@ BEGIN
 								QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 								WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 							FROM dbo.Stockline SL JOIN #tmpAutoReserveWOM tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-							WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+							WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum5
 
 							SET @countStockline = @countStockline + 1;
 						END;
@@ -1845,7 +1853,7 @@ BEGIN
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND  WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLineKIT WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKITId = WOMSL.WorkOrderMaterialsKITId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId) AND WOM.ConditionCodeId != @ARConditionId
-					
+
 					IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKIT') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKIT
@@ -2041,13 +2049,15 @@ BEGIN
 
 						SET @countStockline = 1;
 						DECLARE @TotalCountsBothWOMKIT INT;
-						SELECT @TotalCountsBothWOMKIT = COUNT(ID) FROM #tmpAutoReserveWOMKIT;
+						SELECT @TotalCountsBothWOMKIT = MAX(ID) FROM #tmpAutoReserveWOMKIT;
 
 						--FOR FOR UPDATED STOCKLINE QTY
 						WHILE @countStockline <= @TotalCountsBothWOMKIT
 						BEGIN
+							DECLARE @RowNum6 INT = 0;
+							SET @tmpStockLineId = 0;
 
-							SELECT @tmpStockLineId = StockLineId FROM #tmpAutoReserveWOMKIT WHERE ID = @countStockline
+							SELECT @tmpStockLineId = StockLineId, @RowNum6 = Row_Num FROM #tmpAutoReserveWOMKIT WHERE ID = @countStockline
 
 							--FOR UPDATED STOCKLINE QTY
 							UPDATE dbo.Stockline
@@ -2055,7 +2065,7 @@ BEGIN
 								QuantityReserved = ISNULL(SL.QuantityReserved,0) + ISNULL(tmpRSL.ActQuantity,0),
 								WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId
 							FROM dbo.Stockline SL JOIN #tmpAutoReserveWOMKIT tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
-							WHERE tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
+							WHERE Sl.StockLineId = @tmpStockLineId AND tmpRSL.Row_Num = @RowNum6
 
 							SET @countStockline = @countStockline + 1;
 						END;
@@ -2093,6 +2103,7 @@ BEGIN
 						END;
 					END
 				END
+				--ROLLBACK TRAN;
 			COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

@@ -13,14 +13,11 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 2    07/19/2023  VISHAL SUTHAR    Added new stockline history for SWO
 ** 3    07/19/2023  HEMANT SALIYA    Added KIT PART for SWO
 ** 4    06/27/2024  HEMANT SALIYA    Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 5    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
-INSERT INTO @p1 values(65,72,99,2093,25,6,1,14,6,N'REPAIR',N'WAT0303-01',N'70303-01 RECOGNITION LIGHT 28V 25W',3,3,2,N'CNTL-000526',N'ID_NUM-000001',N'STL-000009',N'',N'ADMIN ADMIN',1)
-INSERT INTO @p1 values(65,72,10099,510,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000308',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',1)
-INSERT INTO @p1 values(65,72,10099,512,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000310',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
-INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000311',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
 
 EXEC dbo.usp_UnReserveWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 
@@ -142,8 +139,8 @@ BEGIN
 					WHERE SL.QuantityReserved > 0 AND SL.QuantityReserved >= tblMS.QuantityActUnReserved
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpUnReserveSWOMaterialsStockline WHERE ISNULL(KitId, 0) = 0;
-					SELECT @TotalCountsKIT = COUNT(ID) FROM #tmpUnReserveSWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
-					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpUnReserveSWOMaterialsStockline;
+					SELECT @TotalCountsKIT = MAX(ID) FROM #tmpUnReserveSWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
+					SELECT @TotalCountsBoth = MAX(ID) FROM #tmpUnReserveSWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -187,7 +184,7 @@ BEGIN
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countKitStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpKitStockLineId BIGINT;
+						DECLARE @tmpKitStockLineId BIGINT = 0;
 
 						SELECT @tmpKitStockLineId = StockLineId FROM #tmpUnReserveSWOMaterialsStockline WHERE ID = @countKitStockline
 
@@ -250,7 +247,6 @@ BEGIN
 						SET @mcount = @mcount + 1;
 					END;
 
-
 					--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 					IF(@TotalCounts > 0 )
 					BEGIN						
@@ -276,7 +272,7 @@ BEGIN
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpStockLineId BIGINT;
+						DECLARE @tmpStockLineId BIGINT = 0;
 
 						SELECT @tmpStockLineId = StockLineId FROM #tmpUnReserveSWOMaterialsStockline WHERE ID = @countStockline
 

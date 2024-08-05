@@ -14,6 +14,7 @@ EXEC [USP_AutoReserveWorkOrderMaterials]
 ** 3    05/26/2023  HEMANT SALIYA    Added WO Type ID for Get Seeting based on WO Type
 ** 4    07/26/2023	HEMANT SALIYA	 Allow User to reserver & Issue other Customer Stock as well
 ** 5    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 6    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 
 EXEC USP_AutoReserveWorkOrderMaterials 638
 **************************************************************/ 
@@ -200,7 +201,7 @@ BEGIN
 							WHERE SL.QuantityAvailable > 0 AND SL.QuantityAvailable >= tblMS.QtyToBeReserved
 
 							SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
-							SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
+							SELECT @TotalCountsBoth = MAX(ID) FROM #tmpReserveWOMaterialsStockline;
 
 							INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 							SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNumber], tblMS.[IdNumber], tblMS.[StockLineNumber] FROM #tmpReserveIssueWOMaterialsStockline tblMS  

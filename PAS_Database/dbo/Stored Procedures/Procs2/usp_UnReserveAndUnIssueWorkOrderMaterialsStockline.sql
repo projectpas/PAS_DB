@@ -13,6 +13,7 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 2    08/18/2023	    AMIT GHEDIYA        Update historytext for wohistory.
 ** 3    06/26/2024	    HEMANT SALIYA       Updated for Handle Stockline Qty Updated Issue 
 ** 4    07/18/2024		Devendra Shekh		Modified For Same JE Changes, also added AccountByPass check
+** 5    08/05/2024      HEMANT SALIYA	    Fixed MTI stk Reserve Qty was not updating
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -141,9 +142,9 @@ BEGIN
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
 					WHERE SL.QuantityIssued > 0 AND SL.QuantityIssued >= tblMS.QuantityActUnIssued
 
-					SELECT @TotalCounts = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) = 0;
-					SELECT @TotalCountsKIT = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
-					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline;
+					SELECT @TotalCounts = MAX(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) = 0;
+					SELECT @TotalCountsKIT = MAX(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
+					SELECT @TotalCountsBoth = MAX(ID) FROM #tmpUnIssueWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -154,9 +155,7 @@ BEGIN
 					BEGIN
 						UPDATE WorkOrderMaterialsKit 
 							SET QuantityIssued = ISNULL(WOM.QuantityIssued,0) - ISNULL(tmpWOM.QuantityActUnIssued,0),
-								--QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.QuantityActUnIssued,0),
 								TotalIssued = ISNULL(WOM.TotalIssued,0) - ISNULL(tmpWOM.QuantityActUnIssued,0),
-								--TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.QuantityActUnIssued,0),
 								IssuedById = tmpWOM.UpdatedById, 
 								IssuedDate = GETDATE(), 
 								UpdatedDate = GETDATE(),
@@ -172,7 +171,6 @@ BEGIN
 					BEGIN
 						UPDATE dbo.WorkOrderMaterialStockLineKit 
 						SET QtyIssued = ISNULL(QtyIssued, 0) - ISNULL(QuantityActUnIssued, 0),
-							--QtyReserved = ISNULL(QtyReserved, 0) + ISNULL(QuantityActUnIssued, 0),
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
@@ -187,14 +185,13 @@ BEGIN
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
-					
 
 					DECLARE @countKitStockline INT = 1;
 
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countKitStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpKitStockLineId BIGINT;
+						DECLARE @tmpKitStockLineId BIGINT = 0;
 
 						SELECT @tmpKitStockLineId = StockLineId FROM #tmpUnIssueWOMaterialsStockline WHERE ID = @countKitStockline
 
@@ -215,9 +212,7 @@ BEGIN
 					BEGIN						
 						UPDATE WorkOrderMaterials 
 							SET QuantityIssued = ISNULL(WOM.QuantityIssued,0) - ISNULL(tmpWOM.QuantityActUnIssued,0),
-								--QuantityReserved = ISNULL(WOM.QuantityReserved,0) + ISNULL(tmpWOM.QuantityActUnIssued,0),
 								TotalIssued = ISNULL(WOM.TotalIssued,0) - ISNULL(tmpWOM.QuantityActUnIssued,0),
-								--TotalReserved = ISNULL(WOM.TotalReserved,0) + ISNULL(tmpWOM.QuantityActUnIssued,0),
 								IssuedById = tmpWOM.UpdatedById, 
 								IssuedDate = GETDATE(), 
 								UpdatedDate = GETDATE(),
@@ -231,7 +226,6 @@ BEGIN
 					BEGIN
 						UPDATE dbo.WorkOrderMaterialStockLine 
 						SET QtyIssued = ISNULL(QtyIssued, 0) - ISNULL(QuantityActUnIssued, 0),
-							--QtyReserved = ISNULL(QtyReserved, 0) + ISNULL(QuantityActUnIssued, 0),
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
@@ -246,13 +240,12 @@ BEGIN
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0 
 
-
 					DECLARE @countStockline INT = 1;
 
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpStockLineId BIGINT;
+						DECLARE @tmpStockLineId BIGINT = 0;
 
 						SELECT @tmpStockLineId = StockLineId FROM #tmpUnIssueWOMaterialsStockline WHERE ID = @countStockline
 

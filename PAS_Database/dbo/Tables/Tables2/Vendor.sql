@@ -46,9 +46,9 @@
     [IsTradeRestricted]       BIT             NULL,
     [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
     [IsTrackScoreCard]        BIT             NULL,
-    [IsVendorOnHold]          BIT             DEFAULT ((0)) NULL,
+    [IsVendorOnHold]          BIT             CONSTRAINT [DF__Vendor__IsVendor__1790AA01] DEFAULT ((0)) NULL,
     [TaxIdNumber]             NVARCHAR (MAX)  NULL,
-    [QuickBooksVendorId]      BIGINT          NULL,
+    [QuickBooksReferenceId]   VARCHAR (200)   NULL,
     [IsUpdated]               BIT             NULL,
     [LastSyncDate]            DATETIME2 (7)   NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
@@ -64,6 +64,8 @@
     CONSTRAINT [UC_Vendor_Email] UNIQUE NONCLUSTERED ([VendorEmail] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

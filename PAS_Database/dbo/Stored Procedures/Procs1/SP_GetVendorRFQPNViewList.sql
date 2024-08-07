@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
@@ -12,6 +13,7 @@
 	1    	-	         -              Created    
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
 	3    29/07/2024   Rajesh Gami		Duplicate record    
+	4    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 
 **************************************************************/  
 
@@ -108,7 +110,7 @@ SET NOCOUNT ON;
   ;WITH Main AS(           
        SELECT PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,  
      PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.[Status],  
-     PO.Requisitioner AS RequestedBy
+     PO.Requisitioner AS RequestedBy,PO.VendorReference AS VendorReference
      FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)  
      INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId  
      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
@@ -119,7 +121,7 @@ SET NOCOUNT ON;
    SELECT 
 	DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
      M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],  
-     M.RequestedBy AS RequestedBy,  
+     M.RequestedBy AS RequestedBy,VendorReference,  
      (Select SUM(QuantityOrdered) as QuantityOrdered from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
      Where VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND IsDeleted=0 AND IsActive=1) as QuantityOrdered,  
      (Select SUM(UnitCost) as UnitCost from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
@@ -206,7 +208,7 @@ SET NOCOUNT ON;
     
      GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
      M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,  
-     RequestedBy,SP.PartNumber,SP.PartDescription, 
+     RequestedBy,SP.PartNumber,SP.PartDescription, VendorReference,
      SP.StockType ,
 	 SP.VendorRFQPurchaseOrderId
      ,SP.Manufacturer,SP.Priority,SP.NeedByDate,SP.PromisedDate,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4  
@@ -269,7 +271,7 @@ SET NOCOUNT ON;
 
 	 SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,
+     ,RequestedBy,VendorReference,
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
@@ -288,7 +290,7 @@ SET NOCOUNT ON;
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,
+     ,RequestedBy,VendorReference,
 	 --PartNumber,PartDescription,PartNumberType,PartDescriptionType,
 	 StockTypeType,  
      ManufacturerType,PriorityType,
@@ -303,7 +305,7 @@ SET NOCOUNT ON;
 	 	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #finalTemp)
    SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,
+     ,RequestedBy,VendorReference,
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
@@ -325,7 +327,7 @@ SET NOCOUNT ON;
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,
+     ,RequestedBy,VendorReference,
 	 PartNumber,PartDescription,PartNumberType,PartDescriptionType,
 	 StockTypeType,  
      ManufacturerType,PriorityType,

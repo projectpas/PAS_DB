@@ -98,7 +98,7 @@ BEGIN
 		   ,[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],[CustomerContactEmail],[CreditLimitName],[StatusName],[Level1],[Level2],[Level3],
 		   [Level4])
 		(SELECT [SpeedQuoteTypeId], GETUTCDATE(), ISNULL(@ValidForDays, 10),@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],@CustomerReference,[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId]
-		   ,[ProbabilityId],[LeadSourceId],[LeadSourceReference],@CreditLimit,@CreditTermsId,[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId]
+		   ,[ProbabilityId],[LeadSourceId],[LeadSourceReference],@CreditLimit,@CreditTermsId,[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],@MasterCompanyId
 		   ,@Username,GETUTCDATE(),@Username,GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],[QtyRequested],[QtyToBeQuoted],@SpeedQuoteNumber,[QuoteSentDate]
 		   ,[IsNewVersionCreated],1,[QuoteParentId],[QuoteTypeName],[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],[ProbabilityName],[LeadSourceName],@CreditTermName,[EmployeeName]
 		   ,[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],[CustomerContactEmail],[CreditLimitName],[StatusName],[Level1],[Level2],[Level3],
@@ -120,7 +120,7 @@ BEGIN
 		 SELECT @ManagementStructureHeaderModuleId,@NewID,[EntityMSID],
 		 			[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 			[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 			[MasterCompanyId],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 			@MasterCompanyId,@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 		 FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 		 WHERE [ReferenceID] = @SpeedQuoteId 
 		 AND [ModuleID] = @ManagementStructureHeaderModuleId;
@@ -161,7 +161,7 @@ BEGIN
 						,[UnitCost],[MarginAmount],[MarginPercentage]
 						,(CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN SalesPriceExtended ELSE 0 END)
 						,[UnitCostExtended]
-						,[MarginAmountExtended],[MarginPercentageExtended],@Username,GETUTCDATE(),@Username,GETUTCDATE(),[IsDeleted],[IsActive],[MasterCompanyId]
+						,[MarginAmountExtended],[MarginPercentageExtended],@Username,GETUTCDATE(),@Username,GETUTCDATE(),[IsDeleted],[IsActive],@MasterCompanyId
 						,(CASE WHEN @IsCopyNote = 1 THEN [Notes] ELSE '' END)
 						,[CurrencyId]
 						,[PartNumber],[PartDescription],[ConditionName],[CurrencyName],[ManufacturerId],[Manufacturer],[Type],[TAT],[StatusId],[StatusName],[ItemNo],[Code]
@@ -183,12 +183,11 @@ BEGIN
 						,[ExStockType]
 						,(CASE WHEN @IsCopyUnitPrice = 1 THEN [ExUnitPrice] ELSE 0 END)
 						,(CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN [ExExtPrice] ELSE 0 END)
-						,[ExOccurance],[ExCurr],[ExNotes],[MasterCompanyId],@Username
+						,[ExOccurance],[ExCurr],[ExNotes],@MasterCompanyId,@Username
 						,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[ItemNo],[ConditionId]
 					FROM [dbo].[SpeedQuoteExclusionPart] WITH(NOLOCK) 
 					WHERE SpeedQuoteId = @SpeedQuoteId
 						  AND [SpeedQuotePartId] = @SpeedQuotePartId
-						  AND [MasterCompanyId] = @MasterCompanyId;
 
 					SET @ID = @ID + 1;
 				END

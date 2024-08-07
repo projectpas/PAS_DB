@@ -49,7 +49,6 @@
     CONSTRAINT [FK_Customer_CustomerType] FOREIGN KEY ([CustomerTypeId]) REFERENCES [dbo].[CustomerType] ([CustomerTypeId]),
     CONSTRAINT [FK_Customer_ManagementStructure] FOREIGN KEY ([ManagementStructureId]) REFERENCES [dbo].[ManagementStructure] ([ManagementStructureId]),
     CONSTRAINT [FK_Customer_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [UC_Customer_Email] UNIQUE NONCLUSTERED ([Email] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
 

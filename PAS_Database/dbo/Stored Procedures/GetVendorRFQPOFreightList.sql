@@ -101,7 +101,7 @@ BEGIN
 		  ,[LineNum]
 		  ,[ManufacturerId]
 		  ,[Manufacturer]
-      FROM [dbo].[VendorRFQPOFreightAudit] WITH (NOLOCK) WHERE [VendorRFQPOFreightId]=@VendorRFQPOId;
+      FROM [dbo].[VendorRFQPOFreightAudit] WITH (NOLOCK) WHERE [VendorRFQPOFreightId]=@VendorRFQPOId ORDER BY VendorRFQPOFreightAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

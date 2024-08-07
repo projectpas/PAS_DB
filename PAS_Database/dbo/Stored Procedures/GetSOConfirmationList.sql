@@ -1,5 +1,24 @@
-﻿
+﻿/*************************************************************                 
+ ** File:   [GetSOConfirmationList]                 
+ ** Author:   Ayushi Patel        
+ ** Description: Get Data for Sales Order Confirmation listing      
+ ** Purpose:               
+ ** Date:  06/08/2024       
+                
+ ** PARAMETERS:                 
+               
+ ** RETURN VALUE:                 
+        
+ **************************************************************                 
+ ** Change History                 
+ **************************************************************                 
+ ** SN   Date             Author           Change Description                  
+ ** --  -----------    -------------    --------------------------------                
+    01  06-August-2024  Ayushi Patel          Created      
+ 
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
+   
+**************************************************************/     
 CREATE   PROCEDURE [dbo].[GetSOConfirmationList]
 @PageNumber int = 1,
 @PageSize int = 20,
@@ -172,7 +191,8 @@ BEGIN
         part.StockLineId,
         so.SalesOrderNumber,
         CASE WHEN q.SalesOrderQuoteNumber IS NOT NULL THEN q.SalesOrderQuoteNumber ELSE '' END AS SalesOrderQuoteNumber,
-        CONVERT(VARCHAR(10), so.OpenDate, 101) AS OpenDate,
+        --CONVERT(VARCHAR(10), so.OpenDate, 101) AS OpenDate,
+		so.OpenDate,
         ISNULL(cust.Name, '') AS CustomerName,
         ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
         part.FxRate,

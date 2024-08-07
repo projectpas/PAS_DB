@@ -13,8 +13,8 @@
  ** --   --------     -------           --------------------------------            
     1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    06/29/2024   Abhishek Jirawla   Adding flag to return only specified status for pending Approval
-	3    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
-	4    30/07/2024   HEMANT SALIYA Serial Number Changes
+	3    18 July 2024 Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	4    05/08/2024   HEMANT SALIYA Serial Number Changes
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
@@ -94,7 +94,7 @@ BEGIN
 			UPPER(cust.CustomerCode) 'CustomerCode',  
 			CASE WHEN ISNULL(wopn.RevisedPartNumber, '') != '' THEN UPPER(wopn.RevisedPartNumber) ELSE UPPER(im.partnumber) END AS PartNumber,
 			CASE WHEN ISNULL(wopn.RevisedPartDescription, '') != '' THEN UPPER(wopn.RevisedPartDescription) ELSE UPPER(im.PartDescription) END AS PartDescription,
-			CASE WHEN ISNULL(wopn.RevisedSerialNumber, '') != '' THEN UPPER(wopn.RevisedSerialNumber) ELSE UPPER(STL.SerialNumber) END AS SerialNumber,
+			CASE WHEN ISNULL(wopn.RevisedSerialNumber, '') != '' THEN UPPER(wopn.RevisedSerialNumber) ELSE UPPER(wopn.CurrentSerialNumber) END AS SerialNumber,
             woq.OpenDate,  
             (SELECT TOP 1 wop.PromisedDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as  promisedDate,  
             (SELECT TOP 1 wop.EstimatedShipDate FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) WHERE  wo.WorkOrderId=wop.WorkOrderId ) as estShipDate,  
@@ -133,7 +133,7 @@ BEGIN
 			JOIN dbo.WorkOrderStage wos WITH (NOLOCK) on wos.WorkOrderStageId = wopn.WorkOrderStageId 
 			JOIN dbo.WorkOrderStatus woss WITH (NOLOCK) on woss.Id = wo.WorkOrderStatusId 
 			JOIN dbo.ItemMaster im WITH (NOLOCK) on wopn.ItemMasterId = im.ItemMasterId  
-			LEFT JOIN dbo.Stockline stl WITH (NOLOCK) on wopn.StockLineId = stl.StockLineId  
+			--LEFT JOIN dbo.Stockline stl WITH (NOLOCK) on wopn.StockLineId = stl.StockLineId  
 			JOIN dbo.WorkOrderQuoteStatus wqs WITH (NOLOCK) on woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId  
 			JOIN dbo.Customer cust WITH (NOLOCK) on woq.CustomerId = cust.CustomerId 
 			LEFT JOIN dbo.WorkOrderApproval wopp WITH (NOLOCK) on wopp.WorkOrderPartNoId = wopn.ID  

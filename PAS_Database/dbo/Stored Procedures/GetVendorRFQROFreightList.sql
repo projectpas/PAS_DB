@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/07/2024  Abhishek Jirawla     Created
+	2    07/08/2024  Shrey Chandegara Updated for change history order.
      
 -- EXEC GetVendorRFQROFreightList 8,0
 ************************************************************************/
@@ -101,7 +102,7 @@ BEGIN
 		  ,[LineNum]
 		  ,[ManufacturerId]
 		  ,[Manufacturer]
-      FROM [dbo].[VendorRFQROFreightAudit] WITH (NOLOCK) WHERE [VendorRFQROFreightId]=@VendorRFQROId;
+      FROM [dbo].[VendorRFQROFreightAudit] WITH (NOLOCK) WHERE [VendorRFQROFreightId]=@VendorRFQROId ORDER BY VendorRFQROFreightAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

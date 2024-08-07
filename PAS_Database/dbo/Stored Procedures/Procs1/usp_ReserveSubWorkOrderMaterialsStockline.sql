@@ -13,6 +13,7 @@ EXEC [usp_ReserveSubWorkOrderMaterialsStockline]
 ** 2    07/19/2023  VISHAL SUTHAR		Added new stockline history for SWO
 ** 3    12/14/2023  Devendra Shekh		Changes for manual reserve save and added kit part
 ** 4    06/27/2024  HEMANT SALIYA		Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 5    08/05/2024  HEMANT SALIYA	    Fixed MTI stk Reserve Qty was not updating
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -139,7 +140,7 @@ BEGIN
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
 					SELECT @IsKit = MAX(KitId) FROM #tmpReserveWOMaterialsStockline;
-					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpReserveWOMaterialsStockline;
+					SELECT @TotalCountsBoth = MAX(ID) FROM #tmpReserveWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -202,7 +203,7 @@ BEGIN
 						--FOR FOR UPDATED STOCKLINE QTY
 						WHILE @countKitStockline <= @TotalCountsBoth
 						BEGIN
-							DECLARE @tmpKitStockLineId BIGINT;
+							DECLARE @tmpKitStockLineId BIGINT = 0;
 
 							SELECT @tmpKitStockLineId = StockLineId FROM #tmpReserveWOMaterialsStockline WHERE ID = @countKitStockline
 

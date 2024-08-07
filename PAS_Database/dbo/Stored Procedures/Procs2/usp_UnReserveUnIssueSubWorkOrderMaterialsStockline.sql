@@ -11,7 +11,8 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** --   --------    -------			--------------------------------
 ** 1    08/08/2023  Vishal Suthar   Created
 ** 2    08/08/2023  Hemant Saliya   Added KIT Part for Sub WO
-** 3    06/27/2024  HEMANT SALIYA    Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 3    06/27/2024  HEMANT SALIYA   Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 4    08/05/2024  HEMANT SALIYA	Fixed MTI stk Reserve Qty was not updating
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveUnIssueSubWorkOrderMaterialsStockline]
@@ -134,8 +135,8 @@ BEGIN
 					WHERE SL.QuantityIssued > 0 AND SL.QuantityIssued >= tblMS.QuantityActUnIssued;
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) = 0;
-					SELECT @TotalCountsKIT = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
-					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpUnIssueWOMaterialsStockline;
+					SELECT @TotalCountsKIT = MAX(ID) FROM #tmpUnIssueWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
+					SELECT @TotalCountsBoth = MAX(ID) FROM #tmpUnIssueWOMaterialsStockline;
 
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -182,7 +183,7 @@ BEGIN
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countKitStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpKitStockLineId BIGINT;
+						DECLARE @tmpKitStockLineId BIGINT = 0;
 
 						SELECT @tmpKitStockLineId = StockLineId FROM #tmpUnIssueWOMaterialsStockline WHERE ID = @countKitStockline
 
@@ -230,14 +231,13 @@ BEGIN
 					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
 					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0 
-					
 
 					DECLARE @countStockline INT = 1;
 
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpStockLineId BIGINT;
+						DECLARE @tmpStockLineId BIGINT = 0;
 
 						SELECT @tmpStockLineId = StockLineId FROM #tmpUnIssueWOMaterialsStockline WHERE ID = @countStockline
 

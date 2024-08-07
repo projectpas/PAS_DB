@@ -197,6 +197,11 @@
     [ExistingCustomerId]                  BIGINT          NULL,
     [RepairOrderNumber]                   VARCHAR (100)   NULL,
     [ExistingCustomer]                    VARCHAR (200)   NULL,
+    [QuickBooksStocklineId]               BIGINT          NULL,
+    [IsUpdated]                           BIT             NULL,
+    [LastSyncDate]                        DATETIME2 (7)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
+
+
 

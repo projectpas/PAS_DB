@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
     1	07/18/2024		Devendra Shekh		Created
+	2	08/05/2024		Devendra Shekh		JE Number issue Resolved
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -144,6 +145,7 @@ BEGIN
 		DECLARE @ValidDistribution BIT = 1;
 		DECLARE @LotId BIGINT = 0;
 		DECLARE @LotNumber VARCHAR(50) = '';
+		DECLARE @isNewJENum BIT = 0;
 
 		WHILE(@TotalRecords >= @StartCount AND @TotalAmount <> 0)
 		BEGIN
@@ -172,6 +174,8 @@ BEGIN
 			SELECT @WopJounralTypeid =ID FROM JournalType WITH(NOLOCK)  WHERE JournalTypeCode= 'WIP'
 			SELECT @CurrentManagementStructureId = ISNULL(ManagementStructureId,0) FROM Employee WITH(NOLOCK)  WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@UpdateBy, ' ', '')) and MasterCompanyId=@MasterCompanyId
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+			SET @isNewJENum = 0;
+			SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
 
 			IF((@JournalTypeCode ='WIP' or @JournalTypeCode ='WOI' or @JournalTypeCode ='MRO-WO' or @JournalTypeCode ='FGI') and @IsAccountByPass=0)
 			BEGIN 
@@ -239,12 +243,16 @@ BEGIN
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
-					SELECT 
-						@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-							ELSE CAST(StartsFrom AS BIGINT) + 1 END 
-					FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+					IF(@JournalBatchDetailId = 0 AND @Amount <> 0)
+					BEGIN
+						SET @isNewJENum = 1;
+						SELECT 
+							@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+								ELSE CAST(StartsFrom AS BIGINT) + 1 END 
+						FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
 
-					SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+						SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+					END
 				END
 				ELSE 
 				BEGIN
@@ -262,6 +270,8 @@ BEGIN
 					LEFT JOIN [dbo].[Stockline] STL ON STL.[StockLineId] = WOM.[StockLineId]
 					LEFT JOIN [dbo].[Lot] LO ON LO.[LotId] = STL.[LotId]		
 					 WHERE WOM.StockLineId=@StocklineId
+
+					SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
 
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
@@ -336,7 +346,7 @@ BEGIN
 							END
 						END
 					
-						IF(@StartCount = 1)
+						IF(@JournalBatchDetailId = 0)
 						BEGIN
 							INSERT INTO [dbo].[BatchDetails]
 								(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[AccountingPeriodId],[AccountingPeriod])
@@ -473,7 +483,7 @@ BEGIN
 								END
 							END
 
-							IF(@StartCount = 1)
+							IF(@JournalBatchDetailId = 0)
 							BEGIN
 								INSERT INTO [dbo].[BatchDetails]
 								(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],
@@ -550,7 +560,10 @@ BEGIN
 					SET @TotalBalance =@TotalDebit-@TotalCredit
 				         
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+					IF(@isNewJENum = 1 AND @JournalBatchDetailId > 0)
+					BEGIN
+						UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+					END
 
 				END
 
@@ -1169,7 +1182,10 @@ BEGIN
 					SET @TotalBalance =@TotalDebit-@TotalCredit
 				                   
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+					IF(@isNewJENum = 1 AND @JournalBatchDetailId > 0)
+					BEGIN
+						UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+					END
 				END
 
 				IF(UPPER(@DistributionCode) = UPPER('WOSETTLEMENTTAB'))
@@ -1178,6 +1194,8 @@ BEGIN
 							WHERE WOPN.WOPartNoId=@partId 
 					 
 					SET @FinishGoodAmount=Isnull((@MaterialCost+@LaborCost+@LaborOverHeadCost),0)
+
+					SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
 
 					IF EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
 					BEGIN
@@ -1249,7 +1267,7 @@ BEGIN
 								END
 							END
 
-							IF(@StartCount = 1)
+							IF(@JournalBatchDetailId = 0)
 							BEGIN
 								INSERT INTO [dbo].[BatchDetails]
 									(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
@@ -1380,7 +1398,10 @@ BEGIN
 					          
 						SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId 	          
 						SET @TotalBalance =@TotalDebit-@TotalCredit
-						UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+						IF(@isNewJENum = 1 AND @JournalBatchDetailId > 0)
+						BEGIN
+							UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId 
+						END
 						Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 					END
@@ -1449,7 +1470,7 @@ BEGIN
 								END
 							END
 
-							IF(@StartCount = 1)
+							IF(@JournalBatchDetailId = 0)
 							BEGIN
 								INSERT INTO [dbo].[BatchDetails]
 									(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
@@ -1580,7 +1601,10 @@ BEGIN
 					          
 						SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId 	          
 						SET @TotalBalance =@TotalDebit-@TotalCredit
-						UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+						IF(@isNewJENum = 1 AND @JournalBatchDetailId > 0)
+						BEGIN
+							UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId   
+						END
 						Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 					END
@@ -1764,6 +1788,8 @@ BEGIN
 				  
 					SELECT TOP 1 @Qty=[NoofPieces] from [dbo].[WorkOrderBillingInvoicingItem] WITH(NOLOCK) WHERE [BillingInvoicingId] = @InvoiceId; 
 
+					SET @JournalBatchDetailId = CASE WHEN @StartCount = 1 THEN 0 ELSE @JournalBatchDetailId END;
+
 					SELECT @LaborCost = (SUM(ISNULL(WOPN.LaborCost,0))-SUM(ISNULL(WOPN.OverHeadCost,0))),
 						   @LaborOverHeadCost = SUM(ISNULL(WOPN.OverHeadCost,0))
 						   ,@MaterialCost = SUM(ISNULL(WOPN.PartsCost,0))
@@ -1852,7 +1878,7 @@ BEGIN
 								END
 							END
 
-							IF(@StartCount = 1)
+							IF(@JournalBatchDetailId = 0)
 							BEGIN
 								INSERT INTO [dbo].[BatchDetails]
 									(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
@@ -2295,7 +2321,7 @@ BEGIN
 								END
 							END
 
-							IF(@StartCount = 1)
+							IF(@JournalBatchDetailId = 0)
 							BEGIN
 								INSERT INTO [dbo].[BatchDetails]
 									(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
@@ -2354,7 +2380,10 @@ BEGIN
 			   	          
 					SET @TotalBalance =@TotalDebit-@TotalCredit
 				
-					UPDATE dbo.CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+					IF(@isNewJENum = 1 AND @JournalBatchDetailId > 0)
+					BEGIN
+						UPDATE dbo.CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+					END
 			    
 					UPDATE dbo.BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 

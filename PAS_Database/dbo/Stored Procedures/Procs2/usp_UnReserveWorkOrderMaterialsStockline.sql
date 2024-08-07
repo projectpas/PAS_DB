@@ -13,6 +13,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 2    07/19/2023	Devendra Shekh   declare new param @KITID and added new if for exec wohistory
 ** 3    08/18/2023	AMIT GHEDIYA     Update historytext for wohistory.
 ** 4    06/26/2024  HEMANT SALIYA    Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 5    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(830,835,122,70530,121,7,1,1,2,N'NEW',N'11022022',N'11022022_DESC',2,0,0,0,2,0,N'CNTL-000556',N'ID_NUM-000001',N'STL-000017',N'552233',N'ADMIN User',1,17)
@@ -20,7 +21,7 @@ insert into @p1 values(830,835,121,74937,20343,7,1,1,2,N'NEW',N'0856AE15',N'0856
 
 exec dbo.usp_UnReserveWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE       PROCEDURE [dbo].[usp_UnReserveWorkOrderMaterialsStockline]
+CREATE PROCEDURE [dbo].[usp_UnReserveWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -134,7 +135,7 @@ BEGIN
 
 					SELECT @TotalCounts = COUNT(ID) FROM #tmpUnReserveWOMaterialsStockline WHERE ISNULL(KitId, 0) = 0;
 					SELECT @TotalCountsKIT = COUNT(ID) FROM #tmpUnReserveWOMaterialsStockline WHERE ISNULL(KitId, 0) > 0;
-					SELECT @TotalCountsBoth = COUNT(ID) FROM #tmpUnReserveWOMaterialsStockline;
+					SELECT @TotalCountsBoth = MAX(ID) FROM #tmpUnReserveWOMaterialsStockline;
 					
 					INSERT INTO #tmpIgnoredStockline ([PartNumber], [Condition], [ControlNo], [ControlId], [StockLineNumber]) 
 					SELECT tblMS.[PartNumber], tblMS.[Condition], tblMS.[ControlNo], tblMS.[ControlId], tblMS.[StockLineNumber] FROM @tbl_MaterialsStocklineType tblMS  
@@ -178,7 +179,7 @@ BEGIN
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countKitStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpKitStockLineId BIGINT;
+						DECLARE @tmpKitStockLineId BIGINT = 0;
 
 						SELECT @tmpKitStockLineId = StockLineId FROM #tmpUnReserveWOMaterialsStockline WHERE ID = @countKitStockline
 
@@ -227,12 +228,10 @@ BEGIN
 						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpUnReserveWOMaterialsStockline tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
 						SELECT @HistoryWorkOrderMaterialsId = WorkOrderPartNoId FROM WorkOrderWorkFlow WITH(NOLOCK);
 						
-						--SET @historytotalReserved = (CAST(@HistoryQtyReserved AS BIGINT) + CAST(@HistoryQuantityActReserved AS BIGINT));
 						IF @KITID = 0
 						BEGIN
 							EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@historyQtyToBeReserved,@historyQuantity,@TemplateBody,'UnReservedParts',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
 						END
-						--EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,@historyQuantity,@historyQtyToBeReserved,@TemplateBody,'UnReservedParts',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
 
 						UPDATE WorkOrderMaterials 
 							SET QuantityReserved = ISNULL(WOM.QuantityReserved,0) - ISNULL(tmpWOM.QuantityActUnReserved,0),								
@@ -270,7 +269,7 @@ BEGIN
 					--FOR FOR UPDATED STOCKLINE QTY
 					WHILE @countStockline <= @TotalCountsBoth
 					BEGIN
-						DECLARE @tmpStockLineId BIGINT;
+						DECLARE @tmpStockLineId BIGINT = 0;
 
 						SELECT @tmpStockLineId = StockLineId FROM #tmpUnReserveWOMaterialsStockline WHERE ID = @countStockline
 
@@ -312,15 +311,6 @@ BEGIN
 						WHERE tmpWOM.ID = @slcount
 
 						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
-
-						--IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
-						--BEGIN
-						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild, @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						--END
-						--ELSE
-						--BEGIN
-						--	EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 1, @AddHistoryForNonSerialized = 0, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId
-						--END
 
 						SET @ActionId = 3; -- UnReserve
 						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @UpdateBy;

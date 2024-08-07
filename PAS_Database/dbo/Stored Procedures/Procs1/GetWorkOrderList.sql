@@ -18,7 +18,7 @@
     1    06/28/2023   Vishal Suthar Added history
     2    08/01/2023   Vishal Suthar Converting all the data in Upper case which was creating an issue in download
 	3    23 Jul2023   Rajesh Gami   Improve Performance
-	4    30/07/2024   HEMANT SALIYA Serial Number Changes
+	4    05/08/2024   HEMANT SALIYA Serial Number Changes Updated
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -190,7 +190,7 @@ BEGIN
 			UPPER(EMP.FirstName + ' ' + EMP.LastName) AS TechName,
 			UPPER(EMPS.StationName) AS TechStation,
 			--UPPER(STL.SerialNumber) AS SerialNumber,
-			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(STL.SerialNumber) END AS SerialNumber,
+			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
 			UPPER(WPN.CustomerReference) AS CustomerReference,
 			UPPER(WPN.CustomerReference) AS CustomerReferenceType
        FROM WorkOrder WO WITH(NOLOCK)  
@@ -201,7 +201,7 @@ BEGIN
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId  
-			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
+			--LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
 			LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
 			LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
         --LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  

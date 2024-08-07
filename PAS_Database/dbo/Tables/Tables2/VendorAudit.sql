@@ -47,9 +47,16 @@
     [IsTradeRestricted]       BIT             NULL,
     [TradeRestrictedMemo]     NVARCHAR (MAX)  NULL,
     [IsTrackScoreCard]        BIT             NULL,
-    [IsVendorOnHold]          BIT             DEFAULT ((0)) NULL,
+    [IsVendorOnHold]          BIT             CONSTRAINT [DF__VendorAud__IsVen__1884CE3A] DEFAULT ((0)) NULL,
     [TaxIdNumber]             NVARCHAR (MAX)  NULL,
+    [QuickBooksReferenceId]   VARCHAR (256)   NULL,
+    [IsUpdated]               BIT             NULL,
+    [LastSyncDate]            DATETIME2 (7)   NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
+
+
 

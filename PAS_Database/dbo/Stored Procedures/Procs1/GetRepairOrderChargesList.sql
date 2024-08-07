@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    12-10-2022  Deep Patel     Created
 	2    09/01/2024  Bhargav Saliya ADD UOM
+	3    07/08/2024  Shrey Chandegara Updated for change history order.
 -- EXEC GetRepairOrderChargesList 8,0
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[GetRepairOrderChargesList]
@@ -107,7 +108,7 @@ BEGIN
 	  ,UOM.[ShortName] AS UOM
       FROM [dbo].[RepairOrderChargesAudit] ROA WITH (NOLOCK) 
 	  LEFT JOIN dbo.UnitOfMeasure UOM WITH(NOLOCK) on ROA.UOMId = UOM.UnitOfMeasureId
-	  WHERE RepairOrderChargesId=@RepairOrderId and ChargeName is not null;
+	  WHERE RepairOrderChargesId=@RepairOrderId and ChargeName is not null ORDER BY RepairOrderChargesAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

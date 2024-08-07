@@ -29,7 +29,7 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-			UPDATE Customer SET QuickBooksCustomerId =  @ReferenceId, IsUpdated = 0 WHERE CustomerId = @CustomerId			
+			UPDATE Customer SET QuickBooksReferenceId =  @ReferenceId, IsUpdated = 0 WHERE CustomerId = @CustomerId			
 		END
 
 	END TRY    

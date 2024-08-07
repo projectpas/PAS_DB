@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/07/2022  subhash saliya     Created
+	2    07/08/2024  Shrey Chandegara Updated for change history order.
      
 -- EXEC GetPurchaseOrderFreightList 8,0
 ************************************************************************/
@@ -103,7 +104,7 @@ BEGIN
 		  ,[LineNum]
 		  ,[ManufacturerId]
 		  ,[Manufacturer]
-      FROM [dbo].[PurchaseOrderFreightAudit] WITH (NOLOCK) WHERE [PurchaseOrderFreightId]=@PurchaseOrderId;
+      FROM [dbo].[PurchaseOrderFreightAudit] WITH (NOLOCK) WHERE [PurchaseOrderFreightId]=@PurchaseOrderId ORDER BY PurchaseOrderFreightAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

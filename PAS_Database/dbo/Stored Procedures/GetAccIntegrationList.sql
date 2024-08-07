@@ -105,8 +105,8 @@ BEGIN
 			INSERT #InsertedSyncRecords([QuickBookCount],[LastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],[MasterCompanyId])
 			SELECT 
 					COUNT(C.QuickBooksCustomerId),MAX(C.LastSyncDate),
-					COUNT(ST.QuickBooksStocklineId),MAX(ST.LastSyncDate),
-					COUNT(V.QuickBooksVendorId),MAX(V.LastSyncDate),
+					COUNT(ST.QuickBooksStocklineId),MAX(ST.LastSyncDate),0,
+					--COUNT(V.QuickBooksVendorId),MAX(V.LastSyncDate),
 					ACI.[MasterCompanyId] 
 			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
@@ -136,6 +136,7 @@ BEGIN
 			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
 			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
 			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
+
 			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1)
 			GROUP BY ACI.[MasterCompanyId]
 

@@ -20,6 +20,7 @@
 	3    29-MARCH-2024  Ekta Chandegra     IsDeleted and IsActive flag is added
 	4    10-APRL-2024   Shrey Chandegara   poage changes   ( DATEDIFF(DAY, PO.OpenDate, GETDATE()) to DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) )
 	5    05-AUG-2024   Shrey Chandegara   Changes for PO View AND PN View.
+	6    06-aug-2024  Shrey Chandegara  MOdify due to chek isnull in closedateand when it is null then use getDate() as ClosedDate.
 	
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -154,7 +155,7 @@ BEGIN
 				UPPER(POP.itemtype) 'itemtype',
 				UPPER(POP.stocktype) 'stocktype',
 				UPPER(PO.status) 'status',
-				DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) AS 'poage',
+				DATEDIFF(DAY, PO.OpenDate, ISNULL(PO.ClosedDate,GETDATE())) AS 'poage',
 				UPPER(PO.VendorName) 'vendorname',
 				UPPER(PO.VendorCode) 'vendorcode',
 				UPPER(POP.unitofmeasure) 'uom',
@@ -224,7 +225,7 @@ BEGIN
 					WC.TotalExtAmt
 				FROM FinalCTE FC
 					INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-				ORDER BY pn DESC
+				ORDER BY ponum DESC
 				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
 
 				END
@@ -239,7 +240,7 @@ BEGIN
 						UPPER(PO.PurchaseOrderNumber) 'ponum',
 						CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(PO.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), PO.OpenDate, 107) END 'podate', 
 						UPPER(PO.status) 'status',
-						DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) AS 'poage',
+						DATEDIFF(DAY, PO.OpenDate, ISNULL(PO.ClosedDate,GETDATE())) AS 'poage',
 						UPPER(PO.VendorName) 'vendorname',
 						UPPER(PO.VendorCode) 'vendorcode',
 						UPPER(PO.Approvedby) 'Approver',

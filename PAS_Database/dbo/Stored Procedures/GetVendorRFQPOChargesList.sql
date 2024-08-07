@@ -17,7 +17,7 @@
 -- EXEC GetVendorRFQPOChargesList 8,0,2
 ************************************************************************/
 
-Create   PROCEDURE [dbo].[GetVendorRFQPOChargesList]
+CREATE   PROCEDURE [dbo].[GetVendorRFQPOChargesList]
 @VendorRFQPOId BIGINT,
 @IsDeleted bit,
 @Opr int
@@ -107,7 +107,7 @@ BEGIN
 	  ,uom.[ShortName] AS UOM
       FROM [dbo].[VendorRFQPOChargesAudit] POA WITH (NOLOCK)
 	  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on POA.UOMId = uom.UnitOfMeasureId
-	  WHERE VendorRFQPOChargeId=@VendorRFQPOId;
+	  WHERE VendorRFQPOChargeId=@VendorRFQPOId ORDER BY VendorRFQPOChargesAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

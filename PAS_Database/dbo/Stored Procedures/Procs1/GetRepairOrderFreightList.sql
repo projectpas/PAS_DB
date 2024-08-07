@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11/10/2022  Deep Patel     Created
+	2    07/08/2024  Shrey Chandegara Updated for change history order.
 -- EXEC GetRepairOrderFreightList 8,0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderFreightList]
@@ -100,7 +101,7 @@ BEGIN
 		  ,[LineNum]
 		  ,[ManufacturerId]
 		  ,[Manufacturer]
-      FROM [dbo].[RepairOrderFreightAudit] WITH (NOLOCK) WHERE [RepairOrderFreightId]=@RepairOrderId;
+      FROM [dbo].[RepairOrderFreightAudit] WITH (NOLOCK) WHERE [RepairOrderFreightId]=@RepairOrderId ORDER BY RepairOrderFreightAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

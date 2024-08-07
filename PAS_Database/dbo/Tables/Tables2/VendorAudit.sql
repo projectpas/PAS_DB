@@ -49,7 +49,12 @@
     [IsTrackScoreCard]        BIT             NULL,
     [IsVendorOnHold]          BIT             DEFAULT ((0)) NULL,
     [TaxIdNumber]             NVARCHAR (MAX)  NULL,
+    [QuickBooksVendorId]      BIGINT          NULL,
+    [IsUpdated]               BIT             NULL,
+    [LastSyncDate]            DATETIME2 (7)   NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 

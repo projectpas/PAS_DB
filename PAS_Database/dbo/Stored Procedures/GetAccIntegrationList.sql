@@ -52,6 +52,16 @@ BEGIN
 		DECLARE @IsActive bit=1
 		DECLARE @Count Int;
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+
+		DECLARE @CustomerModuleID int;
+		SELECT @CustomerModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'CUSTOMER'
+
+		DECLARE @StocklineModuleID int;
+		SELECT @StocklineModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'STOCKLINE'
+
+		DECLARE @VendorModuleID int;
+		SELECT @VendorModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'VENDOR'
+
 		IF @IsDeleted IS NULL
 		BEGIN
 			SET @IsDeleted=0
@@ -99,9 +109,9 @@ BEGIN
 					COUNT(V.QuickBooksVendorId),MAX(V.LastSyncDate),
 					ACI.[MasterCompanyId] 
 			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Customer')
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Stockline')
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Vendor')
+			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
+			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
+			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
 
 			WHERE (ISNULL(C.QuickBooksCustomerId,0) > 0 OR ISNULL(ST.QuickBooksStocklineId,0) > 0)
 			GROUP BY ACI.[MasterCompanyId]
@@ -123,9 +133,9 @@ BEGIN
 
 			INSERT #InsertedPendingSyncRecords([PendingSyncRecords],[STPendingSyncRecords],[VPendingSyncRecords],[MasterCompanyId])
 			SELECT COUNT(C.IsUpdated),COUNT(ST.IsUpdated),COUNT(V.IsUpdated), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Customer')
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Stockline')
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Vendor')
+			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
+			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
+			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
 			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1)
 			GROUP BY ACI.[MasterCompanyId]
 
@@ -145,9 +155,9 @@ BEGIN
 
 			INSERT #InsertedTotalRecords([TotalRecords],[STTotalRecords],[VTotalRecords],[MasterCompanyId])
 			SELECT COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(ST.VendorId), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Customer')
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Stockline')
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Vendor')
+			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
+			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
+			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
 			--WHERE ISNULL(IsUpdated,0) = 1
 			GROUP BY ACI.[MasterCompanyId]
 

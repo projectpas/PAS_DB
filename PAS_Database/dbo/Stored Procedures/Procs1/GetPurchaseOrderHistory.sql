@@ -18,6 +18,7 @@
 	2    01-02-2024   Shrey Chandegara  Modified for add from date and t odate 
 	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
 	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
+	5    07-08-2024   Sahdev Saliya     Modified For Date Filter issue
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -94,7 +95,7 @@ BEGIN
 		        ) F
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId = @ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent= 1
 				  AND PO.MasterCompanyId = @MasterCompanyId
-				  AND PO.CreatedDate between @FromDate  AND  @ToDate
+				  AND PO.OpenDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -161,7 +162,7 @@ BEGIN
 		        ) F
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) -- AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId
-				  AND PO.CreatedDate between @FromDate  AND  @ToDate
+				  AND PO.OpenDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR

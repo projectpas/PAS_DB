@@ -3106,7 +3106,6 @@
     <Build Include="dbo\Tables\StocklineAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateSpeedQuote.sql" />
     <Build Include="dbo\Stored Procedures\GetSOConfirmationList.sql" />
-    <Build Include="dbo\Stored Procedures\GetAccIntegrationList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccontingIntegrationDetailsList.sql" />
   </ItemGroup>
   <ItemGroup>

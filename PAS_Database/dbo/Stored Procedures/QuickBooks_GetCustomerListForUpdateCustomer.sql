@@ -27,7 +27,7 @@ BEGIN
 		-- FOR QuickBooks
 		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
 		BEGIN
-			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode, C.QuickBooksCustomerId,
+			SELECT [Name] As CompanyName, C.CustomerId, C.CustomerCode, C.QuickBooksReferenceId,
 					CON.FirstName + ' ' + CON.LastName AS FullName,
 					CON.FirstName,
 					CON.LastName,
@@ -53,7 +53,7 @@ BEGIN
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
 				JOIN dbo.[Address] AD WITH (NOLOCK) ON C.AddressId = AD.AddressId
 				LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
-			WHERE ISNULL(C.QuickBooksCustomerId, 0) != 0 AND ISNULL(C.IsUpdated, 0) = 1 
+			WHERE ISNULL(C.QuickBooksReferenceId, 0) != 0 AND ISNULL(C.IsUpdated, 0) = 1 
 		END
 	END TRY    
 	BEGIN CATCH      

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -228,8 +227,8 @@ BEGIN
 	   
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus, 
-	   (SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = StockLineId) as rsworkOrderId 
-	   INTO #TempResults FROM  Result        
+	   (SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId 
+	   INTO #TempResults FROM  Result r       
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		  (Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
@@ -480,7 +479,7 @@ BEGIN
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT *,
 	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=StockLineId) as rsworkOrderId INTO #TempResult FROM  Result        
+		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId INTO #TempResult FROM  Result r         
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
@@ -734,7 +733,7 @@ BEGIN
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
-		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = StockLineId) as rsworkOrderId INTO #TempALTResults FROM  Result        
+		(SELECT TOP 1 ISNULL(RS.WorkOrderId, 0) FROM dbo.ReceivingCustomerWork RS WITH (NOLOCK) WHERE RS.StockLineId = r.StockLineId) as rsworkOrderId INTO #TempALTResults FROM  Result r       
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		  (PartNumber LIKE '%' +@GlobalFilter+'%') OR         
 		  (PartDescription LIKE '%' +@GlobalFilter+'%') OR         
@@ -986,8 +985,8 @@ BEGIN
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT *,
 	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
-	   (SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=StockLineId) as rsworkOrderId
-		INTO #TempALTResult FROM  Result        
+	   (SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId
+		INTO #TempALTResult FROM  Result r       
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         

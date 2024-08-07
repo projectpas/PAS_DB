@@ -21,7 +21,9 @@
 	4    12/19/2023   Rajesh Gami		Change the SOPart status(Fulfilled) when PO reserve where SO mapped with same PO
 	5    12/21/2023   Devendra Shekh	changes for sub for kit and multiple material
 	6    04/08/2024   Vishal Suthar		Modified the condition to fix the issue with partial qty reservation
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2309,@SelectedPartsToReserve=N'905',@UpdatedBy=N'ADMIN User'
+	7    07/30/2024   Vishal Suthar		Modified the SP to allow reserving the alternate or main part of the alternate if either or is available in WO
+
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2580,@SelectedPartsToReserve=N'830',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
@@ -198,10 +200,14 @@ BEGIN
 					IF (@IsExchangePO = 0)
 					BEGIN
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
-						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId; 
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
+						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId
+						WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId; 
 
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
-						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId; 
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOMK.ItemMasterId
+						WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId; 
 					END
 					ELSE
 					BEGIN
@@ -217,13 +223,16 @@ BEGIN
 
 					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
+					PRINT 'WHILE (@LoopIDWFWO > 0)'
+					PRINT @LoopIDWFWO;
+
 					WHILE (@LoopIDWFWO > 0)
 					BEGIN
 						DECLARE @WorkFlowWorkOrderId BIGINT = 0;
 
 						SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM #WorkOrderMaterialWithWorkOrderWorkFlow WHERE ID = @LoopIDWFWO;
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
 						BEGIN
 							PRINT 'INSIDE WOM'
 							DECLARE @SelectedWorkOrderMaterialsId INT = 0;
@@ -231,7 +240,8 @@ BEGIN
 							IF (@IsExchangePO = 0)
 							BEGIN
 								SELECT @SelectedWorkOrderMaterialsId = WOM.WorkOrderMaterialsId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
-								WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId
+								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 							ELSE
 							BEGIN
@@ -246,12 +256,14 @@ BEGIN
 							IF(@IsExchangePO = 1)
 							BEGIN
 								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0), @WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
-								WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId;
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId
+								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId;
 							END
 							ELSE
 							BEGIN
 								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0) FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
-								WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId
+								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 					
 							DECLARE @OriginalQuantity INT = 0;
@@ -266,10 +278,18 @@ BEGIN
 								SET @Quantity = @MainPOReferenceQty;
 							END
 
+							PRINT '@OriginalQuantity'
+							PRINT @OriginalQuantity
+							PRINT '@QuantityReserved'
+							PRINT (@QuantityReserved)
+
 							IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
 							BEGIN
+								PRINT '@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0'
 								IF (@SelectedWorkOrderMaterialsId > 0)
 								BEGIN
+									PRINT '(@SelectedWorkOrderMaterialsId > 0)'
+
 									SET @Qty = 0;
 									SET @stkQty = 0;
 									SET @stkMasterCompanyId = 0;
@@ -298,6 +318,7 @@ BEGIN
 
 									IF (@Qty > 0)
 									BEGIN
+										PRINT '@Qty > 0'
 										UPDATE WOM
 										SET WOM.QuantityReserved = ISNULL(WOM.QuantityReserved, 0),
 										WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0),
@@ -466,7 +487,7 @@ BEGIN
 							END
 						END
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
 						BEGIN
 							UPDATE Stk
 							SET Stk.QuantityAvailable = @stkQuantityAvailable,
@@ -1306,6 +1327,7 @@ BEGIN
 
 					END					
 				END
+				
 				IF(@ModulId = 6) /** LOT MODULE **/
 				BEGIN
 					PRINT 'LOT'
@@ -1346,6 +1368,7 @@ BEGIN
 						--  EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
 
 				END /*** LOT MODULE END ***/
+				
 				IF (@ModulId = 3) -- Sales Order
 				BEGIN
 					PRINT 'SALES ORDER'

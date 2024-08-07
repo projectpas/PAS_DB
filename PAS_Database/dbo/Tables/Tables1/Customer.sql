@@ -39,7 +39,7 @@
     [IsStageChange]             BIT            NULL,
     [IsCommunicationPreference] BIT            NULL,
     [IsCustomerShipping]        BIT            DEFAULT ((0)) NULL,
-    [QuickBooksCustomerId]      VARCHAR (200)  NULL,
+    [QuickBooksReferenceId]     VARCHAR (200)  NULL,
     [IsUpdated]                 BIT            NULL,
     [LastSyncDate]              DATETIME2 (7)  NULL,
     CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED ([CustomerId] ASC),

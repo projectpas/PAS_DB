@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
  ** File:   [GetAccIntegrationList]           
- ** Author:   Bhargav Saliya
+ ** Author:    HEMANT SALIYA
  ** Description:  
  ** Purpose:         
- ** Date:   31-Jul-2024        
+ ** Date:   07-AUG-2024        
           
  ** PARAMETERS: 
          
@@ -13,10 +13,10 @@
   ** Change History           
  **************************************************************           
  ** PR   Date			Author			Change Description            
- ** --   --------		-------			--------------------------------          
-    1    12/14/2020   Bhargav Saliya	 Created
+ ** --   --------		-------			--------------------------------  
+	1    08/06/2020   HEMANT SALIYA	     CREATED
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetAccIntegrationList]
+CREATE     PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50)=null,
@@ -37,8 +37,6 @@ CREATE   PROCEDURE [dbo].[GetAccIntegrationList]
     @IsDeleted bit= null,
 	@MasterCompanyId bigint = NULL,
 	@LastSycDate datetime=null
-	
-
 
 AS
 BEGIN
@@ -46,21 +44,20 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
-	
 
-		DECLARE @RecordFrom int;
-		DECLARE @IsActive bit=1
-		DECLARE @Count Int;
+		DECLARE @RecordFrom INT;
+		DECLARE @IsActive BIT=1
+		DECLARE @Count INT;
+		DECLARE @CustomerModuleId INT;
+		DECLARE @StocklineModuleId INT;
+		DECLARE @VendorModuleId INT;
+		DECLARE @IntegrationId INT;
+
+		SELECT @CustomerModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER'
+		SELECT @StocklineModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'STOCKLINE'
+		SELECT @VendorModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR'
+
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
-
-		DECLARE @CustomerModuleID int;
-		SELECT @CustomerModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'CUSTOMER'
-
-		DECLARE @StocklineModuleID int;
-		SELECT @StocklineModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'STOCKLINE'
-
-		DECLARE @VendorModuleID int;
-		SELECT @VendorModuleID = ModuleId FROM DBO.Module WITH (NOLOCK) where UPPER(ModuleName) = 'VENDOR'
 
 		IF @IsDeleted IS NULL
 		BEGIN
@@ -93,50 +90,59 @@ BEGIN
 			CREATE TABLE #InsertedSyncRecords
 			(
 				ID BIGINT NOT NULL IDENTITY,
-				[QuickBookCount] [bigint] NULL,
-				[LastSycDate] [DateTime2] null,
-				[STQuickBookCount] [bigint] NULL,
+				[IntegrationId] [INT] NULL,
+				[CusQuickBookCount] [BIGINT] NULL,
+				[CustLastSycDate] [DateTime2] null,
+				[STQuickBookCount] [BIGINT] NULL,
 				[STLastSycDate] [DateTime2] null,
-				[VQuickBookCount] [bigint] NULL,
+				[VQuickBookCount] [BIGINT] NULL,
 				[VLastSycDate] [DateTime2] null,
-				[MasterCompanyId] [int] NULL
+				[MasterCompanyId] [INT] NULL
 			)
 
-			INSERT #InsertedSyncRecords([QuickBookCount],[LastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],[MasterCompanyId])
-			SELECT 
-					COUNT(C.QuickBooksCustomerId),MAX(C.LastSyncDate),
-					COUNT(ST.QuickBooksStocklineId),MAX(ST.LastSyncDate),0,
-					--COUNT(V.QuickBooksVendorId),MAX(V.LastSyncDate),
+			INSERT #InsertedSyncRecords([CusQuickBookCount],[CustLastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],[MasterCompanyId],[IntegrationId])
+			SELECT  COUNT(C.QuickBooksReferenceId),MAX(C.LastSyncDate),
+					COUNT(ST.QuickBooksReferenceId),MAX(ST.LastSyncDate),
+					COUNT(V.QuickBooksReferenceId),MAX(V.LastSyncDate),
+					ACI.[MasterCompanyId], ACI.IntegrationId 
+			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId 
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId 
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+			WHERE (ISNULL(C.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0)
+			GROUP BY ACI.[MasterCompanyId], ACI.IntegrationId
+
+			
+
+			INSERT #InsertedSyncRecords([CusQuickBookCount],[CustLastSycDate],[STQuickBookCount],[STLastSycDate],[VQuickBookCount],[VLastSycDate],[MasterCompanyId])
+			SELECT  COUNT(C.QuickBooksReferenceId),MAX(C.LastSyncDate),
+					COUNT(ST.QuickBooksReferenceId),MAX(ST.LastSyncDate),
+					COUNT(V.QuickBooksReferenceId),MAX(V.LastSyncDate),
 					ACI.[MasterCompanyId] 
 			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
-
-			WHERE (ISNULL(C.QuickBooksCustomerId,0) > 0 OR ISNULL(ST.QuickBooksStocklineId,0) > 0)
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId 
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId 
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+			WHERE (ISNULL(C.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0)
 			GROUP BY ACI.[MasterCompanyId]
 	
-			--SELECT * FROM #InsertedSyncRecords
-
-
 			IF OBJECT_ID('tempdb..#InsertedPendingSyncRecords') IS NOT NULL
 			DROP TABLE #InsertedPendingSyncRecords
 
 			CREATE TABLE #InsertedPendingSyncRecords
 			(
 				ID BIGINT NOT NULL IDENTITY,
-				[PendingSyncRecords] [bigint] NULL,
-				[STPendingSyncRecords] [bigint] NULL,
-				[VPendingSyncRecords] [bigint] NULL,
+				[PendingSyncRecords] [BIGINT] NULL,
+				[STPendingSyncRecords] [BIGINT] NULL,
+				[VPendingSyncRecords] [BIGINT] NULL,
 				[MasterCompanyId] [int] NULL
 			)
 
 			INSERT #InsertedPendingSyncRecords([PendingSyncRecords],[STPendingSyncRecords],[VPendingSyncRecords],[MasterCompanyId])
 			SELECT COUNT(C.IsUpdated),COUNT(ST.IsUpdated),COUNT(V.IsUpdated), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
-
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
 			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1)
 			GROUP BY ACI.[MasterCompanyId]
 
@@ -148,17 +154,17 @@ BEGIN
 			CREATE TABLE #InsertedTotalRecords
 			(
 				ID BIGINT NOT NULL IDENTITY,
-				[TotalRecords] [bigint] NULL,
-				[STTotalRecords] [bigint] NULL,
-				[VTotalRecords] [bigint] NULL,
+				[TotalRecords] [BIGINT] NULL,
+				[STTotalRecords] [BIGINT] NULL,
+				[VTotalRecords] [BIGINT] NULL,
 				[MasterCompanyId] [int] NULL
 			)
 
 			INSERT #InsertedTotalRecords([TotalRecords],[STTotalRecords],[VTotalRecords],[MasterCompanyId])
 			SELECT COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(ST.VendorId), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleID
-			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleID
-			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleID
+			LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Customer')
+			LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Stockline')
+			LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = (SELECT ModuleId fROM Module WHERE ModuleName='Vendor')
 			--WHERE ISNULL(IsUpdated,0) = 1
 			GROUP BY ACI.[MasterCompanyId]
 
@@ -175,7 +181,7 @@ BEGIN
 					ACI.ModuleName,
 					ACI.MasterCompanyId,			
 					CASE  
-						WHEN ACI.ModuleName = 'Customer' THEN CAST(SR.QuickBookCount AS varchar)
+						WHEN ACI.ModuleName = 'Customer' THEN CAST(SR.CusQuickBookCount AS varchar)
 						WHEN ACI.ModuleName = 'Stockline' THEN CAST(SR.STQuickBookCount AS varchar)
 						WHEN ACI.ModuleName = 'Vendor' THEN CAST(SR.VQuickBookCount AS varchar)
 					else  0
@@ -195,7 +201,7 @@ BEGIN
 					--CAST(SR.QuickBookCount AS varchar) as SyncRecords,
 					--CAST(PSR.PendingSyncRecords AS varchar) AS PendingSyncRecords,
 					--CAST(TR.TotalRecords AS varchar) AS TotalCount,
-					SR.LastSycDate,
+					SR.CusQuickBookCount,
 					ACI.CreatedDate,
 					ACI.CreatedBy,
 					ACI.UpdatedDate,
@@ -232,7 +238,7 @@ BEGIN
 					(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount as varchar)=CAST(@TotalCount as varchar))AND
 					--(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount as varchar)=CAST(@TotalCount as varchar))AND
 
-					(ISNULL(@LastSycDate,'') ='' OR CAST(LastSycDate as date)=CAST(@LastSycDate as date)))
+					(ISNULL(@LastSycDate,'') ='' OR CAST(CusLastSycDate as date)=CAST(@LastSycDate as date)))
 					)
 
 			Select @Count = COUNT(AccountingIntegrationSettingsId) FROM #TempResult			
@@ -246,7 +252,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN LastSycDate END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN CusLastSycDate END ASC,
 
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
@@ -255,7 +261,7 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN LastSycDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN CusLastSycDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

@@ -89,13 +89,9 @@
 
 
 
+
+
 GO
-
-
-
-
-
-
 ----------------------------------------------
 
 CREATE TRIGGER [dbo].[Trg_WorkOrderPartNumAudit]
@@ -108,14 +104,11 @@ AS
 
 BEGIN
 
-
-
 	DECLARE @ItemMasterId BIGINT,@WorkScopeId BIGINT,@ManagementStructureId BIGINT,@ConditionId BIGINT,@StockLineId BIGINT,
 
 	@PublicationId BIGINT,@WorkflowId BIGINT,@StageId BIGINT,@StatusId BIGINT,@PriorityId BIGINT,@TechId BIGINT,@TechStationId BIGINT
 
-
-
+	
 	DECLARE @PartNum VARCHAR(256),@PartDesc VARCHAR(256),@RevisedPartNum VARCHAR(256),@ItemGroup VARCHAR(256),@WorkScope VARCHAR(256),
 
 	@CustRefNo VARCHAR(256),@MangLevel1  VARCHAR(256),@MangLevel2  VARCHAR(256),@MangLevel3  VARCHAR(256),@MangLevel4  VARCHAR(256),
@@ -123,7 +116,6 @@ BEGIN
 	@Condition VARCHAR(256),@StockLineNum VARCHAR(256),@SerialNum VARCHAR(256),@PublicationNum VARCHAR(256),@WorkflowNum VARCHAR(256),
 
 	@Stage VARCHAR(256),@Status VARCHAR(256),@Priority VARCHAR(256),@TechName VARCHAR(256),@TechStation VARCHAR(256)
-
 
 
 	SELECT @ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId,@ConditionId=ConditionId,
@@ -134,27 +126,14 @@ BEGIN
 
 	FROM INSERTED
 
-	
 
 	SELECT @PartNum=IM.partnumber,@PartDesc=IM.PartDescription,@RevisedPartNum=ISNULL(RP.partnumber,''),@ItemGroup=ISNULL(IG.Description,'')
-
-	FROM ItemMaster IM
-
-	LEFT JOIN ItemMaster RP ON IM.RevisedPartId=RP.ItemMasterId
-
-	LEFT JOIN ItemGroup IG ON IM.ItemGroupId=IG.ItemGroupId
-
+	FROM dbo.ItemMaster IM WITH(NOLOCK)
+		LEFT JOIN ItemMaster RP WITH(NOLOCK) ON IM.RevisedPartId=RP.ItemMasterId
+		LEFT JOIN ItemGroup IG WITH(NOLOCK) ON IM.ItemGroupId=IG.ItemGroupId
 	WHERE IM.ItemMasterId=@ItemMasterId
 
-
-
-	--SELECT @WorkScope=WorkScopeCode FROM WorkScope WHERE WorkScopeId=@WorkScopeId
-
-
-
-	SELECT @CustRefNo=Reference FROM ReceivingCustomerWork WHERE StockLineId=@StockLineId
-
-
+	SELECT @CustRefNo=Reference FROM dbo.ReceivingCustomerWork WITH(NOLOCK) WHERE StockLineId=@StockLineId
 
 	 SELECT @MangLevel1= CASE WHEN level4.Name IS NOT NULL and level3.Name IS NOT NULL and level2.Name IS NOT NULL and level1.Name IS NOT NULL THEN level1.Name 
 
@@ -176,56 +155,31 @@ BEGIN
 
 			@MangLevel4= CASE WHEN level4.Name IS NOT NULL and level3.Name IS NOT NULL and level2.Name IS NOT NULL and level1.Name IS NOT NULL THEN level4.Name ELSE '' END
 
-						 FROM WorkOrderPartNumber wop 
-
-						 JOIN  ManagementStructure level4 ON wop.ManagementStructureId = level4.ManagementStructureId
-
-						 LEFT JOIN  ManagementStructure level3 ON level4.ParentId = level3.ManagementStructureId 
-
-						 LEFT JOIN  ManagementStructure level2 ON level3.ParentId = level2.ManagementStructureId 
-
-						 LEFT JOIN  ManagementStructure level1 ON level2.ParentId = level1.ManagementStructureId 
-
-						 WHERE wop.ManagementStructureId=@ManagementStructureId
-
+		FROM WorkOrderPartNumber wop WITH(NOLOCK) 
+			JOIN  ManagementStructure level4 WITH(NOLOCK)  ON wop.ManagementStructureId = level4.ManagementStructureId
+			LEFT JOIN  ManagementStructure level3 WITH(NOLOCK)  ON level4.ParentId = level3.ManagementStructureId 
+			LEFT JOIN  ManagementStructure level2 WITH(NOLOCK)  ON level3.ParentId = level2.ManagementStructureId 
+			LEFT JOIN  ManagementStructure level1 WITH(NOLOCK)  ON level2.ParentId = level1.ManagementStructureId 
+		WHERE wop.ManagementStructureId=@ManagementStructureId
 
 
 	SELECT @Condition=Description FROM Condition WHERE ConditionId=@ConditionId
 
-
-
 	SELECT @StockLineNum=StockLineNumber,@SerialNum=SerialNumber  FROM Stockline WHERE StockLineId=@StockLineId
-
-
 
 	SELECT @PublicationNum=PublicationId FROM Publication WHERE PublicationRecordId=@PublicationId
 
-
-
 	SELECT @WorkflowNum=WorkOrderNumber FROM Workflow WHERE WorkflowId=@WorkflowId
-
-
 
 	SELECT @Stage=Stage FROM WorkOrderStage WHERE WorkOrderStageId=@StageId
 
-
-
 	SELECT @Status=Status FROM WorkOrderStatus WHERE Id=@StatusId
-
-
 
 	SELECT @Priority=Description FROM [Priority] WHERE PriorityId=@PriorityId
 
-
-
 	SELECT @TechName=FirstName+' '+LastName FROM Employee WHERE EmployeeId=@TechId
 
-
-
 	SELECT @TechStation=StationName FROM EmployeeStation WHERE EmployeeStationId=@TechStationId
-
-
-
 
 
 	INSERT INTO [dbo].[WorkOrderPartNumberAudit] ([WOPartNoId]
@@ -388,9 +342,9 @@ BEGIN
 
       ,[UpdatedBy]
 
-      ,[CreatedDate]
+      ,GETUTCDATE()
 
-      ,[UpdatedDate]
+      ,GETUTCDATE()
 
       ,[IsActive]
 

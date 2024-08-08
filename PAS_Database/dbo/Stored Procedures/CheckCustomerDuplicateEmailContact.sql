@@ -1,5 +1,5 @@
 ﻿/*************************************************************               
- ** File:   [CheckCustomerDuplicateEmailContac]               
+ ** File:   [CheckCustomerDuplicateEmailContact]               
  ** Author:  AMIT GHEDIYA    
  ** Description:  This Store Procedure use to check customer emial & phone duplicate.   
  ** Purpose:             
@@ -13,51 +13,140 @@
  ** --   --------		-------			--------------------------------              
     1    07/08/2024  	AMIT GHEDIYA	Created     
  
- EXEC [CheckCustomerDuplicateEmailContact] '123456789','AMIT@GDGD.COM'
+ EXEC [CheckCustomerDuplicateEmailContact] '123456789','AMIT@GDGD.COM',12
 ********************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[CheckCustomerDuplicateEmailContact]
 	@customerPhone VARCHAR(100),
-	@email VARCHAR(100)
+	@email VARCHAR(100),
+	@customerId BIGINT
 AS
 BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	SET NOCOUNT ON;
 		BEGIN TRY
 			
 			DECLARE @ReturnStatus INT = 0,
-					@ReturnMsg VARCHAR(150);
-				
-			IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
-			BEGIN
-				 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
-				 BEGIN
-					  SET @ReturnStatus = -3;
-					  SET @ReturnMsg = 'The contact number/email address you are trying to use already exists. <br/>Are you sure you want to use it again?';
-				 END
-				 ELSE
-				 BEGIN
-					 SET @ReturnStatus = -1;
-					 SET @ReturnMsg = 'The email address you are trying to use already exists. <br/>Are you sure you want to use it again?';
-				 END
-			END
-			ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
-			BEGIN
-				 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
-				 BEGIN
-					  SET @ReturnStatus = -3;
-					  SET @ReturnMsg = 'The contact number/email address you are trying to use already exists.<br/>Are you sure you want to use it again?';
-				 END
-				 ELSE
-				 BEGIN
-					  SET @ReturnStatus = -2;
-					  SET @ReturnMsg = 'The contact number you are trying to use already exists.<br/>Are you sure you want to use it again?';
-				 END
+					@IsExistingCustomer INT = 0,
+					@ExistingCustomerPhone VARCHAR(100),
+					@ExistingEmail VARCHAR(100),
+					@ReturnMsg VARCHAR(150),
+					@ContactReturnMsg VARCHAR(150) = 'The contact number you are trying to use already exists.<br/>Are you sure you want to use it again?',
+					@EmailReturnMsg VARCHAR(150) = 'The email address you are trying to use already exists. <br/>Are you sure you want to use it again?',
+					@BothReturnMsg VARCHAR(150) = 'The contact number/email address you are trying to use already exists. <br/>Are you sure you want to use it again?';
+
+			--Checking for current customer email & phone.
+			IF(@customerId > 0)
+			BEGIN 
+				SELECT @ExistingCustomerPhone = CustomerPhone ,@ExistingEmail = Email  FROM [dbo].[Customer] WITH(NOLOCK) WHERE [customerId] = @customerId;
+				IF(@ExistingCustomerPhone = @customerPhone)
+				BEGIN 
+					 IF(@ExistingEmail = @email)
+					 BEGIN
+						  SET @ReturnStatus = 1;
+						  SET @ReturnMsg = '';
+					 END
+					 ELSE
+					 BEGIN 
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+						 BEGIN
+							  SET @ReturnStatus = -1;
+							  SET @ReturnMsg = @EmailReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = 1;
+							  SET @ReturnMsg = '';
+						 END
+					 END
+				END
+				ELSE IF(@ExistingEmail = @email)
+				BEGIN
+					 IF(@ExistingCustomerPhone = @customerPhone)
+					 BEGIN
+						 SET @ReturnStatus = 1;
+						 SET @ReturnMsg = '';
+					 END
+					 ELSE
+					 BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+						 BEGIN
+							 SET @ReturnStatus = -2;
+							 SET @ReturnMsg = @ContactReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = 1;
+							  SET @ReturnMsg = '';
+						 END
+					 END
+				END
+				ELSE
+				BEGIN
+					IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+					BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							 SET @ReturnStatus = -1;
+							 SET @ReturnMsg = @EmailReturnMsg;
+						 END
+					END
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+					BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = -2;
+							  SET @ReturnMsg = @ContactReturnMsg;
+						 END
+					END
+					ELSE
+					BEGIN
+						 SET @ReturnStatus = 1;
+						 SET @ReturnMsg = '';
+					END
+				END
 			END
 			ELSE
 			BEGIN
-				 SET @ReturnStatus = 1;
-				 SET @ReturnMsg = '';
+				IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
+				BEGIN
+					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
+					 BEGIN
+						  SET @ReturnStatus = -3;
+						  SET @ReturnMsg = @BothReturnMsg;
+					 END
+					 ELSE
+					 BEGIN
+						 SET @ReturnStatus = -1;
+						 SET @ReturnMsg = @EmailReturnMsg;
+					 END
+				END
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
+				BEGIN
+					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
+					 BEGIN
+						  SET @ReturnStatus = -3;
+						  SET @ReturnMsg = @BothReturnMsg;
+					 END
+					 ELSE
+					 BEGIN
+						  SET @ReturnStatus = -2;
+						  SET @ReturnMsg = @ContactReturnMsg;
+					 END
+				END
+				ELSE
+				BEGIN
+					 SET @ReturnStatus = 1;
+					 SET @ReturnMsg = '';
+				END
 			END
 
 			SELECT @ReturnStatus AS Status, @ReturnMsg AS Msg;

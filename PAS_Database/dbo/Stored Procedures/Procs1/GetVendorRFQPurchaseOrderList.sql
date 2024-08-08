@@ -214,7 +214,7 @@ BEGIN
      (ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNoType LIKE '%' + @WorkOrderNo + '%') AND  
      (ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND  
      (ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND  
-     (ISNULL(@mgmtStructure,'') ='' OR Level1Type LIKE '%' + @mgmtStructure + '%') AND  
+     (ISNULL(@mgmtStructure,'') ='' OR LastMSLevel LIKE '%' + @mgmtStructure + '%') AND  
      (ISNULL(@Level2Type,'') ='' OR Level2Type LIKE '%' + @Level2Type + '%') AND  
      (ISNULL(@Level3Type,'') ='' OR Level3Type LIKE '%' + @Level3Type + '%') AND  
      (ISNULL(@Level4Type,'') ='' OR Level4Type LIKE '%' + @Level4Type + '%') AND  

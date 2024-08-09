@@ -3114,6 +3114,8 @@
     <Build Include="dbo\Stored Procedures\GetPNTileQuickQuoteHistoryList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderMaterialsListNew.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWOMStocklineListForReserve.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSubWOMaterialStocklineListForManualReserve.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorDuplicateEmailContact.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorDuplicateContacts.sql" />
   </ItemGroup>

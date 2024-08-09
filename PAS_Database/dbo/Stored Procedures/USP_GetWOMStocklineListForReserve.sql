@@ -203,122 +203,6 @@ SET NOCOUNT ON
 				--Inserting Data For #AltPartList / #EquPartList : Start
 				IF(ISNULL(@KitId, 0) = 0)
 				BEGIN
-						INSERT INTO #AltPartList
-						([ItemMasterId], [AltItemMasterId])
-						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
-						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
-							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
-							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
-
-						INSERT INTO #EquPartList
-						([ItemMasterId], [EquItemMasterId])
-						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
-						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
-							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
-							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
-
-						--Inserting Data For Parent Level
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, WOM.ItemMasterId, 0, 0, 0 FROM [DBO].WorkOrderMaterials WOM WITH(NOLOCK) 
-						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.IsDeleted = 0
-								AND (@ItemMasterId IS NULL OR WOM.ItemMasterId = @ItemMasterId)
-								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId);
-
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.WorkFlowWorkOrderId, 0, ALT.ItemMasterId, 0, 1, 0 
-						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
-						JOIN #AltPartList ALT WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
-						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
-						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-								AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR ALT.ItemMasterId = @ItemMasterId)
-								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
-								AND WOM.WorkOrderMaterialsId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 0);
-
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.WorkFlowWorkOrderId, 0, EQU.ItemMasterId, 0, 1, 0 
-						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
-						JOIN #EquPartList EQU WITH (NOLOCK) ON WOM.ItemMasterId = EQU.ItemMasterId
-						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = EQU.EquItemMasterId
-						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
-								AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR EQU.ItemMasterId = @ItemMasterId)
-								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
-								AND WOM.WorkOrderMaterialsId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 0);
-				END
-				ELSE
-				BEGIN
-						INSERT INTO #AltPartList
-						([ItemMasterId], [AltItemMasterId])
-						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
-						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
-							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
-							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-						WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
-
-						INSERT INTO #EquPartList
-						([ItemMasterId], [EquItemMasterId])
-						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
-						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
-							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
-							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-						WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
-
-						--Inserting Data For Parent Level
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	WorkOrderMaterialsKitId, [WorkFlowWorkOrderId], WOMKIT.[WorkOrderMaterialsKitMappingId], WOMKIT.ItemMasterId, 1, 0, 0 FROM [DBO].WorkOrderMaterialsKit WOMKIT WITH(NOLOCK)
-						JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKITMP WITH(NOLOCK) ON WOMKIT.WorkOrderMaterialsKitMappingId = WOMKITMP.WorkOrderMaterialsKitMappingId
-						WHERE	WOMKIT.IsDeleted = 0 AND WOMKIT.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-						AND (@KitId IS NULL OR WOMKITMP.KitId = @KitId)
-						AND (@ItemMasterId IS NULL OR WOMKIT.ItemMasterId = @ItemMasterId);
-
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	WOM.WorkOrderMaterialsKitId, WOM.WorkFlowWorkOrderId, 0, ALT.ItemMasterId, 1, 1, 0 
-						FROM dbo.WorkOrderMaterialsKitMapping WOMKM WITH(NOLOCK)
-						JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-						JOIN #AltPartList ALT WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
-						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
-						WHERE	(@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR ALT.ItemMasterId = @ItemMasterId)
-								AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-								AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
-								AND WOM.WorkOrderMaterialsKitId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 1);
-
-						INSERT INTO #TMPWOReserveMaterialParentListData
-						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
-						SELECT DISTINCT	WOM.WorkOrderMaterialsKitId, WOM.WorkFlowWorkOrderId, 0, EQU.ItemMasterId, 1, 1, 0 
-						FROM dbo.WorkOrderMaterialsKitMapping WOMKM WITH(NOLOCK)
-						JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-						JOIN #EquPartList EQU WITH (NOLOCK) ON WOM.ItemMasterId = EQU.ItemMasterId
-						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = EQU.EquItemMasterId
-						WHERE	(@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR EQU.ItemMasterId = @ItemMasterId)
-								AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-								AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
-								AND WOM.WorkOrderMaterialsKitId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 1);
-				END
-				--Inserting Data For #AltPartList / #EquPartList : End
-
-				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOReserveMaterialParentListData tmp 
-				ORDER BY tmp.[WorkFlowWorkOrderId] ASC
-				OFFSET @RecordFrom ROWS   
-				FETCH NEXT @PageSize ROWS ONLY
-				--Inserting Data For Parent Level- For Pagination : End
-
-				--select * from #TMPWOReserveMaterialParentListData
-
-				SELECT @Count = COUNT(ParentID) from #TMPWOReserveMaterialParentListData;
-
-				IF(@Count > 0)
-				BEGIN
-					IF(ISNULL(@KitId, 0) = 0)
-					BEGIN
-
 						IF(ISNULL(@WorkOrderMaterialsId, 0) > 0)
 						BEGIN
 							SELECT @ConditionGroup = C.GroupCode FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK) JOIN dbo.Condition C ON C.ConditionId = WOM.ConditionCodeId WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND C.MasterCompanyId = @MasterCompanyId
@@ -343,6 +227,161 @@ SET NOCOUNT ON
 							SELECT DISTINCT C.ConditionId, CG.WorkOrderMaterialsId, CG.ConditionGroup FROM dbo.Condition C JOIN #ConditionGroup CG ON C.GroupCode = CG.ConditionGroup 
 							WHERE C.ConditionId != CG.ConditionId AND C.MasterCompanyId = @MasterCompanyId
 						END
+
+						INSERT INTO #AltPartList
+						([ItemMasterId], [AltItemMasterId])
+						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
+							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
+
+						INSERT INTO #EquPartList
+						([ItemMasterId], [EquItemMasterId])
+						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
+						FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
+							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
+							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
+
+						--Inserting Data For Parent Level
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, WOM.ItemMasterId, 0, 0, 0 FROM [DBO].WorkOrderMaterials WOM WITH(NOLOCK) 
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON WOM.ItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE WorkOrderMaterialsId = WOM.WorkOrderMaterialsId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.IsDeleted = 0
+								AND (@ItemMasterId IS NULL OR WOM.ItemMasterId = @ItemMasterId)
+								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
+								AND WOM.ConditionCodeId <> @ARConditionId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
+
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.WorkFlowWorkOrderId, 0, ALT.ItemMasterId, 0, 1, 0 
+						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+						JOIN #AltPartList ALT WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
+						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON Alt.AltItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE WorkOrderMaterialsId = WOM.WorkOrderMaterialsId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR ALT.ItemMasterId = @ItemMasterId)
+								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
+								AND WOM.WorkOrderMaterialsId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 0)
+								AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.[WorkOrderMaterialsId], WOM.WorkFlowWorkOrderId, 0, EQU.ItemMasterId, 0, 1, 0 
+						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+						JOIN #EquPartList EQU WITH (NOLOCK) ON WOM.ItemMasterId = EQU.ItemMasterId
+						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = EQU.EquItemMasterId
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON Equ.EquItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE WorkOrderMaterialsId = WOM.WorkOrderMaterialsId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId 
+								AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR EQU.ItemMasterId = @ItemMasterId)
+								AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
+								AND WOM.WorkOrderMaterialsId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 0)
+								AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+				END
+				ELSE
+				BEGIN
+						INSERT INTO #ConditionGroup (ConditionId, WorkOrderMaterialsId, ConditionGroup)
+						SELECT DISTINCT ConditionId, WOM.WorkOrderMaterialsKitId, C.GroupCode FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) 
+						JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+						JOIN dbo.Condition C ON C.ConditionId = WOM.ConditionCodeId WHERE WOMKM.KitId = @KitId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND C.MasterCompanyId = @MasterCompanyId AND WOM.ConditionCodeId <> @ARConditionId
+
+						INSERT INTO #ConditionGroup (ConditionId, WorkOrderMaterialsId, ConditionGroup)
+						SELECT DISTINCT C.ConditionId, CG.WorkOrderMaterialsId, CG.ConditionGroup FROM dbo.Condition C JOIN #ConditionGroup CG ON C.GroupCode = CG.ConditionGroup 
+						WHERE C.ConditionId != CG.ConditionId AND C.MasterCompanyId = @MasterCompanyId
+
+						INSERT INTO #AltPartList
+						([ItemMasterId], [AltItemMasterId])
+						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
+							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+						WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
+
+						INSERT INTO #EquPartList
+						([ItemMasterId], [EquItemMasterId])
+						SELECT DISTINCT NhaTla.[ItemMasterId], NhaTla.MappingItemMasterId
+						FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
+							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
+							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
+							JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+						WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOM.ConditionCodeId <> @ARConditionId
+
+						--Inserting Data For Parent Level
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.WorkOrderMaterialsKitId, [WorkFlowWorkOrderId], WOM.[WorkOrderMaterialsKitMappingId], WOM.ItemMasterId, 1, 0, 0 FROM [DBO].WorkOrderMaterialsKit WOM WITH(NOLOCK)
+						JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKITMP WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitMappingId = WOMKITMP.WorkOrderMaterialsKitMappingId
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON WOM.ItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								AND (@KitId IS NULL OR WOMKITMP.KitId = @KitId)
+								AND (@ItemMasterId IS NULL OR WOM.ItemMasterId = @ItemMasterId)
+								AND WOM.ConditionCodeId <> @ARConditionId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = WOMSL.WorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.WorkOrderMaterialsKitId, WOM.WorkFlowWorkOrderId, 0, ALT.ItemMasterId, 1, 1, 0 
+						FROM dbo.WorkOrderMaterialsKitMapping WOMKM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+						JOIN #AltPartList ALT WITH (NOLOCK) ON WOM.ItemMasterId = Alt.ItemMasterId
+						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Alt.AltItemMasterId
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON Alt.AltItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	(@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR ALT.ItemMasterId = @ItemMasterId)
+								AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
+								AND WOM.WorkOrderMaterialsKitId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 1)
+								AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = WOMSL.WorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+
+						INSERT INTO #TMPWOReserveMaterialParentListData
+						([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
+						SELECT DISTINCT	WOM.WorkOrderMaterialsKitId, WOM.WorkFlowWorkOrderId, 0, EQU.ItemMasterId, 1, 1, 0 
+						FROM dbo.WorkOrderMaterialsKitMapping WOMKM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
+						JOIN #EquPartList EQU WITH (NOLOCK) ON WOM.ItemMasterId = EQU.ItemMasterId
+						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = EQU.EquItemMasterId
+						JOIN dbo.Stockline SL WITH (NOLOCK) ON Equ.EquItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND WOMS.ProvisionId != @ProvisionId)
+						WHERE	(@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR EQU.ItemMasterId = @ItemMasterId)
+								AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+								AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
+								AND WOM.WorkOrderMaterialsKitId NOT IN (SELECT [WorkOrderMaterialsId] FROM #TMPWOReserveMaterialParentListData WHERE IsKit = 1)
+								AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
+								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = WOMSL.WorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+				END
+				--Inserting Data For #AltPartList / #EquPartList : End
+
+				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOReserveMaterialParentListData tmp 
+				ORDER BY tmp.[WorkFlowWorkOrderId] ASC
+				OFFSET @RecordFrom ROWS   
+				FETCH NEXT @PageSize ROWS ONLY
+				--Inserting Data For Parent Level- For Pagination : End
+
+				--select * from #TMPWOReserveMaterialParentListData
+
+				SELECT @Count = COUNT(ParentID) from #TMPWOReserveMaterialParentListData;
+
+				IF(@Count > 0)
+				BEGIN
+					IF(ISNULL(@KitId, 0) = 0)
+					BEGIN			
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [WorkFlowWorkOrderId], [WorkOrderMaterialsId], [WOMStockLineId], [ItemMasterId],
 									[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 
@@ -598,16 +637,7 @@ SET NOCOUNT ON
 									  --WOM.ItemMasterId IN (SELECT ItemMasterId FROM #TMPWOMaterialResultListData WHERE IsKit = 0 AND IsAltPart = 0 AND IsEquPart = 1))
 					END
 					ELSE
-					BEGIN
-
-						INSERT INTO #ConditionGroup (ConditionId, WorkOrderMaterialsId, ConditionGroup)
-						SELECT DISTINCT ConditionId, WOM.WorkOrderMaterialsKitId, C.GroupCode FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) 
-						JOIN dbo.WorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
-						JOIN dbo.Condition C ON C.ConditionId = WOM.ConditionCodeId WHERE WOMKM.KitId = @KitId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND C.MasterCompanyId = @MasterCompanyId AND WOM.ConditionCodeId <> @ARConditionId
-
-						INSERT INTO #ConditionGroup (ConditionId, WorkOrderMaterialsId, ConditionGroup)
-						SELECT DISTINCT C.ConditionId, CG.WorkOrderMaterialsId, CG.ConditionGroup FROM dbo.Condition C JOIN #ConditionGroup CG ON C.GroupCode = CG.ConditionGroup 
-						WHERE C.ConditionId != CG.ConditionId AND C.MasterCompanyId = @MasterCompanyId
+					BEGIN										
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [WorkFlowWorkOrderId], [WorkOrderMaterialsId], [WOMStockLineId], [ItemMasterId],
 									[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 

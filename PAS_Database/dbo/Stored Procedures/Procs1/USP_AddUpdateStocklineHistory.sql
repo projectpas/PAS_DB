@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    07/10/2023   Vishal Suthar		Created
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
+	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
   
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
@@ -88,8 +89,8 @@ BEGIN
   DECLARE @ErrorLogID int
   ,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-  ,@AdhocComments varchar(150) = 'USP_AddUpdateStocklineHistory'
-  ,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@StocklineId, '') + ''
+  ,@AdhocComments varchar(150) = 'USP_AddUpdateStocklineHistory'  
+  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StocklineId, '') AS VARCHAR(100))  
   ,@ApplicationName varchar(100) = 'PAS'
   -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
   EXEC spLogException @DatabaseName = @DatabaseName,

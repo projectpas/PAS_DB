@@ -101,7 +101,7 @@ BEGIN
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],@MasterCompanyId,    
 					@Username,@Username,GETUTCDATE(),GETUTCDATE(),1,0,PDFPath,IsFromBulkPO,FreightBilingMethodId,TotalFreight,
-					ChargesBilingMethodId,TotalCharges,VendorReference  
+					ChargesBilingMethodId,TotalCharges,@VendorReference  
          FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
 

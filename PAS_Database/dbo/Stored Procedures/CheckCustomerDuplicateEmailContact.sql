@@ -17,9 +17,9 @@
 ********************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[CheckCustomerDuplicateEmailContact]
-	@customerPhone VARCHAR(100),
-	@email VARCHAR(100),
-	@customerId BIGINT
+	@customerPhone VARCHAR(100) = NULL,
+	@email VARCHAR(100) = NULL,
+	@customerId BIGINT = 0
 AS
 BEGIN
 		BEGIN TRY

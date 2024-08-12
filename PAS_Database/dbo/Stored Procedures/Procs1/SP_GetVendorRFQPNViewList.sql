@@ -1,13 +1,12 @@
-﻿
-/*************************************************************               
+﻿/*********************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
  ** Purpose:             
  ** Date: -            
- **************************************************************               
+ **********************               
   ** Change History               
- **************************************************************               
+ **********************               
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
 	1    	-	         -              Created    
@@ -15,7 +14,7 @@
 	3    29/07/2024   Rajesh Gami		Duplicate record    
 	4    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 
-**************************************************************/  
+**********************/  
 
 CREATE PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
 @PageNumber int = 1,  
@@ -262,7 +261,7 @@ SET NOCOUNT ON;
      (ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND  
      (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND  
      (ISNULL(@Memo,'') ='' OR MemoType LIKE '%' + @Memo + '%') AND  
-     --(ISNULL(@mgmtStructure,'') ='' OR Level1 LIKE '%' + @mgmtStructure + '%') AND  
+	 (ISNULL(@mgmtStructure,'') ='' OR LastMSLevel LIKE '%' + @mgmtStructure + '%') AND
      --(ISNULL(@Level2Type,'') ='' OR Level2 LIKE '%' + @Level2Type + '%') AND  
      --(ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND  
      --(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
@@ -387,8 +386,8 @@ SET NOCOUNT ON;
    CASE WHEN (@SortOrder=-1 AND @SortColumn='SalesOrderNoType')  THEN SalesOrderNoType END DESC,  
    CASE WHEN (@SortOrder=1  AND @SortColumn='MemoType')  THEN MemoType END ASC,  
    CASE WHEN (@SortOrder=-1 AND @SortColumn='MemoType')  THEN MemoType END DESC,  
-   CASE WHEN (@SortOrder=1  AND @SortColumn='mgmtStructure')  THEN Level1Type END ASC,  
-   CASE WHEN (@SortOrder=-1 AND @SortColumn='mgmtStructure')  THEN Level1Type END DESC,  
+   CASE WHEN (@SortOrder=1  AND @SortColumn='lastMSLevel')  THEN LastMSLevel END ASC,  
+   CASE WHEN (@SortOrder=-1 AND @SortColumn='lastMSLevel')  THEN LastMSLevel END DESC,  
    CASE WHEN (@SortOrder=1  AND @SortColumn='Status')  THEN Status END ASC,  
    CASE WHEN (@SortOrder=-1 AND @SortColumn='Status')  THEN Status END DESC,  
    CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderNumberType')  THEN PurchaseOrderNumberType END ASC,  

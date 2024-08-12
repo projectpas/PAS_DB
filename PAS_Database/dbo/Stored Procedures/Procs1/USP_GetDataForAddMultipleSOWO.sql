@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:   [USP_GetDataForAddMultipleSOWO]                   
  ** Author:   Shrey Chandegara      
  ** Description:       
@@ -18,7 +17,7 @@
 	3    12/06/2023   Vishal Suthar			Modified to see work order from material KIT
 	3    13/12/2023   Devendra Shekh		added kit details for subwo
              
- EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102520,14,2560,14433     
+ EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102528,7,2603,14546     
 **************************************************************/         
 CREATE   PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
 	@viewType VARCHAR (50) = NULL,      
@@ -96,9 +95,10 @@ BEGIN
 			LEFT JOIN [DBO].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOP.WorkOrderId = WOM.WorkOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND Nha.MappingType = 1
+			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND MainNha.MappingType = 1
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE ((WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId) OR 
-			(WOM.ItemMasterId = Nha.MappingItemMasterId AND WOM.ConditionCodeId = @ConditionId) OR 
+			((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) OR 
 			(WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId))
 			GROUP BY WO.WorkOrderNum,      
 					WOP.PromisedDate,      

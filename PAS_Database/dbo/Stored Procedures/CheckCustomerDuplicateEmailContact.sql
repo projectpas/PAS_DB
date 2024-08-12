@@ -36,7 +36,7 @@ BEGIN
 			--Checking for current customer email & phone.
 			IF(@customerId > 0)
 			BEGIN 
-				SELECT @ExistingCustomerPhone = CustomerPhone ,@ExistingEmail = Email  FROM [dbo].[Customer] WITH(NOLOCK) WHERE [customerId] = @customerId;
+				SELECT @ExistingCustomerPhone = CustomerPhone ,@ExistingEmail = Email  FROM [dbo].[Customer] WITH(NOLOCK) WHERE [customerId] = @customerId AND [IsActive] = 1 AND [IsDeleted] = 0;
 				IF(@ExistingCustomerPhone = @customerPhone)
 				BEGIN 
 					 IF(@ExistingEmail = @email)
@@ -46,7 +46,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN 
-						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -1;
 							  SET @ReturnMsg = @EmailReturnMsg;
@@ -67,7 +67,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							 SET @ReturnStatus = -2;
 							 SET @ReturnMsg = @ContactReturnMsg;
@@ -81,9 +81,9 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+					IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -94,9 +94,9 @@ BEGIN
 							 SET @ReturnMsg = @EmailReturnMsg;
 						 END
 					END
-					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId)
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [customerId] != @customerId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -116,9 +116,9 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
+				IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -129,9 +129,9 @@ BEGIN
 						 SET @ReturnMsg = @EmailReturnMsg;
 					 END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerPhone] = @customerPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Customer] WITH(NOLOCK) WHERE [Email] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;

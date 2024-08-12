@@ -42,7 +42,7 @@ BEGIN
 						FROM [dbo].[VendorContact] WITH(NOLOCK)
 						WHERE [VendorId] = @vendorId AND [IsDeleted] = 0 AND [ContactId] != @contactId)
 			END
-
+			
 			--Checking for current customer email & phone.
 			IF(@contactId > 0)
 			BEGIN  
@@ -83,10 +83,10 @@ BEGIN
 				END	
 			END
 			ELSE
-			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email)
+			BEGIN 
+				IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -97,9 +97,9 @@ BEGIN
 						  SET @ReturnMsg = @EmailReturnMsg;
 					 END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -111,7 +111,7 @@ BEGIN
 					 END
 				END
 				ELSE
-				BEGIN
+				BEGIN 
 					 SET @ReturnStatus = 1;
 					 SET @ReturnMsg = '';
 				END

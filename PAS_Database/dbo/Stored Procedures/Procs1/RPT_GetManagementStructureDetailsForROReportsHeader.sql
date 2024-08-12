@@ -14,7 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/25/2023   Amit Ghediya  Created
 
- EXECUTE RPT_GetManagementStructureDetailsForROReportsHeader 1,1,1735
+ EXECUTE RPT_GetManagementStructureDetailsForROReportsHeader 1,1,1611
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForROReportsHeader]    
 (    
@@ -43,17 +43,28 @@ SET NOCOUNT ON
 				END
 				
 				SELECT DISTINCT TOP 1
+				
 					CompanyName = Upper(le.CompanyName),
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					Address1 = Upper(ad.Line1),
-					Address2 = Upper(ad.Line2),
-					City = Upper(ad.City),
-					StateOrProvince = Upper(ad.StateOrProvince),
-					PostalCode = Upper(ad.PostalCode),
-					Country = Upper(co.countries_name),
-					PhoneNumber = Upper(le.PhoneNumber),
+					(Upper(ad.Line1) +'<br/>' +
+					CASE WHEN Upper(ad.Line2) is NOT NULL and Upper(ad.Line2) != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
+					CASE WHEN Upper(ad.City) is NOT NULL and Upper(ad.City) != '' THEN Upper(ad.City) ELSE ''END +
+					CASE WHEN Upper(ad.StateOrProvince) is NOT NULL and Upper(ad.StateOrProvince) != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
+					CASE WHEN Upper(ad.PostalCode) is NOT NULL and Upper(ad.PostalCode) != '' THEN ','+ Upper(ad.PostalCode)ELSE ''END +
+					CASE WHEN Upper(co.countries_name) is NOT NULL and Upper(co.countries_name) != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
+					CASE WHEN Upper(le.PhoneNumber) is NOT NULL and Upper(le.PhoneNumber) != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END +
+					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END) Address1
+					,
+
+					--Address11 = Upper(ad.Line1),
+					--Address21 = Upper(ad.Line2),
+					--City = Upper(ad.City),
+					--StateOrProvince = Upper(ad.StateOrProvince),
+					--PostalCode = Upper(ad.PostalCode),
+					--Country = Upper(co.countries_name),
+					--PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,

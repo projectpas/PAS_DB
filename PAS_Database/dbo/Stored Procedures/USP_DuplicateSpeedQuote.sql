@@ -1,5 +1,4 @@
-﻿
-/*********************           
+﻿/*********************           
  ** File:   [USP_DuplicateSpeedQuote]           
  ** Author:   Abhishek Jirawla  
  ** Description: Duplicate Speed Quote 
@@ -183,7 +182,7 @@ BEGIN
 						,[ExStockType]
 						,(CASE WHEN @IsCopyUnitPrice = 1 THEN [ExUnitPrice] ELSE 0 END)
 						,(CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN [ExExtPrice] ELSE 0 END)
-						,[ExOccurance],[ExCurr],[ExNotes],@MasterCompanyId,@Username
+						,[ExOccurance],[ExCurr],(CASE WHEN @IsCopyNote = 1 THEN [ExNotes] ELSE '' END),@MasterCompanyId,@Username
 						,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[ItemNo],[ConditionId]
 					FROM [dbo].[SpeedQuoteExclusionPart] WITH(NOLOCK) 
 					WHERE SpeedQuoteId = @SpeedQuoteId

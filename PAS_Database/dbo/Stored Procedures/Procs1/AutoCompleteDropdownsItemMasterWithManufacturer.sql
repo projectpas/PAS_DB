@@ -16,11 +16,13 @@
 	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
     3    07/26/2024   Hemant Saliya		Updated for Performance Improvement
 	4    07/26/2024   Vishal Suthar		Modified StartWith condition and removed join with stockline table to improve the performance
+	5    08/12/2024   Devendra Shekh	Modified to select UnitOfMeasure
 	
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
+EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,20,'',1  
 **************************************************************/
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
 @IsActive bit = true,  
 @Count VARCHAR(10) = '0',  
@@ -45,6 +47,7 @@ BEGIN
 		  Im.ManufacturerId,   
 		  Im.GLAccountId,  
 		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  uom.ShortName AS UnitOfMeasure,
 		  Im.Figure,  
 		  Im.Item,  
 		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
@@ -58,11 +61,12 @@ BEGIN
 		  Im.isSerialized AS IsSerialized,  
 		  Im.isTimeLife AS IsTimeLife,  
 		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-		  Ic.ItemClassificationCode as ItemClassification 
+		  Ic.ItemClassificationCode as ItemClassification
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
      
 	 UNION   
@@ -76,6 +80,7 @@ BEGIN
 		  Im.ManufacturerId,   
 		  Im.GLAccountId,  
 		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  uom.ShortName AS UnitOfMeasure,
 		  Im.Figure,  
 		  Im.Item,  
 		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
@@ -94,6 +99,7 @@ BEGIN
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
 	 ORDER BY Label      
    End  
@@ -109,6 +115,7 @@ BEGIN
 		  Im.ManufacturerId,   
 		  Im.GLAccountId,  
 		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  uom.ShortName AS UnitOfMeasure,
 		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
 		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
 			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
@@ -124,7 +131,8 @@ BEGIN
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
     
 	UNION   
@@ -138,7 +146,8 @@ BEGIN
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
 		  Im.GLAccountId,  
-		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,  
+		  Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
+		  uom.ShortName AS UnitOfMeasure,
 		  UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) Where imps.ItemMasterId = im.ItemMasterId),  
 		  CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'  
 			WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'  
@@ -155,6 +164,7 @@ BEGIN
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   
    END  

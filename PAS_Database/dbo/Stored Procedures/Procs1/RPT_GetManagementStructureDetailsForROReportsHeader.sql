@@ -49,12 +49,12 @@ SET NOCOUNT ON
 					atd.Link,
 					at.ModuleId,
 					(Upper(ad.Line1) +'<br/>' +
-					CASE WHEN Upper(ad.Line2) is NOT NULL and Upper(ad.Line2) != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
-					CASE WHEN Upper(ad.City) is NOT NULL and Upper(ad.City) != '' THEN Upper(ad.City) ELSE ''END +
-					CASE WHEN Upper(ad.StateOrProvince) is NOT NULL and Upper(ad.StateOrProvince) != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
-					CASE WHEN Upper(ad.PostalCode) is NOT NULL and Upper(ad.PostalCode) != '' THEN ','+ Upper(ad.PostalCode)ELSE ''END +
-					CASE WHEN Upper(co.countries_name) is NOT NULL and Upper(co.countries_name) != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
-					CASE WHEN Upper(le.PhoneNumber) is NOT NULL and Upper(le.PhoneNumber) != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)ELSE ''END +
+					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
 					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END) Address1
 					,
 

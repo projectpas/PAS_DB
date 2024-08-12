@@ -39,18 +39,17 @@ BEGIN
 			
 			IF(@customerId > 0)
 			BEGIN
-				 SET @ContactIds = (SELECT  STUFF((SELECT ',' + CAST(ContactId AS VARCHAR(10)) [text()]
+				 SET @ContactIds = (SELECT  STRING_AGG(ContactId, ',')
 						FROM [dbo].[CustomerContact] WITH(NOLOCK)
-						WHERE CustomerId = @customerId AND [IsDeleted] = 0
-				 FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') CustomersId)
+						WHERE CustomerId = @customerId AND [IsDeleted] = 0 AND [ContactId] IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 			END
 
 			--Checking for current customer email & phone.
 			IF(@contactId > 0)
 			BEGIN 
-				IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] != @contactId)
+				IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] != @contactId)
+					IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				    BEGIN
 						 SET @ReturnStatus = -3;
 						 SET @ReturnMsg = @BothReturnMsg;
@@ -63,9 +62,9 @@ BEGIN
 						 SET @BreakLoop = 1;
 					END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] != @contactId)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] != @contactId)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -86,9 +85,9 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email)
+				IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -99,9 +98,9 @@ BEGIN
 						  SET @ReturnMsg = @EmailReturnMsg;
 					 END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [WorkPhone] = @customerPhone AND [ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] WITH(NOLOCK) WHERE [Email] = @email AND [ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;

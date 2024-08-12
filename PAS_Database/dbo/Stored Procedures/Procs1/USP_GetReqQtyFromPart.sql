@@ -15,7 +15,7 @@
     1    04/05/2023   Shrey Chandegara  Created        
     2    12/06/2023   Vishal Suthar		Modified to see qty from material KIT        
              
- EXECUTE USP_GetReqQtyFromPart 2560, 14433, 4273, 1      
+ EXECUTE USP_GetReqQtyFromPart 2603, 14546, 4318, 1      
 **************************************************************/         
 CREATE   PROCEDURE [dbo].[USP_GetReqQtyFromPart]
 	@PurchaseOrderId BIGINT,      
@@ -45,7 +45,8 @@ BEGIN
                      FROM PurchaseOrderPart POP    WITH (NOLOCK)  
                      LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId   
                      LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = POP.ItemMasterId
-					 LEFT JOIN [DBO].[WorkOrderMaterials] WOM_A WITH (NOLOCK) ON WOM_A.ItemMasterId = Nha.MappingItemMasterId AND WOM_A.ConditionCodeId = POP.ConditionId AND WOM_A.WorkOrderId = @ReferenceId
+                     LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
+					 LEFT JOIN [DBO].[WorkOrderMaterials] WOM_A WITH (NOLOCK) ON (WOM_A.ItemMasterId = Nha.MappingItemMasterId OR WOM_A.ItemMasterId = MainNha.ItemMasterId) AND WOM_A.ConditionCodeId = POP.ConditionId AND WOM_A.WorkOrderId = @ReferenceId
 					 LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = POP.ItemMasterId AND WOMK.ConditionCodeId = POP.ConditionId AND WOMK.WorkOrderId = @ReferenceId --AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId   
                      WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId 
 					 GROUP BY POP.ItemMasterId, POP.ConditionId)

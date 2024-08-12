@@ -36,7 +36,7 @@ BEGIN
 			--Checking for current customer email & phone.
 			IF(@vendorId > 0)
 			BEGIN 
-				SELECT @ExistingCustomerPhone = [VendorPhone] ,@ExistingEmail = [VendorEmail]  FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @vendorId;
+				SELECT @ExistingCustomerPhone = [VendorPhone] ,@ExistingEmail = [VendorEmail]  FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0;
 				IF(@ExistingCustomerPhone = @vendorPhone)
 				BEGIN 
 					 IF(@ExistingEmail = @email)
@@ -46,7 +46,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN 
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -1;
 							  SET @ReturnMsg = @EmailReturnMsg;
@@ -67,7 +67,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							 SET @ReturnStatus = -2;
 							 SET @ReturnMsg = @ContactReturnMsg;
@@ -81,9 +81,9 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId)
+					IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -94,9 +94,9 @@ BEGIN
 							 SET @ReturnMsg = @EmailReturnMsg;
 						 END
 					END
-					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId)
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -116,9 +116,9 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email)
+				IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -129,9 +129,9 @@ BEGIN
 						 SET @ReturnMsg = @EmailReturnMsg;
 					 END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;

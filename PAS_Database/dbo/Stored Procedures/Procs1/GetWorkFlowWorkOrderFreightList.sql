@@ -1,7 +1,5 @@
-﻿
-
-/*************************************************************           
- ** File:   [GetWOAssetList]           
+﻿/*************************************************************           
+ ** File:   [GetWorkFlowWorkOrderFreightList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for Work order Chagres List    
  ** Purpose:         
@@ -19,12 +17,12 @@
  ** --   --------     -------		--------------------------------          
     1    02/22/2021   Subhash Saliya Created
 	2    06/28/2021   Hemant Saliya  Added Tarnsation And Content Managment
+	3    08/12/2024   Devendra Shekh  changed uom Description to ShortName
 
      
  EXECUTE [GetWorkFlowWorkOrderFreightList] 140, null,0
 **************************************************************/ 
-
-CREATE PROCEDURE [dbo].[GetWorkFlowWorkOrderFreightList]
+CREATE   PROCEDURE [dbo].[GetWorkFlowWorkOrderFreightList]
 	-- Add the parameters for the stored procedure here	
 	@wfwoId bigint = null,
 	@workOrderId bigint = null,
@@ -62,8 +60,8 @@ BEGIN
                     wf.UOMId,
                     wf.DimensionUOMId,
                     wf.CurrencyId,
-                    ISNULL(uom.Description,'') as UOM,
-                    ISNULL(duom.Description,'') DimensionUOM,
+                    ISNULL(uom.ShortName,'') as UOM,
+                    ISNULL(duom.ShortName,'') DimensionUOM,
                     cur.Code as Currency
 				FROM dbo.WorkOrderFreight wf WITH(NOLOCK)
 					JOIN dbo.ShippingVia sv WITH(NOLOCK) on wf.ShipViaId = sv.ShippingViaId

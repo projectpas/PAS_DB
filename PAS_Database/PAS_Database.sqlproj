@@ -3118,6 +3118,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSubWOMaterialStocklineListForManualReserve.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorDuplicateEmailContact.sql" />
     <Build Include="dbo\Stored Procedures\CheckVendorDuplicateContacts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetQuickBooksSettingsByMasterCompany.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineAuditById.sql" />
   </ItemGroup>
   <ItemGroup>

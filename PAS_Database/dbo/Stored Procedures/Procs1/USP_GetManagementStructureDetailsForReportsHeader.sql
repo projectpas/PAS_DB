@@ -15,6 +15,7 @@
  ** --   --------     -------				--------------------------------          
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
+    3    12/08/2024   Ekta Chandegra		Retrieve Address
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -41,30 +42,38 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					(Upper(ad.Line1) +'<br/>' +
-					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
-					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
-					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
-					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
-					CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
-					CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
-					) Address1
-					,
-
-					--Address1 = Upper(ad.Line1),
-					Address2 = Upper(ad.Line2),
-					City = Upper(ad.City),
-					StateOrProvince = Upper(ad.StateOrProvince),
-					PostalCode = Upper(ad.PostalCode),
-					Country = Upper(co.countries_name),
-					PhoneNumber = Upper(le.PhoneNumber),
+					(UPPER(ad.Line1) + '<br/>'+
+					CASE WHEN ISNULL(ad.Line2,'') != '' 
+						 THEN UPPER(ad.Line2) + '<br/>' 
+						ELSE '' 
+					END +
+					CASE WHEN ISNULL(ad.City,'') !=  ''
+						 THEN UPPER(ad.City) + ' '
+						ELSE ''
+					END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != ''
+						 THEN UPPER(ad.StateOrProvince) + ' , '
+						 ELSE ''
+					END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != ''
+						 THEN UPPER(ad.PostalCode) + '<br/>'
+						 ELSE ''
+					END + 
+					CASE WHEN ISNULL(co.countries_name,'') != ''
+						 THEN UPPER(co.countries_name) + '<br/>'
+						 ELSE ''
+					END +
+					CASE WHEN ISNULL(le.PhoneNumber,'') != ''
+						 THEN UPPER(le.PhoneNumber) + '<br/>'
+						 ELSE ''
+					END +
+					CASE WHEN ISNULL(c.Email,'') != '' 
+					     THEN UPPER(c.Email) + ''
+						 ELSE ''
+					END) Address1,
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = Upper(c.Email),
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,

@@ -16,6 +16,7 @@
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
     3    12/08/2024   Ekta Chandegra		Retrieve Address
+    3    13/08/2024   Devendra Shekh		added Email to select
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -42,35 +43,28 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					(UPPER(ad.Line1) + '<br/>'+
-					CASE WHEN ISNULL(ad.Line2,'') != '' 
-						 THEN UPPER(ad.Line2) + '<br/>' 
-						ELSE '' 
-					END +
-					CASE WHEN ISNULL(ad.City,'') !=  ''
-						 THEN UPPER(ad.City) + ' '
-						ELSE ''
-					END +
-					CASE WHEN ISNULL(ad.StateOrProvince,'') != ''
-						 THEN UPPER(ad.StateOrProvince) + ' , '
-						 ELSE ''
-					END +
-					CASE WHEN ISNULL(ad.PostalCode,'') != ''
-						 THEN UPPER(ad.PostalCode) + '<br/>'
-						 ELSE ''
-					END + 
-					CASE WHEN ISNULL(co.countries_name,'') != ''
-						 THEN UPPER(co.countries_name) + '<br/>'
-						 ELSE ''
-					END +
-					CASE WHEN ISNULL(le.PhoneNumber,'') != ''
-						 THEN UPPER(le.PhoneNumber) + '<br/>'
-						 ELSE ''
-					END +
-					CASE WHEN ISNULL(c.Email,'') != '' 
-					     THEN UPPER(c.Email) + ''
-						 ELSE ''
-					END) Address1,
+
+					(Upper(ad.Line1) +'<br/>' +
+					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
+					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
+					CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
+					CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
+					) MergedAddress
+					,
+
+					Address1 = Upper(ad.Line1),
+					Address2 = Upper(ad.Line2),
+					City = Upper(ad.City),
+					StateOrProvince = Upper(ad.StateOrProvince),
+					PostalCode = Upper(ad.PostalCode),
+					Country = Upper(co.countries_name),
+					PhoneNumber = Upper(le.PhoneNumber),
+
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
@@ -78,6 +72,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime'
 				FROM EntityStructureSetup est

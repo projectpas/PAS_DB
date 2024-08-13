@@ -55,16 +55,16 @@ SET NOCOUNT ON
 					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)ELSE ''END +
 					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
 					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END) Address1
+					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END) MergedAddress
 					,
 
-					--Address11 = Upper(ad.Line1),
-					--Address21 = Upper(ad.Line2),
-					--City = Upper(ad.City),
-					--StateOrProvince = Upper(ad.StateOrProvince),
-					--PostalCode = Upper(ad.PostalCode),
-					--Country = Upper(co.countries_name),
-					--PhoneNumber = Upper(le.PhoneNumber),
+					Address1 = Upper(ad.Line1),
+					Address2 = Upper(ad.Line2),
+					City = Upper(ad.City),
+					StateOrProvince = Upper(ad.StateOrProvince),
+					PostalCode = Upper(ad.PostalCode),
+					Country = Upper(co.countries_name),
+					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,

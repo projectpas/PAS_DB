@@ -138,7 +138,7 @@
     [itemGroup]                           VARCHAR (256)   NULL,
     [TLAPartNumber]                       VARCHAR (100)   NULL,
     [NHAPartNumber]                       VARCHAR (100)   NULL,
-    [TLAPartDescription]                  VARCHAR (100)   NULL,
+    [TLAPartDescription]                  NVARCHAR (MAX)  NULL,
     [NHAPartDescription]                  NVARCHAR (MAX)  NULL,
     [itemType]                            VARCHAR (100)   NULL,
     [CustomerId]                          BIGINT          NULL,
@@ -191,4 +191,6 @@
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ChildStockline] PRIMARY KEY CLUSTERED ([ChildStockLineId] ASC)
 );
+
+
 

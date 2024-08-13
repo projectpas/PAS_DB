@@ -15,6 +15,7 @@
  ** --   --------     -------				--------------------------------          
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
+    3    12/08/2024   Ekta Chandegra		Retrieve Address
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -41,6 +42,7 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
+
 					(Upper(ad.Line1) +'<br/>' +
 					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
 					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
@@ -61,10 +63,10 @@ SET NOCOUNT ON
 					PostalCode = Upper(ad.PostalCode),
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
+
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = Upper(c.Email),
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,

@@ -1,5 +1,19 @@
-﻿
--- EXEC [dbo].[CopyWorkFlowRecord] 97, 'ADMIN User', 0
+﻿/*************************************************************           
+ ** File:   [CopyWorkFlowRecord]           
+ ** Author:   Unknow
+ ** Description: This SP is used to copy WorkFlow 
+ ** Date:           
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date			 Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+    1					Unknow				Created
+	2    08/12/2024		Devendra Shekh		workFlowNum issue for History resolved, UTCDate Change For New WorkFlow
+
+     
+EXEC [dbo].[CopyWorkFlowRecord] 97, 'ADMIN User', 0
+**************************************************************/ 
 CREATE   PROCEDURE [dbo].[CopyWorkFlowRecord]
 -- Add the parameters for the stored procedure here
 @WorkflowId bigint,	
@@ -26,11 +40,11 @@ BEGIN
 				declare @measurementsCount int =(Select count(*) from dbo.WorkflowMeasurement WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 				declare @publicationCount int =(Select count(*) from dbo.WorkflowPublications WITH (NOLOCK) where WorkflowId = @WorkflowId and ISNULL(IsDeleted,0) =0)
 
-				SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
-				UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
-				INSERT INTO dbo.Workflow SELECT * FROM #tempTable
+				--SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+				--UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETDATE(), UpdatedDate = GETDATE()
+				--INSERT INTO dbo.Workflow SELECT * FROM #tempTable
 				
-				SET @newWorkFlowId=SCOPE_IDENTITY()
+				--SET @newWorkFlowId=SCOPE_IDENTITY()
 
 				DECLARE @WorkFlowNumber VARCHAR(50);
 				DECLARE @MasterCompanyId INT;
@@ -71,8 +85,13 @@ BEGIN
 					SET @WorkFlowNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@CurrentNo, (SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = 33), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = 33)))
 				END
 
+				SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, @WorkFlowNumber As WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+				UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETUTCDATE(), UpdatedDate = GETUTCDATE()
+				INSERT INTO dbo.Workflow SELECT * FROM #tempTable
 				
-				Update dbo.Workflow set WorkOrderNumber = @WorkFlowNumber where WorkflowId = @newWorkFlowId
+				SET @newWorkFlowId=SCOPE_IDENTITY()
+				
+				--Update dbo.Workflow set WorkOrderNumber = @WorkFlowNumber where WorkflowId = @newWorkFlowId
 				
 				UPDATE CodePrefixes SET CurrentNummber = @CurrentNo WHERE CodeTypeId = 33 AND MasterCompanyId = @MasterCompanyId
 

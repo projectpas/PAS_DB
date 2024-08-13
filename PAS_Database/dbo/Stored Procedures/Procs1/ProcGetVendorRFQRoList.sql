@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [ProcGetVendorRFQRoList]               
  ** Author:   -    
  ** Description: This stored procedure is used to ProcGetVendorRFQRoList      
@@ -10,7 +11,8 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
 	1    	-	         -              Created    
-	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
+	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue
+	3    08/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 
 **************************************************************/  
 
@@ -138,6 +140,7 @@ BEGIN
 				   RP.VendorRFQROPartRecordId,
 				   MSD.LastMSLevel,
 				   MSD.AllMSlevels
+				   ,RO.VendorReference VendorReference
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
 			 --INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = RO.ManagementStructureId	
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.VendorRFQRepairOrderId
@@ -282,7 +285,7 @@ BEGIN
 				   RO.VendorCode,
 				   RO.StatusId,
 				   RO.[Status],
-				   RO.Requisitioner AS RequestedBy				   
+				   RO.Requisitioner AS RequestedBy,RO.VendorReference VendorReference				   
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.VendorRFQRepairOrderId
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
@@ -341,7 +344,7 @@ BEGIN
 						WHERE VRPP.VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) > 1 
 						 ) Then 'Multiple' ELse  'Single'   End)
 						as 'RowStatus'
-
+						,VendorReference
 					 INTO #TEMPRes
 					from 
 					Main M
@@ -350,11 +353,11 @@ BEGIN
 			
 				   GROUP BY M.VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
 					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],SP.UnitCost,QuantityOrdered,IsNoQuote,
-					RequestedBy
+					RequestedBy,VendorReference
 	
 			SELECT VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
 					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,IsNoQuote,
-					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,
+					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(LastMSLevelMax) END) as LastMSLevel,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(AllMSlevelsMax) END) as AllMSlevels,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(StockTypeMax) END) as StockTypeType,
@@ -380,7 +383,7 @@ BEGIN
 			INTO #finalTemp FROM #TEMPRes 
 			GROUP BY VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
 					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,IsNoQuote,
-					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus
+					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference
 																		  
 			  SELECT DISTINCT * INTO #TEMPData FROM #finalTemp													   
 			  WHERE ((@GlobalFilter <>'' AND ((VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -436,7 +439,7 @@ BEGIN
 					,PartDescription,PartNumberType,PartDescriptionType
 					,StockTypeType,RepairOrderNumberType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType--,PurchaseOrderNumberType
-					,LastMSLevel,AllMSlevels,
+					,LastMSLevel,AllMSlevels,VendorReference,
 					@TotalCount as NumberOfItems
 					FROM #TEMPData
 			ORDER BY  

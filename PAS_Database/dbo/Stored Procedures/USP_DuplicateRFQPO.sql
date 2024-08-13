@@ -14,13 +14,19 @@
    1		02/07/2024		Amit Ghediya		Created
    2        29/07/2024		Rajesh Gami			Added Freight and Charges table logic
    3        31-07-2024      Shrey Chandegara    Modify due to can't insert data in VendorRFQPOPartReference.
+   4	    07 Aug 2024	    Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate & also added login UserName
 
 -- EXEC [USP_DuplicateRFQPO] 78,0,1,61
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_DuplicateRFQPO]  
+CREATE PROCEDURE [dbo].[USP_DuplicateRFQPO]  
 	@VendorRFQPurchaseOrderId BIGINT,  
 	@MasterCompanyId INT, 
 	@CodeTypeId INT,
+	@Username VARCHAR(250),
+	@VendorReference VARCHAR(100),
+	@IsCopyUnitPrice BIT,
+	@IsCopyQty BIT,
+	@IsCopyNote BIT,
 	@Result INT OUTPUT  
 AS  
 BEGIN  
@@ -93,9 +99,9 @@ BEGIN
          SELECT @VendorRFQPurchaseOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],@CreditTermsId,@Terms,@CreditLimit,[RequestedBy],    
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
-					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
-					[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,0,PDFPath,IsFromBulkPO,FreightBilingMethodId,TotalFreight,
-					ChargesBilingMethodId,TotalCharges,VendorReference  
+					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],@MasterCompanyId,    
+					@Username,@Username,GETUTCDATE(),GETUTCDATE(),1,0,PDFPath,IsFromBulkPO,FreightBilingMethodId,TotalFreight,
+					ChargesBilingMethodId,TotalCharges,@VendorReference  
          FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
 
@@ -114,7 +120,7 @@ BEGIN
 		 SELECT [ModuleID],@NewID,[EntityMSID],
 		 			[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 			[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 			[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 			@MasterCompanyId,@Username,@Username,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 		 FROM [dbo].[PurchaseOrderManagementStructureDetails] WITH(NOLOCK) 
 		 WHERE [ReferenceID] = @VendorRFQPurchaseOrderId 
 		 AND [ModuleID] = @ManagementStructureHeaderModuleId;
@@ -138,7 +144,7 @@ BEGIN
 				SELECT VendorRFQPOPartRecordId,VendorRFQPurchaseOrderId,MasterCompanyId
 				FROM [dbo].[VendorRFQPurchaseOrderPart] WITH(NOLOCK) 
 				WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
-				AND [MasterCompanyId] = @MasterCompanyId;
+				
 
 				SELECT @ID = 1;    
 				WHILE @ID <= (SELECT MAX(ID) FROM #tblPurchaseOrderPartSingle)         
@@ -156,14 +162,14 @@ BEGIN
 					   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote])
 					SELECT @NewID,[ItemMasterId],[PartNumber],[PartDescription],
 						   [StockType],[ManufacturerId],[Manufacturer],[PriorityId],[Priority],[NeedByDate],[PromisedDate],[ConditionId],[Condition],
-						   [QuantityOrdered],[UnitCost],[ExtendedCost],NULL,NULL,NULL,NULL,NULL,
-						   NULL,[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],[MasterCompanyId],[CreatedBy],[UpdatedBy],
+						   (CASE WHEN @IsCopyQty = 1 THEN [QuantityOrdered] ELSE 0 END),(CASE WHEN @IsCopyUnitPrice = 1 THEN [UnitCost] ELSE 0 END),
+						   (CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN [ExtendedCost] ELSE 0 END),NULL,NULL,NULL,NULL,NULL,
+						   NULL,[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[Memo],@MasterCompanyId,@Username,@Username,
 						   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],NULL,NULL,[UOMId],[UnitOfMeasure],[TraceableTo],
 						   [TraceableToName],[TraceableToType],[TagTypeId],[TaggedBy],[TaggedByType],[TaggedByName],[TaggedByTypeName],[TagDate],[IsNoQuote]
 					FROM [dbo].[VendorRFQPurchaseOrderPart] WITH(NOLOCK) 
 					WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId
 						  AND [VendorRFQPOPartRecordId] = @VendorRFQPOPartRecordId
-						  AND [MasterCompanyId] = @MasterCompanyId;
 					------End Part table -----------
 
 					SET @NewPartID = IDENT_CURRENT('VendorRFQPurchaseOrderPart');  
@@ -179,7 +185,7 @@ BEGIN
 						SELECT
 						   @NewID ,@NewPartID,ItemMasterId,PartNumber ,ShipViaId ,ShipViaName ,MarkupPercentageId ,MarkupFixedPrice ,HeaderMarkupId ,BillingMethodId ,BillingRate
 						   ,BillingAmount ,HeaderMarkupPercentageId,Weight ,UOMId ,UOMName ,Length ,Width ,Height,DimensionUOMId ,DimensionUOMName ,CurrencyId,CurrencyName,Amount
-						   ,Memo ,@MasterCompanyId,CreatedBy ,UpdatedBy ,GETUTCDATE() ,GETUTCDATE(),IsActive,IsDeleted ,@Id,ManufacturerId,Manufacturer 
+						   ,Memo ,@MasterCompanyId,@Username ,@Username ,GETUTCDATE() ,GETUTCDATE(),IsActive,IsDeleted ,@Id,ManufacturerId,Manufacturer 
 						FROM [dbo].[VendorRFQPOFreight] WITH(NOLOCK) 
 						WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ISNULL(IsDeleted,0) = 0 AND ItemMasterId = @ItemMasterId AND LineNum = @Id
 					 END
@@ -195,7 +201,7 @@ BEGIN
 					   ,[ConditionId],[LineNum],[ManufacturerId],[Manufacturer],[UOMId])
 					 SELECT
 						@NewID,@NewPartID,ChargesTypeId,VendorId ,Quantity,MarkupPercentageId,Description ,UnitCost,ExtendedCost,@MasterCompanyId,MarkupFixedPrice,BillingMethodId
-					   ,BillingAmount,BillingRate,HeaderMarkupId,RefNum,CreatedBy,UpdatedBy,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted ,HeaderMarkupPercentageId,VendorName,ChargeName
+					   ,BillingAmount,BillingRate,HeaderMarkupId,RefNum,@Username,@Username,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted ,HeaderMarkupPercentageId,VendorName,ChargeName
 					   ,MarkupName,ItemMasterId,PartNumber,ConditionId,@Id,ManufacturerId ,Manufacturer,UOMId 
 					   FROM DBO.VendorRFQPOCharges WITH(NOLOCK)  
 					   WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId AND ISNULL(IsDeleted,0) = 0 AND ItemMasterId = @ItemMasterId AND LineNum = @Id
@@ -210,7 +216,7 @@ BEGIN
 					SELECT [ModuleID],@NewPartID,[EntityMSID],
 		 	   				[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 	   				[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 	   				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 	   				@MasterCompanyId,@Username,@Username,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 					FROM [dbo].[PurchaseOrderManagementStructureDetails] WITH(NOLOCK) 
 					WHERE [ReferenceID] = @VendorRFQPOPartRecordId 
 					AND [ModuleID] = @ManagementStructurePartModuleId;
@@ -244,15 +250,15 @@ BEGIN
 				   [UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsPrimary])    
 				SELECT @NewID,@AddressModuleId,[UserType],[UserTypeName],[UserId],[UserName],[SiteId],[SiteName],    
 				   [AddressId],[IsModuleOnly],[IsShippingAdd],[ShippingAccountNo],[Memo],[ContactId],[ContactName],[ContactPhoneNo],    
-				   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],[CreatedBy],    
-				   [UpdatedBy],GETDATE(),GETDATE(),1,0,[IsPrimary]    
+				   [Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Country],[MasterCompanyId],@Username,    
+				   @Username,GETUTCDATE(),GETUTCDATE(),1,0,[IsPrimary]    
 			    FROM [dbo].[AllAddress] WITH(NOLOCK) WHERE [ReffranceId] = @VendorRFQPurchaseOrderId AND [ModuleId] = @AddressModuleId;    
     
 				INSERT INTO [dbo].[AllShipVia]([ReferenceId],[ModuleId],[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],    
 					[ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,    
 					[IsActive] ,[IsDeleted])    
 				SELECT @NewID,@AddressModuleId,[UserType],[ShipViaId],[ShippingCost],[HandlingCost],[IsModuleShipVia],    
-					[ShippingAccountNo],[ShipVia],[ShippingViaId],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,GETDATE() ,GETDATE(),    
+					[ShippingAccountNo],[ShipVia],[ShippingViaId],@MasterCompanyId,@Username,@Username ,GETUTCDATE() ,GETUTCDATE(),    
 					1,0     
 				FROM [dbo].[AllShipVia] WITH(NOLOCK) 
 				WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND [ModuleId] = @AddressModuleId;  
@@ -295,8 +301,8 @@ BEGIN
 						  ------------ Attachment --------
 						  INSERT [dbo].[Attachment]([ModuleId],[ReferenceId],[MasterCompanyId],[CreatedBy],
 								 [CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
-						  SELECT @AttachmentModuleId,@NewID,[MasterCompanyId],[CreatedBy],
-								 [CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted]
+						  SELECT @AttachmentModuleId,@NewID,[MasterCompanyId],@Username,
+								 [CreatedDate],@Username,[UpdatedDate],[IsActive],[IsDeleted]
 						  FROM [dbo].[Attachment] WITH(NOLOCK)
 						  WHERE [AttachmentId] = @AttachmentId
 						  AND [ReferenceId] = @ReferenceId;
@@ -309,7 +315,7 @@ BEGIN
 								 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 							     [DocumentTypeId],[ExpirationDate],[ReferenceIndex],[ModuleType])
 					 SELECT [ModuleId],@NewID,@NewAttachmentId,[DocName],[DocMemo],[DocDescription],[MasterCompanyId],
-								 [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+								 @Username,@Username,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 								 [DocumentTypeId],[ExpirationDate],[ReferenceIndex],[ModuleType]
 					 FROM [dbo].[CommonDocumentDetails] WITH(NOLOCK) 
 					 WHERE [CommonDocumentDetailId] = @CommonDocumentDetailId
@@ -323,7 +329,7 @@ BEGIN
 							[CreatedDate],[UpdatedDate],[CreatedBy],[UpdatedBy],[IsActive],[IsDeleted],[Name],
 							[Memo],[TypeId])
 					 SELECT @NewAttachmentId,[FileName],[Description],[Link],[FileFormat],[FileSize],[FileType],
-							[CreatedDate],[UpdatedDate],[CreatedBy],[UpdatedBy],[IsActive],[IsDeleted],[Name],
+							[CreatedDate],[UpdatedDate],@Username,@Username,[IsActive],[IsDeleted],[Name],
 							[Memo],[TypeId]
 					 FROM [dbo].[AttachmentDetails] WITH(NOLOCK) WHERE [AttachmentId] = @AttachmentId;
 
@@ -334,9 +340,7 @@ BEGIN
 					 SET @DocId = @DocId + 1;
 				END
 		 END
-		 -------End Document Tab ---------------
-
-		
+		 -------End Document Tab ---------------	
 
 		 SELECT @Result = @NewID;
   

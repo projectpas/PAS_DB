@@ -1,24 +1,29 @@
 ﻿/*************************************************************           
- ** File:   [GetCustomerList]           
- ** Author:   Hemant Saliya
- ** Description: Update QuickBooks Customer Id In PAS    
+ ** File:   [Get QuickBooks Settings By Master Company]           
+ ** Author:    HEMANT SALIYA
+ ** Description:  
  ** Purpose:         
- ** Date:   04-July-2024        
+ ** Date:   07-AUG-2024        
+          
+ ** PARAMETERS: 
          
- ** RETURN VALUE: 
+ ** RETURN VALUE:           
+  
  **************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   Date			Author			Change Description            
- ** --   --------		-------			--------------------------------          
-    1    04-July-2024   Hemant Saliya	Created (Update QuickBooks Customer Id In PAS)
-     
- EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
+ ** --   --------		-------			--------------------------------  
+	1    08/06/2020   HEMANT SALIYA	     CREATED
+
+
+EXEC USP_GetQuickBooksSettingsByMasterCompany 1 , 1
+
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_UpdateCustomerReferenceDetails]
-@IntegrationTypeId INT = NULL,
-@CustomerId BIGINT = NULL,
-@ReferenceId VARCHAR(100)
+CREATE   PROCEDURE [dbo].[USP_GetQuickBooksSettingsByMasterCompany]
+	@IntegrationTypeId INT,
+	@MasterCompanyId INT = NULL
+
 AS
 BEGIN
 	
@@ -26,20 +31,31 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 
-		-- FOR QuickBooks
-		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
-		BEGIN
-			UPDATE Customer SET QuickBooksReferenceId =  @ReferenceId, IsUpdated = 0 WHERE CustomerId = @CustomerId			
-		END
-
+		SELECT AccountingIntegrationSetupId,
+			IntegrationId,
+			ClientId,
+			ClientSecret,
+			RedirectUrl,
+			Environment,
+			MasterCompanyId,
+			CreatedBy,
+			UpdatedBy,
+			CreatedDate,
+			UpdatedDate,
+			IsActive,
+			IsDeleted 
+		FROM dbo.AccountingIntegrationSetup WITH(NOLOCK) 
+		WHERE @MasterCompanyId = @MasterCompanyId AND IntegrationId = @IntegrationTypeId 
+			
 	END TRY    
 	BEGIN CATCH      
 
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'QuickBooks_UpdateCustomerReferenceDetails'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS varchar(100))  			                                           
+			,@AdhocComments VARCHAR(150) = 'GetAccIntegrationList'
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS VARCHAR(100))
+			  + '@Parameter2 = ''' + CAST(ISNULL(@masterCompanyID, '') AS VARCHAR(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

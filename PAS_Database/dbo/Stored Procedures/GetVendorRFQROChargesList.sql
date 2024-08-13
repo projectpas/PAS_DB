@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/07/2024  Abhishek Jirawla     Created
+	2    07/08/2024  Shrey Chandegara Updated for change history order.
      
 -- EXEC GetVendorRFQROChargesList 8,0
 ************************************************************************/
@@ -109,7 +110,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure UOM WITH(NOLOCK) on ROA.UOMId = UOM.UnitOfMeasureId
 			LEFT JOIN dbo.Charge C WITH(NOLOCK) on ROA.ChargesTypeId = C.ChargeId
 			LEFT JOIN dbo.Vendor V WITH(NOLOCK) on ROA.VendorId = V.VendorId
-		  WHERE [VendorRFQROChargesId]=@VendorRFQROId;
+		  WHERE [VendorRFQROChargesId]=@VendorRFQROId ORDER BY VendorRFQROChargesAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

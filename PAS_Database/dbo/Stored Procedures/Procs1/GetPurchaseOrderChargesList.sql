@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    17/05/2022  Subhash Saliya     Created
     2    09/01/2024  Bhargav Saliya     add UOM
+	3    07/08/2024  Shrey Chandegara Updated for change history order.
 -- EXEC GetPurchaseOrderChargesList 8,0
 ************************************************************************/
 
@@ -108,7 +109,7 @@ BEGIN
 	  ,uom.[ShortName] AS UOM
       FROM [dbo].[PurchaseOrderChargesAudit] POA WITH (NOLOCK)
 	  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on POA.UOMId = uom.UnitOfMeasureId
-	  WHERE PurchaseOrderChargestId=@PurchaseOrderId;
+	  WHERE PurchaseOrderChargestId=@PurchaseOrderId ORDER BY PurchaseOrderChargesAuditId DESC;
 	END
 	END TRY    
 	BEGIN CATCH

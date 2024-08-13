@@ -17,9 +17,10 @@
  **	1	19-04-2022   Devendra Shekh			created    
  **	2	24-04-2022   Devendra Shekh			showing quote amt after customer approved    
  **	3	25-04-2022   Devendra Shekh			showing approved amt only after customer approved
+ **	4	13-08-2022   Devendra Shekh			increased length for temptable fields
  
 exec usprpt_GetWorkOrderBacklogReportSSRSData 
-@mastercompanyid=1,@id='2024-04-25 00:00:00',@id2='2024-04-25 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
+@mastercompanyid=1,@id='2024-08-08 00:00:00',@id2='2024-08-13 00:00:00',@id3='',@id4='',@id5='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportSSRSData]     
 	@mastercompanyid INT,
@@ -89,14 +90,14 @@ BEGIN
 		ID BIGINT IDENTITY(1,1),        
 		WorkOrderId BIGINT NULL,
 		WorkOrderPartNoId BIGINT NULL,
-		Customername VARCHAR(50) NULL,
+		Customername VARCHAR(100) NULL,
 		PN VARCHAR(50) NULL,
-		PNdescription VARCHAR(MAX) NULL,
+		PNdescription NVARCHAR(MAX) NULL,
 		WONum VARCHAR(30) NULL,
 		SerialNum VARCHAR(30) NULL,
-		WOType VARCHAR(30) NULL,
-		StageCode VARCHAR(30) NULL,
-		StatusCode VARCHAR(30) NULL,
+		WOType VARCHAR(50) NULL,
+		StageCode VARCHAR(100) NULL,
+		StatusCode VARCHAR(MAX) NULL,
 		ReceivedDate datetime2 NULL,
 		OpenDate datetime2 NULL,
 		ApprovedAmount decimal(18, 2) NULL,
@@ -109,8 +110,8 @@ BEGIN
 		Othercost decimal(18, 2) NULL,
 		Total decimal(18, 2) NULL,
 		WODaysCount BIGINT NULL,
-		Techname VARCHAR(50) NULL,
-		Priority VARCHAR(50) NULL,
+		Techname VARCHAR(100) NULL,
+		Priority VARCHAR(100) NULL,
 		WorkScope VARCHAR(50) NULL,
 		QuoteAmount decimal(18, 2) NULL,
 		DaysInStage BIGINT NULL,
@@ -124,9 +125,9 @@ BEGIN
 		level8 VARCHAR(500) NULL,
 		level9 VARCHAR(500) NULL,
 		level10 VARCHAR(500) NULL,
-		MasterCompanyId int NULL,
+		MasterCompanyId INT NULL,
 		WorkOrderQuoteId BIGINT NULL
-	) 
+	)  
 
 	INSERT INTO #TEMPWOBackLogReportRecords(WorkOrderId,WorkOrderPartNoId, Customername, PN, PNdescription, WONum, SerialNum, WOType, StageCode, StatusCode, ReceivedDate, OpenDate, ApprovedAmount, UnitCost, StocklineId, PartsCost, LaborCost, OverheadCost,  
 				MiscCharge, Othercost, Total, WODaysCount, Techname, Priority, WorkScope, QuoteAmount, DaysInStage, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, MasterCompanyId, WorkOrderQuoteId)  

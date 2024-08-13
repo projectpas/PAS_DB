@@ -118,7 +118,7 @@
     [SubWOPartNoId]                       BIGINT          NULL,
     [IsOemPNId]                           BIGINT          NULL,
     [PurchaseUnitOfMeasureId]             BIGINT          NOT NULL,
-    [ObtainFromName]                      VARCHAR (50)    NULL,
+    [ObtainFromName]                      VARCHAR (100)   NULL,
     [OwnerName]                           VARCHAR (50)    NULL,
     [TraceableToName]                     VARCHAR (50)    NULL,
     [Level1]                              VARCHAR (100)   NULL,
@@ -192,11 +192,11 @@
     [SubWorkOrderMaterialsId]             BIGINT          NULL,
     [SubWorkOrderMaterialsKitId]          BIGINT          NULL,
     [EvidenceId]                          INT             NULL,
-    [IsGenerateReleaseForm]               BIT             DEFAULT ((0)) NULL,
+    [IsGenerateReleaseForm]               BIT             CONSTRAINT [DF__tmp_ms_xx__IsGen__46CC5285] DEFAULT ((0)) NULL,
     [ExistingCustomerId]                  BIGINT          NULL,
     [RepairOrderNumber]                   VARCHAR (100)   NULL,
     [ExistingCustomer]                    VARCHAR (200)   NULL,
-    [QuickBooksStocklineId]               BIGINT          NULL,
+    [QuickBooksReferenceId]               VARCHAR (200)   NULL,
     [IsUpdated]                           BIT             NULL,
     [LastSyncDate]                        DATETIME2 (7)   NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
@@ -216,6 +216,8 @@
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_Stockline_WorkOrderMaterialsId] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*********************           
  ** File:   [USP_DuplicateSpeedQuote]           
  ** Author:   Abhishek Jirawla  
  ** Description: Duplicate Speed Quote 
@@ -10,19 +9,23 @@
    
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** S NO   Date         Author  		Change Description            
  ** --   --------     -------			--------------------------------          
     1	07/25/2024	Abhishek Jirawla	Created
-   
-**************************************************************/
-CREATE     PROCEDURE [dbo].[USP_DuplicateSpeedQuote]
+    2	08/06/2024	Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate
+**********************/
+CREATE  PROCEDURE [dbo].[USP_DuplicateSpeedQuote]
 	@SpeedQuoteId BIGINT,
 	@MasterCompanyId INT,
 	@CodeTypeId INT,
 	@Username VARCHAR(250),
+	@CustomerReference VARCHAR(100),
+	@IsCopyUnitPrice BIT,
+	@IsCopyQty BIT,
+	@IsCopyNote BIT,
 	@Result INT OUTPUT
 AS
 BEGIN
@@ -93,8 +96,8 @@ BEGIN
 		   ,[IsNewVersionCreated],[IsActive],[QuoteParentId],[QuoteTypeName],[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],[ProbabilityName],[LeadSourceName],[CreditTermName],[EmployeeName]
 		   ,[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],[CustomerContactEmail],[CreditLimitName],[StatusName],[Level1],[Level2],[Level3],
 		   [Level4])
-		(SELECT [SpeedQuoteTypeId], GETUTCDATE(), ISNULL(@ValidForDays, 10),@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId]
-		   ,[ProbabilityId],[LeadSourceId],[LeadSourceReference],@CreditLimit,@CreditTermsId,[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId]
+		(SELECT [SpeedQuoteTypeId], GETUTCDATE(), ISNULL(@ValidForDays, 10),@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],@CustomerReference,[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId]
+		   ,[ProbabilityId],[LeadSourceId],[LeadSourceReference],@CreditLimit,@CreditTermsId,[EmployeeId],[RestrictPMA],[RestrictDER],[ApprovedDate],[CurrencyId],[CustomerWarningId],[Memo],[Notes],@MasterCompanyId
 		   ,@Username,GETUTCDATE(),@Username,GETUTCDATE(),0,@OpenStatus,GETUTCDATE(),[ManagementStructureId],[Version],[AgentId],[QtyRequested],[QtyToBeQuoted],@SpeedQuoteNumber,[QuoteSentDate]
 		   ,[IsNewVersionCreated],1,[QuoteParentId],[QuoteTypeName],[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],[ProbabilityName],[LeadSourceName],@CreditTermName,[EmployeeName]
 		   ,[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],[CustomerContactEmail],[CreditLimitName],[StatusName],[Level1],[Level2],[Level3],
@@ -116,7 +119,7 @@ BEGIN
 		 SELECT @ManagementStructureHeaderModuleId,@NewID,[EntityMSID],
 		 			[Level1Id],[Level1Name],[Level2Id],[Level2Name],[Level3Id],[Level3Name],[Level4Id],[Level4Name],[Level5Id],[Level5Name],
 		 			[Level6Id],[Level6Name],[Level7Id],[Level7Name],[Level8Id],[Level8Name],[Level9Id],[Level9Name],[Level10Id],[Level10Name],
-		 			[MasterCompanyId],@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
+		 			@MasterCompanyId,@Username,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[LastMSLevel],[AllMSlevels]
 		 FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 		 WHERE [ReferenceID] = @SpeedQuoteId 
 		 AND [ModuleID] = @ManagementStructureHeaderModuleId;
@@ -140,26 +143,30 @@ BEGIN
 				SELECT SpeedQuotePartId,SpeedQuoteId,MasterCompanyId
 				FROM [dbo].[SpeedQuotePart] WITH(NOLOCK) 
 				WHERE [SpeedQuoteId] = @SpeedQuoteId
-				AND [MasterCompanyId] = @MasterCompanyId;
-
 				SELECT @ID = 1;    
 				WHILE @ID <= (SELECT MAX(ID) FROM #tblSpeedQuotePartSingle)
 				BEGIN
 					SELECT @SpeedQuotePartId = [SpeedQuotePartId]
 					FROM #tblSpeedQuotePartSingle WITH(NOLOCK) WHERE [ID] = @ID;
-
 					----Insert record in Part table --------
 					INSERT INTO SpeedQuotePart(
 						[SpeedQuoteId],[ItemMasterId],[QuantityRequested],[ConditionId],[UnitSalePrice],[UnitCost],[MarginAmount],[MarginPercentage],[SalesPriceExtended],[UnitCostExtended]
 						,[MarginAmountExtended],[MarginPercentageExtended],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[IsActive],[MasterCompanyId],[Notes],[CurrencyId]
 						,[PartNumber],[PartDescription],[ConditionName],[CurrencyName],[ManufacturerId],[Manufacturer],[Type],[TAT],[StatusId],[StatusName],[ItemNo],[Code])
-					SELECT @NewID,[ItemMasterId],[QuantityRequested],[ConditionId],[UnitSalePrice],[UnitCost],[MarginAmount],[MarginPercentage],[SalesPriceExtended],[UnitCostExtended]
-						,[MarginAmountExtended],[MarginPercentageExtended],@Username,GETUTCDATE(),@Username,GETUTCDATE(),[IsDeleted],[IsActive],[MasterCompanyId],[Notes],[CurrencyId]
+					SELECT @NewID,[ItemMasterId]
+						,(CASE WHEN @IsCopyQty = 1 THEN QuantityRequested ELSE 0 END)
+						,[ConditionId]
+						,(CASE WHEN @IsCopyUnitPrice = 1 THEN UnitSalePrice ELSE 0 END)
+						,[UnitCost],[MarginAmount],[MarginPercentage]
+						,(CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN SalesPriceExtended ELSE 0 END)
+						,[UnitCostExtended]
+						,[MarginAmountExtended],[MarginPercentageExtended],@Username,GETUTCDATE(),@Username,GETUTCDATE(),[IsDeleted],[IsActive],@MasterCompanyId
+						,(CASE WHEN @IsCopyNote = 1 THEN [Notes] ELSE '' END)
+						,[CurrencyId]
 						,[PartNumber],[PartDescription],[ConditionName],[CurrencyName],[ManufacturerId],[Manufacturer],[Type],[TAT],[StatusId],[StatusName],[ItemNo],[Code]
 					FROM [dbo].[SpeedQuotePart] WITH(NOLOCK) 
 					WHERE SpeedQuoteId = @SpeedQuoteId
 						  AND [SpeedQuotePartId] = @SpeedQuotePartId
-						  AND [MasterCompanyId] = @MasterCompanyId;
 					------End Part table -----------
 
 					SET @NewPartID = IDENT_CURRENT('SpeedQuotePart'); 
@@ -169,13 +176,17 @@ BEGIN
 						([SpeedQuoteId],[SpeedQuotePartId],[ItemMasterId],[PN],[Description],[ExPartNumber],[ExPartDescription],[ExQuantity]
 						,[ExItemMasterId],[ExStockType],[ExUnitPrice],[ExExtPrice],[ExOccurance],[ExCurr],[ExNotes],[MasterCompanyId],[CreatedBy]
 						,[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ItemNo],[ConditionId])
-					SELECT @NewID,@NewPartID,[ItemMasterId],[PN],[Description],[ExPartNumber],[ExPartDescription],[ExQuantity]
-						,[ExItemMasterId],[ExStockType],[ExUnitPrice],[ExExtPrice],[ExOccurance],[ExCurr],[ExNotes],[MasterCompanyId],@Username
+					SELECT @NewID,@NewPartID,[ItemMasterId],[PN],[Description],[ExPartNumber],[ExPartDescription]
+						,(CASE WHEN @IsCopyQty = 1 THEN [ExQuantity] ELSE 0 END)
+						,[ExItemMasterId]
+						,[ExStockType]
+						,(CASE WHEN @IsCopyUnitPrice = 1 THEN [ExUnitPrice] ELSE 0 END)
+						,(CASE WHEN @IsCopyUnitPrice = 1 AND @IsCopyQty =  1 THEN [ExExtPrice] ELSE 0 END)
+						,[ExOccurance],[ExCurr],(CASE WHEN @IsCopyNote = 1 THEN [ExNotes] ELSE '' END),@MasterCompanyId,@Username
 						,@Username,GETUTCDATE(),GETUTCDATE(),[IsActive],[IsDeleted],[ItemNo],[ConditionId]
 					FROM [dbo].[SpeedQuoteExclusionPart] WITH(NOLOCK) 
 					WHERE SpeedQuoteId = @SpeedQuoteId
 						  AND [SpeedQuotePartId] = @SpeedQuotePartId
-						  AND [MasterCompanyId] = @MasterCompanyId;
 
 					SET @ID = @ID + 1;
 				END

@@ -21,7 +21,8 @@
 	4    5 Jan 2024   Hemant Saliya     Added Rec Customer Delete Hinstory
 	5    8 Jan 2024   Hemant Saliya     Added Create Sub WO Hinstory
 	6    23 jan 2024  Shrey Chandegara  Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
-  
+	7    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
+	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
 (
@@ -481,8 +482,8 @@ BEGIN
   DECLARE @ErrorLogID int
   ,@DatabaseName varchar(100) = DB_NAME()
     -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-  ,@AdhocComments varchar(150) = 'USP_AddUpdateChildStockline'
-  ,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@StocklineId, '') + ''
+  ,@AdhocComments varchar(150) = 'USP_AddUpdateChildStockline' 
+  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@StocklineId, '') AS VARCHAR(100))  
   ,@ApplicationName varchar(100) = 'PAS'
   -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
   EXEC spLogException @DatabaseName = @DatabaseName,

@@ -10,7 +10,8 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
 	1    	-	         -              Created    
-	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue    
+	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue
+	3    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 
 **************************************************************/  
 
@@ -133,8 +134,8 @@ BEGIN
      VPOP.PurchaseOrderNumber as 'PurchaseOrderNumberType',  
      MSD.LastMSLevel,  
      MSD.AllMSlevels,  
-     lastMSLevelType=MSD.AllMSlevels  
-     FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)  
+     lastMSLevelType=MSD.AllMSlevels, PO.VendorReference VendorReference
+     FROM dbo.VendorRFQPurchaseOrder PO WITH (NOLOCK)  
      --INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = PO.ManagementStructureId  
      --INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId  
      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
@@ -166,7 +167,7 @@ BEGIN
 
      WHERE ((PO.IsDeleted = @IsDeleted) AND (VPOP.IsDeleted = 0) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
       AND PO.MasterCompanyId = @MasterCompanyId   
-		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels 
+		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,VPOP.PurchaseOrderNumber,MSD.LastMSLevel,MSD.AllMSlevels ,Po.VendorReference
    ), ResultCount AS(Select COUNT(VendorRFQPurchaseOrderId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult FROM  Result  
     WHERE ((@GlobalFilter <>'' AND ((VendorRFQPurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR  
@@ -214,9 +215,9 @@ BEGIN
      (ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND  
      (ISNULL(@SalesOrderNo,'') ='' OR SalesOrderNoType LIKE '%' + @SalesOrderNo + '%') AND  
      (ISNULL(@mgmtStructure,'') ='' OR LastMSLevel LIKE '%' + @mgmtStructure + '%') AND  
-     --(ISNULL(@Level2Type,'') ='' OR Level2Type LIKE '%' + @Level2Type + '%') AND  
-     --(ISNULL(@Level3Type,'') ='' OR Level3Type LIKE '%' + @Level3Type + '%') AND  
-     --(ISNULL(@Level4Type,'') ='' OR Level4Type LIKE '%' + @Level4Type + '%') AND  
+     (ISNULL(@Level2Type,'') ='' OR Level2Type LIKE '%' + @Level2Type + '%') AND  
+     (ISNULL(@Level3Type,'') ='' OR Level3Type LIKE '%' + @Level3Type + '%') AND  
+     (ISNULL(@Level4Type,'') ='' OR Level4Type LIKE '%' + @Level4Type + '%') AND  
      (ISNULL(@Memo,'') ='' OR MemoType LIKE '%' + @Memo + '%') AND  
      (ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumberType LIKE '%' + @PurchaseOrderNumber + '%') AND       
      (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))  

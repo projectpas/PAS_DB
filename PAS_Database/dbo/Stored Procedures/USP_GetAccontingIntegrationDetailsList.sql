@@ -18,8 +18,7 @@
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
-@SyncRecords=NULL,@PendingSyncRecords=NULL,@TotalCount=NULL,@LastRun=NULL,@Interval=NULL,@ModuleName=NULL,@CreatedDate='2024-08-08 16:35:03.670',
-@UpdatedDate='2024-08-08 16:35:03.670',@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@LastSycDate=NULL
+@LastRun=NULL,@ModuleName=NULL,@MasterCompanyId=1,@LastSycDate=NULL
 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
@@ -30,17 +29,8 @@ CREATE     PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@StatusID int,
 	@GlobalFilter VARCHAR(50) = null,
 	@IntegrationWith VARCHAR(50)=null,
-	--@SyncRecords VARCHAR(50)=null,
-	--@PendingSyncRecords VARCHAR(50)=null,
-	--@TotalCount VARCHAR(50)=null,
 	@LastRun datetime=null,
-	--@Interval int=0,
 	@ModuleName VARCHAR(50)=null,
-    --@CreatedDate datetime=null,
-    --@UpdatedDate  datetime=null,
-	--@CreatedBy  VARCHAR(50)=null,
-	--@UpdatedBy  VARCHAR(50)=null,
-    --@IsDeleted bit= null,
 	@MasterCompanyId bigint = NULL,
 	@LastSycDate datetime=null
 
@@ -163,26 +153,23 @@ BEGIN
 					ACI.ModuleName,
 					ACI.MasterCompanyId,			
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId THEN CAST(SR.CustQuickBookCount AS VARCHAR(20))
-						WHEN ACI.ModuleId = @StocklineModuleId THEN CAST(SR.STQuickBookCount AS VARCHAR(20))
-						WHEN ACI.ModuleId = @VendorModuleId THEN CAST(SR.VQuickBookCount AS VARCHAR(20))
+						WHEN ACI.ModuleId = @CustomerModuleId THEN SR.CustQuickBookCount
+						WHEN ACI.ModuleId = @StocklineModuleId THEN SR.STQuickBookCount
+						WHEN ACI.ModuleId = @VendorModuleId THEN SR.VQuickBookCount
 					else  0
 					END  AS SyncRecords,
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId  THEN CAST(PSR.CustPendingSyncRecords AS VARCHAR(20))
-						WHEN ACI.ModuleId = @StocklineModuleId THEN CAST(PSR.STPendingSyncRecords AS VARCHAR(20))
-						WHEN ACI.ModuleId = @VendorModuleId THEN CAST(PSR.VPendingSyncRecords AS VARCHAR(20))
+						WHEN ACI.ModuleId = @CustomerModuleId  THEN PSR.CustPendingSyncRecords
+						WHEN ACI.ModuleId = @StocklineModuleId THEN PSR.STPendingSyncRecords
+						WHEN ACI.ModuleId = @VendorModuleId THEN PSR.VPendingSyncRecords
 					else  0
 					END  AS PendingSyncRecords,
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId  THEN CAST(TR.CustTotalRecords AS VARCHAR(20))
-						WHEN ACI.ModuleId = @StocklineModuleId THEN CAST(TR.STTotalRecords AS VARCHAR(20))
-						WHEN ACI.ModuleId = @VendorModuleId THEN CAST(TR.VTotalRecords AS VARCHAR(20))
+						WHEN ACI.ModuleId = @CustomerModuleId  THEN TR.CustTotalRecords
+						WHEN ACI.ModuleId = @StocklineModuleId THEN TR.STTotalRecords
+						WHEN ACI.ModuleId = @VendorModuleId THEN TR.VTotalRecords
 					else  0
 					END  AS TotalCount,
-					--CAST(SR.QuickBookCount AS VARCHAR) as SyncRecords,
-					--CAST(PSR.PendingSyncRecords AS VARCHAR) AS PendingSyncRecords,
-					--CAST(TR.TotalRecords AS VARCHAR) AS TotalCount,
 					SR.CustQuickBookCount,
 					ACI.CreatedDate,
 					ACI.CreatedBy,
@@ -211,38 +198,27 @@ BEGIN
 					(@GlobalFilter='' AND 
 					(ISNULL(@IntegrationWith,'') ='' OR cast(IntegrationWith as VARCHAR) LIKE '%' + @IntegrationWith+'%') AND
 					(ISNULL(@LastRun,'') ='' OR CAST(LastRun as Date)=CAST(@LastRun as date))AND
-					--(ISNULL(CAST(@Interval as VARCHAR),'') ='' OR cast(Interval as VARCHAR) LIKE '%' + CAST(@Interval as VARCHAR)+'%') AND
 					(ISNULL(@ModuleName,'') ='' OR ModuleName LIKE '%' + @ModuleName+'%') AND
-
-					--(ISNULL(@SyncRecords,'') ='' OR CAST(SyncRecords as VARCHAR) = CAST(@SyncRecords as VARCHAR))AND
-					--(ISNULL(@PendingSyncRecords,'') ='' OR CAST(PendingSyncRecords as VARCHAR) = CAST(@PendingSyncRecords as VARCHAR))AND
-					--(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount as VARCHAR)=CAST(@TotalCount as VARCHAR))AND
-					--(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount as VARCHAR)=CAST(@TotalCount as VARCHAR))AND
-
-					(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun as date)=CAST(@LastSycDate as date)))
-					)
+					(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun as date)=CAST(@LastSycDate as date))))
 
 			Select @Count = COUNT(AccountingIntegrationSettingsId) FROM #TempResult			
 
-			SELECT *, @Count AS NumberOfItems FROM #TempResult
+			SELECT *, CASE WHEN ISNULL(TotalCount, 0) > 0 THEN (CAST(100.00 AS decimal(18,2)) - ((100 * CAST(ISNULL(PendingSyncRecords, 0) AS DECIMAL(18,2)))/CAST(ISNULL(TotalCount, 0) AS decimal(18,2)))) ELSE 0 END AS ProgressPercent , 
+			@Count AS NumberOfItems FROM #TempResult
 			ORDER BY  
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTRUN')  THEN LastRun END ASC,
-			--CASE WHEN (@SortOrder=1 AND @SortColumn='INTERVAL')  THEN Interval END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='MODULENAME')  THEN ModuleName END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END ASC,
-			--CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN CusLastSycDate END ASC,
 
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
-			--CASE WHEN (@SortOrder=-1 AND @SortColumn='INTERVAL')  THEN Interval END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='MODULENAME')  THEN ModuleName END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC
-			--CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN CusLastSycDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    
@@ -251,7 +227,7 @@ BEGIN
 	         DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'GetAccIntegrationList'
+			,@AdhocComments VARCHAR(150) = 'USP_GetAccontingIntegrationDetailsList'
 			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS VARCHAR(100))
 			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS VARCHAR(100)) 
 			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS VARCHAR(100))
@@ -259,13 +235,7 @@ BEGIN
 			   + '@Parameter5 = ''' + CAST(ISNULL(@StatusID, '') AS VARCHAR(100))
 			   + '@Parameter6 = ''' + CAST(ISNULL(@GlobalFilter, '') AS VARCHAR(100))
 			   + '@Parameter7 = ''' + CAST(ISNULL(@LastRun, '') AS VARCHAR(100))
-			   --+ '@Parameter8 = ''' + CAST(ISNULL(@Interval, '') AS VARCHAR(100))
 			   + '@Parameter9 = ''' + CAST(ISNULL(@ModuleName , '') AS VARCHAR(100))
-			  --+ '@Parameter17 = ''' + CAST(ISNULL(@CreatedDate , '') AS VARCHAR(100))
-			 -- + '@Parameter18 = ''' + CAST(ISNULL(@UpdatedDate , '') AS VARCHAR(100))
-			 -- + '@Parameter19 = ''' + CAST(ISNULL(@CreatedBy  , '') AS VARCHAR(100))
-			  --+ '@Parameter20 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS VARCHAR(100))
-			  --+ '@Parameter21 = ''' + CAST(ISNULL(@IsDeleted , '') AS VARCHAR(100))
 			  + '@Parameter22 = ''' + CAST(ISNULL(@masterCompanyID, '') AS VARCHAR(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

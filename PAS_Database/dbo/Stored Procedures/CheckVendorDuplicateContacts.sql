@@ -89,7 +89,7 @@ BEGIN
 					IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
 								JOIN [dbo].[VendorContact] VC WITH(NOLOCK) ON VC.ContactId = C.ContactId
 							 WHERE C.[Email] = @email AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)
-					BEGIN select 'a';
+					BEGIN 
 						 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
 									JOIN [dbo].[VendorContact] VC WITH(NOLOCK) ON VC.ContactId = C.ContactId
 								  WHERE C.[WorkPhone] = @vendorPhone AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)

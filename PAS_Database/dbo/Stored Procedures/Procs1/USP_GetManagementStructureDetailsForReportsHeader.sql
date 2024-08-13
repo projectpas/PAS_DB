@@ -51,10 +51,10 @@ SET NOCOUNT ON
 					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
 					CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
 					CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
-					) Address1
+					) MergedAddress
 					,
 
-					--Address1 = Upper(ad.Line1),
+					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),
 					StateOrProvince = Upper(ad.StateOrProvince),

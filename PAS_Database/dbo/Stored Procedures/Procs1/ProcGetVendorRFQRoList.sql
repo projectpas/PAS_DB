@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcGetVendorRFQRoList]               
  ** Author:   -    
  ** Description: This stored procedure is used to ProcGetVendorRFQRoList      
@@ -13,6 +12,7 @@
 	1    	-	         -              Created    
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue
 	3    08/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
+	4    13/08/2024   Shrey Chandegara  Modified for global filter  and some field filters are not working.
 
 **************************************************************/  
 
@@ -62,7 +62,8 @@ CREATE PROCEDURE [dbo].[ProcGetVendorRFQRoList]
 	@Level3Type			varchar(200)=null,
 	@Level4Type			varchar(200)=null,
 	@Memo			varchar(200)=null,
-	@IsNoQuote [BIT] = 0
+	@IsNoQuote [BIT] = 0,
+	@mgmtStructure VARCHAR(200)=null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -160,7 +161,25 @@ BEGIN
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorCode LIKE '%' +@GlobalFilter+'%') OR					
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR					
-					([Status] LIKE '%' +@GlobalFilter+'%') ))
+					([Status] LIKE '%' +@GlobalFilter+'%') OR
+					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%')  OR
+					(PartDescriptionType LIKE '%' +@GlobalFilter+'%')  OR
+					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(ManufacturerType LIKE '%' +@GlobalFilter+'%')  OR
+					(StockTypeType LIKE '%' +@GlobalFilter+'%')  OR
+					(PriorityType LIKE '%' +@GlobalFilter+'%')  OR
+					(ConditionType LIKE '%' +@GlobalFilter+'%')  OR
+					(WorkPerformedType LIKE '%' +@GlobalFilter+'%')  OR
+					(WorkOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(SubWorkOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(SalesOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(RepairOrderNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(Level1Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level2Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level3Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level4Type LIKE '%' +@GlobalFilter+'%') ))
 					OR 
 					(@GlobalFilter='' AND IsDeleted=@IsDeleted AND
 					(ISNULL(@VendorRFQRepairOrderNumber,'') ='' OR VendorRFQRepairOrderNumber LIKE '%' + @VendorRFQRepairOrderNumber +'%') AND 
@@ -186,10 +205,10 @@ BEGIN
 					(ISNULL(@WorkOrderNo   ,'') ='' OR	WorkOrderNoType LIKE '%' +   @WorkOrderNo    + '%') AND
 					(ISNULL(@SubWorkOrderNo   ,'') ='' OR	SubWorkOrderNoType LIKE '%' +   @SubWorkOrderNo    + '%') AND
 					(ISNULL(@SalesOrderNo   ,'') ='' OR	SalesOrderNoType LIKE '%' +   @SalesOrderNo    + '%') AND
-					(ISNULL(@Level1Type   ,'') ='' OR	Level1Type LIKE '%' +   @Level1Type    + '%') AND
-					(ISNULL(@Level2Type   ,'') ='' OR	Level2Type LIKE '%' +   @Level2Type    + '%') AND
-					(ISNULL(@Level3Type   ,'') ='' OR	Level3Type LIKE '%' +   @Level3Type    + '%') AND
-					(ISNULL(@Level4Type   ,'') ='' OR	Level4Type LIKE '%' +   @Level4Type    + '%') AND
+					(ISNULL(@Level1Type   ,'') ='' OR	@mgmtStructure LIKE '%' +   @Level1Type    + '%') AND
+					(ISNULL(@Level2Type   ,'') ='' OR	@mgmtStructure LIKE '%' +   @Level2Type    + '%') AND
+					(ISNULL(@Level3Type   ,'') ='' OR	@mgmtStructure LIKE '%' +   @Level3Type    + '%') AND
+					(ISNULL(@Level4Type   ,'') ='' OR	@mgmtStructure LIKE '%' +   @Level4Type    + '%') AND
 					--(ISNULL(@Level4Type   ,'') ='' OR	Level4Type LIKE '%' +   @Level4Type    + '%') AND
 					(ISNULL(@Memo   ,'') ='' OR MemoType LIKE '%' +   @Memo    + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
@@ -392,7 +411,25 @@ BEGIN
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR	
 					(VendorCode LIKE '%' +@GlobalFilter+'%') OR					
 					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR					
-					([Status] LIKE '%' +@GlobalFilter+'%') ))
+					([Status] LIKE '%' +@GlobalFilter+'%') OR
+					(RequestedBy LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(AltEquiPartNumberType LIKE '%' +@GlobalFilter+'%')  OR
+					(PartDescriptionType LIKE '%' +@GlobalFilter+'%')  OR
+					(RevisedPartNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(ManufacturerType LIKE '%' +@GlobalFilter+'%')  OR
+					(StockTypeType LIKE '%' +@GlobalFilter+'%')  OR
+					(PriorityType LIKE '%' +@GlobalFilter+'%')  OR
+					(ConditionType LIKE '%' +@GlobalFilter+'%')  OR
+					(WorkPerformedType LIKE '%' +@GlobalFilter+'%')  OR
+					(WorkOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(SubWorkOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(SalesOrderNoType LIKE '%' +@GlobalFilter+'%')  OR
+					(RepairOrderNumberType LIKE '%' +@GlobalFilter+'%') OR
+					(Level1Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level2Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level3Type LIKE '%' +@GlobalFilter+'%') OR
+					(Level4Type LIKE '%' +@GlobalFilter+'%') ))
 					OR 
 					(@GlobalFilter='' AND IsDeleted=@IsDeleted AND
 					(ISNULL(@VendorRFQRepairOrderNumber,'') ='' OR VendorRFQRepairOrderNumber LIKE '%' + @VendorRFQRepairOrderNumber +'%') AND 
@@ -428,6 +465,7 @@ BEGIN
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date) = CAST(@OpenDate AS date)) AND									
 					(ISNULL(@ClosedDate,'') ='' OR CAST(ClosedDate AS Date) = CAST(@ClosedDate AS date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
+					(ISNULL(@mgmtStructure,'') ='' OR LastMSLevel LIKE '%' + @mgmtStructure + '%') AND  
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
 

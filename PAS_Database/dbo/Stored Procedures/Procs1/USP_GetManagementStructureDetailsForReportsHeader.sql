@@ -16,6 +16,7 @@
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
     3    12/08/2024   Ekta Chandegra		Retrieve Address
+    3    13/08/2024   Devendra Shekh		added Email to select
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -71,6 +72,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime'
 				FROM EntityStructureSetup est

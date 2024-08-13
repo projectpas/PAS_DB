@@ -36,11 +36,11 @@ BEGIN
 					@EmailReturnMsg VARCHAR(150) = 'The email address you are trying to use already exists. <br/>Are you sure you want to use it again?',
 					@BothReturnMsg VARCHAR(150) = 'The work phone/email address you are trying to use already exists. <br/>Are you sure you want to use it again?';
 			
-			IF(@vendorId > 0)
+			IF(@contactId > 0)
 			BEGIN
 				 SET @ContactIds = (SELECT  STRING_AGG(ContactId, ',')
 						FROM [dbo].[VendorContact] WITH(NOLOCK)
-						WHERE [VendorId] = @vendorId AND [IsDeleted] = 0 AND [ContactId] != @contactId)
+						WHERE [VendorId] = @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND [ContactId] != @contactId)
 			END
 			
 			--Checking for current customer email & phone.
@@ -84,36 +84,81 @@ BEGIN
 			END
 			ELSE
 			BEGIN 
-				IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
-				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
-					 BEGIN
-						  SET @ReturnStatus = -3;
-						  SET @ReturnMsg = @BothReturnMsg;
-					 END
-					 ELSE
-					 BEGIN
-						  SET @ReturnStatus = -1;
-						  SET @ReturnMsg = @EmailReturnMsg;
-					 END
-				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
-				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
-					 BEGIN
-						  SET @ReturnStatus = -3;
-						  SET @ReturnMsg = @BothReturnMsg;
-					 END
-					 ELSE
-					 BEGIN
-						  SET @ReturnStatus = -2;
-						  SET @ReturnMsg = @ContactReturnMsg;
-					 END
+				IF(ISNULL(@ContactIds,0) = 0)
+				BEGIN 
+					IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
+								JOIN [dbo].[VendorContact] VC WITH(NOLOCK) ON VC.ContactId = C.ContactId
+							 WHERE C.[Email] = @email AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)
+					BEGIN 
+						 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
+									JOIN [dbo].[VendorContact] VC WITH(NOLOCK) ON VC.ContactId = C.ContactId
+								  WHERE C.[WorkPhone] = @vendorPhone AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = -1;
+							  SET @ReturnMsg = @EmailReturnMsg;
+						 END
+					END
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
+										JOIN [dbo].[VendorContact] VC WITH(NOLOCK) ON vC.ContactId = C.ContactId
+								  WHERE C.[WorkPhone] = @vendorPhone AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)
+					BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) 
+										JOIN [dbo].[VendorContact] vC WITH(NOLOCK) ON VC.ContactId = C.ContactId
+									WHERE C.[Email] = @email AND VC.[VendorId] = @vendorId AND C.[IsActive] = 1 AND VC.[IsDeleted] = 0)
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN 
+							  SET @ReturnStatus = -2;
+							  SET @ReturnMsg = @ContactReturnMsg;
+						 END
+					END
+					ELSE
+					BEGIN
+						 SET @ReturnStatus = 1;
+						 SET @ReturnMsg = '';
+					END
 				END
 				ELSE
-				BEGIN 
-					 SET @ReturnStatus = 1;
-					 SET @ReturnMsg = '';
+				BEGIN
+					IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
+					BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = -1;
+							  SET @ReturnMsg = @EmailReturnMsg;
+						 END
+					END
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[WorkPhone] = @vendorPhone AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
+					BEGIN
+						 IF EXISTS(SELECT 1 FROM [dbo].[Contact] C WITH(NOLOCK) WHERE C.[Email] = @email AND C.[ContactId] NOT IN(SELECT Item FROM [dbo].[SplitString](@ContactIds,',')))
+						 BEGIN
+							  SET @ReturnStatus = -3;
+							  SET @ReturnMsg = @BothReturnMsg;
+						 END
+						 ELSE
+						 BEGIN
+							  SET @ReturnStatus = -2;
+							  SET @ReturnMsg = @ContactReturnMsg;
+						 END
+					END
+					ELSE
+					BEGIN 
+						 SET @ReturnStatus = 1;
+						 SET @ReturnMsg = '';
+					END
 				END
 			END
 

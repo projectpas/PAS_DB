@@ -92,8 +92,11 @@
     [ReportTokenValidMinutes]         NVARCHAR (100)  NULL,
     [ParamsReportingUrl]              NVARCHAR (250)  NULL,
     [MaxReceivedMessageSize]          VARCHAR (150)   NULL,
+    [AccountingIntegrationAPIUrl]     VARCHAR (1000)  NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
+
+
 
 
 

@@ -153,7 +153,9 @@ SET NOCOUNT ON
 					TaggedByName VARCHAR(200),
 					TaggedByType BIGINT,
 					TaggedByTypeName VARCHAR(200),
-					TagDate DATETIME2
+					TagDate DATETIME2,
+					AllMSlevels VARCHAR(MAX),
+					LastMSLevel VARCHAR(200)
 				);
 
 				IF OBJECT_ID(N'tempdb..#RepairOrderSplitParts') IS NOT NULL
@@ -313,9 +315,12 @@ SET NOCOUNT ON
 					pop.TaggedByName,
 					pop.TaggedByType,
 					pop.TaggedByTypeName,
-					pop.TagDate
+					pop.TagDate,
+					popms.AllMSlevels,
+					popms.LastMSLevel
 				FROM 
 					RepairOrderPart pop
+				LEFT JOIN RepairOrderManagementStructureDetails AS popms ON popms.ReferenceID = pop.RepairOrderPartRecordId AND popms.ModuleID = @ModuleId
 				WHERE 
 					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0
 					AND pop.RepairOrderPartRecordId IN (SELECT RepairOrderPartRecordId FROM #TMPROPartResultListData);

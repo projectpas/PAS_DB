@@ -1,4 +1,12 @@
-﻿CREATE   PROCEDURE [dbo].[CreateBulkPO]
+﻿/***************************************************************************************************************************************             
+  ** Change History             
+ ***************************************************************************************************************************************             
+ ** PR   Date						 Author							Change Description              
+ ** --   --------					 -------						-------------------------------            
+    1   	
+	2    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
+****************************************************************************************************************************************/ 
+CREATE   PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
 	@loginUserName varchar(50) = NULL,
 	@employeeId bigint = NULL,
@@ -322,8 +330,8 @@ BEGIN
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'CreateBulkPO' 
-            , @ProcedureParameters VARCHAR(3000)  = '@MstCompanyId = '''+ ISNULL(@MstCompanyId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'CreateBulkPO'             
+			, @ProcedureParameters VARCHAR(3000) = '@MstCompanyId = ''' + CAST(ISNULL(@MstCompanyId, '') AS VARCHAR(100)) 
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

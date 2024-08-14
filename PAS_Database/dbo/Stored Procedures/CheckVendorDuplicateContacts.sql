@@ -12,13 +12,14 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    09/08/2024  	AMIT GHEDIYA	Created     
+	2    14/08/2024  	Devendra Shekh	allowing null params values
  
  EXEC [CheckVendorDuplicateContacts] '886645789','amitfirst2@gmail.com',0
 ********************************************************************/ 
 
-CREATE    PROCEDURE [dbo].[CheckVendorDuplicateContacts]
-	@vendorPhone VARCHAR(100),
-	@email VARCHAR(100),
+CREATE   PROCEDURE [dbo].[CheckVendorDuplicateContacts]
+	@vendorPhone VARCHAR(100) NULL = '',
+	@email VARCHAR(100) NULL = '',
 	@vendorId BIGINT,
 	@contactId BIGINT = 0
 AS

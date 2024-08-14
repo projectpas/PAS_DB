@@ -6,6 +6,7 @@
     1   
 	2    16/11/2023				 Ayesha Sultana						Modified - Filter on status implementation & inline filter bug fixes
 	3    02/11/2024              MOIN BLOCH                         OPTIMIZE SP
+	3    14/08/2024              MOIN BLOCH                         Added Work Order Id
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -94,6 +95,7 @@ BEGIN
 				[VendorName] VARCHAR(50) NULL,
 				[VendorId] BIGINT NULL,
 				[VendorCode] VARCHAR(20) NULL,
+				[WorkOrderId] BIGINT NULL,
 				[WONum] VARCHAR(20) NULL,
 				[MPN] VARCHAR(50) NULL,
 				[MPNDescription]  NVARCHAR(MAX) NULL,
@@ -138,7 +140,7 @@ BEGIN
 		BEGIN
 			-- 1
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 		 
 		   	 SELECT 
@@ -160,7 +162,8 @@ BEGIN
 				NULL,
 				PO.VendorName,
 				PO.VendorId,
-				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),							
+				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),		
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -207,7 +210,7 @@ BEGIN
 
 			--  2
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
 			 	1 AS OrderNo,	
@@ -229,6 +232,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -279,7 +283,7 @@ BEGIN
 			--3
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			  SELECT 
 			  	2 AS OrderNo,
@@ -300,7 +304,8 @@ BEGIN
 				NULL,
 				PO.VendorName,
 				PO.VendorId,
-				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),					
+				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),				
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -347,7 +352,7 @@ BEGIN
 			--4
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
 			   	2 AS OrderNo,
@@ -369,6 +374,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -415,7 +421,7 @@ BEGIN
 		--5
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])			
 			SELECT 
 			 	1 AS OrderNo,		
@@ -437,6 +443,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -487,7 +494,7 @@ BEGIN
 			--6
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			SELECT 
 			  	2 AS OrderNo,
@@ -509,6 +516,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -657,7 +665,7 @@ BEGIN
 			--1
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 		 
 		   	 SELECT 
@@ -679,7 +687,8 @@ BEGIN
 				NULL,
 				PO.VendorName,
 				PO.VendorId,
-				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),							
+				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),		
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -708,7 +717,7 @@ BEGIN
 			--2
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
 			 	1 AS OrderNo,	
@@ -730,6 +739,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -763,7 +773,7 @@ BEGIN
 			--3
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			  SELECT 
 			  	2 AS OrderNo,
@@ -784,7 +794,8 @@ BEGIN
 				NULL,
 				PO.VendorName,
 				PO.VendorId,
-				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),					
+				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -815,7 +826,7 @@ BEGIN
 			--4
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
 			   	2 AS OrderNo,
@@ -837,6 +848,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -864,7 +876,7 @@ BEGIN
 			--5
 		
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])			
 			SELECT 
 			 	1 AS OrderNo,		
@@ -886,6 +898,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,
@@ -917,7 +930,7 @@ BEGIN
 			--6
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
-				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WONum],[MPN],
+				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			SELECT 
 			  	2 AS OrderNo,
@@ -939,6 +952,7 @@ BEGIN
 				PO.VendorName,
 				PO.VendorId,
 				ISNULL((SELECT TOP 1 VendorCode FROM dbo.Vendor VN WITH (NOLOCK) WHERE VN.VendorId = PO.VendorId),''),	
+				WO.WorkOrderId,
 				WO.WorkOrderNum,
 				IM_WOP.partnumber,
 				IM_WOP.PartDescription,

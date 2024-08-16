@@ -50,7 +50,7 @@ BEGIN
 		BEGIN
 			DROP TABLE #tmpPurchaseOrderPartReference
 		END
-			
+		
 		CREATE TABLE #tmpPurchaseOrderPartReference 
 		(
 			ID BIGINT NOT NULL IDENTITY,
@@ -1386,7 +1386,7 @@ BEGIN
 					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
 
-					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId)
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 					BEGIN
 						PRINT 'IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP'
 
@@ -1419,7 +1419,9 @@ BEGIN
 						)
 
 						INSERT INTO #tmpSalesOrderPart ([SalesOrderPartId])
-						SELECT [SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+						SELECT [SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
+						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+						WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
 						DECLARE @SOPLoopID BIGINT;
 
@@ -1440,12 +1442,10 @@ BEGIN
 								SET @QtyRequested = @POReferenceQty;
 							END
 
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL)
 							BEGIN
 								DECLARE @SalesOrderPartIdToUpdate BIGINT = 0;
-								SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL;
-
-								PRINT 'IF EXISTS UPDATE SOP'
+								SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL;
 
 								SET @Qty = 0;
 								SET @SOPQty = 0;
@@ -1538,10 +1538,10 @@ BEGIN
 							ELSE
 							BEGIN
 								PRINT 'ELSE UPDATE SOP'
-								IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId AND SOP.StockLineId = @StkStocklineId)
+								IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId = @StkStocklineId)
 								BEGIN
 									PRINT 'ELSE UPDATE SOP IF NOT EXISTS'
-									IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId)
+									IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 									BEGIN
 										PRINT 'ELSE UPDATE SOP IF EXISTS'
 										SET @Qty = 0;
@@ -1550,9 +1550,13 @@ BEGIN
 										DECLARE @qtySumAlreadyAdded AS INT = 0;
 										DECLARE @SOPQtyRequested AS INT = 0;
 										
-										SELECT @SOPQtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId
+										SELECT @SOPQtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
+										LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+										WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId
 
-										SELECT @qtySumAlreadyAdded = SUM(SOP.Qty) FROM DBO.SalesOrderPart SOP WITH (NOLOCK) Where SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+										SELECT @qtySumAlreadyAdded = SUM(SOP.Qty) FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
+										LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+										Where SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
 										SET @QtyRequested = @SOPQtyRequested - @qtySumAlreadyAdded;
 

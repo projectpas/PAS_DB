@@ -16,7 +16,7 @@
  EXEC [CheckEmailContactExists] 12
 ********************************************************************/ 
 
-CREATE   PROCEDURE [dbo].[CheckEmailContactExists]
+CREATE     PROCEDURE [dbo].[CheckEmailContactExists]
 	@customerId BIGINT = 0
 AS
 BEGIN
@@ -24,16 +24,24 @@ BEGIN
 			
 			DECLARE @ReturnStatus INT = 0,
 					@ExistingCustomerPhone VARCHAR(100),
+					@ExistingContactPhone VARCHAR(100),
 					@ExistingEmail VARCHAR(100),
+					@ExistingContactEmail VARCHAR(100),
+					@ContactId BIGINT,
 					@ReturnMsg VARCHAR(150) = 'Contact number or email details missing.';
+			
+			--Get Email & Phone from Customer Primary Comtact details.
+			SELECT @ContactId = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsDefaultContact] = 1;
+			SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
 
-			SELECT @ExistingCustomerPhone = [CustomerPhone], @ExistingEmail = [Email] FROM [dbo].[Customer] WITH(NOLOCK) WHERE CustomerId = @customerId;
-			IF(ISNULL(@ExistingCustomerPhone,'') = '')
+			--Get Email & Phone from Customer details.
+			SELECT @ExistingCustomerPhone = [CustomerPhone], @ExistingEmail = [Email] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsActive] = 1 AND [IsDeleted] = 0;
+			IF(ISNULL(@ExistingCustomerPhone,'') = '' OR ISNULL(@ExistingContactPhone,'') = '')
 			BEGIN
 				 SET @ReturnStatus = -1;
 				 SET @ReturnMsg = @ReturnMsg;
 			END
-			ELSE IF(ISNULL(@ExistingEmail,'') = '')
+			ELSE IF(ISNULL(@ExistingEmail,'') = '' OR ISNULL(@ExistingContactEmail,'') = '')
 			BEGIN
 				 SET @ReturnStatus = -1;
 				 SET @ReturnMsg = @ReturnMsg;

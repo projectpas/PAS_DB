@@ -6,7 +6,8 @@
     1   
 	2    16/11/2023				 Ayesha Sultana						Modified - Filter on status implementation & inline filter bug fixes
 	3    02/11/2024              MOIN BLOCH                         OPTIMIZE SP
-	3    14/08/2024              MOIN BLOCH                         Added Work Order Id
+	4    14/08/2024              MOIN BLOCH                         Added Work Order Id
+	5    16/08/2024              MOIN BLOCH                         Added [ConditionId]
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -85,7 +86,7 @@ BEGIN
 				[PN] VARCHAR(50) NULL,
 				[PNDescription] NVARCHAR(MAX) NULL,
 				[Condition]	VARCHAR(20) NULL,
-				[ConditionCodeId] BIGINT NULL,
+				[ConditionId] BIGINT NULL,
 				[Quantity] INT NULL,
 				[UnitCost] DECIMAL(18,2) NULL,
 				[ExtendedCost] DECIMAL(18,2) NULL,
@@ -139,7 +140,7 @@ BEGIN
 		IF (@filterAsStatus = 'all')
 		BEGIN
 			-- 1
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 		 
@@ -209,7 +210,7 @@ BEGIN
 			--)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionCodeId
 
 			--  2
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
@@ -282,7 +283,7 @@ BEGIN
 			
 			--3
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			  SELECT 
@@ -351,7 +352,7 @@ BEGIN
 			
 			--4
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
@@ -420,7 +421,7 @@ BEGIN
 			
 		--5
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])			
 			SELECT 
@@ -493,7 +494,7 @@ BEGIN
 
 			--6
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			SELECT 
@@ -546,18 +547,18 @@ BEGIN
 										 [SerialNum] = [SerialNumber]
 			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
 					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
-					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionCodeId = Stk.ConditionId	
+					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
 					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
 					ORDER BY Stk.[CreatedDate] DESC					
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionCodeId
+			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
 			UPDATE #TEMPBulkPORecords SET [VendorName] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorName],'')  ELSE ISNULL(tmpcash.POVendorName,'') END,  
 			                              [VendorCode] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorCode],'')  ELSE ISNULL(tmpcash.POVendorCode,'') END  
 			FROM (SELECT TOP 1 Vend.VendorName,Vend.VendorCode, temp.VendorName AS POVendorName,temp.VendorCode AS POVendorCode ,temp.IsFromBulkPO,Stk.[ItemMasterId],Stk.[ConditionId]
 				FROM DBO.Stockline Stk WITH (NOLOCK) 
 				LEFT JOIN [dbo].[Vendor] Vend WITH (NOLOCK) ON Stk.VendorId = Vend.VendorId				
-				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionCodeId = Stk.ConditionId				
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionCodeId
+				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
+			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
 
 			SELECT *  INTO #TempResult111 FROM #TEMPBulkPORecords		
@@ -664,7 +665,7 @@ BEGIN
 		BEGIN					
 			--1
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 		 
@@ -716,7 +717,7 @@ BEGIN
 		   			
 			--2
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
@@ -772,7 +773,7 @@ BEGIN
 					  			
 			--3
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			  SELECT 
@@ -825,7 +826,7 @@ BEGIN
 		
 			--4
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			 SELECT 
@@ -875,7 +876,7 @@ BEGIN
 					 			
 			--5
 		
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])			
 			SELECT 
@@ -929,7 +930,7 @@ BEGIN
 			  			
 			--6
 
-			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionCodeId],[Quantity],
+			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
 				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate])
 			SELECT 
@@ -984,18 +985,18 @@ BEGIN
 										 [SerialNum] = [SerialNumber]
 			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
 					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
-					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionCodeId = Stk.ConditionId	
+					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
 					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
 					ORDER BY Stk.[CreatedDate] DESC					
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionCodeId
+			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
 			UPDATE #TEMPBulkPORecords SET [VendorName] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorName],'')  ELSE ISNULL(tmpcash.POVendorName,'') END,  
 			                              [VendorCode] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorCode],'')  ELSE ISNULL(tmpcash.POVendorCode,'') END  
 			FROM (SELECT TOP 1 Vend.VendorName,Vend.VendorCode, temp.VendorName AS POVendorName,temp.VendorCode AS POVendorCode ,temp.IsFromBulkPO,Stk.[ItemMasterId],Stk.[ConditionId]
 				FROM DBO.Stockline Stk WITH (NOLOCK) 
 				LEFT JOIN [dbo].[Vendor] Vend WITH (NOLOCK) ON Stk.VendorId = Vend.VendorId				
-				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionCodeId = Stk.ConditionId				
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionCodeId
+				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
+			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
 
 			SELECT *  INTO #TempResult222 FROM #TEMPBulkPORecords		

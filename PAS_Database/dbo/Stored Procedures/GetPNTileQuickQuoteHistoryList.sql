@@ -1,7 +1,16 @@
 ﻿-- ==================================================
 -- Author:		Ekta Chandegra
--- Create date: 08-AUG-2024
 -- Description:	Get Search Data for Quick Quote History List
+
+/***************************************************************************************************************************************             
+  ** Change History             
+ ***************************************************************************************************************************************             
+ ** PR   Date						 Author							Change Description              
+ ** --   --------					 -------						-------------------------------            
+    1   08-AUG-2024				  Ekta Chandegra					Created
+	2   15-AUG-2024				  Ekta Chandegra					Retrieve CustomerId And CurrencyCode
+****************************************************************************************************************************************/ 
+
 -- ==================================================
 CREATE   PROCEDURE [DBO].[GetPNTileQuickQuoteHistoryList]
 	@PageNumber int = 1,
@@ -58,19 +67,20 @@ BEGIN
 			;WITH Result AS(
 			SELECT DISTINCT
 			SOQ.SpeedQuoteId,
+			SOQ.CustomerId,
 			SOQP.SpeedQuotePartId,
 			SOQP.PartNumber,
 			SOQP.PartDescription,
 			ISNULL(IM.ManufacturerName,'')ManufacturerName,
-			WPN.WorkScope,
+			Cond.Code AS WorkScope,
 			SOQ.SpeedQuoteNumber,
 			Cond.ConditionId,
 			Cond.Code AS [Condition],
 			SOQ.CreatedDate,
 			SOQP.TAT,
 			SOQP.UnitSalePrice,
-			SOQP.CurrencyId,
-			SOQP.CurrencyName,
+			cr.CurrencyId,
+			cr.Code AS CurrencyName ,
 			SOQ.CustomerReference,
 			SOQ.SalesPersonId,
 			SOQ.SalesPersonName,
@@ -81,7 +91,7 @@ BEGIN
 			FROM [DBO].[SpeedQuote] SOQ WITH (NOLOCK)
 			LEFT JOIN [DBO].[SpeedQuotePart] SOQP WITH (NOLOCK) ON SOQP.SpeedQuoteId = SOQ.SpeedQuoteId
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
-			LEFT JOIN [DBO].WorkOrderPartNumber WPN WITH (NOLOCK) ON WPN.ItemMasterId = IM.ItemMasterId
+			LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
 			LEFT JOIN [DBO].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = SOQP.ConditionId
 			LEFT JOIN [DBO].[Status] St WITH (NOLOCK) ON St.SatusId = SOQP.StatusId 
 			WHERE SOQ.MasterCompanyId = @MasterCompanyId 

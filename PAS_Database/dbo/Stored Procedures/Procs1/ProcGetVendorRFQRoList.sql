@@ -13,6 +13,7 @@
 	2    25/07/2024   Rajesh Gami		Optimize the SP due to performance issue
 	3    08/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 	4    13/08/2024   Shrey Chandegara  Modified for global filter  and some field filters are not working.
+	5.   16/08/2024   Shrey Chandegara  Modify because Note(MemoType) is not bind in VendorRFQView.
 
 **************************************************************/  
 
@@ -304,6 +305,7 @@ BEGIN
 				   RO.VendorCode,
 				   RO.StatusId,
 				   RO.[Status],
+				   RO.Notes AS 'MemoType',
 				   RO.Requisitioner AS RequestedBy,RO.VendorReference VendorReference				   
 			FROM  dbo.VendorRFQRepairOrder RO WITH (NOLOCK)
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.VendorRFQRepairOrderId
@@ -316,7 +318,7 @@ BEGIN
 					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					 )
 			SELECT DISTINCT M.VendorRFQRepairOrderId,M.VendorRFQRepairOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],
+					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],M.MemoType,
 					M.RequestedBy AS RequestedBy,
 					(Select SUM(QuantityOrdered) as QuantityOrdered from VendorRFQRepairOrderPart WITH (NOLOCK) 
 					Where VendorRFQRepairOrderId = M.VendorRFQRepairOrderId) as QuantityOrdered,
@@ -371,12 +373,12 @@ BEGIN
 					LEFT JOIN dbo.RepairOrderManagementStructureDetails MSD ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SP.VendorRFQRepairOrderId
 			
 				   GROUP BY M.VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
-					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],SP.UnitCost,QuantityOrdered,IsNoQuote,
+					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],M.MemoType,SP.UnitCost,QuantityOrdered,IsNoQuote,
 					RequestedBy,VendorReference
 	
 			SELECT VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
 					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,IsNoQuote,
-					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference,
+					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference,MemoType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(LastMSLevelMax) END) as LastMSLevel,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(AllMSlevelsMax) END) as AllMSlevels,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(StockTypeMax) END) as StockTypeType,
@@ -387,7 +389,7 @@ BEGIN
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(SubWorkOrderNoMax) END) as SubWorkOrderNoType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(SalesOrderNoMax) END) as SalesOrderNoType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(RepairOrderNumberMax) END) as RepairOrderNumberType,
-					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(MemoMax) END) as MemoType,
+					--(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(MemoType) END) as MemoType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(AltEquiPartNumberMax) END) as AltEquiPartNumberType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(RevisedPartNumberMax) END) as RevisedPartNumberType,
 					(CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkPerformedMax) END) as WorkPerformedType,
@@ -402,7 +404,7 @@ BEGIN
 			INTO #finalTemp FROM #TEMPRes 
 			GROUP BY VendorRFQRepairOrderId,VendorRFQRepairOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,
 					UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered,IsNoQuote,
-					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference
+					RequestedBy,Level1Type, Level2Type,Level3Type,Level4Type,RowStatus,VendorReference,MemoType
 																		  
 			  SELECT DISTINCT * INTO #TEMPData FROM #finalTemp													   
 			  WHERE ((@GlobalFilter <>'' AND ((VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -477,7 +479,7 @@ BEGIN
 					,PartDescription,PartNumberType,PartDescriptionType
 					,StockTypeType,RepairOrderNumberType,
 					ManufacturerType,PriorityType,NeedByDate,PromisedDate,NeedByDateType,PromisedDateType,ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType--,PurchaseOrderNumberType
-					,LastMSLevel,AllMSlevels,VendorReference,
+					,LastMSLevel,AllMSlevels,VendorReference,MemoType,
 					@TotalCount as NumberOfItems
 					FROM #TEMPData
 			ORDER BY  

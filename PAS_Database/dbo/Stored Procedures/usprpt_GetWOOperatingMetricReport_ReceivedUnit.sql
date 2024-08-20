@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_ReceivedUnit]             
  ** Author:  Rajesh Gami    
@@ -149,10 +148,10 @@ BEGIN
 		  
 		  WHERE ISNULL(CW.IsDeleted,0) = 0 AND
 				CW.CustomerId=ISNULL(@customerid,CW.CustomerId) 
-				--AND CW.ItemMasterId = ISNULL(@itemMasterId,CW.ItemMasterId) 
+				    AND CW.ItemMasterId = ISNULL(@itemMasterId,CW.ItemMasterId) 
 					AND CAST(CW.ReceivedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND CW.mastercompanyid = @mastercompanyid
 					--AND (ISNULL(@woTypeIds,'')='' OR WO.WorkOrderTypeId IN(SELECT value FROM String_split(ISNULL(@woTypeIds,''), ',')))
-					AND (ISNULL(@workscopeIds,'')='' OR WOPN.RevisedConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
+					AND (ISNULL(@workscopeIds,'')='' OR CW.ConditionId IN(SELECT value FROM String_split(ISNULL(@workscopeIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

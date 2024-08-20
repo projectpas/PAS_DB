@@ -12,11 +12,13 @@
  ** PR   Date			Author					Change Description                
  ** --   --------		-------					--------------------------------              
     1    08/14/2024  	Devendra Shekh			Created     
+    2    08/20/2024  	Devendra Shekh			added @VendorContactId param     
  
  EXEC [USP_CheckEmailContactExistsForVendor] 12
 *********************************************/ 
 CREATE   PROCEDURE [dbo].[USP_CheckEmailContactExistsForVendor]
-	@VendorId BIGINT = 0
+	@VendorId BIGINT = 0,
+	@VendorContactId BIGINT NULL = 0
 AS
 BEGIN
 		BEGIN TRY
@@ -31,7 +33,14 @@ BEGIN
 			
 			--Get Email & Phone from Customer Primary Comtact details.
 			SELECT @ContactId = [ContactId] FROM [dbo].[VendorContact] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [IsDefaultContact] = 1;
-			SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+			IF(ISNULL(@VendorContactId, 0) > 0)
+			BEGIN
+				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @VendorContactId;
+			END
+			ELSE
+			BEGIN
+				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+			END
 
 			--Get Email & Phone from Customer details.
 			SELECT @ExistingCustomerPhone = [VendorPhone], @ExistingEmail = [VendorEmail] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [IsActive] = 1 AND [IsDeleted] = 0;

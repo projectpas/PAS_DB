@@ -3122,6 +3122,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetQuickBooksSettingsByMasterCompany.sql" />
     <Build Include="dbo\Stored Procedures\CheckEmailContactExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckEmailContactExistsForVendor.sql" />
+    <Build Include="dbo\Functions\ValidatePDFAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

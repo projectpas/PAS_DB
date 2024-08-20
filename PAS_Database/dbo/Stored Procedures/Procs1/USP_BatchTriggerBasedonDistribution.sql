@@ -22,6 +22,7 @@
 	7    28/11/2023  Moin Bloch         Modify(Added LotId And Lot Number in CommonBatchDetails)
 	8    08/01/2024  Moin Bloch         Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 	9    26/04/2024  Hemant Saliya      Added Re-Open WO Reverse Entry
+	12   20/08/2024  Moin Bloch         Added Part Wise Reverse Records
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
@@ -2295,7 +2296,7 @@ BEGIN
 					FROM dbo.CommonBatchDetails CBD WITH(NOLOCK)
 							JOIN dbo.WorkOrderBatchDetails WOBD WITH(NOLOCK)  ON CBD.CommonJournalBatchDetailId = WOBD.CommonJournalBatchDetailId
 							JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON DS.ID = CBD.DistributionSetupId
-					WHERE WOBD.InvoiceId = @InvoiceId AND CBD.MasterCompanyId = @MasterCompanyId
+					WHERE WOBD.InvoiceId = @InvoiceId AND WOBD.[MPNPartId] = @ReferencePartId AND CBD.MasterCompanyId = @MasterCompanyId
 
 					SELECT @temptotaldebitcount = SUM(ISNULL(DebitAmount,0)), @temptotalcreditcount =SUM(ISNULL(CreditAmount,0)) FROM #tmpCommonBatchDetails;
 
@@ -2454,7 +2455,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_BatchTriggerBasedonDistribution' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@DistributionMasterId, '') + ''
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@DistributionMasterId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

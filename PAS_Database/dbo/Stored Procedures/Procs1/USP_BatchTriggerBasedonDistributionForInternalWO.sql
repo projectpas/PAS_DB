@@ -20,6 +20,7 @@
 	6    28/04/2024  HEMANT SALIYA  Modify(Remove Shiping A/C Entry)
 	7    02/05/2024  Devendra Shekh Modify(changed Distribution WOIINVENTORYTOBILL to WOIFINISHGOOD, and reading @MaterialCost details from wompncostdetails)
 	8    02/05/2024  HEMANT SALIYA  Updated Reverse Billing Entry.
+	9    20/08/2024  Moin Bloch         Added Part Wise Reverse Records
 
 ************************************************************************/
 
@@ -2142,7 +2143,7 @@ BEGIN
 					FROM dbo.CommonBatchDetails CBD WITH(NOLOCK)
 							JOIN dbo.WorkOrderBatchDetails WOBD WITH(NOLOCK)  ON CBD.CommonJournalBatchDetailId = WOBD.CommonJournalBatchDetailId
 							JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON DS.ID = CBD.DistributionSetupId
-					WHERE WOBD.InvoiceId = @InvoiceId AND CBD.MasterCompanyId = @MasterCompanyId
+					WHERE WOBD.InvoiceId = @InvoiceId AND WOBD.[MPNPartId] = @ReferencePartId AND CBD.MasterCompanyId = @MasterCompanyId
 
 					SELECT @temptotaldebitcount = SUM(ISNULL(DebitAmount,0)), @temptotalcreditcount = SUM(ISNULL(CreditAmount,0)) FROM #tmpCommonBatchDetails;
 
@@ -2224,10 +2225,10 @@ BEGIN
 
 						 INSERT INTO [dbo].[BatchDetails]
 							(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate],[JournalTypeId],[JournalTypeName],
-							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[AccountingPeriodId],[AccountingPeriod])
+							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[AccountingPeriodId],[AccountingPeriod],[IsReversedJE])
 						 VALUES
 							(@JournalTypeNumber, @currentNo, @DistributionSetupId, @Distributionname, @JournalBatchHeaderId, 1 , @GlAccountId , @GlAccountNumber , @GlAccountName, GETUTCDATE(), GETUTCDATE(),@JournalTypeId , @JournalTypename ,
-							1,0,0, @ManagementStructureId, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod)
+							1,0,0, @ManagementStructureId, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod,1)
 						
 						SET @JournalBatchDetailId = SCOPE_IDENTITY()
 

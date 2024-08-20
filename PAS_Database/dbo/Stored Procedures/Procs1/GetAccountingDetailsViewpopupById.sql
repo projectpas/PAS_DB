@@ -25,6 +25,7 @@
 	9    15/07/2024  Sahdev Saliya          Added (AccountingPeriod)
 	10   25/07/2024  Sahdev Saliya          Set JournalTypeNumber Order by desc
 	11   25/07/2024  Moin Bloch             Added IsReversedJE
+	12   20/08/2024  Moin Bloch             Getting Part Wise Records
 	
 --EXEC [GetAccountingDetailsViewpopupById] 3949,3472
 
@@ -223,7 +224,7 @@ BEGIN
 		LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = WBD.CustomerId
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
       --WHERE WBD.ReferenceId = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId    
-	    WHERE WBD.[ReferenceId] = @WorkOrderId AND ISNULL(WBD.InvoiceId ,0) > 0) A
+	    WHERE WBD.[ReferenceId] = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId AND ISNULL(WBD.InvoiceId ,0) > 0) A
 
 		SELECT   [BatchName],    
                  [LineNumber],    
@@ -263,43 +264,42 @@ BEGIN
                  [UpdatedDate],    
                  [IsActive],    
                  [IsDeleted],    
-				 AllowManualJE,    
-				 LastMSLevel,    
-				 AllMSlevels,    
-				 IsManualEntry,    
-				 DistributionSetupId,   
-				 DistributionName,    
-				 LegalEntityName,    
-				 JournalTypeNumber,
-				 CurrentNumber,
-				 StocklineId, 
-				 AccountingPeriod,
-				 StockLineNumber, 
+				 [AllowManualJE],    
+				 [LastMSLevel],    
+				 [AllMSlevels],    
+				 [IsManualEntry],    
+				 [DistributionSetupId],   
+				 [DistributionName],    
+				 [LegalEntityName],    
+				 [JournalTypeNumber],
+				 [CurrentNumber],
+				 [StocklineId], 
+				 [AccountingPeriod],
+				 [StockLineNumber], 
 				 [JournalTypeId], 
-				 ExpertiseName,
-				 EmployeeName,
-			     level1,      
-			     level2,     
-			     level3,     
-			     level4,     
-			     level5,     
-			     level6,     
-			     level7,     
-			     level8,     
-			     level9,     
-			     level10,  
-				 Currency,
+				 [ExpertiseName],
+				 [EmployeeName],
+			     [level1],      
+			     [level2],     
+			     [level3],     
+			     [level4],     
+			     [level5],     
+			     [level6],     
+			     [level7],     
+			     [level8],     
+			     [level9],     
+			     [level10],  
+				 [Currency],
 				 [LotNumber],
-				 IsUpdated,
-				 IsReversedJE
-		FROM #MyTempTableWO
-		order by JournalTypeNumber desc
+				 [IsUpdated],
+				 [IsReversedJE]
+		FROM #MyTempTableWO ORDER BY [JournalTypeNumber] DESC
   END    
   END TRY    
  BEGIN CATCH          
   IF @@trancount > 0    
    PRINT 'ROLLBACK'    
-   ROLLBACK TRAN;    
+   --ROLLBACK TRAN;    
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'GetAccountingDetailsViewpopupById'     

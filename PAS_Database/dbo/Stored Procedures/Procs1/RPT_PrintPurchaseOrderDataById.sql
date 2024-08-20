@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [RPT_PrintPurchaseOrderDataById]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to Get Print PurchaseOrder Data By PurchaseOrderId
@@ -104,6 +105,16 @@ BEGIN
 			   ISNULL(Ad.[AddressID],0) AS 'ShipToAddressId',
 			   ISNULL(Ad.[Line1],'') AS 'ShipToAddress1',
 			   ISNULL(Ad.[Line2],'') AS 'ShipToAddress2',
+			   (Upper(Ad.[Line1]) +'<br/>' +
+					CASE WHEN ISNULL(Ad.[Line2],'') != '' THEN Upper(Ad.[Line2] )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(Ad.[City],'') != '' THEN Upper(Ad.[City]) ELSE ''END +
+					CASE WHEN ISNULL(Ad.[StateOrProvince],'') != '' THEN ' '+ Upper(Ad.[StateOrProvince]) ELSE ''END +
+					CASE WHEN ISNULL(Ad.[PostalCode],'') != '' THEN ','+ Upper(Ad.[PostalCode])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(Ad.[Country],'') != '' THEN Upper(Ad.[Country])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(Ad.[ContactPhoneNo],'') != '' THEN Upper(Ad.[ContactPhoneNo])+'<br/>'ELSE ''END + 
+					CASE WHEN ISNULL(SC.[Email],'') != '' THEN Upper(SC.[Email])+'<br/>'ELSE ''END
+					) ShipToMergedAddress
+					,
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
 			   THEN 
@@ -163,7 +174,16 @@ BEGIN
 			   ISNULL(ADB.[AddressID],0) AS 'BillToAddressId',
 			   ISNULL(ADB.[Line1],'') AS 'BillToAddress1',
 			   ISNULL(ADB.[Line2],'') AS 'BillToAddress2',
-
+			   (Upper(ADB.[Line1]) +'<br/>' +
+					CASE WHEN ISNULL(ADB.[Line2],'') != '' THEN Upper(ADB.[Line2] )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(ADB.[City],'') != '' THEN Upper(ADB.[City]) ELSE ''END +
+					CASE WHEN ISNULL(ADB.[StateOrProvince],'') != '' THEN ' '+ Upper(ADB.[StateOrProvince]) ELSE ''END +
+					CASE WHEN ISNULL(ADB.[PostalCode],'') != '' THEN ','+ Upper(ADB.[PostalCode])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(ADB.[Country],'') != '' THEN Upper(ADB.[Country])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(ADB.[ContactPhoneNo],'') != '' THEN Upper(ADB.[ContactPhoneNo])+'<br/>'ELSE ''END + 
+					CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
+					) BillToMergedAddress
+					,
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
 			   THEN

@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:     [RPT_GetManagementStructureDetailsForPOReportsHeader]
  ** Author:   Amit Ghediya
  ** Description: 
@@ -47,6 +48,16 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
+					(Upper(ad.Line1) +'<br/>' +
+					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(co.countries_name,'') != '' THEN Upper(co.countries_name)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
+					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END
+					) MergedAddress
+					,
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),

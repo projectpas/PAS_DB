@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [RPT_PrintPurchaseVendorDataById]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to Get Print Vendor Data By VendorId
@@ -32,6 +33,16 @@ BEGIN
 			   --VN.[VendorEmail],
 			   VN.[VendorPhone],
 			   VN.[VendorPhoneExt],
+			   (Upper(AD.[Line1]) +'<br/>' +
+					CASE WHEN ISNULL(AD.[Line2],'') != '' THEN Upper(AD.[Line2] )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(AD.[City],'') != '' THEN Upper(AD.[City]) ELSE ''END +
+					CASE WHEN ISNULL(AD.[StateOrProvince],'') != '' THEN ' '+ Upper(AD.[StateOrProvince]) ELSE ''END +
+					CASE WHEN ISNULL(AD.[PostalCode],'') != '' THEN ','+ Upper(AD.[PostalCode])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(CO.[countries_name],'') != '' THEN ' '+ Upper(CO.[countries_name])+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(VN.[VendorPhone],'') != '' THEN Upper(VN.[VendorPhone])+'<br/>'ELSE ''END + 
+					CASE WHEN ISNULL(PO.[VendorContactEmail],'') != '' THEN Upper(PO.[VendorContactEmail])+'<br/>'ELSE ''END
+					) MergedAddress
+					,
 			   AD.[Line1],
 			   AD.[Line2],
 			   AD.[City],

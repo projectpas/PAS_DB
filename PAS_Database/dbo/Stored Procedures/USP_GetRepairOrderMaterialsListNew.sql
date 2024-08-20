@@ -70,7 +70,7 @@ SET NOCOUNT ON
 				--Inserting Data For Parent Level- For Pagination : Start
 				INSERT INTO #TMPROPartParentListData
 				([RepairOrderPartRecordId])
-				SELECT DISTINCT	[RepairOrderPartRecordId] FROM [DBO].[RepairOrderPart] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.RepairOrderId = @RepairOrderId
+				SELECT DISTINCT	[RepairOrderPartRecordId] FROM [DBO].[RepairOrderPart] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.IsParent = 1 AND WOM.RepairOrderId = @RepairOrderId
 
 				SELECT * INTO #TMPROPartResultListData FROM #TMPROPartParentListData tmp 
 				ORDER BY tmp.RepairOrderPartRecordId ASC
@@ -190,7 +190,8 @@ SET NOCOUNT ON
 					RoPartSplitPostalCode VARCHAR(200),
 					PriorityId BIGINT,
 					IsLotAssigned BIT,
-					LotId BIGINT
+					LotId BIGINT,
+					ParentId BIGINT
 				);
 
 				-- Insert the main parts into the temporary table
@@ -322,7 +323,7 @@ SET NOCOUNT ON
 					RepairOrderPart pop
 				LEFT JOIN RepairOrderManagementStructureDetails AS popms ON popms.ReferenceID = pop.RepairOrderPartRecordId AND popms.ModuleID = @ModuleId
 				WHERE 
-					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0
+					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0 AND pop.IsParent = 1
 					AND pop.RepairOrderPartRecordId IN (SELECT RepairOrderPartRecordId FROM #TMPROPartResultListData);
 
 				-- Insert the split parts into the temporary table
@@ -366,7 +367,8 @@ SET NOCOUNT ON
 					splitPart.RoPartSplitPostalCode,
 					splitPart.PriorityId,
 					splitPart.IsLotAssigned,
-					splitPart.LotId
+					splitPart.LotId,
+					splitPart.ParentId
 				FROM 
 					RepairOrderPart splitPart
 				WHERE 

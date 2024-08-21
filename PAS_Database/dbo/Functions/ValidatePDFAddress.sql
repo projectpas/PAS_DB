@@ -12,7 +12,7 @@
     1    08/20/2024   BHargav Saliya			Created
 
 **************************************************************/ 
-CREATE   FUNCTION dbo.ValidatePDFAddress
+CREATE   FUNCTION [dbo].[ValidatePDFAddress]
 (
     @Address1 NVARCHAR(255),
     @Address2 NVARCHAR(255),
@@ -58,13 +58,13 @@ BEGIN
     -- Append StateOrProvince
     IF (@StateOrProvince IS NOT NULL AND @StateOrProvince <> '')
     BEGIN
-        SET @address = @address + '' + @StateOrProvince ;
+        SET @address = @address+ ' ' + @StateOrProvince ;
     END
 
     -- Append PostalCode
     IF (@PostalCode IS NOT NULL AND @PostalCode <> '')
     BEGIN
-        SET @address = @address + ' , ' + @PostalCode + '<br/>';
+        SET @address = @address + ' , '+ @PostalCode + '<br/>';
     END
 
     -- Append Country
@@ -77,18 +77,24 @@ BEGIN
     IF (@PhoneNumber IS NOT NULL AND @PhoneNumber <> '')
     BEGIN
         SET @address = @address + @PhoneNumber;
+		--+ (CASE WHEN @PhoneExt IS NULL OR @PhoneExt <> '' THEN '<br/>' ELSE '' END) ; 
+
     END
 
 	-- Append PhoneExt
     IF (@PhoneExt IS NOT NULL AND @PhoneExt <> '')
     BEGIN
-        SET @address = @address + '' +@PhoneExt + '<br/>';
+        SET @address = @address + ' ' + @PhoneExt + '<br/>';
     END
-
+	ELSE
+	BEGIN
+        SET @address = @address + '<br/>'; 
+		
+	END
     -- Append Email
     IF (@Email IS NOT NULL AND @Email <> '')
     BEGIN
-        SET @address = @address + @Email;
+        SET @address =  @address + @Email;
     END
 
     RETURN @address;

@@ -1,6 +1,6 @@
 ﻿/******************************************
  ** File:   [USP_CheckEmailContactExistsForVendor]               
- ** Author:  AMIT GHEDIYA    
+ ** Author:  Devendra Shekh    
  ** Description:  This Store Procedure use to check vendor emial & phone is exists.   
  ** Purpose:             
  ** Date:   08/14/2024          

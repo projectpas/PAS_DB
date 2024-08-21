@@ -224,7 +224,7 @@ BEGIN
 		LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = WBD.CustomerId
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
       --WHERE WBD.ReferenceId = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId    
-	    WHERE WBD.[ReferenceId] = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId AND ISNULL(WBD.InvoiceId ,0) > 0) A
+	    WHERE WBD.[ReferenceId] = @WorkOrderId  AND ISNULL(WBD.InvoiceId ,0) > 0) A
 
 		SELECT   [BatchName],    
                  [LineNumber],    
@@ -303,7 +303,7 @@ BEGIN
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'GetAccountingDetailsViewpopupById'     
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderId, '') + ''    
+		    , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
             exec spLogException     

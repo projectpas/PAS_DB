@@ -3127,6 +3127,9 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetPurchaseAnalysis_POStock.sql" />
     <Build Include="dbo\Stored Procedures\GetPOAnalysisDetail_ROByIMId.sql" />
     <Build Include="dbo\Stored Procedures\GetPOAnalysisDetail_POByIMId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPOApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\PROCAddUpdatePurchaseApproval.sql" />
+    <Build Include="dbo\User Defined Types\PurchaseOrderApprovalType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

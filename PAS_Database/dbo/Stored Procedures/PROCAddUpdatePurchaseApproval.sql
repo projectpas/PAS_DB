@@ -1,4 +1,22 @@
-﻿CREATE   PROCEDURE [dbo].[PROCAddUpdatePurchaseApproval](@TablePurchaseOrderApprovalType PurchaseOrderApprovalType READONLY)  
+﻿/*************************************************************               
+ ** File:   [PROCAddUpdatePurchaseApproval]               
+ ** Author:   SHREY CHANDEGARA    
+ ** Description:         
+ ** Purpose:             
+ ** Date:   21/08/2024            
+              
+ ** RETURN VALUE:               
+      
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author   Change Description                
+ ** --   --------     -------   --------------------------------              
+    1    21/08/2024    SHREY CHANDEGARA  Created    
+         
+ EXECUTE PROCAddUpdatePurchaseApproval  
+**************************************************************/
+CREATE   PROCEDURE [dbo].[PROCAddUpdatePurchaseApproval](@TablePurchaseOrderApprovalType PurchaseOrderApprovalType READONLY)  
 AS 
 BEGIN
 		

@@ -13,8 +13,9 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/11/2024   AMIT GHEDIYA		Created
+	2    08/21/2024   HEMANT SALIYA		Corrected Email Address get from LE Default Contact
 
- EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,781
+ EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForSOReportsHeader]    
 (    
@@ -34,14 +35,7 @@ SET NOCOUNT ON
 				DECLARE @ModuleId BIGINT,@IsRequestor BIT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
 
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
-				SELECT @IsRequestor = IsRequestor  FROM dbo.PurchaseOrderSettingMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
-				
-				IF(@IsRequestor > 0)
-				BEGIN 
-					SELECT @RequestedBy = EmployeeId FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @salesOrderId;
-					SELECT @Email = Email FROM dbo.Employee WITH(NOLOCK) WHERE EmployeeId = @RequestedBy;
-				END
-				
+
 				SELECT DISTINCT TOP 1
 					CompanyName = Upper(le.CompanyName),
 					le.CompanyCode,
@@ -57,7 +51,7 @@ SET NOCOUNT ON
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
+					Email = UPPER(c.Email),
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,

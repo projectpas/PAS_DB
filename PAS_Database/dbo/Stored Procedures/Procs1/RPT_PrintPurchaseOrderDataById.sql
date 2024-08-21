@@ -105,16 +105,18 @@ BEGIN
 			   ISNULL(Ad.[AddressID],0) AS 'ShipToAddressId',
 			   ISNULL(Ad.[Line1],'') AS 'ShipToAddress1',
 			   ISNULL(Ad.[Line2],'') AS 'ShipToAddress2',
-			   (Upper(Ad.[Line1]) +'<br/>' +
-					CASE WHEN ISNULL(Ad.[Line2],'') != '' THEN Upper(Ad.[Line2] )+'<br/>' ELSE '' END +
-					CASE WHEN ISNULL(Ad.[City],'') != '' THEN Upper(Ad.[City]) ELSE ''END +
-					CASE WHEN ISNULL(Ad.[StateOrProvince],'') != '' THEN ' '+ Upper(Ad.[StateOrProvince]) ELSE ''END +
-					CASE WHEN ISNULL(Ad.[PostalCode],'') != '' THEN ','+ Upper(Ad.[PostalCode])+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(Ad.[Country],'') != '' THEN Upper(Ad.[Country])+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(Ad.[ContactPhoneNo],'') != '' THEN Upper(Ad.[ContactPhoneNo])+'<br/>'ELSE ''END + 
-					CASE WHEN ISNULL(SC.[Email],'') != '' THEN Upper(SC.[Email])+'<br/>'ELSE ''END
-					) ShipToMergedAddress
-					,
+			  -- (Upper(Ad.[Line1]) +'<br/>' +
+					--CASE WHEN ISNULL(Ad.[Line2],'') != '' THEN Upper(Ad.[Line2] )+'<br/>' ELSE '' END +
+					--CASE WHEN ISNULL(Ad.[City],'') != '' THEN Upper(Ad.[City]) ELSE ''END +
+					--CASE WHEN ISNULL(Ad.[StateOrProvince],'') != '' THEN ' '+ Upper(Ad.[StateOrProvince]) ELSE ''END +
+					--CASE WHEN ISNULL(Ad.[PostalCode],'') != '' THEN ','+ Upper(Ad.[PostalCode])+'<br/>'ELSE ''END +
+					--CASE WHEN ISNULL(Ad.[Country],'') != '' THEN Upper(Ad.[Country])+'<br/>'ELSE ''END +
+					--CASE WHEN ISNULL(Ad.[ContactPhoneNo],'') != '' THEN Upper(Ad.[ContactPhoneNo])+'<br/>'ELSE ''END + 
+					--CASE WHEN ISNULL(SC.[Email],'') != '' THEN Upper(SC.[Email])+'<br/>'ELSE ''END
+					--) ShipToMergedAddress
+					--,
+				ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,SC.[Email])),
+					
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
 			   THEN 
@@ -174,16 +176,18 @@ BEGIN
 			   ISNULL(ADB.[AddressID],0) AS 'BillToAddressId',
 			   ISNULL(ADB.[Line1],'') AS 'BillToAddress1',
 			   ISNULL(ADB.[Line2],'') AS 'BillToAddress2',
-			   (Upper(ADB.[Line1]) +'<br/>' +
-					CASE WHEN ISNULL(ADB.[Line2],'') != '' THEN Upper(ADB.[Line2] )+'<br/>' ELSE '' END +
-					CASE WHEN ISNULL(ADB.[City],'') != '' THEN Upper(ADB.[City]) ELSE ''END +
-					CASE WHEN ISNULL(ADB.[StateOrProvince],'') != '' THEN ' '+ Upper(ADB.[StateOrProvince]) ELSE ''END +
-					CASE WHEN ISNULL(ADB.[PostalCode],'') != '' THEN ','+ Upper(ADB.[PostalCode])+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(ADB.[Country],'') != '' THEN Upper(ADB.[Country])+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(ADB.[ContactPhoneNo],'') != '' THEN Upper(ADB.[ContactPhoneNo])+'<br/>'ELSE ''END + 
-					CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
-					) BillToMergedAddress
-					,
+			  -- (Upper(ADB.[Line1]) +'<br/>' +
+					--CASE WHEN ISNULL(ADB.[Line2],'') != '' THEN Upper(ADB.[Line2] )+'<br/>' ELSE '' END +
+					--CASE WHEN ISNULL(ADB.[City],'') != '' THEN Upper(ADB.[City]) ELSE ''END +
+					--CASE WHEN ISNULL(ADB.[StateOrProvince],'') != '' THEN ' '+ Upper(ADB.[StateOrProvince]) ELSE ''END +
+					--CASE WHEN ISNULL(ADB.[PostalCode],'') != '' THEN ','+ Upper(ADB.[PostalCode])+'<br/>'ELSE ''END +
+					--CASE WHEN ISNULL(ADB.[Country],'') != '' THEN Upper(ADB.[Country])+'<br/>'ELSE ''END +
+					--CASE WHEN ISNULL(ADB.[ContactPhoneNo],'') != '' THEN Upper(ADB.[ContactPhoneNo])+'<br/>'ELSE ''END + 
+					--CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
+					--) BillToMergedAddress
+					--,
+				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL,BC.[Email])),
+					
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
 			   THEN

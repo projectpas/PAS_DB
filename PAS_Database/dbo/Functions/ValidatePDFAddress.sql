@@ -12,15 +12,17 @@
     1    08/20/2024   BHargav Saliya			Created
 
 **************************************************************/ 
-CREATE   FUNCTION dbo.ValidatePDFAddress
+CREATE   FUNCTION [dbo].[ValidatePDFAddress]
 (
     @Address1 NVARCHAR(255),
     @Address2 NVARCHAR(255),
+	@Address3 NVARCHAR(255),
     @City NVARCHAR(255),
     @StateOrProvince NVARCHAR(255),
     @PostalCode NVARCHAR(50),
     @Country NVARCHAR(255),
     @PhoneNumber NVARCHAR(50),
+	@PhoneExt NVARCHAR(50),
     @Email NVARCHAR(255)
 )
 RETURNS NVARCHAR(MAX)
@@ -41,22 +43,28 @@ BEGIN
         SET @address = @address + @Address2 + '<br/>';
     END
 
+	 -- Append Address3
+    IF (@Address3 IS NOT NULL AND @Address3 <> '')
+    BEGIN
+        SET @address = @address + @Address3 + '<br/>';
+    END
+
     -- Append City
     IF (@City IS NOT NULL AND @City <> '')
     BEGIN
-        SET @address = @address + @City + ' ';
+        SET @address = @address + @City ;
     END
 
     -- Append StateOrProvince
     IF (@StateOrProvince IS NOT NULL AND @StateOrProvince <> '')
     BEGIN
-        SET @address = @address + @StateOrProvince + ' , ';
+        SET @address = @address+ ' ' + @StateOrProvince ;
     END
 
     -- Append PostalCode
     IF (@PostalCode IS NOT NULL AND @PostalCode <> '')
     BEGIN
-        SET @address = @address + @PostalCode + '<br/>';
+        SET @address = @address + ' , '+ @PostalCode + '<br/>';
     END
 
     -- Append Country
@@ -68,13 +76,25 @@ BEGIN
     -- Append PhoneNumber
     IF (@PhoneNumber IS NOT NULL AND @PhoneNumber <> '')
     BEGIN
-        SET @address = @address + @PhoneNumber + '<br/>';
+        SET @address = @address + @PhoneNumber;
+		--+ (CASE WHEN @PhoneExt IS NULL OR @PhoneExt <> '' THEN '<br/>' ELSE '' END) ; 
+
     END
 
+	-- Append PhoneExt
+    IF (@PhoneExt IS NOT NULL AND @PhoneExt <> '')
+    BEGIN
+        SET @address = @address + ' ' + @PhoneExt + '<br/>';
+    END
+	ELSE
+	BEGIN
+        SET @address = @address + '<br/>'; 
+		
+	END
     -- Append Email
     IF (@Email IS NOT NULL AND @Email <> '')
     BEGIN
-        SET @address = @address + @Email;
+        SET @address =  @address + @Email;
     END
 
     RETURN @address;

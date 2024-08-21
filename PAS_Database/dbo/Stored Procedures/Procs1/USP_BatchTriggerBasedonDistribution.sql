@@ -141,18 +141,36 @@ BEGIN
 				   @CustomerName= CustomerName 
 			  FROM [dbo].[WorkOrder] WITH(NOLOCK)  
 			  WHERE [WorkOrderId] = @ReferenceId
-		              
-			IF(@ReferencePartId = 0)
+		    
+			IF(@JournalTypeCode = 'WOI')
 			BEGIN
-				SELECT TOP 1 @partId=WorkOrderPartNoId 
-				  FROM [dbo].[WorkOrderWorkFlow] 
-				  WITH(NOLOCK) WHERE WorkOrderId=@ReferenceId
+				IF(@ReferencePartId = 0)
+				BEGIN
+					SELECT TOP 1 @partId=WorkOrderPartNoId 
+					  FROM [dbo].[WorkOrderWorkFlow] 
+					  WITH(NOLOCK) WHERE WorkOrderId=@ReferenceId
+				END
+				ELSE 
+				BEGIN
+					SELECT @partId=WorkOrderPartNoId 
+					  FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) 
+					  WHERE WorkFlowWorkOrderId=@ReferencePartId
+				END
 			END
-			ELSE 
+			ELSE
 			BEGIN
-				SELECT @partId=WorkOrderPartNoId 
-				  FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) 
-				  WHERE WorkFlowWorkOrderId=@ReferencePartId
+				IF(@ReferencePartId = 0)
+				BEGIN
+					SELECT TOP 1 @partId=WorkOrderPartNoId 
+					  FROM [dbo].[WorkOrderWorkFlow] 
+					  WITH(NOLOCK) WHERE WorkOrderId=@ReferenceId
+				END
+				ELSE 
+				BEGIN
+					SELECT @partId=WorkOrderPartNoId 
+					  FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) 
+					  WHERE WorkFlowWorkOrderId=@ReferencePartId
+				END
 			END
 
 	        SELECT @ManagementStructureId = WOP.[ManagementStructureId], 

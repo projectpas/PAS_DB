@@ -12,12 +12,13 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    12/08/2024  	AMIT GHEDIYA	Created     
+	2    21/08/2024  	Devendra Shekh	added @CustomerContactId param     
  
  EXEC [CheckEmailContactExists] 12
 ********************************************************************/ 
-
-CREATE     PROCEDURE [dbo].[CheckEmailContactExists]
-	@customerId BIGINT = 0
+CREATE   PROCEDURE [dbo].[CheckEmailContactExists]
+	@customerId BIGINT = 0,
+	@CustomerContactId BIGINT NULL = 0
 AS
 BEGIN
 		BEGIN TRY
@@ -32,7 +33,14 @@ BEGIN
 			
 			--Get Email & Phone from Customer Primary Comtact details.
 			SELECT @ContactId = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsDefaultContact] = 1;
-			SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+			IF(ISNULL(@CustomerContactId, 0) > 0)
+			BEGIN
+				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @CustomerContactId;
+			END
+			ELSE
+			BEGIN
+				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+			END
 
 			--Get Email & Phone from Customer details.
 			SELECT @ExistingCustomerPhone = [CustomerPhone], @ExistingEmail = [Email] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsActive] = 1 AND [IsDeleted] = 0;

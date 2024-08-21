@@ -10,6 +10,7 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/20/2024   BHargav Saliya			Created
+    2    08/21/2024   Ekta Chandegra			Add Comma Separation
 
 **************************************************************/ 
 CREATE   FUNCTION [dbo].[ValidatePDFAddress]
@@ -34,25 +35,25 @@ BEGIN
     -- Append Address1
     IF (@Address1 IS NOT NULL AND @Address1 <> '')
     BEGIN
-        SET @address = @address + @Address1 + '<br/>';
+        SET @address = @address + @Address1 + ', <br/>';
     END
 
     -- Append Address2
     IF (@Address2 IS NOT NULL AND @Address2 <> '')
     BEGIN
-        SET @address = @address + @Address2 + '<br/>';
+        SET @address = @address + @Address2 + ', <br/>';
     END
 
 	 -- Append Address3
     IF (@Address3 IS NOT NULL AND @Address3 <> '')
     BEGIN
-        SET @address = @address + @Address3 + '<br/>';
+        SET @address = @address + @Address3 + ', <br/>';
     END
 
     -- Append City
     IF (@City IS NOT NULL AND @City <> '')
     BEGIN
-        SET @address = @address + @City ;
+        SET @address = @address + @City + ', ' ;
     END
 
     -- Append StateOrProvince
@@ -64,7 +65,7 @@ BEGIN
     -- Append PostalCode
     IF (@PostalCode IS NOT NULL AND @PostalCode <> '')
     BEGIN
-        SET @address = @address + ' , '+ @PostalCode + '<br/>';
+        SET @address = @address + ' , '+ @PostalCode + ', <br/>';
     END
 
     -- Append Country

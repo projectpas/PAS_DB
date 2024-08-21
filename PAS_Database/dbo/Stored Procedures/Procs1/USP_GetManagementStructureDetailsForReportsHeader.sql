@@ -17,7 +17,7 @@
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
     3    12/08/2024   Ekta Chandegra		Retrieve Address
     4    13/08/2024   Devendra Shekh		added Email to select
-    5    21/08/2024   Ekta Chandegra		Retrieve Address with commas separates
+    5    21/08/2024   Ekta Chandegra		Retrieve Address using dbo.ValidatePDFAddress common method
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -45,19 +45,20 @@ SET NOCOUNT ON
 					atd.Link,
 					at.ModuleId,
 
-					(Upper(ad.Line1) +', <br/>' +
-					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+', <br/>' ELSE '' END +
-					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City)+ ', ' ELSE ''END +
-					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince)+', ' ELSE ''END +
-					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ''+ Upper(ad.PostalCode)+', <br/>'ELSE ''END +
-					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
-					CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
-					CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
-					) MergedAddress
-					,
+					--(Upper(ad.Line1) +', <br/>' +
+					--CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+', <br/>' ELSE '' END +
+					--CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City)+ ', ' ELSE ''END +
+					--CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince)+', ' ELSE ''END +
+					--CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ''+ Upper(ad.PostalCode)+', <br/>'ELSE ''END +
+					--CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
+					--CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
+					--CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
+					--CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
+					--CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
+					--) MergedAddress
 
+					 MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,NULL,c.Email))
+					,
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),

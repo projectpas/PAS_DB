@@ -16,7 +16,8 @@
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
     3    12/08/2024   Ekta Chandegra		Retrieve Address
-    3    13/08/2024   Devendra Shekh		added Email to select
+    4    13/08/2024   Devendra Shekh		added Email to select
+    5    21/08/2024   Ekta Chandegra		Retrieve Address with commas separates
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
@@ -44,11 +45,11 @@ SET NOCOUNT ON
 					atd.Link,
 					at.ModuleId,
 
-					(Upper(ad.Line1) +'<br/>' +
-					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
-					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
-					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
-					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
+					(Upper(ad.Line1) +', <br/>' +
+					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+', <br/>' ELSE '' END +
+					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City)+ ', ' ELSE ''END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince)+', ' ELSE ''END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ''+ Upper(ad.PostalCode)+', <br/>'ELSE ''END +
 					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
 					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
 					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+

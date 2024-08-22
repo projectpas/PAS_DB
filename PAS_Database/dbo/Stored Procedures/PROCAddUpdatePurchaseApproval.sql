@@ -23,8 +23,6 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED		
 	BEGIN TRY
-		BEGIN TRANSACTION
-			BEGIN 
 			DECLARE @SentForInternalApproval AS BIGINT; SET @SentForInternalApproval = 1;
 			DECLARE @SubmitInternalApproval AS BIGINT; SET @SubmitInternalApproval = 2;
 			DECLARE @SentForCustomerApproval AS BIGINT; SET @SentForCustomerApproval =  3;
@@ -66,9 +64,7 @@ BEGIN
 							SOURCE.[RejectedByName],@WaitingForApprovalStatus,SOURCE.[StatusName],@SubmitInternalApproval,SOURCE.[MasterCompanyId],SOURCE.[CreatedBy],SOURCE.[UpdatedBy],GETDATE(),
 							GETDATE(),1,0,SOURCE.[InternalSentToId],SOURCE.[InternalSentToName],SOURCE.[InternalSentById]);
 							
-				END
 			END
-		COMMIT  TRANSACTION
 	END TRY  
 	BEGIN CATCH      
 		IF @@trancount > 0

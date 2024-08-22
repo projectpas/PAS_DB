@@ -47,7 +47,7 @@ BEGIN
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
-		@selectedItemMasterId varchar(40) = NULL
+		@selectedItemMasterId varchar(40) = NULL, @totalQty Int =0, @totalUnitCost decimal(18,2)=0, @totalExtCost decimal(18,2)=0
 
   
   BEGIN TRY  
@@ -96,7 +96,7 @@ BEGIN
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 	  
 	  SELECT * INTO #TempPOAnalysisTbl FROM
-      (SELECT 
+      (SELECT DISTINCT
 			UPPER(V.VendorName) 'vendor',  
 			V.VendorId VendorId,
 			ROW_NUMBER() OVER(Partition by STK.ItemMasterId ORDER BY STK.CreatedDate) AS Row_Number,
@@ -105,12 +105,12 @@ BEGIN
 			UPPER(IM.PartDescription) 'pnDescription',  
 			UPPER(CN.Description) 'condition',  
 			UPPER(POP.UnitOfMeasure) 'uom',
-			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oems',
+			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oem',
 			UPPER(IM.ManufacturerName) 'manufacturer',
-			ISNULL(stk.Quantity,0) AS 'qty', 
+			ISNULL(stk.Quantity,0) AS 'qtys', 
 			ISNULL(POP.UnitCost,0) AS 'unitCost', 
-			(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCost',
-			stk.CreatedDate AS 'receivedDate',
+			(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
+			CAST(stk.CreatedDate as Date) AS 'receivedDate',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -137,7 +137,7 @@ BEGIN
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON RO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
 		  
-		  WHERE ISNULL(RO.IsDeleted,0) = 0 AND
+		  WHERE ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
 				RO.VendorId=ISNULL(@vendorId,RO.VendorId)    AND POP.ItemMasterId = ISNULL(@selectedItemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND RO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@conditionIds,'')='' OR Stk.ConditionId IN(SELECT value FROM String_split(ISNULL(@conditionIds,''), ',')))
@@ -152,7 +152,13 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
-		SELECT * FROM #TempPOAnalysisTbl ORDER BY openDate DESC		
+		SELECT *
+			 INTO #tmpFinalAnalysisResult FROM (SELECT DISTINCT vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,SUM(qtys) as qty,
+			  unitCost,SUM(extCosts)extCost,receivedDate,openDate,requester,refNumber,receiverNum,poroAnalysisId,isPurchaseOrder FROM #TempPOAnalysisTbl GROUP BY vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,
+			   unitCost,receivedDate,openDate,requester,refNumber,receiverNum,poroAnalysisId,isPurchaseOrder) as res
+
+		SELECT @totalQty = SUM(qty), @totalUnitCost = SUM(unitCost), @totalExtCost = SUM(extCost) FROM #tmpFinalAnalysisResult
+		SELECT *,@totalQty as totalQty, @totalUnitCost as totalUnitCost, @totalExtCost as totalExtCost   FROM #tmpFinalAnalysisResult ORDER BY openDate DESC	
 
   END TRY  
   

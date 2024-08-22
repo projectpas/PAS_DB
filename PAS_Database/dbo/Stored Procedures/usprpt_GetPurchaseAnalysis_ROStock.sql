@@ -120,7 +120,7 @@ BEGIN
 			UPPER(IM.ManufacturerName) 'manufacturers',
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
-			stk.CreatedDate AS 'lastPurchaseDates',
+			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -135,7 +135,7 @@ BEGIN
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
 			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId  AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.RepairOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID

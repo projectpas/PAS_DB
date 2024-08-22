@@ -130,7 +130,7 @@ BEGIN
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
 			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on RO.RepairOrderId = STK.RepairOrderId  AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.RepairOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID

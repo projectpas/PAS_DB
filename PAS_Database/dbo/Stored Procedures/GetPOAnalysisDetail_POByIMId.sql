@@ -131,7 +131,7 @@ BEGIN
         FROM 
 			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
 			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId  AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -154,6 +154,7 @@ BEGIN
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
 
+		--Select * from #TempPOAnalysisTbl
 		SELECT *
 			  INTO #tmpFinalAnalysisResult FROM (SELECT DISTINCT vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,SUM(qtys) as qty,
 			   unitCost,SUM(extCosts)extCost,receivedDate,openDate,requester,refNumber,receiverNum,poroAnalysisId,isPurchaseOrder FROM #TempPOAnalysisTbl GROUP BY vendor,VendorId,ItemMasterId,pn,pnDescription,condition,uom,oem,manufacturer,

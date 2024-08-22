@@ -118,7 +118,7 @@ BEGIN
 			UPPER(IM.ManufacturerName) 'manufacturers',
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
-			stk.CreatedDate AS 'lastPurchaseDates',
+			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    (CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -133,7 +133,7 @@ BEGIN
         FROM 
 			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
 			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId
+			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
 			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.itemmasterId = IM.itemmasterId
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
@@ -167,7 +167,7 @@ BEGIN
 
 			(SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) AS LastRowNo,
 			* FROM #TempPOAnalysis main) as res
-
+		--Select * From #TempPOAnalysisFinal where ItemMasterId =20740
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(LastRowNo)) as avgAge
 		 ,MAX(LastRowNo) LastRowNo

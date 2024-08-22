@@ -22,9 +22,7 @@ AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
-  BEGIN TRY  
-  BEGIN TRANSACTION  
-   BEGIN   
+  BEGIN TRY
 		SELECT 
 			ISNULL(poa.PurchaseOrderApprovalId, 0) AS PurchaseOrderApprovalId,
 			ISNULL(poa.ApprovedById, 0) AS ApprovedById,
@@ -35,10 +33,7 @@ BEGIN
 		LEFT JOIN 
 			DBO.[PurchaseOrderPart] pop WITH(NOLOCK) ON poa.PurchaseOrderPartId = pop.PurchaseOrderPartRecordId
 		WHERE 
-			poa.PurchaseOrderId = @PurchaseOrderId;
-
-   END  
-  COMMIT  TRANSACTION  
+			poa.PurchaseOrderId = @PurchaseOrderId; 
  END TRY      
  BEGIN CATCH        
   IF @@trancount > 0  

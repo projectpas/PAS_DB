@@ -74,7 +74,7 @@ BEGIN
 		@searchWOType=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='searchWOType' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @searchWOType end,
 
-		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='MPN(Optional)' 
+		@itemMasterId=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @itemMasterId end,
 
 		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
@@ -107,7 +107,7 @@ BEGIN
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 	  
 	  SELECT * INTO #TempPOAnalysis FROM
-		(SELECT 
+		(SELECT DISTINCT
 			UPPER(V.VendorName) 'vendor',  
 			V.VendorId VendorId,
 			ROW_NUMBER() OVER(Partition by STK.ItemMasterId ORDER BY STK.CreatedDate) AS Row_Number,
@@ -121,7 +121,7 @@ BEGIN
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
 			stk.CreatedDate AS 'lastPurchaseDates',
-		    (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.CreatedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.CreatedDate) ELSE 0 END) as dateAge,
+		    (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -142,8 +142,8 @@ BEGIN
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON RO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
 		  
-		  WHERE ISNULL(RO.IsDeleted,0) = 0 AND
-				RO.VendorId=ISNULL(@vendorId,RO.VendorId)    AND POP.ItemMasterId = ISNULL(@itemMasterId,POP.ItemMasterId)  
+		  WHERE ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
+				RO.VendorId=ISNULL(@vendorId,RO.VendorId) AND POP.ItemMasterId = ISNULL(@itemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND RO.mastercompanyid = @mastercompanyid
 					AND (ISNULL(@conditionIds,'')='' OR Stk.ConditionId IN(SELECT value FROM String_split(ISNULL(@conditionIds,''), ',')))
 					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -173,7 +173,7 @@ BEGIN
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(LastRowNo)) as avgAge
 		 ,MAX(LastRowNo) LastRowNo
-		 ,MAX(qty) qty, oem
+		 ,SUM(qty) qty, oem
 		 FROM #TempPOAnalysisFinal GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)

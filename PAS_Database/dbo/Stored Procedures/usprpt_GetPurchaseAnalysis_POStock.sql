@@ -15,7 +15,6 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
-    2    23-AUG-2024     Devendra Shekh    lastPurchaseDates date issue resolved
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_POStock]
@@ -48,7 +47,6 @@ BEGIN
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
 		@totalResult VARCHAR(10) = 0
-
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
@@ -120,7 +118,12 @@ BEGIN
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
-		    (CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
+		    --(CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
+
+			(CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE
+					CASE WHEN po.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.OpenDate,stk.ReceivedDate) ELSE 0 END 
+						END ) as dateAge,
+
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -131,8 +134,7 @@ BEGIN
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10
-        FROM 
-			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+        FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
 			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
@@ -140,7 +142,6 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
-		  
 		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
 				    PO.VendorId=ISNULL(@vendorId,PO.VendorId) AND POP.ItemMasterId = ISNULL(@itemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
@@ -169,7 +170,7 @@ BEGIN
 
 			(SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) AS LastRowNo,
 			* FROM #TempPOAnalysis main) as res
-		--Select * From #TempPOAnalysisFinal where ItemMasterId =20740
+		--Select * From #TempPOAnalysisFinal order by LastRowNo desc--where ItemMasterId =20740
 		SELECT * INTO #tmpFinalResult FROM
 		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(LastRowNo)) as avgAge
 		 ,MAX(LastRowNo) LastRowNo

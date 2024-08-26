@@ -124,8 +124,8 @@ BEGIN
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
 		    --(CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
 			(CASE WHEN ISNULL(RO.IsEnforce,0) = 1 
-				  THEN (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE (CASE WHEN RO.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.OpenDate,stk.ReceivedDate) ELSE 0 END) END) 
-				  ELSE (CASE WHEN RO.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.OpenDate,stk.ReceivedDate) ELSE 0 END) 
+				  THEN (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE (CASE WHEN RO.CreatedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.CreatedDate,stk.ReceivedDate) ELSE 0 END) END) 
+				  ELSE (CASE WHEN RO.CreatedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.CreatedDate,stk.ReceivedDate) ELSE 0 END) 
 				  END) as dateAge,
 
 			UPPER(MSD.Level1Name) AS level1,  

@@ -13,7 +13,7 @@
 	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
-exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=4,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4270,@WFWOId=3795,@ShowPendingToIssue=0
+exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 (    
@@ -352,7 +352,7 @@ SET NOCOUNT ON
 				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
 				ORDER BY tmp.WorkFlowWorkOrderId ASC
 				OFFSET @RecordFrom ROWS   
-				FETCH NEXT @Local_PageSize ROWS ONLY
+				FETCH NEXT CASE WHEN ISNULL(@Local_ShowPendingToIssue, 0) = 1 THEN 50 ELSE @Local_PageSize END ROWS ONLY
 				--Inserting Data For Parent Level- For Pagination : End
 
 				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
@@ -1286,7 +1286,10 @@ SET NOCOUNT ON
 					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 				END
 
-				SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
+				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
+					SELECT @Count = COUNT(1) from #finalMaterialListResult;
+				ELSE
+					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
 
 				SELECT *, @Count As NumberOfItems FROM #finalMaterialListResult
 				ORDER BY    

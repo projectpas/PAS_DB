@@ -1,4 +1,6 @@
-﻿/*************************************************************             
+﻿
+
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_POStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Purchased Stock]
@@ -47,7 +49,6 @@ BEGIN
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
 		@totalResult VARCHAR(10) = 0
-
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
@@ -119,7 +120,12 @@ BEGIN
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
-		    (CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
+		    --(CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE 0 END) as dateAge,
+			(CASE WHEN ISNULL(PO.IsEnforce,0) = 1 
+				  THEN (CASE WHEN po.DateApproved IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.DateApproved,stk.ReceivedDate) ELSE (CASE WHEN po.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.OpenDate,stk.ReceivedDate) ELSE 0 END) END) 
+				  ELSE (CASE WHEN po.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.OpenDate,stk.ReceivedDate) ELSE 0 END) 
+				  END) as dateAge,
+
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -129,9 +135,9 @@ BEGIN
 			UPPER(MSD.Level7Name) AS level7, 
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
-			UPPER(MSD.Level10Name) AS level10
-        FROM 
-			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+			UPPER(MSD.Level10Name) AS level10,
+			PO.PurchaseOrderId
+        FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
 			INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId AND POP.ItemMasterId = stk.ItemMasterId
 			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId
@@ -139,7 +145,6 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
-		  
 		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
 				    PO.VendorId=ISNULL(@vendorId,PO.VendorId) AND POP.ItemMasterId = ISNULL(@itemMasterId,POP.ItemMasterId)  
 					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
@@ -155,28 +160,38 @@ BEGIN
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		) as a
-		
+		--SELECT * FROM #TempPOAnalysis
+
+
 		SELECT * INTO #TempPOAnalysisFinal FROM
 		 (SELECT 
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.conditions FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE conditions END) AS 'condition',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.uoms FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE uoms END) AS 'uom',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.oems FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE oems END) AS 'oem',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 CONVERT(DECIMAL(10,2),tm.lastUnitPrices) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE CONVERT(DECIMAL(10,2),lastUnitPrices) END) AS 'lastUnitPrice',
-			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 convert(varchar, tm.lastPurchaseDates, 101) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE  convert(varchar, lastPurchaseDates, 101)  END) AS 'lastPurchaseDate',
+			--(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 convert(varchar, tm.lastPurchaseDates, 101) FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE  convert(varchar, lastPurchaseDates, 101)  END) AS 'lastPurchaseDate',
+			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.lastPurchaseDates FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE  lastPurchaseDates END) AS 'lastPurchaseDate',
 			(CASE WHEN (SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) > 1 THEN (SELECT TOP 1 tm.manufacturers FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) ELSE manufacturers END) AS 'manufacturer',
 
 			(SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) AS LastRowNo,
 			* FROM #TempPOAnalysis main) as res
-		--Select * From #TempPOAnalysisFinal where ItemMasterId =20740
+		--Select * From #TempPOAnalysisFinal order by LastRowNo desc--where ItemMasterId =20740
+		
+		SELECT *
+			  INTO #tmpFinalAnalysis FROM (SELECT 
+			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId 
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,PurchaseOrderId) as res
+
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(LastRowNo)) as avgAge
-		 ,MAX(LastRowNo) LastRowNo
+		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(MaxRow_Number)) as avgAge
+		 ,MAX(MaxRow_Number) MaxRow_Number
 		 ,SUM(qty) qty, oem
-		 FROM #TempPOAnalysisFinal GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
+		 FROM #tmpFinalAnalysis GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		
-		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by LastRowNo DESC'
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by MaxRow_Number DESC'
 		PRINT @Sql
 		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  

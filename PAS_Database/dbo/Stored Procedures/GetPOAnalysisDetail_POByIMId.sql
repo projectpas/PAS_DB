@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [dbo.GetPOAnalysisDetail_POByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Detail By Item Master Id
@@ -161,7 +160,7 @@ BEGIN
 			   unitCost,receivedDate,openDate,requester,refNumber,receiverNum,poroAnalysisId,isPurchaseOrder) as res
 
 		SELECT @totalQty = SUM(qty), @totalUnitCost = SUM(unitCost), @totalExtCost = SUM(extCost) FROM #tmpFinalAnalysisResult
-		SELECT *,@totalQty as totalQty, @totalUnitCost as totalUnitCost, @totalExtCost as totalExtCost   FROM #tmpFinalAnalysisResult ORDER BY openDate DESC		
+		SELECT *,@totalQty as totalQty, @totalUnitCost as totalUnitCost, @totalExtCost as totalExtCost   FROM #tmpFinalAnalysisResult ORDER BY receivedDate DESC		
 
   END TRY  
   

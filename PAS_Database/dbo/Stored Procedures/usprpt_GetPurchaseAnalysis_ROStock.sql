@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_ROStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Repaired Stock]
@@ -121,7 +122,12 @@ BEGIN
 			ISNULL(stk.Quantity,0) AS 'qty', 
 			ISNULL(POP.UnitCost,0) AS 'lastUnitPrices', 
 			CAST(stk.CreatedDate as Date) AS 'lastPurchaseDates',
-		    (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
+		    --(CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE 0 END) as dateAge,
+			(CASE WHEN ISNULL(RO.IsEnforce,0) = 1 
+				  THEN (CASE WHEN RO.ApprovedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.ApprovedDate,stk.ReceivedDate) ELSE (CASE WHEN RO.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.OpenDate,stk.ReceivedDate) ELSE 0 END) END) 
+				  ELSE (CASE WHEN RO.OpenDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,RO.OpenDate,stk.ReceivedDate) ELSE 0 END) 
+				  END) as dateAge,
+
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -131,7 +137,8 @@ BEGIN
 			UPPER(MSD.Level7Name) AS level7, 
 			UPPER(MSD.Level8Name) AS level8, 
 			UPPER(MSD.Level9Name) AS level9, 
-			UPPER(MSD.Level10Name) AS level10
+			UPPER(MSD.Level10Name) AS level10,
+			RO.RepairOrderId
         FROM 
 			DBO.RepairOrder AS RO WITH (NOLOCK)  
 			INNER JOIN DBO.RepairOrderPart AS POP WITH (NOLOCK) ON RO.RepairOrderId = POP.RepairOrderId
@@ -170,15 +177,22 @@ BEGIN
 			(SELECT TOP 1 Row_Number FROM #TempPOAnalysis tm WHERE tm.ItemMasterId = main.ItemMasterId ORDER BY Row_Number DESC) AS LastRowNo,
 			* FROM #TempPOAnalysis main) as res
 
+			SELECT *
+			  INTO #tmpFinalAnalysis FROM (SELECT 
+			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
+			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,SUM(qty) as qty,dateAge,RepairOrderId 
+			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,RepairOrderId) as res
+
+
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(LastRowNo)) as avgAge
-		 ,MAX(LastRowNo) LastRowNo
+		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(MaxRow_Number)) as avgAge
+		 ,MAX(MaxRow_Number) MaxRow_Number
 		 ,SUM(qty) qty, oem
-		 FROM #TempPOAnalysisFinal GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
+		 FROM #tmpFinalAnalysis GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result
 		
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
 		
-		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by LastRowNo DESC'
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by MaxRow_Number DESC'
 		PRINT @Sql
 		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  

@@ -155,7 +155,9 @@ SET NOCOUNT ON
 					TaggedByTypeName VARCHAR(200),
 					TagDate DATETIME2,
 					AllMSlevels VARCHAR(MAX),
-					LastMSLevel VARCHAR(200)
+					LastMSLevel VARCHAR(200),
+					ROChargesCount INT,
+					ROFrightsCount INT
 				);
 
 				IF OBJECT_ID(N'tempdb..#RepairOrderSplitParts') IS NOT NULL
@@ -318,7 +320,9 @@ SET NOCOUNT ON
 					pop.TaggedByTypeName,
 					pop.TagDate,
 					popms.AllMSlevels,
-					popms.LastMSLevel
+					popms.LastMSLevel,
+					(SELECT COUNT(*) FROM RepairOrderFreight WHERE RepairOrderPartRecordId = pop.RepairOrderPartRecordId AND IsDeleted = 0) AS ROChargesCount,
+					(SELECT COUNT(*) FROM RepairOrderCharges WHERE RepairOrderPartRecordId = pop.RepairOrderPartRecordId AND IsDeleted = 0) AS ROFrightsCount
 				FROM 
 					RepairOrderPart pop
 				LEFT JOIN RepairOrderManagementStructureDetails AS popms ON popms.ReferenceID = pop.RepairOrderPartRecordId AND popms.ModuleID = @ModuleId

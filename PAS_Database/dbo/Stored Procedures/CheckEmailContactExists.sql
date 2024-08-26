@@ -12,13 +12,15 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    12/08/2024  	AMIT GHEDIYA	Created     
-	2    21/08/2024  	Devendra Shekh	added @CustomerContactId param     
+	2    21/08/2024  	Devendra Shekh	added @CustomerContactId param  
+	3    22/08/2024  	AMIT GHEDIYA	added @ContactId param 
  
- EXEC [CheckEmailContactExists] 12
+ EXEC [CheckEmailContactExists] 12,0,0
 ********************************************************************/ 
 CREATE   PROCEDURE [dbo].[CheckEmailContactExists]
 	@customerId BIGINT = 0,
-	@CustomerContactId BIGINT NULL = 0
+	@CustomerContactId BIGINT NULL = 0,
+	@ContactId BIGINT NULL = 0
 AS
 BEGIN
 		BEGIN TRY
@@ -28,20 +30,24 @@ BEGIN
 					@ExistingContactPhone VARCHAR(100),
 					@ExistingEmail VARCHAR(100),
 					@ExistingContactEmail VARCHAR(100),
-					@ContactId BIGINT,
+					@ContactIds BIGINT,
 					@ReturnMsg VARCHAR(150) = 'Contact number or email details missing.';
 			
 			--Get Email & Phone from Customer Primary Comtact details.
-			SELECT @ContactId = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsDefaultContact] = 1;
+			SELECT @ContactIds = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsDefaultContact] = 1;
 			IF(ISNULL(@CustomerContactId, 0) > 0)
-			BEGIN
+			BEGIN 
+				IF(ISNULL(@ContactId,0) > 0)
+				BEGIN
+					 SELECT @CustomerContactId = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerContactId] = @CustomerContactId;
+				END
 				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @CustomerContactId;
 			END
 			ELSE
-			BEGIN
-				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactId;
+			BEGIN 
+				SELECT @ExistingContactPhone = [WorkPhone], @ExistingContactEmail = [Email] FROM [dbo].[contact] WITH(NOLOCK) WHERE [ContactId] = @ContactIds;
 			END
-
+			
 			--Get Email & Phone from Customer details.
 			SELECT @ExistingCustomerPhone = [CustomerPhone], @ExistingEmail = [Email] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsActive] = 1 AND [IsDeleted] = 0;
 			IF(ISNULL(@ExistingCustomerPhone,'') = '' OR ISNULL(@ExistingContactPhone,'') = '')

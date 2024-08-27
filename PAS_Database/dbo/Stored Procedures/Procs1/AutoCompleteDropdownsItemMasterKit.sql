@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    06/14/2024   Vishal Suthar Added History
     2    06/14/2024   Vishal Suthar Increased Limit of records from 20 to 50 for Item Master Module
+	3    08/27/2024   Hemant Saliya Updated for Include Non - Serialize part as well
      
 -- EXEC AutoCompleteDropdownsItemMasterKit 'ItemMaster','ItemMasterId','PartNumber','',1,'20','0',1
 **************************************************************/
@@ -52,7 +53,7 @@ BEGIN
 			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId,im.ManufacturerName As ManufacturerName 
-			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND isSerialized = 1 AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
+			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
 		  END		  	 
      END    
      ELSE    
@@ -67,7 +68,7 @@ BEGIN
 		          SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
 				  CAST(' + @Parameter2 + ' AS VARCHAR(MAX)) AS Label,
 				  MasterCompanyId FROM dbo.'+@TableName+     
-			' WITH(NOLOCK) WHERE MasterCompanyId = ' + CAST ( @MasterCompanyId AS nvarchar(50) ) + ' AND isSerialized = 1 AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+ @Parameter3 +'%''';    
+			' WITH(NOLOCK) WHERE MasterCompanyId = ' + CAST ( @MasterCompanyId AS nvarchar(50) ) + ' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+ @Parameter3 +'%''';    
      END          
   END
   ELSE    
@@ -79,7 +80,7 @@ BEGIN
 			SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, 
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName
-			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND isSerialized = 1 AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
+			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
 		  
 		END		 		  
    END    
@@ -95,7 +96,7 @@ BEGIN
 		          SELECT DISTINCT TOP ' +@Count+ ' CAST ( '+@Parameter1+' AS BIGINT) As Value,
 				  CAST('+ @Parameter2 + ' AS VARCHAR(MAX)) AS Label,
 				  MasterCompanyId FROM  dbo.'+@TableName+     
-          ' WHERE MasterCompanyId =  '  + CAST (@MasterCompanyId AS nvarchar(50)) + '  AND isSerialized = 1 AND  IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+ @Parameter3 +'%''';    
+          ' WHERE MasterCompanyId =  '  + CAST (@MasterCompanyId AS nvarchar(50)) + '  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+ @Parameter3 +'%''';    
     END           
   END
   PRINT @Sql    

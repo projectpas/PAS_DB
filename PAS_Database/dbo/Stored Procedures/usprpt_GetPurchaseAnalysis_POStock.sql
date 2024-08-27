@@ -126,7 +126,6 @@ BEGIN
 				  ELSE (CASE WHEN po.CreatedDate IS NOT NULL AND stk.ReceivedDate IS NOT NULL THEN DATEDIFF(DAY,po.CreatedDate,stk.ReceivedDate) ELSE 0 END) 
 				  END) as dateAge,
 
-
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
@@ -183,8 +182,9 @@ BEGIN
 			  ROW_NUMBER() OVER(Partition by ItemMasterId ORDER BY lastPurchaseDate) AS MaxRow_Number,
 			  condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,SUM(qty) as qty,dateAge,PurchaseOrderId 
 			  FROM #TempPOAnalysisFinal GROUP BY condition,uom, oem,lastUnitPrice,lastPurchaseDate,manufacturer,LastRowNo,vendor,ItemMasterId,pn,pnDescription,dateAge,PurchaseOrderId) as res
+
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, (SUM(dateAge)/MAX(MaxRow_Number)) as avgAge
+		 (SELECT condition,pn,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate,SUM(dateAge)sums, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
 		 ,MAX(MaxRow_Number) MaxRow_Number
 		 ,SUM(qty) qty, oem
 		 FROM #tmpFinalAnalysis GROUP BY pn,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,oem,manufacturer) as result

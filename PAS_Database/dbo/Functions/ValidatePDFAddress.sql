@@ -11,6 +11,7 @@
  ** --   --------     -------				--------------------------------          
     1    08/20/2024   BHargav Saliya			Created
     2    08/21/2024   Ekta Chandegra			Add Comma Separation
+	3    08/28/2024   AMIT GHEDIYA			    Edit for Ristrict '-'
 
 **************************************************************/ 
 CREATE   FUNCTION [dbo].[ValidatePDFAddress]
@@ -33,49 +34,85 @@ BEGIN
     SET @address = '';
 
     -- Append Address1
-    IF (@Address1 IS NOT NULL AND @Address1 <> '')
+    IF (@Address1 IS NOT NULL AND @Address1 <> '' AND TRIM(@Address1) <> '-')
     BEGIN
-        SET @address = @address + @Address1 + ', <br/>';
+        SET @address = @address + @Address1 + ' <br/>';
     END
 
     -- Append Address2
-    IF (@Address2 IS NOT NULL AND @Address2 <> '')
+    IF (@Address2 IS NOT NULL AND @Address2 <> '' AND TRIM(@Address2) <> '-')
     BEGIN
-        SET @address = @address + @Address2 + ', <br/>';
+        SET @address = @address + @Address2 + ' <br/>';
     END
 
 	 -- Append Address3
-    IF (@Address3 IS NOT NULL AND @Address3 <> '')
+    IF (@Address3 IS NOT NULL AND @Address3 <> '' AND TRIM(@Address3) <> '-')
     BEGIN
         SET @address = @address + @Address3 + ', <br/>';
     END
 
     -- Append City
-    IF (@City IS NOT NULL AND @City <> '')
+    IF (@City IS NOT NULL AND @City <> '' AND TRIM(@City) <> '-')
     BEGIN
-        SET @address = @address + @City + ', ' ;
+        SET @address = @address + @City;
     END
 
     -- Append StateOrProvince
-    IF (@StateOrProvince IS NOT NULL AND @StateOrProvince <> '')
+    IF (@StateOrProvince IS NOT NULL AND @StateOrProvince <> '' AND TRIM(@StateOrProvince) <> '-')
     BEGIN
-        SET @address = @address+ ' ' + @StateOrProvince ;
+		IF(@City IS NOT NULL AND @City <> '' AND TRIM(@City) <> '-')
+		BEGIN
+			SET @address = @address+ ', ' + @StateOrProvince ;
+		END
+		ELSE
+		BEGIN
+			SET @address = @address+ ' ' + @StateOrProvince ;
+		END
     END
 
     -- Append PostalCode
-    IF (@PostalCode IS NOT NULL AND @PostalCode <> '')
+    IF (@PostalCode IS NOT NULL AND @PostalCode <> '' AND TRIM(@PostalCode) <> '-')
     BEGIN
-        SET @address = @address + ' , '+ @PostalCode + ', <br/>';
+		IF(@StateOrProvince IS NOT NULL AND @StateOrProvince <> '' AND TRIM(@StateOrProvince) <> '-')
+		BEGIN
+			SET @address = @address+ ', ' + @PostalCode + ', <br/>';
+		END
+		ELSE
+		BEGIN
+			IF(@City IS NOT NULL AND @City <> '' AND TRIM(@City) <> '-')
+			BEGIN
+				SET @address = @address + ', '+ @PostalCode + ', <br/>';
+			END
+			ELSE
+			BEGIN
+				SET @address = @address + ' '+ @PostalCode + ', <br/>';
+			END
+		END
     END
+	ELSE
+	BEGIN
+		IF(@City IS NOT NULL AND @City <> '' AND TRIM(@City) <> '-')
+		BEGIN
+			SET @address = @address + '<br/>';
+		END
+		ELSE IF(@StateOrProvince IS NOT NULL AND @StateOrProvince <> '' AND TRIM(@StateOrProvince) <> '-')
+		BEGIN 
+			SET @address = @address + '<br/>';
+		END
+		ELSE IF(@PostalCode IS NOT NULL AND @PostalCode <> '' AND TRIM(@PostalCode) <> '-')
+		BEGIN 
+			SET @address = @address + '<br/>';
+		END
+	END
 
     -- Append Country
-    IF (@Country IS NOT NULL AND @Country <> '')
+    IF (@Country IS NOT NULL AND @Country <> '' AND TRIM(@Country) <> '-')
     BEGIN
         SET @address = @address + @Country + '<br/>';
     END
 
     -- Append PhoneNumber
-    IF (@PhoneNumber IS NOT NULL AND @PhoneNumber <> '')
+    IF (@PhoneNumber IS NOT NULL AND @PhoneNumber <> '' AND TRIM(@PhoneNumber) <> '-')
     BEGIN
         SET @address = @address + @PhoneNumber;
 		--+ (CASE WHEN @PhoneExt IS NULL OR @PhoneExt <> '' THEN '<br/>' ELSE '' END) ; 
@@ -83,7 +120,7 @@ BEGIN
     END
 
 	-- Append PhoneExt
-    IF (@PhoneExt IS NOT NULL AND @PhoneExt <> '')
+    IF (@PhoneExt IS NOT NULL AND @PhoneExt <> '' AND TRIM(@PhoneExt) <> '-')
     BEGIN
         SET @address = @address + ' ' + @PhoneExt + '<br/>';
     END
@@ -93,7 +130,7 @@ BEGIN
 		
 	END
     -- Append Email
-    IF (@Email IS NOT NULL AND @Email <> '')
+    IF (@Email IS NOT NULL AND @Email <> '' AND TRIM(@Email) <> '-')
     BEGIN
         SET @address =  @address + @Email;
     END

@@ -95,7 +95,11 @@ BEGIN
 		BEGIN
 			SET @address = @address + '<br/>';
 		END
-		ELSE 
+		ELSE IF(@StateOrProvince IS NOT NULL AND @StateOrProvince <> '' AND TRIM(@StateOrProvince) <> '-')
+		BEGIN 
+			SET @address = @address + '<br/>';
+		END
+		ELSE IF(@PostalCode IS NOT NULL AND @PostalCode <> '' AND TRIM(@PostalCode) <> '-')
 		BEGIN 
 			SET @address = @address + '<br/>';
 		END

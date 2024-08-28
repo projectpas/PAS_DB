@@ -17,6 +17,7 @@
 	1	27-April-2022	 Subhash Saliya 	Move Reports to Angular Side
     2   05/26/2023		HEMANT SALIYA		Updated For WorkOrder Settings
 	3   04-SEPT-2023    Ekta Chandegra      Convert text into uppercase
+	4   27-AUG-2024     Devendra Shekh      date issue resolved
 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
@@ -170,9 +171,12 @@ BEGIN
 				UPPER(MAX(WOS.Description)) AS WorkOrderStatus,  
 				UPPER(MAX(WOS.Description)) AS WorkOrderStatusType,  
 				MAX(WO.OpenDate) AS OpenDate, 
-				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.CustomerRequestDate), 107) END 'CustomerRequestDateType', 
-      			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.PromisedDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.PromisedDate), 107) END 'PromisedDateType',  
-				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.EstimatedShipDate), 107) END 'EstimatedShipDateType', 
+				--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.CustomerRequestDate), 107) END 'CustomerRequestDateType', 
+				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN MAX(WPN.CustomerRequestDate) ELSE CONVERT(VARCHAR(50), MAX(WPN.CustomerRequestDate), 107) END 'CustomerRequestDateType', 
+      			--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.PromisedDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.PromisedDate), 107) END 'PromisedDateType',  
+      			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN MAX(WPN.PromisedDate) ELSE CONVERT(VARCHAR(50), MAX(WPN.PromisedDate), 107) END 'PromisedDateType',  
+				--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), MAX(WPN.EstimatedShipDate), 107) END 'EstimatedShipDateType', 
+				CASE WHEN ISNULL(@IsDownload,0) = 0 THEN MAX(WPN.EstimatedShipDate) ELSE CONVERT(VARCHAR(50), MAX(WPN.EstimatedShipDate), 107) END 'EstimatedShipDateType', 
 				((Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc))as EstimatedCompletionDate,  
 				((Select top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) where WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc))as EstimatedCompletionDateType,  
 				(isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0)) + ISNULL(DATEDIFF(day, Max(WTT.StatusChangedDate), GETDATE()), 0) as TotalDaysinStage,

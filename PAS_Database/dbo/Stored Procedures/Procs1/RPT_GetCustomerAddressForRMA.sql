@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [RPT_GetCustomerAddressForRMA]           
  ** Author:   Amit Ghediya
  ** Description: Save Customer Get Rma Address for SSRS Report
@@ -13,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
+	3    28-08-2023   Shrey Chandegara  Modify Due to remove (...) From AddCommon and set proper length.
 	
 
 -- EXEC [dbo].[RPT_GetCustomerAddressForRMA] 68,1
@@ -40,10 +42,10 @@ BEGIN
 				WHEN billToAddress.Line1 !='' OR billToAddress.Line2 !='' 
 				THEN 
 					CASE 
-						WHEN LEN(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')) < 25
+						WHEN LEN(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')) <= 29
 							THEN ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')
 						ELSE
-							LEFT(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,''),25) + '....'
+							LEFT(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,''),29) 
 						END					
 				ELSE
 					''
@@ -79,10 +81,10 @@ BEGIN
 				WHEN billToAddress.Line1 !='' OR billToAddress.Line2 !='' 
 				THEN 
 					CASE 
-						WHEN LEN(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')) < 25
+						WHEN LEN(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')) <= 29
 							THEN ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,'')
 						ELSE
-							LEFT(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,''),25) + '....'
+							LEFT(ISNULL(billToAddress.Line1,'') +' '+ ISNULL(billToAddress.Line2,''),29) 
 						END					
 				ELSE
 					''

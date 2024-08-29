@@ -1,10 +1,11 @@
-﻿-- =============================================
+﻿
+-- =============================================
 -- Author:		Subhash Saliya
 -- Create date: 01 jun 2022
 -- Description:	Get Expire Days in Stockline
 --select dbo.FN_GetCurrentLaborHours(1,0)
 -- =============================================
-create       FUNCTION [dbo].[FN_GetCurrentLaborHours]
+CREATE       FUNCTION [dbo].[FN_GetCurrentLaborHours]
 (
 	@WorkOrderLaborId as bigint,
 	@IsSubworkorder as bit
@@ -30,23 +31,24 @@ BEGIN
 				 if(@IsSubworkorder =0)
 				 begin
 				   select 	@TotalHours= ISNULL(DATEDIFF(MINUTE, wolt.StartTime,GETUTCDATE())/60,0),
-							@TotalMinutes =  DATEDIFF(MINUTE, wolt.StartTime,GETUTCDATE()) % 60  FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK)
+							@TotalMinutes =  DATEDIFF(MINUTE, wolt.StartTime,GETUTCDATE()) % 60  
+							FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK)
 				    LEFT JOIN DBO.WorkOrderLabor wol  WITH(NOLOCK) on wolt.WorkOrderLaborId = wol.WorkOrderLaborId
 					LEFT JOIN DBO.WorkOrderLaborHeader woh  WITH(NOLOCK) on woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
-				    WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=0
+				    WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=0
 
 
 					select 	@isrunningtaskcount= count(wolt.WorkOrderLaborTrackingId)  FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK)
 				    LEFT JOIN DBO.WorkOrderLabor wol  WITH(NOLOCK) on wolt.WorkOrderLaborId = wol.WorkOrderLaborId
 					LEFT JOIN DBO.WorkOrderLaborHeader woh  WITH(NOLOCK) on woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
-				    WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=1
+				    WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=1
 
 					if(@isrunningtaskcount >0)
 					begin
 						  SELECT @totalHours =  @totalHours+ SUM(ISNULL(TotalHours,0)), @totalMinutes = @TotalMinutes+ SUM(ISNULL(TotalMinutes,0))  FROM DBO.WorkOrderLaborTracking wolt WITH(NOLOCK)
 				          LEFT JOIN DBO.WorkOrderLabor wol  WITH(NOLOCK) on wolt.WorkOrderLaborId = wol.WorkOrderLaborId
 					      LEFT JOIN DBO.WorkOrderLaborHeader woh  WITH(NOLOCK) on woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
-				          WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=1
+				          WHERE wol.WorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=1
 					END
 
 
@@ -58,13 +60,13 @@ BEGIN
 								@TotalMinutes =  DATEDIFF(MINUTE, wolt.StartTime,GETUTCDATE()) % 60  FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK)
 				    LEFT JOIN DBO.SubWorkOrderLabor wol  WITH(NOLOCK) on wolt.SubWorkOrderLaborId = wol.SubWorkOrderLaborId
 					LEFT JOIN DBO.SubWorkOrderLaborHeader woh  WITH(NOLOCK) on woh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId
-				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=0
+				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=0
 
 
 					SELECT @isrunningtaskcount= count(wolt.SubWorkOrderLaborTrackingId)  FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK)
 				    LEFT JOIN DBO.SubWorkOrderLabor wol  WITH(NOLOCK) on wolt.SubWorkOrderLaborId = wol.SubWorkOrderLaborId
 					LEFT JOIN DBO.SubWorkOrderLaborHeader woh  WITH(NOLOCK) on woh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId
-				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=1
+				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=1
 
 
 					if(@isrunningtaskcount >0)
@@ -72,7 +74,7 @@ BEGIN
 						  SELECT @totalHours =  @totalHours+ SUM(ISNULL(TotalHours,0)), @totalMinutes = @TotalMinutes+ SUM(ISNULL(TotalMinutes,0))  FROM DBO.SubWorkOrderLaborTracking wolt WITH(NOLOCK)
 				    LEFT JOIN DBO.SubWorkOrderLabor wol  WITH(NOLOCK) on wolt.SubWorkOrderLaborId = wol.SubWorkOrderLaborId
 					LEFT JOIN DBO.SubWorkOrderLaborHeader woh  WITH(NOLOCK) on woh.SubWorkOrderLaborHeaderId = wol.SubWorkOrderLaborHeaderId
-				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and IsCompleted=1
+				    WHERE wol.SubWorkOrderLaborId = @WorkOrderLaborId AND wol.IsDeleted = 0 and ISNULL(wolt.IsCompleted,0)=1
 					END
 
 					

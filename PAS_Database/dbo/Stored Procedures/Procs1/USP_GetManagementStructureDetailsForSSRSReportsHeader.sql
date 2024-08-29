@@ -11,9 +11,10 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    08/12/2021   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    08/12/2021   Hemant Saliya		Created
+    2    08/29/2024   Devendra Shekh	added new field TimeZoneDateTime
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
@@ -52,17 +53,19 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
-					CompanyLogoPath = MS.companylogo
-				FROM EntityStructureSetup est
-					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
-					INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-					INNER JOIN MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
+					CompanyLogoPath = MS.companylogo,
+					CASE WHEN ISNULL(TZ.[Description], '') = '' THEN GETUTCDATE() ELSE DBO.ConvertUTCtoLocal(GETUTCDATE(), TZ.[Description]) end AS 'TimeZoneDateTime'
+				FROM dbo.EntityStructureSetup est WITH(NOLOCK)
+					INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
+					INNER JOIN dbo.LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+					INNER JOIN dbo.MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
 					JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 					JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 					LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
 					LEFT JOIN dbo.AttachmentDetails atd WITH(NOLOCK) ON at.AttachmentId = atd.AttachmentId AND atd.IsActive = 1 AND atd.IsDeleted = 0
 					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
 					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
+					LEFT JOIN dbo.TimeZone TZ WITH(NOLOCK) ON TZ.TimeZoneId = le.TimeZoneId 
 				WHERE est.EntityStructureId = @managementStructureId;
 			END
 		COMMIT  TRANSACTION

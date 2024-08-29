@@ -19,6 +19,7 @@
 	3    21/08/2023          Moin Bloch             Modify(Added Accounting MS Entry)
 	4    14/02/2024          HEMANT SALIYA          Updated for Use Code insted of Name
 	5    11/26/2023			 HEMANT SALIYA		    Updated Journal Type Id and Name in Batch Details
+	6    28-AUG-2024	     Devendra Shekh		    JE Number reset to Zero Issue resolved
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -311,15 +312,15 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 			UPDATE BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate = GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
-		END
 
 		
-		SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].BatchDetails 
-		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
-		SET @TotalBalance =@TotalDebit-@TotalCredit
+			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].BatchDetails 
+			WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
+			SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-	    UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+			UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+			UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+		END
 
 	END TRY
 	BEGIN CATCH

@@ -23,6 +23,7 @@
 	7    02/26/2024   Bhargav Saliya Resoved Shipping Issue
 	8    02/27/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
 	9    08/01/2024	  Devendra Shekh Modified for ModuleId for VendorRMAPaymentBatchDetails
+	10   08/28/2024   Devendra Shekh JE Number reset to Zero Issue resolved
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -473,6 +474,7 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 		END
 		
 		SELECT @TotalDebit =SUM(DebitAmount), @TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
@@ -480,7 +482,6 @@ BEGIN
 
 		SET @TotalBalance = ISNULL(@TotalDebit,0) - ISNULL(@TotalCredit,0)
 
-		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 	END TRY

@@ -56,6 +56,7 @@ SET NOCOUNT ON
 				DROP TABLE #TMPROPartParentListData
 				END
 
+				
 				IF OBJECT_ID(N'tempdb..#TMPROPartResultListData') IS NOT NULL
 				BEGIN
 				DROP TABLE #TMPROPartResultListData
@@ -71,13 +72,13 @@ SET NOCOUNT ON
 				INSERT INTO #TMPROPartParentListData
 				([RepairOrderPartRecordId])
 				SELECT DISTINCT	[RepairOrderPartRecordId] FROM [DBO].[RepairOrderPart] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.IsParent = 1 AND WOM.RepairOrderId = @RepairOrderId
-
+				
 				SELECT * INTO #TMPROPartResultListData FROM #TMPROPartParentListData tmp 
 				ORDER BY tmp.RepairOrderPartRecordId ASC
 				OFFSET @RecordFrom ROWS   
 				FETCH NEXT @Local_PageSize ROWS ONLY
 				--Inserting Data For Parent Level- For Pagination : End
-
+				
 				IF OBJECT_ID(N'tempdb..#RepairOrderParts') IS NOT NULL
 				BEGIN
 				DROP TABLE #RepairOrderParts
@@ -138,9 +139,9 @@ SET NOCOUNT ON
 					ItemType VARCHAR(200),
 					ItemTypeId BIGINT,
 					isAsset BIT,
-					PartDescription VARCHAR(255),
+					PartDescription VARCHAR(MAX),
 					AltEquiPartNumber VARCHAR(200),
-					AltEquiPartDescription VARCHAR(255),
+					AltEquiPartDescription VARCHAR(MAX),
 					ControlId VARCHAR(255),
 					ControlNumber VARCHAR(200),
 					IsLotAssigned BIT,
@@ -195,7 +196,7 @@ SET NOCOUNT ON
 					LotId BIGINT,
 					ParentId BIGINT
 				);
-
+				
 				-- Insert the main parts into the temporary table
 				INSERT INTO #RepairOrderParts
 				SELECT 
@@ -329,7 +330,7 @@ SET NOCOUNT ON
 				WHERE 
 					pop.RepairOrderId = @RepairOrderId AND pop.IsDeleted = 0 AND pop.IsParent = 1
 					AND pop.RepairOrderPartRecordId IN (SELECT RepairOrderPartRecordId FROM #TMPROPartResultListData);
-
+				
 				-- Insert the split parts into the temporary table
 				INSERT INTO #RepairOrderSplitParts
 				SELECT 
@@ -384,36 +385,36 @@ SET NOCOUNT ON
 				SELECT @Count = COUNT(ParentID) from #TMPROPartParentListData;
 
 				SELECT *, @Count As NumberOfItems FROM #RepairOrderParts
-				ORDER BY    
-					--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC,
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='PartNumber')  THEN PartNumber END ASC ,
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='AltEquiPartNumber')  THEN AltEquiPartNumber END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='PartDescription')  THEN PartDescription END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ManufacturerPN')  THEN ManufacturerPN END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ConditionId')  THEN ConditionId END ASC,    
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='QuantityReserved')  THEN QuantityReserved END ASC,
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='UOMId')  THEN UOMId END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='StockType')  THEN StockType END ASC,  
-					--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='needDate')  THEN needDate END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='FunctionalCurrencyId') THEN FunctionalCurrencyId END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='UnitCost')  THEN UnitCost END ASC,  
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ExtendedCost')  THEN ExtendedCost END ASC, 
-					CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='Memo')  THEN Memo END ASC,  
+				--ORDER BY    
+				--	--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC,
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='PartNumber')  THEN PartNumber END ASC ,
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='AltEquiPartNumber')  THEN AltEquiPartNumber END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='PartDescription')  THEN PartDescription END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ManufacturerPN')  THEN ManufacturerPN END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ConditionId')  THEN ConditionId END ASC,    
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='QuantityReserved')  THEN QuantityReserved END ASC,
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='UOMId')  THEN UOMId END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='StockType')  THEN StockType END ASC,  
+				--	--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='needDate')  THEN needDate END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='FunctionalCurrencyId') THEN FunctionalCurrencyId END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='UnitCost')  THEN UnitCost END ASC,  
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='ExtendedCost')  THEN ExtendedCost END ASC, 
+				--	CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='Memo')  THEN Memo END ASC,  
 
-					--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC,
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='PartNumber')  THEN PartNumber END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='AltEquiPartNumber')  THEN AltEquiPartNumber END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='PartDescription')  THEN PartDescription END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ManufacturerPN')  THEN ManufacturerPN END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ConditionId')  THEN ConditionId END DESC,    
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='QuantityReserved')  THEN QuantityReserved END DESC,
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='UOMId')  THEN UOMId END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='StockType')  THEN StockType END DESC,  
-					--CASE WHEN (@Local_SortOrde-r=1 and @Local_SortColumn='needDate')  THEN needDate END ASC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='FunctionalCurrencyId') THEN FunctionalCurrencyId END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='UnitCost')  THEN UnitCost END DESC,  
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ExtendedCost')  THEN ExtendedCost END DESC, 
-					CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='Memo')  THEN Memo END DESC
+				--	--CASE WHEN (@Local_SortOrder=1 and @Local_SortColumn='taskName')  THEN taskName END ASC,
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='PartNumber')  THEN PartNumber END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='AltEquiPartNumber')  THEN AltEquiPartNumber END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='PartDescription')  THEN PartDescription END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ManufacturerPN')  THEN ManufacturerPN END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ConditionId')  THEN ConditionId END DESC,    
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='QuantityReserved')  THEN QuantityReserved END DESC,
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='UOMId')  THEN UOMId END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='StockType')  THEN StockType END DESC,  
+				--	--CASE WHEN (@Local_SortOrde-r=1 and @Local_SortColumn='needDate')  THEN needDate END ASC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='FunctionalCurrencyId') THEN FunctionalCurrencyId END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='UnitCost')  THEN UnitCost END DESC,  
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='ExtendedCost')  THEN ExtendedCost END DESC, 
+				--	CASE WHEN (@Local_SortOrder=-1 and @Local_SortColumn='Memo')  THEN Memo END DESC
 
 					SELECT * FROM #RepairOrderSplitParts
 				

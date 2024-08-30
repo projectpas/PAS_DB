@@ -514,26 +514,34 @@ BEGIN
 
 						NextStockline_WOMK:
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) -- AND @ReservedIntoMaterial = 0)-- OR @IsExchangePO = 1
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOMK.ItemMasterId WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) -- AND @ReservedIntoMaterial = 0)-- OR @IsExchangePO = 1
 						BEGIN
 							DECLARE @SelectedWorkOrderMaterialsKitId INT = 0;
 							DECLARE @WorkFlowWorkOrderKitId BIGINT = 0;
 							DECLARE @RemainingStkQty INT = 0;
+							DECLARE @AltPartId_WOMKIT BIGINT = 0;
+							DECLARE @EquPartId_WOMKIT BIGINT = 0;
 
 							SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
 							@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
 							@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
 							FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
 
-							SELECT @SelectedWorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) 
-							WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+							SELECT @SelectedWorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId, @AltPartId = Nha_Alt.MappingItemMasterId,
+							@EquPartId = Nha_Euq.MappingItemMasterId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = WOMK.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = WOMK.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOMK.ItemMasterId OR Nha_Euq.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 
 							SET @Quantity = 0;
 							SET @QuantityReserved = 0;
 							SET @QuantityIssued = 0;
 
 							SELECT @Quantity = WOMK.Quantity, @QuantityReserved = ISNULL(WOMK.QuantityReserved, 0), @QuantityIssued = ISNULL(WOMK.QuantityIssued, 0), @WorkFlowWorkOrderKitId = WOMK.WorkFlowWorkOrderId 
-							FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+							FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = WOMK.ItemMasterId
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ ON Nha_Equ.ItemMasterId = WOMK.ItemMasterId
+							WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOMK.ItemMasterId OR Nha_Equ.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 
 							SET @OriginalQuantity = @Quantity;
 
@@ -650,8 +658,8 @@ BEGIN
 													WOMS.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId,
 													WOMS.ItemMasterId = @stkItemMasterId,
 													WOMS.ConditionId = @stkConditionId,
-													WOMS.IsAltPart = 0,
-													WOMS.IsEquPart = 0,
+													WOMS.IsAltPart = CASE WHEN @AltPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													WOMS.IsEquPart = CASE WHEN @EquPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END,
 													WOMS.UnitCost = @stkPurchaseOrderUnitCost,
 													WOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * (ISNULL(WOMS.Quantity, 0) + @Qty)),
 													WOMS.UnitPrice = @stkPurchaseOrderUnitCost,
@@ -668,7 +676,7 @@ BEGIN
 													[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],[RepairOrderPartRecordId])
 													SELECT @SelectedWorkOrderMaterialsKitId, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
 													0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
-													0, 0, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+													CASE WHEN @AltPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
 													@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL
 
 													SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
@@ -715,7 +723,7 @@ BEGIN
 							GOTO NextWFWO;
 						END
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId)-- OR @IsExchangePO = 1
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOMK.ItemMasterId WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId)-- OR @IsExchangePO = 1
 						BEGIN
 							UPDATE Stk
 							SET Stk.QuantityAvailable = @stkQuantityAvailable,
@@ -785,37 +793,48 @@ BEGIN
 					)
 
 					INSERT INTO #SubWorkOrderMaterialTemp ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [IsKitType])
-					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], 0 FROM DBO.SubWorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.SubWorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId; 
+					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], 0 FROM DBO.SubWorkOrderMaterials WOM WITH (NOLOCK) 
+					LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOM.ItemMasterId
+					WHERE WOM.SubWorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId;
 
 					INSERT INTO #SubWorkOrderMaterialTemp ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [IsKitType])
-					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsKitId], 1 FROM DBO.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.SubWorkOrderId = @ReferenceId AND WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId; 
+					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsKitId], 1 FROM DBO.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+					LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = WOMK.ItemMasterId
+					WHERE WOMK.SubWorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId; 
 
 					DECLARE @LoopIDSUBWO INT = 0;
-					--SELECT * FROM #SubWorkOrderMaterialTemp;
 					SELECT @LoopIDSUBWO = MAX(ID) FROM #SubWorkOrderMaterialTemp;
 
 					WHILE (@LoopIDSUBWO > 0)
 					BEGIN
-
 						DECLARE @SubWOMaterialId BIGINT = 0;
 						DECLARE @IsKit BIT = 0;
 						
 						SELECT @SubWOMaterialId = [SubWorkOrderMaterialsId] , @IsKit = [IsKitType] FROM #SubWorkOrderMaterialTemp WHERE ID = @LoopIDSUBWO;
 						
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
 						BEGIN
 							DECLARE @SelectedWorkOrderMaterialsIdSWO INT = 0;
 							DECLARE @SelectedWorkOrderId_ForSWO INT = 0;
-					
-							SELECT @SelectedWorkOrderMaterialsIdSWO = SWOM.SubWorkOrderMaterialsId, @SelectedWorkOrderId_ForSWO = SWOM.WorkOrderId FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) 
-							WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
+							DECLARE @AltPartId_SWO BIGINT = 0;
+							DECLARE @EquPartId_SWO BIGINT = 0;
+
+							SELECT @SelectedWorkOrderMaterialsIdSWO = SWOM.SubWorkOrderMaterialsId, @AltPartId_SWO = Nha_Alt.MappingItemMasterId,
+							@EquPartId_SWO = Nha_Euq.MappingItemMasterId, @SelectedWorkOrderId_ForSWO = SWOM.WorkOrderId 
+							FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
 					
 							SET @Quantity = 0;
 							SET @QuantityReserved = 0;
 							SET @QuantityIssued = 0;
 
-							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK)
-							WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
+							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) 
+							FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
 
 							DECLARE @MainPOReferenceQty_SWO INT = 0;
 							SELECT @MainPOReferenceQty_SWO = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
@@ -825,7 +844,6 @@ BEGIN
 								SET @Quantity = @MainPOReferenceQty_SWO;
 							END
 
-							--IF (@Quantity > (@QuantityReserved + @QuantityIssued))
 							IF (@Quantity > 0)
 							BEGIN
 								IF (@SelectedWorkOrderMaterialsIdSWO > 0)
@@ -848,8 +866,6 @@ BEGIN
 
 									IF (@Quantity > 0 AND @stkQty > 0)
 									BEGIN
-										--IF (@stkQuantityAvailable > = @Quantity AND (@QuantityReserved + @QuantityIssued) > @Quantity)
-										--	SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
 										IF (@stkQuantityAvailable > = @Quantity)
 												SET @Qty = @Quantity;
 										ELSE
@@ -926,8 +942,8 @@ BEGIN
 													SWOMS.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO,
 													SWOMS.ItemMasterId = @stkItemMasterId,
 													SWOMS.ConditionId = @stkConditionId,
-													SWOMS.IsAltPart = 0,
-													SWOMS.IsEquPart = 0,
+													SWOMS.IsAltPart = CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.IsEquPart = CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END,
 													SWOMS.UnitCost = @stkPurchaseOrderUnitCost,
 													SWOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * @Qty),
 													SWOMS.UnitPrice = @stkPurchaseOrderUnitCost,
@@ -944,7 +960,7 @@ BEGIN
 													[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item])
 													SELECT @SelectedWorkOrderMaterialsIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
 													0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
-													0, 0, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+													CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
 													@ReplaceProvisionId, NULL, NULL, NULL, NULL
 
 													SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
@@ -994,7 +1010,7 @@ BEGIN
 							GOTO NextStockline_SUBWOMK
 						END
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
 						BEGIN
 							UPDATE Stk
 							SET Stk.Quantity = @stkQty,
@@ -1019,20 +1035,29 @@ BEGIN
 
 						NextStockline_SUBWOMK:
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
 						BEGIN
 							DECLARE @SelectedWorkOrderMaterialsKitIdSWO INT = 0;
 							DECLARE @SelectedWorkOrderId_ForSWOKit INT = 0;
-					
-							SELECT @SelectedWorkOrderMaterialsKitIdSWO = SWOM.SubWorkOrderMaterialsKitId, @SelectedWorkOrderId_ForSWOKit = SWOM.WorkOrderId FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) 
-							WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
+							DECLARE @AltPartId_SWOKIT BIGINT = 0;
+							DECLARE @EquPartId_SWOKIT BIGINT = 0;
+
+							SELECT @SelectedWorkOrderMaterialsKitIdSWO = SWOM.SubWorkOrderMaterialsKitId, @SelectedWorkOrderId_ForSWOKit = SWOM.WorkOrderId,
+							@AltPartId_SWOKIT = Nha_Alt.MappingItemMasterId, @EquPartId_SWOKIT = Nha_Euq.MappingItemMasterId
+							FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
 					
 							SET @Quantity = 0;
 							SET @QuantityReserved = 0;
 							SET @QuantityIssued = 0;
 
-							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK)
-							WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
+							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) 
+							FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ ON Nha_Equ.ItemMasterId = SWOM.ItemMasterId
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Equ.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
 
 							DECLARE @MainPOReferenceQty_SWOKit INT = 0;
 							SELECT @MainPOReferenceQty_SWOKit = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
@@ -1142,8 +1167,8 @@ BEGIN
 													SWOMS.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO,
 													SWOMS.ItemMasterId = @stkItemMasterId,
 													SWOMS.ConditionId = @stkConditionId,
-													SWOMS.IsAltPart = 0,
-													SWOMS.IsEquPart = 0,
+													SWOMS.IsAltPart = CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.IsEquPart = CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END,
 													SWOMS.UnitCost = @stkPurchaseOrderUnitCost,
 													SWOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * @Qty),
 													SWOMS.UnitPrice = @stkPurchaseOrderUnitCost,
@@ -1160,7 +1185,7 @@ BEGIN
 													[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item])
 													SELECT @SelectedWorkOrderMaterialsKitIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
 													0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
-													0, 0, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+													CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
 													@ReplaceProvisionId, NULL, NULL, NULL, NULL
 
 													SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
@@ -1209,7 +1234,7 @@ BEGIN
 							--GOTO NextStockline_SUBWOMK
 						END
 
-						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) WHERE SWOM.SubWorkOrderId = @ReferenceId AND SWOM.ItemMasterId = @ItemMasterId AND SWOM.ConditionCodeId = @ConditionId  AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId  OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId  AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
 						BEGIN
 							UPDATE Stk
 							SET Stk.Quantity = @stkQty,

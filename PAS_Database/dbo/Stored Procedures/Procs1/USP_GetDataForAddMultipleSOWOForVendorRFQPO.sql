@@ -97,7 +97,7 @@ BEGIN
 				@viewType AS 'ViewType'        
 			FROM [DBO].[WorkOrder] WO WITH (NOLOCK)         
 			LEFT JOIN [WorkOrderMaterials] WOM WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId        
-			LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkOrderId = WO.WorkOrderId-- AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId        
+			LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.WorkOrderId = WO.WorkOrderId-- AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId        
 			LEFT JOIN [DBO].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOP.WorkOrderId = WOM.WorkOrderId        
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId        
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
@@ -105,7 +105,8 @@ BEGIN
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId        
 			WHERE ((WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId) OR 
 			((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) OR 
-			(WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId))
+			((WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId) OR
+			((WOMK.ItemMasterId = Nha.MappingItemMasterId OR WOMK.ItemMasterId = MainNha.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId)))
 			GROUP BY         
 			WO.WorkOrderNum,        
 			WOP.PromisedDate,        

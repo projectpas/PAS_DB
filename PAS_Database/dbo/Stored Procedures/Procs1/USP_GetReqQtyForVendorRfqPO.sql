@@ -38,13 +38,15 @@ BEGIN
 				WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId)-- AND SOP.SalesOrderId = @ReferenceId)   
   
             WHEN @ModuleId = 1  
-				THEN (SELECT ISNULL(CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END,0)  
+				THEN (SELECT ISNULL(CASE WHEN WOM.Quantity IS NOT NULL THEN WOM.Quantity ELSE WOM_A.Quantity END,0) + 
+				ISNULL(CASE WHEN WOMK.Quantity IS NOT NULL THEN WOMK.Quantity ELSE WOMK_A.Quantity END,0)
                 FROM VendorRFQPurchaseOrderPart POP  
                 LEFT JOIN [DBO].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WOM.ConditionCodeId = POP.ConditionId AND WOM.WorkOrderId = @ReferenceId
 				LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = POP.ItemMasterId
 				LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
 				LEFT JOIN [DBO].[WorkOrderMaterials] WOM_A WITH (NOLOCK) ON (WOM_A.ItemMasterId = Nha.MappingItemMasterId OR WOM_A.ItemMasterId = MainNha.ItemMasterId) AND WOM_A.ConditionCodeId = POP.ConditionId AND WOM_A.WorkOrderId = @ReferenceId
 				LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = POP.ItemMasterId AND WOMK.ConditionCodeId = POP.ConditionId AND WOMK.WorkOrderId = @ReferenceId
+				LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK_A WITH (NOLOCK) ON (WOMK_A.ItemMasterId = Nha.MappingItemMasterId OR WOMK_A.ItemMasterId = MainNha.ItemMasterId) AND WOMK_A.ConditionCodeId = POP.ConditionId AND WOMK_A.WorkOrderId = @ReferenceId
                 WHERE POP.VendorRFQPOPartRecordId = @VendorRFQPOPartRecordId)  
   
 			WHEN @ModuleId = 5  
@@ -63,23 +65,21 @@ BEGIN
   END TRY      
   BEGIN CATCH        
    IF @@trancount > 0  
-    --PRINT 'ROLLBACK'  
-    ROLLBACK TRAN;  
-    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
-  
+	   --PRINT 'ROLLBACK'  
+	   ROLLBACK TRAN;  
+	   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetReqQtyForVendorRfqPO'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRFQPOPartRecordId, '') + ''  
-              , @ApplicationName VARCHAR(100) = 'PAS'  
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-  
-              exec spLogException   
-                       @DatabaseName   = @DatabaseName  
-                     , @AdhocComments   = @AdhocComments  
-                     , @ProcedureParameters  = @ProcedureParameters  
-                     , @ApplicationName         = @ApplicationName  
-                     , @ErrorLogID              = @ErrorLogID OUTPUT ;  
-              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
-              RETURN(1);  
+		, @AdhocComments     VARCHAR(150)    = 'USP_GetReqQtyForVendorRfqPO'   
+		, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRFQPOPartRecordId, '') + ''  
+		, @ApplicationName VARCHAR(100) = 'PAS'  
+	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
+		exec spLogException   
+				@DatabaseName   = @DatabaseName  
+				, @AdhocComments   = @AdhocComments  
+				, @ProcedureParameters  = @ProcedureParameters  
+				, @ApplicationName         = @ApplicationName  
+				, @ErrorLogID              = @ErrorLogID OUTPUT ;  
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
+		RETURN(1);  
   END CATCH  
 END

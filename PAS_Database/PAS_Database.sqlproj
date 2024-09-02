@@ -3132,6 +3132,8 @@
     <Build Include="dbo\User Defined Types\PurchaseOrderApprovalType.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateReferenceDetails.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorRMAPartShippingAddress.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetVendorListForUpdateVendor.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewVendorListForCreateVendor.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

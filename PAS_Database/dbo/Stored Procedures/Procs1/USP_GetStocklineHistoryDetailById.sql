@@ -86,19 +86,24 @@ BEGIN
  LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
  WHERE StlHist.StocklineId = @StockLineId),  
    FinalResult AS (    
- SELECT ModuleName, StockLineNumber, RefferenceId, StklineHistoryId, ModuleId, StocklineId, QuantityAvailable, QuantityOnHand, QuantityReserved, QuantityIssued    
-  , QtyOnAction, TextMessage, UpdatedBy, UpdatedDate, [Action], SubModuleName, SubRefferenceNumber  FROM Result    
+ SELECT  rs.ModuleName,  rs.StockLineNumber,  
+ (CASE WHEN LOWER(ISNULL([Action],'')) = 'adjustment' THEN 
+			(SELECT TOP 1 BulkStkLineAdjNumber FROM DBO.BulkStockLineAdjustment BS WITH (NOLOCK) 
+			  INNER JOIN DBO.BulkStockLineAdjustmentDetails BSD WITH (NOLOCK) ON BS.BulkStkLineAdjId = BSD.BulkStkLineAdjId 
+			  WHERE BSD.StockLineId = rs.StocklineId ORDER BY BS.BulkStkLineAdjId DESC) ELSE rs.RefferenceId END) RefferenceId,  
+ rs.StklineHistoryId,  rs.ModuleId, rs.StocklineId,  rs.QuantityAvailable, rs.QuantityOnHand,  rs.QuantityReserved,  rs.QuantityIssued    
+  ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber  FROM Result  rs
  WHERE (    
   (@GlobalFilter <>'' AND ((ModuleName like '%' +@GlobalFilter+'%') OR     
   (RefferenceId like '%' +@GlobalFilter+'%') OR    
-  (CAST(QuantityOnHand AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR  
-  (CAST(QtyOnAction AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR
+  (CAST(rs.QuantityOnHand AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR  
+  (CAST(rs.QtyOnAction AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR
   (CAST(QuantityReserved AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR    
   (CAST(QuantityIssued AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR    
   (CAST(QuantityAvailable AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR    
   (CAST(QtyOnAction AS VARCHAR(100)) like '%' +@GlobalFilter+'%') OR    
-  (UpdatedBy like '%' +@GlobalFilter+'%') OR    
-  (UpdatedDate like '%' +@GlobalFilter+'%') OR    
+  (rs.UpdatedBy like '%' +@GlobalFilter+'%') OR    
+  (rs.UpdatedDate like '%' +@GlobalFilter+'%') OR    
   (TextMessage like '%' +@GlobalFilter+'%') OR   
   (Action like '%' +@GlobalFilter+'%')  OR  
   (SubModuleName like '%' +@GlobalFilter+'%')  OR  
@@ -108,14 +113,14 @@ BEGIN
   (@GlobalFilter='' AND     
   (IsNull(@ModuleName,'') ='' OR ModuleName like  '%'+@ModuleName+'%') and    
   (IsNull(@RefferenceId,'') ='' OR RefferenceId like  '%'+@RefferenceId+'%') and    
-  (IsNull(@QuantityOnHand,'') ='' OR QuantityOnHand like '%'+ CAST(@QuantityOnHand AS VARCHAR(100)) +'%') and 
+  (IsNull(@QuantityOnHand,'') ='' OR rs.QuantityOnHand like '%'+ CAST(@QuantityOnHand AS VARCHAR(100)) +'%') and 
   (IsNull(@QtyOnAction,'') ='' OR QtyOnAction like '%'+ CAST(@QtyOnAction AS VARCHAR(100)) +'%') and
   (IsNull(@QuantityReserved,'') ='' OR QuantityReserved like  '%'+ CAST(@QuantityReserved AS VARCHAR(100)) +'%') and    
   (IsNull(@QuantityIssued,'') ='' OR QuantityIssued like  '%'+  CAST(@QuantityIssued AS VARCHAR(100)) +'%') and    
   (IsNull(@QuantityAvailable,'') ='' OR QuantityAvailable like '%'+ CAST(@QuantityAvailable AS VARCHAR(100)) +'%') and    
-  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like  '%'+@UpdatedBy+'%') and    
+  (IsNull(@UpdatedBy,'') ='' OR rs.UpdatedBy like  '%'+@UpdatedBy+'%') and    
   (IsNull(@Action,'') ='' OR Action like  '%'+@Action+'%') and    
-  (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and    
+  (IsNull(@UpdatedDate,'') ='' OR Cast(rs.UpdatedDate as date)=Cast(@UpdatedDate as date)) and    
   (IsNull(@TextMessage,'') ='' OR TextMessage like '%'+@TextMessage+'%') and   
   (IsNull(@SubModuleName,'') ='' OR SubModuleName like '%'+@SubModuleName+'%') and   
   (IsNull(@SubRefferenceNumber,'') ='' OR SubRefferenceNumber like '%'+@SubRefferenceNumber+'%'))    

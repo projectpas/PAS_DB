@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodSubWOMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For SUB Finished Good.      
@@ -339,8 +338,10 @@ BEGIN
      FROM dbo.WorkOrderMaterials WOM WHERE WorkOrderMaterialsId = @OldWorkOrderMaterialsId;  
   
      UPDATE StockLine   
-      SET QuantityOnHand = ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0),
-		  QuantityReserved = ISNULL(SL.QuantityReserved,0) - ISNULL(@SubWOQuantity,0),
+
+      SET Quantity = CASE WHEN (ISNULL(SL.Quantity,0) - ISNULL(@SubWOQuantity,0)) <0 THEN 0 ELSE (ISNULL(SL.Quantity,0) - ISNULL(@SubWOQuantity,0)) END,
+		  QuantityOnHand = CASE WHEN (ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0)) <0 THEN 0 ELSE (ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0)) END,
+		  QuantityReserved = CASE WHEN (ISNULL(SL.QuantityReserved,0) - ISNULL(@SubWOQuantity,0)) <0 THEN 0 ELSE (ISNULL(SL.QuantityReserved,0) - ISNULL(@SubWOQuantity,0)) END,
        UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy, WorkOrderMaterialsId = @NewWorkOrderMaterialsId,         
        Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + @ControlNumber  
      FROM dbo.StockLine SL   
@@ -448,8 +449,10 @@ BEGIN
        END;
   		 
        UPDATE StockLine   
-          SET [QuantityAvailable] = ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0),
-			  [QuantityOnHand] = ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0),
+          SET 
+		      --[Quantity] = CASE WHEN (ISNULL(SL.Quantity,0) - ISNULL(@SubWOQuantity,0)) >= 0  THEN  ISNULL(SL.Quantity,0) - ISNULL(@SubWOQuantity,0) ELSE 0 END, 
+			  [QuantityAvailable] = CASE WHEN (ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0)) >= 0 THEN (ISNULL(SL.QuantityAvailable,0) - ISNULL(@SubWOQuantity,0)) ELSE 0 END,
+			  [QuantityOnHand] = CASE WHEN  (ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0)) >= 0 THEN  (ISNULL(SL.QuantityOnHand,0) - ISNULL(@SubWOQuantity,0)) ELSE 0 END,
               [QuantityIssued] = ISNULL(SL.QuantityIssued,0) + ISNULL(@SubWOQuantity,0),    
               [UpdatedDate] = GETUTCDATE(), 
 			  [UpdatedBy] = @UpdatedBy, 

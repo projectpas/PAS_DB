@@ -28,6 +28,8 @@ BEGIN
 	SELECT TOP 1
 		UPPER(ISNULL(lb.BankName,'')) AS BankName,
 		'' AS PoBox,
+		MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL)),
+			
 		UPPER(ISNULL(ad.Line1,'')) AS Line1,
 		UPPER(ISNULL(ad.City,'')) AS City,
 		UPPER(ISNULL(ad.StateOrProvince,'') + ',' + UPPER(ad.PostalCode)) AS StateOrProvince,

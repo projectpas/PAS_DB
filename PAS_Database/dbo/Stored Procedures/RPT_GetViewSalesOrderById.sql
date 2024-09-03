@@ -50,6 +50,8 @@ BEGIN
 			UPPER(ISNULL(cuad.StateOrProvince, '')) AS CustToState,
 			UPPER(ISNULL(cuad.PostalCode, '')) AS CustToPostalCode,
 			UPPER(ISNULL(ccnty.countries_name, '')) AS CustToCountry,
+			MergedCustAddress = (SELECT dbo.ValidatePDFAddress(cuad.Line1,cuad.Line2,NULL,cuad.City,cuad.StateOrProvince,cuad.PostalCode,ccnty.countries_name,NULL,NULL,NULL)),
+					
 			UPPER(ISNULL(cont.FirstName + ' ' + cont.LastName, '')) AS CustomerContactName,
 			soq.CustomerReference,
 			soq.CustomerContactId,
@@ -85,6 +87,8 @@ BEGIN
 			UPPER(ISNULL(posadd.ContactName, '')) AS ShipToContactName,
 			'' AS ShipToContactPhone,
 			'' AS ShipToContactEmail,
+			MergedShipToAddress = (SELECT dbo.ValidatePDFAddress(posadd.Line1,posadd.Line2,posadd.Line3,posadd.City,posadd.StateOrProvince,posadd.PostalCode,posadd.Country,NULL,NULL,NULL)),
+			
 			posadd.Memo AS ShipToMemo,
 			ISNULL(posv.ShipVia, '') AS ShipViaName,
 			ISNULL(posv.ShippingAccountNo, '') AS ShipViaShippingAccountInfo,

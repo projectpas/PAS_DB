@@ -3134,6 +3134,11 @@
     <Build Include="dbo\Stored Procedures\GetVendorRMAPartShippingAddress.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetVendorListForUpdateVendor.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewVendorListForCreateVendor.sql" />
+    <Build Include="dbo\Tables\AccountingIntegrationSetupAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupHistory_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupDetails_ById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetup_List.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddEdit_QuickBookSetup.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

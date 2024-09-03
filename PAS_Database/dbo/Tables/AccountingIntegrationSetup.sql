@@ -12,6 +12,25 @@
     [UpdatedDate]                  DATETIME2 (7)  NOT NULL,
     [IsActive]                     BIT            NOT NULL,
     [IsDeleted]                    BIT            NOT NULL,
+    [IsEnabled]                    BIT            NULL,
+    [APIKey]                       VARCHAR (500)  NULL,
     CONSTRAINT [PK_AccountingIntegrationSetup] PRIMARY KEY CLUSTERED ([AccountingIntegrationSetupId] ASC)
 );
 
+
+
+
+GO
+CREATE   TRIGGER [dbo].[Trg_AccountingIntegrationSetupAudit]
+   ON  [dbo].[AccountingIntegrationSetup]
+   AFTER INSERT,UPDATE
+AS 
+BEGIN
+
+	INSERT INTO [dbo].[AccountingIntegrationSetupAudit]
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+END

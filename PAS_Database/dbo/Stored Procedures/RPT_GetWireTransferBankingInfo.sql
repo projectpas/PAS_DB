@@ -32,6 +32,8 @@ BEGIN
 		 UPPER(ad.StateOrProvince) + ',' + UPPER(ad.PostalCode) AS 'StateOrProvince',
 		 UPPER(ad.PostalCode) AS 'PostalCode',
 		 UPPER(co.countries_name) AS 'countries',
+		 MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL)),
+			
 		 UPPER(inter.BeneficiaryBank) AS 'AccountName',
 		 UPPER(inter.BeneficiaryBankAccount) AS 'Acct',
 		 UPPER(inter.ABA) AS 'ABA',

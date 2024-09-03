@@ -472,7 +472,7 @@ BEGIN
 					BEGIN
 						IF (@PrevOHQty>0)
 						BEGIN
-							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,QuantityReserved = 0,QuantityIssued = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END

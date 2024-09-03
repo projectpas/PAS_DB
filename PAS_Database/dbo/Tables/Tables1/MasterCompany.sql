@@ -22,8 +22,11 @@
     [TimeZoneCode]             VARCHAR (50)  NULL,
     [ReportPDFPath]            VARCHAR (MAX) NULL,
     [IsAccountByPass]          BIT           NULL,
+    [IsDeleted]                BIT           NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
+
+
 
 
 GO

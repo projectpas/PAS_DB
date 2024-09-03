@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -34,6 +33,8 @@ BEGIN
 			UPPER(ISNULL(cust.Email, '')) AS CustEmail,
 			UPPER(ISNULL(cust.CustomerPhone, '')) AS CustomerPhone,
 			so.Notes AS SONotes,
+			CustEmailPhone = (SELECT dbo.ValidatePDFAddress(NULL,NULL,NULL,NULL,NULL,NULL,NULL,cust.CustomerPhone,NULL,cust.Email)),
+					
 			UPPER(ISNULL(po.PurchaseOrderNumber, '') + ISNULL('/' + ro.RepairOrderNumber, '')) AS PORONum,
 			UPPER(ISNULL(cont.countries_name, '')) AS CustCountry,
 			UPPER(ISNULL(sp.FirstName + ' ' + sp.LastName, '')) AS SalesPerson,

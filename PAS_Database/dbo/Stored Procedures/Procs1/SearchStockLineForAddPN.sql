@@ -1,6 +1,4 @@
-﻿--exec DBO.SearchStockLineForAddPN @ItemMasterIdlist=N'25168',@conditionId=375,@CustomerId=1119,@MappingType=-1,@StocklineIdlist=N'182314'
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -18,6 +16,7 @@
  ** 2    07/26/2023	  HEMANT SALIYA	  Allow User to reserver & Issue other Customer Stock as well
  ** 3    08/08/2023	  HEMANT SALIYA	  Cistomer Stock Validation Changes
  ** 4    10/11/2023	  HEMANT SALIYA   Added Condition Group Changes
+ ** 5    08/29/2024	  Devendra Shekh  Duplicate StockLine Issue Resolved
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
@@ -47,12 +46,63 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			DROP TABLE #ConditionGroup 
 		END
 
+		IF OBJECT_ID(N'tempdb..#StockLineResult') IS NOT NULL
+		BEGIN
+			DROP TABLE #StockLineResult 
+		END
+
 		CREATE TABLE #ConditionGroup 
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			[ConditionId] [BIGINT] NULL,
 			[ConditionGroup] VARCHAR(50) NULL,
 		)
+
+		CREATE TABLE #StockLineResult (
+			[PartNumber] VARCHAR(50) NULL,
+			[StockLineId] BIGINT NULL,
+			[PartId] BIGINT NULL,
+			[ItemMasterId] BIGINT NULL,
+			[Description] NVARCHAR(MAX) NULL,
+			[unitOfMeasureId] BIGINT NULL,
+			[unitOfMeasure] VARCHAR(100) NULL,
+			[ItemGroup] VARCHAR(256) NULL,
+			[Manufacturer] VARCHAR(100) NULL,
+			[ManufacturerId] BIGINT NULL,
+			[ItemClassificationCode] VARCHAR(30) NULL,
+			[ItemClassification] VARCHAR(100) NULL,
+			[ItemClassificationId] BIGINT NULL,
+			[ConditionDescription] VARCHAR(256) NULL,
+			[ConditionId] BIGINT NULL,
+			[AlternateFor] VARCHAR(250) NULL,
+			[StockType] VARCHAR(20) NULL,
+			[MappingType] INT NULL,
+			[StockLineNumber] VARCHAR(50) NULL,
+			[SerialNumber] VARCHAR(30) NULL,
+			[ControlNumber] VARCHAR(50) NULL,
+			[IdNumber] VARCHAR(100) NULL,
+			[UomDescription] VARCHAR(100) NULL,
+			[QtyAvailable] INT NULL,
+			[QtyOnHand] INT NULL,
+			[unitCost] DECIMAL(18, 2) NULL,
+			[unitSalePrice] DECIMAL(18, 2) NULL,
+			[TracableToName] VARCHAR(150) NULL,
+			[OwnerName] VARCHAR(150) NULL,
+			[ObtainFromName] VARCHAR(150) NULL,
+			[TagDate] DATETIME2 NULL,
+			[TagType] VARCHAR(500) NULL,
+			[CertifiedBy] VARCHAR(100) NULL,
+			[CertifiedDate] DATETIME2 NULL,
+			[Memo] NVARCHAR(MAX) NULL,
+			[Method] VARCHAR(30) NULL,
+			[MethodType] VARCHAR(10) NULL,
+			[PMA] BIT NULL,
+			[StkLineManufacturer] VARCHAR(100) NULL,
+			[FixRate] DECIMAL(18, 2) NULL,
+			[CustomerId] BIGINT NULL,
+			[IsCustomerStock] BIT NULL,
+			[CustomerName] VARCHAR(100) NULL
+		);
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
 
@@ -67,6 +117,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
 		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2);  
   
+		INSERT INTO #StockLineResult (
+			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],
+			[ItemClassificationCode], [ItemClassification], [ItemClassificationId], [ConditionDescription], [ConditionId], [AlternateFor], [StockType], [MappingType],
+			[StockLineNumber], [SerialNumber], [ControlNumber], [IdNumber], [UomDescription], [QtyAvailable], [QtyOnHand], [unitCost], [unitSalePrice], [TracableToName],
+			[OwnerName], [ObtainFromName], [TagDate], [TagType], [CertifiedBy], [CertifiedDate], [Memo], [Method], [MethodType], [PMA], [StkLineManufacturer], [FixRate], [CustomerId],
+			[IsCustomerStock], [CustomerName]
+		)
 		SELECT DISTINCT  
 			im.PartNumber  
 			,sl.StockLineId  
@@ -168,8 +225,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 			AND sl.IsParent = 1  
 	   
-	   UNION  
+	   --UNION  
   
+		INSERT INTO #StockLineResult (
+			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],
+			[ItemClassificationCode], [ItemClassification], [ItemClassificationId], [ConditionDescription], [ConditionId], [AlternateFor], [StockType], [MappingType],
+			[StockLineNumber], [SerialNumber], [ControlNumber], [IdNumber], [UomDescription], [QtyAvailable], [QtyOnHand], [unitCost], [unitSalePrice], [TracableToName],
+			[OwnerName], [ObtainFromName], [TagDate], [TagType], [CertifiedBy], [CertifiedDate], [Memo], [Method], [MethodType], [PMA], [StkLineManufacturer], [FixRate], [CustomerId],
+			[IsCustomerStock], [CustomerName]
+		)
 	   SELECT DISTINCT  
 			im.PartNumber  
 			,sl.StockLineId  
@@ -266,6 +330,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
 				AND imps.ConditionId = c.ConditionId  
 		WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))  
+		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult);
+
+		SELECT * FROM #StockLineResult;
 	  END  
 	  COMMIT  TRANSACTION  
   

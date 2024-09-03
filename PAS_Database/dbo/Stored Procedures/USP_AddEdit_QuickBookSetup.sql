@@ -35,7 +35,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				IF(@AccountingIntegrationSetupId = 0)
+				IF(ISNULL(@AccountingIntegrationSetupId, 0) = 0)
 				BEGIN
        				INSERT INTO [dbo].[AccountingIntegrationSetup] ([IntegrationId], [ClientId], [ClientSecret], [RedirectUrl], [Environment], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate], [IsActive], [IsDeleted], [IsEnabled], [APIKey])
 					VALUES (@IntegrationId, @ClientId, @ClientSecret, @RedirectUrl, @Environment, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @IsEnabled, @APIKey)

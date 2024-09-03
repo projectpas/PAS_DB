@@ -24,6 +24,7 @@
 	8    14/02/2023	         Moin Bloch	            Updated Used Distribution Setup Code Insted of Name 
 	9    03/04/2024			 HEMANT SALIYA	        Updated for Restrict Accounting Entry by Master Company
 	10   29/07/2024          Sahdev Saliya          Updated For Add AccountingPeriodId, AccountingPeriod In BatchDetails
+	11	 29-AUG-2024		 Devendra Shekh			JE Sequence Skipping issue resolved	
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -136,6 +137,7 @@ BEGIN
 
 			DECLARE @IsRestrict BIT;
 			DECLARE @IsAccountByPass BIT;
+			DECLARE @IsNewJE BIT = 0;
 
 			EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 
@@ -168,12 +170,16 @@ BEGIN
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
-					SELECT 
-						@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-						ELSE CAST(StartsFROM AS BIGINT) + 1 END 
-						FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
+					IF @BatchDetailCount = 0
+					BEGIN
+						SELECT 
+							@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+							ELSE CAST(StartsFROM AS BIGINT) + 1 END 
+							FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId
 					  	  
-					SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+						SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+						SET @IsNewJE = 1;
+					END
 				END
 				ELSE 
 				BEGIN
@@ -328,7 +334,10 @@ BEGIN
 				WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted=0 
 				SET @TotalBalance =@TotalDebit-@TotalCredit
 
-				UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+				IF @IsNewJE = 1
+				BEGIN
+					UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+				END
 				UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 			END
 

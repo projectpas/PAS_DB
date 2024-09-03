@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_PostWireTransferBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used insert account report in batch
@@ -15,9 +14,10 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    08/11/2023   Moin Bloch	Created	
-	2    09/22/2023   AMIT GHEDIYA	Added for creditmemo pay for vendorpayment.	
-	3    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
+    1    08/11/2023   Moin Bloch		Created	
+	2    09/22/2023   AMIT GHEDIYA		Added for creditmemo pay for vendorpayment.	
+	3    04/04/2024   AMIT GHEDIYA		Entry With Details data id.
+	4    08/29/2024   Devendra Shekh	JE Number sequence issue resolved
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -802,10 +802,14 @@ BEGIN
 					       [UpdatedBy] = @UpdateBy   
 				     WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
 
-					SET @currentNo = @currentNo + 1;  
+					--SET @currentNo = @currentNo + 1;  
 					
-					SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT [CodePrefix] FROM #tmpCodePrefixes WHERE [CodeTypeId] = @CodeTypeId), (SELECT [CodeSufix] FROM #tmpCodePrefixes WHERE [CodeTypeId] = @CodeTypeId)))
-									   
+					--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT [CodePrefix] FROM #tmpCodePrefixes WHERE [CodeTypeId] = @CodeTypeId), (SELECT [CodeSufix] FROM #tmpCodePrefixes WHERE [CodeTypeId] = @CodeTypeId)))
+						
+					UPDATE [dbo].[CodePrefixes] 
+						SET [CurrentNummber] = @currentNo 
+						WHERE [CodeTypeId] = @CodeTypeId 
+						AND [MasterCompanyId] = @MasterCompanyId   
 				END
 		
 				SELECT @TotalDebit = SUM([DebitAmount]),
@@ -814,12 +818,7 @@ BEGIN
 			     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId 
 			       AND [IsDeleted] = 0; 
 
-				SET @TotalBalance = (@TotalDebit - @TotalCredit)
-
-				UPDATE [dbo].[CodePrefixes] 
-			       SET [CurrentNummber] = @currentNo 
-			     WHERE [CodeTypeId] = @CodeTypeId 
-			       AND [MasterCompanyId] = @MasterCompanyId    
+				SET @TotalBalance = (@TotalDebit - @TotalCredit)			 
 
 				UPDATE [dbo].[BatchHeader] 
 			       SET [TotalDebit] = @TotalDebit,

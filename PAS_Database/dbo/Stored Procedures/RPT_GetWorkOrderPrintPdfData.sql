@@ -12,8 +12,9 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 1    01/01/2024  AMIT GHEDIYA		Created
 ** 2    02/13/2024  Vishal Suthar		Modified the WOFPrintDate field
 ** 3    06/28/2024  Vishal Suthar		Added IsActive and IsDeleted check in WorkOrderQuote join
+** 4    09/03/2024  Ekta Chandegra		Retrieve merged address using common function
 
-EXEC RPT_GetWorkOrderPrintPdfData 2513,2049
+EXEC RPT_GetWorkOrderPrintPdfData 4323,3860
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -119,7 +120,8 @@ BEGIN
 						CASE WHEN ISNULL(shipToAddress.PostalCode, '') = '' THEN '' ELSE ', ' + UPPER(shipToAddress.PostalCode) END
 					END,
 
-		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,              
+		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,  
+		MergedShipAddress = (SELECT [dbo].[ValidatePDFAddress](shipToAddress.Line1,shipToAddress.Line2,NULL,shipToAddress.City,shipToAddress.StateOrProvince,shipToAddress.PostalCode,shipToCountry.countries_name,NULL,NULL,NULL)),
 		wop.ManagementStructureId,              
 		wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,              
 		UPPER(rc.Reference) as Reference,              

@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_GetStocklineHistoryDetailById]              
  ** Author:   Devendra      
  ** Description: Get stockline history detail by stocklineid  
@@ -87,10 +88,11 @@ BEGIN
  WHERE StlHist.StocklineId = @StockLineId),  
    FinalResult AS (    
  SELECT  rs.ModuleName,  rs.StockLineNumber,  
- (CASE WHEN LOWER(ISNULL([Action],'')) = 'adjustment' THEN 
-			(SELECT TOP 1 BulkStkLineAdjNumber FROM DBO.BulkStockLineAdjustment BS WITH (NOLOCK) 
-			  INNER JOIN DBO.BulkStockLineAdjustmentDetails BSD WITH (NOLOCK) ON BS.BulkStkLineAdjId = BSD.BulkStkLineAdjId 
-			  WHERE BSD.StockLineId = rs.StocklineId ORDER BY BS.BulkStkLineAdjId DESC) ELSE rs.RefferenceId END) RefferenceId,  
+ rs.RefferenceId RefferenceId,
+ --(CASE WHEN LOWER(ISNULL([Action],'')) = 'adjustment' THEN 
+	--		(SELECT TOP 1 BulkStkLineAdjNumber FROM DBO.BulkStockLineAdjustment BS WITH (NOLOCK) 
+	--		  INNER JOIN DBO.BulkStockLineAdjustmentDetails BSD WITH (NOLOCK) ON BS.BulkStkLineAdjId = BSD.BulkStkLineAdjId 
+	--		  WHERE BSD.StockLineId = rs.StocklineId ORDER BY BS.BulkStkLineAdjId DESC) ELSE rs.RefferenceId END) RefferenceId,  
  rs.StklineHistoryId,  rs.ModuleId, rs.StocklineId,  rs.QuantityAvailable, rs.QuantityOnHand,  rs.QuantityReserved,  rs.QuantityIssued    
   ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber  FROM Result  rs
  WHERE (    

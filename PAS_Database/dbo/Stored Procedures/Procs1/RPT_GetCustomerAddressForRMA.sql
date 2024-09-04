@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [RPT_GetCustomerAddressForRMA]           
  ** Author:   Amit Ghediya
  ** Description: Save Customer Get Rma Address for SSRS Report
@@ -15,9 +14,10 @@
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3    28-08-2023   Shrey Chandegara  Modify Due to remove (...) From AddCommon and set proper length.
+	4    04-09-2024   Ekta Chandegara  Retrieve address using common function
 	
 
--- EXEC [dbo].[RPT_GetCustomerAddressForRMA] 68,1
+-- EXEC [dbo].[RPT_GetCustomerAddressForRMA] 5,65,0,1,37
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[RPT_GetCustomerAddressForRMA]
@@ -64,7 +64,10 @@ BEGIN
 				ELSE
 					''
 				END  AS 'StatePostalCommon',
-				Country = ca.countries_name 
+				Country = ca.countries_name,
+
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
+
 				FROM WorkOrderBillingInvoicing bi WITH(NOLOCK)
 				 INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.SoldToCustomerId=billToCustomer.CustomerId
 				 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.SoldToSiteId
@@ -103,7 +106,10 @@ BEGIN
 				ELSE
 					''
 				END  AS 'StatePostalCommon',
-				Country = ca.countries_name 
+				Country = ca.countries_name,
+				
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
+
 				FROM SalesOrderBillingInvoicing bi WITH(NOLOCK)
 				 INNER JOIN Customer billToCustomer WITH(NOLOCK) ON bi.BillToCustomerId=billToCustomer.CustomerId
 				 INNER JOIN [CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=bi.BillToSiteId

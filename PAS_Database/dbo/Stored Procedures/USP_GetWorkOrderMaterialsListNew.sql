@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1	07/26/2024		Devendra Shekh			Created
 	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
+	3	09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -341,13 +342,29 @@ SET NOCOUNT ON
 				AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 
 				--Inserting Data For Parent Level- For Pagination : Start
-				INSERT INTO #TMPWOMaterialParentListData
-				([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-				SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
+				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
+				BEGIN
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0);
 
-				INSERT INTO #TMPWOMaterialParentListData
-				([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-				SELECT DISTINCT	0, @Local_WFWOId, [WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0);
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
+
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	0, @Local_WFWOId, [WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+				END
 
 				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
 				ORDER BY tmp.WorkFlowWorkOrderId ASC
@@ -1286,9 +1303,9 @@ SET NOCOUNT ON
 					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 				END
 
-				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
-					SELECT @Count = COUNT(1) from #finalMaterialListResult;
-				ELSE
+				--IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
+				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
+				--ELSE
 					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
 
 				SELECT *, @Count As NumberOfItems FROM #finalMaterialListResult

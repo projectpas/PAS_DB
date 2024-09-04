@@ -123,6 +123,7 @@ BEGIN
 					(CAST(PP_VendorListPrice AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(PP_PurchaseDiscPerc AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(PP_PurchaseDiscAmount AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '	%') OR
+					(PP_LastPurchaseDiscDate LIKE '%' + @GlobalFilter + '	%') OR
 					(CAST(PP_UnitPurchasePrice AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 					(Name LIKE '%' + @GlobalFilter + '%') OR
 					(SP_FSP_UOMName LIKE '%' + @GlobalFilter + '%') OR
@@ -130,6 +131,7 @@ BEGIN
 					(CAST(SP_FSP_FlatPriceAmount AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(SP_CalSPByPP_MarkUpPercOnListPrice AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(SP_CalSPByPP_MarkUpAmount AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
+					(SP_CalSPByPP_LastSalesDiscDate LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(SP_CalSPByPP_UnitSalePrice AS VARCHAR(20)) LIKE '%' + @GlobalFilter + '%'))
 					OR
 					(@GlobalFilter='' AND (ISNULL(@ConditionName,'') = '' OR ConditionName LIKE '%' + @ConditionName + '%')AND
@@ -139,7 +141,7 @@ BEGIN
 					(ISNULL(@PP_VendorListPrice,'') = '' OR CAST(PP_VendorListPrice AS NVARCHAR(10)) LIKE '%' + @PP_VendorListPrice + '%') AND
 					(ISNULL(@PP_PurchaseDiscPerc,'') = '' OR CAST(PP_PurchaseDiscPerc AS NVARCHAR(10)) LIKE '%' + @PP_PurchaseDiscPerc + '%') AND
 					(ISNULL(@PP_PurchaseDiscAmount,'') = '' OR CAST(PP_PurchaseDiscAmount AS NVARCHAR(10)) LIKE '%' + @PP_PurchaseDiscAmount + '%') AND
-					(ISNULL(@PP_LastPurchaseDiscDate,'') = '' OR CAST(PP_LastPurchaseDiscDate AS DATE) = CAST(PP_LastPurchaseDiscDate AS DATE)) AND
+					(ISNULL(@PP_LastPurchaseDiscDate,'') = '' OR CAST(PP_LastPurchaseDiscDate AS DATE) = CAST(@PP_LastPurchaseDiscDate AS DATE)) AND
 					(ISNULL(@PP_UnitPurchasePrice,'') = '' OR CAST(PP_UnitPurchasePrice AS NVARCHAR(10)) LIKE '%' + @PP_UnitPurchasePrice + '%') AND
 					(ISNULL(@Name,'') = '' OR Name LIKE '%' + @Name + '%') AND
 					(ISNULL(@SP_FSP_UOMName,'') = '' OR SP_FSP_UOMName LIKE '%' + @SP_FSP_UOMName + '%') AND
@@ -147,7 +149,7 @@ BEGIN
 					(ISNULL(@SP_FSP_FlatPriceAmount,'') = '' OR CAST(SP_FSP_FlatPriceAmount AS NVARCHAR(10)) LIKE '%' + @SP_FSP_FlatPriceAmount + '%') AND
 					(ISNULL(@SP_CalSPByPP_MarkUpPercOnListPrice,'') = '' OR CAST(SP_CalSPByPP_MarkUpPercOnListPrice AS NVARCHAR(10)) LIKE '%' + @SP_CalSPByPP_MarkUpPercOnListPrice + '%') AND
 					(ISNULL(@SP_CalSPByPP_MarkUpAmount,'') = '' OR CAST(SP_CalSPByPP_MarkUpAmount AS NVARCHAR(10)) LIKE '%' + @SP_CalSPByPP_MarkUpAmount + '%') AND
-					(ISNULL(@SP_CalSPByPP_LastSalesDiscDate,'') = '' OR CAST(SP_CalSPByPP_LastSalesDiscDate AS DATE) = CAST(SP_CalSPByPP_LastSalesDiscDate AS DATE)) AND
+					(ISNULL(@SP_CalSPByPP_LastSalesDiscDate,'') = '' OR CAST(SP_CalSPByPP_LastSalesDiscDate AS DATE) = CAST(@SP_CalSPByPP_LastSalesDiscDate AS DATE)) AND
 					(ISNULL(@SP_CalSPByPP_UnitSalePrice,'') = '' OR CAST(SP_CalSPByPP_UnitSalePrice AS NVARCHAR(10)) LIKE '%' + @SP_CalSPByPP_UnitSalePrice + '%'))))
 					SELECT @Count = COUNT(ItemMasterId) FROM #TempResult
 

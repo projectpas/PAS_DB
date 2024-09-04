@@ -175,6 +175,8 @@ BEGIN
 	   (CreatedBy LIKE '%' +@GlobalFilter+'%') OR  
 	   (UpdatedBy LIKE '%' +@GlobalFilter+'%') OR  
        (ManualType LIKE '%' +@GlobalFilter+'%') OR  
+	   (Debit LIKE '%' +@GlobalFilter+'%') OR
+	   (Credit LIKE '%' +@GlobalFilter+'%') OR
        (ManualJournalBalanceType LIKE '%'+@GlobalFilter+'%') OR  
        (ManualJournalStatus LIKE '%' +@GlobalFilter+'%')  
        ))  

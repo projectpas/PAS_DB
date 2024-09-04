@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustment_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment.
@@ -21,6 +22,7 @@
 	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	6	 16/04/2024   Amit Ghediya   Updates memo text.
 	7	 18/06/2024   Amit Ghediya   Modified to allow qty update if unit cost is 0.00.
+	8	 04/09/2024   Rajesh Gami    Pass the @BulkStkLineAdjHeaderId for the stockline history, Previously it was blank;
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -138,7 +140,7 @@ BEGIN
 			
 			SELECT TOP 1 @ManagementStructureId = ManagementStructureId, @stklineId = StockLineId, @qtyAdjustment = QtyAdjustment FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId;
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM [DBO].[StocklineManagementStructureDetails] WITH(NOLOCK) WHERE ReferenceID = @stklineId;
-			SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'SL';
+			SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
@@ -295,7 +297,7 @@ BEGIN
 						SET @ChildUpdateQty = (@QuantityOnHand + @DetailQtyAdjustment);
 
 						--Update Child Stockline.
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, NULL, NULL, NULL, 8, @TransferQtyAdjustment, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, @BulkStkLineAdjHeaderId, NULL, NULL, 8, @TransferQtyAdjustment, @UpdateBy;
 					END
 					ELSE
 					BEGIN
@@ -308,7 +310,7 @@ BEGIN
 						SET @ChildUpdateQty = (@QuantityOnHand - ABS(@DetailQtyAdjustment));
 
 						--Update Child Stockline.
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, NULL, NULL, NULL, 9, @TransferQtyAdjustment, @UpdateBy;
+						EXEC USP_AddUpdateStocklineHistory @StockLineId, @StockModule, @BulkStkLineAdjHeaderId, NULL, NULL, 9, @TransferQtyAdjustment, @UpdateBy;
 					END
 
 					IF(ISNULL(@Amount,0) <> 0)

@@ -18,6 +18,7 @@
 	2    30-June-2022	Devendra Shekh      Made changes for total  
 	3    28-MARCH-2024  Ekta Chandegra		IsActive and IsDelete flag is added 
 	4    26-JUNE-2024	Vishal Suthar		Added filter to show only latest version of quote
+	5    04-Sept-2024   Shrey Chandegara	Divide 0 by 0 in some case therfor add case condition in "TotalMarginAmtPerc"
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuotesReport] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -194,7 +195,8 @@ BEGIN
 				TotalDirectCost,
 				TotalMarginAmt,
 				TotalNetSales,
-				((PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US'))) TotalMarginAmtPerc
+				--((PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US'))) TotalMarginAmtPerc
+				CASE WHEN ( (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US')) > 0) THEN (  (PARSE(TotalMarginAmt AS DECIMAL(18, 4) USING 'en-US') * 100) / (PARSE(TotalRevenue AS DECIMAL(18, 4) USING 'en-US')) ) ELSE 0 END AS TotalMarginAmtPerc
 				FROM WithTotal
 				GROUP BY masterCompanyId, TotalRevenue, TotalDirectCost, TotalMarginAmt, TotalNetSales, TotalMarginAmtPerc)
 

@@ -433,7 +433,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -465,8 +465,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										),0),
@@ -535,7 +535,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -669,7 +669,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -763,7 +763,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -899,7 +899,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -931,8 +931,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										),0),
@@ -993,7 +993,7 @@ SET NOCOUNT ON
 						SL.ReceivedDate,
 						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
-						MSTL.Quantity AS StocklineQuantity,
+						ISNULL(MSTL.Quantity, 0) as StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @Local_WorkOrderId AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
 													 WHERE SL.WorkOrderId = WOM.WorkOrderId AND Sl.ConditionId = WOM.ConditionCodeId AND SL.ItemMasterId = IM.ItemMasterId),0) END) 
@@ -1001,7 +1001,7 @@ SET NOCOUNT ON
 						CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -1134,7 +1134,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost, 0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -1166,8 +1166,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStocklineKit sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										), 0),
@@ -1228,7 +1228,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END, 0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,

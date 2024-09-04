@@ -398,7 +398,7 @@ SET NOCOUNT ON
 					ISNULL(MSTL.StockLIneId,0),         
 					ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
-					MSTL.ProvisionId AS StockLineProvisionId,  
+					ISNULL(MSTL.ProvisionId,0) StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
 					ISNULL(SP.StatusCode,0) AS StocklineProvisionStatusCode,  
 					SL.StockLineNumber,  
@@ -456,7 +456,7 @@ SET NOCOUNT ON
 					ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,  
 					ISNULL(WOM.Quantity,0),  
 					WOM.ConditionCodeId,  
-					MSTL.ConditionId AS StocklineConditionCodeId,
+					ISNULL(MSTL.ConditionId,0) AS StocklineConditionCodeId,
 					WOM.UnitOfMeasureId,  
 					WOM.WorkOrderId,  
 					ISNULL(WOM.QtyOnOrder,0),   
@@ -608,8 +608,8 @@ SET NOCOUNT ON
 					SL.IdNumber AS ControlId,  
 					SL.ControlNumber AS ControlNo,  
 					SL.ReceiverNumber AS Receiver,  
-					SL.QuantityOnHand AS StockLineQuantityOnHand,  
-					SL.QuantityAvailable AS StockLineQuantityAvailable,  
+					ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+					ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
   
 					PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStocklineKit sl  WITH (NOLOCK)  
 						Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1            

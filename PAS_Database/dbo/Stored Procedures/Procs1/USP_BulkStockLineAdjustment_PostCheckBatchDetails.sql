@@ -422,7 +422,7 @@ BEGIN
 					END
 
 					--GEt Stockline Module ID
-					SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'SL';
+					SELECT @StockModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 
 					SET @QuantityOnHand = 0;
 					SET @QuantityAvailable = 0;

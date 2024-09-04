@@ -24,9 +24,9 @@
 	8    08/13/2024   Vishal Suthar		Modified the SP to allow reserving the equavalent or main part of the equavalent if either or is available in WO
 	9    08/27/2024   Vishal Suthar		Fixed issue with reserving higer qty than assigned and also Removed few unwanted code
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2678,@SelectedPartsToReserve=N'846',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2696,@SelectedPartsToReserve=N'858',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -213,7 +213,7 @@ BEGIN
 					END
 					DECLARE @LoopIDWFWO INT = 0;
 
-					SELECT * FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
+					--SELECT * FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
 					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
@@ -235,7 +235,7 @@ BEGIN
 								@EquPartId = Nha_Euq.MappingItemMasterId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = WOM.ItemMasterId AND Nha_Euq.MappingType = 2
-								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOM.ItemMasterId OR Nha_Euq.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+								WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 							ELSE
 							BEGIN

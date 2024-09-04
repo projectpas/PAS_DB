@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
 ** File:   [GetManualJournalList]            
 ** Author:   Satish Gohil
 ** Description: This procedre 
@@ -16,6 +15,7 @@
 	4   04/09/2023   Moin Bloch  Modify (filters changes )
 	5   08/09/2023   Moin Bloch  Modify (Added Distinct to prevent duplicate records)
 	6   27/11/2023   Bhargav Saliya     Utc Date Changes
+	7   04/09/2024   AMIT GHEDIYA     Modify (Get Debit & Credit Fields)
     
 **************************************************************/  
 
@@ -45,7 +45,9 @@ CREATE     PROCEDURE [dbo].[GetManualJournalList]
  @CreatedBy varchar(50)=null,  
  @UpdatedBy varchar(50)=null,  
  @MasterCompanyId int = null,  
- @EmployeeId bigint  
+ @EmployeeId bigint,
+ @TotalDebit varchar(50)= null,      
+ @TotalCredit varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -133,7 +135,15 @@ BEGIN
 			   CASE WHEN MJH.IsRecuring = 1 THEN 'YES' ELSE 'NO' END AS Recuring,  
 			   CASE WHEN MJH.IsRecuring = 2 THEN 'YES' ELSE 'NO' END AS Reversing,
 			   MSD.LastMSLevel,
-			   MSD.AllMSlevels  
+			   MSD.AllMSlevels,
+			   Debit = (SELECT ISNULL(SUM(Debit),0) FROM ManualJournalDetails MJD 
+						WHERE MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId 
+						AND MJD.IsActive = 1 AND MJD.IsDeleted = 0
+						),
+			   Credit = (SELECT ISNULL(SUM(Credit),0) FROM ManualJournalDetails MJD 
+						WHERE MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId 
+			   AND MJD.IsActive = 1 
+			   AND MJD.IsDeleted = 0)
 			FROM [dbo].[ManualJournalHeader] MJH WITH (NOLOCK)  
 			INNER JOIN [dbo].[Ledger] L WITH (NOLOCK) ON MJH.LedgerId = L.LedgerId  
 			INNER JOIN [dbo].[ManualJournalType] MJT WITH (NOLOCK) ON MJH.ManualJournalTypeId = MJT.ManualJournalTypeId  
@@ -152,7 +162,7 @@ BEGIN
     SELECT ManualJournalHeaderId, JournalNumber, LedgerId, LedgerName, JournalDescription,ManualJournalTypeId,ManualType,  
       ManualJournalBalanceTypeId,ManualJournalBalanceType,EntryDate,EffectiveDate,  
       AccountingPeriodId,PeriodName,ManualJournalStatusId,ManualJournalStatus,  
-      ManagementStructureId,EmployeeId,UserName,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsRecuring,IsReversing,Recuring,Reversing, LastMSLevel,AllMSlevels FROM Result  
+      ManagementStructureId,EmployeeId,UserName,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsRecuring,IsReversing,Recuring,Reversing, LastMSLevel,AllMSlevels,Debit,Credit FROM Result  
     WHERE (  
      (@GlobalFilter <>'' AND ((JournalNumber LIKE '%' +@GlobalFilter+'%' ) OR   
        (LedgerName LIKE '%' +@GlobalFilter+'%') OR  
@@ -184,14 +194,16 @@ BEGIN
        (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
        (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)= CAST(@CreatedDate AS DATE)) AND  
-       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)= CAST(@UpdatedDate AS DATE)))  
+       (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)= CAST(@UpdatedDate AS DATE)) AND
+	   (IsNull(@TotalDebit,'') ='' OR CAST(Debit AS varchar(20)) like '%' + @TotalDebit+'%' ) AND       
+	   (IsNull(@TotalCredit,'') ='' OR CAST(Credit AS varchar(20)) like '%' + @TotalCredit+'%' ))  
        )), 
 	   
       ResultCount AS (SELECT COUNT(ManualJournalHeaderId) AS NumberOfItems FROM FinalResult)  
       SELECT ManualJournalHeaderId, JournalNumber, LedgerId, LedgerName, JournalDescription,ManualJournalTypeId,ManualType,  
       ManualJournalBalanceTypeId,ManualJournalBalanceType,EntryDate,EffectiveDate,  
       AccountingPeriodId,PeriodName,ManualJournalStatusId,ManualJournalStatus,  
-      ManagementStructureId,EmployeeId,UserName,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsRecuring,IsReversing,Recuring,Reversing,LastMSLevel,AllMSlevels, NumberOfItems FROM FinalResult, ResultCount  
+      ManagementStructureId,EmployeeId,UserName,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsRecuring,IsReversing,Recuring,Reversing,LastMSLevel,AllMSlevels,Debit,Credit, NumberOfItems FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 AND @SortColumn='MANUALJOURNALHEADERID')  THEN ManualJournalHeaderId END DESC,  
@@ -208,7 +220,9 @@ BEGIN
      CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
+     CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='DEBIT')  THEN CAST(Debit AS varchar(20)) END ASC,        
+	 CASE WHEN (@SortOrder=1 and @SortColumn='CREDIT')  THEN CAST(Credit AS varchar(20)) END ASC, 
   
      CASE WHEN (@SortOrder=-1 AND @SortColumn='MANUALJOURNALHEADERID')  THEN ManualJournalHeaderId END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='JOURNALNUMBER')  THEN JournalNumber END DESC,  
@@ -224,7 +238,9 @@ BEGIN
      CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC  
+     CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC, 
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='DEBIT')  THEN CAST(Debit AS varchar(20))  END Desc,        
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CREDIT')  THEN CAST(Credit AS varchar(20)) END Desc        
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
    -- END  

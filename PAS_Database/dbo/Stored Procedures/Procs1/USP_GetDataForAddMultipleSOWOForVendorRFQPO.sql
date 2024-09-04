@@ -188,19 +188,22 @@ BEGIN
 				C.Code AS 'Condition',        
 				SWO.SubWorkOrderNo AS 'ReferenceNum',        
 				SWO.SubWorkOrderId As 'ReferenceId',        
-				ISNULL(SWM.Quantity,0)  as RequestedQty, -- ISNULL(SOP.qty ,0)  - ISNULL(SOP.QtyRequested ,0)) as RequestedQty,        
+				ISNULL(SWM.Quantity,0) + ISNULL(SWOMK.Quantity,0) as RequestedQty, -- ISNULL(SOP.qty ,0)  - ISNULL(SOP.QtyRequested ,0)) as RequestedQty,        
 				NULL AS 'PromisedDate',        
 				NULL AS 'EstimatedCompletionDate',        
 				NULL 'EstimatedShipDate',        
 				@viewType AS 'ViewType'        
-			FROM [SubWorkOrderMaterials] SWM  WITH(NOLOCK)        
-			LEFT JOIN [DBO]. [SubWorkOrder] SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId        
-			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId        
-			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId        
+			FROM [DBO].[SubWorkOrder] SWO WITH(NOLOCK)
+			LEFT JOIN [SubWorkOrderMaterials] SWM WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
+			LEFT JOIN [DBO].[SubWorkOrderMaterialsKit] SWOMK WITH (NOLOCK) ON SWOMK.SubWorkOrderId = SWO.SubWorkOrderId
+			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId
+			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
-			WHERE (SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId  
+			WHERE (SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId
 			OR ((SWM.ItemMasterId = Nha.MappingItemMasterId OR SWM.ItemMasterId = MainNha.ItemMasterId) AND SWM.ConditionCodeId = @ConditionId))
+			OR (SWOMK.ItemMasterId = @ItemMasterId AND SWOMK.ConditionCodeId = @ConditionId) OR
+			((SWOMK.ItemMasterId = Nha.MappingItemMasterId OR SWOMK.ItemMasterId = MainNha.ItemMasterId) AND SWOMK.ConditionCodeId = @ConditionId)
 		END        
 		ELSE         
 		BEGIN        

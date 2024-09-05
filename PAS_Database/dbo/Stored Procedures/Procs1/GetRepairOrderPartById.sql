@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11/10/2022  Deep Patel     Created
+	2	 09/05/2024  Abhishek Jirawla Combine queries by removing union and returning 1 result set with proper order as needed.
 -- EXEC GetRepairOrderPartById 303
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderPartById]
@@ -30,25 +31,39 @@ BEGIN
 
 	SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[RepairOrder] WITH(NOLOCK) WHERE [RepairOrderId] = @RepairOrderId;
 
-
-	SELECT pop.PartNumber,pop.ItemMasterId,pop.RepairOrderPartRecordId,pop.ManufacturerId,
-	  pop.PartNumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK) 
-	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
-	  imf.[Name] AS Manufacturer
-	  
-      FROM [dbo].[RepairOrderPart] pop WITH (NOLOCK) 		
-	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK) ON pop.ItemMasterId = im.ItemMasterId 
-	  LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
-	  WHERE pop.RepairOrderId = @RepairOrderId and pop.isParent=1 AND pop.IsDeleted = 0 AND (pop.ItemTypeId = @STOCKTYPE OR pop.ItemTypeId = @NONSTOCKTYPE)
-
-	  UNION
-
-	SELECT pop.PartNumber,pop.ItemMasterId,pop.RepairOrderPartRecordId,pop.ManufacturerId,
-	  pop.PartNumber AS [Label],Amf.[Name] AS Manufacturer
-      FROM [dbo].[RepairOrderPart] pop WITH (NOLOCK) 		  
-	  LEFT JOIN [dbo].[Asset] AST WITH (NOLOCK) ON pop.ItemMasterId = AST.AssetRecordId 
-	  LEFT JOIN [dbo].[Manufacturer] Amf WITH (NOLOCK) ON AST.ManufacturerId = Amf.ManufacturerId
-	  WHERE pop.[RepairOrderId] = @RepairOrderId AND pop.[isParent]=1 AND pop.[IsDeleted] = 0 AND pop.[ItemTypeId] = @ASSETTYPE
+	SELECT 
+	pop.PartNumber,
+	pop.ItemMasterId,
+	pop.RepairOrderPartRecordId,
+	pop.ManufacturerId,
+	CASE 
+		WHEN pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE) THEN
+			pop.PartNumber + 
+			(CASE 
+				WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) 
+						FROM [dbo].[ItemMaster] SD WITH(NOLOCK) 
+						WHERE im.PartNumber = SD.PartNumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 
+				THEN ' - ' + imf.[Name] 
+				ELSE '' 
+				END)
+		WHEN pop.ItemTypeId = @ASSETTYPE THEN 
+			pop.PartNumber
+	END AS [Label],
+	-- Choose Manufacturer name based on ItemTypeId
+	CASE 
+		WHEN pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE) THEN imf.[Name]
+		WHEN pop.ItemTypeId = @ASSETTYPE THEN Amf.[Name]
+	END AS Manufacturer
+	FROM [dbo].[RepairOrderPart] pop WITH (NOLOCK) 
+	-- Join conditionally based on ItemTypeId
+		LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON pop.ItemMasterId = im.ItemMasterId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
+		LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
+		LEFT JOIN [dbo].[Asset] AST WITH (NOLOCK) ON pop.ItemMasterId = AST.AssetRecordId AND pop.ItemTypeId = @ASSETTYPE
+		LEFT JOIN [dbo].[Manufacturer] Amf WITH (NOLOCK) ON AST.ManufacturerId = Amf.ManufacturerId AND pop.ItemTypeId = @ASSETTYPE
+	WHERE pop.RepairOrderId = @RepairOrderId 
+		AND pop.isParent = 1 
+		AND pop.IsDeleted = 0
+		AND (pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE, @ASSETTYPE));
 
   END TRY    
 	BEGIN CATCH

@@ -15,7 +15,7 @@
 	     
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
-create   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
+CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      
@@ -38,7 +38,9 @@ BEGIN
 	   DECLARE @ItemtypeId INT = 2; 
 	   DECLARE @RCId BIGINT = 0; 
 	   DECLARE @ReceivingCustomerModuleId INT = 27
-	   DECLARE @OldReceivingNumber VARCHAR(50) = '';  	   	   
+	   DECLARE @OldReceivingNumber VARCHAR(50) = ''; 
+	   DECLARE @NHAMappingType INT = 3;
+	   DECLARE @TLAMappingType INT = 4;
 	   
 	  SELECT @ReceivingCustomerModuleId = [ModuleId] FROM dbo.Module WITH (NOLOCK) WHERE [ModuleName] = 'ReceivingCustomerWork';
 	  SELECT @StockIdCodeTypeId = CodeTypeId FROM dbo.CodeTypes WITH (NOLOCK) WHERE CodeType = 'Stock Line';
@@ -206,7 +208,7 @@ BEGIN
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprReceiveCustomerPiecePart    
 		
-		SELECT TOP 1 @OldReceivingNumber = [ReceivingNumber] FROM #tmprReceiveCustomerPiecePart WHERE [ReceivingCustomerWorkId] > 0;
+		SELECT TOP 1 @OldReceivingNumber = [ReceivingNumber] FROM #tmprReceiveCustomerPiecePart WHERE ISNULL([ReceivingCustomerWorkId],0) > 0;
 
 		WHILE @MinId <= @TotalRecord
 		BEGIN				
@@ -250,8 +252,8 @@ BEGIN
 					   @RevicedPNId = [RevisedPartId]					  
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
 
-				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = 3;
-                SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = 4;                 
+				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
+                SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 
 				SELECT TOP 1 @LegalEntityId = [LegalEntityId]  FROM [dbo].[ManagementStructure] WITH(NOLOCK) WHERE [ManagementStructureId] = @ManagementStructureId;
 
 				IF(@StocklineId = 0)
@@ -332,7 +334,7 @@ BEGIN
 					SELECT CSTL.[ItemMasterId],CSTL.[ManufacturerId],[StockLineNumber],ISNULL(IM.[CurrentStlNo], 0),IM.[isSerialized]
 					FROM CTE_Stockline CSTL
 					INNER JOIN dbo.Stockline STL WITH (NOLOCK)
-					INNER JOIN dbo.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
+					INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
 					ON CSTL.StockLineId = STL.StockLineId
                        
 					/* PN Manufacturer Combination Stockline logic */
@@ -341,7 +343,7 @@ BEGIN
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
 					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] FROM dbo.CodePrefixes CP WITH (NOLOCK)
-					JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+					JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 					WHERE CT.CodeTypeId IN ( @StockIdCodeTypeId, @IdNumberCodeTypeId, @ControlNumberCodeTypeId )
 					AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 				

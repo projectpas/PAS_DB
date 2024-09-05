@@ -1,4 +1,4 @@
-﻿/*************************************************************
+﻿/*********************
  ** File:     [RPT_GetManagementStructureDetailsForSOReportsHeader]
  ** Author:   AMIT GHEDIYA
  ** Description: 
@@ -7,16 +7,16 @@
  ** PARAMETERS:         
  @ManagementStructId BIGINT,@MasterCompanyId BIGINT,@salesOrderId BIGINT
  ** RETURN VALUE:
- **************************************************************
+ **********************
   ** Change History
- **************************************************************
+ **********************
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    01/11/2024   AMIT GHEDIYA		Created
 	2    08/21/2024   HEMANT SALIYA		Corrected Email Address get from LE Default Contact
 
  EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
-**************************************************************/ 
+**********************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForSOReportsHeader]    
 (    
 	@ManagementStructId  BIGINT  = NULL,
@@ -56,6 +56,7 @@ SET NOCOUNT ON
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
+					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END)),
 					CompanyLogoPath = MS.companylogo
 				FROM dbo.EntityStructureSetup est WITH(NOLOCK)
 					INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID

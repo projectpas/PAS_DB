@@ -18,8 +18,9 @@
 	4	 15/04/2024   Moin Bloch        Added Max Length for Notes
 	5	 16/04/2024   Moin Bloch        Commnted Notes Changes
 	6	 31/05/2024   Moin Bloch        Added Max Length for Notes
+	7	 03/09/2024   Ekta Chandegra    Retrieve merged addres using common function
 
---EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
+-- EXEC [RPT_GetWorkOrderQuoteHeaderData] 2174
 **************************************************************/  
 CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint 
@@ -68,6 +69,7 @@ BEGIN
 				(CASE WHEN ISNULL(adr.PostalCode,'') = '' THEN '' ELSE ', ' + UPPER(ISNULL(adr.PostalCode,'')) END),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
+			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,cust.CustomerPhone,NULL,cust.Email)),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
             CustomerEmail = cust.Email,
             cust.CustomerPhone,

@@ -11,6 +11,7 @@
  ** --   --------		-------				--------------------------------            
     1    07/29/2024		Devendra Shekh			Created
     2    07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
+	3	 09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=316,@ShowPendingToIssue=0
@@ -302,14 +303,35 @@ SET NOCOUNT ON
 		AND WOM.SubWOPartNoId = @subWOPartNoId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 
 		--Inserting Data For Parent Level- For Pagination : Start
-		INSERT INTO #TMPWOMaterialParentListData
-		([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-		SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId;
+		IF (ISNULL(@ShowPendingToIssue, 0) = 1)
+		BEGIN
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 ;
 
-		INSERT INTO #TMPWOMaterialParentListData
-		([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
-		SELECT DISTINCT	0, SubWOPartNoId, [SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId;
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
+			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;
+		END
+		ELSE
+		BEGIN
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	[SubWorkOrderMaterialsId], [SubWOPartNoId], 0, 0 FROM [DBO].SubWorkOrderMaterials WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId
+			AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;
 
+			INSERT INTO #TMPWOMaterialParentListData
+			([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [IsKit])
+			SELECT DISTINCT	0, WOMKIT.SubWOPartNoId, WOMKIT.[SubWorkOrderMaterialsKitMappingId], 1 FROM [DBO].[SubWorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) 
+			INNER JOIN [dbo].SubWorkOrderMaterialsKit WOMK WITH(NOLOCK) ON WOMK.[SubWorkOrderMaterialsKitMappingId] = WOMKIT.[SubWorkOrderMaterialsKitMappingId]
+			WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.SubWOPartNoId = @subWOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0)
+			AND ISNULL(WOMK.IsAltPart, 0) = 0 AND ISNULL(WOMK.IsEquPart, 0) = 0;
+		END
+		
 		SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
 		ORDER BY tmp.SubWOPartNoId ASC
 		OFFSET @RecordFrom ROWS   
@@ -376,7 +398,7 @@ SET NOCOUNT ON
 					ISNULL(MSTL.StockLIneId,0),         
 					ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
-					MSTL.ProvisionId AS StockLineProvisionId,  
+					ISNULL(MSTL.ProvisionId,0) StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
 					ISNULL(SP.StatusCode,0) AS StocklineProvisionStatusCode,  
 					SL.StockLineNumber,  
@@ -434,7 +456,7 @@ SET NOCOUNT ON
 					ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,  
 					ISNULL(WOM.Quantity,0),  
 					WOM.ConditionCodeId,  
-					MSTL.ConditionId AS StocklineConditionCodeId,
+					ISNULL(MSTL.ConditionId,0) AS StocklineConditionCodeId,
 					WOM.UnitOfMeasureId,  
 					WOM.WorkOrderId,  
 					ISNULL(WOM.QtyOnOrder,0),   
@@ -586,8 +608,8 @@ SET NOCOUNT ON
 					SL.IdNumber AS ControlId,  
 					SL.ControlNumber AS ControlNo,  
 					SL.ReceiverNumber AS Receiver,  
-					SL.QuantityOnHand AS StockLineQuantityOnHand,  
-					SL.QuantityAvailable AS StockLineQuantityAvailable,  
+					ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+					ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
   
 					PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStocklineKit sl  WITH (NOLOCK)  
 						Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1            

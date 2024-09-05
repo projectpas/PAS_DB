@@ -59,6 +59,8 @@
 
 
 
+
+
 GO
 
 
@@ -144,3 +146,7 @@ BEGIN
 
 	SET NOCOUNT ON;
 END
+GO
+DISABLE TRIGGER [dbo].[Trg_WorkOrderAudit]
+    ON [dbo].[WorkOrder];
+

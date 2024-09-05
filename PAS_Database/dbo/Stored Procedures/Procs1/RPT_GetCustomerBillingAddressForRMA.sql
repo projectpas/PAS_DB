@@ -12,9 +12,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
+	2    04-09-2024   Ekta Chandegara  Retrieve address using common function
 	
 
--- EXEC [dbo].[RPT_GetCustomerBillingAddressForRMA] 5,65,0,1,0
+-- EXEC [dbo].[RPT_GetCustomerBillingAddressForRMA] 5,65,0,1,37
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[RPT_GetCustomerBillingAddressForRMA]
@@ -58,7 +59,7 @@ BEGIN
 						END
 					ELSE
 						''
-					END  AS 'BillingStatePostalCommon'
+					END  AS 'BillingStatePostalCommon',
 					--ISNULL(RMAAS.SiteName, '') AS BillToSiteName,
 					--ISNULL(RMAAS.ContactId, 0) AS BillToContactId,
 					--ISNULL(RMAAS.ContactName, '') AS BillToContactName,			
@@ -72,7 +73,7 @@ BEGIN
 					--ISNULL(RMAAS.Country, '') AS BillToCountryName,
 					--ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
 					--ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
-			
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(RMAA.Line1,RMAA.Line2,NULL,RMAA.City,RMAA.StateOrProvince,RMAA.PostalCode,RMAA.Country,NULL,NULL,NULL))
 			FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
 				LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleId
 				LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleId

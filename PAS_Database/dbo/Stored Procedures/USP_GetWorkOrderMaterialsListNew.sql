@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1	07/26/2024		Devendra Shekh			Created
 	2	07/30/2024		Devendra Shekh			Modified to Manage Nullable Values and added fields for order by
+	3	09/04/2024		Devendra Shekh			issue related to Qty Remaining(@ShowPendingToIssue) resolved
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -341,13 +342,29 @@ SET NOCOUNT ON
 				AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 
 				--Inserting Data For Parent Level- For Pagination : Start
-				INSERT INTO #TMPWOMaterialParentListData
-				([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-				SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
+				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1)
+				BEGIN
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) 
+					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0);
 
-				INSERT INTO #TMPWOMaterialParentListData
-				([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
-				SELECT DISTINCT	0, @Local_WFWOId, [WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	0, @Local_WFWOId, WOMKIT.[WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK)
+					INNER JOIN [dbo].[WorkOrderMaterialsKit] WOMK WITH(NOLOCK) ON WOMK.WorkOrderMaterialsKitMappingId = WOMKIT.WorkOrderMaterialsKitMappingId
+					WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId AND (ISNULL(WOMK.Quantity,0) - ISNULL(WOMK.QuantityIssued,0) > 0);
+				END
+				ELSE
+				BEGIN
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	[WorkOrderMaterialsId], [WorkFlowWorkOrderId], 0, 0 FROM [DBO].[WorkOrderMaterials] WOM WITH(NOLOCK) WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId;
+
+					INSERT INTO #TMPWOMaterialParentListData
+					([WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderMaterialsKitMappingId], [IsKit])
+					SELECT DISTINCT	0, @Local_WFWOId, [WorkOrderMaterialsKitMappingId], 1 FROM [DBO].[WorkOrderMaterialsKitMapping] WOMKIT WITH(NOLOCK) WHERE WOMKIT.IsDeleted = 0 AND WOMKIT.WOPartNoId = @WOPartNoId;
+				END
 
 				SELECT * INTO #TMPWOMaterialResultListData FROM #TMPWOMaterialParentListData tmp 
 				ORDER BY tmp.WorkFlowWorkOrderId ASC
@@ -416,7 +433,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -448,8 +465,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										),0),
@@ -518,7 +535,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -652,7 +669,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -746,7 +763,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -882,7 +899,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -914,8 +931,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStockline sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										),0),
@@ -976,7 +993,7 @@ SET NOCOUNT ON
 						SL.ReceivedDate,
 						ISNULL(WOM.POId, 0),
 						WOM.Quantity,
-						MSTL.Quantity AS StocklineQuantity,
+						ISNULL(MSTL.Quantity, 0) as StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @Local_WorkOrderId AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
 													 WHERE SL.WorkOrderId = WOM.WorkOrderId AND Sl.ConditionId = WOM.ConditionCodeId AND SL.ItemMasterId = IM.ItemMasterId),0) END) 
@@ -984,7 +1001,7 @@ SET NOCOUNT ON
 						CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -1117,7 +1134,7 @@ SET NOCOUNT ON
 						ISNULL(MSTL.UnitCost, 0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,
 						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
-						MSTL.ProvisionId AS StockLineProvisionId,
+						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
 							THEN 0
@@ -1149,8 +1166,8 @@ SET NOCOUNT ON
 						SL.IdNumber AS ControlId,
 						SL.ControlNumber AS ControlNo,
 						SL.ReceiverNumber AS Receiver,
-						SL.QuantityOnHand AS StockLineQuantityOnHand,
-						SL.QuantityAvailable AS StockLineQuantityAvailable,
+						ISNULL(SL.QuantityOnHand,0) AS StockLineQuantityOnHand,  
+						ISNULL(SL.QuantityAvailable,0) AS StockLineQuantityAvailable,  
 						PartQuantityOnHand = ISNULL((SELECT SUM(ISNULL(sl.QuantityOnHand,0)) FROM #tmpStocklineKit sl WITH (NOLOCK)
 										Where sl.ItemMasterId = WOM.ItemMasterId AND sl.ConditionId = WOM.ConditionCodeId AND sl.IsParent = 1										
 										), 0),
@@ -1211,7 +1228,7 @@ SET NOCOUNT ON
 						ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 							 ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END, 0) AS 'StocklineQtyToTurnIn',
 						WOM.ConditionCodeId,
-						MSTL.ConditionId AS StocklineConditionCodeId,
+						ISNULL(MSTL.ConditionId, 0) as StocklineConditionCodeId,
 						WOM.UnitOfMeasureId,
 						WOM.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
 						WOM.WorkFlowWorkOrderId,
@@ -1286,9 +1303,9 @@ SET NOCOUNT ON
 					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
 				END
 
-				IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
-					SELECT @Count = COUNT(1) from #finalMaterialListResult;
-				ELSE
+				--IF (ISNULL(@Local_ShowPendingToIssue, 0) = 1) 
+				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
+				--ELSE
 					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
 
 				SELECT *, @Count As NumberOfItems FROM #finalMaterialListResult

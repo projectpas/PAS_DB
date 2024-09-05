@@ -17,7 +17,7 @@
              
  EXECUTE USP_GetReqQtyFromPart 2688, 14760, 4378, 1      
 **************************************************************/         
-CREATE   PROCEDURE [dbo].[USP_GetReqQtyFromPart]
+CREATE    PROCEDURE [dbo].[USP_GetReqQtyFromPart]
 	@PurchaseOrderId BIGINT,      
 	@PurchaseOrderPartRecordId BIGINT,      
 	@ReferenceId BIGINT,      
@@ -56,12 +56,15 @@ BEGIN
 				GROUP BY POP.ItemMasterId, POP.ConditionId)
      
        WHEN @ModuleId = 5      
-             THEN (SELECT DISTINCT ISNULL(CASE WHEN SWP.Quantity IS NOT NULL THEN SWP.Quantity ELSE SWP_A.Quantity END, 0)
+             THEN (SELECT DISTINCT ISNULL(CASE WHEN SWP.Quantity IS NOT NULL THEN SWP.Quantity ELSE SWP_A.Quantity END, 0) + 
+					ISNULL(CASE WHEN SWOMK.Quantity IS NOT NULL THEN SWOMK.Quantity ELSE SWOMK_A.Quantity END, 0)
                      FROM PurchaseOrderPart POP    WITH (NOLOCK)  
                      LEFT JOIN [DBO].[SubWorkOrderMaterials] SWP WITH (NOLOCK) ON SWP.ItemMasterId = POP.ItemMasterId AND SWP.ConditionCodeId = POP.ConditionId AND SWP.SubWorkOrderId = @ReferenceId
 					 LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = POP.ItemMasterId
 					 LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
 					 LEFT JOIN [DBO].[SubWorkOrderMaterials] SWP_A WITH (NOLOCK) ON (SWP_A.ItemMasterId = Nha.MappingItemMasterId OR SWP_A.ItemMasterId = MainNha.ItemMasterId) AND SWP_A.ConditionCodeId = POP.ConditionId AND SWP_A.SubWorkOrderId = @ReferenceId
+					 LEFT JOIN [DBO].[SubWorkOrderMaterialsKit] SWOMK WITH (NOLOCK) ON SWOMK.ItemMasterId = POP.ItemMasterId AND SWOMK.ConditionCodeId = POP.ConditionId AND SWOMK.SubWorkOrderId = @ReferenceId
+	  				 LEFT JOIN [DBO].[SubWorkOrderMaterialsKit] SWOMK_A WITH (NOLOCK) ON (SWOMK_A.ItemMasterId = Nha.MappingItemMasterId OR SWOMK_A.ItemMasterId = MainNha.ItemMasterId) AND SWOMK_A.ConditionCodeId = POP.ConditionId AND SWOMK_A.SubWorkOrderId = @ReferenceId
                      WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId)-- AND SWP.SubWorkOrderId = @ReferenceId)      
       
        WHEN @ModuleId = 4      

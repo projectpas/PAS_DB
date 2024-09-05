@@ -3143,6 +3143,22 @@
     <Build Include="dbo\Stored Procedures\GetReceiveCustomerPiecePart.sql" />
     <Build Include="dbo\Stored Procedures\AddUpdateReceiveCustomerPiecePart.sql" />
     <Build Include="dbo\User Defined Types\ReceivingCustomerWorkType.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateExchangeSalesOrderFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateExchangeSalesOrderChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateExchangeQuoteFreightAmount.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateExchangeQuoteChargesAmount.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertExchangeSalesOrderFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertExchangeSalesOrderChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertExchangeQuoteFreightDetails.sql" />
+    <Build Include="dbo\Stored Procedures\PROCInsertExchangeQuoteChargesDetails.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeSalesOrderChargesList.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeQuoteFreightList.sql" />
+    <Build Include="dbo\Stored Procedures\GetExchangeQuoteChargesList.sql" />
+    <Build Include="dbo\User Defined Types\ExchangeSalesOrderFreightType.sql" />
+    <Build Include="dbo\User Defined Types\ExchangeSalesOrderChargesType.sql" />
+    <Build Include="dbo\User Defined Types\ExchangeQuoteFreightType.sql" />
+    <Build Include="dbo\User Defined Types\ExchangeQuoteChargesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

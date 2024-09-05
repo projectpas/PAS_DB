@@ -1,4 +1,4 @@
-﻿/*************************************************************
+﻿/*********************
  ** File:   [USP_GetManagementStructureDetailsForReportsHeader]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
@@ -8,9 +8,9 @@
  @WorkOrderId BIGINT
  @WFWOId BIGINT
  ** RETURN VALUE:
- **************************************************************
+ **********************
   ** Change History
- **************************************************************
+ **********************
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/12/2021   Hemant Saliya			Created
@@ -20,7 +20,7 @@
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
-**************************************************************/ 
+**********************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
 (    
 @ManagementStructId  BIGINT  = NULL

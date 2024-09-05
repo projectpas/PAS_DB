@@ -1,4 +1,4 @@
-﻿/*************************************************************
+﻿/*********************
  ** File:   [USP_GetManagementStructureDetailsForReportsHeader]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
@@ -8,20 +8,20 @@
  @WorkOrderId BIGINT
  @WFWOId BIGINT
  ** RETURN VALUE:
- **************************************************************
+ **********************
   ** Change History
- **************************************************************
+ **********************
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/12/2021   Hemant Saliya			Created
     2    09/08/2021   Devendra Shekh		added CurrentDateTime field
     3    12/08/2024   Ekta Chandegra		Retrieve Address
-    4    13/08/2024   Devendra Shekh		added Email to select
-    5    21/08/2024   Ekta Chandegra		Retrieve Address using dbo.ValidatePDFAddress common method
+    3    13/08/2024   Devendra Shekh		added Email to select
+	4    05/09/2024   Sahdev Saliya         address convert into single string value
 
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
-**************************************************************/ 
+**********************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
 (    
 @ManagementStructId  BIGINT  = NULL
@@ -45,20 +45,21 @@ SET NOCOUNT ON
 					atd.Link,
 					at.ModuleId,
 
-					--(Upper(ad.Line1) +', <br/>' +
-					--CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+', <br/>' ELSE '' END +
-					--CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City)+ ', ' ELSE ''END +
-					--CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince)+', ' ELSE ''END +
-					--CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ''+ Upper(ad.PostalCode)+', <br/>'ELSE ''END +
-					--CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
-					--CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					--CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
-					--CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
-					--CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
-					--) MergedAddress
+					(Upper(ad.Line1) +'<br/>' +
+					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
+					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
+					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
+					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
+					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
+					CASE WHEN ISNULL(c.Email,'') != '' THEN Upper(c.Email)+'<br/>'ELSE ''END+
+					CASE WHEN ISNULL(le.FAALicense,'') != '' THEN  Upper(le.FAALicense)ELSE ''END+
+					CASE WHEN ISNULL(le.EASALicense,'') != '' THEN ' '+  Upper(le.EASALicense)+'<br/>'ELSE ''END
+					) ,
 
-					 MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,NULL,c.Email))
+					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,'',ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,'',le.PhoneNumber,c.Email))
 					,
+
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),

@@ -12,6 +12,7 @@
     1    08/20/2024   BHargav Saliya			Created
     2    08/21/2024   Ekta Chandegra			Add Comma Separation
 	3    08/28/2024   AMIT GHEDIYA			    Edit for Ristrict '-'
+	4    09/02/2024   SAHDEV SALIYA             Address Hendal For Asset
 
 **************************************************************/ 
 CREATE   FUNCTION [dbo].[ValidatePDFAddress]
@@ -114,7 +115,7 @@ BEGIN
     -- Append PhoneNumber
     IF (@PhoneNumber IS NOT NULL AND @PhoneNumber <> '' AND TRIM(@PhoneNumber) <> '-')
     BEGIN
-        SET @address = @address + @PhoneNumber;
+        SET @address = @address + @PhoneNumber + '<br/>';
 		--+ (CASE WHEN @PhoneExt IS NULL OR @PhoneExt <> '' THEN '<br/>' ELSE '' END) ; 
 
     END
@@ -124,11 +125,7 @@ BEGIN
     BEGIN
         SET @address = @address + ' ' + @PhoneExt + '<br/>';
     END
-	ELSE
-	BEGIN
-        SET @address = @address + '<br/>'; 
-		
-	END
+	
     -- Append Email
     IF (@Email IS NOT NULL AND @Email <> '' AND TRIM(@Email) <> '-')
     BEGIN

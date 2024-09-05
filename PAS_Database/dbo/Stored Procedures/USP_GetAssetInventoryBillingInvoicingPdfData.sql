@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+﻿/*******           
  ** File:   [USP_GetAssetInventoryBillingInvoicingPdfData]           
  ** Author:  Abhishek Jirawla
  ** Description: This stored procedure is used to Get AssetInventory Billing Invoicing Pdf Data 
@@ -8,15 +8,16 @@
  ** PARAMETERS: @ASBillingInvoicingId bigint
          
  ** RETURN VALUE:           
- **************************************************************           
+ ********           
  ** Change History           
- **************************************************************           
+ ********           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/04/2024   Abhishek Jirawla     Created
+	2    05/09/2024   Sahdev Saliya        address convert into single string value
      
 -- EXEC USP_GetAssetInventoryBillingInvoicingPdfData 2
-************************************************************************/
+********/
 CREATE   PROCEDURE [dbo].[USP_GetAssetInventoryBillingInvoicingPdfData]  
 @ASBillingInvoicingId BIGINT
 AS  
@@ -35,6 +36,75 @@ BEGIN
 	SELECT @Company = [ModuleId] FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'Company';
 	SELECT @AssetInventoryId = [AssetInventoryId], @MasterCompanyId = MasterCompanyId FROM dbo.AssetInventoryBillingInvoicing WITH(NOLOCK) WHERE [ASBillingInvoicingId] = @ASBillingInvoicingId;
 
+			IF OBJECT_ID(N'tempdb..#TEMPInvoiceRecords') IS NOT NULL    
+			BEGIN    
+				DROP TABLE #TEMPInvoiceRecords
+			END
+			CREATE TABLE #TEMPInvoiceRecords(        
+				[ID] BIGINT IDENTITY(1,1),
+				[ItemNo] INT NULL,
+				[AssetInventoryId] BIGINT NULL,
+				[CustomerId] BIGINT NULL,
+				[ClientName] VARCHAR(100) NULL,
+				[CustEmail] VARCHAR(100) NULL,
+				[ASNotes] VARCHAR(2000) NULL,
+				[CustCountry] VARCHAR(100) NULL,
+				[SalesPerson] VARCHAR(100) NULL,
+				[AddressLine1] VARCHAR(5000) NULL,
+				[AddressLine2] VARCHAR(5000) NULL,
+				[City] VARCHAR(100) NULL,
+				[State] VARCHAR(100) NULL,
+				[PostalCode] VARCHAR(50) NULL,
+				[PhoneFax] VARCHAR(50) NULL,
+				[ShipToAddressLine1] VARCHAR(5000) NULL,
+				[ShipToAddressLine2] VARCHAR(5000) NULL,
+				[ShipToCity] VARCHAR(500) NULL,
+				[ShipToState] VARCHAR(100) NULL,
+				[ShipToPostalCode] VARCHAR(50) NULL,
+				[ShipToCountry] VARCHAR(100) NULL,
+				[ShipToNameOfCustomer] VARCHAR(100) NULL,
+				[ShipToCustomerEmail] VARCHAR(100) NULL,
+				[ShipToCustomerPhone] VARCHAR(100) NULL,
+				[shipMergedAddress] VARCHAR(5000) NULL,
+				[ShipToCustomerId] BIGINT NULL,
+				[ShipToSiteId] BIGINT NULL,
+				[ShipToSiteName] VARCHAR(50) NULL,
+				[BillToSiteName] VARCHAR(50) NULL,
+				[BillToAddressLine1] VARCHAR(5000) NULL,
+				[BillToAddressLine2] VARCHAR(5000) NULL,
+				[BillToCity] VARCHAR(100) NULL,
+				[BillToState] VARCHAR(100) NULL,
+				[BillToPostalCode] VARCHAR(50) NULL,
+				[BillToCountry] VARCHAR(100) NULL,
+				[BillToNameOfCustomer] VARCHAR(200) NULL,
+				[BillToCustomerEmail] VARCHAR(200) NULL,
+				[BillMergedAddress] VARCHAR(5000) NULL,
+				[InvoiceNumber] VARCHAR(100) NULL,
+				[DateAndTime] DATETIME NULL,
+				[NoOfContainers] INT NULL,
+				[PreparedBy] VARCHAR(50) NULL,
+				[DatePrinted] DATETIME NULL,
+				[CreditTerms] VARCHAR(100) NULL,
+				[Currency] VARCHAR(50) NULL,
+				[ASNum] VARCHAR(50) NULL,
+				[ShipAccNumber] VARCHAR(100) NULL,
+				[InvoiceStatus] VARCHAR(50) NULL,
+				[ManagementStructureId] BIGINT NULL,
+				[Barcode] VARCHAR(MAX) NULL,
+				[UpdatedDate] DATETIME NULL,
+				[CustomerPhone] VARCHAR(50) NULL,
+				[NewDateAndTime] DATETIME NULL,
+				[NewDueDate] DATETIME NULL,
+				[ShipToUserType] VARCHAR(200) NULL,
+				[BillToUserType] VARCHAR(200) NULL
+
+				)
+
+				INSERT INTO #TEMPInvoiceRecords([ItemNo], [AssetInventoryId],[CustomerId],[ClientName],[CustEmail],[ASNotes],[CustCountry],[SalesPerson],[AddressLine1],[AddressLine2],[City],[State],[PostalCode],[PhoneFax],[ShipToAddressLine1],
+				                   [ShipToAddressLine2],[ShipToCity],[ShipToState],[ShipToPostalCode],[ShipToCountry],[ShipToNameOfCustomer],[ShipToCustomerEmail],[ShipToCustomerPhone],[shipMergedAddress],[ShipToCustomerId],[ShipToSiteId],[ShipToSiteName],[BillToSiteName],
+				                   [BillToAddressLine1],[BillToAddressLine2],[BillToCity],[BillToState],[BillToPostalCode],[BillToCountry],[BillToNameOfCustomer],[BillToCustomerEmail],[BillMergedAddress],[InvoiceNumber],[DateAndTime],[NoOfContainers],[PreparedBy],
+				                   [DatePrinted],[CreditTerms],[Currency],[ASNum],[ShipAccNumber],[InvoiceStatus],[ManagementStructureId],[Barcode],[UpdatedDate],[CustomerPhone],[NewDateAndTime],[NewDueDate],[ShipToUserType],[BillToUserType])
+	
 	SELECT TOP 1 
 			1 AS ItemNo,
 			bi.AssetInventoryId,
@@ -60,6 +130,8 @@ BEGIN
 			shipCustomer.[Name] AS ShipToNameOfCustomer,
 			shipCustomer.[Email] AS ShipToCustomerEmail,
 			shipCustomer.[CustomerPhone] AS ShipToCustomerPhone,
+
+			shipMergedAddress = (SELECT dbo.ValidatePDFAddress(shipAddress.Line1,shipAddress.Line2,'',shipAddress.City,shipAddress.StateOrProvince,shipAddress.PostalCode,shipCountry.countries_name,'',shipCustomer.[CustomerPhone],shipCustomer.[Email])),
 			--saos.ShipToSiteName AS SiteName,
 			--saos.ShipToAddress1 AS ShipToAddressLine1,
 			--saos.ShipToAddress2 AS ShipToAddressLine2,
@@ -121,7 +193,45 @@ BEGIN
 				 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorEmail
 				 WHEN bi.BillToUserType = @Company THEN ''
 				 ELSE ''
-			END AS BillToCustomerEmail,	   
+			END AS BillToCustomerEmail,
+			
+			BillMergedAddress = (SELECT dbo.ValidatePDFAddress(
+			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line1
+				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line1
+				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line1
+				 ELSE ''
+			END,
+			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.Line2
+				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.Line2
+				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.Line2
+				 ELSE ''
+			END,'',
+			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.City
+				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.City
+				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.City
+				 ELSE ''
+			END ,
+			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.StateOrProvince
+				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.StateOrProvince
+				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.StateOrProvince
+				 ELSE ''
+			END,
+			CASE WHEN bi.BillToUserType = @Customer THEN billToAddress.PostalCode
+				 WHEN bi.BillToUserType = @Vendor THEN billToAddressVendor.PostalCode
+				 WHEN bi.BillToUserType = @Company THEN billToAddressCompany.PostalCode
+				 ELSE ''
+			END,
+			CASE WHEN bi.BillToUserType = @Customer THEN billToCountry.countries_name
+				 WHEN bi.BillToUserType = @Vendor THEN billToCountryVendor.countries_name
+				 WHEN bi.BillToUserType = @Company THEN billToCountryCompany.countries_name
+				 ELSE ''
+			END,'','',
+			CASE WHEN bi.BillToUserType = @Customer THEN billToCustomer.Email
+				 WHEN bi.BillToUserType = @Vendor THEN billToVendor.VendorEmail
+				 WHEN bi.BillToUserType = @Company THEN ''
+				 ELSE ''
+			END)),
+
 			bi.InvoiceNo AS InvoiceNumber,
 			ISNULL(CONVERT(VARCHAR(19), bi.InvoiceDate, 121),'') AS DateAndTime,
 			ISNULL(CONVERT(VARCHAR, '1'), '0') AS NoOfContainers,
@@ -205,6 +315,9 @@ BEGIN
 			bi.ASBillingInvoicingId = @ASBillingInvoicingId 
 			AND bi.IsActive = 1 
 			AND bi.IsDeleted = 0;
+
+			select * from #TEMPInvoiceRecords
+
 
  END TRY      
  BEGIN CATCH        

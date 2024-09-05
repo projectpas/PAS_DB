@@ -88,9 +88,9 @@ BEGIN
 					COUNT(V.QuickBooksReferenceId),MAX(V.LastSyncDate),
 					ACI.[MasterCompanyId], ACI.IntegrationId 
 			FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId 
-				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId 
-				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
 			WHERE (ISNULL(C.QuickBooksReferenceId,0) > 0 OR ISNULL(ST.QuickBooksReferenceId,0) > 0 OR ISNULL(V.QuickBooksReferenceId,0) > 0)
 			GROUP BY ACI.[MasterCompanyId], ACI.IntegrationId
 
@@ -111,9 +111,9 @@ BEGIN
 
 			INSERT #InsertedPendingSyncRecords([IntegrationId],[CustPendingSyncRecords],[STPendingSyncRecords],[VPendingSyncRecords],[MasterCompanyId])
 			SELECT ACI.IntegrationId, COUNT(C.IsUpdated),COUNT(ST.IsUpdated),COUNT(V.IsUpdated), ACI.[MasterCompanyId] FROM  dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
-				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
-				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId=ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
 			WHERE (ISNULL(C.IsUpdated,0) = 1 OR ISNULL(ST.IsUpdated,0) = 1 OR ISNULL(V.IsUpdated,0) = 1)
 			GROUP BY ACI.[MasterCompanyId] , ACI.IntegrationId
 
@@ -133,11 +133,11 @@ BEGIN
 			)
 
 			INSERT #InsertedTotalRecords([IntegrationId],[CustTotalRecords],[STTotalRecords],[VTotalRecords],[MasterCompanyId])
-			SELECT [IntegrationId], COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(ST.VendorId), ACI.[MasterCompanyId] 
+			SELECT [IntegrationId], COUNT(C.CustomerId),COUNT(ST.StocklineId),COUNT(V.VendorId), ACI.[MasterCompanyId] 
 			FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
-				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId
-				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId
-				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId
+				LEFT JOIN  dbo.Customer C  WITH (NOLOCK) ON C.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CustomerModuleId AND ISNULL(C.IsActive, 0) = 1 AND ISNULL(C.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Stockline ST  WITH (NOLOCK) ON ST.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @StocklineModuleId AND ISNULL(ST.IsActive, 0) = 1 AND ISNULL(ST.IsDeleted, 0) = 0
+				LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @VendorModuleId AND ISNULL(V.IsActive, 0) = 1 AND ISNULL(V.IsDeleted, 0) = 0
 			GROUP BY ACI.[MasterCompanyId], ACI.IntegrationId
 
 			--SELECT * FROM #InsertedTotalRecords
@@ -153,24 +153,24 @@ BEGIN
 					ACI.ModuleName,
 					ACI.MasterCompanyId,			
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId THEN SR.CustQuickBookCount
-						WHEN ACI.ModuleId = @StocklineModuleId THEN SR.STQuickBookCount
-						WHEN ACI.ModuleId = @VendorModuleId THEN SR.VQuickBookCount
+						WHEN ACI.ModuleId = @CustomerModuleId THEN ISNULL(SR.CustQuickBookCount, 0)
+						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(SR.STQuickBookCount, 0)
+						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(SR.VQuickBookCount, 0)
 					else  0
 					END  AS SyncRecords,
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId  THEN PSR.CustPendingSyncRecords
-						WHEN ACI.ModuleId = @StocklineModuleId THEN PSR.STPendingSyncRecords
-						WHEN ACI.ModuleId = @VendorModuleId THEN PSR.VPendingSyncRecords
+						WHEN ACI.ModuleId = @CustomerModuleId  THEN ISNULL(PSR.CustPendingSyncRecords, 0)
+						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(PSR.STPendingSyncRecords, 0)
+						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(PSR.VPendingSyncRecords, 0)
 					else  0
 					END  AS PendingSyncRecords,
 					CASE  
-						WHEN ACI.ModuleId = @CustomerModuleId  THEN TR.CustTotalRecords
-						WHEN ACI.ModuleId = @StocklineModuleId THEN TR.STTotalRecords
-						WHEN ACI.ModuleId = @VendorModuleId THEN TR.VTotalRecords
+						WHEN ACI.ModuleId = @CustomerModuleId  THEN ISNULL(TR.CustTotalRecords, 0)
+						WHEN ACI.ModuleId = @StocklineModuleId THEN ISNULL(TR.STTotalRecords, 0)
+						WHEN ACI.ModuleId = @VendorModuleId THEN ISNULL(TR.VTotalRecords, 0)
 					else  0
 					END  AS TotalCount,
-					SR.CustQuickBookCount,
+					ISNULL(SR.CustQuickBookCount, 0) AS CustQuickBookCount,
 					ACI.CreatedDate,
 					ACI.CreatedBy,
 					ACI.UpdatedDate,

@@ -21,6 +21,8 @@
 	4    03/19/2024   Hemant Saliya		Updated Cust Refrence as RO Number
     5    20-03-2024   Shrey Chandegara  Add Reference 
 	6    20-03-2024   AMIT GHEDIYA      Update Reference filter.
+	7    05-09-2024   Moin Bloch        Updated (Added Piece Part Filter)
+
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -54,8 +56,8 @@ CREATE  PROCEDURE [dbo].[GetReceivingCustomerList]
 	@ControlNumber varchar(50)=null,
 	@IdNumber varchar(50)=null,
 	@Reference varchar(100)=null,
-	@ManufacturerName varchar(150)=null
-
+	@ManufacturerName varchar(150)=null,
+	@PiecePartFilter varchar(50)=null
 AS
 BEGIN
 		SET NOCOUNT ON;
@@ -65,6 +67,7 @@ BEGIN
 		DECLARE @IsActive BIT=1
 		DECLARE @Count INT;
 		DECLARE @MSModuleID INT = 1; -- Receving Customer Management Structure Module ID
+		DECLARE @PiecePart BIT; 
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
 		IF @IsDeleted IS NULL
@@ -80,14 +83,27 @@ BEGIN
 		BEGIN 
 			SET @SortColumn=UPPER(@SortColumn)
 		END
+
+		IF (@PiecePartFilter = 1)
+		BEGIN
+			SET @PiecePart = 0;
+		END
+		ELSE IF(@PiecePartFilter = 2)
+		BEGIN
+			SET @PiecePart = 1;
+		END
+		IF (@PiecePartFilter = 3)
+		BEGIN
+			SET @PiecePart = NULL;
+		END 
 		
 		BEGIN TRY
 
-			BEGIN TRANSACTION
-				BEGIN
+			--BEGIN TRANSACTION
+				--BEGIN
 
 				;With Result AS(
-					Select	DISTINCT
+					SELECT	DISTINCT
 					RC.CustomerId, 
 					RC.ReceivingCustomerWorkId,
 					RC.ReceivedDate,
@@ -127,27 +143,29 @@ BEGIN
 					RC.UpdatedDate,
 					RC.UpdatedBy, 
 					MSD.LastMSLevel,
-					MSD.AllMSlevels
-				FROM dbo.ReceivingCustomerWork RC WITH (NOLOCK)
-					INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
-					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
+					MSD.AllMSlevels,
+					CASE WHEN RC.IsPiecePart = 1 THEN 1 ELSE 0 END IsPiecePart
+				FROM [dbo].[ReceivingCustomerWork] RC WITH (NOLOCK)
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON RC.ItemMasterId = IM.ItemMasterId
+					INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = rc.ReceivingCustomerWorkId
 					INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
-					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					INNER JOIN dbo.Stockline SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
-					LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
-					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
-					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-					LEFT JOIN dbo.ItemMaster RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
-					LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
-					LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
-					LEFT JOIN dbo.WorkOrderStage WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-					LEFT JOIN dbo.WorkOrderStatus WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
+					INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+					INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON RC.StockLineId = SL.StockLineId
+					LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+					LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+					LEFT JOIN [dbo].[ItemMaster] RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
+					LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
+					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
+					LEFT JOIN [dbo].[WorkOrderStage] WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
+					LEFT JOIN [dbo].[WorkOrderStatus] WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
 				WHERE (RC.MasterCompanyId = @MasterCompanyId AND RC.IsActive = 1 AND RC.IsDeleted = 0
+				        AND (@PiecePart IS NULL OR ISNULL(RC.IsPiecePart,0) = @PiecePart)
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 
 						OR (@WOFilter = 2 AND WO. WorkOrderNum IS NOT NUll AND WO.WorkOrderStatusId = 2 ) 
 						OR (@WOFilter = 3 AND (WO.WorkOrderNum IS NOT NUll OR WO.WorkOrderNum IS NUll OR RO.RepairOrderNumber IS NOT NULL OR RO.RepairOrderNumber IS NULL))))
-			), ResultCount AS(Select COUNT(ReceivingCustomerWorkId) AS totalItems FROM Result)
-			Select * INTO #TempResult from  Result
+			), ResultCount AS(SELECT COUNT(ReceivingCustomerWorkId) AS totalItems FROM Result)
+			SELECT * INTO #TempResult FROM  Result
 			WHERE (
 			(@GlobalFilter <>'' AND ((CustomerName like '%' +@GlobalFilter+'%' ) OR 
 					(PartNumber like '%' +@GlobalFilter+'%') OR
@@ -168,82 +186,79 @@ BEGIN
 					(ManufacturerName like '%' +@GlobalFilter+'%')
 					))
 					OR   
-					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') and 
-					(ISNULL(@PartNumber,'') ='' OR PartNumber like '%' + @PartNumber+'%') and
-					(ISNULL(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
-					(ISNULL(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') and
-					(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber like '%' + @StocklineNumber+'%') and
-					(ISNULL(@ControlNumber,'') ='' OR ControlNumber like '%' + @ControlNumber+'%') and
-					(ISNULL(@IdNumber,'') ='' OR IdNumber like '%' + @IdNumber+'%') and
-					(ISNULL(@WONumber,'') ='' OR WorkOrderNum like '%' + @WONumber+'%') and
-					(ISNULL(@ReceivingNumber,'') ='' OR ReceivingNumber like '%' + @ReceivingNumber+'%') and
-					(ISNULL(@ReceivedBy,'') ='' OR ReceivedBy like '%' + @ReceivedBy+'%') and
-
-					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel like '%' + @LastMSLevel+'%') and
-					(ISNULL(@StageCode,'') ='' OR StageCode like '%' + @StageCode+'%') and
-					(ISNULL(@Status,'') ='' OR Status like '%' + @Status+'%') and
-
-					(ISNULL(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
-					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
-					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate as Date)=CAST(@ReceivedDate AS DATE)) and
-					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate AS DATE)) and
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate AS DATE)) AND
-					(ISNULL(@Reference,'') ='' OR Reference like '%' + @Reference+'%') AND
-					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%'))
+					(@GlobalFilter='' AND (ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName+'%') AND 
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription+'%') AND
+					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber+'%') AND
+					(ISNULL(@StocklineNumber,'') ='' OR StocklineNumber LIKE '%' + @StocklineNumber+'%') AND
+					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber+'%') AND
+					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber+'%') AND
+					(ISNULL(@WONumber,'') ='' OR WorkOrderNum LIKE '%' + @WONumber+'%') AND
+					(ISNULL(@ReceivingNumber,'') ='' OR ReceivingNumber LIKE '%' + @ReceivingNumber+'%') AND
+					(ISNULL(@ReceivedBy,'') ='' OR ReceivedBy LIKE '%' + @ReceivedBy+'%') AND
+					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND
+					(ISNULL(@StageCode,'') ='' OR StageCode LIKE '%' + @StageCode+'%') AND
+					(ISNULL(@Status,'') ='' OR Status LIKE '%' + @Status+'%') AND
+					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
+					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
+					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE)=CAST(@ReceivedDate AS DATE)) AND
+					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
+					(ISNULL(@Reference,'') ='' OR Reference LIKE '%' + @Reference+'%') AND
+					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName+'%'))
 					)
 
-			Select @Count = COUNT(ReceivingCustomerWorkId) from #TempResult			
+			SELECT @Count = COUNT(ReceivingCustomerWorkId) FROM #TempResult			
 
-			SELECT *, @Count As NumberOfItems FROM #TempResult
-			ORDER BY  
+			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
 			
-			CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='IDNUMBER')  THEN IdNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='STAGECODE')  THEN StageCode END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVEDBY')  THEN ReceivedBy END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END ASC,
-            CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='REFERENCE')  THEN Reference END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERNAME')  THEN CustomerName END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='SERIALNUMBER')  THEN SerialNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='IDNUMBER')  THEN IdNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='STAGECODE')  THEN StageCode END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='STATUS')  THEN Status END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDBY')  THEN ReceivedBy END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END ASC,
+            CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='REFERENCE')  THEN Reference END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 
-			CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='IDNUMBER')  THEN IdNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='STAGECODE')  THEN StageCode END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVEDBY')  THEN ReceivedBy END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END DESC,
-            CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='REFERENCE')  THEN Reference END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME')  THEN CustomerName END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN PartNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SERIALNUMBER')  THEN SerialNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINENUMBER')  THEN StockLineNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='IDNUMBER')  THEN IdNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVINGNUMBER')  THEN ReceivingNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='STAGECODE')  THEN StageCode END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='STATUS')  THEN Status END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTMSLEVEL')  THEN LastMSLevel END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDBY')  THEN ReceivedBy END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDDATE')  THEN ReceivedDate END DESC,
+            CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='REFERENCE')  THEN Reference END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 
-			END
-			COMMIT  TRANSACTION
+			--END
+			--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

@@ -43,9 +43,12 @@
     [QuickBooksReferenceId]     VARCHAR (200)  NULL,
     [IsUpdated]                 BIT            NULL,
     [LastSyncDate]              DATETIME2 (7)  NULL,
+    [Memo]                      NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_CustomerAudit] PRIMARY KEY CLUSTERED ([AuditCustomerId] ASC),
     CONSTRAINT [FK_CustomerAudit_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId])
 );
+
+
 
 
 

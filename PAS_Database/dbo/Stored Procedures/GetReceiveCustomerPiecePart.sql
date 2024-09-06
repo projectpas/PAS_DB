@@ -13,7 +13,7 @@
  ** -----------------------------------------------------------          
     1    02/09/2024   Moin Bloch    Created
 	     
--- EXEC GetReceiveCustomerPiecePart 1795,1
+-- EXEC GetReceiveCustomerPiecePart 1819,1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[GetReceiveCustomerPiecePart]  
 @ReceivingCustomerWorkId [bigint] NULL,
@@ -26,6 +26,9 @@ BEGIN
 	
 		DECLARE @ReceivingNumber VARCHAR(MAX) = '';
 	    DECLARE @ReceivingNumbers VARCHAR(MAX) = '';
+		DECLARE @Finalstring VARCHAR(MAX) = '';
+		DECLARE @FinalReceivingNumber VARCHAR(MAX) = '';
+		
 	    DECLARE @RCManagementStructureModuleId BIGINT;
 					
 		SELECT @RCManagementStructureModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'RecevingCustomer';				
@@ -33,7 +36,11 @@ BEGIN
 		SELECT @ReceivingNumber = [ReceivingNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 
 		SELECT @ReceivingNumbers = STRING_AGG([ReceivingNumber],',') FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingNumber] = @ReceivingNumber;
-					   		
+		
+		SELECT @finalstring = @finalstring + value + ',' FROM STRING_SPLIT(@ReceivingNumbers,',') GROUP BY value
+		
+		SELECT @FinalReceivingNumber = SUBSTRING(@finalstring,0,LEN(@finalstring))
+		
 		SELECT RC.[ReceivingCustomerWorkId],RC.[EmployeeId],RC.[CustomerId],RC.[ReceivingNumber],RC.[CustomerContactId],RC.[ItemMasterId],RC.[RevisePartId],
 		        RC.[IsSerialized],RC.[SerialNumber],RC.[Quantity],RC.[ConditionId],RC.[SiteId],RC.[WarehouseId],RC.[LocationId],RC.[Shelfid],RC.[BinId],
 				RC.[OwnerTypeId],RC.[Owner],RC.[IsCustomerStock],RC.[TraceableToTypeId],RC.[TraceableTo],RC.[ObtainFromTypeId],RC.[ObtainFrom],RC.[IsMFGDate],
@@ -52,13 +59,14 @@ BEGIN
 				SL.[ManufacturerId],
 				TL.[TimeLifeCyclesId],TL.[CyclesRemaining],TL.[CyclesSinceNew],TL.[CyclesSinceOVH],TL.[CyclesSinceInspection],TL.[CyclesSinceRepair]
                ,TL.[TimeRemaining],TL.[TimeSinceNew],TL.[TimeSinceOVH],TL.[TimeSinceInspection],TL.[TimeSinceRepair],TL.[LastSinceNew]
-               ,TL.[LastSinceOVH],TL.[LastSinceInspection],TL.[DetailsNotProvided],MS.[LastMSLevel],MS.[AllMSlevels]  
+               ,TL.[LastSinceOVH],TL.[LastSinceInspection],TL.[DetailsNotProvided]
+			   ,MS.[LastMSLevel],MS.[AllMSlevels]  
           FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 		  INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON RC.[ItemMasterId] = IM.[ItemMasterId]
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  
 		  INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON RC.[StockLineId] = SL.[StockLineId] AND [IsParent] = 1
 		  LEFT  JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
-		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[ReceivingNumber] IN (@ReceivingNumbers);
+		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[ReceivingNumber] IN (@FinalReceivingNumber);
 		   			    
  END TRY        
  BEGIN CATCH  

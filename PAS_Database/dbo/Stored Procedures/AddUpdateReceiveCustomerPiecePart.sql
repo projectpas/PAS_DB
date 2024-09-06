@@ -473,7 +473,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedBy] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry])
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,[Quantity] ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -485,7 +485,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry] FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId;	
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],1 FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 

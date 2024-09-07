@@ -17,7 +17,7 @@
     3    07/26/2024   Hemant Saliya		Updated for Performance Improvement
 	4    07/26/2024   Vishal Suthar		Modified StartWith condition and removed join with stockline table to improve the performance
 	5    08/12/2024   Devendra Shekh	Modified to select UnitOfMeasure
-	
+	6    09/06/2024   Moin Bloch	    Modified (Added Site,WareHouse,LocationId,ShelfId,BinId)	
        
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '',1,20,'',1  
@@ -61,7 +61,12 @@ BEGIN
 		  Im.isSerialized AS IsSerialized,  
 		  Im.isTimeLife AS IsTimeLife,  
 		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-		  Ic.ItemClassificationCode as ItemClassification
+		  Ic.ItemClassificationCode as ItemClassification,
+		  Im.SiteId,
+		  Im.WarehouseId,
+		  Im.LocationId,
+		  Im.ShelfId,
+		  Im.BinId
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
@@ -94,7 +99,12 @@ BEGIN
 		  Im.isSerialized AS IsSerialized,  
 		  Im.isTimeLife AS IsTimeLife,  
 		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-		  Ic.ItemClassificationCode as ItemClassification
+		  Ic.ItemClassificationCode as ItemClassification,
+		  Im.SiteId,
+		  Im.WarehouseId,
+		  Im.LocationId,
+		  Im.ShelfId,
+		  Im.BinId
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
@@ -127,7 +137,12 @@ BEGIN
 		  Im.isSerialized AS IsSerialized,  
 		  Im.isTimeLife AS IsTimeLife,  
 		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-		  Ic.ItemClassificationCode as ItemClassification
+		  Ic.ItemClassificationCode as ItemClassification,
+		  Im.SiteId,
+		  Im.WarehouseId,
+		  Im.LocationId,
+		  Im.ShelfId,
+		  Im.BinId
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
@@ -159,7 +174,12 @@ BEGIN
 		  Im.isSerialized AS IsSerialized,  
 		  Im.isTimeLife AS IsTimeLife,  
 		  ConditionId = (select top 1 imp.ConditionId from dbo.ItemMasterPurchaseSale imp with(NoLock) Where imp.ItemMasterId = im.ItemMasterId),
-		  Ic.ItemClassificationCode as ItemClassification
+		  Ic.ItemClassificationCode as ItemClassification,
+		  Im.SiteId,
+		  Im.WarehouseId,
+		  Im.LocationId,
+		  Im.ShelfId,
+		  Im.BinId
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId

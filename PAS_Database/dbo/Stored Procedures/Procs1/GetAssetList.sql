@@ -16,7 +16,7 @@
  ** --   --------     -------				--------------------------------          
     1    									Created
     2	 06/10/2024  Abhishek Jirawla		Returning upper case data
-	
+	3    09/09/2024  Abhishek Jirawla       Adding DepreciationMethod
 
 ************************************************************************/
 
@@ -106,6 +106,7 @@ BEGIN
      UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
      UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
      UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END) AS AssetClass,  
+	 UPPER((SELECT TOP 1 AssetDepreciationMethodName FROM dbo.AssetDepreciationMethod AS adm WITH(NOLOCK) WHERE adm.AssetDepreciationMethodId = asty.DepreciationMethod)) AS DepreciationMethod,
      UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
      UPPER(asty.AssetAttributeTypeName) AS AssetType,   
      UPPER(asm.MasterCompanyId) AS MasterCompanyId,  

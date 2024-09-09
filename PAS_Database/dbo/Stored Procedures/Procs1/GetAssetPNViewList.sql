@@ -100,13 +100,15 @@ BEGIN
     UPPER(asm.AssetRecordId) as AssetRecordId,         
     asm.IsDepreciable AS IsDepreciable,  
     asm.IsAmortizable AS IsAmortizable,  
+
     UPPER(asm.Name) AS Name,  
     UPPER(asm.AssetId) AS AssetId,  
     UPPER((SELECT TOP 1 AssetId FROM dbo.Asset WITH(NOLOCK) where AssetRecordId=asm.AlternateAssetRecordId)) AS AlternateAssetId,  
     UPPER(maf.Name) AS ManufacturerName,  
     UPPER(CASE WHEN asm.IsSerialized = 1 THEN 'Yes'else 'No' END) AS IsSerializedNew,  
     UPPER(CASE WHEN ascal.CalibrationRequired = 1 THEN 'Yes'else 'No' END) AS CalibrationRequiredNew,  
-    UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END) AS AssetClass,  
+    UPPER(CASE WHEN asm.IsTangible = 1 THEN 'Tangible'else 'Intangible' END) AS AssetClass,
+	UPPER((SELECT TOP 1 AssetDepreciationMethodName FROM dbo.AssetDepreciationMethod AS adm WITH(NOLOCK) WHERE adm.AssetDepreciationMethodId = asty.DepreciationMethod)) AS DepreciationMethod,
     UPPER(ISNULL((case when ISNULL(asm.IsTangible, 0) = 1 and ISNULL(asm.IsDepreciable,0)=1 THEN 'Yes' when  ISNULL(asm.IsTangible,0) = 0 and ISNULL(asm.IsAmortizable,0)=1  THEN  'Yes'  else 'No'  end),'No')) as deprAmort,  
     UPPER(asty.AssetAttributeTypeName) AS AssetType,   
     UPPER(asm.MasterCompanyId) AS MasterCompanyId,  
@@ -165,7 +167,7 @@ BEGIN
     Group By PC.AssetRecordId,A.PartDescription  
     ),Results AS(  
     Select M.AssetRecordId, M.IsDepreciable,M.IsAmortizable,  
-        M.[Name] as 'Name',M.AssetId,M.AlternateAssetId, M.ManufacturerName,M.IsSerializedNew,M.CalibrationRequiredNew,M.AssetClass,M.deprAmort,M.AssetType,M.MasterCompanyId,ISNULL(M.CreatedDate,'')AS CreatedDate,ISNULL(M.UpdatedDate,'')AS UpdatedDate,  
+        M.[Name] as 'Name',M.AssetId,M.AlternateAssetId, M.ManufacturerName,M.IsSerializedNew,M.CalibrationRequiredNew,M.AssetClass,M.DepreciationMethod,M.deprAmort,M.AssetType,M.MasterCompanyId,ISNULL(M.CreatedDate,'')AS CreatedDate,ISNULL(M.UpdatedDate,'')AS UpdatedDate,  
         M.CreatedBy,M.UpdatedBy,M.IsActive as 'IsActive',M.IsDeleted as 'IsDeleted',  
        PT.PartNumber AS 'PN', UPPER(PT.PartNumberType) as 'PartNumber',  
        PD.PartDescription AS 'PNDesc',UPPER(PD.PartDescriptionType)  as 'PartDescription'  ,M.ManufacturerPN,M.AssetInventoryIds

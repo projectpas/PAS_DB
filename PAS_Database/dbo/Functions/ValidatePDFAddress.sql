@@ -1,20 +1,21 @@
-﻿/*************************************************************
+﻿/*********************
  ** File:   [ValidatePDFAddress]
  ** Author:   Bhargav Saliya
  ** Description: Merge Address
  ** Purpose:
  ** Date:   08/20/2024
- **************************************************************
+ **********************
   ** Change History
- **************************************************************
+ **********************
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    08/20/2024   BHargav Saliya			Created
     2    08/21/2024   Ekta Chandegra			Add Comma Separation
 	3    08/28/2024   AMIT GHEDIYA			    Edit for Ristrict '-'
 	4    09/02/2024   SAHDEV SALIYA             Address Hendal For Asset
+	5    09/09/2024   Ayushi Patel				Return Address In upper case
 
-**************************************************************/ 
+**********************/ 
 CREATE   FUNCTION [dbo].[ValidatePDFAddress]
 (
     @Address1 NVARCHAR(255),
@@ -37,13 +38,13 @@ BEGIN
     -- Append Address1
     IF (@Address1 IS NOT NULL AND @Address1 <> '' AND TRIM(@Address1) <> '-')
     BEGIN
-        SET @address = @address + @Address1 + ' <br/>';
+        SET @address = @address + @Address1 + ', <br/>';
     END
 
     -- Append Address2
     IF (@Address2 IS NOT NULL AND @Address2 <> '' AND TRIM(@Address2) <> '-')
     BEGIN
-        SET @address = @address + @Address2 + ' <br/>';
+        SET @address = @address + @Address2 + ', <br/>';
     END
 
 	 -- Append Address3
@@ -132,5 +133,5 @@ BEGIN
         SET @address =  @address + @Email;
     END
 
-    RETURN @address;
+    RETURN UPPER( @address );
 END;

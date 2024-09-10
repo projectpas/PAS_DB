@@ -13,11 +13,12 @@
  ** -----------------------------------------------------------          
     1    02/09/2024   Moin Bloch    Created
 	     
--- EXEC GetReceiveCustomerPiecePart 1819,1
+    EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[GetReceiveCustomerPiecePart]  
 @ReceivingCustomerWorkId [bigint] NULL,
-@MasterCompanyId [int] NULL
+@CustomerId [bigint] NULL,
+@MasterCompanyId [int] NULL 
 AS    
 BEGIN    
  SET NOCOUNT ON;    
@@ -34,12 +35,12 @@ BEGIN
 		SELECT @RCManagementStructureModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'RecevingCustomer';				
 		
 		SELECT @ReceivingNumber = [ReceivingNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
-
+		
 		SELECT @ReceivingNumbers = STRING_AGG([ReceivingNumber],',') FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingNumber] = @ReceivingNumber;
 		
 		SELECT @finalstring = @finalstring + value + ',' FROM STRING_SPLIT(@ReceivingNumbers,',') GROUP BY value
 		
-		SELECT @FinalReceivingNumber = SUBSTRING(@finalstring,0,LEN(@finalstring))
+		SELECT @FinalReceivingNumber = SUBSTRING(@finalstring,0,LEN(@finalstring));
 		
 		SELECT RC.[ReceivingCustomerWorkId],RC.[EmployeeId],RC.[CustomerId],RC.[ReceivingNumber],RC.[CustomerContactId],RC.[ItemMasterId],RC.[RevisePartId],
 		        RC.[IsSerialized],RC.[SerialNumber],RC.[Quantity],RC.[ConditionId],RC.[SiteId],RC.[WarehouseId],RC.[LocationId],RC.[Shelfid],RC.[BinId],
@@ -66,7 +67,7 @@ BEGIN
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  
 		  INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON RC.[StockLineId] = SL.[StockLineId] AND [IsParent] = 1
 		  LEFT  JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
-		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[ReceivingNumber] IN (@FinalReceivingNumber);
+		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[CustomerId] = @CustomerId AND RC.[ReceivingNumber] IN (@FinalReceivingNumber);
 		   			    
  END TRY        
  BEGIN CATCH  

@@ -34,11 +34,10 @@ BEGIN
 	   DECLARE @StockIdCodeTypeId INT = 0; 
 	   DECLARE @IdNumberCodeTypeId INT = 0; 
 	   DECLARE @ControlNumberCodeTypeId INT = 0; 
-	   DECLARE @IDNumber VARCHAR(50);  
+	   DECLARE @IDNumber VARCHAR(50)='',@RCReceiverNumber AS VARCHAR(50)='';  
 	   DECLARE @ItemtypeId INT = 2; 
 	   DECLARE @RCId BIGINT = 0; 
 	   DECLARE @ReceivingCustomerModuleId INT = 27
-	   DECLARE @OldReceivingNumber VARCHAR(50) = ''; 
 	   DECLARE @NHAMappingType INT = 3;
 	   DECLARE @TLAMappingType INT = 4;
 	   
@@ -208,12 +207,10 @@ BEGIN
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprReceiveCustomerPiecePart    
 		
-		SELECT TOP 1 @OldReceivingNumber = [ReceivingNumber] FROM #tmprReceiveCustomerPiecePart WHERE ISNULL([ReceivingCustomerWorkId],0) > 0;
-
 		WHILE @MinId <= @TotalRecord
 		BEGIN				
 				DECLARE @CurrentIdNumber AS BIGINT;
-				DECLARE @ReceiverNumber AS VARCHAR(50),@RCReceiverNumber AS VARCHAR(50)='',@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
+				DECLARE @ReceiverNumber AS VARCHAR(50),@CreatedBy VARCHAR(250),@UpdatedBy VARCHAR(250)
 				DECLARE @IdCodeTypeId BIGINT;				
 				DECLARE @NHAItemMasterId BIGINT,@TLAItemMasterId BIGINT,@LegalEntityId BIGINT,@ManagementStructureId BIGINT,@RevicedPNId BIGINT,@TimeLifeCyclesId BIGINT
 				DECLARE @StockLineNumber VARCHAR(100);
@@ -293,18 +290,11 @@ BEGIN
 					END
 
 					SET @ReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
-				
-					IF (@OldReceivingNumber IS NOT NULL) AND (@OldReceivingNumber != '')
-					BEGIN							
-						SET @RCReceiverNumber = @OldReceivingNumber;	
-					END
-					ELSE
-					BEGIN						
-						IF(@MinId = 1 )
-						BEGIN
-							SET @RCReceiverNumber = @ReceiverNumber;
-						END						
-					END					
+														
+					IF(@MinId = 1 )
+					BEGIN
+						SET @RCReceiverNumber = @ReceiverNumber;
+					END				
 					/* PN Manufacturer Combination Stockline logic */
                 
 					IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL                

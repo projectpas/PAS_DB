@@ -8,8 +8,9 @@
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1   30-AUG-2024				  Ekta Chandegra					Created
+    2   10-SEPT-2024			  Ekta Chandegra					If Value is -ve then return 0
 ****************************************************************************************************************************************/ 
-CREATE    PROCEDURE [dbo].[GetPNTilePriceMasters]
+CREATE      PROCEDURE [dbo].[GetPNTilePriceMasters]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -76,7 +77,14 @@ BEGIN
 		ISNULL(IMPS.PP_FXRatePerc,0) AS PP_FXRatePerc,
 		IMPS.PP_LastListPriceDate,
 		IMPS.PP_LastPurchaseDiscDate,
-		ISNULL(IMPS.PP_PurchaseDiscPerc,0) AS PP_PurchaseDiscPerc,
+		--ISNULL(IMPS.PP_PurchaseDiscPerc,0) AS PP_PurchaseDiscPerc,
+		CASE
+			WHEN IMPS.PP_PurchaseDiscPerc < 0
+			THEN 
+				0
+			ELSE
+				IMPS.PP_PurchaseDiscPerc
+		END AS 'PP_PurchaseDiscPerc',
 		ISNULL(IMPS.PP_PurchaseDiscAmount,0) AS PP_PurchaseDiscAmount,
 		ISNULL(IMPS.PP_UnitPurchasePrice,0) AS PP_UnitPurchasePrice,
 		IMPSM.ItemMasterPurchaseSaleMasterId,
@@ -88,7 +96,14 @@ BEGIN
 		IMPS.SP_CalSPByPP_LastMarkUpDate,
 		IMPS.SP_CalSPByPP_LastSalesDiscDate,
 		ISNULL(IMPS.SP_CalSPByPP_MarkUpAmount,0) AS SP_CalSPByPP_MarkUpAmount,
-        ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) AS SP_CalSPByPP_MarkUpPercOnListPrice,
+        --ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,0) AS SP_CalSPByPP_MarkUpPercOnListPrice,
+		CASE
+			WHEN (IMPS.SP_CalSPByPP_MarkUpPercOnListPrice < 0)
+			THEN 
+					ISNULL(IMPS.SP_CalSPByPP_MarkUpPercOnListPrice,NULL) 
+			ELSE
+				IMPS.SP_CalSPByPP_MarkUpPercOnListPrice
+		END AS 'SP_CalSPByPP_MarkUpPercOnListPrice',
 		ISNULL(IMPS.SP_CalSPByPP_SaleDiscAmount,0) AS SP_CalSPByPP_SaleDiscAmount,
 		ISNULL(IMPS.SP_CalSPByPP_SaleDiscPerc,0) AS SP_CalSPByPP_SaleDiscPerc,
 		ISNULL(IMPS.SP_CalSPByPP_UnitSalePrice,0) AS SP_CalSPByPP_UnitSalePrice,

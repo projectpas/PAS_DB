@@ -43,8 +43,13 @@
     [ChargesBilingMethodId]       INT             NULL,
     [TotalCharges]                DECIMAL (18, 2) NULL,
     [VendorReference]             VARCHAR (100)   NULL,
+    [FunctionalCurrencyId]        INT             NULL,
+    [ReportCurrencyId]            INT             NULL,
+    [ForeignExchangeRate]         DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderAudit] PRIMARY KEY CLUSTERED ([VendorRFQRepairOrderAuditId] ASC)
 );
+
+
 
 
 

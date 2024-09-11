@@ -17,6 +17,7 @@
  ** --   --------     -------				--------------------------------          
     1    08/08/2022   Subhash Saliya		Created
     2    06/09/2024   Devendra Shekh		Modified to get Journal Details with Distribution Details
+    3    10/09/2024   Devendra Shekh		Modified to get GLAccount with Code and Name
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -50,7 +51,7 @@ BEGIN
 					[DistributionSetupID] BIGINT NULL,
 					[Name] VARCHAR(200) NULL,
 					[GlAccountId] BIGINT NULL,
-					[GlAccountName] VARCHAR(200) NULL,
+					[GlAccountName] VARCHAR(400) NULL,
 					[DistributionMasterId] BIGINT NULL,
 					[IsDebit] BIT NULL,
 					[DisplayNumber] INT NULL,
@@ -92,7 +93,8 @@ BEGIN
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
 							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo] )
 				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
-						DS.[ID], [Name], [GlAccountId], [GlAccountName], JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
+						DS.[ID], [Name], [GlAccountId], (CASE WHEN ISNULL([GlAccountNumber], '') = '' THEN ISNULL([GlAccountName], '') ELSE ISNULL([GlAccountNumber], '') + ' - ' + ISNULL([GlAccountName], '') END),
+						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
 						JTD.[CreatedBy], JTD.[UpdatedBy], JTD.[IsActive], JTD.[IsDeleted] ,isnull(JTD.UpdatedDate,GETUTCDATE()) as UpdatedDate ,isnull(JTD.CreatedDate,GETUTCDATE()) as CreatedDate,
 						CRDRType,
 						CASE	WHEN CRDRType=1 THEN 'DR' 
@@ -100,7 +102,7 @@ BEGIN
 								WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo]
 				FROM JournalTypeData JTD WITH(NOLOCK) 
-				LEFT JOIN DistributionSetup DS ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId;
+				LEFT JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId;
 
 				SELECT * FROM #GLAllocationResults ORDER BY [SequenceNo], [JournalTypeId] ASC;
 

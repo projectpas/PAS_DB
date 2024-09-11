@@ -31,8 +31,8 @@ BEGIN
 		
 		BEGIN TRY
 
-			BEGIN TRANSACTION
-				BEGIN
+			--BEGIN TRANSACTION
+			--	BEGIN
 					DECLARE @ProvisionId BIGINT;
 					DECLARE @MasterCompanyId BIGINT;
 					DECLARE @WorkOrderTypeId BIGINT;
@@ -337,7 +337,8 @@ BEGIN
 								SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
 
 								DECLARE @ActionId INT;
-								SET @ActionId = 4; -- Issue
+								SET @ActionId = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'IssueReserve'); -- Added new action for Issue & Reserve
+
 								EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
 
 								-- batch trigger issue qty
@@ -360,8 +361,8 @@ BEGIN
 							END
 						END
 					END
-				END
-			COMMIT  TRANSACTION
+			--	END
+			--COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

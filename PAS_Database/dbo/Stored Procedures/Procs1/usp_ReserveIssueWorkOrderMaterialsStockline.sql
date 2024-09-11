@@ -80,7 +80,7 @@ BEGIN
 					SET @AddHistoryForNonSerialized = 0;					
 					SET @slcount = 1;
 					SET @count = 1;
-					DECLARE @ActionId INT = 4; -- Issue
+					DECLARE @ActionId INT = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'IssueReserve'); -- Added new action for Issue & Reserve
 
 					IF OBJECT_ID(N'tempdb..#tmpReserveWOMaterialsStockline') IS NOT NULL
 					BEGIN

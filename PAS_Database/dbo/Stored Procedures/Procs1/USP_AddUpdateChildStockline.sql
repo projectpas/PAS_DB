@@ -22,6 +22,7 @@
 	6    23 jan 2024  Shrey Chandegara  Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
 	7    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
 	8    03/09/2024  Rajesh Gami	    Add ActionId 6 for the REMOVE FROM OH
+	8    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -476,6 +477,18 @@ BEGIN
 							WHERE ChildStockLineId = @StocklineToUpdate;
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
+					END
+					ELSE IF (@ActionId = 20) -- IssueReserve
+					BEGIN
+						Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 0, QuantityIssued = 1, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+							SET @QtyOnAction = @QtyOnAction - 1;
+					END
+					ELSE IF (@ActionId = 21) -- UnIssueUnReserve
+					BEGIN
+						Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 1,QuantityOnHand = 1,QuantityIssued = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+							SET @QtyOnAction = @QtyOnAction - 1;
 					END
 				END
 

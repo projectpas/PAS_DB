@@ -16,10 +16,11 @@
     1    09/03/2023  Amit Ghediya    Created
 	2    17/05/2023  Amit Ghediya    Add Currency Code.
 	3    26/07/2024  Amit Ghediya    Update to get Freight amount.
+	4    11/09/2024  Amit Ghediya    Update to get Header level Functional Curr.
      
 -- EXEC RPT_PrintPurchasePartDataById 2537
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_PrintPurchasePartDataById]
+CREATE PROCEDURE [dbo].[RPT_PrintPurchasePartDataById]
 @PurchaseOrderId BIGINT
 AS
 BEGIN
@@ -38,15 +39,21 @@ BEGIN
 		WHERE PO.PurchaseOrderId = @PurchaseOrderId
 		AND PO.IsDeleted =0 AND PO.isParent = 1;
 
-		SELECT @CurrencyCode = CU.Code, 
-			   @ChargesBilingMethodId = PO.ChargesBilingMethodId, 
-			   @FreightBilingMethodId = PO.FreightBilingMethodId
-			FROM [DBO].[purchaseorder] PO
-			LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] MS WITH (NOLOCK) ON PO.ManagementStructureId = MS.MSDetailsId
-			LEFT JOIN [DBO].[ManagementStructurelevel] MS1 WITH (NOLOCK) ON MS.level1Id = MS1.id
-			LEFT JOIN LegalEntity LE WITH (NOLOCK) ON MS1.LegalEntityId = LE.LegalEntityId
-			LEFT JOIN Currency CU WITH (NOLOCK) ON LE.FunctionalCurrencyId = CU.CurrencyId
+		--SELECT @CurrencyCode = CU.Code, 
+		--	   @ChargesBilingMethodId = PO.ChargesBilingMethodId, 
+		--	   @FreightBilingMethodId = PO.FreightBilingMethodId
+		--	FROM [DBO].[purchaseorder] PO
+		--	LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] MS WITH (NOLOCK) ON PO.ManagementStructureId = MS.MSDetailsId
+		--	LEFT JOIN [DBO].[ManagementStructurelevel] MS1 WITH (NOLOCK) ON MS.level1Id = MS1.id
+		--	LEFT JOIN LegalEntity LE WITH (NOLOCK) ON MS1.LegalEntityId = LE.LegalEntityId
+		--	LEFT JOIN Currency CU WITH (NOLOCK) ON LE.FunctionalCurrencyId = CU.CurrencyId
+		--WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+		SELECT @CurrencyCode = CU.Code
+		FROM [DBO].[purchaseorder] PO WITH (NOLOCK)
+		LEFT JOIN [DBO].[Currency] CU WITH (NOLOCK) ON PO.FunctionalCurrencyId = CU.CurrencyId
 		WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
 		
 		IF OBJECT_ID(N'tempdb..#tmpPurchaseORderPartRecord') IS NOT NULL
 		BEGIN

@@ -14,6 +14,7 @@
    1		05/07/2024		Amit Ghediya		Created
    2		29/07/2024		Abhishek Jirawla	Modified Part record in freights and charges
    3	    08 Aug 2024	    Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate & also added login UserName
+   4        11/09/2024		Amit Ghediya		Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while RFQRO duplicate
 
 ************************************************************************/  
 CREATE PROCEDURE [dbo].[USP_DuplicateRFQRO]  
@@ -92,12 +93,14 @@ BEGIN
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],[RequisitionerId],    
 					[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],VendorReference,    
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])    
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+					[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])    
          SELECT @VendorRFQRepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],@CreditTermsId,@Terms,@CreditLimit,[RequisitionerId],    
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],@VendorReference,    
-					@Username,@Username,GETUTCDATE(),GETUTCDATE(),1,0,PDFPath, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
+					@Username,@Username,GETUTCDATE(),GETUTCDATE(),1,0,PDFPath, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+					[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
          FROM [dbo].[VendorRFQRepairOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;
 

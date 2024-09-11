@@ -15,8 +15,14 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    07/16/2024   Vishal Suthar		Created
+    2    09/12/2024   Vishal Suthar		Fixed an issue with getting the credit term for matching
 
-exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @CustomerReference, @ReserveStockline, @TransferStockline, @TransferCharges, @TransferFreight, @TransferMemos, @TransferNotes',N'@SalesOrderQuoteId bigint,@EmployeeId bigint,@CustomerReference nvarchar(10),@ReserveStockline bit,@TransferStockline bit,@TransferCharges bit,@TransferFreight bit,@TransferMemos bit,@TransferNotes bit',@SalesOrderQuoteId=674,@EmployeeId=2,@CustomerReference=N'NewSOQTOSO',@ReserveStockline=1,@TransferStockline=1,@TransferCharges=1,@TransferFreight=1,@TransferMemos=1,@TransferNotes=1
+declare @p13 bigint
+set @p13=NULL
+declare @p14 bigint
+set @p14=NULL
+exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @EmployeeName, @CustomerReference, @ReserveStockline, @TransferStockline, @TransferCharges, @TransferFreight, @TransferMemos, @TransferNotes, @SalesOrderId OUTPUT, @CustomerId OUTPUT',N'@SalesOrderQuoteId bigint,@EmployeeId bigint,@EmployeeName nvarchar(11),@CustomerReference nvarchar(10),@ReserveStockline bit,@TransferStockline bit,@TransferCharges bit,@TransferFreight bit,@TransferMemos bit,@TransferNotes bit,@SalesOrderId bigint output,@CustomerId bigint output',@SalesOrderQuoteId=655,@EmployeeId=162,@EmployeeName=N'ADMIN ADMIN',@CustomerReference=N'6300393349',@ReserveStockline=1,@TransferStockline=1,@TransferCharges=0,@TransferFreight=0,@TransferMemos=0,@TransferNotes=0,@SalesOrderId=@p13 output,@CustomerId=@p14 output
+select @p13, @p14
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ConvertSOQToSO]
@@ -48,12 +54,12 @@ BEGIN
 
 	-- Initialize isCreditTermsRequired
 	DECLARE @isCreditTermsRequired BIT = 0;
-	DECLARE @creditterms BIT = 0;
+	DECLARE @creditterms VARCHAR(100) = '';
 
 	-- Fetch creditterms
 	SELECT TOP 1 Code INTO #creditterms FROM DBO.CreditTerms WITH (NOLOCK) WHERE CreditTermsId = (SELECT CreditTermId FROM #salesView);
 
-	SELECT @creditterms = 1 FROM #creditterms;
+	SELECT @creditterms = CODE FROM #creditterms;
 
 	-- Check creditterms and set isCreditTermsRequired
 	IF @creditterms IS NOT NULL
@@ -84,6 +90,7 @@ BEGIN
 				SELECT TOP 1 * INTO #customerFinData FROM CustomerFinancial WHERE CustomerId = (SELECT CustomerId FROM #salesView);
 
 				-- Check customerFinData and isCreditTermsRequired
+
 				IF EXISTS (SELECT 1 FROM #customerFinData) AND @isCreditTermsRequired = 0
 				BEGIN
 					IF (SELECT CreditTermsId FROM #customerFinData) = 0 OR (SELECT CreditLimit FROM #customerFinData) = 0
@@ -185,7 +192,6 @@ BEGIN
 		SET @SalesOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(0, '', ''));
 	END
 
-	PRINT ('Insert SalesOrder')
 	-- Insert SalesOrder
 	INSERT INTO DBO.SalesOrder ([Version],[TypeId],[OpenDate],[ShippedDate],[NumberOfItems],[AccountTypeId],[CustomerId],[CustomerContactId],
 	[CustomerReference],[CurrencyId],[TotalSalesAmount],[CustomerHold],[DepositAmount],[BalanceDue],[SalesPersonId],[AgentId],[CustomerSeviceRepId],

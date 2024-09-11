@@ -23,6 +23,7 @@
 	6	 16/04/2024   Amit Ghediya   Updates memo text.
 	7	 18/06/2024   Amit Ghediya   Modified to allow qty update if unit cost is 0.00.
 	8	 04/09/2024   Rajesh Gami    Pass the @BulkStkLineAdjHeaderId for the stockline history, Previously it was blank;
+	9	 11/09/2024   Devendra Shekh Batch Issue For 0.00 Unit Cost Resolved
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -202,6 +203,8 @@ BEGIN
 				SET @CurrentNumber = CAST(@Currentbatch AS BIGINT)     
 							  SET @batch = CAST(@JournalTypeCode +' '+CAST(@batch AS VARCHAR(100)) AS VARCHAR(100))  
 							
+				IF(ISNULL(@Amount,0) <> 0)
+				BEGIN
 				INSERT INTO [dbo].[BatchHeader]    
 				  ([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],
 				  [JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],
@@ -212,6 +215,7 @@ BEGIN
 				  @UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@JournalTypeCode);    
                          
 				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()    
+				END
 				UPDATE [dbo].[BatchHeader] set CurrentNumber=@CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 			END
 			ELSE
@@ -226,6 +230,8 @@ BEGIN
 				END  
 			END
 			
+			IF(ISNULL(@Amount,0) <> 0)
+			BEGIN
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 			[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
 			[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [AccountingPeriodId], [AccountingPeriod])
@@ -234,6 +240,7 @@ BEGIN
 			NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod)
 		
 			SET @JournalBatchDetailId=SCOPE_IDENTITY()
+			END
 				
 
 				IF OBJECT_ID(N'tempdb..#tmpBulkStockLineAdjustmentDetails') IS NOT NULL
@@ -449,7 +456,10 @@ BEGIN
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
+		IF(ISNULL(@JournalBatchDetailId, 0) <> 0)
+		BEGIN
 		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		END
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 		--Post the bulkstockline adj.

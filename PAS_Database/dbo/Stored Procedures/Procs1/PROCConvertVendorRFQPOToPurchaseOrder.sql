@@ -17,13 +17,14 @@
     2    05/22/2023  Satish Gohil	   Remove Automatic (-)  
 	3    01/12/2023  Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	4    26/06/2024  Shrey Chandegara  Modify(ADD Close date When convert po)
-	5    02-07-2024  Shrey Chandegara  Add condition when insert value in Purchaseorderpart for chek [ISNOQUOTE].
-	6    05-07-2024  Shrey Chandegara  MOdify insert freight data into PURCHASEORDERFREIGHT.
-	7    25-07-2024  Shrey Chandegara  MOdify insert charges data into PURCHASEORDECharges.
+	5    02/07/2024  Shrey Chandegara  Add condition when insert value in Purchaseorderpart for chek [ISNOQUOTE].
+	6    05/07/2024  Shrey Chandegara  MOdify insert freight data into PURCHASEORDERFREIGHT.
+	7    25/07/2024  Shrey Chandegara  MOdify insert charges data into PURCHASEORDECharges.
 	8    29/07/2024  Moin Bloch        Modify(Added Flat Amount Changes)   
 	9    30/07/2024  Moin Bloch        Modify(Added GETUTCDATE() on GETUTCDATE() and WITH(NOLOCK))   
 	10   30/07/2024  Moin Bloch        Fixed Freight And Charge bug
-	11   30-07-2024  Shrey Chandegara  Fixed Freight And Charge bug
+	11   30/07/2024  Shrey Chandegara  Fixed Freight And Charge bug
+	12   11/09/2024  Amit Ghediya      Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while Convert VendorRFQPO To PurchaseOrder.
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -102,13 +103,15 @@ BEGIN
           [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[ApproverId],[ApprovedBy],    
           [DateApproved],[POMemo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
           [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsEnforce],[PDFPath],[VendorRFQPurchaseOrderId],    
-          [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges])
+          [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges],
+		  [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 	 SELECT @PurchaseOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
                [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],[RequestedBy],    
          [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],NULL,NULL,    
          NULL,[Memo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
          [CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),1,0,@IsEnforceApproval,NULL,@VendorRFQPurchaseOrderId, 
-		 [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges]
+		 [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges],
+		 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
         FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;             
 		SET @PID=IDENT_CURRENT('PurchaseOrder');    
 	 

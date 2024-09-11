@@ -42,6 +42,9 @@
     [ChargesBilingMethodId]      INT             NULL,
     [TotalCharges]               DECIMAL (18, 2) NULL,
     [VendorReference]            VARCHAR (100)   NULL,
+    [FunctionalCurrencyId]       INT             NULL,
+    [ReportCurrencyId]           INT             NULL,
+    [ForeignExchangeRate]        DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_VendorRFQRepairOrder] PRIMARY KEY CLUSTERED ([VendorRFQRepairOrderId] ASC),
     CONSTRAINT [FK_VendorRFQRepairOrder_CreditTermsId] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),
     CONSTRAINT [FK_VendorRFQRepairOrder_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -51,6 +54,8 @@
     CONSTRAINT [FK_VendorRFQRepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_VendorRFQRepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

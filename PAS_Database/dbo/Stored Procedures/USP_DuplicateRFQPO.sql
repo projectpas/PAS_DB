@@ -13,8 +13,9 @@
  ** --		--------		-------				--------------------------------            
    1		02/07/2024		Amit Ghediya		Created
    2        29/07/2024		Rajesh Gami			Added Freight and Charges table logic
-   3        31-07-2024      Shrey Chandegara    Modify due to can't insert data in VendorRFQPOPartReference.
-   4	    07 Aug 2024	    Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate & also added login UserName
+   3        31/07/2024      Shrey Chandegara    Modify due to can't insert data in VendorRFQPOPartReference.
+   4	    07/08/2024	    Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate & also added login UserName
+   5        10/09/2024		Amit Ghediya		Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while RFQPO duplicate.
 
 -- EXEC [USP_DuplicateRFQPO] 78,0,1,61
 ************************************************************************/  
@@ -95,13 +96,13 @@ BEGIN
 					[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],Memo,Notes,    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
 					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PDFPath],[IsFromBulkPO],FreightBilingMethodId,TotalFreight,
-					ChargesBilingMethodId,TotalCharges,VendorReference)    
+					ChargesBilingMethodId,TotalCharges,VendorReference,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate)    
          SELECT @VendorRFQPurchaseOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
 					[VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],@CreditTermsId,@Terms,@CreditLimit,[RequestedBy],    
 					[Requisitioner],@NewStatusId,@NewStatus,[StatusChangeDate],[Resale],[DeferredReceiver],[Memo],[Notes],    
 					[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],@MasterCompanyId,    
 					@Username,@Username,GETUTCDATE(),GETUTCDATE(),1,0,PDFPath,IsFromBulkPO,FreightBilingMethodId,TotalFreight,
-					ChargesBilingMethodId,TotalCharges,@VendorReference  
+					ChargesBilingMethodId,TotalCharges,@VendorReference,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate  
          FROM [dbo].[VendorRFQPurchaseOrder] WITH(NOLOCK) 
 		 WHERE [VendorRFQPurchaseOrderId] = @VendorRFQPurchaseOrderId;
 

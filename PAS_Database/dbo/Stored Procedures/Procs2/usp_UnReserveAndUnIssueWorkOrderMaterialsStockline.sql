@@ -201,7 +201,7 @@ BEGIN
 						UPDATE dbo.Stockline
 						SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0),
 							QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnIssued, 0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0),
+							QuantityIssued = CASE WHEN (ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0)) < 0  THEN 0 ELSE ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0) END,
 							WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId
 						FROM dbo.Stockline SL JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 						WHERE ISNULL(tmpRSL.KitId, 0) > 0 AND tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
@@ -255,7 +255,7 @@ BEGIN
 						UPDATE dbo.Stockline
 						SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0),
 							QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0),						
+							QuantityIssued = CASE WHEN (ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0)) <0 THEN 0 ELSE ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0) END,						
 							WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 						FROM dbo.Stockline SL JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 						WHERE ISNULL(tmpRSL.KitId, 0) = 0 AND tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId

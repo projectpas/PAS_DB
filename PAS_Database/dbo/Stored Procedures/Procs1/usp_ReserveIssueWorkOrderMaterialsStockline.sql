@@ -13,6 +13,7 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** 2    07/21/2022  VISHAL SUTHAR    Added new stockline history
 ** 3    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 4    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
+** 5    09/12/2024  RAJESH GAMI		 Implemented Stockline History for the IssueReserve
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 

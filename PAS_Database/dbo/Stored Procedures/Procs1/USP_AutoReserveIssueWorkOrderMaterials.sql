@@ -3,7 +3,7 @@
 ** Create date: <01/23/2023>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
   
-EXEC [usp_ReserveIssueWorkOrderMaterialsStockline] 
+EXEC [USP_AutoReserveIssueWorkOrderMaterials] 
 ************************************************************** 
 ** Change History 
 **************************************************************   
@@ -17,6 +17,7 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** 6    09/14/2023	DEVENDRA SHEKH	 Changed modulename 'WO' to 'WOP-PartsIssued'
 ** 7    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 8    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
+** 9    09/12/2024  RAJESH GAMI		 Implemented Stockline History for the IssueReserve
 
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
@@ -31,8 +32,8 @@ BEGIN
 		
 		BEGIN TRY
 
-			--BEGIN TRANSACTION
-			--	BEGIN
+			BEGIN TRANSACTION
+				BEGIN
 					DECLARE @ProvisionId BIGINT;
 					DECLARE @MasterCompanyId BIGINT;
 					DECLARE @WorkOrderTypeId BIGINT;
@@ -361,8 +362,8 @@ BEGIN
 							END
 						END
 					END
-			--	END
-			--COMMIT  TRANSACTION
+				END
+			COMMIT  TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      
@@ -371,7 +372,7 @@ BEGIN
                     ROLLBACK TRAN;
               DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'usp_ReserveIssueWorkOrderMaterialsStockline' 
+              , @AdhocComments     VARCHAR(150)    = 'USP_AutoReserveIssueWorkOrderMaterials' 
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

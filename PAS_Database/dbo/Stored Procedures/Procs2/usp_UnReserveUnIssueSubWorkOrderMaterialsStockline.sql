@@ -13,6 +13,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 2    08/08/2023  Hemant Saliya   Added KIT Part for Sub WO
 ** 3    06/27/2024  HEMANT SALIYA   Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 4    08/05/2024  HEMANT SALIYA	Fixed MTI stk Reserve Qty was not updating
+** 5    09/12/2024  RAJESH GAMI 	Add new Stk History Action (UnIssueUnReserve)
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveUnIssueSubWorkOrderMaterialsStockline]
@@ -72,6 +73,7 @@ BEGIN
 					SET @slcount = 1;
 					SET @count = 1;
 					SET @countKIT = 1;
+					DECLARE @ActionId INT = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'UnIssueUnReserve'); -- Added new action for unIssue & unReserve at one click
 
 					IF OBJECT_ID(N'tempdb..#tmpUnIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
@@ -191,7 +193,7 @@ BEGIN
 						UPDATE dbo.Stockline
 						SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0),
 							QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnIssued, 0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0),
+							QuantityIssued =CASE WHEN  (ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0)) < 0  THEN 0 ELSE ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0) END,
 							WorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId
 						FROM dbo.Stockline SL JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 						WHERE ISNULL(tmpRSL.KitId, 0) > 0 AND tmpRSL.ID = @countKitStockline AND Sl.StockLineId = @tmpKitStockLineId
@@ -244,7 +246,8 @@ BEGIN
 						--FOR UPDATED STOCKLINE QTY
 						UPDATE dbo.Stockline
 						SET QuantityOnHand = ISNULL(SL.QuantityOnHand, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0),
-							QuantityIssued = ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0)
+							QuantityIssued = CASE WHEN (ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0)) < 0  THEN 0 ELSE ISNULL(SL.QuantityIssued,0) - ISNULL(tmpRSL.QuantityActUnIssued,0) END,
+							QuantityAvailable = ISNULL(SL.QuantityAvailable, 0) + ISNULL(tmpRSL.QuantityActUnIssued,0)
 						FROM dbo.Stockline SL JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
 						WHERE ISNULL(tmpRSL.KitId, 0) = 0 AND tmpRSL.ID = @countStockline AND Sl.StockLineId = @tmpStockLineId
 
@@ -278,12 +281,7 @@ BEGIN
 						WHERE tmpWOM.ID = @slcount
 
 						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
-
-						DECLARE @ActionId INT;
-						SET @ActionId = 5; -- UnIssue
-						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
-
-						SET @ActionId = 3; -- UnReserve
+						
 						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
 
 						--Added for WO History 

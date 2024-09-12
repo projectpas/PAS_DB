@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
@@ -12,6 +13,7 @@ EXEC [usp_ReserveIssueSubWorkOrderMaterialsStockline]
 ** 1    12/30/2021  HEMANT SALIYA    Save Sub Work Order Materials reserve & Issue Stockline Details
 ** 2    08/29/2023  Moin Bloch       Batch Detail Entry For Issue SubWO
 ** 3    06/27/2024  HEMANT SALIYA	 Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
+** 3    09/12/2024  RAJESH GAMI		 Implemented Stockline History for the IssueReserve
 
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
@@ -246,6 +248,11 @@ BEGIN
 						WHERE tmpWOM.ID = @slcount
 
 						SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM DBO.Stockline WITH (NOLOCK) Where StockLineId = @StocklineId
+						
+						DECLARE @ActionId INT;
+						SET @ActionId = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'IssueReserve'); -- Added new action for Issue & Reserve
+						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @IssueQty, @UpdatedBy = @UpdateBy;
+
 
 						IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))
 						BEGIN

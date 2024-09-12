@@ -19,6 +19,7 @@
 	6    12/12/2023   Moin Bloch     Added CreditMemoHeaderId and IsStandAloneCM For 'CRFD' 
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	8    05/02/2024   Hemant Saliya	 Updated For Adjustment Period
+	9    12/09/2024   Hemant Saliya	 Updated For ASSET
 **************************************************************  
 
 EXEC [USP_GetJournalEntriesDetailsByLeafNodeId] 137,138,8,1,1,97, 302, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
@@ -430,6 +431,10 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN 'WO' 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN 'CHEQUE' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 'ASSET'
+											WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN 'ASSET'
+											WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN 'ASSET'
+											WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN 'ASSET'
+
 											--WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR RMA'
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN 'VENDOR CREDIT MEMO'	
 											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN 'VENDOR RMA - SHIPPING'
@@ -459,6 +464,9 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.CustomerName 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN '' 
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN '' --SD.PoId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN 'ASSET ACQUISITION'
+											WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN 'ASSET PERIODIC DEPRECIATION'
+											WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN 'ASSET SALE/WRITE DOWN/WRITE OFF'
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN V.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN V.VendorName
 											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN V.VendorName
@@ -494,6 +502,9 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.ReferenceId 
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN AST.PoId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN AST.PoId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN AST.PoId
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN VRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN VRBD.ReferenceId
@@ -527,6 +538,7 @@ BEGIN
 			  JOIN [dbo].[DistributionMaster] DM WITH (NOLOCK) ON DS.DistributionMasterId = DM.ID
 			  LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId
+			  LEFT JOIN [dbo].[StocklineBatchDetails] AST WITH (NOLOCK) ON tmp.JournalBatchDetailId = AST.JournalBatchDetailId AND AST.StockType = 'ASSET'
 			  LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON tmp.JournalBatchDetailId = MJSD.JournalBatchDetailId
 			  LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId

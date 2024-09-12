@@ -15,6 +15,11 @@
     [SubjectName]          VARCHAR (50)   NULL,
     [RevNo]                NVARCHAR (50)  NULL,
     [RevDate]              NVARCHAR (50)  NULL,
+    [ModuleName]           VARCHAR (100)  NULL,
+    [SubModuleName]        VARCHAR (100)  NULL,
+    [IsTemplateType]       BIT            NULL,
     CONSTRAINT [PK_EmailTemplateAudit] PRIMARY KEY CLUSTERED ([AuditEmailTemplateId] ASC)
 );
+
+
 

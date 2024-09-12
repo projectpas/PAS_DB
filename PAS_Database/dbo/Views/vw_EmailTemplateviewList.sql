@@ -1,7 +1,11 @@
-﻿CREATE   VIEW [dbo].[vw_EmailTemplateviewList]
+﻿
+CREATE    VIEW [dbo].[vw_EmailTemplateviewList]
 AS
 	SELECT
 	ET.EmailTemplateId,
+	ET.ModuleName,
+	ET.SubModuleName,
+	ET.IsTemplateType,
 	ET.EmailTemplateTypeId,
 	ETT.EmailTemplateTypeName,
 	ET.SubjectName,

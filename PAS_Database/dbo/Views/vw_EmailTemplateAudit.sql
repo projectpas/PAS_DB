@@ -1,9 +1,10 @@
-﻿
-
-CREATE   VIEW [dbo].[vw_EmailTemplateAudit]
+﻿CREATE    VIEW [dbo].[vw_EmailTemplateAudit]
 AS
 	SELECT ET.AuditEmailTemplateId AS PkID,
 	ET.EmailTemplateId AS ID,
+	ET.ModuleName as [Module Name],
+	ET.SubModuleName as [Sub Module Name],
+	ET.IsTemplateType,
 	ET.EmailTemplateTypeId,
 	ETT.EmailTemplateTypeName as [Template Name],
 	ET.SubjectName AS [Subject],

@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -15,7 +16,7 @@ EXEC [RPT_GetViewSalesOrderById]
 EXEC RPT_GetViewSalesOrderById 782
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
+CREATE    PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -50,7 +51,7 @@ BEGIN
 			UPPER(ISNULL(cuad.StateOrProvince, '')) AS CustToState,
 			UPPER(ISNULL(cuad.PostalCode, '')) AS CustToPostalCode,
 			UPPER(ISNULL(ccnty.countries_name, '')) AS CustToCountry,
-			MergedCustAddress = (SELECT dbo.ValidatePDFAddress(cuad.Line1,cuad.Line2,NULL,cuad.City,cuad.StateOrProvince,cuad.PostalCode,ccnty.countries_name,NULL,NULL,NULL)),
+			MergedCustAddress = (SELECT dbo.ValidatePDFAddress(cuad.Line1,cuad.Line2,NULL,cuad.City,cuad.StateOrProvince,cuad.PostalCode,ccnty.countries_name,cust.CustomerPhone,NULL,cust.Email)),
 					
 			UPPER(ISNULL(cont.FirstName + ' ' + cont.LastName, '')) AS CustomerContactName,
 			soq.CustomerReference,

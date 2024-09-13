@@ -12,10 +12,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author  	Change Description            
- ** --   --------     -------		--------------------------------          
-	1	25-AUG-2023	 Ekta Chandegra	 Convert text into uppercase
-	2	29-MARCH-2024 Ekta Chandegra  IaDeleted and IsActive flag is added
+ ** S NO   Date				Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	25-AUG-2023		Ekta Chandegra		Convert text into uppercase
+	2	29-MARCH-2024	Ekta Chandegra		IaDeleted and IsActive flag is added
+	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -115,7 +116,7 @@ BEGIN
 					AND WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
+					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -184,7 +185,7 @@ BEGIN
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
+					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -246,7 +247,7 @@ BEGIN
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@employeeName IS NULL OR WOL.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderNum = @woNum)
+					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

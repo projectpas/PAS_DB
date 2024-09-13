@@ -18,6 +18,7 @@
     1    08/08/2022   Subhash Saliya		Created
     2    06/09/2024   Devendra Shekh		Modified to get Journal Details with Distribution Details
     3    10/09/2024   Devendra Shekh		Modified to get GLAccount with Code and Name
+    4    10/09/2024   Devendra Shekh		added case to select MasterCompanyId
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -75,7 +76,7 @@ BEGIN
                     jt.JournalTypeName,
                     jts.ID,
 					jts.IsEnforcePrint,
-                    jts.MasterCompanyId,
+                    CASE WHEN  ISNULL(jts.MasterCompanyId, 0) = 0 THEN @masterCompanyId ELSE jts.MasterCompanyId END as MasterCompanyId,
                     jts.CreatedBy,
                     jts.UpdatedBy,
                     isnull(jts.UpdatedDate,GETUTCDATE()) as UpdatedDate,

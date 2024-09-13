@@ -71,9 +71,14 @@
     [TotalCharges]             DECIMAL (20, 2) NULL,
     [FreightBilingMethodId]    INT             NULL,
     [ChargesBilingMethodId]    INT             NULL,
+    [FunctionalCurrencyId]     INT             NULL,
+    [ReportCurrencyId]         INT             NULL,
+    [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_SalesOrderQuoteAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteAudit_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

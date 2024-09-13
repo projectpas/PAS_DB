@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/06/2023   Ekta Chandegra  Created
+	2	 11 Sep 2024  Bhargav Saliya  address convert into single string value
 
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,210
 **************************************************************/ 
@@ -47,6 +48,7 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'')),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Upper(le.FAALicense) as FAALicense,

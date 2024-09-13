@@ -18,6 +18,7 @@
     1    12/30/2020   Hemant Saliya		Created
 	2    07/09/2020   Hemant Saliya		Updated SQL Standards
 	3    06/04/2020   Devendra Shekh	removal reason update issue resolved
+	4    13/09/2024   Moin Bloch	    WorkScope makes left join from inner join
      
 --EXEC [UpdateReceivingCustomerColumnsWithId] 5
 **************************************************************/
@@ -85,28 +86,28 @@ BEGIN
 					RCW.CustReqTagType = RTT.[Name]
 
 				FROM [dbo].[ReceivingCustomerWork] RCW WITH(NOLOCK)
-					INNER JOIN dbo.Employee E WITH(NOLOCK) ON RCW.EmployeeId = E.EmployeeId
-					INNER JOIN dbo.Customer C WITH(NOLOCK) ON RCW.CustomerId = C.CustomerId
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = RCW.ItemMasterId
-					INNER JOIN dbo.WorkScope WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
-					INNER JOIN dbo.Condition CN WITH(NOLOCK) ON CN.ConditionId = RCW.ConditionId
-					INNER JOIN dbo.Site S WITH(NOLOCK) ON S.SiteId = RCW.SiteId
-					LEFT JOIN dbo.Employee EmpTb WITH(NOLOCK) ON RCW.TaggedById = EmpTb.EmployeeId
-					LEFT JOIN dbo.Employee EmpIb WITH(NOLOCK) ON RCW.InspectedById = EmpTb.EmployeeId
-					LEFT JOIN dbo.Warehouse W WITH(NOLOCK) ON W.WarehouseId = RCW.WarehouseId
-					LEFT JOIN dbo.Location L WITH(NOLOCK) ON L.LocationId = RCW.LocationId
-					LEFT JOIN dbo.Shelf SL WITH(NOLOCK) ON SL.ShelfId = RCW.ShelfId
-					LEFT JOIN dbo.Bin B WITH(NOLOCK) ON B.BinId = RCW.BinId
-					LEFT JOIN dbo.Manufacturer MF WITH(NOLOCK) ON IM.ManufacturerId = MF.ManufacturerId					
-					LEFT JOIN dbo.Customer TAGCUST WITH(NOLOCK) ON TAGCUST.CustomerId = RCW.TaggedById
-					LEFT JOIN dbo.Vendor TAGVEN WITH(NOLOCK) ON TAGVEN.VendorId = RCW.TaggedById
-					LEFT JOIN dbo.LegalEntity TAGCOM WITH(NOLOCK) ON TAGCOM.LegalEntityId = RCW.TaggedById
-					LEFT JOIN dbo.Customer CERCUST WITH(NOLOCK) ON CERCUST.CustomerId = RCW.CertifiedById
-					LEFT JOIN dbo.Vendor CERVEN WITH(NOLOCK) ON CERVEN.VendorId = RCW.CertifiedById
-					LEFT JOIN dbo.LegalEntity CERCOM WITH(NOLOCK) ON CERCOM.LegalEntityId = RCW.CertifiedById
-					LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = RCW.TagTypeIds
-					LEFT JOIN dbo.TeardownReason  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId and tr.CommonTeardownTypeId=(select top 1 tdt.CommonTeardownTypeId from CommonTeardownType as tdt where tdt.TearDownCode= 'RemovalReason' AND tdt.MasterCompanyId = RCW.MasterCompanyId)
-					LEFT JOIN dbo.TagType  RTT WITH (NOLOCK) ON RTT.TagTypeId = RCW.CustReqTagTypeId
+					INNER JOIN [dbo].[Employee] E WITH(NOLOCK) ON RCW.EmployeeId = E.EmployeeId
+					INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON RCW.CustomerId = C.CustomerId
+					INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = RCW.ItemMasterId					 
+					INNER JOIN [dbo].[Condition] CN WITH(NOLOCK) ON CN.ConditionId = RCW.ConditionId
+					INNER JOIN [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = RCW.SiteId
+					 LEFT JOIN [dbo].[WorkScope] WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
+					 LEFT JOIN [dbo].[Employee] EmpTb WITH(NOLOCK) ON RCW.TaggedById = EmpTb.EmployeeId
+					 LEFT JOIN [dbo].[Employee] EmpIb WITH(NOLOCK) ON RCW.InspectedById = EmpTb.EmployeeId
+					 LEFT JOIN [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = RCW.WarehouseId
+					 LEFT JOIN [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = RCW.LocationId
+					 LEFT JOIN [dbo].[Shelf] SL WITH(NOLOCK) ON SL.ShelfId = RCW.ShelfId
+					 LEFT JOIN [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = RCW.BinId
+					 LEFT JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON IM.ManufacturerId = MF.ManufacturerId					
+					 LEFT JOIN [dbo].[Customer] TAGCUST WITH(NOLOCK) ON TAGCUST.CustomerId = RCW.TaggedById
+					 LEFT JOIN [dbo].[Vendor] TAGVEN WITH(NOLOCK) ON TAGVEN.VendorId = RCW.TaggedById
+					 LEFT JOIN [dbo].[LegalEntity] TAGCOM WITH(NOLOCK) ON TAGCOM.LegalEntityId = RCW.TaggedById
+					 LEFT JOIN [dbo].[Customer] CERCUST WITH(NOLOCK) ON CERCUST.CustomerId = RCW.CertifiedById
+					 LEFT JOIN [dbo].[Vendor] CERVEN WITH(NOLOCK) ON CERVEN.VendorId = RCW.CertifiedById
+					 LEFT JOIN [dbo].[LegalEntity] CERCOM WITH(NOLOCK) ON CERCOM.LegalEntityId = RCW.CertifiedById
+					 LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.TagTypeId = RCW.TagTypeIds
+					 LEFT JOIN [dbo].[TeardownReason]  tr WITH (NOLOCK) ON tr.TeardownReasonId = RCW.RemovalReasonId and tr.CommonTeardownTypeId=(SELECT TOP 1 tdt.CommonTeardownTypeId FROM [dbo].[CommonTeardownType] tdt WITH (NOLOCK) WHERE tdt.TearDownCode= 'RemovalReason' AND tdt.MasterCompanyId = RCW.MasterCompanyId)
+					 LEFT JOIN [dbo].[TagType] RTT WITH (NOLOCK) ON RTT.TagTypeId = RCW.CustReqTagTypeId
 
 				WHERE RCW.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
 
@@ -125,7 +126,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'UpdateReceivingCustomerColumnsWithId' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceivingCustomerWorkId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ReceivingCustomerWorkId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

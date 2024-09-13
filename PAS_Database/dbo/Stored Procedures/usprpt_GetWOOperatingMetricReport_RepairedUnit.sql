@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami   Created  
+	2    13-sept-2024  Shrey Chandegara Modified due to add sum total revenue.
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
@@ -49,7 +50,8 @@ BEGIN
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
 		@totalResult VARCHAR(10) = 0
-
+		DECLARE @TotalRevenutSum decimal(18,2) = 0
+		DECLARE @TotalAvgRevenutSum decimal(18,2) = 0
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
@@ -180,8 +182,14 @@ BEGIN
 		 
 		 FROM #TempWOOperatingFinal GROUP BY pn,pnDescription,workscope,ItemMasterId) as result
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)
+		SET @TotalRevenutSum = (SELECT SUM(ISNULL(totalRevenue,0)) FROM #tmpFinalResult)
+		SET @TotalAvgRevenutSum = (SELECT SUM(ISNULL(averageRevenue,0)) FROM #tmpFinalResult)
+
+
 		--Select TOP 25 (CASE WHEN @totalResult > 25 THEN 25 ELSE @totalResult END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesRepaired DESC
-		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,* from #tmpFinalResult ORDER by timesRepaired DESC'
+		SET @Sql = N'Select TOP '+@Count+' (CASE WHEN '+@totalResult+' > '+@Count+' THEN '+@Count+' ELSE '+@totalResult+' END) AS totalRecordsCount,
+		' + CAST(@TotalRevenutSum AS VARCHAR) + ' AS TotalRevenutSum,  ' + CAST(@TotalAvgRevenutSum AS VARCHAR) + ' AS TotalAvgRevenutSum,
+		* from #tmpFinalResult ORDER by timesRepaired DESC'
 		PRINT @Sql
 		EXEC sp_executesql  @Sql, N'@Count INT, @totalResult INT OUTPUT', @Count = @Count,@totalResult = @totalResult OUTPUT;
   END TRY  

@@ -14,6 +14,7 @@
     1    05/01/2022  Moin Bloch			Created  
 	2    05/22/2023  Satish Gohil		Remove Automatic (-)
 	3    07/19/2024  Abhishek Jirawla   Adding Freight and Charges from VendorRFQRO
+	4    09/12/2024  AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate from VendorRFQRO
 -- EXEC [PROCConvertVendorRFQROToRepairOrder] 13,0,0,2,25,1,1  
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[PROCConvertVendorRFQROToRepairOrder]  
@@ -59,13 +60,15 @@ BEGIN
 					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 					 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
 					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-					 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])  
+					 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+					 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])  
 					SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
 					 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
 					 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 					 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
 					 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-					 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
+					 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId, [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+					 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
 					 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  
@@ -158,13 +161,15 @@ BEGIN
 						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 						 [RoMemo],[Notes],[ApproverId],[ApprovedBy],[ApprovedDate],[ManagementStructureId],[Level1],[Level2],  
 						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],  
-						 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges])  
+						 [IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId], [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+						 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])  
 						SELECT @RepairOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],  
 						 [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],  
 						 [RequisitionerId],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],  
 						 [Memo],[Notes],NULL,NULL,NULL,[ManagementStructureId],[Level1],[Level2],  
 						 [Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETDATE(),GETDATE(),1,  
-						 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  , [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges]
+						 0,@IsEnforceApproval,NULL,@VendorRFQRepairOrderId  , [FreightBilingMethodId], [TotalFreight], [ChargesBilingMethodId], [TotalCharges],
+						 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
 						 FROM dbo.VendorRFQRepairOrder WITH(NOLOCK) WHERE [VendorRFQRepairOrderId] = @VendorRFQRepairOrderId;  
         
 				UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNummber AS BIGINT) + 1 WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;  

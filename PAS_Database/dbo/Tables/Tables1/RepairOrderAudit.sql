@@ -50,6 +50,11 @@
     [IsLotAssigned]          BIT             NULL,
     [LotId]                  BIGINT          NULL,
     [VendorContactEmail]     VARCHAR (50)    NULL,
+    [FunctionalCurrencyId]   INT             NULL,
+    [ReportCurrencyId]       INT             NULL,
+    [ForeignExchangeRate]    DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
+
+
 

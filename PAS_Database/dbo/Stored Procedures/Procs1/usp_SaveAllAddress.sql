@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_SaveAllAddress]           
  ** Author:   Happy Chandigara
  ** Description: This stored procedure is used save all address based on type
@@ -18,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/23/2020   Happy Chandigara  Created
+	2    13-09-2024   Shrey Chandegara  Add referenceid and moduleid.
      
  EXECUTE [USP_GetUserDetailByUserTypePOAddress] 9, '',1,'50','313'
 **************************************************************/ 
@@ -43,7 +42,9 @@ CREATE PROCEDURE [dbo].[usp_SaveAllAddress]
   @PurchaseOrderID  bigint = 0,  
   @IsPoOnly  bit = 0,
   @AddressType varchar(100) = 'Ship' ,
-  @Attention varchar(100)=''
+  @Attention varchar(100)='',
+  @RefId BIGINT,
+  @ModuleId BIGINT
 )    
 AS    
 BEGIN   
@@ -114,12 +115,12 @@ SET NOCOUNT ON
 						   ([PurchaseOrderId],[UserType],[UserId]
 						   ,[SiteName],[AddressId],[IsPrimary],IsShipping
 						   ,[MasterCompanyId],[CreatedBy]
-						   ,[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+						   ,[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceId],[ModuleId])
 						 VALUES
 							   (@PurchaseOrderID,@UserTypeId,@UserId
 							   ,@SiteName,@AddressID,@IsPrimary,1,
 							   @MasterCompanyId,@CreatedBy,
-							   @UpdatedBy,GETDATE(),GETDATE(),1,0)
+							   @UpdatedBy,GETDATE(),GETDATE(),1,0,@RefId,@ModuleId)
 			SET @IntertedSiteId=SCOPE_IDENTITY()
 			END
 		END

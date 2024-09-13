@@ -35,8 +35,8 @@ BEGIN
 		@customername VARCHAR(40) = NULL,
 		@Fromdate DATETIME,
 		@Todate DATETIME,
-		@woNum VARCHAR(100) = NULL,
-		@employeeName VARCHAR(100) = NULL,
+		@WorkOrderId BIGINT = NULL,
+		@EmployeeId BIGINT = NULL,
 		@level1 VARCHAR(MAX) = NULL,
 		@level2 VARCHAR(MAX) = NULL,
 		@level3 VARCHAR(MAX) = NULL,
@@ -58,11 +58,11 @@ BEGIN
 			@Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date' 
 			THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,
 
-			@woNum=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Num' 
-			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @woNum END,
+			@WorkOrderId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Num' 
+			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @WorkOrderId END,
 
-			@employeeName=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee' 
-			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @employeeName END,
+			@EmployeeId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee' 
+			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @EmployeeId END,
 
 			@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,
@@ -115,8 +115,8 @@ BEGIN
 				WHERE (CAST(WOT.StartTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) OR CAST(WOT.EndTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE))
 					AND WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
-					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
+					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
+					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -184,8 +184,8 @@ BEGIN
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
-					AND (@employeeName IS NULL OR WOT.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
+					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
+					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -246,8 +246,8 @@ BEGIN
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND							
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
-					AND (@employeeName IS NULL OR WOL.EmployeeId = @employeeName)
-					AND (@woNum IS NULL OR WO.WorkOrderId = @woNum)
+					AND (@EmployeeId IS NULL OR WOL.EmployeeId = @EmployeeId)
+					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 					AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

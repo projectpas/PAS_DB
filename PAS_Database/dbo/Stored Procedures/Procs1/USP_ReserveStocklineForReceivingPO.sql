@@ -24,7 +24,8 @@
 	8    08/13/2024   Vishal Suthar		Modified the SP to allow reserving the equavalent or main part of the equavalent if either or is available in WO
 	9    08/27/2024   Vishal Suthar		Fixed issue with reserving higer qty than assigned and also Removed few unwanted code
 
-exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2696,@SelectedPartsToReserve=N'858',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2748,@SelectedPartsToReserve=N'863,864',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
+
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
@@ -78,8 +79,6 @@ BEGIN
 		[RequestedQty], [ReservedQty], [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
 		FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) 
 		WHERE POPR.PurchaseOrderPartReferenceId IN (SELECT Item FROM DBO.SPLITSTRING(@SelectedPartsToReserve, ','))
-
-		SELECT * FROM #tmpPurchaseOrderPartReference;
 
 		SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderPartReference;
 		WHILE (@LoopID > 0)
@@ -191,6 +190,7 @@ BEGIN
 						[WorkOrderId] [bigint] NULL,
 						[WorkFlowWorkOrderId] [bigint] NULL
 					)
+
 					IF (@IsExchangePO = 0)
 					BEGIN
 						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
@@ -213,8 +213,6 @@ BEGIN
 					END
 					DECLARE @LoopIDWFWO INT = 0;
 
-					--SELECT * FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
-
 					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
 
 					WHILE (@LoopIDWFWO > 0)
@@ -232,10 +230,12 @@ BEGIN
 							IF (@IsExchangePO = 0)
 							BEGIN
 								SELECT @SelectedWorkOrderMaterialsId = WOM.WorkOrderMaterialsId, @AltPartId = Nha_Alt.MappingItemMasterId,
-								@EquPartId = Nha_Euq.MappingItemMasterId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
+								@EquPartId = Nha_Equ.MappingItemMasterId 
+								FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
 								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
-								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq ON Nha_Euq.ItemMasterId = WOM.ItemMasterId AND Nha_Euq.MappingType = 2
-								WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ ON Nha_Equ.ItemMasterId = WOM.ItemMasterId AND Nha_Equ.MappingType = 2
+								WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = WOM.ItemMasterId OR Nha_Equ.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+								--WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 							END
 							ELSE
 							BEGIN

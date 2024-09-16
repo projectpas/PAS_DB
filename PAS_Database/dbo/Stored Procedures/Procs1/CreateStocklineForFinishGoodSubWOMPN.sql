@@ -28,6 +28,7 @@
 11    01/22/2024   Hemant Saliya   Add For create Sub WO Stockline History
 12    10/16/2023   Devendra Shekh  update revised serialnum close sub wo
 13	  03/06/2023   Bhargav Saliya  Update History When We Close The Sub WO 
+14    09/13/2024   RAJESH GAMI	   Implemented Stockline History for the IssueReserve
        
 -- EXEC sp_executesql N'EXEC dbo.CreateStocklineForFinishGoodSubWOMPN @SubWOPartNumberId, @UpdatedBy, @IsMaterialStocklineCreate',N'@SubWOPartNumberId bigint,@UpdatedBy nvarchar(11),@IsMaterialStocklineCreate bit',@SubWOPartNumberId=290,@UpdatedBy=N'ADMIN 
 ADMIN',@IsMaterialStocklineCreate=1  
@@ -347,8 +348,8 @@ BEGIN
      FROM dbo.StockLine SL   
      WHERE SL.StockLineId = @StocklineId  
   
-     UPDATE [dbo].[Stockline] SET isActive = 0        
-     WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0  
+     UPDATE [dbo].[Stockline] SET isActive = 0 , Quantity = (CASE WHEN ISNULL(Quantity,0) > 0 THEN ISNULL(Quantity,0)-1  ELSE Quantity END),  QuantityIssued = (CASE WHEN ISNULL(QuantityIssued,0) > 0 THEN ISNULL(QuantityIssued,0)-1  ELSE QuantityIssued END)
+     WHERE StockLineId = @StocklineId AND QuantityOnHand = 0 AND QuantityAvailable = 0 
 
 	 DECLARE @SubWorkOrderModule AS BIGINT = 16; -- For Sub Work Order
 
@@ -376,7 +377,6 @@ BEGIN
      -- #STEP 2 ADD STOCKLINE TO WO MATERIAL LIST  
       IF(@IsMaterialStocklineCreate = 1)  
       BEGIN  
-	  	          
       SELECT @NewWorkOrderMaterialsId = WorkOrderMaterialsId   
        FROM dbo.WorkOrderMaterials WITH(NOLOCK)  
        WHERE ItemMasterId = @ItemMasterId AND ConditionCodeId = @RevisedConditionId AND   
@@ -429,7 +429,6 @@ BEGIN
        --FOR STOCK LINE HISTORY  
        WHILE @count >= @slcount  
        BEGIN  
-         
         SET @StocklineId = @NewStocklineId;  
         SET @ReferenceId = @WorkOrderId;  
         SET @SubReferenceId = @NewWorkOrderMaterialsId  
@@ -442,7 +441,7 @@ BEGIN
         END  
         ELSE  
         BEGIN  
-         EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
+			 EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
         END  
   
         SET @slcount = @slcount + 1;  
@@ -462,9 +461,9 @@ BEGIN
 			  [isSerialized] = CASE WHEN ISNULL(@RevisedSerialNumber, '') != '' THEN 1 ELSE [isSerialized] END
          FROM [dbo].[StockLine] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @NewStocklineId;  
 
-
 		
-		SET @ActionId = 4; -- Issue
+		SET @ActionId = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'IssueReserve'); -- Added new action for Issue & Reserve
+
 		EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @NewStocklineId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @SubWOQuantity, @UpdatedBy = @UpdatedBy;
 
 		 		  

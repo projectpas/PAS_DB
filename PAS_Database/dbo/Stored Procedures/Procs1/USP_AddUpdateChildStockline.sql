@@ -22,7 +22,9 @@
 	6    23 jan 2024  Shrey Chandegara  Add ActionId 7 for when create tendorstockline created then can't insert into childstockline.
 	7    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
 	8    03/09/2024  Rajesh Gami	    Add ActionId 6 for the REMOVE FROM OH
-	8    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
+	9    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
+	10   13/09/2024 Rajesh Gami	    Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
+	
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -313,6 +315,111 @@ BEGIN
 					SET @CurrentIndex = @CurrentIndex + 1;
 				END
 			END
+
+			IF (@QtyOnAction > 0 AND @ActionId = 15) /**** Create SUB WORK ORDER*****/
+			BEGIN
+				SELECT @Qty = QuantityAvailable,   
+				@RemainingAvailableQty = QuantityAvailable,  
+				@RemainingOHQty = QuantityOnHand,  
+				@RemainingIssuedQty = QuantityIssued,  
+				@RemainingReservedQty = QuantityReserved,  
+				@MasterCompanyId = MasterCompanyId,  
+				@StocklineNumber = StockLineNumber FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StocklineId;
+
+				SET @LoopID = @QtyOnAction;  
+				SET @CurrentIndex = 0;
+
+				WHILE (@LoopID > 0)
+				BEGIN
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_subWO') IS NOT NULL  
+					BEGIN  
+						DROP TABLE #tmpCodePrefixes_subWOt
+					END
+      
+					CREATE TABLE #tmpCodePrefixes_subWO
+					(
+						ID BIGINT NOT NULL IDENTITY,   
+						CodePrefixId BIGINT NULL,  
+						CodeTypeId BIGINT NULL,  
+						CurrentNumber BIGINT NULL,  
+						CodePrefix VARCHAR(50) NULL,  
+						CodeSufix VARCHAR(50) NULL,  
+						StartsFrom BIGINT NULL,  
+					)
+  
+					SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Id Number';
+
+					INSERT INTO #tmpCodePrefixes_subWO (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
+					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
+					FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH (NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId  
+					WHERE CT.CodeTypeId = @IdCodeTypeId AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+
+					SET @CurrentIdNumber = 0;
+					SELECT @CurrentIdNumber = COUNT(*) FROM DBO.ChildStockline WHERE StockLineId = @StocklineId;
+					SET @CurrentIdNumber = @CurrentIdNumber + 1;
+  
+					SET @IdNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash (@CurrentIdNumber,  
+						(SELECT CodePrefix FROM #tmpCodePrefixes_subWO WHERE CodeTypeId = @IdCodeTypeId),  
+						(SELECT CodeSufix FROM #tmpCodePrefixes_subWO WHERE CodeTypeId = @IdCodeTypeId))) 
+  
+					INSERT INTO DBO.ChildStockline ([StockLineId],[PartNumber],[StockLineNumber],[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+					,[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+					,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+					,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+					,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+					,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+					,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+					,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId],[SiteId]  
+					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+					,[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId],  
+					[QuantityReserved], [QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved],[QtyIssued],[BlackListed]  
+					,[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+					,[InspectionDate],[VendorId],[IsParent],[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],
+					[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],
+					[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]
+					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[RRQty],LotMainStocklineId,IsFromInitialPO,LotSourceId, LotId,IsLotAssigned,
+					[ModuleName], [ReferenceName], [SubModuleName], [SubReferenceName],SalesPriceExpiryDate)  
+  
+					SELECT [StockLineId],[PartNumber], @StocklineNumber  
+					,[StocklineMatchKey] ,[ControlNumber] ,[ItemMasterId]  
+					,1,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId]  
+					,[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate]  
+					,[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]  
+					,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId]  
+					,[RepairOrderUnitCost],[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost]  
+					,[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId],[LegalEntityId]  
+					,[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId]  
+					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
+					,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
+					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], CASE WHEN [QuantityReserved] > 1  THEN [QuantityReserved] ELSE 1 END,[QuantityTurnIn], CASE WHEN [QuantityIssued] > 1  THEN [QuantityIssued] ELSE 1 END, CASE WHEN [QuantityOnHand] > 1  THEN [QuantityOnHand] ELSE 1 END, CASE WHEN [QuantityAvailable] > 1  THEN [QuantityAvailable] ELSE 1 END,[QuantityOnOrder], [QtyReserved]  
+					,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
+					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
+					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
+					,[InspectionDate],[VendorId],0,@StocklineId,[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId]  
+					,[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName]  
+					,[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],[Site],[Warehouse],[Location],[Shelf],[Bin]  
+					,[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription],[NHAPartDescription]  
+					,[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]  
+					,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId]  
+					,[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],1,NULL,NULL,NULL,NULL,NULL,
+					@ModuleName, @ReferenceNumber, @SubModuleName, @SubReferenceNumber,SalesPriceExpiryDate
+					FROM DBO.Stockline SL WITH (NOLOCK) WHERE SL.StockLineId = @StocklineId  
+
+					-- Use variable instead of updating in the table  
+					UPDATE CodePrefixes SET CurrentNummber = @CurrentIdNumber WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId  
+  
+					SET @LoopID = @LoopID - 1;
+					SET @CurrentIndex = @CurrentIndex + 1;
+				END
+			END
+
 
 			IF ((@AvailQtyCount >= @QtyOnAction) AND @ActionId = 9)
 			BEGIN

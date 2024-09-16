@@ -15,10 +15,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/20/2023   Hemant Saliya Created	
+	2    08/13/2023   Hemant Saliya UPDATED for Report Name	
      
 --EXEC [USP_GetFieldNameByModuleId_TrailBalance] 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetFieldNameByModuleId_TrailBalance]
+CREATE     PROCEDURE [dbo].[USP_GetFieldNameByModuleId_TrailBalance]
 (
 	@masterCompanyId VARCHAR(100) = NULL
 )
@@ -42,8 +43,8 @@ BEGIN
 				SequenceNo INT,
 				FieldName nvarchar(100),
 				HeaderName  nvarchar(100))
-
-			SELECT @ModuleId = ModuleId FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId = (SELECT TOP 1 ModuleId FROM dbo.Module where ModuleName = 'TrailBalance')
+				
+			SELECT @ModuleId = ModuleId FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId = (SELECT TOP 1 ModuleId FROM dbo.Module where ModuleName = 'TrialBalance')
 
 			INSERT INTO #TEMPFieldMaster(SequenceNo, FieldName,HeaderName)
 			SELECT SequenceNo, CAST('level' + CAST(SequenceNo AS varchar(100)) AS varchar(100)) as leval, [Description] 

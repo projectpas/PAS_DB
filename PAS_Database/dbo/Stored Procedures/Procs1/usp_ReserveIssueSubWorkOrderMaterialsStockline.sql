@@ -241,7 +241,7 @@ BEGIN
 								@ReferenceId = tmpWOM.SubWorkOrderId,
 								@ReferencePartId = tmpWOM.SubWOPartNoId,
 								@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
-								--@IssueQty = QuantityActReserved,
+								@IssueQty = QuantityActReserved,
 								@Amount = UnitCost,
 								@UpdateBy = UpdatedBy
 						FROM #tmpReserveSWOMaterialsStockline tmpWOM 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetAddressDetailsByUser]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Billing & Shiping Address for Purchage Order    
@@ -17,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/23/2020   Happy Chandigara Created
+	2    13-09-2024   Shrey Chandegara  Add referenceid and moduleid.
      
  EXECUTE [USP_GetAddressOnlyByUser] 2, 97, 'Ship',20199
  EXECUTE [USP_GetAddressDetailsByUser] 9, 13, 'Ship'
@@ -28,7 +28,8 @@ CREATE PROCEDURE [dbo].[USP_GetAddressOnlyByUser]
 @UserTypeId BIGINT,   
 @UserId BIGINT,
 @AddressType VARCHAR(20),
-@PurchaseOrderID  bigint = 0
+@PurchaseOrderID  bigint = 0,
+@ModuleId BIGINT
 )    
 AS    
 BEGIN    
@@ -83,7 +84,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceID = @PurchaseOrderID  AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 1
 					  AND UserId = @UserId
@@ -128,7 +129,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceId = @PurchaseOrderID AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 0
 					  AND UserId = @UserId
@@ -177,7 +178,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceId = @PurchaseOrderID AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 1
 					  AND UserId = @UserId
@@ -222,7 +223,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceId = @PurchaseOrderID AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 0
 					  AND UserId = @UserId
@@ -270,7 +271,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceId = @PurchaseOrderID AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 1
 					  AND UserId = @UserId
@@ -315,7 +316,7 @@ BEGIN
 				FROM dbo.[POOnlyAddress] lsa WITH (NOLOCK)  
 				JOIN dbo.Address adr WITH (NOLOCK)  ON lsa.AddressId = adr.AddressId
 				LEFT JOIN dbo.Countries c WITH (NOLOCK)  ON c.countries_id = adr.CountryId
-				WHERE lsa.PurchaseOrderid = @PurchaseOrderID 
+				WHERE lsa.ReferenceId = @PurchaseOrderID AND lsa.ModuleId = @ModuleId
 					  AND UserType = @UserTypeId
 					  AND IsShipping = 0
 					  AND UserId = @UserId

@@ -28,8 +28,9 @@ CREATE PROCEDURE [dbo].[USP_GetAddressOnlyByUser]
 @UserTypeId BIGINT,   
 @UserId BIGINT,
 @AddressType VARCHAR(20),
-@PurchaseOrderID  bigint = 0,
-@ModuleId BIGINT
+@ModuleId BIGINT,
+@PurchaseOrderID  bigint = 0
+
 )    
 AS    
 BEGIN    

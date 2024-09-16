@@ -14,6 +14,10 @@
     [UpdatedDate]     DATETIME2 (7) NOT NULL,
     [IsActive]        BIT           NOT NULL,
     [IsDeleted]       BIT           NOT NULL,
+    [ReferenceId]     BIGINT        NULL,
+    [ModuleId]        BIGINT        NULL,
     CONSTRAINT [PK_POOnlyAddress] PRIMARY KEY CLUSTERED ([POOnlyAddressId] ASC)
 );
+
+
 

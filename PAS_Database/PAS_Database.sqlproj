@@ -3070,7 +3070,6 @@
     <Build Include="dbo\User Defined Types\BatchTriggerWorkOrderType.sql" />
     <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
     <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById.sql" />
-    <Build Include="dbo\Stored Procedures\GetSuspenseAccountingDetailsViewById_1.sql" />
     <Build Include="dbo\Tables\VendorRFQPOChargesAudit.sql" />
     <Build Include="dbo\Tables\VendorRFQPOCharges.sql" />
     <Build Include="dbo\Stored Procedures\UpdateVendorRFQPOChargesAmount.sql" />
@@ -3106,7 +3105,6 @@
     <Build Include="dbo\Tables\StocklineAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DuplicateSpeedQuote.sql" />
     <Build Include="dbo\Stored Procedures\GetSOConfirmationList.sql" />
-    <Build Include="dbo\Stored Procedures\GetAccIntegrationList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccountingItegrationSettingsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccontingIntegrationDetailsList.sql" />
     <Build Include="dbo\Stored Procedures\CheckCustomerDuplicateEmailContact.sql" />

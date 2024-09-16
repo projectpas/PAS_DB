@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_DuplicateSalesOrderQuote]           
  ** Author:   Abhishek Jirawla  
  ** Description: Get Data for SalesOrderQuote Conversion Report 
@@ -16,6 +15,7 @@
  ** S NO   Date         Author  		Change Description            
  ** --   --------     -------			--------------------------------          
     1	07/04/2024	Abhishek Jirawla	Created
+	2	13/09/2024	AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for DuplicateSalesOrderQuote
    
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
@@ -93,7 +93,7 @@ BEGIN
 			[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],
 			[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2],[ManagementStructureName3],
 			[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight],[TotalCharges],[FreightBilingMethodId],
-			[ChargesBilingMethodId])
+			[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 		(SELECT [QuoteTypeId],GETUTCDATE(),@ValidForDays,@QuoteExpireDate,[AccountTypeId],[CustomerId],[CustomerContactId],[CustomerReference],
 			[ContractReference],[SalesPersonId],[AgentName],[CustomerSeviceRepId],[ProbabilityId],[LeadSourceId],@CreditLimit,@CreditTermsId,
 			[EmployeeId],[RestrictPMA],[RestrictDER],NULL,[CurrencyId],[CustomerWarningId],[Memo],[Notes],[MasterCompanyId],@Username,
@@ -103,7 +103,7 @@ BEGIN
 			[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CustomerContactName],[VersionNumber],[CustomerCode],
 			[CustomerContactEmail],[CreditLimitName],[StatusName],[ManagementStructureName1],[ManagementStructureName2],[ManagementStructureName3],
 			[ManagementStructureName4],[EnforceEffectiveDate],[IsEnforceApproval],[TotalFreight],[TotalCharges],[FreightBilingMethodId],
-			[ChargesBilingMethodId]
+			[ChargesBilingMethodId],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
 		FROM [dbo].[SalesOrderQuote]
 		WHERE SalesOrderQuoteId = @SalesOrderQuoteId)
 

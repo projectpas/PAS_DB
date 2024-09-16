@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------
     1    07/16/2024   Vishal Suthar		Created
     2    09/12/2024   Vishal Suthar		Fixed an issue with getting the credit term for matching
+	3    09/16/2024   AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for ConvertSOQToSO
 
 declare @p13 bigint
 set @p13=NULL
@@ -200,7 +201,8 @@ BEGIN
 	[SalesOrderNumber],[IsActive],[ContractReference],[TypeName],[AccountTypeName],[CustomerName],[SalesPersonName],[CustomerServiceRepName],
 	[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CreditLimit],[CreditTermId],[CreditLimitName],[CreditTermName],
 	[VersionNumber],[TotalFreight],[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[EnforceEffectiveDate],[IsEnforceApproval],
-	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath])
+	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath],
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 	SELECT 1, SOQ.QuoteTypeId, GETUTCDATE(), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
 	CASE WHEN @CustomerReference IS NULL THEN SOQ.CustomerReference ELSE @CustomerReference END, SOQ.[CurrencyId], 0, 0 , 0, 0, SOQ.SalesPersonId, SOQ.[AgentId], SOQ.[CustomerSeviceRepId],
 	SOQ.[EmployeeId], NULL, NULL, CASE WHEN @TransferMemos = 1 THEN SOQ.Memo ELSE '' END, @FulfillingStatusId, GETUTCDATE(), CASE WHEN @TransferNotes = 1 THEN SOQ.Notes ELSE '' END, SOQ.[RestrictPMA], SOQ.[RestrictDER], SOQ.[ManagementStructureId],
@@ -208,7 +210,8 @@ BEGIN
 	@SalesOrderNumber, 1, NULL, NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, @CreditLimit, @CreditTermsId, NULL, @CreditTermsName,
 	NULL, SOQ.[TotalFreight], SOQ.[TotalCharges], SOQ.[FreightBilingMethodId], SOQ.[ChargesBilingMethodId], NULL, NULL,
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
 	FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 	
 	SELECT @SalesOrderId = SCOPE_IDENTITY();

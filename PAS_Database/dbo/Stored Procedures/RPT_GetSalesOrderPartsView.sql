@@ -11,6 +11,7 @@ EXEC [RPT_GetSalesOrderPartsView]
 ** --   --------    -------         --------------------------------
 ** 1    01/10/2024  AMIT GHEDIYA    Created
    2    01/18/2024  AMIT GHEDIYA    Remove duplication part display.
+   3    16/09/2024  AMIT GHEDIYA    Get Curr From Header data in print.
 
 EXEC RPT_GetSalesOrderPartsView 567
 
@@ -180,7 +181,7 @@ BEGIN
 			ISNULL(im.ItemClassificationName, '') AS ItemClassification,
 			ISNULL(im.ItemGroup, '') AS ItemGroup,
 			ISNULL(rop.EstRecordDate, NULL) AS roNextDlvrDate,
-			ISNULL(cur.Code, '') AS CurrencyName,
+			ISNULL(UPPER(cur.Code), '') AS CurrencyName,
 			--Freight = this.Context.SalesOrder.Where(p => p.SalesOrderId == salesOrderId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().FreightBilingMethodId == 3 ? (decimal)this.Context.SalesOrder.Where(p => p.SalesOrderId == salesOrderId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().TotalFreight :
    --                                     (this.Context.SalesOrderFreight.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount == null ? 0 : (decimal)this.Context.SalesOrderFreight.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount),
 
@@ -310,7 +311,7 @@ BEGIN
 			LEFT JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON sl.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
 			LEFT JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			LEFT JOIN dbo.CustomerFinancial custfc WITH(NOLOCK) ON cust.CustomerId = custfc.CustomerId
-			LEFT JOIN dbo.Currency cur WITH(NOLOCK) ON custfc.CurrencyId = cur.CurrencyId
+			LEFT JOIN dbo.Currency cur WITH(NOLOCK) ON so.FunctionalCurrencyId = cur.CurrencyId
 			LEFT JOIN dbo.AllAddress posadd WITH(NOLOCK) ON so.SalesOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @moduleId
 			LEFT JOIN dbo.SOPickTicket pt ON sp.SalesOrderPartId = pt.SalesOrderPartId
 		WHERE

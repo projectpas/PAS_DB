@@ -4,7 +4,7 @@ AS
 	ET.EmailTemplateId AS ID,
 	ET.ModuleName as [Module Name],
 	ET.SubModuleName as [Sub Module Name],
-	ET.IsTemplateType,
+	ET.IsTemplateType as [Is Email Template],
 	ET.EmailTemplateTypeId,
 	ETT.EmailTemplateTypeName as [Template Name],
 	ET.SubjectName AS [Subject],

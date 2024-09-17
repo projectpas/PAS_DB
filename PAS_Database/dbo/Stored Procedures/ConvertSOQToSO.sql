@@ -48,9 +48,18 @@ BEGIN
   BEGIN TRANSACTION
    BEGIN
 	-- Fetch salesView
-	SELECT TOP 1 * INTO #salesView FROM SalesOrderQuote	WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
+	SELECT TOP 1 * INTO #salesView FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
+	DECLARE @FunctionalCurrencyId BIGINT = 0;
+    DECLARE @ReportCurrencyId BIGINT = 0;
+    DECLARE @ForeignExchangeRate BIGINT = 0;
+
+	--From SOQSO Header
+	SELECT @FunctionalCurrencyId = SOQ.[FunctionalCurrencyId],
+		   @ReportCurrencyId = SOQ.[ReportCurrencyId],
+		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate]
+    FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Main query
 	WITH SalesOrderQuoteAnalysisView AS (SELECT 
@@ -102,7 +111,7 @@ BEGIN
 	FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Fetch soCodeData
-	SELECT TOP 1 * INTO #soCodeData	FROM CodePrefixes WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @SalesOrderCodePrefix AND MasterCompanyId = @mastCompanyId;
+	SELECT TOP 1 * INTO #soCodeData	FROM DBO.CodePrefixes WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @SalesOrderCodePrefix AND MasterCompanyId = @mastCompanyId;
 
 	-- Determine the current number
 	IF EXISTS (SELECT 1 FROM #soCodeData)
@@ -184,11 +193,11 @@ BEGIN
 	[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
 	[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
 	[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
+	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], @ForeignExchangeRate, sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
 	sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
 	sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
 	sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
-	@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
+	@CustomerReference, sop.[QtyRequested], sop.[Notes], @FunctionalCurrencyId, sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
 	sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
 	FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
 	WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId

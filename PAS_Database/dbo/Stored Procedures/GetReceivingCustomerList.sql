@@ -22,6 +22,7 @@
     5    20-03-2024   Shrey Chandegara  Add Reference 
 	6    20-03-2024   AMIT GHEDIYA      Update Reference filter.
 	7    05-09-2024   Moin Bloch        Updated (Added Piece Part Filter)
+	8    09/17/2024   Hemant Saliya		Updated For Work Order Status
 
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
@@ -158,7 +159,7 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN [dbo].[WorkOrderStage] WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
-					LEFT JOIN [dbo].[WorkOrderStatus] WOST WITH (NOLOCK) ON WOP.WorkOrderStageId = WOST.Id					
+					LEFT JOIN [dbo].[WorkOrderStatus] WOST WITH (NOLOCK) ON WOP.WorkOrderStatusId = WOST.Id					
 				WHERE (RC.MasterCompanyId = @MasterCompanyId AND RC.IsActive = 1 AND RC.IsDeleted = 0
 				        AND (@PiecePart IS NULL OR ISNULL(RC.IsPiecePart,0) = @PiecePart)
 						AND ((@WOFilter = 1 AND ((WO.WorkOrderNum IS NUll OR WO.WorkOrderNum = '') AND (RO.RepairOrderNumber IS NULL OR RO.RepairOrderNumber = ''))) 

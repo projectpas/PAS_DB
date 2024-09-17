@@ -3159,6 +3159,8 @@
     <Build Include="dbo\User Defined Types\ExchangeQuoteChargesType.sql" />
     <Build Include="dbo\Stored Procedures\CheckCurForVendorCustomerFinancial.sql" />
     <Build Include="dbo\Stored Procedures\GetStockLineDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryBillingInvoicing.sql" />
+    <Build Include="dbo\Stored Procedures\SP_ValidatePDFAddress.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />

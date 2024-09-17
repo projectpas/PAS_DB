@@ -68,6 +68,14 @@ BEGIN
   DECLARE @ItemMasterId BIGINT=0;
   DECLARE @id int;    
   DECLARE @RFQPartId BIGINT = 0;
+  DECLARE @FunctionalCurrencyId BIGINT = 0;
+  DECLARE @ReportCurrencyId BIGINT = 0;
+  DECLARE @ForeignExchangeRate BIGINT = 0;
+
+  SELECT @FunctionalCurrencyId = FunctionalCurrencyId,
+		   @ReportCurrencyId = ReportCurrencyId,
+		   @ForeignExchangeRate = ForeignExchangeRate
+  FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
 
   IF OBJECT_ID(N'tempdb..#tmpVendorRFQPurchaseOrderPartDetails') IS NOT NULL
   BEGIN
@@ -93,8 +101,13 @@ BEGIN
     
     SELECT TOP 1 @AttRFQPOModuleID = [AttachmentModuleId] FROM dbo.AttachmentModule WITH(NOLOCK) WHERE [Name] ='VendorRFQPurchaseOrder';    
     SELECT TOP 1 @AttPOModuleID = [AttachmentModuleId] FROM dbo.AttachmentModule WITH(NOLOCK) WHERE [Name] ='PurchaseOrder';    
-             
-    IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)    
+            
+	SELECT @FunctionalCurrencyId = FunctionalCurrencyId,
+		   @ReportCurrencyId = ReportCurrencyId,
+		   @ForeignExchangeRate = ForeignExchangeRate
+	FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;
+    
+	IF(@CurrentNummber!='' OR @CurrentNummber!=NULL)    
     BEGIN    
 		SET @PurchaseOrderNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(CAST(@CurrentNummber AS BIGINT) + 1, @CodePrefix, @CodeSufix));    
     
@@ -155,31 +168,36 @@ BEGIN
         --(SELECT TOP 1 RC.Code FROM dbo.ManagementStructure M WITH(NOLOCK)     
         --   INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId    
         --   INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId    
-        -- WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),    
-        (SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
-         (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),  
+		@FunctionalCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @FunctionalCurrencyId),
+		@ForeignExchangeRate,
+		@ReportCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @ReportCurrencyId),
+        --(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
+        -- (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
          (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    
@@ -325,13 +343,15 @@ BEGIN
           [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[ApproverId],[ApprovedBy],    
           [DateApproved],[POMemo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
           [CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsEnforce],[PDFPath],[VendorRFQPurchaseOrderId],
-		  [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges])       
+		  [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges],
+		  [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])       
      SELECT @PurchaseOrderNumber,[OpenDate],[ClosedDate],[NeedByDate],[PriorityId],[Priority],[VendorId],[VendorName],    
                [VendorCode],[VendorContactId],[VendorContact],[VendorContactPhone],[CreditTermsId],[Terms],[CreditLimit],[RequestedBy],    
          [Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],NULL,NULL,    
          NULL,[Memo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],    
          [CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),1,0,@IsEnforceApproval,NULL,@VendorRFQPurchaseOrderId,
-		 [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges]
+		 [FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges],
+		 [FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
         FROM dbo.VendorRFQPurchaseOrder WITH(NOLOCK) WHERE VendorRFQPurchaseOrderId=@VendorRFQPurchaseOrderId;    
               
      SET @PID=IDENT_CURRENT('PurchaseOrder');   
@@ -378,30 +398,35 @@ BEGIN
         --   INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId    
         --   INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId    
         -- WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),    
-        (SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
-         (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        --(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
+        -- (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+		@FunctionalCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @FunctionalCurrencyId),
+		@ForeignExchangeRate,
+		@ReportCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @ReportCurrencyId),
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
          (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    
@@ -559,30 +584,35 @@ BEGIN
         --   INNER JOIN dbo.LegalEntity L WITH(NOLOCK) ON M.LegalEntityId = L.LegalEntityId    
         --   INNER JOIN dbo.Currency RC WITH(NOLOCK) ON L.ReportingCurrencyId = RC.CurrencyId    
         -- WHERE M.ManagementStructureId = VRFQP.[ManagementStructureId]),    
-        (SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
-         (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
-         (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
-         INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
-         INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
-         INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
-         INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
-         WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        --(SELECT TOP 1 FC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 FC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),1,    
+        -- (SELECT TOP 1 RC.CurrencyId FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+        -- (SELECT TOP 1 RC.Code FROM dbo.EntityStructureSetup EST WITH(NOLOCK)    
+        -- INNER JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON EST.Level1Id = MSL.ID    
+        -- INNER JOIN dbo.LegalEntity LE WITH(NOLOCK) ON LE.LegalEntityId = MSL.LegalEntityId    
+        -- INNER JOIN dbo.Currency FC WITH(NOLOCK) ON FC.CurrencyId = LE.FunctionalCurrencyId    
+        -- INNER JOIN dbo.Currency RC WITH(NOLOCK) ON RC.CurrencyId = LE.ReportingCurrencyId    
+        -- WHERE EST.EntityStructureId = VRFQP.[ManagementStructureId]),    
+		@FunctionalCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @FunctionalCurrencyId),
+		@ForeignExchangeRate,
+		@ReportCurrencyId,
+		(SELECT TOP 1 FC.Code FROM dbo.Currency FC WITH(NOLOCK) WHERE FC.CurrencyId = @ReportCurrencyId),
          VRFQP.[WorkOrderId],VRFQP.[WorkOrderNo],VRFQP.[SubWorkOrderId],VRFQP.[SubWorkOrderNo],NULL,NULL,VRFQP.[SalesOrderId],VRFQP.[SalesOrderNo],    
          1,'Stock',    
          (SELECT TOP 1 I.GLAccountId FROM dbo.ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = VRFQP.[ItemMasterId]),NULL,    

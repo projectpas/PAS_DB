@@ -56,6 +56,15 @@ BEGIN
 	-- Initialize isCreditTermsRequired
 	DECLARE @isCreditTermsRequired BIT = 0;
 	DECLARE @creditterms VARCHAR(100) = '';
+	DECLARE @FunctionalCurrencyId BIGINT = 0;
+    DECLARE @ReportCurrencyId BIGINT = 0;
+    DECLARE @ForeignExchangeRate BIGINT = 0;
+
+	--From SOQSO Header
+	SELECT @FunctionalCurrencyId = SOQ.[FunctionalCurrencyId],
+		   @ReportCurrencyId = SOQ.[ReportCurrencyId],
+		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate]
+    FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Fetch creditterms
 	SELECT TOP 1 Code INTO #creditterms FROM DBO.CreditTerms WITH (NOLOCK) WHERE CreditTermsId = (SELECT CreditTermId FROM #salesView);
@@ -246,11 +255,11 @@ BEGIN
 	[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
 	[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
 	[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
+	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], @ForeignExchangeRate, sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
 	sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
 	sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
 	sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
-	@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
+	@CustomerReference, sop.[QtyRequested], sop.[Notes], @FunctionalCurrencyId, sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
 	sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
 	FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
 	WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId

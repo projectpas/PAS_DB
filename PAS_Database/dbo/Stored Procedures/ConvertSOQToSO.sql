@@ -22,7 +22,7 @@ declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
 set @p14=NULL
-exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @EmployeeName, @CustomerReference, @ReserveStockline, @TransferStockline, @TransferCharges, @TransferFreight, @TransferMemos, @TransferNotes, @SalesOrderId OUTPUT, @CustomerId OUTPUT',N'@SalesOrderQuoteId bigint,@EmployeeId bigint,@EmployeeName nvarchar(11),@CustomerReference nvarchar(10),@ReserveStockline bit,@TransferStockline bit,@TransferCharges bit,@TransferFreight bit,@TransferMemos bit,@TransferNotes bit,@SalesOrderId bigint output,@CustomerId bigint output',@SalesOrderQuoteId=655,@EmployeeId=162,@EmployeeName=N'ADMIN ADMIN',@CustomerReference=N'6300393349',@ReserveStockline=1,@TransferStockline=1,@TransferCharges=0,@TransferFreight=0,@TransferMemos=0,@TransferNotes=0,@SalesOrderId=@p13 output,@CustomerId=@p14 output
+exec sp_executesql N'EXEC ConvertSOQToSO @SalesOrderQuoteId, @EmployeeId, @EmployeeName, @CustomerReference, @ReserveStockline, @TransferStockline, @TransferCharges, @TransferFreight, @TransferMemos, @TransferNotes, @SalesOrderId OUTPUT, @CustomerId OUTPUT',N'@SalesOrderQuoteId bigint,@EmployeeId bigint,@EmployeeName nvarchar(10),@CustomerReference nvarchar(7),@ReserveStockline bit,@TransferStockline bit,@TransferCharges bit,@TransferFreight bit,@TransferMemos bit,@TransferNotes bit,@SalesOrderId bigint output,@CustomerId bigint output',@SalesOrderQuoteId=784,@EmployeeId=2,@EmployeeName=N'ADMIN User',@CustomerReference=N'ESO-123',@ReserveStockline=1,@TransferStockline=1,@TransferCharges=0,@TransferFreight=0,@TransferMemos=0,@TransferNotes=0,@SalesOrderId=@p13 output,@CustomerId=@p14 output
 select @p13, @p14
 
 **************************************************************/
@@ -48,14 +48,9 @@ BEGIN
   BEGIN TRANSACTION
    BEGIN
 	-- Fetch salesView
-	SELECT TOP 1 * INTO #salesView FROM SalesOrderQuote	WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
+	SELECT TOP 1 * INTO #salesView FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 
-	-- Fetch customerData
-	SELECT TOP 1 * INTO #customerData FROM Customer	WHERE CustomerId = (SELECT CustomerId FROM #salesView);
-
-	-- Initialize isCreditTermsRequired
-	DECLARE @isCreditTermsRequired BIT = 0;
-	DECLARE @creditterms VARCHAR(100) = '';
+	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
 	DECLARE @FunctionalCurrencyId BIGINT = 0;
     DECLARE @ReportCurrencyId BIGINT = 0;
     DECLARE @ForeignExchangeRate BIGINT = 0;
@@ -65,63 +60,6 @@ BEGIN
 		   @ReportCurrencyId = SOQ.[ReportCurrencyId],
 		   @ForeignExchangeRate = SOQ.[ForeignExchangeRate]
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
-
-	-- Fetch creditterms
-	SELECT TOP 1 Code INTO #creditterms FROM DBO.CreditTerms WITH (NOLOCK) WHERE CreditTermsId = (SELECT CreditTermId FROM #salesView);
-
-	SELECT @creditterms = CODE FROM #creditterms;
-
-	-- Check creditterms and set isCreditTermsRequired
-	IF @creditterms IS NOT NULL
-	BEGIN
-		IF UPPER(@creditterms) IN ('COD', 'CIA', 'CREDITCARD', 'PREPAID')
-		BEGIN
-			SET @isCreditTermsRequired = 1;
-		END
-	END
-
-	-- If customerData is not null
-	IF EXISTS (SELECT 1 FROM #customerData)
-	BEGIN
-		-- Fetch customerTypeResult
-		SELECT TOP 1 * INTO #customerTypeResult	FROM CustomerType WHERE CustomerTypeId = (SELECT CustomerTypeId FROM #customerData);
-
-		-- Check customerTypeResult
-		IF EXISTS (SELECT 1 FROM #customerTypeResult)
-		BEGIN
-			IF UPPER((SELECT CustomerTypeName FROM #customerTypeResult)) = 'LEAD'
-			BEGIN
-				-- Return 422 Unprocessable Entity
-				RETURN; --StatusCodes.Status422UnprocessableEntity, PASMessages.CustomerTypeLead;
-			END
-			ELSE IF UPPER((SELECT CustomerTypeName FROM #customerTypeResult)) = 'CUSTOMER'
-			BEGIN
-				-- Fetch customerFinData
-				SELECT TOP 1 * INTO #customerFinData FROM CustomerFinancial WHERE CustomerId = (SELECT CustomerId FROM #salesView);
-
-				-- Check customerFinData and isCreditTermsRequired
-
-				IF EXISTS (SELECT 1 FROM #customerFinData) AND @isCreditTermsRequired = 0
-				BEGIN
-					IF (SELECT CreditTermsId FROM #customerFinData) = 0 OR (SELECT CreditLimit FROM #customerFinData) = 0
-					BEGIN
-						-- Return 422 Unprocessable Entity
-						RETURN; --StatusCodes.Status422UnprocessableEntity, PASMessages.CustomerCreditTermAndCreditLimitSOQ;
-					END
-				END
-				ELSE
-				BEGIN
-					IF @isCreditTermsRequired = 0
-					BEGIN
-						-- Return 422 Unprocessable Entity
-						RETURN; --StatusCodes.Status422UnprocessableEntity, PASMessages.CustomerCreditTermAndCreditLimitSOQ;
-					END
-				END
-			END
-		END
-	END
-	
-	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
 
 	-- Main query
 	WITH SalesOrderQuoteAnalysisView AS (SELECT 
@@ -173,7 +111,7 @@ BEGIN
 	FROM DBO.SalesOrderQuote WITH (NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	-- Fetch soCodeData
-	SELECT TOP 1 * INTO #soCodeData	FROM CodePrefixes WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @SalesOrderCodePrefix AND MasterCompanyId = @mastCompanyId;
+	SELECT TOP 1 * INTO #soCodeData	FROM DBO.CodePrefixes WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND CodeTypeId = @SalesOrderCodePrefix AND MasterCompanyId = @mastCompanyId;
 
 	-- Determine the current number
 	IF EXISTS (SELECT 1 FROM #soCodeData)

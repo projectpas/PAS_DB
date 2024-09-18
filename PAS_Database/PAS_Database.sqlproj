@@ -3003,7 +3003,6 @@
     <Build Include="dbo\Views\vw_WingTypeAudit.sql" />
     <Build Include="dbo\Views\vw_ShippingTermsAudit.sql" />
     <Build Include="dbo\Views\vw_ATAChapterCategoryAudit.sql" />
-    <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CustomerChangeBatchTriggerBasedonSupenseId.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateviewList.sql" />

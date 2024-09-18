@@ -14,6 +14,7 @@
 	2    02-01-2024   Ekta Chandegra		Add quantity related fields
 	3    30-01-2024   Vishal Suthar			Modified the SP to provide proper result
 	4    30-08-2024   Rajesh Gami 			Add ISNULL
+	5    30-08-2024   Rajesh Gami 			Add SUM of ChildQtyOnHand
 	EXEC [GetStocklineInventoryMismatch]
 **************************************************************/
 
@@ -30,7 +31,7 @@ BEGIN
 			con.Description  As 'Condition',sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber ,
 			sl.IdNumber,sl.SerialNumber , ISNULL(sl.QuantityIssued,0) As 'QtyIssued', ISNULL(sl.QuantityReserved,0) As 'QtyReserved',
 			ISNULL(sl.QuantityAvailable,0) As 'QtyAvail', ISNULL(sl.QuantityOnHand,0) As 'QtyOnHand',
-			ISNULL(child.QuantityOnHand,0) As 'ChildQtyOnHand'
+			SUM(ISNULL(child.QuantityOnHand,0)) As 'ChildQtyOnHand'
 		FROM [dbo].[StockLine] sl WITH (NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN [dbo].[Condition] con WITH (NOLOCK) ON sl.conditionId = con.conditionId
@@ -38,7 +39,7 @@ BEGIN
 		WHERE sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
 		AND (ISNULL(sl.QuantityOnHand,0) + ISNULL(sl.QuantityIssued,0)) <> (ISNULL(sl.QuantityReserved,0) + ISNULL(sl.QuantityAvailable,0) + ISNULL(sl.QuantityIssued,0))
 		GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
-		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable, child.QuantityOnHand
+		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable
 		HAVING SUM(ISNULL(child.QuantityOnHand,0)) <> ISNULL(sl.QuantityOnHand,0)
 		ORDER BY sl.StockLineId DESC
 	END

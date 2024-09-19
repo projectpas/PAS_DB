@@ -19,8 +19,11 @@
     [DistributionSetupCode] VARCHAR (100) NOT NULL,
     [IsManualText]          BIT           DEFAULT ((0)) NULL,
     [ManualText]            VARCHAR (100) NULL,
+    [IsAutoPost]            BIT           NULL,
     CONSTRAINT [PK_DistributionSetup] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
+
+
 
 
 

@@ -3163,6 +3163,8 @@
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
-    <None Include="Snapshots\PAS_Database_SPRINT_48.dacpac" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\PAS_SPRINT_48.dacpac" />
   </ItemGroup>
 </Project>

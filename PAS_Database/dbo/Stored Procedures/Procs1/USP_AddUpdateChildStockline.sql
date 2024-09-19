@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -64,7 +65,7 @@ BEGIN
 		DECLARE @StocklineToUpdate BIGINT;  
 		DECLARE @IdNumberUpdated VARCHAR(50);
 		DECLARE @Qty INT;
-		DECLARE @PrevReservedQty INT = 0;
+		DECLARE @PrevReservedQty INT = 0,@PrevChildQty INT = 0;
 		DECLARE @PrevIssuedQty INT = 0;  
 		DECLARE @PrevOHQty INT = 0;  
 		DECLARE @PrevAvailableQty INT = 0;
@@ -491,7 +492,7 @@ BEGIN
 				
 				IF (@QtyOnAction > 0)
 				BEGIN
-					SELECT @PrevReservedQty = QuantityReserved, @PrevIssuedQty = QuantityIssued, @PrevOHQty = QuantityOnHand, @PrevAvailableQty = QuantityAvailable 
+					SELECT @PrevChildQty =Quantity ,@PrevReservedQty = QuantityReserved, @PrevIssuedQty = QuantityIssued, @PrevOHQty = QuantityOnHand, @PrevAvailableQty = QuantityAvailable 
 					FROM DBO.ChildStockline WITH (NOLOCK) WHERE ChildStockLineId = @StocklineToUpdate;
 
 					IF (@ActionId = 2) -- Reserve
@@ -537,9 +538,9 @@ BEGIN
 					END
 					ELSE IF (@ActionId = 8) -- Adjustment-Increase
 					BEGIN
-						IF (@PrevOHQty = 0 AND @PrevAvailableQty = 0)
+						IF ((@PrevOHQty = 0 AND @PrevAvailableQty = 0) OR @PrevChildQty = 0)
 						BEGIN
-							Update DBO.ChildStockline SET QuantityAvailable = 1, QuantityOnHand = 1, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							Update DBO.ChildStockline SET Quantity = 1, QuantityAvailable = 1, QuantityOnHand = 1, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 
 							SET @QtyOnAction = @QtyOnAction - 1;

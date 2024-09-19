@@ -14,6 +14,7 @@
     1    12/08/2024  	AMIT GHEDIYA	Created     
 	2    21/08/2024  	Devendra Shekh	added @CustomerContactId param  
 	3    22/08/2024  	AMIT GHEDIYA	added @ContactId param 
+	4    18/09/2024     SAHDEV SALIYA   Contact info Restriction Message changes
  
  EXEC [CheckEmailContactExists] 12,0,0
 ********************************************************************/ 
@@ -31,7 +32,7 @@ BEGIN
 					@ExistingEmail VARCHAR(100),
 					@ExistingContactEmail VARCHAR(100),
 					@ContactIds BIGINT,
-					@ReturnMsg VARCHAR(150) = 'Contact number or email details missing.';
+					@ReturnMsg VARCHAR(150) = 'Please update email address and/or phone number.';
 			
 			--Get Email & Phone from Customer Primary Comtact details.
 			SELECT @ContactIds = [ContactId] FROM [dbo].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @customerId AND [IsDefaultContact] = 1;

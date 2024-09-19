@@ -3003,7 +3003,6 @@
     <Build Include="dbo\Views\vw_WingTypeAudit.sql" />
     <Build Include="dbo\Views\vw_ShippingTermsAudit.sql" />
     <Build Include="dbo\Views\vw_ATAChapterCategoryAudit.sql" />
-    <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_CustomerChangeBatchTriggerBasedonSupenseId.sql" />
     <Build Include="dbo\Views\vw_EmailTemplateviewList.sql" />
@@ -3163,7 +3162,9 @@
     <Build Include="dbo\Stored Procedures\SP_ValidatePDFAddress.sql" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Snapshots\PAS_SPRINT_42_20240311_04-01-30.dacpac" />
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\PAS_SPRINT_48.dacpac" />
   </ItemGroup>
 </Project>

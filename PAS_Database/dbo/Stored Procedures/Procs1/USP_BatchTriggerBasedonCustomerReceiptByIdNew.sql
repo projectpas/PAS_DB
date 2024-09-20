@@ -22,6 +22,7 @@
 	9    04/03/2024  Devendra Shekh Modify (changed entry to suspense from AR for customer)
 	10   04/04/2024  Devendra Shekh Modify (added both entry suspense and AR for known customer)
 	11   11/06/2024  HEMANT SALIYA  Updated For Accounting Calendor MOnth need to get it from CRS Header
+	12   19/09/2024	 AMIT GHEDIYA   Added for AutoPost Batch
 
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
@@ -93,9 +94,9 @@ BEGIN
 		DECLARE @BankId BIGINT = 0;
 		DECLARE @BankType VARCHAR(100);
 		DECLARE @BankGlAccId BIGINT = 0;
-
 		DECLARE @UpdatedBy VARCHAR(200);
 		DECLARE @MasterCompanyId INT=0;
+		DECLARE @IsAutoPost INT = 0;
 		
 		SELECT @MasterCompanyId = MasterCompanyId, 
 		       @UpdatedBy = CreatedBy,
@@ -525,7 +526,8 @@ BEGIN
 										 @GlAccountId=GlAccountId,
 										 @GlAccountNumber=GlAccountNumber,
 										 @GlAccountName=GlAccountName,
-										 @CrDrType = CRDRType 
+										 @CrDrType = CRDRType,
+										 @IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DBO.DistributionSetup WITH(NOLOCK)  
 							WHERE UPPER(DistributionSetupCode) = UPPER('CRSACCRECH') 
 							AND DistributionMasterId=@DistributionMasterId 
@@ -946,6 +948,11 @@ BEGIN
 							   [UpdatedBy] = @UpdatedBy
 					     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
+						 --AutoPost Batch
+						 IF(@IsAutoPost = 1)
+						 BEGIN
+							  EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdatedBy;
+						 END
 					END
 
 					SET @Ismiscellaneous = 0;

@@ -19,6 +19,7 @@
     2    06/09/2024   Devendra Shekh		Modified to get Journal Details with Distribution Details
     3    10/09/2024   Devendra Shekh		Modified to get GLAccount with Code and Name
     4    10/09/2024   Devendra Shekh		added case to select MasterCompanyId
+	5    17/09/2024   AMIT GHEDIYA			added AutoPost.
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -66,7 +67,7 @@ BEGIN
 					[CRDRType] INT NULL,
 					[CRDRTypeName] VARCHAR(30) NULL,
 					[IsManualText] BIT NULL,
-					[ManualText] VARCHAR(100) NULL,
+					[ManualText] VARCHAR(100) NULL
 				)
 
 				;WITH JournalTypeData AS (
@@ -92,8 +93,8 @@ BEGIN
 
 				INSERT INTO #GLAllocationResults ( [JournalTypeCode], [JournalTypeName], [ID], [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
-							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo] )
-				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
+							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo])
+				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], DS.[IsAutoPost],
 						DS.[ID], [Name], [GlAccountId], (CASE WHEN ISNULL([GlAccountNumber], '') = '' THEN ISNULL([GlAccountName], '') ELSE ISNULL([GlAccountNumber], '') + ' - ' + ISNULL([GlAccountName], '') END),
 						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
 						JTD.[CreatedBy], JTD.[UpdatedBy], JTD.[IsActive], JTD.[IsDeleted] ,isnull(JTD.UpdatedDate,GETUTCDATE()) as UpdatedDate ,isnull(JTD.CreatedDate,GETUTCDATE()) as CreatedDate,

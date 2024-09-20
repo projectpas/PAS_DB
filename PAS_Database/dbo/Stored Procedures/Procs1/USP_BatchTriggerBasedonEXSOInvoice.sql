@@ -19,6 +19,7 @@
 	4    01/12/2023   Moin Bloch    Modify(Added LotId And Lot Number in CommonBatchDetails)
 	5    11/12/2023   Moin Bloch    Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
 	6    09/01/2024   Moin Bloch    Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
+	7    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -108,6 +109,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @LotId BIGINT=0;
 		DECLARE @LotNumber VARCHAR(50);
+		DECLARE @IsAutoPost INT = 0;
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE [ID] = @DistributionMasterId;
@@ -221,6 +223,12 @@ BEGIN
 					
 					IF(@PartUnitSalesPrices > 0)
 					BEGIN
+						SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+							        FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
+							       WHERE UPPER([DistributionSetupCode]) = UPPER('EX-INVAGM') 
+							         AND [DistributionMasterId] = @DistributionMasterId 
+							         AND [MasterCompanyId] = @MasterCompanyId	
+
 						IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [MasterCompanyId]=@MasterCompanyId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId] = @StatusId AND [CustomerTypeId]=@CustomerTypeId)
 						BEGIN
 							IF NOT EXISTS(SELECT [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK))
@@ -327,6 +335,12 @@ BEGIN
 							END
 						END
 						
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
+
 						INSERT INTO [dbo].[BatchDetails]
 						           ([JournalTypeNumber],
 								    [CurrentNumber],
@@ -748,6 +762,12 @@ BEGIN
 					SELECT @FreightBillingTypeId = [ExchangeBillingTypeId] FROM [dbo].[ExchangeBillingType] WITH(NOLOCK) WHERE UPPER([Description]) = UPPER('FREIGHT');
 					
 					SELECT @ExchangeBillingStatusId = [ExchangeBillingStatusId] FROM [dbo].[ExchangeBillingStatus] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('INVOICED');
+					
+					SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
+							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBACCRECTRADE') 
+								 AND [DistributionMasterId] = @DistributionMasterId 
+								 AND [MasterCompanyId] = @MasterCompanyId;
 					------------------------------------------Total Exchange Billing Amount------------------------------------------
 					
 					SELECT @TotalBillingAmount = ISNULL(ESOB.[GrandTotal],0),			       
@@ -922,6 +942,12 @@ BEGIN
 								 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId
 							END
 						END						
+
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 
 						INSERT INTO [dbo].[BatchDetails]
 						           ([JournalTypeNumber],
@@ -2143,7 +2169,8 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsAutoPost = ISNULL(IsAutoPost,0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-CRINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
@@ -2363,6 +2390,11 @@ BEGIN
 
 						UPDATE [dbo].[ReceivingCustomerWork] SET [IsExchangeBatchEntry] = 1 WHERE [ReceivingCustomerWorkId] = @InvoiceId;
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 					SET @TotalDebit = 0;
 					SET @TotalCredit = 0;

@@ -12,7 +12,7 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** 1    01/01/2024  AMIT GHEDIYA    Created
 ** 2    04/25/2024  Devendra Shekh  reading data for SubWOMpn in place of WOMpn
 ** 3    05/02/2024  Devendra Shekh  duplicate mpn for multiple wo mpn, issue resolved
-
+** 4	18 Sep 2024 Bhargav Saliya  address convert into single string value
 EXEC RPT_GetSubWorkOrderPrintPdfData 208,186
 
 **************************************************************/
@@ -87,7 +87,7 @@ AS
 								CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress2) else UPPER(billToAddress.Line2) END,
 				
 				billCity = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) else UPPER(billToAddress.City) END,              
-				  billState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,              
+				billState = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,              
 				billPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,              
 				
 				billComboFileds = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) + ', ' else UPPER(billToAddress.City) + ', ' END
@@ -95,7 +95,16 @@ AS
 					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
 				
 				billCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,              
-				billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END,              
+				billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END, 
+				
+				MergedBillToAddress = (SELECT [dbo].[ValidatePDFAddress](CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress1) else UPPER(billToAddress.Line1) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.SoldToAddress2 else billToAddress.Line2 END,NULL,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) else UPPER(billToAddress.City) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,
+																NULL,NULL,NULL)),
+
 				shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
 				shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
 				shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
@@ -112,7 +121,16 @@ AS
 					  + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(shipToAddress.StateOrProvince) END
 					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(shipToAddress.PostalCode) END,
 
-				shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,              
+				shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,   
+				
+				MergedShipToAddress = (SELECT [dbo].[ValidatePDFAddress](CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN shippingInfo.ShipToAddress2 else shipToAddress.Line2 END,NULL,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(shipToAddress.City) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(shipToAddress.StateOrProvince) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,
+																NULL,NULL,NULL)),
+
 				wop.ManagementStructureId,              
 				wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,              
 				UPPER(rc.Reference) as Reference,              

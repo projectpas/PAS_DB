@@ -12,18 +12,19 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/21/2023   Amit Ghediya	Created	
-	2    08/07/2023   Amit Ghediya	Update CodeTypes from JournalType; 
-	3    08/09/2023   Amit Ghediya	Delete DistributionSetup where name condition; 
-	4    21/08/2023   Moin Bloch    Modify(Added Accounting MS Entry)
-	5    22/08/2023   Amit Ghediya  Added StockLineId in VendorRMAPaymentBatchDetails table.
-    6    27/11/2023   Moin Bloch    Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
-	7    02/26/2024   Bhargav Saliya Resoved Shipping Issue
-	8    02/27/2024	  HEMANT SALIYA Updated for Restrict Accounting Entry by Master Company
-	9    08/01/2024	  Devendra Shekh Modified for ModuleId for VendorRMAPaymentBatchDetails
-	10   08/28/2024   Devendra Shekh JE Number reset to Zero Issue resolved
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    07/21/2023   Amit Ghediya			Created	
+	2    08/07/2023   Amit Ghediya			Update CodeTypes from JournalType; 
+	3    08/09/2023   Amit Ghediya			Delete DistributionSetup where name condition; 
+	4    21/08/2023   Moin Bloch			Modify(Added Accounting MS Entry)
+	5    22/08/2023   Amit Ghediya			Added StockLineId in VendorRMAPaymentBatchDetails table.
+    6    27/11/2023   Moin Bloch			Modify(Added @VendorCreditMemoId insted of  @VendorRMAId in VendorRMAPaymentBatchDetails) 
+	7    02/26/2024   Bhargav Saliya		Resoved Shipping Issue
+	8    02/27/2024	  HEMANT SALIYA			Updated for Restrict Accounting Entry by Master Company
+	9    08/01/2024	  Devendra Shekh		Modified for ModuleId for VendorRMAPaymentBatchDetails
+	10   08/28/2024   Devendra Shekh		JE Number reset to Zero Issue resolved
+	11   20/09/2024	  AMIT GHEDIYA			Added for AutoPost Batch
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -84,6 +85,7 @@ BEGIN
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @tmpVendorRMADetailId BIGINT;
 		DECLARE @VendorCreditMemoId BIGINT;
+		DECLARE @IsAutoPost INT = 0;
 
 		--SET @DistributionCodeName = 'VendorRMA';
 
@@ -150,21 +152,21 @@ BEGIN
 			BEGIN
 				SET @DistributionCodeName = 'VRMACS';
 				SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VRMACS');
-				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+				SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 				WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='VRMASC-AP';
 			END
 			ELSE IF(@Module = 'VRMAPR')  -- RMA Receiving
 			BEGIN 
 				SET @DistributionCodeName = 'VRMAPR';
 				SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VRMAPR');
-				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+				SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
 				WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='VRMAPR-IP';
 			END
 			ELSE IF(@Module = 'VRMACA') -- RMA Approved Credit Memo
 			BEGIN
 			    SET @DistributionCodeName = 'VRMACA';
 				SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VRMACA');
-				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
+				SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 				WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='VRMACA-ART';
 			END
 		
@@ -475,6 +477,12 @@ BEGIN
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
 		END
 		
 		SELECT @TotalDebit =SUM(DebitAmount), @TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 

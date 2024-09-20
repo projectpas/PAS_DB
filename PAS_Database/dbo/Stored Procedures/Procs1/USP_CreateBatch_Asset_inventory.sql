@@ -492,7 +492,7 @@ BEGIN
 
 				------Accounts Receivable (Trade or Other) -----------
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType 
+				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)  
 				FROM DBO.DistributionSetup WITH(NOLOCK)  
 				WHERE UPPER(DistributionSetupCode) =UPPER('ACCOUNTSRECEIVABLE(TRADE)') 
 				AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
@@ -511,6 +511,12 @@ BEGIN
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 
 					-----  Accounting MS Entry  -----
 
@@ -638,7 +644,7 @@ BEGIN
 				SET @Amount =  Isnull((@ARCaseAmount+@DepreciationAmount),0)-(ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0));
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
+				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') 
 				AND DistributionMasterId=@DistributionMasterId  AND MasterCompanyId = @MasterCompanyId
 				
@@ -724,11 +730,15 @@ BEGIN
 
 				EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
+				--AutoPost Batch
+				IF(@IsAutoPost = 1)
+				BEGIN
+					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
 			END
 			
 			IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetWriteDown')
 			BEGIN
-				print 'AssetWriteDown'
 				SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 				,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
 				,@AssetInventoryName=InventoryNumber
@@ -752,7 +762,7 @@ BEGIN
 				SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 				------Asset Account -----------
-				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
+				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @IsAutoPost = ISNULL(IsAutoPost,0)
 				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
 				AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -773,7 +783,8 @@ BEGIN
 						@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@AccountingPeriodId,@AccountingPeriod)
 
 
-					SET @JournalBatchDetailId=SCOPE_IDENTITY()
+					SET @JournalBatchDetailId=SCOPE_IDENTITY();					
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
@@ -855,6 +866,11 @@ BEGIN
 				
 				EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
+				--AutoPost Batch
+				IF(@IsAutoPost = 1)
+				BEGIN
+					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
 			END
 
 			SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId

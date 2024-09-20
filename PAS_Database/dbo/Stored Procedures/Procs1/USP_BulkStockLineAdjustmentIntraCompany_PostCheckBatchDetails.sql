@@ -20,6 +20,7 @@
 	4	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	5    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	6	 16/04/2024   Amit Ghediya     Updates memo text.
+	7    20/09/2024	  AMIT GHEDIYA	   Added for AutoPost Batch
 
 EXEC USP_BulkStockLineAdjustmentIntraCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -101,6 +102,7 @@ BEGIN
 		DECLARE @BlkModuleID  BIGINT;
 		DECLARE @DetailUnitCostAdjustment DECIMAL(18,2);
 		DECLARE @Memo VARCHAR(MAX);
+		DECLARE @IsAutoPost INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentINTRACOTRANSDIV';
 
@@ -135,7 +137,7 @@ BEGIN
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentINTRACOTRANSDIV')
 			
-			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
+			SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='INTRACOMPAYINTRACOTRANSDIV';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
@@ -472,6 +474,12 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
 		END
 
 		

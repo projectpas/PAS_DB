@@ -23,6 +23,7 @@
 	7	 18/06/2024   Amit Ghediya   Modified to allow qty update if unit cost is 0.00.
 	8	 04/09/2024   Rajesh Gami    Pass the @BulkStkLineAdjHeaderId for the stockline history, Previously it was blank;
 	9	 11/09/2024   Devendra Shekh Batch Issue For 0.00 Unit Cost Resolved
+    10   20/09/2024	  AMIT GHEDIYA	 Added for AutoPost Batch
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -91,11 +92,12 @@ BEGIN
 		DECLARE @BlkModuleID  BIGINT;
 		DECLARE @DetailQtyAdjustment INT;
 		DECLARE @TransferQtyAdjustment INT;
-		DECLARE @QuantityOnHand INT,@Quantity INT;
+		DECLARE @QuantityOnHand INT;
 		DECLARE @ChildUpdateQty INT;
 		DECLARE @QuantityAvailable INT;
 		DECLARE @StockModule BIGINT;
 		DECLARE @Memo VARCHAR(MAX);
+		DECLARE @IsAutoPost INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentQty';
 
@@ -130,7 +132,7 @@ BEGIN
 		--BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentQty')
 			
-			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
+			SELECT TOP 1 @JournalTypeId =JournalTypeId, @IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='BULKSAINVENTORYSTOCKQTY';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
@@ -286,7 +288,7 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table Qty
-					SELECT @Quantity = Quantity, @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable , @Memo = Memo FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
+					SELECT @QuantityOnHand = QuantityOnHand,@QuantityAvailable = QuantityAvailable , @Memo = Memo FROM [DBO].[Stockline] WITH(NOLOCK) WHERE StockLineId = @StockLineId;
 					
 					--Replcae tag with blank
 					--SET  @memo = REPLACE(@memo,'<p>','');
@@ -294,7 +296,7 @@ BEGIN
 					
 					IF(@DetailQtyAdjustment > 0)
 					BEGIN
-						UPDATE Stockline SET Quantity = (@Quantity + @DetailQtyAdjustment), QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand + @DetailQtyAdjustment),QuantityAvailable = (@QuantityAvailable + @DetailQtyAdjustment),
 							   [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END, 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE() 
@@ -307,7 +309,7 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						UPDATE Stockline SET Quantity = (@Quantity - ABS(@DetailQtyAdjustment)), QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),
+						UPDATE Stockline SET QuantityOnHand = (@QuantityOnHand - ABS(@DetailQtyAdjustment)),QuantityAvailable = (@QuantityAvailable - ABS(@DetailQtyAdjustment)),
 							   [Memo] = CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Qty Adjusted From Stockline Adjustment </p>' ELSE @memo + '<p> Qty Adjusted From Stockline Adjustment </p>' END,  --@memo + '<p> Qty Adjusted From Stockline Adjustment </p>', 
 							   UpdatedBy = @UpdateBy,
 							   UpdatedDate = GETUTCDATE()
@@ -466,6 +468,11 @@ BEGIN
 
 		SELECT	@BulkStkLineAdjHeaderId AS BulkStkLineAdjId;
 
+		--AutoPost Batch
+		IF(@IsAutoPost = 1)
+		BEGIN
+			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		END
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

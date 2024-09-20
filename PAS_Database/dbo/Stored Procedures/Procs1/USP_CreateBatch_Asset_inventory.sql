@@ -18,6 +18,7 @@
 	5    1/JAN/2024   AYESHA SULTANA     MODIFY(GETTING @SelectedAccountingPeriodId FROM API)
 	7    14/02/2023	  Moin Bloch		 Updated Used Distribution Setup Code Insted of Name 
 	8	 23/05/2024   Abhishek Jirawla   Changing UnitCost to Total Cost
+	9    19/09/2024	  AMIT GHEDIYA		 Added for AutoPost Batch
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -154,6 +155,7 @@ BEGIN
 		DECLARE @IntangibleWriteDownGLAccountId AS BIGINT = 0;
 		DECLARE @IntangibleWriteOffGLAccountId AS BIGINT = 0;
 		DECLARE @CrDrType int=0;
+		DECLARE @IsAutoPost INT = 0;
 
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -358,7 +360,7 @@ BEGIN
 
 					------Depreciation Expense -----------
 
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSE') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -377,6 +379,12 @@ BEGIN
 						@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@AccountingPeriodId,@AccountingPeriod)
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -439,7 +447,7 @@ BEGIN
 					SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 			        Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
 
-
+					
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 				END
 			END

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get work order List for both MPN and WO View
@@ -13,12 +12,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/28/2023   Vishal Suthar Added history
-    2    08/01/2023   Vishal Suthar Converting all the data in Upper case which was creating an issue in download
-	3    23 Jul2023   Rajesh Gami   Improve Performance
-	4    05/08/2024   HEMANT SALIYA Serial Number Changes Updated
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/28/2023   Vishal Suthar			Added history
+    2    08/01/2023   Vishal Suthar			Converting all the data in Upper case which was creating an issue in download
+	3    23 Jul2023   Rajesh Gami			Improve Performance
+	4    05/08/2024   HEMANT SALIYA			Serial Number Changes Updated
+	5    09/20/2024   Devendra Shekh		List WO View Resolved
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -339,52 +339,62 @@ BEGIN
       ELSE  
        BEGIN     
        print  'Step 2';  
-        ;WITH Main AS(  
+	     ;WITH Main AS(  
          SELECT DISTINCT   
-			  UPPER(WO.WorkOrderNum) AS WorkOrderNum,
-			  WO.WorkOrderId,
-			  WO.CustomerId,  
-			  UPPER(WO.CustomerName) AS CustomerName,
-			  UPPER(WO.CustomerType) AS CustomerType,
-			  WO.OpenDate,
-			  WO.CreatedDate,
-			  WO.UpdatedDate,
-			  UPPER(WO.CreatedBy) AS CreatedBy,
-			  UPPER(WO.UpdatedBy) AS UpdatedBy,
-			  WO.IsActive,
-			  WO.IsDeleted,
-			  UPPER(WT.Description) AS WorkOrderType,
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartNumber End)  as 'PartNumberType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartNumber End)  as 'PartNumber',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartDescription End)  as 'PartDescriptionType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.PartDescription End)  as 'PartDescription',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.ManufacturerName End)  as 'ManufacturerNameType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse I.ManufacturerName End)  as 'ManufacturerName',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse SC.WorkScopeCode End)  as 'WorkScopeType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse SC.WorkScopeCode End)  as 'WorkScopeDescription',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse P.Description End)  as 'PriorityType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse P.Description End)  as 'PriorityDescription',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOS.Code + '-' + WOS.Stage End)  as 'StageType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOS.Code + '-' + WOS.Stage End)  as 'WOStageDescription',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOST.Description End)  as 'WorkOrderStatusType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WOST.Description End)  as 'WorkOrderStatus',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELSE WPN.CustomerRequestDate End)  as 'CustomerRequestDateType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELSE WPN.CustomerRequestDate End)  as 'CustomerRequestDate',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.PromisedDate End)  as 'PromisedDateType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.PromisedDate End)  as 'PromisedDate',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.EstimatedShipDate End)  as 'EstimatedShipDateType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.EstimatedShipDate End)  as 'EstimatedShipDate',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse (CONVERT(VARCHAR, (SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 110)) End)  as 'EstimatedCompletionDateType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse (CONVERT(VARCHAR, (SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 110)) End)  as 'EstimatedCompletionDate',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emp.FirstName + ' ' + emp.LastName End)  as 'TechNameType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emp.FirstName + ' ' + emp.LastName End)  as 'TechName',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emps.StationName End)  as 'TechStationType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse emps.StationName End)  as 'TechStation',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.CustomerReference End)  as 'CustomerReferenceType',
-			  (CASE WHEN Count(WPN.ID) > 1 Then 'Multiple' ELse WPN.CustomerReference End)  as 'CustomerReference'
+				UPPER(WO.WorkOrderNum) AS WorkOrderNum,
+				WO.WorkOrderId,
+				WO.MasterCompanyId,
+				WO.CustomerId,  
+				UPPER(WO.CustomerName) AS CustomerName,
+				UPPER(WO.CustomerType) AS CustomerType,
+				WO.OpenDate,
+				WO.CreatedDate,
+				WO.UpdatedDate,
+				UPPER(WO.CreatedBy) AS CreatedBy,
+				UPPER(WO.UpdatedBy) AS UpdatedBy,
+				WO.IsActive,
+				WO.IsDeleted,
+				WT.Description AS 'WorkOrderType',
+				(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
+				(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
+			FROM dbo.WorkOrder WO WITH (NOLOCK)   
+			JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
+			))
 
-          FROM dbo.WorkOrder WO WITH (NOLOCK)   
-			  JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+		 SELECT DISTINCT   
+			  WorkOrderNum, WO.WorkOrderId, WO.CustomerId, CustomerName, CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate, WO.CreatedBy, WO.UpdatedBy, WO.IsActive, WO.IsDeleted, WorkOrderType,
+			  (CASE WHEN ((SELECT COUNT(WOPN.WorkOrderId) FROM dbo.WorkOrderPartNumber WOPN WHERE WOPN.WorkOrderId = WO.WorkOrderId) > 1 ) Then 'Multiple' ELse  'Single' End) AS 'RowStatus',
+			  MAX(I.PartNumber)  as 'PartNumberType',
+			  MAX(I.PartNumber)  as 'PartNumber',
+			  MAX(I.PartDescription)  as 'PartDescriptionType',
+			  MAX(I.PartDescription)  as 'PartDescription',
+			  MAX(I.ManufacturerName)  as 'ManufacturerNameType',
+			  MAX(I.ManufacturerName)  as 'ManufacturerName',
+			  MAX(SC.WorkScopeCode)  as 'WorkScopeType',
+			  MAX(SC.WorkScopeCode)  as 'WorkScopeDescription',
+			  MAX(P.Description)  as 'PriorityType',
+			  MAX(P.Description)  as 'PriorityDescription',
+			  MAX(WOS.Code + '-' + WOS.Stage)  as 'StageType',
+			  MAX(WOS.Code + '-' + WOS.Stage)  as 'WOStageDescription',
+			  MAX(WOST.Description)  as 'WorkOrderStatusType',
+			  MAX(WOST.Description)  as 'WorkOrderStatus',
+			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'CustomerRequestDateType',
+			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss') )  as 'CustomerRequestDate',
+			  MAX(FORMAT(WPN.PromisedDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'PromisedDateType',
+			  MAX(FORMAT(WPN.PromisedDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'PromisedDate',
+			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDateType',
+			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDate',
+			  WO.EstimatedCompletionDateType,
+			  WO.EstimatedCompletionDate,
+			  MAX(emp.FirstName + ' ' + emp.LastName)  as 'TechNameType',
+			  MAX(emp.FirstName + ' ' + emp.LastName)  as 'TechName',
+			  MAX(emps.StationName)  as 'TechStationType',
+			  MAX(emps.StationName)  as 'TechStation',
+			  MAX(WPN.CustomerReference)  as 'CustomerReferenceType',
+			  MAX(WPN.CustomerReference)  as 'CustomerReference'
+		  INTO #TempWOPartResult
+          FROM Main WO WITH (NOLOCK)   
 			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
 			  LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
 			  LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
@@ -395,19 +405,49 @@ BEGIN
 			  LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 				AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))
-		  
-		  GROUP BY WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy,
-			  WO.UpdatedBy,WO.IsActive,WO.IsDeleted,WT.Description,I.PartNumber,I.PartDescription,I.ManufacturerName,SC.WorkScopeCode,P.Description,
-			  WOS.Code, WOS.Stage,WOST.Description,WPN.CustomerRequestDate,WPN.PromisedDate,WPN.EstimatedShipDate,emp.FirstName,emp.LastName,
-			  emps.StationName, WPN.CustomerReference), 
+		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,WO.IsActive,WO.IsDeleted
+					,WO.WorkOrderType, WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate
+
+         SELECT DISTINCT WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted, WorkOrderType,
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumberType) End)  as 'PartNumberType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumber) End)  as 'PartNumber',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartDescriptionType) End)  as 'PartDescriptionType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartDescription) End)  as 'PartDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(ManufacturerNameType) End)  as 'ManufacturerNameType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(ManufacturerName) End)  as 'ManufacturerName',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkScopeType) End)  as 'WorkScopeType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkScopeDescription) End)  as 'WorkScopeDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PriorityType) End)  as 'PriorityType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PriorityDescription) End)  as 'PriorityDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(StageType) End)  as 'StageType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WOStageDescription) End)  as 'WOStageDescription',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkOrderStatusType) End)  as 'WorkOrderStatusType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(WorkOrderStatus) End)  as 'WorkOrderStatus',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerRequestDateType) End)  as 'CustomerRequestDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerRequestDate)  End)  as 'CustomerRequestDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PromisedDateType) End)  as 'PromisedDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PromisedDate) End)  as 'PromisedDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedShipDateType) End)  as 'EstimatedShipDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedShipDate) End)  as 'EstimatedShipDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDateType) End)  as 'EstimatedCompletionDateType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(EstimatedCompletionDate) End)  as 'EstimatedCompletionDate',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechNameType) End)  as 'TechNameType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechName) End)  as 'TechName',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechStationType) End)  as 'TechStationType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(TechStation) End)  as 'TechStation',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerReferenceType) End)  as 'CustomerReferenceType',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(CustomerReference) End)  as 'CustomerReference'
+		  INTO #finalTemp FROM #TempWOPartResult 
+		  GROUP BY	 WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted
+					,WorkOrderType, WorkOrderType, EstimatedCompletionDateType,  EstimatedCompletionDate, RowStatus
   																																			  
-          Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PartNumber) AS PartNos, UPPER(PartNumberType) AS PartNoType, UPPER(PartNumberType) AS PartNumberType, UPPER(PartDescription) AS PNDescription, UPPER(PartDescriptionType) AS PNDescriptionType, UPPER(ManufacturerName) AS ManufacturerName, UPPER(ManufacturerNameType) AS ManufacturerNameType,
+          ;WITH Result AS( SELECT DISTINCT M.WorkOrderId, UPPER(WorkOrderNum) AS WorkOrderNum, UPPER(WorkOrderType) AS WorkOrderType, UPPER(PartNumber) AS PartNos, UPPER(PartNumberType) AS PartNoType, UPPER(PartNumberType) AS PartNumberType, UPPER(PartDescription) AS PNDescription, UPPER(PartDescriptionType) AS PNDescriptionType, UPPER(ManufacturerName) AS ManufacturerName, UPPER(ManufacturerNameType) AS ManufacturerNameType,
               CustomerId, UPPER(CustomerName) AS CustomerName, UPPER(CustomerType) AS CustomerType, UPPER(WorkScopeDescription) AS WorkScope, UPPER(WorkScopeType) AS WorkScopeType,
               UPPER(PriorityDescription) AS Priority, UPPER(PriorityType) PriorityType, UPPER(WOStageDescription) AS Stage, UPPER(StageType) StageType, UPPER(WorkOrderStatus) WorkOrderStatus,
               UPPER(WorkOrderStatusType) WorkOrderStatusType, OpenDate, UPPER(CreatedBy) CreatedBy, UPPER(UpdatedBy) UpdatedBy, CreatedDate, UpdatedDate, CustomerRequestDate,   
               CustomerRequestDateType, PromisedDate, PromisedDateType, EstimatedShipDate, EstimatedShipDateType,   
               EstimatedCompletionDate, EstimatedCompletionDateType, UPPER(TechName) TechName, UPPER(TechNameType) TechNameType, UPPER(TechStation) TechStation, UPPER(TechStationType) TechStationType, UPPER(CustomerReference) CustomerReference, UPPER(CustomerReferenceType) CustomerReferenceType
-          FROM Main M   
+          FROM #finalTemp M   
           ),  
          ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
           SELECT * INTO #TempResult1 from  Result  

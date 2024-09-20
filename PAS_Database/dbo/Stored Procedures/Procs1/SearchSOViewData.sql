@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SearchSOViewData]
  ** Author:  
  ** Description: This stored procedure is used display sales order list
@@ -14,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/08/2023  Ekta Chandegara     Convert text into uppercase
 	2    06/26/2024  AMIT GHEDIYA        Added orderby for RequestedDate,EstimatedShipDate
+	3    20-09-2024  Shrey Chandegara	 ADD New Column in list (@ContractReference)
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
  -- Add the parameters for the stored procedure here    
@@ -48,7 +48,8 @@ CREATE    PROCEDURE [dbo].[SearchSOViewData]
  @RequestedDateType varchar(50)=null,    
  @EstimatedShipDateType varchar(50)=null,    
  @EmployeeId bigint ,  
- @ManufacturerType varchar(50)=null
+ @ManufacturerType varchar(50)=null,
+ @ContractReference varchar(50)=null
 AS    
 BEGIN    
  -- SET NOCOUNT ON added to prevent extra result sets from    
@@ -97,7 +98,7 @@ BEGIN
     DECLARE @MSModuleID INT = 17; -- Sales Order Management Structure Module ID    
     
     ;With Main AS(    
-      Select DISTINCT SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber as 'SalesQuoteNumber',     
+      Select DISTINCT SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber as 'SalesQuoteNumber',SO.ContractReference as ContractReference,     
       --dbo.GenearteVersionNumber(SO.Version) as 'VersionNumber'    
       SOQ.VersionNumber    
       ,SO.OpenDate, SOQ.OpenDate AS 'QuoteDate', C.CustomerId, C.Name, SO.CustomerReference, C.CustomerCode, MST.Name as 'Status',    
@@ -215,7 +216,7 @@ BEGIN
       AND SP.IsActive = 1 AND SP.IsDeleted = 0    
       Group By SO.SalesOrderId, A.PriorityDescription    
       ),Result AS(    
-      Select M.SalesOrderId, SalesOrderNumber,M.SalesQuoteNumber as 'SalesOrderQuoteNumber', M.QuoteDate as 'QuoteDate', M.OpenDate as 'OpenDate',M.CustomerId,M.Name as 'CustomerName',M.Status,    
+      Select M.SalesOrderId, SalesOrderNumber,M.SalesQuoteNumber as 'SalesOrderQuoteNumber', M.QuoteDate as 'QuoteDate',M.ContractReference, M.OpenDate as 'OpenDate',M.CustomerId,M.Name as 'CustomerName',M.Status,    
          M.VersionNumber,IsNull(M.SalesPrice,0) as 'QuoteAmount', IsNull(M.Cost,0) AS 'Cost', M.StatusId, M.CustomerReference,    
          PR.PriorityDescription as 'Priority', PR.PriorityType, M.SalesPerson, PT.PartNumber, PT.PartNumberType, PD.PartDescription,    
          PD.PartDescriptionType,M.CustomerTypeName as 'CustomerType',IsNULL(M.SoAmount,0) as 'SoAmount',    
@@ -230,6 +231,7 @@ BEGIN
       Where (    
       (@GlobalFilter <>'' AND ((M.SalesQuoteNumber like '%' +@GlobalFilter+'%' ) OR (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR    
         (M.SalesOrderNumber like '%' +@GlobalFilter+'%') OR    
+        (M.ContractReference like '%' +@GlobalFilter+'%') OR    
         (M.Name like '%' +@GlobalFilter+'%') OR    
         (M.Status like '%' +@GlobalFilter+'%') OR    
         (M.VersionNumber like '%' +@GlobalFilter+'%') OR    
@@ -250,6 +252,7 @@ BEGIN
         OR       
         (@GlobalFilter='' AND (IsNull(@SOQNumber,'') ='' OR M.SalesQuoteNumber like '%'+@SOQNumber+'%') and     
         (IsNull(@SalesOrderNumber,'') ='' OR M.SalesOrderNumber like '%'+@SalesOrderNumber+'%') and    
+        (IsNull(@ContractReference,'') ='' OR M.ContractReference like '%'+@ContractReference+'%') and    
         (IsNull(@CustomerName,'') ='' OR M.Name like '%'+ @CustomerName+'%') and    
         (@QuoteAmount is  null or M.SalesPrice=@QuoteAmount) and    
         (@SoAmount is  null or M.SoAmount=@SoAmount) and    
@@ -272,7 +275,7 @@ BEGIN
         (IsNull(@EstimatedShipDateType,'') ='' OR D.EstimatedShipDateType like '%'+@EstimatedShipDateType+'%') )    
         )    
       ), CTE_Count AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)    
-      SELECT SalesOrderId, UPPER(SalesOrderNumber) 'SalesOrderNumber', UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber', UPPER(VersionNumber) 'VersionNumber', QuoteDate, OpenDate, CustomerId, UPPER(CustomerName) 'CustomerName', UPPER(CustomerReference) 'CustomerReference',    
+      SELECT SalesOrderId, UPPER(SalesOrderNumber) 'SalesOrderNumber',UPPER(ContractReference) 'ContractReference', UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber', UPPER(VersionNumber) 'VersionNumber', QuoteDate, OpenDate, CustomerId, UPPER(CustomerName) 'CustomerName', UPPER(CustomerReference) 'CustomerReference',    
       UPPER(Priority) 'Priority',UPPER(PriorityType) 'PriorityType', QuoteAmount, Cost, RequestedDate, RequestedDateType, EstimatedShipDate, EstimatedShipDateType, PromisedDate,    
       ShippedDate,UPPER(Manufacturer) 'Manufacturer',UPPER(ManufacturerType) 'ManufacturerType', UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId    
       ,UPPER(PartNumber) 'PartNumber', UPPER(PartNumberType) 'PartNumberType',UPPER(PartDescription) 'PartDescription',UPPER(PartDescriptionType) 'PartDescriptionType',    
@@ -286,6 +289,7 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='STATUS')  THEN Status END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERNUMBER')  THEN SalesOrderNumber END ASC,    
+      CASE WHEN (@SortOrder=1 and @SortColumn='CONTRACTREFERENCE')  THEN ContractReference END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END ASC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END ASC,
       CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTIONTYPE')  THEN PartDescriptionType END ASC,    
@@ -309,6 +313,7 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='STATUS')  THEN Status END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='SALESORDERNUMBER')  THEN SalesOrderNumber END Desc,    
+      CASE WHEN (@SortOrder=-1 and @SortColumn='CONTRACTREFERENCE')  THEN ContractReference END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBERTYPE')  THEN PartNumberType END Desc,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='ManufacturerType')  THEN ManufacturerType END Desc,
       CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTIONTYPE')  THEN PartDescriptionType END Desc,    

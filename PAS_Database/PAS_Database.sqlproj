@@ -3160,6 +3160,11 @@
     <Build Include="dbo\Stored Procedures\GetStockLineDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAssetInventoryBillingInvoicing.sql" />
     <Build Include="dbo\Stored Procedures\SP_ValidatePDFAddress.sql" />
+    <Build Include="dbo\Stored Procedures\USP_TenderMultipleStockLine.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTurnInMultipleWorkOrderMaterils.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTenderMultipleStockLineList.sql" />
+    <Build Include="dbo\User Defined Types\TenderMultipleStocklineType.sql" />
+    <Build Include="dbo\User Defined Types\SaveAndTenderMultipleStocklineType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -41,7 +41,8 @@ BEGIN
 			[ID] INT IDENTITY,
 			[VendorRMADetailId] BIGINT NULL,
 			[Qty] INT,
-			[StockLineId] BIGINT
+			[StockLineId] BIGINT,
+			[IsDeleted] BIT NULL,
 		)
 
 		IF OBJECT_ID(N'tempdb..#tmpReturnVendorRMAId') IS NOT NULL
@@ -70,7 +71,7 @@ BEGIN
 		DECLARE @ModuleId INT;
 		DECLARE @MasterLoopID AS INT;
 		DECLARE @Qty INT = 0;
-		DECLARE @StockLineId BIGINT;
+		DECLARE @StockLineId BIGINT,@IsDeleted BIT = 0, @IsTurned BIT = 0;
 		SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'VendorRMA'; -- For Return Authorization Module
 
 		IF(@VendorRMAId = 0)
@@ -95,8 +96,8 @@ BEGIN
 						
 			INSERT INTO #tmpReturnVendorRMAId ([VendorRMAId]) VALUES (@VendorRMAId);
 
-			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId]) 
-			SELECT [VendorRMADetailId],[Qty],[StockLineId] FROM @VendorRMADetail;
+			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted) 
+			SELECT [VendorRMADetailId],[Qty],[StockLineId],IsDeleted FROM @VendorRMADetail;
 
 			SELECT  @MasterLoopID = MAX(ID) FROM #tmpReturnVendorRMACreate
 			WHILE(@MasterLoopID > 0)
@@ -132,8 +133,9 @@ BEGIN
 
 				SELECT @OldQty = [Qty], @StockLineId = [StockLineId], @RMANum = [RMANum] FROM [dbo].[VendorRMADetail] WITH (NOLOCK) WHERE [VendorRMADetailId] = @VendorRMADetailId;
 
-				IF(@Qty > @OldQty)
+				IF((@Qty > @OldQty) AND @IsTurned = 0)
 				BEGIN
+				    SET @IsTurned  =1;
 					SET @DiffrenceQty = @Qty - @OldQty ;
 						UPDATE [dbo].[Stockline] 
 						SET [QuantityAvailable] -= @DiffrenceQty,
@@ -144,8 +146,9 @@ BEGIN
 					   SET @ActionId = 2; -- Reserve
 					   EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StockLineId, @ModuleId = @ModuleId, @ReferenceId = @VendorRMAId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = @DiffrenceQty, @UpdatedBy = @UpdatedBy;
 				END
-				ELSE IF(@Qty < @OldQty)
+				ELSE IF((@Qty < @OldQty) AND @IsTurned = 0)
 				BEGIN
+						SET @IsTurned  =1;
 						SET @DiffrenceQty = @OldQty - @Qty;
 
 						UPDATE [dbo].[Stockline] 
@@ -203,17 +206,19 @@ BEGIN
 			
 			DELETE FROM #tmpReturnVendorRMACreate;
 
-			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId]) 
-			SELECT [VendorRMADetailId],[Qty],[StockLineId] FROM @VendorRMADetail;
+			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted) 
+			SELECT [VendorRMADetailId],[Qty],[StockLineId],IsDeleted FROM @VendorRMADetail;
 
 			SELECT  @MasterLoopID = MAX(ID) FROM #tmpReturnVendorRMACreate
 			WHILE(@MasterLoopID > 0)
 			BEGIN
-				SELECT @StockLineId = [StockLineId], @Qty = [Qty] FROM #tmpReturnVendorRMACreate WHERE [ID] = @MasterLoopID;
+			IF(@IsTurned  =0)
+				BEGIN
+					SELECT @StockLineId = [StockLineId], @Qty = [Qty],@IsDeleted = ISNULL(IsDeleted,0) FROM #tmpReturnVendorRMACreate WHERE [ID] = @MasterLoopID;
+					SET @ActionId = (CASE WHEN @IsDeleted = 1 THEN 3 ELSE 2 END); -- 2 = Reserve, 3= UnReserve
+					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StockLineId, @ModuleId = @ModuleId, @ReferenceId = @VendorRMAId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @CreatedBy;
 
-				SET @ActionId = 2; -- Reserve
-				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StockLineId, @ModuleId = @ModuleId, @ReferenceId = @VendorRMAId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = @Qty, @UpdatedBy = @CreatedBy;
-
+				END		
 				SET @MasterLoopID = @MasterLoopID - 1;
 			END
 

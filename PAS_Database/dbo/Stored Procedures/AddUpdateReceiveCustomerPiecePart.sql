@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    19/08/2024   Moin Bloch    Created
+	2    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
 	     
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -374,52 +375,52 @@ BEGIN
 						SET @IDNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(1,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdNumberCodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdNumberCodeTypeId)))  
 					END 								
 
-					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]
-						   ,[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber]
-	                       ,[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]	
-						   ,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate]						  
-						   ,[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo]  
-						   ,[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId]							   
-						   ,[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber]   
-						   ,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber]	 
-						   ,[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId]						   
+					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   
+						   ,[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber]	                       
+						   ,[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate]						  						  
+						   ,[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost],[ReceivedDate]
+						   ,[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo] 
+						   ,[ManagementStructureId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId],[BinId]	
+						   ,[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber]   						   
+						   ,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber]
+						   ,[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId]	
 						   ,[WorkOrderMaterialsId],[QuantityReserved],[QuantityTurnIn],[QuantityIssued],[QuantityOnHand],[QuantityAvailable],[QuantityOnOrder],[QtyReserved]
-						   ,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]	                       
+						   ,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive] 
 						   ,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId],[TLAItemMasterId]
-	                       ,[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate],[VendorId],[IsParent]						   
+	                       ,[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy],[InspectionDate],[VendorId],[IsParent]							   
 						   ,[ParentId],[IsSameDetailsForAllParts],[WorkOrderPartNoId],[SubWorkOrderId],[SubWOPartNoId],[IsOemPNId],[PurchaseUnitOfMeasureId]
-						   ,[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName]						   
-						   ,[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription]						   
-						   ,[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]						   
-						   ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType]						   
-						   ,[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId]						   
+						   ,[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName]								   
+						   ,[Site],[Warehouse],[Location],[Shelf],[Bin],[UnitOfMeasure],[WorkOrderNumber],[itemGroup],[TLAPartNumber],[NHAPartNumber],[TLAPartDescription]							   
+						   ,[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber]		
+						   ,[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType]
+						   ,[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId]	
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
 						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate])                       
-				     SELECT [PartNumber],@StockLineNumber,NULL,@ControlNumber,[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],
-						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[ManufacturerName],[MFGLotNo],
-							[MFGDate],[MFGBatchNo],[PartCertificationNumber],[CertifiedById],[CertifiedDate],[TagDate],[TagType],NULL,							
-							NULL,GETUTCDATE(),NULL,ISNULL([UnitCost], 0),0,NULL,0,GETUTCDATE(),							
-							@ReceiverNumber,NULL,ISNULL([UnitCost], 0),ISNULL([UnitCost], 0),[GLAccountId],NULL,@IsHazardousMaterial,@IsPMA,@IsDER,@OEM,'Created From Receiving Customer Piece Part',	                       
+				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],ISNULL([Quantity],0),[ConditionId],ISNULL([SerialNumber],''),						   
+						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
+							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
+							'',GETUTCDATE(),NULL,ISNULL([UnitCost], 0),0,NULL,0,GETUTCDATE(),	
+							@ReceiverNumber,'',ISNULL([UnitCost], 0),ISNULL([UnitCost], 0),[GLAccountId],NULL,@IsHazardousMaterial,@IsPMA,@IsDER,@OEM,'Created From Receiving Customer Piece Part',								
 						    [ManagementStructureId],@LegalEntityId,[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),ISNULL([IsSerialized],0),[ShelfId],[BinId],							
-							[SiteId],[ObtainFromTypeId],[OwnerTypeId],[TraceableToTypeId],NULL,NULL,@IDNumber, -- [IdNumber]							
-							0,0,[MFGTrace],[ExpDate],NULL,[ShippingViaId],[EngineSerialNumber],						
-							0,NULL,[ShippingAccount],[ShippingReference],NULL,[TimeLifeDetailsNotProvided],NULL,
+							[SiteId],[ObtainFromTypeId],[OwnerTypeId],[TraceableToTypeId],NULL,NULL,ISNULL(@IDNumber,''), -- [IdNumber]	
+							0,0,ISNULL([MFGTrace],''),[ExpDate],'',[ShippingViaId],ISNULL([EngineSerialNumber],''),								
+							0,NULL,ISNULL([ShippingAccount],''),ISNULL([ShippingReference],''),NULL,ISNULL([TimeLifeDetailsNotProvided],0),NULL,
 							NULL,0,0,0,[Quantity],[Quantity],[Quantity],0,
-							0,0,NULL,0,NULL,0,NULL,NULL,1,							
+							0,0,'',0,'',0,'',NULL,1,		
 							0,0,0,[IsCustomerStock],GETUTCDATE(),0,@NHAItemMasterId,@TLAItemMasterId,
-							@ItemtypeId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,
+							@ItemtypeId,NULL,NULL,'','','',NULL,NULL,NULL,1,
 							0,0,NULL,NULL,NULL,NULL,[PurchaseUnitOfMeasureId],
-							[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],[Level3],[Level4],[Condition],[GlAccountName],
-							[Site],[Warehouse],[Location],[Shelf],[Bin],NULL,NULL,NULL,NULL,NULL,NULL,
-							NULL,'Stock',[CustomerId],[CustomerName],[IsCustomerStock],NULL,@RevicedPNId,NULL,NULL,
-							[TaggedById],[TaggedByName],ISNULL([UnitCost], 0),[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],
-							[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],
-							0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-							NULL,NULL,NULL,NULL,0,0,0,NULL,
-							0,0,[IsTimeLife],NULL,NULL,NULL,NULL,
-						    NULL,NULL,NULL,NULL,NULL,0,NULL FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
+							ISNULL([ObtainFromName],''),ISNULL([OwnerName],''),ISNULL([TraceableToName],''),ISNULL([Level1],''),ISNULL([Level2],''),ISNULL([Level3],''),ISNULL([Level4],''),ISNULL([Condition],''),ISNULL([GlAccountName],''),
+							[Site],[Warehouse],[Location],[Shelf],[Bin],'','','','','','',							
+							'','Stock',[CustomerId],ISNULL([CustomerName],''),ISNULL([IsCustomerStock],0),'',@RevicedPNId,'','',
+							[TaggedById],ISNULL([TaggedByName],''),ISNULL([UnitCost], 0),[TaggedByType],ISNULL([TaggedByTypeName],''),[CertifiedById],[CertifiedTypeId],ISNULL([CertifiedType],''),ISNULL([CertTypeId],''),ISNULL([CertType],''),
+							[TagTypeId],0,0,0,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],
+							0,'',0,NULL,NULL,NULL,0,0,0,0,
+							0,NULL,NULL,NULL,0,NULL,0,NULL,
+							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
+						    0,NULL,'','','',0,GETUTCDATE() FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					

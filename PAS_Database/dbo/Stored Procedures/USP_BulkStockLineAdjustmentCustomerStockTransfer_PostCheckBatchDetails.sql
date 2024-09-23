@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails]           
  ** Author: BHARGAV SALIYA
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment CustomerStockTransfer.
@@ -19,6 +20,7 @@
 	3	 01/03/2024   Bhargav Saliya      Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	4    26/03/2024   Abhishek Jirawla	  Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	5	 16/04/2024   Amit Ghediya		  Updates memo text.
+	6	 20/09/2024   Rajesh Gami      Update the StocklineAdjustment modulename while adjustment.
      
 **************************************************************/
 
@@ -87,7 +89,7 @@ BEGIN
 		DECLARE @MasterLoopID INT;
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
-		DECLARE @QuantityOnHand DECIMAL(18,2);
+		DECLARE @QuantityOnHand DECIMAL(18,2),@Quantity int;
 		DECLARE @QuantityAvailable DECIMAL(18,2);
 		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
@@ -285,14 +287,14 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table 
-					SELECT @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],
+					SELECT @Quantity = Quantity, @QuantityOnHand = [QuantityOnHand],@QuantityAvailable = [QuantityAvailable],
 						   @QuantityReserved = [QuantityReserved],
 						   @Memo = [Memo]
 						FROM [DBO].[Stockline] WITH(NOLOCK) 
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) <0 THEN 0 ELSE @QuantityOnHand - @newqty END,
+					UPDATE [dbo].[Stockline] SET [Quantity] = CASE WHEN (@Quantity - @newqty) < 0  THEN 0 ELSE @Quantity - @newqty END,[QuantityOnHand] = CASE WHEN (@QuantityOnHand - @newqty) <0 THEN 0 ELSE @QuantityOnHand - @newqty END,
 												 --[QuantityAvailable] = CASE WHEN (@QuantityAvailable - @newqty) <0 THEN 0 ELSE @QuantityAvailable - @newqty END,
 												 [QuantityReserved] = CASE WHEN (@QuantityReserved - @newqty) < 0 THEN 0 ELSE (@QuantityReserved - @newqty) END,
 												 [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> Transfer Customer Stock From Stockline Adjustment </p>' ELSE @memo + '<p> Transfer Customer Stock From Stockline Adjustment </p>' END, 
@@ -301,20 +303,14 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update Existing Stockline 
-					DECLARE @OrderModule AS BIGINT = 22; /**** Stockline ****/
+					DECLARE @OrderModule AS BIGINT;
+					SELECT @OrderModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 					DECLARE @remainingQty AS INT;
 					SET @remainingQty = @QuantityOnHand - @newqty;
 					DECLARE @ActionId as BIGINT = 0;
 					SELECT @ActionId = ActionId FROM DBO.[StklineHistory_Action] WITH (NOLOCK) WHERE [Type] = 'Add-From-CustStock'
 					 
-					IF(@remainingQty > 0)
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, @ActionId, @newqty, @UpdateBy;
-					END
-					ELSE
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, @ActionId, @newqty, @UpdateBy;
-					END
+					EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, @BulkStkLineAdjHeaderId, NULL, NULL, @ActionId, @newqty, @UpdateBy;
 
 					DECLARE @Stockline BIGINT;
 					--Create New Stockline  Need to create new

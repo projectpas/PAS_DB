@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -579,7 +578,7 @@ BEGIN
 					END
 					ELSE IF (@ActionId = 6) -- Removed from OH
 					BEGIN
-						IF (@PrevOHQty>0)
+						IF (@PrevOHQty>0 AND @PrevChildQty >0)
 						BEGIN
 							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,QuantityReserved = 0,QuantityIssued = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
@@ -588,9 +587,12 @@ BEGIN
 					END
 					ELSE IF (@ActionId = 20) -- IssueReserve
 					BEGIN
-						Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 0, QuantityIssued = 1, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
-							WHERE ChildStockLineId = @StocklineToUpdate;
-							SET @QtyOnAction = @QtyOnAction - 1;
+						IF(@PrevChildQty >0)
+						BEGIN
+								Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 0, QuantityIssued = 1, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+								WHERE ChildStockLineId = @StocklineToUpdate;
+								SET @QtyOnAction = @QtyOnAction - 1;
+						END				
 					END
 					ELSE IF (@ActionId = 21) -- UnIssueUnReserve
 					BEGIN

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For Finished Good.      
@@ -337,13 +338,13 @@ BEGIN
   
 	DECLARE @ActionId INT = 0;
 
-    UPDATE [dbo].[Stockline] SET QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0,QuantityReserved=0,QuantityIssued=0,   
+    UPDATE [dbo].[Stockline] SET Quantity=0, QuantityOnHand = 0, QuantityAvailable = 0, isActive = 0,QuantityReserved=0,QuantityIssued=0,   
      Memo = 'This stockline has been repaired. Repaired stockline is: ' + @StockLineNumber + ' and Control Number is: ' + ControlNumber  
        WHERE StockLineId = @StocklineId  
 
 	DECLARE @HistoryModuleId INT = 15;
 	SET @ActionId = 6; -- RemoveOnHand
-	EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 0, @UpdatedBy = @UpdateBy;
+	EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = NULL, @SubRefferenceId = NULL, @ActionId = @ActionId, @Qty = 1, @UpdatedBy = @UpdateBy;
   
     if(UPPER(@RevisedConditionName) !='SCRAPPED')  
     BEGIN  

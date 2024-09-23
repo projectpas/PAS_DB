@@ -20,11 +20,12 @@
 	4    14/02/2024          HEMANT SALIYA          Updated for Use Code insted of Name
 	5    11/26/2023			 HEMANT SALIYA		    Updated Journal Type Id and Name in Batch Details
 	6    28-AUG-2024	     Devendra Shekh		    JE Number reset to Zero Issue resolved
+	7    20/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_PostManualStockLineBatchDetails]
+CREATE    PROCEDURE [dbo].[USP_PostManualStockLineBatchDetails]
 (
 	@StocklineId BIGINT
 )
@@ -97,6 +98,8 @@ BEGIN
 		DECLARE @StkGlAccountName varchar(200) 
 		DECLARE @StkGlAccountNumber varchar(200) 
 		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @IsAutoPost INT = 0;
+
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -239,7 +242,7 @@ BEGIN
 			 -----Account Payable || COGS / Inventory Reserve--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
 			 FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE')  --WHERE UPPER(Name) =UPPER('COGS / Inventory Reserve') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
@@ -320,6 +323,12 @@ BEGIN
 
 			UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 			UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
 		END
 
 	END TRY

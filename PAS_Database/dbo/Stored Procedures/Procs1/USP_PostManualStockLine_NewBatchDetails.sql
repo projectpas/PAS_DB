@@ -20,6 +20,7 @@
 	3    21/08/2023          Moin Bloch             Modify(Added Accounting MS Entry)
 	4    14/02/2024          Hemant Saliya          Updated for Use Code insted of Name
 	5    11/26/2023			 HEMANT SALIYA		    Updated Journal Type Id and Name in Batch Details
+	6    20/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 
 	EXEC USP_PostManualStockLine_NewBatchDetails 177281,'Admin user',280
 
@@ -103,6 +104,8 @@ BEGIN
 		DECLARE @StkGlAccountName varchar(200) 
 		DECLARE @StkGlAccountNumber varchar(200) 
 		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @IsAutoPost INT = 0;
+
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
@@ -247,7 +250,7 @@ BEGIN
 			 -----Account Payable || COGS / Inventory Reserve--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
 			 from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
@@ -333,6 +336,11 @@ BEGIN
 			UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 			UPDATE BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
+			--AutoPost Batch
+			IF(@IsAutoPost = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
 		END
 	END TRY
 	BEGIN CATCH

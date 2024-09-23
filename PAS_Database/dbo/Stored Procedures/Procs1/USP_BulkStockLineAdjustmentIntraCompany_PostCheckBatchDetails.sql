@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentIntraCompany_PostCheckBatchDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment Intra Company.
@@ -21,6 +22,7 @@
 	5    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	6	 16/04/2024   Amit Ghediya     Updates memo text.
 	7    20/09/2024	  AMIT GHEDIYA	   Added for AutoPost Batch
+	8	 20/09/2024   Rajesh Gami      Update the StocklineAdjustment modulename while adjustment.
 
 EXEC USP_BulkStockLineAdjustmentIntraCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -90,7 +92,7 @@ BEGIN
 		DECLARE @MasterLoopID INT;
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
-		DECLARE @QuantityOnHand DECIMAL(18,2);
+		DECLARE @QuantityOnHand DECIMAL(18,2),@Quantity int;
 		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @QuantityAvailable DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
@@ -293,7 +295,7 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table 
-					SELECT @QuantityOnHand = [QuantityOnHand],
+					SELECT @Quantity = Quantity, @QuantityOnHand = [QuantityOnHand],
 						   @QuantityAvailable = [QuantityAvailable], 
 						   @QuantityReserved = [QuantityReserved],
 						   @Memo = [Memo]
@@ -301,7 +303,7 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
+					UPDATE [dbo].[Stockline] SET [Quantity] = @Quantity - @newqty,[QuantityOnHand] = @QuantityOnHand - @newqty,
 												 [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> IntraCompany Transfer From Stockline Adjustment </p>' ELSE @memo + '<p> IntraCompany Transfer From Stockline Adjustment </p>' END, 
 												 --[QuantityAvailable] = @QuantityAvailable - @newqty,
 												 [QuantityReserved] = @QuantityReserved - @newqty,
@@ -310,17 +312,11 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update Existing Stockline 
-					DECLARE @OrderModule AS BIGINT = 22;
+					DECLARE @OrderModule AS BIGINT;
+					SELECT @OrderModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 					DECLARE @remainingQty AS INT;
 					SET @remainingQty = @QuantityOnHand - @newqty;
-					IF(@remainingQty > 0)
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
-					END
-					ELSE
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
-					END
+					EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, @BulkStkLineAdjHeaderId, NULL, NULL, 9, @newqty, @UpdateBy;
 
 					DECLARE @Stockline BIGINT;
 					--Create New Stockline

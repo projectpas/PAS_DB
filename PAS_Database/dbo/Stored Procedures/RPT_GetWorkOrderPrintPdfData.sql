@@ -13,8 +13,8 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 2    02/13/2024  Vishal Suthar		Modified the WOFPrintDate field
 ** 3    06/28/2024  Vishal Suthar		Added IsActive and IsDeleted check in WorkOrderQuote join
 ** 4    09/03/2024  Ekta Chandegra		Retrieve merged address using common function
-
-EXEC RPT_GetWorkOrderPrintPdfData 4323,3860
+** 5	17 Sep 2024 Bhargav Saliya      address convert into single string value
+EXEC RPT_GetWorkOrderPrintPdfData 4398,3937
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
@@ -94,7 +94,16 @@ BEGIN
 					  + ' ' + CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
 					  
 		billCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,              
-		billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END,              
+		billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END,   
+		
+		MergedBillToAddress = (SELECT [dbo].[ValidatePDFAddress](CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress1) else UPPER(billToAddress.Line1) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToAddress2) else UPPER(billToAddress.Line2) END,NULL,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCity) else UPPER(billToAddress.City) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,
+																NULL,NULL,NULL)),
+
 		shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
 		shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
 		shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
@@ -119,6 +128,13 @@ BEGIN
 					  ELSE 
 						CASE WHEN ISNULL(shipToAddress.PostalCode, '') = '' THEN '' ELSE ', ' + UPPER(shipToAddress.PostalCode) END
 					END,
+		MergedShipToAddress = (SELECT [dbo].[ValidatePDFAddress](CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END,NULL,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCity) else UPPER(ISNULL(shipToAddress.City,'')) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(ISNULL(shipToAddress.StateOrProvince,'')) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,
+																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,
+																NULL,NULL,NULL)),
 
 		shipCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,  
 		MergedShipAddress = (SELECT [dbo].[ValidatePDFAddress](shipToAddress.Line1,shipToAddress.Line2,NULL,shipToAddress.City,shipToAddress.StateOrProvince,shipToAddress.PostalCode,shipToCountry.countries_name,NULL,NULL,NULL)),

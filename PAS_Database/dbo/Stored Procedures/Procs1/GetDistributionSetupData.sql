@@ -12,10 +12,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author  Change Description              
- ** --   --------     -------  --------------------------------            
-    1    09/08/2022   Subhash Saliya Created  
-    2    11/07/2023   Satish Gohil   CRDRType Column added
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    09/08/2022   Subhash Saliya	Created  
+    2    11/07/2023   Satish Gohil		CRDRType Column added
+	3    17/09/2024   AMIT GHEDIYA		added AutoPost.
        
  EXECUTE [GetDistributionSetupData] 1,1  
 **************************************************************/  
@@ -50,7 +51,8 @@ BEGIN
 		 WHEN CRDRType=0 THEN 'CR'  
 		 WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 		 ISNULL(IsManualText,0) IsManualText,
-		 ManualText
+		 ManualText,
+		 IsAutoPost
 		 FROM dbo.DistributionSetup  WITH(NOLOCK)  
 		 WHERE  IsDeleted = 0 and MasterCompanyId = @masterCompanyId and JournalTypeId= @JournalTypeID  order by DisplayNumber ASC 
 

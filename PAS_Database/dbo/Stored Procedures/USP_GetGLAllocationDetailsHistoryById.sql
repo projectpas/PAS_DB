@@ -17,6 +17,7 @@
  ** --   --------     -------		  --------------------------------          
     1    03-07-2024   SAHDEV SALIYA   Created
 	2    26-07-2024   SAHDEV SALIYA   Set DistributionSetupAuditId Order by desc
+	3    17-09-2024   AMIT GHEDIYA    added AutoPost.
 
 	exec [USP_GetGLAllocationDetailsHistoryById] 16,1
 ********/ 
@@ -45,7 +46,8 @@ BEGIN
 					Dt.CRDRType,
 					CASE WHEN Dt.CRDRType=1 THEN 'DR'  WHEN Dt.CRDRType=0 THEN 'CR' WHEN Dt.CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 					Dt.GlAccountNumber,
-					Dt.GlAccountName
+					Dt.GlAccountName,
+					Dt.IsAutoPost
 				FROM DBO.DistributionSetupAudit DT  WITH(NOLOCK)
 				LEFT JOIN DBO.JournalType JT WITH (NOLOCK) ON JT.ID = DT.JournalTypeId
 				WHERE DT.JournalTypeId = @journalTypeID and Dt.MasterCompanyId = @MasterCompanyId

@@ -24,6 +24,7 @@
 	8	 25/04/2024	  Abhishek Jirawla  Making the sold item inactive and also updating the status note to 'Inventory is Sold'
     9    12/07/2024   Amit Ghediya		Update new Distribution used. 
    10    22/07/2024   Amit Ghediya		Update new BatchCode & J-Type Code as per new distribution.
+   11    19/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
@@ -117,6 +118,7 @@ BEGIN
 		DECLARE @WrittenOffStatus VARCHAR(100) = 'WrittenOff';
 		DECLARE @SoldStatus VARCHAR(100) = 'Sold';
 		DECLARE @ModuleName VARCHAR(10) = 'AST';
+		DECLARE @IsAutoPost INT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -156,7 +158,10 @@ BEGIN
 			@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],
 			@Shelf=[ShelfName],@AssetInventoryName=InventoryNumber,@ManagementStructureId = ManagementStructureId,
 			@MasterCompanyId=MasterCompanyId FROM [DBO].[AssetInventory] WITH(NOLOCK) 
-			WHERE AssetInventoryId = @AssetInventoryId
+			WHERE AssetInventoryId = @AssetInventoryId;
+
+			SELECT TOP 1  @IsAutoPost = ISNULL(IsAutoPost,0)
+				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'CASHARTRADEAROTHERSALE' AND MasterCompanyId = @MasterCompanyId;
 
 			SELECT @DeprExpenseGLAccountId= DeprExpenseGLAccountId,@AdDepsGLAccountId= AdDepsGLAccountId,
 			@AssetSaleGLAccountId=AssetSaleGLAccountId
@@ -256,6 +261,12 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+			END
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 			END
 
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 

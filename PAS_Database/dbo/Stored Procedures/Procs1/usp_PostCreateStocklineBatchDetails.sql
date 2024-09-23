@@ -19,6 +19,7 @@
 	7    14/12/2023   Moin Bloch    Modify(Skip Record If Sockline Exists)
 	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
 	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
+	10   19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -130,6 +131,8 @@ BEGIN
 		DECLARE @CommonJournalBatchDetailId BIGINT=0;
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @AssetStockType VARCHAR(256)= 0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsAutoPostForAll INT = 1;
 
 		IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 		BEGIN    
@@ -285,7 +288,7 @@ BEGIN
 					IF(@CurrentPeriodId =0)
 					BEGIN
 						Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-					END
+					END					
 				END
 
 				INSERT INTO [dbo].[BatchDetails]
@@ -306,8 +309,7 @@ BEGIN
 					WHILE @@FETCH_STATUS = 0
 					BEGIN
 						IF(UPPER(@DistributionCode) = UPPER('ReceivingPOStockline') AND UPPER(@StockType) = 'STOCK')
-						BEGIN
-						
+						BEGIN						
 							SELECT @VendorId=ST.VendorId
 							      ,@ReferenceId=ST.StockLineId
 								  ,@PurchaseOrderId=ST.PurchaseOrderId
@@ -361,13 +363,20 @@ BEGIN
 										 @GlAccountId=GlAccountId,
 							             @GlAccountNumber=GlAccountNumber,
 										 @GlAccountName=GlAccountName,
-										 @CrDrType =CRDRType 
+										 @CrDrType =CRDRType,
+										 @IsAutoPost = ISNULL(IsAutoPost,0)
 							        FROM dbo.DistributionSetup WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) =UPPER('RPOSTKINV') 
 							        AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+
+							--Check is allow to AutoPost
+							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
+							BEGIN
+								SET @IsAutoPostForAll = 0;
+							END
 
 							IF(ISNULL(@Amount,0) > 0)
 							BEGIN
@@ -459,12 +468,18 @@ BEGIN
 							
 							-----NonStock - Inventory--------
 							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-							@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType 
+							@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('RPONONSTKINV')
 							AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.NonStockInventory SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.NonStockInventoryId=@StocklineId
+
+							--Check is allow to AutoPost
+							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
+							BEGIN
+								SET @IsAutoPostForAll = 0;
+							END
 
 							IF(ISNULL(@Amount,0) > 0)
 							BEGIN
@@ -546,7 +561,7 @@ BEGIN
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
+							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
 							DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 
@@ -554,6 +569,12 @@ BEGIN
 							FROM DBO.AssetInventory SL WITH(NOLOCK)
 							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.AcquiredGLAccountId=GL.GLAccountId 
 							WHERE AssetInventoryId=@StocklineId;
+
+							--Check is allow to AutoPost
+							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
+							BEGIN
+								SET @IsAutoPostForAll = 0;
+							END
 
 							IF(ISNULL(@Amount,0) > 0)
 							BEGIN
@@ -630,6 +651,11 @@ BEGIN
 			UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MstCompanyId    
 			Update BatchHeader  SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@updatedByName WHERE JournalBatchHeaderId= @JlBatchHeaderId
 
+			--AutoPost Batch
+			IF(@IsAutoPostForAll = 1)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
 		END
 		IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL
 		BEGIN

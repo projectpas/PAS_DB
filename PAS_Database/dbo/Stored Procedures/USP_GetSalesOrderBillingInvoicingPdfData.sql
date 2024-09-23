@@ -15,9 +15,10 @@
  ** --   --------     -------		--------------------------------          
     1    20/02/2024   Moin Bloch     Created
 	2	 29/03/2024   Bhargav Saliya  Get CreditTermsName and NetDays From SO instead of CreditTerms
-	3	 07/27/2024   Bhargav Saliya  Get/added ShippingTerms
+	3	 27/07/2024   Bhargav Saliya  Get/added ShippingTerms
+	4	 19/09/2024   AMIT GHEDIYA    Get Cur from header for pdf.
      
--- EXEC USP_GetSalesOrderBillingInvoicingPdfData 631
+-- EXEC USP_GetSalesOrderBillingInvoicingPdfData 765
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
@@ -147,7 +148,8 @@ BEGIN
 			bi.InvoiceDate AS NewDueDate,
 			bi.ShipToUserType,
 			bi.BillToUserType,
-			ShippingTerms = posv.ShippingTerms
+			ShippingTerms = posv.ShippingTerms,
+			FunctionalCurrency = scur.Code
 		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
 		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
 		 LEFT JOIN  [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
@@ -177,6 +179,7 @@ BEGIN
 		 LEFT JOIN  [dbo].[Employee] AS sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId
 		 LEFT JOIN  [dbo].[Countries] AS cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 		 LEFT JOIN  [dbo].[Currency] AS cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
+		 LEFT JOIN  [dbo].[Currency] AS scur WITH(NOLOCK) ON so.FunctionalCurrencyId = scur.CurrencyId
 		 --LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
 		 LEFT JOIN  [dbo].[SalesOrderBillingInvoicingItem] AS sabi WITH(NOLOCK) ON bi.SOBillingInvoicingId = sabi.SOBillingInvoicingId

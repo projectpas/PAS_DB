@@ -20,6 +20,9 @@
     [DistributionSetupCode]    VARCHAR (100) NOT NULL,
     [IsManualText]             BIT           NULL,
     [ManualText]               VARCHAR (100) NULL,
+    [IsAutoPost]               BIT           NULL,
     CONSTRAINT [PK_DistributionSetupAudit] PRIMARY KEY CLUSTERED ([DistributionSetupAuditId] ASC)
 );
+
+
 

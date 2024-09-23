@@ -10,11 +10,12 @@ EXEC [USP_GetPNLabelSettingData]
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
 ** 1    06/07/2023  Devendra Shekh    get PN Label Mapping(Setting) by mastercompanyId
+** 2	20 SEP 2024	BHARGAV SALIYA    GET fields [FieldDPI],[MarginLeft],[MarginRight],[MarginTop],[MarginBottom]
 
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
 
-Create   PROCEDURE [dbo].[USP_GetPNLabelSettingData]
+CREATE   PROCEDURE [dbo].[USP_GetPNLabelSettingData]
 @MasterCompanyId bigint
 AS
 BEGIN
@@ -32,6 +33,11 @@ BEGIN
 					MasterCompanyId,
 					FieldWidth,
 					FieldHeight,
+					FieldDPI,
+					MarginLeft,
+					MarginRight,
+					MarginTop,
+					MarginBottom,
 					AllPNLabelSelected
 				FROM [DBO].[PNLabelMapping] 
 				WHERE MasterCompanyId = @MasterCompanyId

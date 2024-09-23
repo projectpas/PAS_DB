@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File: GetCustomerAddress
  ** Author: Moin Bloch
  ** Description: This stored procedure is used  Address of customer
@@ -14,8 +12,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    03/05/2021   Moin Bloch    Created
-     
+    1    03/05/2021   Moin Bloch     Created
+    2	 16 Sep 2024  Bhargav Saliya address convert into single string value 
  EXEC GetCustomerAddress 11
 
 **************************************************************/ 
@@ -36,7 +34,8 @@ BEGIN
 				ad.PostalCode,
 				ad.CountryId,
 			    UPPER(ct.countries_name) 'Country',
-				UPPER(c.Name) AS 'SiteName'
+				UPPER(c.Name) AS 'SiteName',
+				MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,'','',''))
 		  FROM dbo.Customer c WITH (NOLOCK) 
 	     INNER JOIN dbo.Address ad WITH (NOLOCK)  ON c.AddressId = ad.AddressId
 		 LEFT JOIN dbo.Countries ct WITH (NOLOCK)  ON ct.countries_id = ad.CountryId

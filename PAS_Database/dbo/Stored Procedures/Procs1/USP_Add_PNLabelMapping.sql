@@ -11,18 +11,24 @@ EXEC [USP_GetPNLabelSettingData]
 ** --   --------    -------         --------------------------------  
 ** 1    06/07/2023  Devendra Shekh    Add update PN Label Settings
 ** 2    13/07/2023  Devendra Shekh    added new field 'AllPNLabelSelected'
+** 3	20 SEP 2024	BHARGAV SALIYA    added new fields [FieldDPI],[MarginLeft],[MarginRight],[MarginTop],[MarginBottom]
 
 exec dbo.USP_Add_PNLabelMapping @PnLabelIds=N'2, 25,26',@MasterCompanyId=1,@CreatedBy=N'ADMIN User',@UpdatedBy=N'ADMIN User',@FieldHeight=70,@FieldWidth=90
 exec dbo.USP_Add_PNLabelMapping @PnLabelIds=N'25, 26',@MasterCompanyId=1,@CreatedBy=N'ADMIN User',@UpdatedBy=N'ADMIN User',@FieldHeight=70,@FieldWidth=90
 **********************/  
 
-Create   PROCEDURE [dbo].[USP_Add_PNLabelMapping]
+CREATE   PROCEDURE [dbo].[USP_Add_PNLabelMapping]
 @PnLabelIds varchar(100) = NULL,
 @CreatedBy varchar(50),
 @UpdatedBy  varchar(50),
 @MasterCompanyId bigint ,
-@FieldHeight bigint ,
-@FieldWidth bigint,
+@FieldHeight decimal(5,2),
+@FieldWidth decimal(5,2),
+@FieldDPI decimal(5,2) ,
+@MarginLeft decimal(5,2),
+@MarginRight decimal(5,2) ,
+@MarginTop decimal(5,2),
+@MarginBottom decimal(5,2),
 @AllPNLabelSelected bit 
 
 AS
@@ -56,12 +62,17 @@ BEGIN
 						TARGET.Description = ISNULL(SOURCE.PNLabel, ''),
 						TARGET.FieldWidth = @FieldWidth,
 						TARGET.FieldHeight = @FieldHeight,
+						TARGET.FieldDPI = @FieldDPI,
+						TARGET.MarginLeft = @MarginLeft,
+						TARGET.MarginRight = @MarginRight,
+						TARGET.MarginTop = @MarginTop,
+						TARGET.MarginBottom = @MarginBottom,
 						TARGET.UpdatedDate = GETUTCDATE(),
 						TARGET.UpdatedBy = @UpdatedBy,
 						TARGET.AllPNLabelSelected = @AllPNLabelSelected
 				WHEN NOT MATCHED BY TARGET 
-					THEN INSERT ([PNLabelId],[Description],[FieldWidth],[FieldHeight], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [AllPNLabelSelected]) 
-					VALUES (SOURCE.PNLabelId,SOURCE.PNLabel, @FieldWidth, @FieldHeight, @MasterCompanyId, GETUTCDATE(),@CreatedBy, GETUTCDATE(), @UpdatedBy, 1, 0, @AllPNLabelSelected)
+					THEN INSERT ([PNLabelId],[Description],[FieldWidth],[FieldHeight], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [AllPNLabelSelected],[FieldDPI],[MarginLeft],[MarginRight],[MarginTop],[MarginBottom]) 
+					VALUES (SOURCE.PNLabelId,SOURCE.PNLabel, @FieldWidth, @FieldHeight, @MasterCompanyId, GETUTCDATE(),@CreatedBy, GETUTCDATE(), @UpdatedBy, 1, 0, @AllPNLabelSelected,@FieldDPI,@MarginLeft,@MarginRight,@MarginTop,@MarginBottom)
 				WHEN NOT MATCHED BY SOURCE 
 					THEN DELETE;
 

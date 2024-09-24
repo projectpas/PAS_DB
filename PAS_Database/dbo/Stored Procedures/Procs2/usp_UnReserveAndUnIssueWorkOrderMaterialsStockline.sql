@@ -15,6 +15,7 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 4    07/18/2024		Devendra Shekh		Modified For Same JE Changes, also added AccountByPass check
 ** 5    08/05/2024      HEMANT SALIYA	    Fixed MTI stk Reserve Qty was not updating
 ** 6    09/10/2024      RAJESH GAMI  	    Added new stockline history action (UnIssueUnReserve)
+** 7    09/24/2024      HEMANT SALIYA	    Re-Calculate WOM Qty Res & Qty Issue
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -263,6 +264,20 @@ BEGIN
 						SET @countStockline = @countStockline + 1;
 					END;
 
+					--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+					UPDATE dbo.WorkOrderMaterials 
+					SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+					FROM(
+						SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+							AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+						WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+						GROUP BY WOM.WorkOrderMaterialsId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
+
 					DECLARE @countBoth INT = 1;
 
 					--FOR UPDATE TOTAL WORK ORDER COST
@@ -334,9 +349,7 @@ BEGIN
 
 						-- batch trigger unissue qty
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0)
-						BEGIN
-							--EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
-							--@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
+						BEGIN						
 							INSERT INTO @WOBatchTriggerType VALUES
 							(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
 						END

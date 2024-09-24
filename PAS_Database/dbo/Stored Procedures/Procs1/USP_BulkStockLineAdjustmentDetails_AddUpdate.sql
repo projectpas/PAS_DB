@@ -17,6 +17,7 @@
 	5    22/12/2023   BHARGAV SALIYA   added Customer Stock adjustment.
 	6    20/03/2024   Abhishek Jirawla Added reserve Quantity and history when a stock is transfered Inter/Intra company and transfer Customer Stock
 	7    01/04/2024   Abhishek Jirawla Added unreserve the quantity when deleted is true
+	8    24/09/2024   RAJESH GAMI      Added @BulkStkLineAdjHeaderId(Adjement number as a reference) into stockline history 
 *******************************************************************************/
 CREATE PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
@@ -60,7 +61,7 @@ BEGIN
 				@UpdatedQuantity INT;
 
 		SELECT @ModuleId = ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName='BulkStocklineAdjustmnet';
-		SELECT @BulkStockModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName='BulkStockAdjustments';
+		SELECT @BulkStockModuleId = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 
 	    IF OBJECT_ID(N'tempdb..#tmpBulkStockLineAdjustmentDetails') IS NOT NULL
 		BEGIN
@@ -164,7 +165,7 @@ BEGIN
 						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
-					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 2, @NewQty, @UpdatedBy;
 				END
 
 				ELSE IF(@StockLineAdjustmentTypeId = 5) -- For Customer Stock
@@ -184,7 +185,7 @@ BEGIN
 						QuantityAvailable = QuantityAvailable - @NewQty
 					WHERE StockLineId = @BulkStockAdjusmentStocklineId;
 
-					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @NewQty, @UpdatedBy;					
+					EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 2, @NewQty, @UpdatedBy;					
 				END
 
 
@@ -261,7 +262,7 @@ BEGIN
 								QuantityAvailable = QuantityAvailable - @UpdatedQuantity
 							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
 						END
 						IF @OldQuantity > @NewQty
 						BEGIN
@@ -270,7 +271,7 @@ BEGIN
 								QuantityAvailable = QuantityAvailable + @UpdatedQuantity
 							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
 						END
 					END
 				END
@@ -308,7 +309,7 @@ BEGIN
 								QuantityAvailable = QuantityAvailable - @UpdatedQuantity
 							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 2, @UpdatedQuantity, @UpdatedBy;
 						END
 						IF @OldQuantity > @NewQty
 						BEGIN
@@ -317,7 +318,7 @@ BEGIN
 								QuantityAvailable = QuantityAvailable + @UpdatedQuantity
 							WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
+							EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 3, @UpdatedQuantity, @UpdatedBy;
 						END
 					END
 				END
@@ -346,7 +347,7 @@ BEGIN
 					QuantityAvailable = QuantityAvailable + @NewQty
 				WHERE StockLineId = @BulkStockAdjusmentStocklineId
 
-				EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, NULL, NULL, NULL, 3, @NewQty, @UpdatedBy;
+				EXEC USP_AddUpdateStocklineHistory @BulkStockAdjusmentStocklineId, @BulkStockModuleId, @BulkStkLineAdjHeaderId, NULL, NULL, 3, @NewQty, @UpdatedBy;
 			END
 
 			SET @MasterLoopID = @MasterLoopID - 1;

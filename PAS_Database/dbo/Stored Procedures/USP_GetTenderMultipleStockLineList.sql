@@ -10,6 +10,7 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    09/02/2024   Devendra Shekh	     CREATED
+	2    09/24/2024   Devendra Shekh	     Modified to same rows as qty for serialized part
 
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
@@ -45,6 +46,12 @@ BEGIN
 
 		IF OBJECT_ID(N'tempdb..#tmpWOMStocklineKit') IS NOT NULL
 			DROP TABLE #tmpWOMStocklineKit
+
+		IF OBJECT_ID(N'tempdb..#tmpWOMQtyResult') IS NOT NULL
+			DROP TABLE #tmpWOMQtyResult
+
+		IF OBJECT_ID(N'tempdb..##FinalResult') IS NOT NULL
+			DROP TABLE #FinalResult
 
 		CREATE TABLE #TenderMultipleStkListData
 		(
@@ -84,7 +91,50 @@ BEGIN
 			[ShelfId] [bigint] NULL,
 			[BinId] [bigint] NULL,
 			[MasterCompanyId] [int] NULL,
-			[TenderedQuantity] [int] NULL
+			[TenderedQuantity] [int] NULL,
+			[QtyToTender] [int] NULL
+		)
+
+		CREATE TABLE #FinalResult
+		(
+			[RecordID] BIGINT NOT NULL IDENTITY, 	
+			[WorkOrderMaterialsId] [bigint] NULL,
+			[PartNumber] [varchar](200) NULL,
+			[PartDescription] [varchar](MAX) NULL,
+			[UOM] [varchar](100) NULL,
+			[Condition] [varchar](256) NULL,
+			[Quantity] [int] NULL,
+			[CustomerName] [varchar](100) NULL,
+			[CustomerCode] [varchar](100) NULL,
+			[IsSerialized] [bit] NULL, 
+			[SerialNumberNotProvided] [bit] NULL, 
+			[SerialNumber] [varchar](150) NULL, 
+			[WorkOrderNum] [varchar](30) NULL,
+			[Manufacturer] [varchar](100) NULL,
+			[Receiver] [varchar](150) NULL,
+			[ReceivedDate] [datetime2] NULL,
+			[Provision] [varchar](150) NULL,
+			[Site] [varchar](250) NULL,
+			[WareHouse] [varchar](250) NULL,
+			[Location] [varchar](250) NULL,
+			[Shelf] [varchar](250) NULL,
+			[Bin] [varchar](250) NULL,
+			[IsKitType] [bit] NULL,
+			[ItemMasterId] [bigint] NULL,
+			[UnitOfMeasureId] [bigint] NULL,
+			[ConditionId] [bigint] NULL,
+			[CustomerId] [bigint] NULL,
+			[WorkOrderId] [bigint] NULL,
+			[Manufacturerid] [bigint] NULL,
+			[ProvisionId] [bigint] NULL,
+			[SiteId] [bigint] NULL,
+			[WareHouseId] [bigint] NULL,
+			[LocationId] [bigint] NULL,
+			[ShelfId] [bigint] NULL,
+			[BinId] [bigint] NULL,
+			[MasterCompanyId] [int] NULL,
+			[TenderedQuantity] [int] NULL,
+			[QtyToTender] [int] NULL
 		)
 
 		CREATE TABLE #tmpWOMStockline
@@ -102,6 +152,12 @@ BEGIN
 			[ConditionId] [bigint] NOT NULL,
 			[TotalQuantityTurnIn] [int] NULL,
 		)
+
+		CREATE TABLE #tmpWOMQtyResult
+		(
+			ResID BIGINT NOT NULL IDENTITY, 						 
+			[Qty] [int] NULL,
+		)		 
 			
 		IF @SortColumn IS NULL
 		BEGIN
@@ -110,7 +166,7 @@ BEGIN
 		Else
 		BEGIN 
 			SET @SortColumn=UPPER(@SortColumn)
-		END
+		END		
 
 		INSERT INTO #tmpWOMStockline 
 		SELECT DISTINCT	WOMS.WorkOrderMaterialsId,
@@ -138,10 +194,10 @@ BEGIN
 		INSERT INTO #TenderMultipleStkListData (
 			[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 			[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity])
+			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender])
 		SELECT DISTINCT WOM.[WorkOrderMaterialsId], IM.PartNumber, IM.PartDescription, UOM.ShortName, C.[Description], ISNULL(WOM.Quantity, 0), CU.[Name], CU.CustomerCode,  ISNULL(IM.isSerialized, 0), 1, '', WO.WorkOrderNum,  ISNULL(MF.[Name], ''),
 		'Creating', GETDATE(),  ISNULL(PS.[Description], ''),  ISNULL(IM.SiteName, ''),  ISNULL(IM.WarehouseName, ''),  ISNULL(IM.LocationName, ''),  ISNULL(IM.ShelfName, ''),  ISNULL(IM.BinName, ''), 0, IM.ItemMasterId, ISNULL(UOM.UnitOfMeasureId, 0), ISNULL(WOM.ConditionCodeId, 0), WO.CustomerId, WO.WorkOrderId, ISNULL(IM.ManufacturerId, 0),
-		ISNULL(WOM.ProvisionId, 0), ISNULL(IM.SiteId, 0), ISNULL(IM.WarehouseId, 0), ISNULL(IM.LocationId, 0), ISNULL(IM.ShelfId, 0), ISNULL(IM.BinId, 0), WOM.[MasterCompanyId], ISNULL(tmpWOM.TotalQuantityTurnIn, 0)
+		ISNULL(WOM.ProvisionId, 0), ISNULL(IM.SiteId, 0), ISNULL(IM.WarehouseId, 0), ISNULL(IM.LocationId, 0), ISNULL(IM.ShelfId, 0), ISNULL(IM.BinId, 0), WOM.[MasterCompanyId], ISNULL(tmpWOM.TotalQuantityTurnIn, 0), (ISNULL(WOM.Quantity, 0) - ISNULL(tmpWOM.TotalQuantityTurnIn, 0))
 		FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 			JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -158,10 +214,10 @@ BEGIN
 		INSERT INTO #TenderMultipleStkListData (
 			[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 			[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity])
+			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender])
 		SELECT DISTINCT WOM.[WorkOrderMaterialsKitId], IM.PartNumber, IM.PartDescription, UOM.ShortName, C.[Description], ISNULL(WOM.Quantity, 0), CU.[Name], CU.CustomerCode,  ISNULL(IM.isSerialized, 0), 1, '', WO.WorkOrderNum,  ISNULL(MF.[Name], ''),
 		'Creating', GETDATE(),  ISNULL(PS.[Description], ''),  ISNULL(IM.SiteName, ''),  ISNULL(IM.WarehouseName, ''),  ISNULL(IM.LocationName, ''),  ISNULL(IM.ShelfName, ''),  ISNULL(IM.BinName, ''), 1, IM.ItemMasterId, ISNULL(UOM.UnitOfMeasureId, 0), ISNULL(WOM.ConditionCodeId, 0), WO.CustomerId, WO.WorkOrderId, ISNULL(IM.ManufacturerId, 0),
-		ISNULL(WOM.ProvisionId, 0), ISNULL(IM.SiteId, 0), ISNULL(IM.WarehouseId, 0), ISNULL(IM.LocationId, 0), ISNULL(IM.ShelfId, 0), ISNULL(IM.BinId, 0), WOM.[MasterCompanyId], ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0)
+		ISNULL(WOM.ProvisionId, 0), ISNULL(IM.SiteId, 0), ISNULL(IM.WarehouseId, 0), ISNULL(IM.LocationId, 0), ISNULL(IM.ShelfId, 0), ISNULL(IM.BinId, 0), WOM.[MasterCompanyId], ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0),(ISNULL(WOM.Quantity, 0) - ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0))
 		FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 			JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 			JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -174,16 +230,45 @@ BEGIN
 			WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) > 0);
 
-		SELECT @Count = COUNT(RecordID) FROM #TenderMultipleStkListData;
+		DECLARE @WOMMaxQty INT;
+		SELECT @WOMMaxQty = MAX(ISNULL(Quantity,0)) FROM #TenderMultipleStkListData;
+
+		;WITH Numbers AS (
+			SELECT 1 AS Number
+			UNION ALL
+			SELECT Number + 1
+			FROM Numbers
+			WHERE Number < @WOMMaxQty
+		)
+		INSERT INTO #tmpWOMQtyResult ([Qty]) SELECT Number FROM Numbers;
+
+		INSERT INTO #FinalResult([WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
+				[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
+				[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender])
+		SELECT	[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
+				[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
+				[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender]
+		FROM #TenderMultipleStkListData T
+		LEFT JOIN #tmpWOMQtyResult n ON n.[Qty] <= T.[QtyToTender] WHERE T.IsSerialized = 1
+
+		INSERT INTO #FinalResult([WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
+				[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
+				[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender])
+		SELECT	[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
+				[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
+				[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender]
+		FROM #TenderMultipleStkListData T WHERE T.IsSerialized = 0
+
+		SELECT @Count = COUNT(RecordID) FROM #FinalResult;
 
 		SELECT @Count AS NumberOfItems, 
 			[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
 			[Receiver], [ReceivedDate], [Provision], [Site], [WareHouse], [Location], [Shelf], [Bin], [IsKitType], [ItemMasterId], [UnitOfMeasureId], [ConditionId], [CustomerId], [WorkOrderId], [Manufacturerid], 
-			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity]
-		FROM #TenderMultipleStkListData
+			[ProvisionId], [SiteId], [WareHouseId], [LocationId], [ShelfId], [BinId], [MasterCompanyId], [TenderedQuantity], [QtyToTender]
+		FROM #FinalResult
 		ORDER BY [PartNumber]
-		OFFSET @RecordFrom ROWS 
-		FETCH NEXT @PageSize ROWS ONLY
+		--OFFSET @RecordFrom ROWS 
+		--FETCH NEXT @PageSize ROWS ONLY
 
 	END TRY    
 	BEGIN CATCH      

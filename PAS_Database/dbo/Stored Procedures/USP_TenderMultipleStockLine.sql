@@ -8,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	09/12/2024		Devendra Shekh			Created
+** 2    09/24/2024		Devendra Shekh			Added more fiels to Select 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_TenderMultipleStockLine]
 	@tbl_TenderMultipleStocklineType [TenderMultipleStocklineType] READONLY,
@@ -29,7 +30,7 @@ BEGIN
 					DECLARE @CodeTypeId INT, @TearDownWO INT = 0, @ObtainFromTypeId INT = NULL, @WOTypeId BIGINT = 0, @IsCustomerStock BIT = 0,  
 							@ObtainFrom BIGINT = NULL, @ObtainFromName VARCHAR(500) = '', @SelectedCustomerAffiliation BIGINT, @IsCustomerstockType BIT = 0, @Nummber BIGINT = 0, @Unitcost DECIMAL(18,2) = 0,
 							@OwnerTypeId INT = NULL, @Owner BIGINT = NULL, @OwnerName VARCHAR(500) = '', @TraceableToTypeId INT = NULL, @TraceableTo BIGINT = NULL, @TraceableToName VARCHAR(500) = '',  
-							@InspectedById BIGINT = NULL, @InspectedDate DATETIME2(7) = NULL, @ReceiverNumber VARCHAR(500), @EvidenceId INT = 0, @IsMaterialStocklineCreate BIT = 1;
+							@InspectedById BIGINT = NULL, @InspectedDate DATETIME2(7) = NULL, @ReceiverNumber VARCHAR(500), @EvidenceId INT = 0, @IsMaterialStocklineCreate BIT = 1, @Memo VARCHAR(MAX) = '';
 					DECLARE @TenderWOMStk [SaveAndTenderMultipleStocklineType];
 
 					IF OBJECT_ID('tempdb..#TenderMultipleStkListData') IS NOT NULL
@@ -81,7 +82,20 @@ BEGIN
 						[MasterCompanyId] [int] NULL,
 						[WorkFlowWorkOrderId] [bigint] NULL,
 						[ManagementStructureId] [bigint] NULL,
-						[UnitCost] [decimal](18,2) NULL
+						[UnitCost] [decimal](18,2) NULL,
+						[EvidenceId] [int] NULL,
+						[Memo] [varchar](max) NULL,
+						[ObtainFromTypeId] [int] NULL,
+						[ObtainFrom] [bigint] NULL,
+						[ObtainFromName] [varchar](500) NULL,
+						[OwnerTypeId] [int] NULL,
+						[Owner] [bigint] NULL,
+						[OwnerName] [varchar](500) NULL,
+						[TraceableToTypeId] [int] NULL,
+						[TraceableTo] [bigint] NULL,
+						[TraceableToName] [varchar](500) NULL,
+						[InspectionById] [bigint] NULL,
+						[InspectionDate] [datetime2](7) NULL
 					)
 
 					CREATE TABLE #tmpWOCodePrefixesNew
@@ -107,7 +121,7 @@ BEGIN
 
 					SET @CodeTypeId = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE UPPER([CodeType]) = 'RECEIVER NUMBER TENDER STOCKLINE');
 					SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) = 'TEARDOWN');
-					SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'CUSTOMER');					
+					--SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'CUSTOMER');					
 
 					INSERT INTO #TenderMultipleStkListData(
 							[WorkOrderMaterialsId], [PartNumber], [PartDescription], [UOM], [Condition], [Quantity], [CustomerName], [CustomerCode], [IsSerialized], [SerialNumberNotProvided], [SerialNumber], [WorkOrderNum], [Manufacturer], 
@@ -127,7 +141,10 @@ BEGIN
 								@WorkOrderNum = WorkOrderNum, @ReceivedDate = ReceivedDate, @IsKitType = IsKitType, @ItemMasterId = ItemMasterId, @UnitOfMeasureId = UnitOfMeasureId,
 								@ConditionId = ConditionId, @CustomerId = CustomerId, @WorkOrderId = WorkOrderId, @ManufacturerId = ManufacturerId, @ProvisionId = ProvisionId,
 								@SiteId = SiteId, @WareHouseId = WareHouseId, @LocationId = LocationId, @ShelfId = ShelfId, @BinId = BinId,
-								@MasterCompanyId = MasterCompanyId, @ManagementStructureId = [ManagementStructureId], @Unitcost = [UnitCost]
+								@MasterCompanyId = MasterCompanyId, @ManagementStructureId = [ManagementStructureId], @Unitcost = [UnitCost],
+								@EvidenceId = EvidenceId, @Memo = Memo, @ObtainFromTypeId = ObtainFromTypeId, @ObtainFrom = ObtainFrom, @ObtainFromName = ObtainFromName,
+								@OwnerTypeId = OwnerTypeId, @Owner = [Owner], @OwnerName = OwnerName, @TraceableToTypeId = TraceableToTypeId, @TraceableTo = TraceableTo, @TraceableToName = TraceableToName,
+								@InspectedById = [InspectionById], @InspectedDate = InspectionDate
 						FROM  #TenderMultipleStkListData WHERE RecordID = @CurrentStk;
 
 						SELECT @WOTypeId = WorkOrderTypeId FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
@@ -142,7 +159,7 @@ BEGIN
 							AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 						END
 
-						IF(ISNULL(@ObtainFrom , 0) = 0)
+						IF(ISNULL(@CurrentStk , 0) = 1)
 						BEGIN
 							--Customer Data Insert
 							INSERT INTO #tempCustomer([CustomerId], [Name], [CustomerAffiliationId], [customerType])
@@ -151,7 +168,7 @@ BEGIN
 							LEFT JOIN [dbo].[CustomerAffiliation] CAF WITH(NOLOCK) ON c.CustomerAffiliationId = CAF.CustomerAffiliationId
 							WHERE C.CustomerId = @CustomerId;
 				
-							SELECT @ObtainFrom = CustomerId, @SelectedCustomerAffiliation = ISNULL(CustomerAffiliationId, 0), @ObtainFromName = [Name] FROM #tempCustomer
+							SELECT @SelectedCustomerAffiliation = ISNULL(CustomerAffiliationId, 0) FROM #tempCustomer
 
 							IF(ISNULL(@SelectedCustomerAffiliation, 0) = (SELECT CustomerAffiliationId FROM CustomerAffiliation WHERE UPPER([Description]) = 'EXTERNAL'))
 							BEGIN

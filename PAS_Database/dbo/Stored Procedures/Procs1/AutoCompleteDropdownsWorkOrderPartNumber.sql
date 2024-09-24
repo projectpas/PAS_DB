@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdownsInternalWOPartNumber]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Stockline List for WO MPN    
@@ -14,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/30/2023   Hemant Saliya Created
+	2    09/24/2024   Moin Bloch    Restricted Piece Part In Drop Down List
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -53,7 +53,7 @@ BEGIN
 		END	
 
 		IF(@WorkOrderTypeId = 1) -- Customer Work Order
-			BEGIN		
+		BEGIN		
 					DECLARE @CustomerModuleID INT; -- Module Enum
 					DECLARE @RCWModuleID INT; -- Management Structure Module Enum
 					
@@ -64,23 +64,23 @@ BEGIN
                             RP.ReferenceId AS ReferenceId, 
                             RP.PartType AS PartType 
 					INTO #TempPMADER
-					FROM dbo.ReceivingCustomerWork RCW
-						JOIN dbo.ItemMaster IM ON RCW.ItemMasterId = IM.ItemMasterId
-						JOIN dbo.RestrictedParts RP ON RCW.CustomerId = RP.ReferenceId
+					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
+						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RCW.ItemMasterId = IM.ItemMasterId
+						JOIN dbo.RestrictedParts RP WITH(NOLOCK)  ON RCW.CustomerId = RP.ReferenceId
                     WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND RP.ModuleId = @CustomerModuleID AND ISNULL(RCW.WorkOrderId, 0) = 0
                           AND RCW.CustomerId = @CustomerId AND RCW.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
 					SELECT DISTINCT TOP 20 RCW.ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'PMA' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'DER' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         RCW.SerialNumber,
                         RCW.StockLineId,
@@ -110,21 +110,21 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.WorkScope WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
 					WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND ISNULL(RCW.WorkOrderId, 0) = 0 AND SL.CustomerId = @CustomerId AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
-						AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%') 
+					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%') 
 
 					UNION 
 
 					SELECT DISTINCT TOP 20 RCW.ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'PMA' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'DER' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         RCW.SerialNumber,
                         RCW.StockLineId,
@@ -153,8 +153,8 @@ BEGIN
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = RCW.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.WorkScope WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
-					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
-					ORDER BY Label				
+					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
+					ORDER BY [Label]				
 			END
 			ELSE IF(@WorkOrderTypeId = 2 OR  @WorkOrderTypeId = 4) -- FOR INTERNAL AND SHOP SERVER WO TYPE
 			BEGIN
@@ -168,23 +168,23 @@ BEGIN
                             RP.ReferenceId AS ReferenceId, 
                             RP.PartType AS PartType 
 					INTO #TempSLPMADER
-					FROM dbo.StockLine SL
-						JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-						JOIN dbo.RestrictedParts RP ON SL.CustomerId = RP.ReferenceId
+					FROM dbo.StockLine SL WITH(NOLOCK) 
+						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+						JOIN dbo.RestrictedParts RP WITH(NOLOCK) ON SL.CustomerId = RP.ReferenceId
                     WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND RP.ModuleId = @StocklineModuleID AND ISNULL(SL.WorkOrderId, 0) = 0
                           AND SL.CustomerId = @CustomerId AND SL.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
 					SELECT DISTINCT TOP 20  0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempSLPMADER WHERE #TempSLPMADER.PartType = 'PMA' AND #TempSLPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempSLPMADER WHERE #TempSLPMADER.PartType = 'DER' AND #TempSLPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         SL.SerialNumber,
                         SL.StockLineId,
@@ -211,22 +211,23 @@ BEGIN
 						LEFT JOIN dbo.ItemGroup IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = SL.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
+						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(SL.QuantityAvailable, 0) > 0
-						AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
+						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
 
 					UNION
 
 					SELECT  0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempSLPMADER WHERE #TempSLPMADER.PartType = 'PMA' AND #TempSLPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempSLPMADER WHERE #TempSLPMADER.PartType = 'DER' AND #TempSLPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         SL.SerialNumber,
                         SL.StockLineId,
@@ -253,8 +254,9 @@ BEGIN
 						LEFT JOIN dbo.ItemGroup IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = SL.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
-					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0
-					ORDER BY Label	
+						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
+					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(RCW.IsPiecePart,0) = 0
+					ORDER BY [Label]	
 			END
 			ELSE IF(@WorkOrderTypeId = 3)
 			BEGIN
@@ -268,9 +270,9 @@ BEGIN
                             RP.ReferenceId AS ReferenceId, 
                             RP.PartType AS PartType 
 					INTO #TempTRPMADER
-					FROM dbo.StockLine SL
-						JOIN dbo.ItemMaster IM ON SL.ItemMasterId = IM.ItemMasterId
-						JOIN dbo.RestrictedParts RP ON SL.CustomerId = RP.ReferenceId
+					FROM dbo.StockLine SL WITH(NOLOCK) 
+						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
+						JOIN dbo.RestrictedParts RP WITH(NOLOCK) ON SL.CustomerId = RP.ReferenceId
                     WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND RP.ModuleId = @StocklineModuleID AND ISNULL(SL.WorkOrderId, 0) = 0
                           AND SL.CustomerId = @CustomerId AND SL.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
@@ -278,14 +280,14 @@ BEGIN
 						0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempTRPMADER WHERE #TempTRPMADER.PartType = 'PMA' AND #TempTRPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempTRPMADER WHERE #TempTRPMADER.PartType = 'DER' AND #TempTRPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         SL.SerialNumber,
                         SL.StockLineId,
@@ -312,22 +314,23 @@ BEGIN
 						LEFT JOIN dbo.ItemGroup IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = SL.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
+						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.QuantityAvailable, 0) > 0
-						AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
+					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
 
 					UNION
 
 					SELECT 0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
-						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
+						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempTRPMADER WHERE #TempTRPMADER.PartType = 'PMA' AND #TempTRPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempTRPMADER WHERE #TempTRPMADER.PartType = 'DER' AND #TempTRPMADER.ItemMasterId = SL.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
 						IM.PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
-						CO.Description AS Condition,
+						CO.[Description] AS Condition,
                         sl.StockLineNumber,
                         SL.SerialNumber,
                         SL.StockLineId,
@@ -354,8 +357,9 @@ BEGIN
 						LEFT JOIN dbo.ItemGroup IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = SL.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
-					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1
-					ORDER BY Label	
+						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
+					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
+					ORDER BY [Label]	
 			END
 
 	END TRY 

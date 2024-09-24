@@ -53,6 +53,7 @@ BEGIN
 					DECLARE @AccountMSModuleId INT = 0;
 					DECLARE @IsAutoPost INT = 0;
 					DECLARE @IsAutoPostForAll INT = 1;
+					DECLARE @IsBatchGenerated INT = 0;
 
 					IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 					BEGIN    
@@ -299,6 +300,8 @@ BEGIN
 										  UPDATE BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   
 										  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 									   END
+
+									   SET @IsBatchGenerated = 1;
 								  END
 
 								INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount],
@@ -568,9 +571,13 @@ BEGIN
 						  Update dbo.BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@updatedByName WHERE JournalBatchHeaderId= @JlBatchHeaderId
 
 						  --AutoPost Batch
-						  IF(@IsAutoPostForAll = 1)
+						  IF(@IsAutoPostForAll = 1 AND @IsBatchGenerated = 0)
 						  BEGIN
 							  EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						  END
+						  IF(@IsBatchGenerated = 1)
+						  BEGIN
+							  EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 						  END
 					  END
 					  IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL

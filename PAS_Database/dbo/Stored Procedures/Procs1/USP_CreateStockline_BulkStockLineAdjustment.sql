@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_CreateStockline_BulkStockLineAdjustment]            
  ** Author:   AMIT GHEDIYA  
  ** Description: This stored procedure is used to Crate stocklines for BulkStockLineAdjustment
@@ -17,8 +18,7 @@
     1    10/26/2023   AMIT GHEDIYA		Created
 	2    03/11/2024   ABHISHEK JIRAWLA	Modified - Added updated memo description to the new stockline created
 	3    04/26/2024   Devendra Shekh	glAccount Name issue resolved (added: exec UpdateStocklineColumnsWithId)
-  
-
+    4    09/24/2024   RAJESH GAMI    	Added BulkAdjustment Reference number while create new stockline.
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
@@ -45,7 +45,7 @@ BEGIN
 			DECLARE @IsSerializedPart BIT;
 			DECLARE @SelectedPurchaseOrderPartRecordId BIGINT;
 			DECLARE @QtyToReceive INT;
-			DECLARE @MainPOPartBackOrderQty INT;
+			DECLARE @MainPOPartBackOrderQty INT,@BulkStkLineAdjHeaderId BIGINT = (SELECT TOP 1 BulkStkLineAdjId FROM DBO.BulkStockLineAdjustmentDetails WITH(NOLOCK) WHERE BulkStkLineAdjDetailsId = @BulkStockLineAdjustmentDetailsId);
 			DECLARE @ItemTypeId INT;
 
 			SELECT @ItemMasterId_Part = ItemMasterId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
@@ -845,9 +845,9 @@ BEGIN
 
 					--EXEC dbo.usp_PostCreateStocklineBatchDetails @tbl_PostStocklineBatchType = @p2, @MstCompanyId = @MasterCompanyId, @updatedByName = @UpdatedBy;
 					
-					DECLARE @OrderModule AS BIGINT = 22;
+					DECLARE @OrderModule AS BIGINT =(SELECT TOP 1 [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ');
 
-					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, NULL, NULL, NULL, 11, @qtyonhand, @UpdatedBy;
+					EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @OrderModule, @BulkStkLineAdjHeaderId, NULL, NULL, 11, @qtyonhand, @UpdatedBy;
 
 					UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 

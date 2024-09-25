@@ -727,6 +727,11 @@ BEGIN
 						   [UpdatedBy] = @UpdateBy 
 					 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
+					 --AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 
 			END			
@@ -1972,6 +1977,12 @@ BEGIN
 						   [UpdatedDate] = GETUTCDATE(),
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+					 --AutoPost Batch
+					 IF(@IsAutoPost = 1)
+					 BEGIN
+						 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					 END
 				END
 
 				END
@@ -2432,6 +2443,12 @@ BEGIN
 						   [UpdatedDate] = GETUTCDATE(),
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 
 				END
 			END					

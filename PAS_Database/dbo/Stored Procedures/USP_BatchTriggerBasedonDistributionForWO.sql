@@ -456,6 +456,12 @@ BEGIN
 							   [UpdatedDate]=GETUTCDATE(),
 							   [UpdatedBy]=@UpdateBy 
 						 WHERE [JournalBatchDetailId]=@JournalBatchDetailId;
+
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 					ELSE
 					BEGIN
@@ -617,6 +623,12 @@ BEGIN
 								   UpdatedDate=GETUTCDATE(),
 								   UpdatedBy=@UpdateBy 
 							 WHERE JournalBatchDetailId=@JournalBatchDetailId;
+
+							 --AutoPost Batch
+							IF(@IsAutoPost = 1)
+							BEGIN
+								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
 						END
 					END
 
@@ -862,6 +874,11 @@ BEGIN
 							SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 							Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+							--AutoPost Batch
+							IF(@IsAutoPost = 1)
+							BEGIN
+								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
 						 END
 						 ELSE
 						 BEGIN
@@ -1069,6 +1086,11 @@ BEGIN
 								SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 								Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+								--AutoPost Batch
+								IF(@IsAutoPost = 1)
+								BEGIN
+									EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+								END
 							END
 						 END
 					
@@ -1283,6 +1305,11 @@ BEGIN
 							SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 							Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+							--AutoPost Batch
+							IF(@IsAutoPost = 1)
+							BEGIN
+								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
 						END
 
 					END
@@ -1524,6 +1551,11 @@ BEGIN
 						END
 						Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 				
 					--REVERSE WORK ORDER SETTLEMENT A/C ENTRY
@@ -1740,6 +1772,11 @@ BEGIN
 						END
 						Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 				
 				END
@@ -2413,6 +2450,11 @@ BEGIN
 					
 						UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 
 					--REVERSE WORK ORDER BILLING A/C ENTRY
@@ -2600,6 +2642,12 @@ BEGIN
 							SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 					
 							UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+							--AutoPost Batch
+							IF(@IsAutoPost = 1)
+							BEGIN
+								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
 						END
 					
 					END

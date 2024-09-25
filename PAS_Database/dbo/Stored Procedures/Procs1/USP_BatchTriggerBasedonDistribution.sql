@@ -318,11 +318,6 @@ BEGIN
 						SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 						
 						UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-						--AutoPost Batch
-						IF(@IsAutoPost = 1)
-						BEGIN
-							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-						END
 					END
 					ELSE
 					BEGIN
@@ -333,12 +328,7 @@ BEGIN
 						IF(@CurrentPeriodId =0)
 						BEGIN
 							UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-						END
-						--AutoPost Batch
-						IF(@IsAutoPost = 1)
-						BEGIN
-							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-						END
+						END						
 					END
 					
 					INSERT INTO [dbo].[BatchDetails]
@@ -420,6 +410,12 @@ BEGIN
 						   [UpdatedDate]=GETUTCDATE(),
 						   [UpdatedBy]=@UpdateBy 
 					 WHERE [JournalBatchDetailId]=@JournalBatchDetailId;
+
+					 --AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 				ELSE
 				BEGIN
@@ -479,11 +475,6 @@ BEGIN
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							
 							UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId;
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -494,12 +485,7 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -576,6 +562,12 @@ BEGIN
 							   UpdatedDate=GETUTCDATE(),
 							   UpdatedBy=@UpdateBy 
 						 WHERE JournalBatchDetailId=@JournalBatchDetailId;
+
+						 --AutoPost Batch
+						 IF(@IsAutoPost = 1)
+						 BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						 END
 					END
 				END
 
@@ -663,12 +655,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -679,13 +665,7 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 						
 						INSERT INTO [dbo].[BatchDetails]
@@ -814,6 +794,11 @@ BEGIN
 						SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 						Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					 END
 					 ELSE
 					 BEGIN
@@ -867,12 +852,6 @@ BEGIN
             	          
 								SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 								Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-								--AutoPost Batch
-								IF(@IsAutoPost = 1)
-								BEGIN
-									EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-								END
 							END
 							ELSE
 							BEGIN
@@ -883,13 +862,7 @@ BEGIN
 								IF(@CurrentPeriodId =0)
 								BEGIN
 									Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-								END
-
-								--AutoPost Batch
-								IF(@IsAutoPost = 1)
-								BEGIN
-									EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-								END
+								END								
 							END
 							
 							INSERT INTO [dbo].[BatchDetails]
@@ -1018,6 +991,11 @@ BEGIN
 							SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 							Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+							--AutoPost Batch
+							IF(@IsAutoPost = 1)
+							BEGIN
+								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
 						END
 					 END
 					
@@ -1078,12 +1056,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -1094,13 +1066,7 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1229,6 +1195,11 @@ BEGIN
 						SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 						Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 
 				END
@@ -1304,12 +1275,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -1320,13 +1285,7 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1459,6 +1418,11 @@ BEGIN
 					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 				
 				--REVERSE WORK ORDER SETTLEMENT A/C ENTRY
@@ -1513,12 +1477,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -1529,13 +1487,7 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1669,6 +1621,11 @@ BEGIN
 					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 				
 			END
@@ -1962,12 +1919,6 @@ BEGIN
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 
 							UPDATE [dbo].[BatchHeader] SET CurrentNumber = @CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -1981,13 +1932,7 @@ BEGIN
 								SET AccountingPeriodId=@AccountingPeriodId,
 								    AccountingPeriod=@AccountingPeriod   
 								WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							END							
 						END
 
 						 INSERT INTO [dbo].[BatchDetails]
@@ -2347,6 +2292,11 @@ BEGIN
 					
 					UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
 
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 
 				--REVERSE WORK ORDER BILLING A/C ENTRY
@@ -2468,12 +2418,6 @@ BEGIN
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 
 							UPDATE [dbo].[BatchHeader] SET CurrentNumber = @CurrentNumber WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE
 						BEGIN
@@ -2487,12 +2431,6 @@ BEGIN
 								SET AccountingPeriodId = @AccountingPeriodId,
 								    AccountingPeriod = @AccountingPeriod   
 								WHERE JournalBatchHeaderId = @JournalBatchHeaderId
-							END
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 							END
 						END
 
@@ -2544,6 +2482,13 @@ BEGIN
 						SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
 					
 						UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+						
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 					END
 					
 				END

@@ -341,11 +341,6 @@ BEGIN
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId		   
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE 
 						BEGIN
@@ -358,11 +353,6 @@ BEGIN
 								UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 							END
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
@@ -382,6 +372,12 @@ BEGIN
 
 						SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
 
+						
+						--AutoPost Batch
+						IF(@IsAutoPost = 1)
+						BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
 						-----  Accounting MS Entry  -----
 
 						EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
@@ -723,12 +719,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId		   
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE 
 						BEGIN
@@ -741,17 +731,19 @@ BEGIN
 								UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 							END
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 							[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
 						VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, @ModuleName, NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 						
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
+
+						
+					   --AutoPost Batch
+					   IF(@IsAutoPost = 1)
+					   BEGIN
+							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					   END
 					END
 
 					----GL Account wise COGS-Parts and Inventory-Parts Entry----

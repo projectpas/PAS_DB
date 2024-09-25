@@ -449,6 +449,12 @@ BEGIN
 
 					
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
 				END
 			END
 

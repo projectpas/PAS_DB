@@ -98,6 +98,7 @@ BEGIN
 		DECLARE @StockModule BIGINT;
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentQty';
 
@@ -229,6 +230,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			IF(ISNULL(@Amount,0) <> 0)
@@ -467,9 +470,13 @@ BEGIN
 		UPDATE [dbo].[BulkStockLineAdjustment] SET StatusId = @BulkStatusId, Status = @BulkStatusName WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId;
 
 		--AutoPost Batch
-		IF(@IsAutoPost = 1)
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 		BEGIN
 			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		END
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		BEGIN
+			EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 		END
 
 		SELECT	@BulkStkLineAdjHeaderId AS BulkStkLineAdjId;

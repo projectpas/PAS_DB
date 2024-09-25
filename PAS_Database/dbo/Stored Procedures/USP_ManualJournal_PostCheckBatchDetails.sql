@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1    01/17/2024   Amit Ghediya		Created	
 	2    02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
+	3    25/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -100,6 +101,8 @@ BEGIN
 		DECLARE @Status VARCHAR(50) = 'Open';
 		DECLARE @CodePrefixSL VARCHAR(100) ='SL';
 		DECLARE @StatusPosted VARCHAR(100) = 'Posted';
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
@@ -225,6 +228,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId AND AccountingPeriodId = @AccountingPeriodId 
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -276,13 +281,13 @@ BEGIN
 					-----ManualJournal-Debit/Credit--------
 					IF(ISNULL(@Debit,0) > 0)
 					BEGIN
-						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
 						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCode)
 						AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					END
 					ELSE
 					BEGIN
-						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
 						FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCodeCredit)
 						AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 					END
@@ -332,6 +337,16 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+			BEGIN
+			    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+			END
 		END
 		
 		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 

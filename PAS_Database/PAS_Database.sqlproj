@@ -3171,6 +3171,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSavedGeneralLedgerParams_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGeneralLedger_SearchList.sql" />
     <Build Include="dbo\User Defined Types\GeneralLedgerSearchParamsType.sql" />
+    <Build Include="dbo\Stored Procedures\GetNewStocklineInventoryMismatch.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

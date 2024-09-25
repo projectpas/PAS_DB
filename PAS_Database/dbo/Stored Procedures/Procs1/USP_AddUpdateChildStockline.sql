@@ -398,7 +398,14 @@ BEGIN
 					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
 					,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
 					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
-					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], CASE WHEN [QuantityReserved] > 1  THEN [QuantityReserved] ELSE 1 END,[QuantityTurnIn], CASE WHEN [QuantityIssued] > 1  THEN [QuantityIssued] ELSE 1 END, CASE WHEN [QuantityOnHand] > 1  THEN [QuantityOnHand] ELSE 1 END, CASE WHEN [QuantityAvailable] > 1  THEN [QuantityAvailable] ELSE 1 END,[QuantityOnOrder], [QtyReserved]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 
+					CASE WHEN [QuantityReserved] > 1  THEN 1 ELSE [QuantityReserved] END,
+					[QuantityTurnIn], 
+					CASE WHEN [QuantityIssued] > 1  THEN 1 ELSE [QuantityIssued] END, 
+					CASE WHEN [QuantityOnHand] > 1  THEN 1 ELSE [QuantityOnHand] END, 
+					CASE WHEN [QuantityAvailable] > 1  THEN 1 ELSE [QuantityAvailable] END,
+					[QuantityOnOrder], 
+					[QtyReserved]  
 					,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
 					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
 					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails]           
  ** Author: BHARGAV SALIYA
  ** Description: This stored procedure is used insert account report in batch from BulkStockLineAdjustment CustomerStockTransfer.
@@ -107,6 +106,7 @@ BEGIN
 		SET @DistributionCodeName = 'CUST_STK_TRANS';
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @BlkModuleID = ModuleId FROM Module WHERE CodePrefix='BSTKADJ';
 		
@@ -225,6 +225,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 			[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
@@ -427,9 +429,13 @@ BEGIN
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 
 			--AutoPost Batch
-			IF(@IsAutoPost = 1)
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 			BEGIN
 				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 			END
 		--END  /**END : IF(ISNULL(@Amount,0) <> 0)***/
 

@@ -86,6 +86,7 @@ BEGIN
 		DECLARE @tmpVendorRMADetailId BIGINT;
 		DECLARE @VendorCreditMemoId BIGINT;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		--SET @DistributionCodeName = 'VendorRMA';
 
@@ -268,6 +269,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -479,9 +482,13 @@ BEGIN
 			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 
 			--AutoPost Batch
-			IF(@IsAutoPost = 1)
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 			BEGIN
 				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 			END
 		END
 		

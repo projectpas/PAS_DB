@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          	
 	1    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
+	2    25/09/2024	  AMIT GHEDIYA	  Added for AutoPost Batch
 **************************************************************/
 /*************************************************************           
 EXEC [dbo].[USP_BatchTriggerBasedonDistributionROStockline] 64201,1,'10.00','ReceivingRO','deep patel',1,'STOCK',0
@@ -121,6 +122,9 @@ BEGIN
 			 DECLARE @currentNo AS BIGINT = 0;
 			 DECLARE @CodeTypeId AS BIGINT = 74;
 			 DECLARE @JournalTypeNumber varchar(100);
+			 DECLARE @IsAutoPost INT = 0;
+			 DECLARE @IsBatchGenerated INT = 0;
+
 			 --Select @MasterCompanyId=MasterCompanyId,@VendorId=VendorId,@ReferenceId=StockLineId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=StocklineNumber
 			 --,@SiteId=[SiteId],@Site=[Site],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[Bin],@ShelfId=[ShelfId],@Shelf=[Shelf]
 			 --from Stockline where StockLineId=@StocklineId;
@@ -243,6 +247,8 @@ BEGIN
 					   begin
 					      Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   where JournalBatchHeaderId= @JournalBatchHeaderId
 					   END
+
+					   SET @IsBatchGenerated = 1;
 				  END
 
 			      IF(UPPER(@DistributionCode) = UPPER('ReceivingROStockline') AND UPPER(@StockType) = 'STOCK')
@@ -269,7 +275,7 @@ BEGIN
 					  --SET @currentNo = @currentNo+1
 					  --SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 					  
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
 					  from dbo.DistributionSetup WITH(NOLOCK)  where UPPER([DistributionSetupCode]) =UPPER('RROSTKINV')
 					  AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
@@ -347,7 +353,17 @@ BEGIN
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
-				end
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
+				END
 
 				  IF(UPPER(@DistributionCode) = UPPER('ReceivingROStockline') AND UPPER(@StockType) = 'ASSET')
 	              BEGIN
@@ -372,7 +388,7 @@ BEGIN
 					  --SET @currentNo = @currentNo+1
 					  --SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
-					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from 
+					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) from 
 					  dbo.DistributionSetup WITH(NOLOCK)  where UPPER([DistributionSetupCode]) = UPPER('RROASSETINV')
 					  AND DistributionMasterId = (SELECT [ID] from DistributionMaster WHERE UPPER([Name]) = UPPER('ReceivingROStockline'))
 
@@ -449,7 +465,17 @@ BEGIN
 
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
-				end
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
+				END
 					          
 				     SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) where JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId
 			   	         

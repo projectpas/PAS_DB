@@ -135,6 +135,7 @@ BEGIN
 		DECLARE @temptotaldebitcount DECIMAL(18,2)= 0 ;
 		DECLARE @temptotalcreditcount DECIMAL(18,2)= 0;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		IF((@JournalTypeCode ='WIP' OR @JournalTypeCode ='WOI' OR @JournalTypeCode ='MRO-WO' OR @JournalTypeCode ='FGI') AND @IsAccountByPass=0)
 		BEGIN 
@@ -328,7 +329,9 @@ BEGIN
 						IF(@CurrentPeriodId =0)
 						BEGIN
 							UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-						END						
+						END		
+						
+						SET @IsBatchGenerated = 1;
 					END
 					
 					INSERT INTO [dbo].[BatchDetails]
@@ -412,9 +415,13 @@ BEGIN
 					 WHERE [JournalBatchDetailId]=@JournalBatchDetailId;
 
 					 --AutoPost Batch
-					IF(@IsAutoPost = 1)
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 					BEGIN
 						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 					END
 				END
 				ELSE
@@ -485,7 +492,9 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END	
+							
+							SET @IsBatchGenerated = 1;
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -564,9 +573,13 @@ BEGIN
 						 WHERE JournalBatchDetailId=@JournalBatchDetailId;
 
 						 --AutoPost Batch
-						 IF(@IsAutoPost = 1)
+						 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 						 BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						 END
+						 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+						 BEGIN
+							 EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 						 END
 					END
 				END
@@ -665,7 +678,9 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END			
+							
+							SET @IsBatchGenerated = 1;
 						END
 						
 						INSERT INTO [dbo].[BatchDetails]
@@ -795,9 +810,13 @@ BEGIN
 						Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
 						--AutoPost Batch
-						IF(@IsAutoPost = 1)
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 						BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+						BEGIN
+							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 						END
 					 END
 					 ELSE
@@ -862,7 +881,9 @@ BEGIN
 								IF(@CurrentPeriodId =0)
 								BEGIN
 									Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-								END								
+								END		
+								
+								SET @IsBatchGenerated = 1;
 							END
 							
 							INSERT INTO [dbo].[BatchDetails]
@@ -992,9 +1013,13 @@ BEGIN
 							Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
 							--AutoPost Batch
-							IF(@IsAutoPost = 1)
+							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 							BEGIN
 								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+							END
+							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+							BEGIN
+								EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 							END
 						END
 					 END
@@ -1066,7 +1091,9 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END		
+							
+							SET @IsBatchGenerated = 1;
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1196,12 +1223,15 @@ BEGIN
 						Update BatchDetails set DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId		
 
 						--AutoPost Batch
-						IF(@IsAutoPost = 1)
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 						BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 						END
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+						BEGIN
+							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+						END
 					END
-
 				END
 
 				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId
@@ -1285,7 +1315,9 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END		
+							
+							SET @IsBatchGenerated = 1;
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1419,9 +1451,13 @@ BEGIN
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 					--AutoPost Batch
-					IF(@IsAutoPost = 1)
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 					BEGIN
 						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 					END
 				END
 				
@@ -1487,7 +1523,9 @@ BEGIN
 							IF(@CurrentPeriodId =0)
 							BEGIN
 								Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END	
+							
+							SET @IsBatchGenerated = 1;
 						END
 
 						INSERT INTO [dbo].[BatchDetails]
@@ -1622,9 +1660,13 @@ BEGIN
 					Update BatchHeader set TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 					--AutoPost Batch
-					IF(@IsAutoPost = 1)
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 					BEGIN
 						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 					END
 				END
 				
@@ -1932,7 +1974,9 @@ BEGIN
 								SET AccountingPeriodId=@AccountingPeriodId,
 								    AccountingPeriod=@AccountingPeriod   
 								WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-							END							
+							END		
+							
+							SET @IsBatchGenerated = 1;
 						END
 
 						 INSERT INTO [dbo].[BatchDetails]
@@ -2293,9 +2337,13 @@ BEGIN
 					UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchDetailId=@JournalBatchDetailId
 
 					--AutoPost Batch
-					IF(@IsAutoPost = 1)
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 					BEGIN
 						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 					END
 				END
 
@@ -2432,6 +2480,8 @@ BEGIN
 								    AccountingPeriod = @AccountingPeriod   
 								WHERE JournalBatchHeaderId = @JournalBatchHeaderId
 							END
+
+							SET @IsBatchGenerated = 1;
 						END
 
 						 INSERT INTO [dbo].[BatchDetails]
@@ -2485,9 +2535,13 @@ BEGIN
 
 						
 						--AutoPost Batch
-						IF(@IsAutoPost = 1)
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 						BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+						END
+						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+						BEGIN
+							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 						END
 					END
 					

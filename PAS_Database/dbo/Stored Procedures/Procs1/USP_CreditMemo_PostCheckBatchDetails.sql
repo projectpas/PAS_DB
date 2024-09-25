@@ -94,6 +94,7 @@ BEGIN
 		Declare @SOInvoiceTypeId INT = 0;
 		Declare @ExchangeInvoiceTypeId INT = 0;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -529,7 +530,9 @@ BEGIN
 					IF(@CurrentPeriodId =0)  
 					BEGIN  
 					   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
-					END  
+					END 
+					
+					SET @IsBatchGenerated = 1;
 				END
 
 				INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -598,9 +601,13 @@ BEGIN
 		UPDATE [dbo].[CreditMemo] SET StatusId = @ApprovedStatusId, Status = @ApprovedStatusName WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
 
 		--AutoPost Batch
-		IF(@IsAutoPost = 1)
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 		BEGIN
 			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		END
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		BEGIN
+			EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 		END
 
 		--Return CreditMemoHeaderId

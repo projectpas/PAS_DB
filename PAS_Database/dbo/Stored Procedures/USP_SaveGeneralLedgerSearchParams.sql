@@ -48,7 +48,7 @@ BEGIN
 				IF NOT EXISTS (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name] = @UrlName AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)))
 				BEGIN
 					INSERT [dbo].[ModuleHierarchyMaster] ([Name], [ParentId], [IsPage], [DisplayOrder], [ModuleCode], [IsMenu], [ModuleIcon], [RouterLink], [PermissionConstant], [IsCreateMenu], [ModuleId], [ListParentId], [IsReport], [ShowAsTopMenu], [NewModuleIcon], [NewMenuName])
-					VALUES (@UrlName, (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)), 1, 1, NULL, 1, NULL, '/accountmodule/accountpages/app-general-ledger-search-template/saved/' + CAST(@GeneralLedgerSearchParamsId AS VARCHAR), @UrlName + '_Search_Template', 0, (SELECT Id FROM [dbo].[ModuleHierarchyMaster] WITH(NOLOCK) WHERE [ParentId] IS NULL AND UPPER([Name]) = 'ACCOUNTING'), NULL, 0, 0, '', '')
+					VALUES (@UrlName, (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)), 1, 1, NULL, 1, NULL, '/accountmodule/accountpages/app-general-ledger-search-template/save-search/' + CAST(@GeneralLedgerSearchParamsId AS VARCHAR), @UrlName + '_Search_Template', 0, (SELECT Id FROM [dbo].[ModuleHierarchyMaster] WITH(NOLOCK) WHERE [ParentId] IS NULL AND UPPER([Name]) = 'ACCOUNTING'), NULL, 0, 0, '', '')
 				
 					SET @ModuleHierarchyMasterId = SCOPE_IDENTITY();
 				END

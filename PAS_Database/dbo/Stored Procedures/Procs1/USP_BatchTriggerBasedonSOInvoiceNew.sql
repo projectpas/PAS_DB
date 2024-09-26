@@ -768,7 +768,7 @@ BEGIN
 						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT TOP 1 @STKId = STL.StockLineId,
-						             @partId = sop.[ItemMasterId],
+						             @partId = sop.[SalesOrderPartId],--sop.[ItemMasterId],
 								     @MPNName = itm.[partnumber]						
 						FROM [dbo].[SalesOrderShipping] soi WITH(NOLOCK)
 						INNER JOIN [dbo].[SalesOrderShippingItem] soit WITH(NOLOCK) ON soi.SalesOrderShippingId = soit.SalesOrderShippingId

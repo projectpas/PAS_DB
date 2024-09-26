@@ -12,6 +12,7 @@
     1    07/15/2024		Devendra Shekh			Created
 	2    07/23/2024		AMIT GHEDIYA			Update new BatchCode,J-Type Code & update New Destribution as per new distribution.
 	3    08/05/2024		Devendra Shekh			JE Number issue Resolved
+	4    19/09/2024	    AMIT GHEDIYA		    Added for AutoPost Batch
 
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -177,8 +178,10 @@ BEGIN
 		DECLARE @IntangibleWriteOffGLAccountId AS BIGINT = 0;
 		DECLARE @CrDrType int=0;
 		DECLARE @isNewJENum BIT = 0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @AccountMSModuleId INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
-		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETPERIODICDEPRECIATION')
@@ -370,6 +373,8 @@ BEGIN
 					begin
 						Update dbo.BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
+
+					SET @IsBatchGenerated = 1;
 				END
 				
 				IF(UPPER(@DistributionCode) = UPPER('ASSETPERIODICDEPRECIATION') AND UPPER(@StockType) = 'AssetPeriodDepreciation')
@@ -387,7 +392,6 @@ BEGIN
 
 					IF(@Amount > 0)
 					BEGIN
-
 						SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 						SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 						SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
@@ -398,7 +402,7 @@ BEGIN
 
 						------Depreciation Expense -----------
 
-						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSEDEP') 
 						AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -527,7 +531,7 @@ BEGIN
 
 					------Accounts Receivable (Trade or Other) -----------
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType 
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
 					FROM DBO.DistributionSetup WITH(NOLOCK)  
 					WHERE UPPER(DistributionSetupCode) =UPPER('ACCOUNTSRECEIVABLE(TRADE)') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
@@ -786,7 +790,7 @@ BEGIN
 					--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 					------Asset Account -----------
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) 
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -899,6 +903,16 @@ BEGIN
 				IF(@isNewJENum = 1)
 				BEGIN
 					UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
+				END
+
+				--AutoPost Batch
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+				BEGIN
+					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				END
 			END
 

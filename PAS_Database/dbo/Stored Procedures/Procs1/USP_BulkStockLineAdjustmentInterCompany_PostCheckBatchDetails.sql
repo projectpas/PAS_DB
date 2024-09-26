@@ -22,6 +22,8 @@
 	6	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
 	7    26/03/2024   Abhishek Jirawla Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	8	 16/04/2024   Amit Ghediya     Updates memo text.
+	9    20/09/2024	  AMIT GHEDIYA	   Added for AutoPost Batch
+	10	 20/09/2024   Rajesh Gami      Update the StocklineAdjustment modulename while adjustment.
 
 EXEC USP_BulkStockLineAdjustmentInterCompany_PostCheckBatchDetails 1,1,'adminUser',2,1
      
@@ -90,7 +92,7 @@ BEGIN
 		DECLARE @MasterLoopID INT;
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
 		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
-		DECLARE @QuantityOnHand DECIMAL(18,2);
+		DECLARE @QuantityOnHand DECIMAL(18,2),@Quantity int;
 		DECLARE @QuantityReserved DECIMAL(18,2);
 		DECLARE @QuantityAvailable DECIMAL(18,2);
 		DECLARE @tmpFreightAdjustment DECIMAL(18,2);
@@ -102,6 +104,8 @@ BEGIN
 		DECLARE @BlkModuleID  BIGINT;
 		DECLARE @DetailUnitCostAdjustment DECIMAL(18,2);
 		DECLARE @Memo VARCHAR(MAX);
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentINTERCOTRANSLE';
 
@@ -136,7 +140,7 @@ BEGIN
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentINTERCOTRANSLE')
 			
-			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
+			SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='INTERCOMPAYINTERCOTRANSLE';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
@@ -229,6 +233,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -292,7 +298,7 @@ BEGIN
 					SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 					--Update Stockline table Adjustment & Freight,Tax
-					SELECT @QuantityOnHand = [QuantityOnHand],
+					SELECT @Quantity = Quantity, @QuantityOnHand = [QuantityOnHand],
 						   @QuantityAvailable = [QuantityAvailable], 
 						   @QuantityReserved = [QuantityReserved],
 						   @Memo = [Memo]
@@ -300,7 +306,8 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update existing stockline
-					UPDATE [dbo].[Stockline] SET [QuantityOnHand] = @QuantityOnHand - @newqty,
+					UPDATE [dbo].[Stockline] SET 
+												 [Quantity] = @Quantity - @newqty, [QuantityOnHand] = @QuantityOnHand - @newqty,
 												 [QuantityReserved] = @QuantityReserved - @newqty,
 												 [Memo] =  CASE WHEN ISNULL(@memo,'') = '' THEN '<p> InterCompany Transfer From Stockline Adjustment </p>' ELSE @memo + '<p> InterCompany Transfer From Stockline Adjustment </p>' END, 
 												 --[QuantityAvailable] = @QuantityAvailable - @newqty,
@@ -309,17 +316,11 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Update Existing Stockline 
-					DECLARE @OrderModule AS BIGINT = 22;
+					DECLARE @OrderModule AS BIGINT;
+					SELECT @OrderModule = [ModuleId]  FROM [DBO].[Module] WITH(NOLOCK) WHERE [CodePrefix] = 'STKADJ';
 					DECLARE @remainingQty AS INT;
 					SET @remainingQty = @QuantityOnHand - @newqty;
-					IF(@remainingQty > 0)
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
-					END
-					ELSE
-					BEGIN
-						EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, NULL, NULL, NULL, 9, @newqty, @UpdateBy;
-					END
+					EXEC USP_AddUpdateStocklineHistory @StockLineId, @OrderModule, @BulkStkLineAdjHeaderId, NULL, NULL, 9, @newqty, @UpdateBy;
 
 					DECLARE @Stockline BIGINT;
 
@@ -490,6 +491,16 @@ BEGIN
 			SET @TotalCredit=0;
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+			BEGIN
+				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+			END
 		END
 
 		

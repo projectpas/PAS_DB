@@ -131,6 +131,7 @@ BEGIN
 		DECLARE @LotId BIGINT=0;
 		DECLARE @LotNumber VARCHAR(50);
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @IsAccountByPass =IsAccountByPass FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
 	    SELECT @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
@@ -341,11 +342,6 @@ BEGIN
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId		   
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE 
 						BEGIN
@@ -358,11 +354,7 @@ BEGIN
 								UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 							END
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							SET @IsBatchGenerated = 1;
 						END
 
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
@@ -648,6 +640,16 @@ BEGIN
 					SET @TotalBalance =@TotalDebit-@TotalCredit
 					UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 					UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 
 				END
@@ -723,12 +725,6 @@ BEGIN
             	          
 							SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 							UPDATE dbo.BatchHeader SET CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId		   
-
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
 						END
 						ELSE 
 						BEGIN
@@ -741,11 +737,7 @@ BEGIN
 								UPDATE dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 							END
 
-							--AutoPost Batch
-							IF(@IsAutoPost = 1)
-							BEGIN
-								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-							END
+							SET @IsBatchGenerated = 1;
 						END
 						INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 							[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
@@ -892,6 +884,16 @@ BEGIN
 						   UpdatedDate=GETUTCDATE(),
 						   UpdatedBy=@UpdateBy 
 					 WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 
 			END

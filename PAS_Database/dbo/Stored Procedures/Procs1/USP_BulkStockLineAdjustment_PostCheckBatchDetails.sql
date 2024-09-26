@@ -23,6 +23,7 @@
 	7	 18/06/2024   Amit Ghediya   Modified to allow qty update if unit cost is 0.00.
 	8	 04/09/2024   Rajesh Gami    Pass the @BulkStkLineAdjHeaderId for the stockline history, Previously it was blank;
 	9	 11/09/2024   Devendra Shekh Batch Issue For 0.00 Unit Cost Resolved
+	10   20/09/2024	  AMIT GHEDIYA	 Added for AutoPost Batch
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -96,6 +97,8 @@ BEGIN
 		DECLARE @QuantityAvailable INT;
 		DECLARE @StockModule BIGINT;
 		DECLARE @Memo VARCHAR(MAX);
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentQty';
 
@@ -130,7 +133,7 @@ BEGIN
 		--BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentQty')
 			
-			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
+			SELECT TOP 1 @JournalTypeId =JournalTypeId, @IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND DistributionSetupCode='BULKSAINVENTORYSTOCKQTY';
 			
 			SELECT @StatusId =Id,@StatusName=name FROM [DBO].[BatchStatus] WITH(NOLOCK)  WHERE Name= 'Open'
@@ -227,6 +230,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			IF(ISNULL(@Amount,0) <> 0)
@@ -463,6 +468,16 @@ BEGIN
 
 		--Post the bulkstockline adj.
 		UPDATE [dbo].[BulkStockLineAdjustment] SET StatusId = @BulkStatusId, Status = @BulkStatusName WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId;
+
+		--AutoPost Batch
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+		BEGIN
+			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		END
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		BEGIN
+			EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+		END
 
 		SELECT	@BulkStkLineAdjHeaderId AS BulkStkLineAdjId;
 

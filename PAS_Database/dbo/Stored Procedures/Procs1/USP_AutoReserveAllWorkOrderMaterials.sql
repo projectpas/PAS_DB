@@ -19,6 +19,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 8    08/18/2023       HEMANT SALIYA          Updated for Module Id Changes
 ** 9    06/27/2024       HEMANT SALIYA			Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 10   08/02/2024       HEMANT SALIYA			Fixed MTI stk Reserve Qty was not updating
+** 11   09/23/2024		 HEMANT SALIYA	        Re-Calculate WOM Qty Res & Qty Issue
 
 EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
 exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
@@ -339,11 +340,25 @@ BEGIN
 						SET Quantity = GropWOM.Quantity	
 						FROM(
 							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, WOM.WorkOrderMaterialsId   
-							FROM dbo.WorkOrderMaterials WOM 
-							JOIN dbo.WorkOrderMaterialStockLine WOMS ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+							FROM dbo.WorkOrderMaterials WOM  WITH(NOLOCK)
+							JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
 							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 							GROUP BY WOM.WorkOrderMaterialsId
-						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)			
+						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
+						
+						--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+						UPDATE dbo.WorkOrderMaterials 
+						SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+						FROM(
+							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+							FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+							JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+							JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+								AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+							GROUP BY WOM.WorkOrderMaterialsId
+						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+						(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
 
 						DECLARE @countKitStockline INT = 1;
 
@@ -875,6 +890,8 @@ BEGIN
 								SET @Autocount = @Autocount + 1;
 							END;
 
+							
+
 							--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 							IF(@AutoTotalCounts > 0 )
 							BEGIN
@@ -911,7 +928,21 @@ BEGIN
 								JOIN dbo.WorkOrderMaterialStockLine WOMS ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
 								WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 								GROUP BY WOM.WorkOrderMaterialsId
-							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)			
+							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)	
+							
+							--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+							UPDATE dbo.WorkOrderMaterials 
+							SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+							FROM(
+								SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+								FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+								JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+								JOIN #tmpAutoReserveWOMMaterialsAlt tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+									AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+								WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+								GROUP BY WOM.WorkOrderMaterialsId
+							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+							(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
 
 							SET @countStockline = 1;
 							DECLARE @TotalCountsBothAlt INT;
@@ -1472,7 +1503,21 @@ BEGIN
 								JOIN dbo.WorkOrderMaterialStockLine WOMS ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
 								WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 								GROUP BY WOM.WorkOrderMaterialsId
-							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)			
+							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)		
+							
+							--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+							UPDATE dbo.WorkOrderMaterials 
+							SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+							FROM(
+								SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+								FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+								JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+								JOIN #tmpAutoReserveWOMMaterialsEqu tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+									AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+								WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+								GROUP BY WOM.WorkOrderMaterialsId
+							) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+							(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
 
 							SET @countStockline = 1;
 							DECLARE @TotalCountsBothEqu INT;
@@ -1756,6 +1801,19 @@ BEGIN
 							GROUP BY WOM.WorkOrderMaterialsId
 						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND ISNULL(GropWOM.Quantity,0) > ISNULL(dbo.WorkOrderMaterials.Quantity,0)			
 
+						--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+						UPDATE dbo.WorkOrderMaterials 
+						SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+						FROM(
+							SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+							FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+							JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+							JOIN #tmpAutoReserveWOM tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+								AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+							WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+							GROUP BY WOM.WorkOrderMaterialsId
+						) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+						(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
 						
 						SET @countStockline = 1;
 						DECLARE @TotalCountsBothWOM INT;

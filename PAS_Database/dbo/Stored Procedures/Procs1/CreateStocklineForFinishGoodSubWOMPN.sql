@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodSubWOMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For SUB Finished Good.      
@@ -361,7 +362,7 @@ BEGIN
 	 SELECT @ActionId  = ActionId fROM StklineHistory_Action wHERE [Type] = 'Close-Sub-WorkOrder' AND [DisplayName] = 'CLOSED SUB WORKORDER'
 	 IF(ISNULL(@UpdatedQuantityOnHand,0) = 0)
 	 BEGIN
-		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, @ActionId, 0, @UpdatedBy;
+		 EXEC USP_AddUpdateStocklineHistory @StocklineId, @SubWorkOrderModule, @SubWorkOrderId, NULL, NULL, @ActionId, 1, @UpdatedBy;
 	 END
 
   

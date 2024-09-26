@@ -27,6 +27,7 @@
 	11   04/05/2024   HEMANT SALIYA		Updated for Accounting Entry Changes
 	12   04/19/2024   Devendra Shekh	added changes for exchange and saving MSId For [CreditMemoPaymentBatchDetails]
 	13   04/22/2024   Devendra Shekh	modified to manage module Data InvoiceTypeId Wise
+	14   20/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -92,6 +93,8 @@ BEGIN
 		Declare @WOInvoiceTypeId INT = 0;
 		Declare @SOInvoiceTypeId INT = 0;
 		Declare @ExchangeInvoiceTypeId INT = 0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -283,7 +286,7 @@ BEGIN
 
 					-----START Account Recevable Trade--------
 					SELECT TOP 1 @DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, @GlAccountId = GlAccountId, 
-								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0 --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
+								 @GlAccountNumber = GlAccountNumber, @GlAccountName = GlAccountName , @CrDrType =  0,@IsAutoPost = ISNULL(IsAutoPost,0) --CASE WHEN ISNULL(CRDRType,0) = 1 THEN 1 ELSE 0 END 
 					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 					WHERE DistributionSetupCode = 'CMART' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = @DistributionMasterId
 					IF(ISNULL(@ARTAmount,0) != 0)
@@ -527,7 +530,9 @@ BEGIN
 					IF(@CurrentPeriodId =0)  
 					BEGIN  
 					   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
-					END  
+					END 
+					
+					SET @IsBatchGenerated = 1;
 				END
 
 				INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -594,6 +599,16 @@ BEGIN
 
 		--Update status to Approved after all postbatch.
 		UPDATE [dbo].[CreditMemo] SET StatusId = @ApprovedStatusId, Status = @ApprovedStatusName WHERE CreditMemoHeaderId = @CreditMemoHeaderId;
+
+		--AutoPost Batch
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+		BEGIN
+			EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		END
+		IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		BEGIN
+			EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+		END
 
 		--Return CreditMemoHeaderId
 		SELECT @CreditMemoHeaderId AS CreditMemoHeaderId;

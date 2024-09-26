@@ -17,6 +17,7 @@
 	1    09/01/2023          Moin Bloch          Created
 	2    14/02/2023		     Moin Bloch			 Updated Used Distribution Setup Code Insted of Name 
 	3    07/23/2024			 AMIT GHEDIYA		 Update new Destribution.
+	4    20/09/2024	         AMIT GHEDIYA		 Added for AutoPost Batch
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
@@ -94,6 +95,8 @@ BEGIN
 		DECLARE @StkGlAccountNumber VARCHAR(200) 
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @Moduleids VARCHAR(250) = ''
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -298,6 +301,8 @@ BEGIN
 				BEGIN  
 				   UPDATE [dbo].[BatchHeader] SET [AccountingPeriodId]=@AccountingPeriodId,[AccountingPeriod]=@AccountingPeriod WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 
 			INSERT INTO [dbo].[BatchDetails]
@@ -370,7 +375,8 @@ BEGIN
 						 @CRDRType = [CRDRType],
 			             @GlAccountId = [GlAccountId],
 						 @GlAccountNumber = [GlAccountNumber],
-						 @GlAccountName = [GlAccountName] 
+						 @GlAccountName = [GlAccountName] ,
+						 @IsAutoPost = ISNULL(IsAutoPost,0)
 			        FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('GOODSRECEIPTNOTINVOICED') 
 			         AND [DistributionMasterId] = @DistributionMasterId;
 					 
@@ -666,6 +672,16 @@ BEGIN
 			   [UpdatedDate] = GETUTCDATE(),
 			   [UpdatedBy] = @UpdateBy 
 		 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+		 --AutoPost Batch
+		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+		 BEGIN
+			 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		 END
+		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		 BEGIN
+			 EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+		 END
 
 	END TRY
 	BEGIN CATCH

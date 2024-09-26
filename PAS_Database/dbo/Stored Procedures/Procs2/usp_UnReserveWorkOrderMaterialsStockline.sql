@@ -14,6 +14,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 3    08/18/2023	AMIT GHEDIYA     Update historytext for wohistory.
 ** 4    06/26/2024  HEMANT SALIYA    Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 5    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
+** 6    09/24/2024  HEMANT SALIYA	 Re-Calculate WOM Qty Res & Qty Issue
 
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(830,835,122,70530,121,7,1,1,2,N'NEW',N'11022022',N'11022022_DESC',2,0,0,0,2,0,N'CNTL-000556',N'ID_NUM-000001',N'STL-000017',N'552233',N'ADMIN User',1,17)
@@ -283,6 +284,21 @@ BEGIN
 
 						SET @countStockline = @countStockline + 1;
 					END;
+
+					--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+					UPDATE dbo.WorkOrderMaterials 
+					SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+					FROM(
+						SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+						JOIN #tmpUnReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+							AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+						WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+						GROUP BY WOM.WorkOrderMaterialsId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
+
 
 					DECLARE @countBoth INT = 1;
 

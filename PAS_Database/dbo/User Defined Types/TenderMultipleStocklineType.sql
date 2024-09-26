@@ -36,5 +36,20 @@
     [MasterCompanyId]         INT             NULL,
     [WorkFlowWorkOrderId]     BIGINT          NULL,
     [ManagementStructureId]   BIGINT          NULL,
-    [UnitCost]                DECIMAL (18, 2) NULL);
+    [UnitCost]                DECIMAL (18, 2) NULL,
+    [EvidenceId]              INT             NULL,
+    [Memo]                    VARCHAR (MAX)   NULL,
+    [ObtainFromTypeId]        INT             NULL,
+    [ObtainFrom]              BIGINT          NULL,
+    [ObtainFromName]          VARCHAR (500)   NULL,
+    [OwnerTypeId]             INT             NULL,
+    [Owner]                   BIGINT          NULL,
+    [OwnerName]               VARCHAR (500)   NULL,
+    [TraceableToTypeId]       INT             NULL,
+    [TraceableTo]             BIGINT          NULL,
+    [TraceableToName]         VARCHAR (500)   NULL,
+    [InspectionBy]            BIGINT          NULL,
+    [InspectionDate]          DATETIME2 (7)   NULL);
+
+
 

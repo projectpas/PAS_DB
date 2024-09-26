@@ -17,6 +17,7 @@
 	2    17/05/2023  Amit Ghediya    Add Currency Code.
 	3    26/07/2024  Amit Ghediya    Update to get Freight amount.
 	4    11/09/2024  Amit Ghediya    Update to get Header level Functional Curr.
+	5    20/09/2024  Amit Ghediya    Update for get part data in sequentially.
      
 -- EXEC RPT_PrintPurchasePartDataById 2537
 ************************************************************************/
@@ -249,8 +250,8 @@ BEGIN
 			 PO.ExtendedCost, PO.Memo, POMS.LastMSLevel,POMS.AllMSlevels;
 
 		SELECT 
+			 row_num,
 			 PartNumber,
-			 row_num, 
 			 AltEquiPartNumber,
 			 PartDescription,
 			 Manufacturer,
@@ -277,8 +278,8 @@ BEGIN
 			 NumOfRecord,
 			 CurrencyCode
 		FROM #tmpPurchaseORderPartRecord
-		GROUP BY PartNumber,
-			row_num, 
+		GROUP BY row_num, 
+			PartNumber,
 			AltEquiPartNumber,
 			PartDescription,
 			Manufacturer,

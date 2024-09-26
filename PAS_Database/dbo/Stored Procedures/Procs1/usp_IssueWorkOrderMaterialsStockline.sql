@@ -17,6 +17,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 6    12/30/2023		HEMANT SALIYA	  Updated Error handling And Resolved Error
 ** 7    02/16/2024		HEMANT SALIYA	  Updated for Restrict Accounting Entry by Master Company
 ** 8    07/18/2024		Devendra Shekh	  Modified For Same JE Changes
+** 9    09/23/2024		HEMANT SALIYA	  Re-Calculate WOM Qty Res & Qty Issue
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -323,6 +324,7 @@ BEGIN
 						QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActIssued,0),
 						WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsKitId
 					FROM dbo.Stockline SL JOIN #tmpIssueWOMaterialsStocklineKit tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+
 					--UPDATE WORK ORDER MATERIALS DETAILS
 					WHILE @count <= @TotalCountsBoth
 					BEGIN
@@ -378,6 +380,32 @@ BEGIN
 						QuantityIssued = ISNULL(SL.QuantityIssued,0) + ISNULL(tmpRSL.QuantityActIssued,0),
 						WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 					FROM dbo.Stockline SL JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON SL.StockLineId = tmpRSL.StockLineId
+
+					--RE-CALCULATE WOM QTY RES & QTY ISSUE					
+					UPDATE dbo.WorkOrderMaterials 
+					SET QuantityIssued = GropWOM.QtyIssued, QuantityReserved = GropWOM.QtyReserved
+					FROM(
+						SELECT SUM(ISNULL(WOMS.Quantity,0)) AS Quantity, ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOM.WorkOrderMaterialsId   
+						FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK)
+						JOIN dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId 
+						JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+							AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+						WHERE WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
+						GROUP BY WOM.WorkOrderMaterialsId
+					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
+					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
+
+
+					--;WITH WOM_CTE AS(
+					--	SELECT ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOMS.WorkOrderMaterialsId
+					--	FROM dbo.WorkOrderMaterialStockLine WOMS 
+					--	JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
+					--		AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
+					--	GROUP BY WOMS.WorkOrderMaterialsId
+					--) UPDATE  WorkOrderMaterialS SET QuantityReserved = WOM_CTE.QtyReserved, QuantityIssued = WOM_CTE.QtyIssued					
+					--  FROM dbo.WorkOrderMaterials WOM JOIN WOM_CTE ON WOM.WorkOrderMaterialsId = WOM_CTE.WorkOrderMaterialsId
+					--  WHERE ISNULL(WOM.QuantityReserved, 0) != ISNULL(WOM_CTE.QtyReserved, 0) OR ISNULL(WOM.QuantityIssued, 0) != ISNULL(WOM_CTE.QtyIssued, 0)
+
 					
 					PRINT 'Hem-4.2'
 					DECLARE @countBoth INT = 1;

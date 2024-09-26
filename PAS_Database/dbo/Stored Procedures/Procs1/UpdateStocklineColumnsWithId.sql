@@ -18,6 +18,7 @@
 	2    06/06/2023   MOIN BLOCH    Added @IsCustStock For Update IsCustomerStock Or Not
 	3    07/14/2023   Amit Ghediya  Update UnitCost set 0 if NULL
 	4    04/25/2024   Devendra Shekh  Updatting GLAccountName issue resolved
+	5    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
      
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -52,30 +53,30 @@ BEGIN
 				END
 								
 				UPDATE SL SET 
-					SL.Condition = CN.Description,
+					SL.Condition = CN.[Description],
 					SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
-					SL.UnitOfMeasure = um.ShortName,
-					SL.Manufacturer = MF.Name,
-					SL.Site = S.Name,
-					SL.Warehouse = W.Name,
-					SL.Location = L.Name,
-					SL.Shelf = SF.Name,
-					SL.Bin = B.Name,
-					SL.WorkOrderNumber = WO.WorkOrderNum,
-					SL.SubWorkOrderNumber = SWO.SubWorkOrderNo,
-					SL.itemGroup = IG.Description,
-					SL.TLAPartNumber = IMTLA.partnumber,
-					SL.NHAPartNumber = IMNHA.partnumber,
-					SL.TLAPartDescription = IMTLA.PartDescription,
-					SL.NHAPartDescription = CAST(IMNHA.PartDescription AS NVARCHAR(100)),
-					SL.itemType = IT.Name,
-					SL.PNDescription = IM.PartDescription,
-					SL.PartNumber = IM.partnumber,
-					SL.RevicedPNNumber = IMRI.partnumber,
-					SL.OEMPNNumber = IMoem.partnumber,
-					SL.TaggedByTypeName =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.TaggedByType),				
-					SL.CertifiedType =  (SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.CertifiedTypeId),
-					SL.TagType = tagT.[Name],
+					SL.UnitOfMeasure = ISNULL(um.ShortName,''),
+					SL.Manufacturer = ISNULL(MF.[Name],''),
+					SL.Site = ISNULL(S.[Name],''),
+					SL.Warehouse = ISNULL(W.[Name],''),
+					SL.Location = ISNULL(L.[Name],''),
+					SL.Shelf = ISNULL(SF.[Name],''),
+					SL.Bin = ISNULL(B.[Name],''),
+					SL.WorkOrderNumber = ISNULL(WO.WorkOrderNum,''),
+					SL.SubWorkOrderNumber = ISNULL(SWO.SubWorkOrderNo,''),
+					SL.itemGroup = ISNULL(IG.[Description],''),
+					SL.TLAPartNumber = ISNULL(IMTLA.partnumber,''),
+					SL.NHAPartNumber = ISNULL(IMNHA.partnumber,''),
+					SL.TLAPartDescription = ISNULL(IMTLA.PartDescription,''),
+					SL.NHAPartDescription = ISNULL(CAST(IMNHA.PartDescription AS NVARCHAR(100)),''),
+					SL.itemType = ISNULL(IT.[Name],''),
+					SL.PNDescription = ISNULL(IM.PartDescription,''),
+					SL.PartNumber = ISNULL(IM.partnumber,''),
+					SL.RevicedPNNumber = ISNULL(IMRI.partnumber,''),
+					SL.OEMPNNumber = ISNULL(IMoem.partnumber,''),
+					SL.TaggedByTypeName =  ISNULL((SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.TaggedByType),''),			
+					SL.CertifiedType =  ISNULL((SELECT ModuleName FROM dbo.Module WITH(NOLOCK) WHERE Moduleid = SL.CertifiedTypeId),''),
+					SL.TagType = ISNULL(tagT.[Name],''),
 					SL.LotNumber = CASE WHEN ISNULL(SL.LotNumber,'') = '' THEN lot.LotNumber ELSE SL.LotNumber END,
 					SL.LotId = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' THEN (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) ELSE SL.LotId END,
 					SL.IsLotAssigned = CASE WHEN ISNULL(SL.LotId,0) = 0 AND ISNULL(SL.LotNumber,'') != '' AND (SELECT Top 1 LotId FROM dbo.LOT lot WITH(NOLOCK) WHERE lot.LotNumber =SL.LotNumber) > 0 THEN 1 ELSE 0 END,

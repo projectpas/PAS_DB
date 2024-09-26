@@ -26,6 +26,7 @@
 	14   09/01/2024   Moin Bloch          Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 	15   02/20/2024	  HEMANT SALIYA		  Updated for Restrict Accounting Entry by Master Company
 	16   03/09/2024   Moin Bloch          Modify(wrong account payble entry in ReconciliationRO)
+	17   20/09/2024	  AMIT GHEDIYA		  Added for AutoPost Batch
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -86,7 +87,9 @@ BEGIN
 			DECLARE @Misc INT = 2;
 			DECLARE @Tax INT = 3;
 			DECLARE @TransactionDate DATETIME2(7)
-			DECLARE @ReceivingReconciliationNumber VARCHAR(50)=''
+			DECLARE @ReceivingReconciliationNumber VARCHAR(50)='';
+			DECLARE @IsAutoPost INT = 0;
+			DECLARE @IsBatchGenerated INT = 0;
 
 			IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL    
 			BEGIN    
@@ -245,6 +248,8 @@ BEGIN
 					BEGIN
 						Update dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
+
+					SET @IsBatchGenerated = 1;
 				END
 
 				UPDATE #RRPostType SET 
@@ -350,6 +355,12 @@ BEGIN
 
 						IF(UPPER(@ModuleName) = UPPER('ReconciliationPO'))
 						BEGIN
+							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+									FROM dbo.DistributionSetup WITH(NOLOCK)
+									WHERE UPPER(DistributionSetupCode)=UPPER('RECPOGRNI') 
+									AND DistributionMasterId=@DistributionMasterId 
+									AND MasterCompanyId = @MasterCompanyId;
+							
 							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
 								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 							    [AccountingPeriodId],[AccountingPeriod])
@@ -965,11 +976,16 @@ BEGIN
 									------- Accounts Payable ------
 								END
 							
-							EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
-
+							EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId							
 						END
 						ELSE IF(UPPER(@ModuleName)=UPPER('ReconciliationRO'))
 						BEGIN
+							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
+									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROGRNI') 
+											  AND DistributionMasterId=@DistributionMasterId 
+											  AND MasterCompanyId = @MasterCompanyId;
+
 							INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate],
 								[EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 								[AccountingPeriodId],[AccountingPeriod])
@@ -1524,7 +1540,7 @@ BEGIN
 									------- Accounts Payable ------
 								END
 															
-							EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
+							EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId							
 						END
 																	   						 
 						SET @TotalDebit=0;
@@ -1591,6 +1607,16 @@ BEGIN
 					  [UpdatedDate]=GETUTCDATE(),
 					  [UpdatedBy]=@UpdateBy 
 				 WHERE [JournalBatchHeaderId] = @JlBatchHeaderId
+
+				 --AutoPost Batch
+				 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+				 BEGIN
+				 	EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				 END
+				 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				 BEGIN
+				 	EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+				 END
 
 				IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL
 				BEGIN

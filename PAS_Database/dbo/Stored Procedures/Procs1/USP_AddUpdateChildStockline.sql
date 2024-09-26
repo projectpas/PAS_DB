@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -399,7 +398,14 @@ BEGIN
 					,[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId]  
 					,@IdNumber,[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber]  
 					,[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference]  
-					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], CASE WHEN [QuantityReserved] > 1  THEN [QuantityReserved] ELSE 1 END,[QuantityTurnIn], CASE WHEN [QuantityIssued] > 1  THEN [QuantityIssued] ELSE 1 END, CASE WHEN [QuantityOnHand] > 1  THEN [QuantityOnHand] ELSE 1 END, CASE WHEN [QuantityAvailable] > 1  THEN [QuantityAvailable] ELSE 1 END,[QuantityOnOrder], [QtyReserved]  
+					,[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],[WorkOrderId],[WorkOrderMaterialsId], 
+					CASE WHEN [QuantityReserved] > 1  THEN 1 ELSE [QuantityReserved] END,
+					[QuantityTurnIn], 
+					CASE WHEN [QuantityIssued] > 1  THEN 1 ELSE [QuantityIssued] END, 
+					CASE WHEN [QuantityOnHand] > 1  THEN 1 ELSE [QuantityOnHand] END, 
+					CASE WHEN [QuantityAvailable] > 1  THEN 1 ELSE [QuantityAvailable] END,
+					[QuantityOnOrder], 
+					[QtyReserved]  
 					,[QtyIssued],[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],[isActive]  
 					,[isDeleted],[WorkOrderExtendedCost],[RepairOrderExtendedCost],[IsCustomerStock],[EntryDate],[LotCost],[NHAItemMasterId]  
 					,[TLAItemMasterId],[ItemTypeId],[AcquistionTypeId],[RequestorId],[LotNumber],[LotDescription],[TagNumber],[InspectionBy]  
@@ -579,7 +585,7 @@ BEGIN
 					END
 					ELSE IF (@ActionId = 6) -- Removed from OH
 					BEGIN
-						IF (@PrevOHQty>0)
+						IF (@PrevOHQty>0 AND @PrevChildQty >0)
 						BEGIN
 							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,QuantityReserved = 0,QuantityIssued = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
@@ -588,9 +594,12 @@ BEGIN
 					END
 					ELSE IF (@ActionId = 20) -- IssueReserve
 					BEGIN
-						Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 0, QuantityIssued = 1, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
-							WHERE ChildStockLineId = @StocklineToUpdate;
-							SET @QtyOnAction = @QtyOnAction - 1;
+						IF(@PrevChildQty >0)
+						BEGIN
+								Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 0, QuantityIssued = 1, QuantityOnHand = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+								WHERE ChildStockLineId = @StocklineToUpdate;
+								SET @QtyOnAction = @QtyOnAction - 1;
+						END				
 					END
 					ELSE IF (@ActionId = 21) -- UnIssueUnReserve
 					BEGIN

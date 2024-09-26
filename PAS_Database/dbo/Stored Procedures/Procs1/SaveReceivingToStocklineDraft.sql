@@ -23,6 +23,8 @@
 	7    01-03-2024   Shrey Chandegara  In AssetInventoryDraft SET EnrtyDate is GETUTCDATE() FROM A.EntryDate
 	8    16-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife, Asset Location, DepreciationStartDate and more details
     9    11-July-2024 RAJESH GAMI       Add the tracebletype,traceble to, tagdate,tagtype and other required parent detail into stocklineDraft when part is splitted.     
+	10   26-09-2024   Abhishek Jirawla  Add Traceable to name in insert of stockline draft
+
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -59,6 +61,7 @@ BEGIN
     DECLARE @ManagementStructureId BIGINT;    
     DECLARE @IsSerialized BIT = 0;    
 	DECLARE @LotId BIGINT = NULL;
+	DECLARE @TraceableToName VARCHAR(250) = NULL;
 	DECLARE @TraceableTo BIGINT = NULL;
 	DECLARE @TraceableToType INT = NULL;
 	DECLARE @TagTypeId BIGINT = NULL;
@@ -107,6 +110,7 @@ BEGIN
     
      SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, 
 	 @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost, 
+	 @TraceableToName = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TraceableToName FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TraceableToName END), 
 	 @TraceableTo = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TraceableTo FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TraceableTo END), 
 	 @TraceableToType = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TraceableToType FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TraceableToType END), 
 	 @TagTypeId = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TagTypeId FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TagTypeId END), 
@@ -217,7 +221,7 @@ BEGIN
       NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 	  NULL, 0, NULL, NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
       NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
-      IM.WarehouseName, IM.LocationName, '', '', '', IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
+      IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
       '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
       NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    

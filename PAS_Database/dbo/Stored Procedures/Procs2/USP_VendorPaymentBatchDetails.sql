@@ -18,6 +18,7 @@
 	2    09/22/2023   AMIT GHEDIYA		Added for creditmemo pay for vendorpayment.	
 	3    04/04/2024   AMIT GHEDIYA		Entry With Details data id.
 	4    08/29/2024   Devendra Shekh	JE Number sequence issue resolved
+	5    26/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -95,7 +96,9 @@ BEGIN
 		DECLARE @MasterLoopIDs AS INT;
 		DECLARE @CreditMemoLoopID AS INT;
 		DECLARE @StatusIdClosed AS BIGINT;
-		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @AccountMSModuleId INT = 0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
@@ -414,6 +417,8 @@ BEGIN
 								  [AccountingPeriod] = @AccountingPeriod   
 							WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;  
 						END  
+
+						SET @IsBatchGenerated = 1;
 					END
 					
 					INSERT INTO [dbo].[BatchDetails]
@@ -583,7 +588,8 @@ BEGIN
 					IF(@CheckAmount > 0)
 				    BEGIN					
 						SELECT TOP 1 @DistributionSetupId = [ID], @DistributionName = [Name], 
-						             @JournalTypeId = [JournalTypeId], @CrDrType = [CRDRType]
+						             @JournalTypeId = [JournalTypeId], @CrDrType = [CRDRType],
+									 @IsAutoPost = ISNULL(IsAutoPost,0) 
 							  FROM [dbo].[DistributionSetup] WITH(NOLOCK)							
 							 WHERE [DistributionSetupCode] = CASE WHEN @PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire THEN 'WRT-BANKACCOUNT' 
 						                                        WHEN @PaymentMethodId = @ACHTransfer THEN 'ACHT-BANKACCOUNT'
@@ -809,7 +815,17 @@ BEGIN
 					UPDATE [dbo].[CodePrefixes] 
 						SET [CurrentNummber] = @currentNo 
 						WHERE [CodeTypeId] = @CodeTypeId 
-						AND [MasterCompanyId] = @MasterCompanyId   
+						AND [MasterCompanyId] = @MasterCompanyId;
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+					    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 		
 				SELECT @TotalDebit = SUM([DebitAmount]),
@@ -854,7 +870,6 @@ BEGIN
 
 			WHILE(@CreditMemoLoopID > 0)
 			BEGIN
-			PRINT 'Insert'
 				SELECT @VendorCreditMemoId = [VendorCreditMemoId]
 				FROM #tmpCreditMemo WHERE ID  = @CreditMemoLoopID;
 				

@@ -25,6 +25,7 @@
 	9    03/04/2024			 HEMANT SALIYA	        Updated for Restrict Accounting Entry by Master Company
 	10   29/07/2024          Sahdev Saliya          Updated For Add AccountingPeriodId, AccountingPeriod In BatchDetails
 	11	 29-AUG-2024		 Devendra Shekh			JE Sequence Skipping issue resolved	
+	12   26/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -87,6 +88,9 @@ BEGIN
 		DECLARE @ReferenceNum VARCHAR(100) = (SELECT NPONumber FROM [dbo].[NonPOInvoiceHeader] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId)
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @PartAmtSum DECIMAL(18,2) =0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
+
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		IF OBJECT_ID(N'tempdb..#tmpNonPOPartDetails') IS NOT NULL
@@ -242,6 +246,8 @@ BEGIN
 					begin  
 					   Update [dbo].[BatchHeader] set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 					END  
+
+					SET @IsBatchGenerated = 1;
 				END
 
 
@@ -260,7 +266,7 @@ BEGIN
 
 				 ----- GL ACCOUNT PRESENT IN PART --------
 			 				
-				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType
+				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
 				 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE UPPER([DistributionSetupCode]) = UPPER('NPO-ACCPAYABLE') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'NonPOInvoice')
 
@@ -339,6 +345,16 @@ BEGIN
 					UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId
 				END
 				UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+
+				--AutoPost Batch
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+				BEGIN
+				    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+				END
 			END
 
 			SET @NonPOPartStart = @NonPOPartStart + 1

@@ -16,10 +16,11 @@
 	5   08/09/2023   Moin Bloch  Modify (Added Distinct to prevent duplicate records)
 	6   27/11/2023   Bhargav Saliya     Utc Date Changes
 	7   04/09/2024   AMIT GHEDIYA     Modify (Get Debit & Credit Fields)
+	8   25/09/2024   Devendra Shekh     Modify(join change for Ledger and added LegalEntity)
     
 **************************************************************/  
 
-CREATE     PROCEDURE [dbo].[GetManualJournalList]  
+CREATE   PROCEDURE [dbo].[GetManualJournalList]  
  -- Add the parameters for the stored procedure here  
  @PageNumber int,  
  @PageSize int,  
@@ -145,12 +146,13 @@ BEGIN
 			   AND MJD.IsActive = 1 
 			   AND MJD.IsDeleted = 0)
 			FROM [dbo].[ManualJournalHeader] MJH WITH (NOLOCK)  
-			INNER JOIN [dbo].[Ledger] L WITH (NOLOCK) ON MJH.LedgerId = L.LedgerId  
+			INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MJH.LedgerId = LE.LegalEntityId  
+			INNER JOIN [dbo].[Ledger] L WITH (NOLOCK) ON LE.LedgerId = L.LedgerId  
 			INNER JOIN [dbo].[ManualJournalType] MJT WITH (NOLOCK) ON MJH.ManualJournalTypeId = MJT.ManualJournalTypeId  
-			 LEFT JOIN [dbo].[ManualJournalBalanceType] MJBT WITH (NOLOCK) ON MJH.ManualJournalBalanceTypeId = MJBT.ManualJournalBalanceTypeId  
+			LEFT JOIN [dbo].[ManualJournalBalanceType] MJBT WITH (NOLOCK) ON MJH.ManualJournalBalanceTypeId = MJBT.ManualJournalBalanceTypeId  
 			INNER JOIN [dbo].[AccountingCalendar] Ac WITH (NOLOCK) ON MJH.AccountingPeriodId = Ac.AccountingCalendarId  
-			 LEFT JOIN [dbo].[ManualJournalStatus] MJS WITH (NOLOCK) ON MJH.ManualJournalStatusId = MJS.ManualJournalStatusId  
-			 LEFT JOIN [dbo].Employee E WITH (NOLOCK) on  E.EmployeeId = MJH.EmployeeId  
+			LEFT JOIN [dbo].[ManualJournalStatus] MJS WITH (NOLOCK) ON MJH.ManualJournalStatusId = MJS.ManualJournalStatusId  
+			LEFT JOIN [dbo].Employee E WITH (NOLOCK) on  E.EmployeeId = MJH.EmployeeId  
 			INNER JOIN [dbo].[AccountingManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = MJH.ManualJournalHeaderId  
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MJH.ManagementStructureId = RMS.EntityStructureId  
 			INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  

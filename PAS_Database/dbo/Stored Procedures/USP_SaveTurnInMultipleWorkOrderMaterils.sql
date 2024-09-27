@@ -8,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	09/12/2024		Devendra Shekh			Created
+** 2	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -289,24 +290,24 @@ BEGIN
 						END 
 
 						--: Around 4 Seconds
-						WHILE @count >= @slcount  
-						BEGIN  
-							SET @ReferenceId = 0;  
-							SET @SubReferenceId = @WorkOrderMaterialsId  
-							SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StocklineId  
+						--WHILE @count >= @slcount  
+						--BEGIN  
+						--	SET @ReferenceId = 0;  
+						--	SET @SubReferenceId = @WorkOrderMaterialsId  
+						--	SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StocklineId  
         
-							IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))  
-							BEGIN  
-								EXEC [dbo].[USP_CreateChildStockline]    
-								@StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild,   
-								@UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId        
-							END  
-							ELSE  
-							BEGIN  
-								EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
-							END  
-							SET @slcount = @slcount + 1;  
-						END; 
+						--	IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))  
+						--	BEGIN  
+						--		EXEC [dbo].[USP_CreateChildStockline]    
+						--		@StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild,   
+						--		@UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId        
+						--	END  
+						--	ELSE  
+						--	BEGIN  
+						--		EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
+						--	END  
+						--	SET @slcount = @slcount + 1;  
+						--END; 
 
 						--: 1 or seconds
 						EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @ActionId, @Qty = @Quantity, @UpdatedBy = @UpdatedBy;

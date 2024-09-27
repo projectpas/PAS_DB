@@ -68,7 +68,7 @@ BEGIN
 		DECLARE @PrevReservedQty INT = 0,@PrevChildQty INT = 0;
 		DECLARE @PrevIssuedQty INT = 0;  
 		DECLARE @PrevOHQty INT = 0;  
-		DECLARE @PrevAvailableQty INT = 0;
+		DECLARE @PrevAvailableQty INT = 0, @OriginalQtyOnAction INT = @QtyOnAction;
 
 		SELECT @UnAvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 0;
 		SELECT @AvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 1 AND CStk.QuantityAvailable = 1;
@@ -469,6 +469,8 @@ BEGIN
 
 					SET @MasterLoop_DeleteID = @MasterLoop_DeleteID - 1;
 				END
+				SET @QtyOnAction = @OriginalQtyOnAction
+				SET @ActionId = 3
 			END
 
 			DECLARE @MasterLoop_UpdateID INT;

@@ -19,6 +19,7 @@
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	8    12/04/2024   Devendra Shekh added module for INTERNALWORKORDERTEARDOWN
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
+    10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE
 
 **************************************************************/  
 
@@ -603,7 +604,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN VRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN VRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN VRBD.ReferenceId
-											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 0		
+											WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN SD.StocklineId		
 											WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
 											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 

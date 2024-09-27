@@ -110,6 +110,7 @@ BEGIN
 		DECLARE @LotId BIGINT=0;
 		DECLARE @LotNumber VARCHAR(50);
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE [ID] = @DistributionMasterId;
@@ -333,14 +334,10 @@ BEGIN
 								       [AccountingPeriod]= @AccountingPeriod   
 								 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId
 							END
+
+							SET @IsBatchGenerated = 1;
 						END
 						
-						--AutoPost Batch
-						IF(@IsAutoPost = 1)
-						BEGIN
-							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-						END
-
 						INSERT INTO [dbo].[BatchDetails]
 						           ([JournalTypeNumber],
 								    [CurrentNumber],
@@ -727,6 +724,15 @@ BEGIN
 						   [UpdatedBy] = @UpdateBy 
 					 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
+					 --AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 
 			END			
@@ -941,13 +947,9 @@ BEGIN
 								       [AccountingPeriod]= @AccountingPeriod   
 								 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId
 							END
-						END						
 
-						--AutoPost Batch
-						IF(@IsAutoPost = 1)
-						BEGIN
-							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-						END
+							SET @IsBatchGenerated = 1;
+						END						
 
 						INSERT INTO [dbo].[BatchDetails]
 						           ([JournalTypeNumber],
@@ -1972,6 +1974,16 @@ BEGIN
 						   [UpdatedDate] = GETUTCDATE(),
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+					 --AutoPost Batch
+					 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					 BEGIN
+						 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					 END
+					 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					 BEGIN
+						 EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					 END
 				END
 
 				END
@@ -2097,6 +2109,8 @@ BEGIN
 								       [AccountingPeriod]= @AccountingPeriod   
 								 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId
 							END
+
+							SET @IsBatchGenerated = 1;
 						END
 						
 						INSERT INTO [dbo].[BatchDetails]
@@ -2389,12 +2403,6 @@ BEGIN
 						----------------------------------------------------Updating Receiving Customer Batch Entry Flag Here -----------------------------------------------------
 
 						UPDATE [dbo].[ReceivingCustomerWork] SET [IsExchangeBatchEntry] = 1 WHERE [ReceivingCustomerWorkId] = @InvoiceId;
-
-						--AutoPost Batch
-						IF(@IsAutoPost = 1)
-						BEGIN
-							 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-						END
 					END
 					SET @TotalDebit = 0;
 					SET @TotalCredit = 0;
@@ -2433,6 +2441,15 @@ BEGIN
 						   [UpdatedBy] = @UpdateBy
 				     WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 			END					
 		END

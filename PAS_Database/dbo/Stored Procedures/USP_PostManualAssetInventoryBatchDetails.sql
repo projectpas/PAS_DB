@@ -96,6 +96,7 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @Moduleids VARCHAR(250) = ''
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -300,6 +301,8 @@ BEGIN
 				BEGIN  
 				   UPDATE [dbo].[BatchHeader] SET [AccountingPeriodId]=@AccountingPeriodId,[AccountingPeriod]=@AccountingPeriod WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 
 			INSERT INTO [dbo].[BatchDetails]
@@ -671,9 +674,13 @@ BEGIN
 		 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
 
 		 --AutoPost Batch
-		 IF(@IsAutoPost = 1)
+		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 		 BEGIN
 			 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+		 END
+		 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+		 BEGIN
+			 EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 		 END
 
 	END TRY

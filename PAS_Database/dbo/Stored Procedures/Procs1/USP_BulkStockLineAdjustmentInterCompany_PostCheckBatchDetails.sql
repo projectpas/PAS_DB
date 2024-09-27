@@ -105,6 +105,7 @@ BEGIN
 		DECLARE @DetailUnitCostAdjustment DECIMAL(18,2);
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentINTERCOTRANSLE';
 
@@ -232,6 +233,8 @@ BEGIN
 				BEGIN  
 				   Update [DBO].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod  WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 			
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -490,9 +493,13 @@ BEGIN
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 
 			--AutoPost Batch
-			IF(@IsAutoPost = 1)
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 			BEGIN
 				EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 			END
 		END
 

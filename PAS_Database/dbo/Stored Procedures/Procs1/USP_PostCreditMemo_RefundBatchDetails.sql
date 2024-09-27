@@ -14,6 +14,7 @@
     1    18/10/2023		Devendra Shekh			 Created  
     2    14/02/2023		Moin Bloch			     Updated Used Distribution Setup Code Insted of Name 
 	3    03/04/2024	    HEMANT SALIYA	         Updated for Restrict Accounting Entry by Master Company
+	4    25/09/2024		AMIT GHEDIYA			 Added for AutoPost Batch
 
  -- exec USP_PostCreditMemo_RefundBatchDetails 
 **********************/   
@@ -71,6 +72,8 @@ BEGIN
 		DECLARE @AppModuleId INT = 0;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 		DECLARE @SumAmount decimal(18,2); 
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
@@ -193,6 +196,8 @@ BEGIN
 					begin  
 					   Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 					END  
+
+					SET @IsBatchGenerated = 1;
 				END
 
 				INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
@@ -207,7 +212,7 @@ BEGIN
 				 ----- Account Receivable --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
 				 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRFDACCREC') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'CRFD')
 
@@ -279,6 +284,16 @@ BEGIN
 
 				UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
 				UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+
+				--AutoPost Batch
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+				BEGIN
+				    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+				END
 			END
 
 	END

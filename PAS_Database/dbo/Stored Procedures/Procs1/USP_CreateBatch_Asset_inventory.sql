@@ -156,6 +156,7 @@ BEGIN
 		DECLARE @IntangibleWriteOffGLAccountId AS BIGINT = 0;
 		DECLARE @CrDrType int=0;
 		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -332,6 +333,8 @@ BEGIN
 				begin
 					Update dbo.BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 				END
+
+				SET @IsBatchGenerated = 1;
 			END
 
 			IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetPeriodDepreciation')
@@ -379,12 +382,6 @@ BEGIN
 						@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@AccountingPeriodId,@AccountingPeriod)
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
-
-					--AutoPost Batch
-					IF(@IsAutoPost = 1)
-					BEGIN
-						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -449,6 +446,16 @@ BEGIN
 
 					
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
+
+					--AutoPost Batch
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+					BEGIN
+					    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+					END
+					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+					BEGIN
+						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+					END
 				END
 			END
 
@@ -511,12 +518,6 @@ BEGIN
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
-
-					--AutoPost Batch
-					IF(@IsAutoPost = 1)
-					BEGIN
-						EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
-					END
 
 					-----  Accounting MS Entry  -----
 
@@ -644,7 +645,7 @@ BEGIN
 				SET @Amount =  Isnull((@ARCaseAmount+@DepreciationAmount),0)-(ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0));
 
 				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0)
+				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
 				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') 
 				AND DistributionMasterId=@DistributionMasterId  AND MasterCompanyId = @MasterCompanyId
 				
@@ -731,14 +732,19 @@ BEGIN
 				EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
 				--AutoPost Batch
-				IF(@IsAutoPost = 1)
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 				BEGIN
-					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				END
 			END
 			
 			IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetWriteDown')
 			BEGIN
+				print 'AssetWriteDown'
 				SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 				,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
 				,@AssetInventoryName=InventoryNumber
@@ -783,7 +789,7 @@ BEGIN
 						@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@AccountingPeriodId,@AccountingPeriod)
 
 
-					SET @JournalBatchDetailId=SCOPE_IDENTITY();					
+					SET @JournalBatchDetailId=SCOPE_IDENTITY();
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -867,9 +873,13 @@ BEGIN
 				EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
 				--AutoPost Batch
-				IF(@IsAutoPost = 1)
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 				BEGIN
-					EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				END
+				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				BEGIN
+					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				END
 			END
 

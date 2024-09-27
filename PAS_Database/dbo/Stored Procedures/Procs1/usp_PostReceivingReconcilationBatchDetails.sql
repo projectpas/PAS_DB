@@ -89,6 +89,7 @@ BEGIN
 			DECLARE @TransactionDate DATETIME2(7)
 			DECLARE @ReceivingReconciliationNumber VARCHAR(50)='';
 			DECLARE @IsAutoPost INT = 0;
+			DECLARE @IsBatchGenerated INT = 0;
 
 			IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL    
 			BEGIN    
@@ -247,6 +248,8 @@ BEGIN
 					BEGIN
 						Update dbo.BatchHeader SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
+
+					SET @IsBatchGenerated = 1;
 				END
 
 				UPDATE #RRPostType SET 
@@ -1606,9 +1609,13 @@ BEGIN
 				 WHERE [JournalBatchHeaderId] = @JlBatchHeaderId
 
 				 --AutoPost Batch
-				 IF(@IsAutoPost = 1)
+				 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
 				 BEGIN
 				 	EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+				 END
+				 IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+				 BEGIN
+				 	EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				 END
 
 				IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL

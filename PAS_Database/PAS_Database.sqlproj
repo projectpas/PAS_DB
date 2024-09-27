@@ -3173,6 +3173,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetGeneralLedger_SearchList.sql" />
     <Build Include="dbo\User Defined Types\GeneralLedgerSearchParamsType.sql" />
     <Build Include="dbo\Stored Procedures\GetNewStocklineInventoryMismatch.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WO_Refresh_CreditLimit_Terms.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

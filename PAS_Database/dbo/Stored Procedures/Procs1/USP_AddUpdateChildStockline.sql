@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -23,8 +24,8 @@
 	7    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
 	8    03/09/2024  Rajesh Gami	    Add ActionId 6 for the REMOVE FROM OH
 	9    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
-	10   13/09/2024 Rajesh Gami	    Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
-	
+	10   13/09/2024 Rajesh Gami			Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
+	11   27/09/2024 Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
@@ -75,7 +76,7 @@ BEGIN
 		DECLARE @RemainingQtyToCreate INT = 0;
 		SET @RemainingQtyToCreate = @QtyOnAction - @UnAvailQtyCount;
 
-		IF (@ActionId = 1 OR @ActionId = 11 OR @ActionId = 7)
+		IF (@ActionId = 1 OR @ActionId = 11 OR @ActionId = 7 OR @ActionId = 17)
 		BEGIN
 			SELECT @Qty = Quantity,   
 			@RemainingAvailableQty = QuantityAvailable,  
@@ -606,6 +607,15 @@ BEGIN
 						Update DBO.ChildStockline SET QuantityReserved = 0, QuantityAvailable = 1,QuantityOnHand = 1,QuantityIssued = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 							SET @QtyOnAction = @QtyOnAction - 1;
+					END
+					ELSE IF (@ActionId = 16) -- Close-Sub-WorkOrder
+					BEGIN
+						IF (@PrevChildQty >0)
+						BEGIN
+							Update DBO.ChildStockline SET QuantityAvailable = 0, QuantityOnHand = 0,QuantityReserved = 0,QuantityIssued = 0,Quantity=0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
+							WHERE ChildStockLineId = @StocklineToUpdate;
+							SET @QtyOnAction = @QtyOnAction - 1;
+						END
 					END
 				END
 

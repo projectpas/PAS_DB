@@ -13,7 +13,7 @@
 
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4385,3908,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
+CREATE     PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
 @WorkOrderId BIGINT,
 @WorkFlowWorkOrderId BIGINT,
 @MasterCompanyId INT
@@ -94,7 +94,10 @@ BEGIN
 				[GLAccountId],[GlAccountName],[UnitCost],[AircraftTailNumber],[TraceableToType],[TraceableTo],[TraceableToName],
 			    [TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TagDate],[StockType]) 
 		SELECT WOMS.[WorkOrderMaterialsId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
-		       STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],WOMS.[QuantityTurnIn],WOMS.[QuantityTurnIn],STK.[isSerialized],
+		       STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],
+			   CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,	
+			   CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,			   
+			   STK.[isSerialized],
 		       STK.[SerialNumber],STK.[PurchaseUnitOfMeasureId],UOM.[ShortName],WOMS.[ProvisionId],ISNULL(PRV.[Description], ''),@WorkOrderId, WO.[WorkOrderNum],STK.[ManufacturerId],ISNULL(MFG.[Name], ''), 
 			   STK.[SiteId],STK.[Site],STK.[WareHouseId],STK.[WareHouse],STK.[LocationId],STK.[Location],STK.[ShelfId],STK.[Shelf],STK.[BinId],STK.[Bin],
 			   STK.[ManagementStructureId],MSD.[LastMSLevel],MSD.[AllMSlevels],0,
@@ -130,7 +133,10 @@ BEGIN
 		        [GLAccountId],[GlAccountName],[UnitCost],[AircraftTailNumber],[TraceableToType],[TraceableTo],[TraceableToName],
 			    [TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TagDate],[StockType])
 		 SELECT WOMS.[WorkOrderMaterialsKitId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
-		        STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],WOMS.[QuantityTurnIn],WOMS.[QuantityTurnIn],STK.[isSerialized],
+		        STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],
+				CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END, 		
+				CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END, 				
+				STK.[isSerialized],
 		        STK.[SerialNumber],STK.[PurchaseUnitOfMeasureId],UOM.[ShortName],WOMS.[ProvisionId],ISNULL(PRV.[Description], ''),@WorkOrderId, WO.[WorkOrderNum],STK.[ManufacturerId],ISNULL(MFG.[Name], ''), 
 			    STK.[SiteId],STK.[Site],STK.[WareHouseId],STK.[WareHouse],STK.[LocationId],STK.[Location],STK.[ShelfId],STK.[Shelf],STK.[BinId],STK.[Bin],
 				STK.[ManagementStructureId],MSD.[LastMSLevel],MSD.[AllMSlevels],1,
@@ -141,7 +147,6 @@ BEGIN
 							 WHEN ITM.[IsPma] = 0 AND ITM.[IsDER] = 1 THEN 'DER'
 							 ELSE 'OEM'
 				END AS StockType
-
 		FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK) 
 		    INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.[WorkOrderMaterialsKitId] = WOMS.[WorkOrderMaterialsKitId]  
 			INNER JOIN [dbo].[ItemMaster] ITM WITH (NOLOCK) ON ITM.[ItemMasterId] = WOMS.[ItemMasterId]

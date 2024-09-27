@@ -19,6 +19,7 @@
 	4	 01 jan 2024   AMIT GHEDIYA					added isperforma Flage for SO
 	5    14 March 2024 Bhargav Saliya				Resolved Count Issue in Dashboard Graph 
 	6    19 March 2024 Bhargav Saliya				Resolved Count Issue in Dashboard Graph 
+	7    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETDATE
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
@@ -26,7 +27,8 @@ EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
 CREATE   PROCEDURE [dbo].[GetMonthlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@ChartType INT = NULL,
-	@EmployeeId BIGINT = NULL
+	@EmployeeId BIGINT = NULL,
+	@StartDate DATETIME2 = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -45,8 +47,13 @@ BEGIN
 							FROM dbo.EmployeeUserRole WITH (NOLOCK) WHERE EmployeeId = @EmployeeId
 							FOR XML PATH('')), 1, 1, '')
 
-			SET @Month = MONTH(GETDATE());
-			SET @Day = DAY(GETDATE());
+			IF @StartDate IS NULL
+				BEGIN
+					SET @StartDate = GETDATE()
+			END
+
+			SET @Month = MONTH(@StartDate);
+			SET @Day = DAY(@StartDate);
 			
 			IF OBJECT_ID(N'tempdb..#tmpDateOfMonth') IS NOT NULL
 			BEGIN
@@ -60,11 +67,11 @@ BEGIN
 
 			;WITH MonthDays_CTE(DayNum) AS
 			(
-				SELECT DATEFROMPARTS(YEAR(GETDATE()), @Month, 1) AS DayNum
+				SELECT DATEFROMPARTS(YEAR(@StartDate), @Month, 1) AS DayNum
 					UNION ALL
 					SELECT DATEADD(DAY, 1, DayNum)
 					FROM MonthDays_CTE
-					WHERE DayNum < EOMONTH(DATEFROMPARTS(YEAR(GETDATE()), @Month, 1)) AND DayNum < DATEADD(DAY, -1, GETDATE())
+					WHERE DayNum < EOMONTH(DATEFROMPARTS(YEAR(@StartDate), @Month, 1)) AND DayNum < DATEADD(DAY, -1, @StartDate)
 			)
 			
 			INSERT INTO #tmpDateOfMonth (DateOfMonth) SELECT DayNum FROM MonthDays_CTE ORDER BY DayNum;

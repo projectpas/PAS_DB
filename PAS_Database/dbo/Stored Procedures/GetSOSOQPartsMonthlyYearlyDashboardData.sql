@@ -164,7 +164,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SOQP.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SOQ.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
 					)
 					SELECT @CntsSOQParts = COUNT(SalesOrderQuotePartId) FROM tmpSalesOrderQuotePart
@@ -181,7 +181,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SOP.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SO.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 					)
 					SELECT @CntsSOParts = COUNT(SalesOrderPartId) FROM tmpSalesOrderPart
@@ -197,7 +197,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SOQ.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SOQ.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
 					SELECT @CntsSOQ = COUNT(SalesOrderQuoteId) FROM tmpSalesOrderQuote
@@ -213,7 +213,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SO.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SO.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)
 					SELECT @CntsSO = COUNT(SalesOrderId) FROM tmpSalesOrder
@@ -230,7 +230,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SOQ.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SOQ.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
 					SELECT @CntsSOQAmt = SUM(Total) FROM tmpSalesOrderQuoteAmt
@@ -247,7 +247,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE Cast(SO.CreatedDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE Cast(SO.OpenDate as Date) = CONVERT(DATE, @SelectedDate) AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)
 					SELECT @CntsSOAmt = SUM(Total) FROM tmpSalesOrderAmt
@@ -349,7 +349,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SOQP.CreatedDate as Date)) = @Month AND YEAR(Cast(SOQP.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SOQ.OpenDate as Date)) = @Month AND YEAR(Cast(SOQ.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
 					)
 					SELECT @CntsYearlySOQParts = COUNT(SalesOrderQuotePartId) FROM tmpYearlySalesOrderQuotePart
@@ -367,7 +367,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SOP.CreatedDate as Date)) = @Month AND YEAR(Cast(SOP.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SO.OpenDate as Date)) = @Month AND YEAR(Cast(SO.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 					)
 					SELECT @CntsYearlySOParts = COUNT(SalesOrderPartId) FROM tmpYearlySalesOrderPart
@@ -383,7 +383,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SOQ.CreatedDate as Date)) = @Month AND YEAR(Cast(SOQ.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SOQ.OpenDate as Date)) = @Month AND YEAR(Cast(SOQ.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
 					SELECT @CntsYearlySOQ = COUNT(SalesOrderQuoteId) FROM tmpYearlySalesOrderQuote
@@ -399,7 +399,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SO.CreatedDate as Date)) = @Month AND YEAR(Cast(SO.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SO.OpenDate as Date)) = @Month AND YEAR(Cast(SO.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)
 					SELECT @CntsYearlySO = COUNT(SalesOrderId) FROM tmpYearlySalesOrder
@@ -416,7 +416,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SOQ.CreatedDate as Date)) = @Month AND YEAR(Cast(SOQ.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SOQ.OpenDate as Date)) = @Month AND YEAR(Cast(SOQ.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
 					SELECT @CntsYearlySOQAmt = SUM(Total) FROM tmpYearlySalesOrderQuoteAmt
@@ -433,7 +433,7 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE MONTH(Cast(SO.CreatedDate as Date)) = @Month AND YEAR(Cast(SO.CreatedDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+					WHERE MONTH(Cast(SO.OpenDate as Date)) = @Month AND YEAR(Cast(SO.OpenDate as Date)) = @YEAR AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)
 					SELECT @CntsYearlySOAmt = SUM(Total) FROM tmpYearlySalesOrderAmt
@@ -474,8 +474,8 @@ BEGIN
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-					WHERE YEAR(SOQP.CreatedDate) = @CurrentYear 
-					AND MONTH(SOQP.CreatedDate) = @CurrentMonth 
+					WHERE YEAR(SOQ.OpenDate) = @CurrentYear 
+					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
 					AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
 					GROUP BY 
@@ -520,8 +520,8 @@ BEGIN
 							LEFT OUTER JOIN dbo.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-						WHERE YEAR(SOP.CreatedDate) = @CurrentYear 
-						AND MONTH(SOP.CreatedDate) = @CurrentMonth
+						WHERE YEAR(SO.OpenDate) = @CurrentYear 
+						AND MONTH(SO.OpenDate) = @CurrentMonth
 						AND ((SOP.StatusId = @ShippedStatusId AND SOS.AirwayBill IS NOT NULL) OR (SOBillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
 						AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
@@ -561,8 +561,8 @@ BEGIN
 							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
-						WHERE YEAR(SOP.CreatedDate) = @CurrentYear
-						AND MONTH(SOP.CreatedDate) = @CurrentMonth 
+						WHERE YEAR(SO.OpenDate) = @CurrentYear
+						AND MONTH(SO.OpenDate) = @CurrentMonth 
 						AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 						GROUP BY

@@ -21,7 +21,8 @@ EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '09/19/2024'
 CREATE   PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@EmployeeId BIGINT = NULL,
-	@StartDate DATETIME2 = NULL
+	@StartDate DATETIME2 = NULL,
+	@TopNumberDetails INT = NULL
 AS  
 BEGIN  
   
@@ -45,7 +46,7 @@ BEGIN
 
 				IF @StartDate IS NULL
 				BEGIN
-					SET @StartDate = GETDATE()
+					SET @StartDate = GETUTCDATE()
 				END
 
 				SET @Month = MONTH(@StartDate);
@@ -260,8 +261,8 @@ BEGIN
 
 
 				-- Yearly 
-				SET @Month = CASE WHEN MONTH(GETDATE()) = 12 THEN 1 ELSE (MONTH(GETDATE())) END;
-				SET @Year = CASE WHEN MONTH(GETDATE()) = 12 THEN YEAR(GETDATE()) ELSE YEAR(GETDATE()) - 1 END;
+				SET @Month = CASE WHEN MONTH(GETUTCDATE()) = 12 THEN 1 ELSE (MONTH(GETUTCDATE())) END;
+				SET @Year = CASE WHEN MONTH(GETUTCDATE()) = 12 THEN YEAR(GETUTCDATE()) ELSE YEAR(GETUTCDATE()) - 1 END;
 
 
 				IF OBJECT_ID(N'tempdb..#tmpYearlyDataSOQParts') IS NOT NULL
@@ -483,11 +484,13 @@ BEGIN
 						IM.ItemMasterId
 					)
 					INSERT INTO #tmpTop10PartQuoted (PartNumber, TotalSalesCount)
-					SELECT TOP 10
+					SELECT
 						partnumber,         
 						TotalSalesCount  -- Number of sales for each part
 					FROM tmpTop10SalesOrderQuotePart
-					ORDER BY TotalSalesCount DESC;
+					ORDER BY TotalSalesCount DESC
+					OFFSET 0 ROWS
+					FETCH FIRST @TopNumberDetails ROWS ONLY;
 
 					----Top 10 Parts Sold
 					IF OBJECT_ID(N'tempdb..#tmpTop10PartSold') IS NOT NULL
@@ -530,11 +533,13 @@ BEGIN
 							IM.ItemMasterId
 					)
 					INSERT INTO #tmpTop10PartSold (PartNumber, TotalSalesCount)
-					SELECT TOP 10
+					SELECT
 						partnumber,         
 						TotalSalesCount  -- Number of sales for each part
 					FROM tmpTop10SalesOrderPartSold
-					ORDER BY TotalSalesCount DESC;
+					ORDER BY TotalSalesCount DESC
+					OFFSET 0 ROWS
+					FETCH FIRST @TopNumberDetails ROWS ONLY;
 
 					----Top 10 Customers
 					IF OBJECT_ID(N'tempdb..#tmpTop10Customers') IS NOT NULL
@@ -570,11 +575,13 @@ BEGIN
 							C.CustomerId
 					)
 					INSERT INTO #tmpTop10Customers (CustomerName, TotalSalesCount)
-					SELECT TOP 10
+					SELECT
 						CustomerName,         
 						TotalSalesCount
 					FROM tmpTop10Customer
-					ORDER BY TotalSalesCount DESC;
+					ORDER BY TotalSalesCount DESC
+					OFFSET 0 ROWS
+					FETCH FIRST @TopNumberDetails ROWS ONLY;
 
 
 

@@ -193,11 +193,11 @@ BEGIN
 	[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
 	[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
 	[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], @ForeignExchangeRate, sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
+	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
 	sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
 	sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
 	sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
-	@CustomerReference, sop.[QtyRequested], sop.[Notes], @FunctionalCurrencyId, sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
+	@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
 	sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
 	FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
 	WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId

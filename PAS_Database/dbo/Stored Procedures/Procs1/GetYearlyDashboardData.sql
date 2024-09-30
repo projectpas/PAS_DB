@@ -15,7 +15,7 @@
     1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates      
 	2	 31 JAN 2024    Devendra Shekh			   added isperforma Flage for WO 
 	3	 01 FEB 2024	AMIT GHEDIYA	           added isperforma Flage for SO
-	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETDATE
+	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
@@ -41,7 +41,7 @@ BEGIN
 
 			IF @StartDate IS NULL
 			BEGIN
-				SET @StartDate = GETDATE()
+				SET @StartDate = GETUTCDATE()
 			END
 
 			SET @Month = CASE WHEN MONTH(@StartDate) = 12 THEN 1 ELSE (MONTH(@StartDate) + 1) END;

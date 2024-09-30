@@ -19,7 +19,7 @@
 	4	 01 jan 2024   AMIT GHEDIYA					added isperforma Flage for SO
 	5    14 March 2024 Bhargav Saliya				Resolved Count Issue in Dashboard Graph 
 	6    19 March 2024 Bhargav Saliya				Resolved Count Issue in Dashboard Graph 
-	7    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETDATE
+	7    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 1, 1, 2
@@ -49,7 +49,7 @@ BEGIN
 
 			IF @StartDate IS NULL
 				BEGIN
-					SET @StartDate = GETDATE()
+					SET @StartDate = GETUTCDATE()
 			END
 
 			SET @Month = MONTH(@StartDate);

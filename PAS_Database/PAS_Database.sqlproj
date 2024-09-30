@@ -3175,6 +3175,7 @@
     <Build Include="dbo\Stored Procedures\GetNewStocklineInventoryMismatch.sql" />
     <Build Include="dbo\Stored Procedures\USP_WO_Refresh_CreditLimit_Terms.sql" />
     <Build Include="dbo\Stored Procedures\GetSOSOQPartsMonthlyYearlyDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderMaterialMismatchReport.sql" />
     <Build Include="dbo\Tables\WorkOrderDualReleaseSettings.sql" />
   </ItemGroup>
   <ItemGroup>

@@ -23,6 +23,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    12	02/04/2024  Moin Bloch        Updated Inventory History Notes Turn in to Tendered  
    13	04/04/2024  Moin Bloch        Updated CurrentSerialNumber Issue 
    14	30/07/2024  Devendra Shekh	  Tender Stockline Issue Resolved
+   15	27/09/2024  Devendra Shekh	  Commented USP_CreateChildStockline
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -312,27 +313,27 @@ BEGIN
 		--UPDATE [dbo].[WorkOrderPartNumber] SET [CurrentSerialNumber] = ISNULL(@CurrentSerialNumber,0) + 1 WHERE ID = @WorkOrderPartNoId;       
   --   END  
      --FOR STOCK LINE HISTORY  
-     WHILE @count >= @slcount  
-     BEGIN  
-      SET @ReferenceId = 0;  
-      SET @SubReferenceId = @WorkOrderMaterialsId  
-      PRINT 'STEP - 1'  
-      SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StocklineId  
+     --WHILE @count >= @slcount  
+     --BEGIN  
+     -- SET @ReferenceId = 0;  
+     -- SET @SubReferenceId = @WorkOrderMaterialsId  
+     -- PRINT 'STEP - 1'  
+     -- SELECT @IsSerialised = isSerialized, @stockLineQtyAvailable = QuantityAvailable, @stockLineQty = Quantity FROM [dbo].[Stockline] WITH (NOLOCK) WHERE StockLineId = @StocklineId  
         
-      IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))  
-      BEGIN  
-       EXEC [dbo].[USP_CreateChildStockline]    
-       @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild,   
-       @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId        
-      END  
-      ELSE  
-      BEGIN  
-       PRINT 'STEP - 3'  
-       EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
-      END  
-      PRINT 'STEP - 4'  
-      SET @slcount = @slcount + 1;  
-     END;  
+     -- IF (@IsSerialised = 0 AND (@stockLineQtyAvailable > 1 OR @stockLineQty > 1))  
+     -- BEGIN  
+     --  EXEC [dbo].[USP_CreateChildStockline]    
+     --  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = @IsAddUpdate, @ExecuteParentChild = @ExecuteParentChild,   
+     --  @UpdateQuantities = @UpdateQuantities, @IsOHUpdated = @IsOHUpdated, @AddHistoryForNonSerialized = @AddHistoryForNonSerialized, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId        
+     -- END  
+     -- ELSE  
+     -- BEGIN  
+     --  PRINT 'STEP - 3'  
+     --  EXEC [dbo].[USP_CreateChildStockline]  @StocklineId = @StocklineId, @MasterCompanyId = @MasterCompanyId, @ModuleId = @ModuleId, @ReferenceId = @ReferenceId, @IsAddUpdate = 0, @ExecuteParentChild = 0, @UpdateQuantities = 0, @IsOHUpdated = 0, @AddHistoryForNonSerialized = 1, @SubModuleId = @SubModuleId, @SubReferenceId = @SubReferenceId  
+     -- END  
+     -- PRINT 'STEP - 4'  
+     -- SET @slcount = @slcount + 1;  
+     --END;  
 	 
 	 DECLARE @ActionId INT = 0;
      --SET @ActionId = 7; -- Tender

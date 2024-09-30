@@ -19,7 +19,7 @@
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	8    12/04/2024   Devendra Shekh added module for INTERNALWORKORDERTEARDOWN
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
-    10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE
+    10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE / VENDOR RMA
 
 **************************************************************/  
 
@@ -595,9 +595,9 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
 
-											WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN AST.PoId
-											WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN AST.PoId
-											WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN AST.PoId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN AST.StocklineId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN AST.StocklineId
+											WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN AST.StocklineId
 
 
 											WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId

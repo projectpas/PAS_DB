@@ -20,6 +20,7 @@
 	4    08/14/2023   Moin Bloch    Added Check Payment Method to check only check payments
 	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry) 
 	6    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
+	7	 27/09/2024	  AMIT GHEDIYA	Added for AutoPost Batch
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
 @ReadyToPayId BIGINT,
@@ -77,7 +78,9 @@ BEGIN
 		DECLARE @BankGLAccId BIGINT
 		DECLARE @IsAccountByPass bit=0
 		DECLARE @Check INT;
-		DECLARE @AccountMSModuleId INT = 0
+		DECLARE @AccountMSModuleId INT = 0;
+		DECLARE @IsAutoPost INT = 0;
+		DECLARE @IsBatchGenerated INT = 0;
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -137,7 +140,6 @@ BEGIN
 
 		IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1 AND @IsAccountByPass = 0)
 		BEGIN
-
 			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
 			FROM EntityStructureSetup est WITH(NOLOCK) 
 			INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
@@ -215,6 +217,8 @@ BEGIN
 				begin  
 				   Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 				END  
+
+				SET @IsBatchGenerated = 1;
 			END
 
 
@@ -230,7 +234,7 @@ BEGIN
 			 -----Account Payable--------
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
+			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0)
 			 from DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSACCPAYBLE'
 			 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -264,7 +268,7 @@ BEGIN
 
 				IF(@CheckAmount > 0)
 				BEGIN
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=[Name],@JournalTypeId =JournalTypeId,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					 FROM DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSBANKACCOUNT' 
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 				
@@ -338,6 +342,16 @@ BEGIN
 			       @TotalCredit=SUM(CreditAmount) 
 			  FROM dbo.CommonBatchDetails WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			Update BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
+
+			--AutoPost Batch
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
+			BEGIN
+			    EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
+			END
+			IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
+			BEGIN
+				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+			END
 		END
 
 		

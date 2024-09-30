@@ -15,6 +15,7 @@
     1    22 Nov 2023   JEVIK RAIYANI               Use dbo.ConvertUTCtoLocal before comparing dates      
 	2	 31 JAN 2024    Devendra Shekh			   added isperforma Flage for WO 
 	3	 01 FEB 2024	AMIT GHEDIYA	           added isperforma Flage for SO
+	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETDATE
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
@@ -22,7 +23,8 @@ EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
 CREATE   PROCEDURE [dbo].[GetYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@ChartType INT = NULL,
-	@EmployeeId BIGINT = NULL
+	@EmployeeId BIGINT = NULL,
+	@StartDate DATETIME2 = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -37,8 +39,13 @@ BEGIN
 			DECLARE @wopartModuleID AS INT =12
 			DECLARE @SalesOrderModuleID AS INT =17
 
-			SET @Month = CASE WHEN MONTH(GETDATE()) = 12 THEN 1 ELSE (MONTH(GETDATE()) + 1) END;
-			SET @Year = CASE WHEN MONTH(GETDATE()) = 12 THEN YEAR(GETDATE()) ELSE YEAR(GETDATE()) - 1 END;
+			IF @StartDate IS NULL
+			BEGIN
+				SET @StartDate = GETDATE()
+			END
+
+			SET @Month = CASE WHEN MONTH(@StartDate) = 12 THEN 1 ELSE (MONTH(@StartDate) + 1) END;
+			SET @Year = CASE WHEN MONTH(@StartDate) = 12 THEN YEAR(@StartDate) ELSE YEAR(@StartDate) - 1 END;
 			
 			DECLARE @SelectedDate DateTime;
 

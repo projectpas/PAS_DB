@@ -21,6 +21,9 @@
     [IsCustAlerts]          BIT            NULL,
     [EmployeeName]          VARCHAR (100)  NULL,
     [IncludeInStageReport]  BIT            NULL,
+    [WorkAbleBacklog]       BIT            NULL,
     CONSTRAINT [PK_WorkOrderStageAudit] PRIMARY KEY CLUSTERED ([WorkOrderStageAuditId] ASC)
 );
+
+
 

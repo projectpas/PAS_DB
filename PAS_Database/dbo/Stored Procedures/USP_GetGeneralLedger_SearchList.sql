@@ -10,9 +10,11 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------  
 	1    09/02/2024   Devendra Shekh	     CREATED
+	2    10/01/2024   Devendra Shekh	     Modifed to get all data while Download
 
-exec USP_GetGeneralLedger_SearchList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@EffectiveFromDate=NULL,@EffectiveToDate=NULL,@FromJournalId=N'',@ToJournalId=N'',@FromGLAccount=NULL
-,@ToGLAccount=NULL,@EmployeeId=2,@Level1MS=N'0',@Level2MS=N'0',@Level3MS=N'0',@Level4MS=N'0',@ManagementStructureName=NULL,@AccountPeriodName=NULL,@DebitAmount=NULL,@CreditAmount=NULL,@Currency=NULL,
+exec USP_GetGeneralLedger_SearchList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate=NULL,@ToEffectiveDate=NULL,@FromJournalId=N'',@ToJournalId=N'',@FromGLAccount=NULL
+,@ToGLAccount=NULL,@EmployeeId=2,@Level1=N'0',@Level2=N'0',@Level3=N'0',@Level4=N'0',@Level5=N'0',@Level6=N'0',@Level7=N'0',@Level8=N'0',@Level9=N'0',@Level10=N'0',
+@ManagementStructureName=NULL,@AccountPeriodName=NULL,@DebitAmount=NULL,@CreditAmount=NULL,@Currency=NULL,
 @DocumentNumber=NULL,@EffectiveDate=NULL,@EntryDate=NULL,@WOSONum=NULL,@PORONum=NULL,@Distribution=NULL,@JournalId=NULL,@GLAccountName=NULL,@TypeName=NULL,@MasterCompanyId=1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetGeneralLedger_SearchList]
@@ -52,6 +54,7 @@ CREATE   PROCEDURE [dbo].[USP_GetGeneralLedger_SearchList]
 	@JournalId VARCHAR(256) = NULL,
 	@GLAccountName VARCHAR(256) = NULL,
 	@TypeName VARCHAR(256) = NULL,
+	@IsDownload BIT = NULL,
 	@MasterCompanyId INT
 AS
 BEGIN
@@ -64,6 +67,49 @@ BEGIN
 		DECLARE @IsActive BIT=1
 		DECLARE @Count INT;
 		DECLARE @EmployeeName VARCHAR(80) = '';
+
+		IF OBJECT_ID('tempdb..#TempJournalDetails') IS NOT NULL
+			DROP TABLE #TempJournalDetails;
+
+		IF OBJECT_ID('tempdb..#TempTotalAmount') IS NOT NULL
+			DROP TABLE #TempTotalAmount;
+
+		CREATE TABLE #TempJournalDetails
+		(
+			[RecordId] [bigint] IDENTITY(1,1),
+			[CommonJournalBatchDetailId] [bigint] NULL,
+			[AccountPeriodName] [varchar](50) NULL,
+			[DebitAmount] [decimal](18,2) NULL,
+			[CreditAmount] [decimal](18,2) NULL,
+			[Currency] [varchar](20) NULL,
+			[DocumentNumber] [varchar](100) NULL,
+			[EffectiveDate] DATETIME2 NULL,
+			[EntryDate] DATETIME2 NULL,
+			[Distribution] [varchar](100) NULL,
+			[JournalId] [varchar](100) NULL,
+			[GLAccountName] [varchar](200) NULL,
+			[TypeName] [varchar](200) NULL,
+			[EmployeeName] [varchar](256) NULL,
+			[Level1] [varchar](MAX) NULL,
+			[Level2] [varchar](MAX) NULL,
+			[Level3] [varchar](MAX) NULL,
+			[Level4] [varchar](MAX) NULL,
+			[Level5] [varchar](MAX) NULL,
+			[Level6] [varchar](MAX) NULL,
+			[Level7] [varchar](MAX) NULL,
+			[Level8] [varchar](MAX) NULL,
+			[Level9] [varchar](MAX) NULL,
+			[Level10] [varchar](MAX) NULL,
+			[MastercompanyId] [int] NULL
+		);
+
+		CREATE TABLE #TempTotalAmount
+		(
+			[Id] [bigint] IDENTITY(1,1),
+			[MastercompanyId] [int] NULL,
+			[TotalDebitAmount] [varchar](25) NULL,
+			[TotalCreditAmount] [varchar](25) NULL,
+		)
 
 		SELECT @EmployeeName = (FirstName + ' ' + LastName) FROM [dbo].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId;
 
@@ -78,31 +124,29 @@ BEGIN
 			SET @SortColumn = UPPER(@SortColumn)
 		END
 
+		SET @FromGLAccount = (SELECT ISNULL(AccountCode, '') FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @FromGLAccount);
+		SET @ToGLAccount = (SELECT ISNULL(AccountCode, '') FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @ToGLAccount);
+
 		SET @FromJournalId = CASE WHEN ISNULL(@FromJournalId, '') = '' THEN '0' ELSE @FromJournalId END;
 		SET @ToJournalId = CASE WHEN ISNULL(@ToJournalId, '') = '' THEN '0' ELSE @ToJournalId END;
 		SET @FromGLAccount = CASE WHEN ISNULL(@FromGLAccount, '') = '' THEN '0' ELSE @FromGLAccount END;
-		SET @ToGLAccount = CASE WHEN ISNULL(@ToGLAccount, '') = '' THEN '0' ELSE @ToGLAccount END;
+		SET @ToGLAccount = CASE WHEN ISNULL(@ToGLAccount, '') = '' THEN '0' ELSE @ToGLAccount END
 
-		PRINT @FromJournalId
-		PRINT @ToJournalId
-
-	
-		;WITH Result AS(
-		SELECT	
-				CBD.CommonJournalBatchDetailId,
+		INSERT INTO #TempJournalDetails ([CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
+										 [GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], [MastercompanyId])
+		SELECT	CBD.CommonJournalBatchDetailId,
 				BH.AccountingPeriod AS 'AccountPeriodName',
-				CAST(ISNULL(CBD.DebitAmount, 0) AS VARCHAR) AS 'DebitAmount',
-				CAST(ISNULL(CBD.CreditAmount, 0) AS VARCHAR) AS 'CreditAmount',
+				ISNULL(CBD.DebitAmount, 0) AS 'DebitAmount',
+				ISNULL(CBD.CreditAmount, 0) AS 'CreditAmount',
 				'' AS 'Currency',
 				'' AS 'DocumentNumber',
 				CBD.TransactionDate AS 'EffectiveDate',
 				CBD.EntryDate,
-				'' AS 'WOSONum',
-				'' AS 'PORONum',
 				CBD.DistributionName AS 'Distribution',
 				CBD.JournalTypeNumber AS 'JournalId',
 				CASE WHEN ISNULL(CBD.GlAccountNumber, '') = '' THEN ISNULL(CBD.GlAccountName, '') ELSE ISNULL(CBD.GlAccountNumber, '') + '-' + ISNULL(CBD.GlAccountName, '') END AS 'GLAccountName',
 				'' AS 'TypeName',
+				ISNULL(CBD.CreatedBy, '') AS 'EmployeeName',
 				UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1,    
 				UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,   
 				UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3,   
@@ -112,7 +156,8 @@ BEGIN
 				UPPER(CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description]) AS level7,   
 				UPPER(CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description]) AS level8,   
 				UPPER(CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description]) AS level9,   
-				UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description])  AS level10
+				UPPER(CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description])  AS level10,
+				CBD.MasterCompanyId
 		FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BH.JournalBatchHeaderId = BD.JournalBatchHeaderId
@@ -144,68 +189,33 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSL8.[ID] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 				AND (ISNULL(@Level9,'') ='' OR MSL9.[ID] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSL10.[ID] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-		)
-		SELECT * INTO #TempResult FROM  Result
-			 WHERE ((@GlobalFilter <>'' AND ((AccountPeriodName LIKE '%' +@GlobalFilter+'%') OR
-			        (DebitAmount LIKE '%' +@GlobalFilter+'%') OR	
-					(CreditAmount LIKE '%' +@GlobalFilter+'%') OR
-					(Currency LIKE '%' +@GlobalFilter+'%') OR
-					(DocumentNumber LIKE '%' +@GlobalFilter+'%') OR
-					(WOSONum LIKE '%' +@GlobalFilter+'%') OR
-					(PORONum LIKE '%' +@GlobalFilter+'%') OR
-					(Distribution LIKE '%' +@GlobalFilter+'%') OR
-					(JournalId LIKE '%' +@GlobalFilter+'%') OR
-					(GLAccountName LIKE '%' +@GlobalFilter+'%') OR
-					(TypeName LIKE '%' +@GlobalFilter+'%'))) OR   
-					(@GlobalFilter='' AND (ISNULL(@AccountPeriodName,'') ='' OR AccountPeriodName LIKE '%' + @AccountPeriodName+'%') AND
-					(ISNULL(@DebitAmount,'') ='' OR DebitAmount LIKE '%' + @DebitAmount+'%') AND
-					(ISNULL(@CreditAmount,'') ='' OR CreditAmount LIKE '%' + @CreditAmount+'%') AND
-					(ISNULL(@Currency,'') ='' OR Currency LIKE '%' + @Currency+'%') AND
-					(ISNULL(@DocumentNumber,'') ='' OR DocumentNumber LIKE '%' + @DocumentNumber+'%') AND
-					(ISNULL(@WOSONum,'') ='' OR WOSONum LIKE '%' + @WOSONum+'%') AND
-					(ISNULL(@PORONum,'') ='' OR PORONum LIKE '%' + @PORONum+'%') AND
-					(ISNULL(@Distribution,'') ='' OR Distribution LIKE '%' + @Distribution+'%') AND						
-					(ISNULL(@JournalId,'') ='' OR JournalId LIKE '%' + @JournalId+'%') AND						
-					(ISNULL(@GLAccountName,'') ='' OR GLAccountName LIKE '%' + @GLAccountName+'%') AND						
-					(ISNULL(@TypeName,'') ='' OR TypeName LIKE '%' + @TypeName+'%') AND						
-					(ISNULL(@EffectiveDate,'') ='' OR CAST(EffectiveDate AS Date) = CAST(@EffectiveDate AS date)) AND
-					(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS date) = CAST(@EntryDate AS date)))
-					)
-		Select @Count = COUNT(CommonJournalBatchDetailId) FROM #TempResult;	
+	
+		INSERT INTO #TempTotalAmount([MastercompanyId], [TotalDebitAmount], [TotalCreditAmount])
+		SELECT MastercompanyId,   
+		FORMAT(SUM(DebitAmount), 'N', 'en-us') TotalDebitAmount,
+		FORMAT(SUM(CreditAmount), 'N', 'en-us') TotalCreditAmount
+		FROM #TempJournalDetails GROUP BY MastercompanyId
 
-		SELECT *, @Count AS NumberOfItems FROM #TempResult
-		ORDER BY
-			CASE WHEN (@SortOrder=1 AND @SortColumn='AccountPeriodName')  THEN AccountPeriodName END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='DebitAmount')  THEN DebitAmount END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='CreditAmount')  THEN CreditAmount END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='Currency')  THEN Currency END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='DocumentNumber')  THEN DocumentNumber END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='EffectiveDate')  THEN EffectiveDate END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='EntryDate')  THEN EntryDate END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='WOSONum')  THEN WOSONum END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='PORONum')  THEN PORONum END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='Distribution')  THEN Distribution END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='JournalId')  THEN JournalId END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='GLAccountName')  THEN GLAccountName END ASC,
-			CASE WHEN (@SortOrder=1 AND @SortColumn='TypeName')  THEN TypeName END ASC,
-
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='AccountPeriodName')  THEN AccountPeriodName END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='DebitAmount')  THEN DebitAmount END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreditAmount')  THEN CreditAmount END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Currency')  THEN Currency END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='DocumentNumber')  THEN DocumentNumber END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='EffectiveDate')  THEN EffectiveDate END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='EntryDate')  THEN EntryDate END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='WOSONum')  THEN WOSONum END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='PORONum')  THEN PORONum END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Distribution')  THEN Distribution END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='JournalId')  THEN JournalId END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccountName')  THEN GLAccountName END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='TypeName')  THEN TypeName END DESC
-
-		OFFSET @RecordFrom ROWS 
-		FETCH NEXT @PageSize ROWS ONLY
-
+		IF(ISNULL(@IsDownload, 0) = 1)
+		BEGIN
+			SELECT COUNT(2) OVER () AS NumberOfItems, [CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
+					[GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], FC.[MastercompanyId]
+					,WC.TotalDebitAmount, WC.TotalCreditAmount
+			FROM #TempJournalDetails FC
+			INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId  
+			ORDER BY [EntryDate] DESC
+		END
+		ELSE
+		BEGIN
+			SELECT COUNT(2) OVER () AS NumberOfItems, [CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
+					[GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], FC.[MastercompanyId]
+					,WC.TotalDebitAmount, WC.TotalCreditAmount
+			FROM #TempJournalDetails FC
+			INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId
+			ORDER BY [EntryDate] DESC
+			OFFSET @RecordFrom ROWS 
+			FETCH NEXT @PageSize ROWS ONLY
+		END
 	END TRY    
 	BEGIN CATCH      
 

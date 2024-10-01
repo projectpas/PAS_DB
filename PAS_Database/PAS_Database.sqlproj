@@ -3177,6 +3177,7 @@
     <Build Include="dbo\Stored Procedures\GetSOSOQPartsMonthlyYearlyDashboardData.sql" />
     <Build Include="dbo\Stored Procedures\GetWorkOrderMaterialMismatchReport.sql" />
     <Build Include="dbo\Tables\WorkOrderDualReleaseSettings.sql" />
+    <Build Include="dbo\Stored Procedures\GetWorkOrderDualreleasemessagesettingsList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

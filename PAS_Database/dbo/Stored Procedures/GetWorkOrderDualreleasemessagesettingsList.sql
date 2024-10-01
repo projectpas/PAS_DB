@@ -37,9 +37,9 @@ BEGIN
 				  COU.countries_id AS 'CountriesId',
 				  WOS.Dualreleaselanguage,
 				  'EASA' AS 'FormType'
-		    FROM WorkOrderDualReleaseSettings WOS WITH(NOLOCK)
-		    JOIN WorkOrderType WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
-		    JOIN Countries COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
+		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
+		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId AND WOS.WorkOrderDualReleaseSettingId = @WorkOrderDualReleaseSettingId;
 		END
 		ELSE
@@ -52,9 +52,9 @@ BEGIN
 				  COU.countries_id AS 'CountriesId',
 				  WOS.Dualreleaselanguage,
 				  'EASA' AS 'FormType'
-		    FROM WorkOrderDualReleaseSettings WOS WITH(NOLOCK)
-		    JOIN WorkOrderType WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
-		    JOIN Countries COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
+		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
+		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId;
 		END
    END    

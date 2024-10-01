@@ -18,7 +18,7 @@
 	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
 **********************/
 /*************************************************************
-EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2
+EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2, '08/31/2024'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
@@ -109,13 +109,11 @@ BEGIN
 						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
 						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-						--INNER JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = WOBI.ManagementStructureId
 						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
 						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
 						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE WOBI.IsVersionIncrease = 0 
 						AND MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
-						--AND EMS.EmployeeId = @EmployeeId
 						AND WOBI.MasterCompanyId = @MasterCompanyId
 						AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 					)

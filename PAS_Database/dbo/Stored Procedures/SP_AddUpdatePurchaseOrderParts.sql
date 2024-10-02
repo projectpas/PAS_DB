@@ -13,7 +13,7 @@
     1    17/09/2024   RAJESH GAMI			Created
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -33,7 +33,7 @@ BEGIN
 			DECLARE @IsLotAssigned BIT =0, @LotId BIGINT, @StatusId INT, @FulfillStatusId INT = (SELECT TOP 1 POStatusId FROM DBO.POStatus WITH(NOLOCK) WHERE LOWER(Description) = 'fulfilling');
 			DECLARE @ApproveProcessId INT = (SELECT TOP 1 ApprovalProcessId FROM DBO.ApprovalProcess WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1)
 			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT
-			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvidionId INT
+			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvisionId INT
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
 			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 
@@ -88,7 +88,7 @@ BEGIN
 							UPDATE SL
 								SET SL.ItemMasterId = PT.ItemMasterId,SL.PurchaseOrderUnitCost = PT.UnitCost,SL.PurchaseOrderExtendedCost = PT.UnitCost,SL.UnitOfMeasureId = PT.UOMId,
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
-									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
+									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate, SL.CurrencyId = PT.FunctionalCurrencyId,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId
@@ -667,8 +667,8 @@ BEGIN
 			SELECT TOP 1 @MainWorkOrderMaterialsId = WorkOrderMaterialsId, @CoreDueDate =  CoreDueDate, @IsCreateExchange = ISNULL(IsCreateExchange,0) FROM #tmpMainPoPartList 
 			IF(@MainWorkOrderMaterialsId > 0)
 			BEGIN
-				SET @ExchProvidionId = (SELECT TOP 1 ProvisionId FROM DBO.Provision WITH(NOLOCK) WHERE UPPER(StatusCode) = 'EXCHANGE' AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1)
-				IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @MainWorkOrderMaterialsId AND ProvisionId = @ExchProvidionId) > 0)
+				SET @ExchProvisionId = (SELECT TOP 1 ProvisionId FROM DBO.Provision WITH(NOLOCK) WHERE UPPER(StatusCode) = 'EXCHANGE' AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1)
+				IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @MainWorkOrderMaterialsId AND ProvisionId = @ExchProvisionId) > 0)
 				BEGIN
 					EXEC dbo.[USP_CreateExchangeFromPO] 0,@PurchaseOrderId,@MainWorkOrderMaterialsId,@CoreDueDate,@IsCreateExchange
 				END

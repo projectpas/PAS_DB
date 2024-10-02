@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    02/09/2024   Moin Bloch    Created
+	2    27/09/2024   Moin Bloch    Added WOInspectionId   
 	     
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
@@ -65,12 +66,14 @@ BEGIN
 				TL.[TimeLifeCyclesId],TL.[CyclesRemaining],TL.[CyclesSinceNew],TL.[CyclesSinceOVH],TL.[CyclesSinceInspection],TL.[CyclesSinceRepair]
                ,TL.[TimeRemaining],TL.[TimeSinceNew],TL.[TimeSinceOVH],TL.[TimeSinceInspection],TL.[TimeSinceRepair],TL.[LastSinceNew]
                ,TL.[LastSinceOVH],TL.[LastSinceInspection],TL.[DetailsNotProvided]
-			   ,MS.[LastMSLevel],MS.[AllMSlevels]
+			   ,MS.[LastMSLevel],MS.[AllMSlevels]			  
+			   ,ISNULL(WI.WOInspectionId,0) WOInspectionId
           FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 		  INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON RC.[ItemMasterId] = IM.[ItemMasterId]
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  
 		  INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON RC.[StockLineId] = SL.[StockLineId] AND [IsParent] = 1
-		  LEFT  JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
+		   LEFT JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
+		   LEFT JOIN [dbo].[WOInspectionChecklist] WI WITH(NOLOCK) ON RC.[ReceivingCustomerWorkId] = WI.[ReceivingCustomerWorkId]
 		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[CustomerId] = @CustomerId AND RC.[ReceivingNumber] IN (@FinalReceivingNumber);		   			    
  END TRY        
  BEGIN CATCH  

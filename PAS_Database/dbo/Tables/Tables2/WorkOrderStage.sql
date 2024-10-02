@@ -19,7 +19,7 @@
     [ManagerId]            BIGINT         NULL,
     [IsCustAlerts]         BIT            NULL,
     [IncludeInStageReport] BIT            NULL,
-    [WorkAbleBacklog]      BIT            NULL,
+    [WorkableBacklog]      BIT            NULL,
     CONSTRAINT [PK_WorkOrderStage] PRIMARY KEY CLUSTERED ([WorkOrderStageId] ASC),
     CONSTRAINT [FK_WorkOrderStage_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderStatge_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
@@ -28,9 +28,12 @@
 
 
 
-GO
 
-  
+
+
+
+GO
+ 
 CREATE   TRIGGER [dbo].[Trg_WorkOrderStageAudit]  
   
    ON  [dbo].[WorkOrderStage]  
@@ -46,7 +49,7 @@ BEGIN
    select @ManagerId=ManagerId FROM INSERTED  
    select @EmployeeName=EMP.FirstName + ' ' + EMP.LastName FROM Employee EMP  where EMP.EmployeeId= @ManagerId  
    INSERT INTO WorkOrderStageAudit  
-   SELECT WorkOrderStageId,Code,Stage,Sequence,StatusId,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,StageCode,CodeDescription,IncludeInDashboard,ManagerId,IsCustAlerts,@EmployeeName,IncludeInStageReport,WorkAbleBacklog FROM INSERTED;  
+   SELECT WorkOrderStageId,Code,Stage,Sequence,StatusId,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,StageCode,CodeDescription,IncludeInDashboard,ManagerId,IsCustAlerts,@EmployeeName,IncludeInStageReport,WorkableBacklog FROM INSERTED;  
   
    UPDATE [dbo].[WorkOrderStage] SET CodeDescription = WS.Code + ' - ' + UPPER(WS.Stage)  
    FROM [dbo].[WorkOrderStage] WS JOIN INSERTED ins ON ws.WorkOrderStageId = ins.WorkOrderStageId;  

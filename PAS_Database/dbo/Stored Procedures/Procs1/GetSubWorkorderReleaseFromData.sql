@@ -13,6 +13,7 @@ EXEC [GetSubWorkorderReleaseFromData]
    2    09/28/2023  BHARGAV SALIYA   In Sub WO 8130 form remove header Notes text from block 12. 
    3    01/23/2024  Devendra Shekh   revised serial number changes 
    4    02/01/2024  Devendra Shekh   added conditino for customer refernce
+   5    10/02/2024  AMIT GHEDIYA     Updated For Get EASA UK Dualreleaselanguage message.
 
     
 EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
@@ -21,7 +22,8 @@ EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'
 CREATE   PROC [dbo].[GetSubWorkorderReleaseFromData]    
 @SubWorkOrderId bigint = null,    
 @SubWOPartNoId bigint = null,    
-@IsEasaLicense bit = 0    
+@IsEasaLicense bit = 0,
+@IsEasaUKLicense bit = 0 
 AS    
 BEGIN    
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
@@ -34,7 +36,9 @@ BEGIN
 		DECLARE @MSModuleId INT;    
 		DECLARE @CommonTeardownTypeId INT;    
 		DECLARE @MasterCompanyId INT;      
-		DECLARE @MTIMasterCompanyId INT;     
+		DECLARE @MTIMasterCompanyId INT;  
+		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
+		DECLARE @UkCountryId BIGINT = 0;	
     
 		SET @MSModuleId = 12 ; -- For WO PART NUMBER    
 		SET @MTIMasterCompanyId = 11; -- For MTI    
@@ -46,7 +50,10 @@ BEGIN
     
 		SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [DBO].[CommonTeardownType] CTT WITH(NOLOCK)     
 		WHERE CTT.[MasterCompanyId] = @MasterCompanyId AND UPPER(CTT.[TearDownCode]) = UPPER('MODIFICATIONSERVICE');    
-                        
+              
+		--GET UK code id
+		SELECT @UkCountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
+
 		SELECT     
 			  'UNITED STATES' AS Country,    
 			  '' as trackingNo,    
@@ -87,17 +94,19 @@ BEGIN
 								 + '<p>' +'Revision Date: ' + ISNULL(convert(varchar(100),pub.revisionDate,103),'-') + '</p> <p style="height:15px"></p>'      
       
 						 ELSE  '<p>' + ('Unit ' + isnull(UPPER(wosc.conditionName),'-')) + ' I/A/W CMM ATA: ' + isnull(UPPER(pub.PublicationId),0) + ' REV: ' + ISNULL(convert(varchar(20),UPPER(pub.RevisionNum)),'-')  + ' DATED: ' + UPPER(ISNULL(replace(convert(varchar(100),pub.revisionDate,106),' ','/'),'-')) +'</p>'       
-				                     +'<p>No FAA or EASA S/B and AD`s complied with at this shop visit.</p>'       
+				                     +'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'       
 				                     + '<p>' +'Full details of work carried out help on Work Order: ' + ISNULL(convert(varchar(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'      
 						END ELSE '' END)          
 	            + (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END)     
 			    +(CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wos.Dualreleaselanguage,'-') +'</p>') else ''  end)            
+				+(CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wods.Dualreleaselanguage,'-') +'</p>') ELSE ''  END)        
 		        +'</div>') Remarks,       
 		          UPPER(le.EASALicense)  as EASALicense    
          FROM [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK)     
                LEFT JOIN [dbo].[SubWorkOrder] swo  WITH(NOLOCK) ON swo.SubWorkOrderId = wop.SubWorkOrderId    
                LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId    
                LEFT JOIN [dbo].[WorkOrderSettings] wos  WITH(NOLOCK) ON wos.MasterCompanyId = wop.MasterCompanyId AND wos.WorkOrderTypeId =  wo.WorkOrderTypeId    
+			   LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @UkCountryId
                LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId    
                LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId    
                LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId --rc.StockLineId = wop.StockLineId    

@@ -261,8 +261,8 @@ BEGIN
 
 
 				-- Yearly 
-				SET @Month = CASE WHEN MONTH(GETUTCDATE()) = 12 THEN 1 ELSE (MONTH(GETUTCDATE())) END;
-				SET @Year = CASE WHEN MONTH(GETUTCDATE()) = 12 THEN YEAR(GETUTCDATE()) ELSE YEAR(GETUTCDATE()) - 1 END;
+				SET @Month = CASE WHEN MONTH(@StartDate) = 12 THEN 1 ELSE (MONTH(@StartDate)) END;
+				SET @Year = CASE WHEN MONTH(@StartDate) = 12 THEN YEAR(@StartDate) ELSE YEAR(@StartDate) - 1 END;
 
 
 				IF OBJECT_ID(N'tempdb..#tmpYearlyDataSOQParts') IS NOT NULL
@@ -477,6 +477,7 @@ BEGIN
 						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE YEAR(SOQ.OpenDate) = @CurrentYear 
 					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
+					AND SOQ.OpenDate <= @StartDate
 					AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
 					GROUP BY 
@@ -525,6 +526,7 @@ BEGIN
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 						WHERE YEAR(SO.OpenDate) = @CurrentYear 
 						AND MONTH(SO.OpenDate) = @CurrentMonth
+						AND SO.OpenDate <= @StartDate
 						AND ((SOP.StatusId = @ShippedStatusId AND SOS.AirwayBill IS NOT NULL) OR (SOBillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
 						AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
@@ -557,7 +559,7 @@ BEGIN
 						SELECT
 							C.[Name] AS CustomerName,
 							C.CustomerId,
-							COUNT(SOBI.GrandTotal) AS TotalSalesCount
+							SUM(SOBI.GrandTotal) AS TotalSalesCount
 						FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN Customer C WITH (NOLOCK) ON C.CustomerId = SO.CustomerId
@@ -568,6 +570,7 @@ BEGIN
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 						WHERE YEAR(SO.OpenDate) = @CurrentYear
 						AND MONTH(SO.OpenDate) = @CurrentMonth 
+						AND SO.OpenDate <= @StartDate
 						AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 						GROUP BY
@@ -579,6 +582,7 @@ BEGIN
 						CustomerName,         
 						TotalSalesCount
 					FROM tmpTop10Customer
+					WHERE TotalSalesCount > 0
 					ORDER BY TotalSalesCount DESC
 					OFFSET 0 ROWS
 					FETCH FIRST @TopNumberDetails ROWS ONLY;

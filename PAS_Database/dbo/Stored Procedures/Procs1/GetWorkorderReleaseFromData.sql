@@ -14,14 +14,16 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 3    01/01/2024  Devendra Shekh   updated for SerialNumber(Batchnumber)
 ** 4    02/08/2024  Shrey Chandegara Updated for status (add case condition in status)
 ** 5    07/29/2024  HEMANT SALIYA    Updated For Get Part Number, Serial NUmber and Condition from Work Order Part table
+** 6    10/02/2024  AMIT GHEDIYA     Updated For Get EASA UK Dualreleaselanguage message.
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1
+ EXEC [dbo].[GetWorkorderReleaseFromData] 3553,3023,1,0
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]  
 @WorkorderId bigint,  
 @workOrderPartNumberId bigint,  
-@IsEasaLicense bit = 0  
+@IsEasaLicense bit = 0 ,
+@IsEasaUKLicense bit = 0
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -33,6 +35,8 @@ BEGIN
 		DECLARE @MSModuleId INT;  
 		DECLARE @MasterCompanyId INT;  
 		DECLARE @MTIMasterCompanyId INT; 
+		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
+		DECLARE @UkCountryId BIGINT = 0;		
 
 		SET @MSModuleId = 12 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
@@ -43,6 +47,9 @@ BEGIN
 		SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [DBO].[CommonTeardownType] CTT WITH(NOLOCK) 
 		WHERE CTT.[MasterCompanyId] = @MasterCompanyId AND UPPER(CTT.[TearDownCode]) = UPPER('MODIFICATIONSERVICE');
 	   
+	    --GET UK code id
+		SELECT @UkCountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;
+
 	    SELECT 'UNITED STATES' AS Country,  
 			  '' AS trackingNo,  
 			  le.CompanyName AS OrganizationName,  
@@ -83,16 +90,18 @@ BEGIN
 								+ '<p>' +'Revision No: ' + ISNULL(CONVERT(VARCHAR(20),pub.RevisionNum),'-') + '</p>'  
 								+ '<p>' +'Revision Date: ' + ISNULL(CONVERT(VARCHAR(100),pub.revisionDate,103),'-') + '</p> <p style="height:15px"></p>'  	 
 						ELSE  '<p>' + ('Unit ' + ISNULL(UPPER(wosc.conditionName),'-')) + ' I/A/W CMM ATA: ' + ISNULL(UPPER(pub.PublicationId),0) + ' REV: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-')  + ' DATED: ' + UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) +'</p>'   
-								+'<p>No FAA or EASA S/B and AD`s complied with at this shop visit.</p>'   
+								+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 								+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						END ELSE '' END)   	  
 			  + (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 			 
 			  + (CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wos.Dualreleaselanguage,'-') +'</p>') ELSE ''  END)        
+			  + (CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wods.Dualreleaselanguage,'-') +'</p>') ELSE ''  END)        
 			  + '</div>') Remarks,  
 			   Upper(le.EASALicense) AS EASALicense  
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 			  LEFT JOIN [dbo].[WorkOrderSettings] wos  WITH(NOLOCK) ON wos.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wos.WorkOrderTypeId
+			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @UkCountryId
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 			  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 			  LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.StockLineId = wop.StockLineId  

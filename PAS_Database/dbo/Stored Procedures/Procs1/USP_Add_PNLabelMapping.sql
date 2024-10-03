@@ -22,13 +22,13 @@ CREATE   PROCEDURE [dbo].[USP_Add_PNLabelMapping]
 @CreatedBy varchar(50),
 @UpdatedBy  varchar(50),
 @MasterCompanyId bigint ,
-@FieldHeight decimal(5,2),
-@FieldWidth decimal(5,2),
-@FieldDPI decimal(5,2) ,
-@MarginLeft decimal(5,2),
-@MarginRight decimal(5,2) ,
-@MarginTop decimal(5,2),
-@MarginBottom decimal(5,2),
+@FieldHeight decimal(18,2),
+@FieldWidth decimal(18,2),
+@FieldDPI decimal(18,2) ,
+@MarginLeft decimal(18,2),
+@MarginRight decimal(18,2) ,
+@MarginTop decimal(18,2),
+@MarginBottom decimal(18,2),
 @AllPNLabelSelected bit 
 
 AS

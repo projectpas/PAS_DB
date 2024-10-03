@@ -11,6 +11,7 @@
  ** --   --------		-------				--------------------------------  
 	1    09/02/2024   Devendra Shekh	     CREATED
 	2    10/01/2024   Devendra Shekh	     Modifed to get all data while Download
+	3    10/02/2024   Devendra Shekh	     Modifed to get JE number with from Id
 
 exec USP_GetGeneralLedger_SearchList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate=NULL,@ToEffectiveDate=NULL,@FromJournalId=N'',@ToJournalId=N'',@FromGLAccount=NULL
 ,@ToGLAccount=NULL,@EmployeeId=2,@Level1=N'0',@Level2=N'0',@Level3=N'0',@Level4=N'0',@Level5=N'0',@Level6=N'0',@Level7=N'0',@Level8=N'0',@Level9=N'0',@Level10=N'0',
@@ -126,6 +127,12 @@ BEGIN
 
 		SET @FromGLAccount = (SELECT ISNULL(AccountCode, '') FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @FromGLAccount);
 		SET @ToGLAccount = (SELECT ISNULL(AccountCode, '') FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @ToGLAccount);
+
+		SET @FromJournalId = (SELECT ISNULL(JournalTypeNumber, '') FROM [dbo].[BatchDetails] WITH(NOLOCK) WHERE [JournalBatchDetailId] = @FromJournalId);
+		SET @ToJournalId = (SELECT ISNULL(JournalTypeNumber, '') FROM [dbo].[BatchDetails] WITH(NOLOCK) WHERE [JournalBatchDetailId] = @ToJournalId);
+
+		SET @FromJournalId = SUBSTRING(@FromJournalId, PATINDEX('%[0-9]%', @FromJournalId), LEN(@FromJournalId));
+		SET @ToJournalId = SUBSTRING(@ToJournalId, PATINDEX('%[0-9]%', @ToJournalId), LEN(@ToJournalId));
 
 		SET @FromJournalId = CASE WHEN ISNULL(@FromJournalId, '') = '' THEN '0' ELSE @FromJournalId END;
 		SET @ToJournalId = CASE WHEN ISNULL(@ToJournalId, '') = '' THEN '0' ELSE @ToJournalId END;

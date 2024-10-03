@@ -35,8 +35,15 @@
     [LotId]                      BIGINT          NULL,
     [LotNumber]                  VARCHAR (50)    NULL,
     [IsUpdated]                  BIT             NULL,
+    [ReferenceNumber]            VARCHAR (150)   NULL,
+    [ReferenceName]              VARCHAR (256)   NULL,
+    [LocalCurrency]              VARCHAR (20)    NULL,
+    [FXRate]                     DECIMAL (18, 2) NULL,
+    [ForeignCurrency]            VARCHAR (20)    NULL,
     CONSTRAINT [PK_CommonBatchDetails] PRIMARY KEY CLUSTERED ([CommonJournalBatchDetailId] ASC)
 );
+
+
 
 
 

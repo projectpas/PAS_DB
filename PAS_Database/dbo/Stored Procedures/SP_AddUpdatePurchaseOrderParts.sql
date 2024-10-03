@@ -3,7 +3,7 @@
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
  ** Purpose:         
- ** Date:   17/09/2022     
+ ** Date:   17/09/2024     
  ** RETURN VALUE:           
  **************************************************************           
  ** Change History           
@@ -88,7 +88,8 @@ BEGIN
 							UPDATE SL
 								SET SL.ItemMasterId = PT.ItemMasterId,SL.PurchaseOrderUnitCost = PT.UnitCost,SL.PurchaseOrderExtendedCost = PT.UnitCost,SL.UnitOfMeasureId = PT.UOMId,
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
-									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate, SL.CurrencyId = PT.FunctionalCurrencyId,
+									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
+									--, SL.CurrencyId = PT.FunctionalCurrencyId,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId

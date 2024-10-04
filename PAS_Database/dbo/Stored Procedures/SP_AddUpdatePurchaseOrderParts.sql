@@ -378,15 +378,15 @@ BEGIN
 						END
 					SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
 					SET @TotalSplitPartsCount = (SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitParts)
-					--SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
-					
+					--SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res					
 					--SET @TotalSplitPartsCount = (SELECT COUNT(1) FROM #tmpPoSplitAllPartList)
-				
 					WHILE @SplitPartLoopId <= @TotalSplitPartsCount
 					BEGIN -->>>>> Start: Split Part While Loop		
 						IF((SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitParts WHERE PoPartSrNum = @PartLoopId AND PoSplitPartSrNum = @SplitPartLoopId) > 0)
 						BEGIN
-							SELECT @PurchaseOrderPartRecordIdSplit = PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = (SELECT TOP 1 PurchaseOrderPartRecordId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId)		
+							
+							SELECT @PurchaseOrderPartRecordIdSplit =  PurchaseOrderPartRecordId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId
+							--SELECT @PurchaseOrderPartRecordIdSplit = PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = (SELECT TOP 1 PurchaseOrderPartRecordId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId)		
 							SELECT @SplitPartIsDeleted = IsDeleted,@ManagementStructureIdSplit = ManagementStructureId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId
 							IF(ISNULL(@PurchaseOrderPartRecordIdSplit,0) = 0)
 							BEGIN -- START :IF : @PurchaseOrderPartRecordIdSplit,0) = 0
@@ -680,8 +680,12 @@ BEGIN
 				END
 			END
 /* ----------------------------END:  Main Part Detail ---------------------------------- */	
-			 DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
-			 DELETE FROM #tmpPoSplitAllPartList WHERE IsDeleted = 1
+			
+			 --DELETE FROM #tmpPoSplitAllPartList WHERE IsDeleted = 1
+
+			 DELETE SPLIT FROM #tmpPoSplitAllPartList SPLIT INNER JOIN #tmpPoPartList P ON P.PoPartSrNum = SPLIT.PoPartSrNum 
+			 WHERE SPLIT.IsDeleted = 1 OR P.IsDeleted = 1
+			  DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
 
 			 SELECT * FROM #tmpPoPartList
 			 SELECT * FROM #tmpPoSplitAllPartList

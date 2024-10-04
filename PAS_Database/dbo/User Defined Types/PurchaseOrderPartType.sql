@@ -97,5 +97,10 @@
     [EmployeeID]                BIGINT          NULL,
     [CoreDueDate]               DATETIME        NULL,
     [IsCreateExchange]          BIT             NULL,
-    [ExpectedSerialNumber]      VARCHAR (100)   NULL);
+    [ExpectedSerialNumber]      VARCHAR (100)   NULL,
+    [RequestedQtyFromWO]        INT             NULL,
+    [ModuleId]                  INT             NULL,
+    [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL);
+
+
 

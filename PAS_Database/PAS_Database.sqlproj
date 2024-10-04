@@ -3181,6 +3181,8 @@
     <Build Include="dbo\Stored Procedures\SP_AddUpdatePurchaseOrderParts.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderSplitPartsType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartType.sql" />
+    <Build Include="dbo\Stored Procedures\SP_MapWOSOEXCHByPartListFromPO.sql" />
+    <Build Include="dbo\User Defined Types\PurchaseOrderPartWOSOEXCHType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

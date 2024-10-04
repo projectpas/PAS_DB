@@ -49,9 +49,9 @@ BEGIN
 			BEGIN    
 				DROP TABLE #tmpPoSplitAllPartList
 			END
-			IF OBJECT_ID(N'tempdb..#tmpPoSplitPart') IS NOT NULL    
+			IF OBJECT_ID(N'tempdb..#tmpPoSplitParts') IS NOT NULL    
 			BEGIN    
-				DROP TABLE #tmpPoSplitPart
+				DROP TABLE #tmpPoSplitParts
 			END
 			IF OBJECT_ID(N'tempdb..#tmpMainPoPartList') IS NOT NULL    
 			BEGIN    
@@ -372,17 +372,22 @@ BEGIN
 				
 /* ----------------------------START:  SPLIT PART Functionality ---------------------------------- */
 					SET @SplitPartLoopId = 1;
-					--SELECT * INTO #tmpPoSplitPart FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
-					--SET @TotalSplitPartsCount = (SELECT COUNT(1) FROM #tmpPoSplitPart)
-					--SELECT * INTO #tmpPoSplitPart FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
-					SET @TotalSplitPartsCount = (SELECT COUNT(1) FROM #tmpPoSplitAllPartList)
+						IF OBJECT_ID(N'tempdb..#tmpPoSplitParts') IS NOT NULL    
+						BEGIN    
+							DROP TABLE #tmpPoSplitParts
+						END
+					SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
+					SET @TotalSplitPartsCount = (SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitParts)
+					--SELECT * INTO #tmpPoSplitParts FROM (SELECT * FROM #tmpPoSplitAllPartList sp WHERE sp.PoPartSrNum = @PartLoopId) AS res
+					
+					--SET @TotalSplitPartsCount = (SELECT COUNT(1) FROM #tmpPoSplitAllPartList)
 				
 					WHILE @SplitPartLoopId <= @TotalSplitPartsCount
 					BEGIN -->>>>> Start: Split Part While Loop		
-						IF((SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitAllPartList WHERE PoPartSrNum = @PartLoopId AND PoSplitPartSrNum = @SplitPartLoopId) > 0)
+						IF((SELECT COUNT(PoSplitPartSrNum) FROM #tmpPoSplitParts WHERE PoPartSrNum = @PartLoopId AND PoSplitPartSrNum = @SplitPartLoopId) > 0)
 						BEGIN
-							SELECT @PurchaseOrderPartRecordIdSplit = PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = (SELECT TOP 1 PurchaseOrderPartRecordId FROM #tmpPoSplitAllPartList WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId)		
-							SELECT @SplitPartIsDeleted = IsDeleted,@ManagementStructureIdSplit = ManagementStructureId FROM #tmpPoSplitAllPartList WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId
+							SELECT @PurchaseOrderPartRecordIdSplit = PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = (SELECT TOP 1 PurchaseOrderPartRecordId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId)		
+							SELECT @SplitPartIsDeleted = IsDeleted,@ManagementStructureIdSplit = ManagementStructureId FROM #tmpPoSplitParts WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId
 							IF(ISNULL(@PurchaseOrderPartRecordIdSplit,0) = 0)
 							BEGIN -- START :IF : @PurchaseOrderPartRecordIdSplit,0) = 0
 								INSERT INTO [dbo].[PurchaseOrderPart]  -- Insert the split part
@@ -574,10 +579,10 @@ BEGIN
 								   ,tmp.TaggedByName
 								   ,tmp.TaggedByTypeName
 								   ,tmp.TagDate
-									FROM #tmpPoSplitAllPartList split INNER JOIN  #tmpPoPartList tmp  ON split.PoPartSrNum = tmp.PoPartSrNum WHERE split.PoSplitPartSrNum = @SplitPartLoopId AND split.PoPartSrNum = @PartLoopId)
+									FROM #tmpPoSplitParts split INNER JOIN  #tmpPoPartList tmp  ON split.PoPartSrNum = tmp.PoPartSrNum WHERE split.PoSplitPartSrNum = @SplitPartLoopId AND split.PoPartSrNum = @PartLoopId)
 
 									SET @PurchaseOrderPartRecordIdSplit = SCOPE_IDENTITY();
-									UPDATE #tmpPoSplitAllPartList SET PurchaseOrderPartRecordId =  @PurchaseOrderPartRecordIdSplit, ParentId = @PurchaseOrderPartRecordId WHERE PoSplitPartSrNum = @SplitPartLoopId
+									UPDATE #tmpPoSplitAllPartList SET PurchaseOrderPartRecordId =  @PurchaseOrderPartRecordIdSplit, ParentId = @PurchaseOrderPartRecordId, IsParent = 0 WHERE PoSplitPartSrNum = @SplitPartLoopId AND PoPartSrNum = @PartLoopId
 								EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordIdSplit,@ManagementStructureIdSplit,@MasterCompanyId,@userName,@userName,@ModuleId,3, 0
 							 END -- END :IF : @PurchaseOrderPartRecordIdSplit,0) = 0
 							 ELSE
@@ -585,7 +590,7 @@ BEGIN
 								  IF(@SplitPartIsDeleted = 1)
 								  BEGIN
 									DELETE FROM DBO.PurchaseOrderApproval WHERE PurchaseOrderPartId = @PurchaseOrderPartRecordIdSplit
-									DELETE FROM DBO.PurchaseOrderPart WHERE PurchaseOrderPartRecordId = PurchaseOrderPartRecordId
+									DELETE FROM DBO.PurchaseOrderPart WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordIdSplit
 								  END
 								  ELSE
 								  BEGIN
@@ -635,7 +640,7 @@ BEGIN
 									FROM DBO.PurchaseOrderPart PART
 									JOIN #tmpPoPartList TMP							 
 										ON PART.PurchaseOrderPartRecordId = TMP.PurchaseOrderPartRecordId
-									JOIN #tmpPoSplitAllPartList split ON TMP.PoPartSrNum = split.PoPartSrNum
+									JOIN #tmpPoSplitParts split ON TMP.PoPartSrNum = split.PoPartSrNum
 									WHERE PART.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordIdSplit
 
 									EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordIdSplit,@ManagementStructureIdSplit,@MasterCompanyId,@userName,@userName,@ModuleId,4, 0

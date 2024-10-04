@@ -19,7 +19,7 @@
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	8    12/04/2024   Devendra Shekh added module for INTERNALWORKORDERTEARDOWN
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
-    10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE / VENDOR RMA
+    10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE / VENDOR RMA /CM
 
 **************************************************************/  
 
@@ -609,7 +609,7 @@ BEGIN
 											WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
 											WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' 
 													OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.ExchangeSalesOrderId
-											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN SPBD.ReferenceId
+											WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN CMBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
 											WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId

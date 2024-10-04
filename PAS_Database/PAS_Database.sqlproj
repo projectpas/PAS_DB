@@ -3183,6 +3183,9 @@
     <Build Include="dbo\User Defined Types\PurchaseOrderPartType.sql" />
     <Build Include="dbo\Stored Procedures\SP_MapWOSOEXCHByPartListFromPO.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartWOSOEXCHType.sql" />
+    <Build Include="dbo\Tables\GeneralLedgerEmployeeMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveGeneralLedgerEmployeeMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateGeneralLedgerParam.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

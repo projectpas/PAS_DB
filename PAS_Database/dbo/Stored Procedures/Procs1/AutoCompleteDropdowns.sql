@@ -15,8 +15,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    06/14/2024   Vishal Suthar Added History
-    2    06/14/2024   Vishal Suthar Increased Limit of records from 20 to 50 for Item Master Module
+    1    06/14/2024   Vishal Suthar		Added History
+    2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
+    3    10/03/2024   Devendra Shekh	Added case for BatchDetails
      
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1      
@@ -292,6 +293,15 @@ AS BEGIN
                                                                                                                WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
                      FROM dbo.ItemMasterNonStock IMN
                      WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+            END
+			 ELSE IF(@TableName='BatchDetails')BEGIN
+                     SELECT DISTINCT TOP 20 MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
+                     FROM dbo.BatchDetails WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(JournalTypeNumber LIKE '%'+@Parameter3+'%')) GROUP BY JournalTypeNumber
+                     UNION
+                     SELECT DISTINCT MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
+                     FROM dbo.BatchDetails WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND JournalBatchDetailId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY JournalTypeNumber
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN

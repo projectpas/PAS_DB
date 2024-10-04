@@ -3181,6 +3181,9 @@
     <Build Include="dbo\Stored Procedures\SP_AddUpdatePurchaseOrderParts.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderSplitPartsType.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartType.sql" />
+    <Build Include="dbo\Tables\GeneralLedgerEmployeeMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveGeneralLedgerEmployeeMappingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckDuplicateGeneralLedgerParam.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -8,6 +8,7 @@
 ** PR   Date			Author					Change Description  
 ** --   --------		-------					--------------------------------
 ** 1	09/23/2024		Devendra Shekh			Created
+** 2	10/03/2024		Devendra Shekh			Modified to Save Employee Mapping
 
 
 declare @p1 dbo.GeneralLedgerSearchParamsType
@@ -17,7 +18,9 @@ exec dbo.USP_SaveGeneralLedgerSearchParams @tblType_GeneralLedgerSearchParamsTyp
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveGeneralLedgerSearchParams]
 	@tblType_GeneralLedgerSearchParamsType [GeneralLedgerSearchParamsType] READONLY,
-	@UserRoleId BIGINT = NULL
+	@UserRoleId BIGINT = NULL,
+	@CurrentUserEmployeeId BIGINT = NULL,
+	@UserName VARCHAR(256) = NULL
 AS
 BEGIN
 	
@@ -30,7 +33,8 @@ BEGIN
 				DECLARE @GeneralLedgerSearchParamsId BIGINT = 0;
 				DECLARE @ModuleHierarchyMasterId BIGINT = 0;
 				DECLARE @SaveSearchTabId BIGINT = 0;
-				DECLARE @UrlName VARCHAR(500) = NULL;
+				DECLARE @UserlName VARCHAR(500) = NULL;
+				DECLARE @MasterCompanyId INT = 0;
 
 				SELECT @SaveSearchTabId = Id FROM dbo.[ModuleHierarchyMaster] WITH(NOLOCK) WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL);
 
@@ -43,20 +47,23 @@ BEGIN
 
 				SET @GeneralLedgerSearchParamsId = SCOPE_IDENTITY();
 
-				SELECT @UrlName = [UrlName] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
+				SELECT @MasterCompanyId = [MasterCompanyId], @UserlName = [CreatedBy] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
 
-				IF NOT EXISTS (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name] = @UrlName AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)))
-				BEGIN
-					INSERT [dbo].[ModuleHierarchyMaster] ([Name], [ParentId], [IsPage], [DisplayOrder], [ModuleCode], [IsMenu], [ModuleIcon], [RouterLink], [PermissionConstant], [IsCreateMenu], [ModuleId], [ListParentId], [IsReport], [ShowAsTopMenu], [NewModuleIcon], [NewMenuName])
-					VALUES (@UrlName, (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)), 1, 1, NULL, 1, NULL, '/accountmodule/accountpages/app-general-ledger-search-template/save-search/' + CAST(@GeneralLedgerSearchParamsId AS VARCHAR), @UrlName + '_Search_Template', 0, (SELECT Id FROM [dbo].[ModuleHierarchyMaster] WITH(NOLOCK) WHERE [ParentId] IS NULL AND UPPER([Name]) = 'ACCOUNTING'), NULL, 0, 0, '', '')
+				EXEC [USP_SaveGeneralLedgerEmployeeMappingData] @GeneralLedgerSearchParamsId, @CurrentUserEmployeeId, @MasterCompanyId, @UserlName;
+				--SELECT @UrlName = [UrlName] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
+
+				--IF NOT EXISTS (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name] = @UrlName AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)))
+				--BEGIN
+				--	INSERT [dbo].[ModuleHierarchyMaster] ([Name], [ParentId], [IsPage], [DisplayOrder], [ModuleCode], [IsMenu], [ModuleIcon], [RouterLink], [PermissionConstant], [IsCreateMenu], [ModuleId], [ListParentId], [IsReport], [ShowAsTopMenu], [NewModuleIcon], [NewMenuName])
+				--	VALUES (@UrlName, (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)), 1, 1, NULL, 1, NULL, '/accountmodule/accountpages/app-general-ledger-search-template/save-search/' + CAST(@GeneralLedgerSearchParamsId AS VARCHAR), @UrlName + '_Search_Template', 0, (SELECT Id FROM [dbo].[ModuleHierarchyMaster] WITH(NOLOCK) WHERE [ParentId] IS NULL AND UPPER([Name]) = 'ACCOUNTING'), NULL, 0, 0, '', '')
 				
-					SET @ModuleHierarchyMasterId = SCOPE_IDENTITY();
-				END
+				--	SET @ModuleHierarchyMasterId = SCOPE_IDENTITY();
+				--END
 
-				IF(ISNULL(@ModuleHierarchyMasterId, 0) > 0 AND ISNULL(@UserRoleId, 0) > 0)
-				BEGIN
-					EXEC [USP_SaveModuleRolePermissions_ByRoleId] @UserRoleId, @ModuleHierarchyMasterId;
-				END
+				--IF(ISNULL(@ModuleHierarchyMasterId, 0) > 0 AND ISNULL(@UserRoleId, 0) > 0)
+				--BEGIN
+				--	EXEC [USP_SaveModuleRolePermissions_ByRoleId] @UserRoleId, @ModuleHierarchyMasterId;
+				--END
 
 			END
 		END TRY    

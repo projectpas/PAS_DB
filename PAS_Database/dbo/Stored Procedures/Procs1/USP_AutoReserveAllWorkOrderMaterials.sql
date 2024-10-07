@@ -58,7 +58,7 @@ BEGIN
 					DECLARE @ModuleId INT;
 					DECLARE @SubModuleId INT;
 					DECLARE @TotalCountsBoth INT;
-					DECLARE @MaterialRefNo VARCHAR(100) = 'Auto Reserve Stock'
+					DECLARE @MaterialRefNo VARCHAR(100) = 'Auto Reserve Stock', @WONumber VARCHAR(100);
 					DECLARE @Autocount INT;
 					DECLARE @Materialscount INT;
 					DECLARE @Autoslcount INT;
@@ -76,7 +76,7 @@ BEGIN
 
 					SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @SubWOProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'SUB WORK ORDER' AND IsActive = 1 AND IsDeleted = 0;
-					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+					SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WONumber=WO.WorkOrderNum  FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 					SELECT @ARCondition = [Description], @ARConditionId = ConditionId FROM dbo.Condition WITH(NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
 					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
@@ -313,7 +313,6 @@ BEGIN
 						--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 						IF(@TotalCounts > 0 )
 						BEGIN
-						Print '@MaterialRefNo-1'
 							MERGE dbo.WorkOrderMaterialStockLine AS TARGET
 							USING #tmpReserveWOMaterialsStockline AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 							--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -325,16 +324,16 @@ BEGIN
 									TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0),
 									TARGET.UpdatedDate = GETDATE(),
 									TARGET.UpdatedBy = SOURCE.ReservedBy,
-									TARGET.ReferenceNumber = @MaterialRefNo
+									TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 							WHEN NOT MATCHED BY TARGET 
 								THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo);
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActReserved, SOURCE.QuantityActReserved, 0, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
 						END
 
 						PRINT '--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY'
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 						UPDATE dbo.WorkOrderMaterialStockLine 
-						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo
+						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 						WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -621,8 +620,7 @@ BEGIN
 
 							--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 							IF(@AutoTotalCounts > 0 )
-							BEGIN
-							Print '@MaterialRefNo-2'
+							BEGIN							
 								MERGE dbo.WorkOrderMaterialStockLineKIT AS TARGET
 								USING #tmpAutoReserveWOMKITAlt AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsKITId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 								--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -635,15 +633,15 @@ BEGIN
 										TARGET.UpdatedDate = GETDATE(),
 										TARGET.IsAltPart = SOURCE.IsAltPart,
 										TARGET.AltPartMasterPartId = SOURCE.AltPartMasterPartId,
-										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo
+										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 								WHEN NOT MATCHED BY TARGET 
 									THEN INSERT (StocklineId, WorkOrderMaterialsKITId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, IsAltPart, AltPartMasterPartId,ReferenceNumber) 
-									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsAltPart, SOURCE.AltPartMasterPartId,@MaterialRefNo);
+									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsAltPart, SOURCE.AltPartMasterPartId,@MaterialRefNo + ' - '+@WONumber);
 							END
 
 							--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 							UPDATE dbo.WorkOrderMaterialStockLineKIT 
-							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo
+							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 							FROM dbo.WorkOrderMaterialStockLineKIT WOMS JOIN #tmpAutoReserveWOMKITAlt tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKITId = tmpRSL.WorkOrderMaterialsId 
 							WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -900,7 +898,6 @@ BEGIN
 							--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 							IF(@AutoTotalCounts > 0 )
 							BEGIN
-							Print '@MaterialRefNo-3'
 								MERGE dbo.WorkOrderMaterialStockLine AS TARGET
 								USING #tmpAutoReserveWOMMaterialsAlt AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 								--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -913,15 +910,15 @@ BEGIN
 										TARGET.UpdatedDate = GETDATE(),
 										TARGET.IsAltPart = SOURCE.IsAltPart,
 										TARGET.AltPartMasterPartId = SOURCE.AltPartMasterPartId,
-										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo
+										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 								WHEN NOT MATCHED BY TARGET 
 									THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,IsAltPart,AltPartMasterPartId,ReferenceNumber) 
-									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsAltPart, SOURCE.AltPartMasterPartId,@MaterialRefNo);
+									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsAltPart, SOURCE.AltPartMasterPartId,@MaterialRefNo + ' - '+@WONumber);
 							END
 
 							--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 							UPDATE dbo.WorkOrderMaterialStockLine 
-							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo 
+							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 							FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpAutoReserveWOMMaterialsAlt tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 							WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -1199,7 +1196,6 @@ BEGIN
 							--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 							IF(@AutoTotalCounts > 0 )
 							BEGIN
-							Print '@MaterialRefNo-4'
 								MERGE dbo.WorkOrderMaterialStockLineKIT AS TARGET
 								USING #tmpAutoReserveWOMKITEqu AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsKITId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 								--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -1212,15 +1208,15 @@ BEGIN
 										TARGET.UpdatedDate = GETDATE(),
 										TARGET.IsEquPart = SOURCE.IsEquPart,
 										TARGET.EquPartMasterPartId = SOURCE.EquPartMasterPartId,
-										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo 
+										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 								WHEN NOT MATCHED BY TARGET 
 									THEN INSERT (StocklineId, WorkOrderMaterialsKITId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, IsEquPart , EquPartMasterPartId,ReferenceNumber) 
-									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsEquPart , SOURCE.EquPartMasterPartId,@MaterialRefNo);
+									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsEquPart , SOURCE.EquPartMasterPartId,@MaterialRefNo + ' - '+@WONumber);
 							END
 
 							--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 							UPDATE dbo.WorkOrderMaterialStockLineKIT 
-							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo  
+							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber  
 							FROM dbo.WorkOrderMaterialStockLineKIT WOMS JOIN #tmpAutoReserveWOMKITEqu tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKITId = tmpRSL.WorkOrderMaterialsId 
 							WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -1477,7 +1473,6 @@ BEGIN
 							--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 							IF(@AutoTotalCounts > 0 )
 							BEGIN
-							Print '@MaterialRefNo-6'
 								MERGE dbo.WorkOrderMaterialStockLine AS TARGET
 								USING #tmpAutoReserveWOMMaterialsEqu AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 								--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -1490,15 +1485,15 @@ BEGIN
 										TARGET.UpdatedDate = GETDATE(),
 										TARGET.IsEquPart = SOURCE.IsEquPart,
 										TARGET.EquPartMasterPartId = SOURCE.EquPartMasterPartId,
-										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo 
+										TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 								WHEN NOT MATCHED BY TARGET 
 									THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, IsEquPart, EquPartMasterPartId,ReferenceNumber) 
-									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsEquPart, SOURCE.EquPartMasterPartId,@MaterialRefNo);
+									VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0, SOURCE.IsEquPart, SOURCE.EquPartMasterPartId,@MaterialRefNo + ' - '+@WONumber);
 							END
 
 							--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 							UPDATE dbo.WorkOrderMaterialStockLine 
-							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo 
+							SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 							FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpAutoReserveWOMMaterialsEqu tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 							WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -1771,7 +1766,6 @@ BEGIN
 						--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 						IF(@AutoTotalCounts > 0 )
 						BEGIN
-						Print '@MaterialRefNo-7'
 							MERGE dbo.WorkOrderMaterialStockLine AS TARGET
 							USING #tmpAutoReserveWOM AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 							--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -1782,15 +1776,15 @@ BEGIN
 									TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 									TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 									TARGET.UpdatedDate = GETDATE(),
-									TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo 
+									TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 							WHEN NOT MATCHED BY TARGET 
 								THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo);
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
 						END
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 						UPDATE dbo.WorkOrderMaterialStockLine 
-						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo 
+						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 						FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpAutoReserveWOM tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 						WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 
@@ -2076,7 +2070,6 @@ BEGIN
 						--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
 						IF(@AutoTotalCounts > 0 )
 						BEGIN
-						Print '@MaterialRefNo-8'
 							MERGE dbo.WorkOrderMaterialStockLineKIT AS TARGET
 							USING #tmpAutoReserveWOMKIT AS SOURCE ON (TARGET.StocklineId = SOURCE.StocklineId AND SOURCE.WorkOrderMaterialsId = TARGET.WorkOrderMaterialsKITId) -- TARGET.ItemMasterId = SOURCE.ItemMasterId AND TARGET.ConditionId = SOURCE.ConditionId) 
 							--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
@@ -2087,15 +2080,15 @@ BEGIN
 									TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 									TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 									TARGET.UpdatedDate = GETDATE(),
-									TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo 
+									TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 							WHEN NOT MATCHED BY TARGET 
 								THEN INSERT (StocklineId, WorkOrderMaterialsKITId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo);
+								VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.ActQuantity, SOURCE.ActQuantity, 0, SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.ActQuantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETDATE(), SOURCE.ReservedBy, GETDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
 						END
 
 						--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 						UPDATE dbo.WorkOrderMaterialStockLineKIT 
-						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo  
+						SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber  
 						FROM dbo.WorkOrderMaterialStockLineKIT WOMS JOIN #tmpAutoReserveWOMKIT tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKITId = tmpRSL.WorkOrderMaterialsId 
 						WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) 
 

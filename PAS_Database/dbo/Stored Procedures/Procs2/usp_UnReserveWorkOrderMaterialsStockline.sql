@@ -58,8 +58,9 @@ BEGIN
 					DECLARE @stockLineQtyAvailable INT;
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @historyPartNumber VARCHAR(150);
-					DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve';
+					DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve', @WONumber VARCHAR(100);
 
+					SELECT @WONumber=WorkOrderNum from dbo.WorkOrder WO WITH(NOLOCK) WHERE WorkOrderId = (SELECT TOP 1 WorkOrderId FROM @tbl_MaterialsStocklineType)
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 					SET @PartStatus = 2; -- FOR Issue
@@ -166,14 +167,14 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
-							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo
+							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnReserveWOMaterialsStockline tmpRSL ON WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 						WHERE WOMS.StockLineId = tmpRSL.StockLineId AND ISNULL(tmpRSL.KitId, 0) > 0
 					END
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLineKit 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
@@ -255,7 +256,7 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
-							UpdatedBy = ReservedBy, ReferenceNumber = @MaterialRefNo
+							UpdatedBy = ReservedBy, ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnReserveWOMaterialsStockline tmpRSL ON WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 						WHERE WOMS.StockLineId = tmpRSL.StockLineId AND ISNULL(tmpRSL.KitId, 0) = 0
 						
@@ -263,7 +264,7 @@ BEGIN
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLine 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) , ReferenceNumber = @MaterialRefNo
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) , ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnReserveWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0
 

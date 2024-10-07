@@ -66,7 +66,7 @@ BEGIN
 					DECLARE @stockLineQty INT;
 					DECLARE @stockLineQtyAvailable INT;
 					DECLARE @IsKit BIGINT = 0;
-					DECLARE @MaterialRefNo VARCHAR(100) = 'Issue Stock';
+					DECLARE @MaterialRefNo VARCHAR(100) = 'Issue Stock', @WONumber VARCHAR(100);
 
 					DECLARE @RC int
                     DECLARE @DistributionMasterId BIGINT
@@ -96,6 +96,7 @@ BEGIN
 					SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
+					SELECT @WONumber=WorkOrderNum from dbo.WorkOrder WO WITH(NOLOCK) WHERE WorkOrderId = (SELECT TOP 1 WorkOrderId FROM @tbl_MaterialsStocklineType)
 					SET @PartStatus = 2; -- FOR Issue
 					SET @IsAddUpdate = 0;
 					SET @ExecuteParentChild = 1;
@@ -307,15 +308,15 @@ BEGIN
 								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
-								TARGET.UpdatedBy = SOURCE.ReservedBy, TARGET.ReferenceNumber = @MaterialRefNo
+								TARGET.UpdatedBy = SOURCE.ReservedBy, TARGET.ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (StocklineId, WorkOrderMaterialsKitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsKitId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo);
+							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsKitId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.QuantityActIssued, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
 					END
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLineKit 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) , ReferenceNumber = @MaterialRefNo
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) , ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpIssueWOMaterialsStocklineKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsKitId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
@@ -360,17 +361,17 @@ BEGIN
 								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
-								TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber =  @MaterialRefNo
+								TARGET.UpdatedBy = SOURCE.ReservedBy,TARGET.ReferenceNumber =  @MaterialRefNo + ' - '+@WONumber
 						WHEN NOT MATCHED BY TARGET 
 							THEN INSERT (StocklineId, WorkOrderMaterialsId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted,ReferenceNumber) 
-							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo);
+							VALUES (SOURCE.StocklineId, SOURCE.WorkOrderMaterialsId, SOURCE.ItemMasterId, SOURCE.ConditionId, SOURCE.ProvisionId, SOURCE.QuantityActIssued, 0, SOURCE.QuantityActIssued, SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), SOURCE.UnitCost, (ISNULL(SOURCE.Quantity, 0) * ISNULL(SOURCE.UnitCost, 0)), GETUTCDATE(), SOURCE.ReservedBy, GETUTCDATE(), SOURCE.ReservedBy, SOURCE.MasterCompanyId, 1, 0,@MaterialRefNo + ' - '+@WONumber);
 					END
 
 					PRINT 'Hem-4'
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLine 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0), ReferenceNumber = @MaterialRefNo 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0), ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0)
 

@@ -29,6 +29,9 @@
     [Figure]                  NVARCHAR (50)   NULL,
     [Item]                    NVARCHAR (50)   NULL,
     [RepairOrderPartRecordId] BIGINT          NULL,
+    [ReferenceNumber]         VARCHAR (100)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineAudit] PRIMARY KEY CLUSTERED ([WOMStockLineAuditId] ASC)
 );
+
+
 

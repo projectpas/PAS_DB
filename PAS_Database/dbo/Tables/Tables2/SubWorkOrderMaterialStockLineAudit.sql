@@ -28,6 +28,9 @@
     [QuantityTurnIn]          INT             DEFAULT ((0)) NULL,
     [Figure]                  NVARCHAR (50)   NULL,
     [Item]                    NVARCHAR (50)   NULL,
+    [ReferenceNumber]         VARCHAR (100)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialStockLineAudit] PRIMARY KEY CLUSTERED ([SWOMStockLineAuditId] ASC)
 );
+
+
 

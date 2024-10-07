@@ -31,7 +31,7 @@
     [ConditionId]                BIGINT         NOT NULL,
     [IsConvertedToSalesOrder]    BIT            NOT NULL,
     [IsActive]                   BIT            NOT NULL,
-    [CustomerRequestDate]        DATETIME2 (7)  NOT NULL,
+    [CustomerRequestDate]        DATETIME2 (7)  NULL,
     [PromisedDate]               DATETIME2 (7)  NULL,
     [EstimatedShipDate]          DATETIME2 (7)  NULL,
     [PriorityId]                 INT            NOT NULL,
@@ -66,6 +66,8 @@
     [IsNoQuote]                  BIT            NULL,
     CONSTRAINT [PK_SalesOrderQuotePartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
+
+
 
 
 

@@ -103,6 +103,10 @@
     [TaggedByName]               VARCHAR (250)   NULL,
     [TaggedByTypeName]           VARCHAR (250)   NULL,
     [TagDate]                    DATETIME2 (7)   NULL,
+    [WorkOrderMaterialsId]       BIGINT          NULL,
+    [IsKitType]                  BIT             NULL,
     CONSTRAINT [PK_RepairOrderPartAudit] PRIMARY KEY CLUSTERED ([RepairOrderPartAuditId] ASC)
 );
+
+
 

@@ -173,6 +173,9 @@
     [ShippingReferenceNumberNotProvided]  BIT             NULL,
     [IsStkTimeLife]                       BIT             NULL,
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
+    [IsKitType]                           BIT             NULL,
     CONSTRAINT [PK_StockLineDraftAudit] PRIMARY KEY CLUSTERED ([StockLineDraftAuditId] ASC)
 );
+
+
 

@@ -16,6 +16,7 @@ EXEC [usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
 ** 5    08/05/2024      HEMANT SALIYA	    Fixed MTI stk Reserve Qty was not updating
 ** 6    09/10/2024      RAJESH GAMI  	    Added new stockline history action (UnIssueUnReserve)
 ** 7    09/24/2024      HEMANT SALIYA	    Re-Calculate WOM Qty Res & Qty Issue
+** 8    10/04/2024      RAJESH GAMI 	    Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_UnReserveAndUnIssueWorkOrderMaterialsStockline]
@@ -69,11 +70,12 @@ BEGIN
 					DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
 					DECLARE @WOBatchCount INT = 0;
 					DECLARE @DistributionCode VARCHAR(50)
-
+					DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve UnIssue', @WONumber VARCHAR(100);
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 33; -- For WORK ORDER Materials Module
 					SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 					SET @ActionId = (SELECT TOP 1 ActionId FROM [dbo].[StklineHistory_Action] WHERE [Type] = 'UnIssueUnReserve'); -- Added new action for unIssue & unReserve at one click
+					SELECT @WONumber=WorkOrderNum from dbo.WorkOrder WO WITH(NOLOCK) WHERE WorkOrderId = (SELECT TOP 1 WorkOrderId FROM @tbl_MaterialsStocklineType)
 
 					SET @PartStatus = 4; -- FOR Un-Issue
 					SET @IsAddUpdate = 0;
@@ -177,7 +179,7 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
-							UpdatedBy = ReservedBy
+							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLineKit WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 						WHERE ISNULL(tmpRSL.KitId, 0) > 0;
@@ -185,7 +187,7 @@ BEGIN
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLineKit 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) ,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 
@@ -232,14 +234,14 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
-							UpdatedBy = ReservedBy
+							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@WONumber
 						FROM dbo.WorkOrderMaterialStockLine WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0
 					END
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.WorkOrderMaterialStockLine 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@WONumber 
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0 
 

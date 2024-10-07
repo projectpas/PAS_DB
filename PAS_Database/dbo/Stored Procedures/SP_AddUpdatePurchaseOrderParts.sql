@@ -638,9 +638,9 @@ BEGIN
 										PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
 										PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate
 									FROM DBO.PurchaseOrderPart PART
-									JOIN #tmpPoPartList TMP							 
-										ON PART.PurchaseOrderPartRecordId = TMP.PurchaseOrderPartRecordId
-									JOIN #tmpPoSplitParts split ON TMP.PoPartSrNum = split.PoPartSrNum
+									JOIN #tmpPoSplitParts split							 
+										ON PART.PurchaseOrderPartRecordId = split.PurchaseOrderPartRecordId
+									JOIN #tmpPoPartList TMP ON TMP.PoPartSrNum = split.PoPartSrNum
 									WHERE PART.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordIdSplit
 
 									EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordIdSplit,@ManagementStructureIdSplit,@MasterCompanyId,@userName,@userName,@ModuleId,4, 0
@@ -685,7 +685,7 @@ BEGIN
 
 			 DELETE SPLIT FROM #tmpPoSplitAllPartList SPLIT INNER JOIN #tmpPoPartList P ON P.PoPartSrNum = SPLIT.PoPartSrNum 
 			 WHERE SPLIT.IsDeleted = 1 OR P.IsDeleted = 1
-			  DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
+			 DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
 
 			 SELECT * FROM #tmpPoPartList
 			 SELECT * FROM #tmpPoSplitAllPartList

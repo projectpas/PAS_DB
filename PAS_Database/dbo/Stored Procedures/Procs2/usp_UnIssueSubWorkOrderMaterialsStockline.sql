@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <02/07/2022>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -12,6 +13,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 1    02/07/2022  HEMANT SALIYA    Save Sub Work Order Materials Issued Stockline Details
 ** 2    07/18/2023  VISHAL SUTHAR    Added new stockline history
 ** 3    12/20/2023  HEMANT SALIYA    Added KIT in SWO Issue
+** 4    10/08/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 
 declare @p1 dbo.SubWOMaterialsStocklineType
 insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A COCKPIT OR FLIGHT DECK IS THE AREA, USUALLY NEAR THE FRONT OF AN AIRCRAFT OR SPACECRAFT, FROM WHICH A PILOT CONTROLS THE AIRCRAFT. THE COCKPIT OF AN AIRCRAFT CONTAINS FLIGHT INSTRUMENTS ON AN INSTRUMENT PANEL, AND THE CONTROLS THAT ENABLE THE PILOT TO FLY THE AIRCRAFT',1,0,0,0,0,1,N'CNTL-001540',N'ID_NUM-000010',N'STL000004',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -71,8 +73,9 @@ BEGIN
 								@SubWorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT,
 								@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued BIGINT
 								,@OldValue VARCHAR(MAX)='' ,@NewValue VARCHAR(MAX) ='' 
+					DECLARE @MaterialRefNo VARCHAR(100) = 'UnIssue', @SubWONumber VARCHAR(100);
 
-
+					SELECT @SubWONumber=SubWorkOrderNo from dbo.SubWorkOrder WO WITH(NOLOCK) WHERE SubWorkOrderId = (SELECT TOP 1 SubWorkOrderId FROM @tbl_MaterialsStocklineType)
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
 					SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'SubWorkOrderMaterials'; -- For WORK ORDER Materials Module
 					SELECT @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
@@ -188,7 +191,7 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETUTCDATE(),
-							UpdatedBy = ReservedBy
+							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLineKit WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId 
 						WHERE ISNULL(tmpRSL.KitId, 0) > 0
@@ -196,7 +199,7 @@ BEGIN
 
 					--FOR UPDATED SUB WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.SubWorkOrderMaterialStockLineKit 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber 
 					FROM dbo.SubWorkOrderMaterialStockLineKit WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsKitId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) > 0
 					
@@ -234,14 +237,14 @@ BEGIN
 							ExtendedCost = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							ExtendedPrice = ISNULL(WOMS.Quantity, 0) * WOMS.UnitCost,
 							UpdatedDate = GETDATE(),
-							UpdatedBy = ReservedBy
+							UpdatedBy = ReservedBy,ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber
 						FROM dbo.SubWorkOrderMaterialStockLine WOMS 
 						JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId AND ISNULL(tmpRSL.KitId, 0) = 0
 					END
 
 					--FOR UPDATE SUB WORKORDER MATERIALS STOCKLINE QTY
 					UPDATE dbo.SubWorkOrderMaterialStockLine 
-					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0) 
+					SET Quantity = ISNULL(QtyReserved, 0) + ISNULL(QtyIssued, 0),ReferenceNumber = @MaterialRefNo + ' - '+@SubWONumber 
 					FROM dbo.SubWorkOrderMaterialStockLine WOMS JOIN #tmpUnIssueWOMaterialsStockline tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.SubWorkOrderMaterialsId = tmpRSL.SubWorkOrderMaterialsId 
 					WHERE (ISNULL(WOMS.QtyReserved, 0) + ISNULL(WOMS.QtyIssued, 0)) > ISNULL(WOMS.Quantity, 0) AND ISNULL(tmpRSL.KitId, 0) = 0 
 					

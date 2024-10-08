@@ -491,25 +491,25 @@ BEGIN
 						SELECT
 							IM.partnumber,
 							IM.ItemMasterId,
-							COUNT(QtyShipped) AS TotalSalesCount
+							COUNT(Qty) AS TotalSalesCount
 						FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 							INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
-							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 							LEFT OUTER JOIN dbo.SalesOrderShipping SOS WITH (NOLOCK) ON SO.SalesOrderId = SOS.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOP.SalesOrderPartId = SOSI.SalesOrderPartId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 							LEFT OUTER JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 						WHERE  ((YEAR(SO.ShippedDate) = @CurrentYear 
 						AND MONTH(SO.ShippedDate) = @CurrentMonth
-						AND SO.ShippedDate <= @StartDate
+						AND CAST(SO.ShippedDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND SOP.StatusId = @ShippedStatusId AND SOS.AirwayBill IS NOT NULL) OR (YEAR(SOBI.InvoiceDate) = @CurrentYear 
 						AND MONTH(SOBI.InvoiceDate) = @CurrentMonth
-						AND SOBI.InvoiceDate <= @StartDate
+						AND CAST(SOBI.InvoiceDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND SOBillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
-						AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
+						--AND EUR.RoleId IN(SELECT item FROM dbo.SplitString(@EmployeeRoleID, ','))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND SOP.IsDeleted = 0
 						GROUP BY
 							IM.partnumber, 

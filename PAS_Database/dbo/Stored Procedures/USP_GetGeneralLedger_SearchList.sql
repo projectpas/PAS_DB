@@ -12,6 +12,7 @@
 	1    09/02/2024   Devendra Shekh	     CREATED
 	2    10/01/2024   Devendra Shekh	     Modifed to get all data while Download
 	3    10/02/2024   Devendra Shekh	     Modifed to get JE number with from Id
+	4    10/08/2024   Devendra Shekh	     Modifed (Hanled Null values)
 
 exec USP_GetGeneralLedger_SearchList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate=NULL,@ToEffectiveDate=NULL,@FromJournalId=N'',@ToJournalId=N'',@FromGLAccount=NULL
 ,@ToGLAccount=NULL,@EmployeeId=2,@Level1=N'0',@Level2=N'0',@Level3=N'0',@Level4=N'0',@Level5=N'0',@Level6=N'0',@Level7=N'0',@Level8=N'0',@Level9=N'0',@Level10=N'0',
@@ -142,15 +143,15 @@ BEGIN
 		INSERT INTO #TempJournalDetails ([CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
 										 [GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], [MastercompanyId])
 		SELECT	CBD.CommonJournalBatchDetailId,
-				BH.AccountingPeriod AS 'AccountPeriodName',
+				ISNULL(BH.AccountingPeriod,'') AS 'AccountPeriodName',
 				ISNULL(CBD.DebitAmount, 0) AS 'DebitAmount',
 				ISNULL(CBD.CreditAmount, 0) AS 'CreditAmount',
 				ISNULL(CBD.LocalCurrency, '') AS 'Currency',
 				ISNULL(CBD.ReferenceNumber, '') AS 'DocumentNumber',
 				CBD.TransactionDate AS 'EffectiveDate',
 				CBD.EntryDate,
-				CBD.DistributionName AS 'Distribution',
-				CBD.JournalTypeNumber AS 'JournalId',
+				ISNULL(CBD.DistributionName,'') AS 'Distribution',
+				ISNULL(CBD.JournalTypeNumber,'') AS 'JournalId',
 				CASE WHEN ISNULL(CBD.GlAccountNumber, '') = '' THEN ISNULL(CBD.GlAccountName, '') ELSE ISNULL(CBD.GlAccountNumber, '') + '-' + ISNULL(CBD.GlAccountName, '') END AS 'GLAccountName',
 				ISNULL(CBD.ReferenceName, '') AS 'TypeName',
 				ISNULL(CBD.CreatedBy, '') AS 'EmployeeName',

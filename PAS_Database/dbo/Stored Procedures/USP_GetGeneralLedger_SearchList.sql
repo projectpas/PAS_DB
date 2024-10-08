@@ -12,7 +12,7 @@
 	1    09/02/2024   Devendra Shekh	     CREATED
 	2    10/01/2024   Devendra Shekh	     Modifed to get all data while Download
 	3    10/02/2024   Devendra Shekh	     Modifed to get JE number with from Id
-	4    10/08/2024   Devendra Shekh	     Modifed (Hanled Null values)
+	4    10/08/2024   Devendra Shekh	     Modifed (Managed Null values)
 
 exec USP_GetGeneralLedger_SearchList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate=NULL,@ToEffectiveDate=NULL,@FromJournalId=N'',@ToJournalId=N'',@FromGLAccount=NULL
 ,@ToGLAccount=NULL,@EmployeeId=2,@Level1=N'0',@Level2=N'0',@Level3=N'0',@Level4=N'0',@Level5=N'0',@Level6=N'0',@Level7=N'0',@Level8=N'0',@Level9=N'0',@Level10=N'0',

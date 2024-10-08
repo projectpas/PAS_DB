@@ -218,10 +218,11 @@ BEGIN
 					-- Total Sales Order Quote Amount------------------------------------------------------------------------------------------------------
 					DECLARE @CntsSOQAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpSalesOrderQuoteAmt(Total, Mnth) as (
-					SELECT SUM(SOQP.NetSales), @Month
+					SELECT SUM(ISNULL(SOQP.SalesPriceExtended, 0) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQP.TaxAmount,0)), @Month
 					FROM DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						LEFT OUTER JOIN dbo.SalesOrderQuoteCharges SOQC ON SOQC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE Cast(SOQ.OpenDate as Date) = CONVERT(DATE, @SelectedDate)
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
@@ -233,10 +234,11 @@ BEGIN
 					-- Total Sales Order Amount
 					DECLARE @CntsSOAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpSalesOrderAmt(Total, Mnth) as (
-					SELECT SUM(SOP.NetSales), @Month
+					SELECT SUM(ISNULL(SOP.SalesPriceExtended, 0) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOP.TaxAmount,0)), @Month--SUM(SOP.NetSales), @Month
 					FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						LEFT OUTER JOIN dbo.SalesOrderCharges SOC ON SOC.SalesOrderPartId = SOP.SalesOrderPartId
 					WHERE Cast(SO.OpenDate as Date) = CONVERT(DATE, @SelectedDate)
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)
@@ -392,10 +394,11 @@ BEGIN
 					-- Total Sales Order Quote Amount------------------------------------------------------------------------------------------------------
 					DECLARE @CntsYearlySOQAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpYearlySalesOrderQuoteAmt(Total, Mnth) as (
-					SELECT SUM(SOQP.NetSales), @Month
+					SELECT SUM(ISNULL(SOQP.SalesPriceExtended, 0) + ISNULL(SOQC.BillingAmount, 0) + ISNULL(SOQP.TaxAmount,0)), @Month
 					FROM DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
+						LEFT OUTER JOIN dbo.SalesOrderQuoteCharges SOQC ON SOQC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE MONTH(Cast(SOQ.OpenDate as Date)) = @Month AND YEAR(Cast(SOQ.OpenDate as Date)) = @YEAR
 					AND SOQ.MasterCompanyId = @MasterCompanyId AND SOQ.IsDeleted = 0
 					)
@@ -407,10 +410,11 @@ BEGIN
 					-- Total Sales Order Amount
 					DECLARE @CntsYearlySOAmt DECIMAL(18, 2) = 0;;
 					;WITH tmpYearlySalesOrderAmt(Total, Mnth) as (
-					SELECT SUM(SOP.NetSales), @Month
+					SELECT SUM(ISNULL(SOP.SalesPriceExtended, 0) + ISNULL(SOC.BillingAmount, 0) + ISNULL(SOP.TaxAmount,0)), @Month
 					FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
 						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SO.SalesOrderId
+						LEFT OUTER JOIN dbo.SalesOrderCharges SOC ON SOC.SalesOrderPartId = SOP.SalesOrderPartId
 					WHERE MONTH(Cast(SO.OpenDate as Date)) = @Month AND YEAR(Cast(SO.OpenDate as Date)) = @YEAR
 					AND SO.MasterCompanyId = @MasterCompanyId AND SO.IsDeleted = 0
 					)

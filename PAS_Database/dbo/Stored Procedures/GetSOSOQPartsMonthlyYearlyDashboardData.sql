@@ -491,7 +491,7 @@ BEGIN
 						SELECT
 							IM.partnumber,
 							IM.ItemMasterId,
-							COUNT(Qty) AS TotalSalesCount
+							SUM(Qty) AS TotalSalesCount
 						FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 							INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId

@@ -17,6 +17,7 @@
     1    01/17/2024   Amit Ghediya		Created	
 	2    02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
 	3    25/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
+	4	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -103,6 +104,10 @@ BEGIN
 		DECLARE @StatusPosted VARCHAR(100) = 'Posted';
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @JournalNumber VARCHAR(100) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
@@ -139,7 +144,7 @@ BEGIN
 			
 			SELECT @MasterCompanyId = MasterCompanyId , @UpdateBy = UpdatedBy , @ManagementStructureId = ManagementStructureId FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
-			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
+			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId, @JournalNumber = JournalNumber FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 			SELECT TOP 1 @JournalTypeId = JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND UPPER(DistributionSetupCode)=UPPER(@DistributionSetupCode);
@@ -296,7 +301,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -304,7 +309,7 @@ BEGIN
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,
 						@ManualJorManagementStructureId ,@DistributionCodeName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
 

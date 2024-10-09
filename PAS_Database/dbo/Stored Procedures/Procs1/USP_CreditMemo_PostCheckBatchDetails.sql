@@ -28,6 +28,7 @@
 	12   04/19/2024   Devendra Shekh	added changes for exchange and saving MSId For [CreditMemoPaymentBatchDetails]
 	13   04/22/2024   Devendra Shekh	modified to manage module Data InvoiceTypeId Wise
 	14   20/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
+	15	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -95,6 +96,10 @@ BEGIN
 		Declare @ExchangeInvoiceTypeId INT = 0;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @CustomerName VARCHAR(150) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -260,6 +265,13 @@ BEGIN
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
+						SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
+						FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH(NOLOCK) 
+							JOIN [dbo].[SalesOrderBillingInvoicingItem]  SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+							LEFT JOIN [dbo].[Currency] CU ON SOBI.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[Customer] CS ON SOBI.CustomerId = CS.CustomerId
+						WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
 					END
 					ELSE IF(@InvoiceTypeId = @WOInvoiceTypeId)
 					BEGIN
@@ -270,6 +282,13 @@ BEGIN
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
+						SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
+						FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH(NOLOCK) 
+							JOIN [dbo].[WorkOrderBillingInvoicingItem]  WOBII ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
+							LEFT JOIN [dbo].[Currency] CU ON WOBI.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[Customer] CS ON WOBI.CustomerId = CS.CustomerId
+						WHERE WOBillingInvoicingItemId = @BillingInvoicingItemId;
 					END
 					ELSE IF(@InvoiceTypeId = @ExchangeInvoiceTypeId)
 					BEGIN
@@ -282,6 +301,13 @@ BEGIN
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+
+						SELECT TOP 1 @LocalCurrencyCode = ISNULL(CU.Code,''),@ForeignCurrencyCode = ISNULL(CU.Code,''), @CustomerName = ISNULL(CS.Name, '')
+						FROM [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) 
+							JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem]  SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
+							LEFT JOIN [dbo].[Currency] CU ON SOBI.CurrencyId = CU.CurrencyId
+							LEFT JOIN [dbo].[Customer] CS ON SOBI.CustomerId = CS.CustomerId
+						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId;
 					END
 
 					-----START Account Recevable Trade--------
@@ -557,7 +583,7 @@ BEGIN
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 					SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
 							,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 							--CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
@@ -565,7 +591,7 @@ BEGIN
 							DebitAmount,
 							CreditAmount,
 							ManagementStructureId ,'CreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@DocumentNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode
 					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();

@@ -36,8 +36,8 @@ BEGIN
 			    @AccountType VARCHAR(50),
 				@AccountTypeId BIGINT,
 				@CustomerName VARCHAR(100),
-				@Days TINYINT,
-				@NetDays TINYINT,
+				@Days INT,
+				@NetDays INT,
 				@PercentId BIGINT;
 
 		IF(@IsGetCustomerCredirTems = 1)

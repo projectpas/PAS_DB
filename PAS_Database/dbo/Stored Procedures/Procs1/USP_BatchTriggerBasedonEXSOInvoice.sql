@@ -20,6 +20,7 @@
 	5    11/12/2023   Moin Bloch    Modify(If Invoice Entry NOT EXISTS Then only Invoice Entry Will Store)
 	6    09/01/2024   Moin Bloch    Modify(Replace Invocedate instead of GETUTCDATE() in Invoice)
 	7    19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
+	8	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -111,6 +112,9 @@ BEGIN
 		DECLARE @LotNumber VARCHAR(50);
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @CurrencyCode VARCHAR(20) = '';
+		DECLARE @InvoiceCurrencyCode VARCHAR(20) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE [ID] = @DistributionMasterId;
@@ -132,7 +136,12 @@ BEGIN
 				   @CustRefNumber = [CustomerReference],
 				   @ManagementStructureId = [ManagementStructureId]			      
 			 FROM [dbo].[ExchangeSalesOrder] WITH(NOLOCK)  WHERE [ExchangeSalesOrderId] = @ReferenceId;
-					  
+			
+			IF(ISNULL(@CustomerId, 0) > 0)
+			BEGIN
+				SELECT @CurrencyCode = ISNULL(CY.Code, ''), @CustomerName = ISNULL(CU.Name, '') FROM [dbo].[Customer] CU WITH(NOLOCK) LEFT JOIN [DBO].[CustomerFinancial] CF WITH(NOLOCK) ON CU.CustomerId = CF.CustomerId LEFT JOIN [DBO].[Currency] CY WITH(NOLOCK) ON CF.CurrencyId = CY.CurrencyId WHERE CU.CustomerId = @CustomerId;
+			END
+			
 			SELECT @CustomerTypeId = CUS.[CustomerAffiliationId],
 			       @CustomerTypeName = CAF.[Description] 
 			 FROM [dbo].[Customer] CUS WITH(NOLOCK)
@@ -486,7 +495,7 @@ BEGIN
 										[IsDeleted],
 										[LotId],
 										[LotNumber]
-										)
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -517,7 +526,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber);
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode);
 
 							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -606,7 +616,8 @@ BEGIN
 									    [IsActive],
 									    [IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 				    		     VALUES
 				    			       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -637,7 +648,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber);
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode);
 				    
 							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -777,9 +789,11 @@ BEGIN
 					------------------------------------------Total Exchange Billing Amount------------------------------------------
 					
 					SELECT @TotalBillingAmount = ISNULL(ESOB.[GrandTotal],0),			       
-						   @BillInvoiceNo = ESOB.[InvoiceNo]
+						   @BillInvoiceNo = ESOB.[InvoiceNo],
+						   @InvoiceCurrencyCode = ISNULL(CU.Code,@CurrencyCode)
 					FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOB WITH(NOLOCK) 
-					INNER JOIN [dbo].[ExchangeSalesOrderScheduleBilling] ESOS  WITH(NOLOCK) ON ESOB.ExchangeSalesOrderId = ESOS.ExchangeSalesOrderId 					
+					INNER JOIN [dbo].[ExchangeSalesOrderScheduleBilling] ESOS  WITH(NOLOCK) ON ESOB.ExchangeSalesOrderId = ESOS.ExchangeSalesOrderId 	
+					LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON ESOB.CurrencyId = CU.CurrencyId
 					WHERE [SOBillingInvoicingId] = @InvoiceId 
 					AND [BillingTypeId] = @EXCHBillingTypeId 
 					AND [StatusId] = @ExchangeBillingStatusId;
@@ -1056,7 +1070,7 @@ BEGIN
 										[IsDeleted],
 										[LotId],
 										[LotNumber]
-										)
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1087,7 +1101,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber);
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1168,7 +1183,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1199,7 +1215,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber);
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1284,7 +1301,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1315,7 +1333,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1401,7 +1420,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1432,7 +1452,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1518,7 +1539,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1549,7 +1571,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1630,7 +1653,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1661,7 +1685,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1746,7 +1771,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1777,7 +1803,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
@@ -1864,7 +1891,8 @@ BEGIN
 										[IsActive],
 										[IsDeleted],
 										[LotId],
-										[LotNumber])
+										[LotNumber]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -1895,7 +1923,8 @@ BEGIN
 										1,
 										0,
 										@LotId,
-										@LotNumber)
+										@LotNumber
+										,@ExchangeSalesOrderNumber,@CustomerName,@InvoiceCurrencyCode,@FXRate,@InvoiceCurrencyCode)
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -2218,7 +2247,8 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -2247,7 +2277,8 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0
+										,@ExchangeSalesOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -2330,7 +2361,8 @@ BEGIN
 										[CreatedDate],
 										[UpdatedDate],
 										[IsActive],
-										[IsDeleted])
+										[IsDeleted]
+										,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 							     VALUES
 								       (@JournalBatchDetailId,
 									    @JournalTypeNumber,
@@ -2359,7 +2391,8 @@ BEGIN
 										GETUTCDATE(),
 										GETUTCDATE(),
 										1,
-										0);
+										0
+										,@ExchangeSalesOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 

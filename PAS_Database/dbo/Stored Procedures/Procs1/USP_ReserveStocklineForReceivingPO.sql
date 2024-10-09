@@ -23,7 +23,7 @@
 	7    07/30/2024   Vishal Suthar		Modified the SP to allow reserving the alternate or main part of the alternate if either or is available in WO
 	8    08/13/2024   Vishal Suthar		Modified the SP to allow reserving the equavalent or main part of the equavalent if either or is available in WO
 	9    08/27/2024   Vishal Suthar		Fixed issue with reserving higer qty than assigned and also Removed few unwanted code
-
+    10   10/08/2024    RAJESH GAMI 	    Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2748,@SelectedPartsToReserve=N'863,864',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 
 **************************************************************/  

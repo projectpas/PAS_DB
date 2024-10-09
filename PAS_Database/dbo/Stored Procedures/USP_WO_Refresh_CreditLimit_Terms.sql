@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description                
  ** --   --------		-------			--------------------------------              
     1    26 SEP 2024	BHARGAV SALIYA		WO Refresh CreditLimit and Terms     
+    2    10 OCT 2024	BHARGAV SALIYA		Updates PercentId, days and NetDays as per CreditTerms     
  
  EXEC [USP_WO_Refresh_CreditLimit_Terms] 3502,4401,true
  --exec dbo.USP_WO_Refresh_CreditLimit_Terms @CustomerId=3502,@wokorderId=4401,@IsGetCustomerCredirTems=1
@@ -34,7 +35,10 @@ BEGIN
 				@CreaditTerms VARCHAR(50),
 			    @AccountType VARCHAR(50),
 				@AccountTypeId BIGINT,
-				@CustomerName VARCHAR(100);
+				@CustomerName VARCHAR(100),
+				@Days INT,
+				@NetDays INT,
+				@PercentId BIGINT;
 
 		IF(@IsGetCustomerCredirTems = 1)
 		BEGIN
@@ -59,7 +63,10 @@ BEGIN
 				   @AccountType =  CT.CustomerTypeName,
 				   @AccountTypeId = CT.CustomerTypeId ,
 				   @CreaditTerms = CR.[Name],
-				   @CustomerName = C.[Name] 
+				   @CustomerName = C.[Name],
+				   @Days = CR.[Days],
+				   @NetDays = CR.NetDays,
+				   @PercentId = CR.PercentId
 			FROM [dbo].[CustomerFinancial]  CF WITH (NOLOCK) 
 		    LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = CF.CustomerId
 			LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
@@ -71,7 +78,11 @@ BEGIN
 				[CreditTermId] = @CreditTermsId,
 				[CreditLimit] =  @CeraditLimit,
 				[CustomerName] = @CustomerName,
-				[CreditTerms] = @CreaditTerms
+				[CreditTerms] = @CreaditTerms,
+				[PercentId] = @PercentId,
+				[Days] = @Days,
+				[NetDays] = @NetDays
+
 			FROM [dbo].[Workorder]  
 			WHERE WorkorderId = @workorderId AND CustomerId = @CustomerId
 			

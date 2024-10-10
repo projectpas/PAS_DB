@@ -20,7 +20,8 @@
 	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
 	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
 	10   19/09/2024	  AMIT GHEDIYA  Added for AutoPost Batch
-	11	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
+	11	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -138,6 +139,9 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @TotalRecord INT = 0;   
+
+		DECLARE @MinId BIGINT = 1;    
 
 		IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 		BEGIN    
@@ -146,6 +150,7 @@ BEGIN
 		
 		CREATE TABLE #StocklinePostType
 		(    
+		    [ID] BIGINT NOT NULL IDENTITY,
 			[StocklineId] [BIGINT] NOT NULL,
 			[Qty] [INT] NOT NULL,
 			[Amount] [DECIMAL](18, 2) NULL,
@@ -158,34 +163,38 @@ BEGIN
 		INSERT INTO #StocklinePostType ([StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType])
 		SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM @tbl_PostStocklineBatchType
 		
-		SELECT @AssetStockType = [StockType] FROM #StocklinePostType;
+		SELECT @TotalRecord = COUNT(*), @MinId = MIN([ID]) FROM #StocklinePostType    
 
-		IF(UPPER(@AssetStockType) = 'ASSET')
-		BEGIN
-			 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETACQUISITION')
-		END
-		ELSE
-		BEGIN
-			 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
-		END
+		WHILE @MinId <= @TotalRecord
+		BEGIN					
+			SELECT @AssetStockType = [StockType] FROM #StocklinePostType WHERE [ID] = @MinId;
+
+			IF(UPPER(@AssetStockType) = 'ASSET')
+			BEGIN
+				 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETACQUISITION')
+			END
+			ELSE
+			BEGIN
+				 SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ReceivingPOStockline')
+			END
 					  
-		SELECT @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
-		SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-		SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId
-		SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
-		SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
-		SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
+			SELECT @MasterCompanyId = MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MstCompanyId
+			SELECT @StatusId =Id,@StatusName=name FROM dbo.BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
+			SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId = @DistributionMasterId
+			SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+			SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM dbo.JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
+			SELECT @CurrentManagementStructureId = ManagementStructureId FROM dbo.Employee WITH(NOLOCK) WHERE CONCAT(TRIM(FirstName),'',TRIM(LastName)) IN (replace(@updatedByName, ' ', '')) and MasterCompanyId=@MstCompanyId
 					  
-		SELECT @Amount = SUM(Amount) FROM #StocklinePostType;
-		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+			SELECT @Amount = SUM(Amount) FROM #StocklinePostType WHERE [ID] = @MinId;
+			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		DECLARE @IsRestrict BIT;
-		DECLARE @IsAccountByPass BIT;
+			DECLARE @IsRestrict BIT;
+			DECLARE @IsAccountByPass BIT;
 
-		EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+			EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @updatedByName, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 			   		 
-		IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
-		BEGIN
+			IF(ISNULL(@Amount,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0)
+		    BEGIN
 			IF(@JournalTypeCode ='RPO' OR @JournalTypeCode = 'AST-AC')
 			BEGIN
 				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
@@ -194,12 +203,14 @@ BEGIN
 					INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
 				WHERE est.EntityStructureId=@CurrentManagementStructureId and acc.MasterCompanyId=@MstCompanyId  and CAST(GETUTCDATE() as date)   >= CAST(FromDate as date) and  CAST(GETUTCDATE() as date) <= CAST(ToDate as date)
 
-				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
+				IF(@MinId = 1)
+				BEGIN
+					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 				BEGIN
 					DROP TABLE #tmpCodePrefixes
 				END
 					  	  
-				CREATE TABLE #tmpCodePrefixes
+					CREATE TABLE #tmpCodePrefixes
 				(
 					ID BIGINT NOT NULL IDENTITY, 
 					CodePrefixId BIGINT NULL,
@@ -210,12 +221,12 @@ BEGIN
 					StartsFrom BIGINT NULL,
 				)
 
-				INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT WITH(NOLOCK) ON CP.CodeTypeId = CT.CodeTypeId
 				WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MstCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
+					IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
 					SELECT 
 					@currentNo = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
@@ -229,87 +240,88 @@ BEGIN
 					ROLLBACK TRAN;
 				END
 
-				IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
-				BEGIN
-					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
+					IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and MasterCompanyId=@MstCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
 					BEGIN
-						SET @batch ='001'
-						SET @Currentbatch='001'
-					END
-					ELSE
-					BEGIN
-						SELECT TOP 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
-								ELSE  1 END 
-						FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
-
-						IF(CAST(@Currentbatch AS BIGINT) >99)
+						IF NOT EXISTS(SELECT JournalBatchHeaderId FROM dbo.BatchHeader WITH(NOLOCK))
 						BEGIN
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
-						END
-						ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
-						BEGIN
-
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
+							SET @batch ='001'
+							SET @Currentbatch='001'
 						END
 						ELSE
 						BEGIN
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
+							SELECT TOP 1 @Currentbatch = CASE WHEN CurrentNumber > 0 THEN CAST(CurrentNumber AS BIGINT) + 1 
+									ELSE  1 END 
+							FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
 
+							IF(CAST(@Currentbatch AS BIGINT) >99)
+							BEGIN
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
+							   			ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
+							END
+							ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
+							BEGIN
+
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
+							   			ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
+							END
+							ELSE
+							BEGIN
+								SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
+							   			ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
+
+							END
 						END
-					END
 
-					SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
-					SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
+						SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
+						SET @batch = CAST(@JournalTypeCode +' '+cast(@batch as VARCHAR(100)) as VARCHAR(100))
 
-					IF(UPPER(@AssetStockType) = 'ASSET')
-					BEGIN
-						INSERT INTO [dbo].[BatchHeader]
-							([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
-						VALUES
-							(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETAC');
+						IF(UPPER(@AssetStockType) = 'ASSET')
+						BEGIN
+							INSERT INTO [dbo].[BatchHeader]
+								([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
+							VALUES
+								(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETAC');
+						END
+						ELSE
+						BEGIN
+							INSERT INTO [dbo].[BatchHeader]
+								([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
+							VALUES
+								(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'RPO');
+						END
+					
+            				          
+						SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
+						SELECT @JlBatchHeaderId = SCOPE_IDENTITY()
+						UPDATE BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 					END
 					ELSE
 					BEGIN
-						INSERT INTO [dbo].[BatchHeader]
-							([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
-						VALUES
-							(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MstCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,'RPO');
-					END
-					
-            				          
-					SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
-					SELECT @JlBatchHeaderId = SCOPE_IDENTITY()
-					UPDATE BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-				END
-				ELSE
-				BEGIN
-					SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
-					SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
-						FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
+						SELECT @JlBatchHeaderId=JournalBatchHeaderId,@JournalBatchHeaderId=JournalBatchHeaderId,@CurrentPeriodId=isnull(AccountingPeriodId,0) FROM dbo.BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId and StatusId=@StatusId
+						SELECT @LineNumber = CASE WHEN LineNumber > 0 THEN CAST(LineNumber AS BIGINT) + 1 ELSE  1 END 
+							FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId  Order by JournalBatchDetailId desc
 						
-					IF(@CurrentPeriodId =0)
-					BEGIN
-						Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
-					END	
+						IF(@CurrentPeriodId =0)
+						BEGIN
+							Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+						END	
 					
-					SET @IsBatchGenerated = 1;
-				END
+						SET @IsBatchGenerated = 1;
+					END
 
-				INSERT INTO [dbo].[BatchDetails]
+					INSERT INTO [dbo].[BatchDetails]
 					(JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount],
 					[ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId],[AccountingPeriod])
 				VALUES
 					(@JournalTypeNumber,@currentNo,0, NULL, @JlBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), @JournalTypeId, @JournalTypename, 1, 0, 0, 0, 'ReceivingPOStockline', NULL, NULL, @MasterCompanyId, @updatedByName, @updatedByName, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
 				
-				SET @JournalBatchDetailId=SCOPE_IDENTITY()
+					SET @JournalBatchDetailId=SCOPE_IDENTITY()
+				END
 
 				DECLARE @PostStocklineBatchCursor AS CURSOR;
 				SET @PostStocklineBatchCursor = CURSOR FOR	
 
-				SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM #StocklinePostType
+				SELECT [StocklineId],[Qty],[Amount],[ModuleName],[UpdateBy],[MasterCompanyId],[StockType] FROM #StocklinePostType WHERE [ID] = @MinId;
 				OPEN @PostStocklineBatchCursor;
 				FETCH NEXT FROM @PostStocklineBatchCursor INTO @StocklineId,@Qty,@Amount,@ModuleName,@UpdateBy,@MasterCompanyId,@StockType;
 						
@@ -693,6 +705,10 @@ BEGIN
 				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 			END
 		END
+			
+			SET @MinId = @MinId + 1
+		END
+		
 		IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL
 		BEGIN
 			DROP TABLE #StocklinePostType

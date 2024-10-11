@@ -18,6 +18,7 @@
     5    27/03/2024		Devendra Shekh        added vendorId
     6    28/03/2024		Devendra Shekh        inserting data in vendorPaymentDetail for creditMemo
 	7    07/10/2024		Moin Bloch            Added AR Balance 
+	8    11/10/2024		Moin Bloch            Modified (commented credit memo for ar balance)
    
  -- exec USP_UpdateCreditMemoStatus_Refund 
 **********************/   
@@ -115,7 +116,7 @@ BEGIN
 			WHERE V.VendorId = @VendorId;
 			-----------------------------------------------------------------------------------------------------
 			
-			EXEC [dbo].[USP_SaveCustomerARBalance] @AppModuleId,@CreditMemoHeaderId,@CustomerId,0,@CreditAmount,'Credit Memo Refund',@MasterCompanyId,@UserName,@UserName,0
+			--EXEC [dbo].[USP_SaveCustomerARBalance] @AppModuleId,@CreditMemoHeaderId,@CustomerId,0,@CreditAmount,'Credit Memo Refund',@MasterCompanyId,@UserName,@UserName,0
 
 			SET @Start = @Start + 1
 		END

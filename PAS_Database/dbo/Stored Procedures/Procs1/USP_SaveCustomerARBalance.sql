@@ -12,6 +12,7 @@
  1				       Unknown			Created 
  2		18/12/2023     Moin Bloch		Modified(Calculate CreditLimit in CustomerFinancial Table when SO INVOICE,WO INVOICE Generate)
  3      08/10/2024		Moin Bloch      Modified (Added credit memo for ar balance)
+ 4      11/10/2024		Moin Bloch      Modified (commented credit memo for ar balance)
 
  --EXEC USP_SaveCustomerARBalance 1,10079,10079,100,150,'deep',1,'deep','deep',-1; 
 **************************************************************/ 
@@ -157,15 +158,15 @@ SET NOCOUNT ON
 		END
 	 END
 
-	 IF(UPPER(@ModuleName) = 'CREDITMEMO')
-	 BEGIN	
-		IF EXISTS(SELECT [CreditLimit] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId)
-		BEGIN
-			UPDATE [dbo].[CustomerFinancial] 
-			   SET [CreditLimit] = [CreditLimit] + (ISNULL(@Amount,0))
-			 WHERE [CustomerId] = @CustomerId;
-		END
-	 END	 
+	 --IF(UPPER(@ModuleName) = 'CREDITMEMO')
+	 --BEGIN	
+		--IF EXISTS(SELECT [CreditLimit] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId)
+		--BEGIN
+		--	UPDATE [dbo].[CustomerFinancial] 
+		--	   SET [CreditLimit] = [CreditLimit] + (ISNULL(@Amount,0))
+		--	 WHERE [CustomerId] = @CustomerId;
+		--END
+	 --END	 
         
      SELECT @CustomerCreditTermsHistoryId = IDENT_CURRENT('CustomerCreditTermsHistory');  
   

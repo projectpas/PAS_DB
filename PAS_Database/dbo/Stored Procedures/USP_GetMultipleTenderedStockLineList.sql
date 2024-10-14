@@ -10,11 +10,12 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				-------------------
 	1    18/09/2024		Moin Bloch  	     CREATED
+	2    14/10/2024		Moin Bloch  	     Removed condition from temp
 
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4385,3908,1
 EXEC [dbo].[USP_GetMultipleTenderedStockLineList] 4394,3917,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
+CREATE    PROCEDURE [dbo].[USP_GetMultipleTenderedStockLineList]
 @WorkOrderId BIGINT,
 @WorkFlowWorkOrderId BIGINT,
 @MasterCompanyId INT
@@ -99,7 +100,6 @@ BEGIN
 		(
 			[ID] [BIGINT] NOT NULL IDENTITY, 						 
 			[WorkOrderMaterialsId] [BIGINT] NULL,
-			[ConditionId] [BIGINT] NOT NULL,
 			[TotalQuantityRepaired] [INT] NULL,
 		)
 
@@ -107,19 +107,19 @@ BEGIN
 		(
 			[ID] [BIGINT] NOT NULL IDENTITY, 						 
 			[WorkOrderMaterialsId] [BIGINT] NULL,
-			[ConditionId] [BIGINT] NOT NULL,
 			[TotalQuantityRepaired] [INT] NULL,
 		)
 
 		-- Material Stock
 
 		INSERT INTO #tmpMultipleWOMStockline 
-		SELECT DISTINCT	WOMS.[WorkOrderMaterialsId],WOMS.[ConditionId],	0
+		SELECT DISTINCT	WOMS.[WorkOrderMaterialsId],
+		        0 
 				FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) 
 				JOIN [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK) ON WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId] AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOMS.[IsActive] = 1 AND WOMS.[IsDeleted] = 0
 				WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.[WorkOrderId] = @WorkOrderId AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOM.[ProvisionId] = @RepairProvisionId
-		GROUP BY WOMS.[WorkOrderMaterialsId],WOMS.[ConditionId];	
-				
+		GROUP BY WOMS.[WorkOrderMaterialsId]
+
 		UPDATE #tmpMultipleWOMStockline SET [TotalQuantityRepaired] = ISNULL(tmpqty.[QuantityOrdered],0)
 				FROM(SELECT ISNULL(SUM(ROP.[QuantityOrdered]),0) AS 'QuantityOrdered',
 					ROP.[WorkOrderMaterialsId] AS WorkOrderMaterialsId
@@ -131,11 +131,12 @@ BEGIN
 		-- Material Stock KIT
 
 		INSERT INTO #tmpMultipleWOMStocklineKit 
-		SELECT DISTINCT	WOMS.[WorkOrderMaterialsKitId] AS [WorkOrderMaterialsId],WOMS.[ConditionId],0
+		SELECT DISTINCT	WOMS.[WorkOrderMaterialsKitId] AS [WorkOrderMaterialsId],
+		        0 
 				FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) 
 				JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK) ON WOM.[WorkOrderMaterialsKitId] = WOMS.[WorkOrderMaterialsKitId] AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOMS.[IsActive] = 1 AND WOMS.[IsDeleted] = 0
 				WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND WOM.[WorkOrderId] = @WorkOrderId AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOM.[ProvisionId] = @RepairProvisionId
-				GROUP BY WOMS.[WorkOrderMaterialsKitId], WOMS.[ConditionId];
+				GROUP BY WOMS.[WorkOrderMaterialsKitId]
 
 		UPDATE #tmpMultipleWOMStocklineKit SET [TotalQuantityRepaired] = ISNULL(tmpqty.[QuantityOrdered],0)
 				FROM(SELECT ISNULL(SUM(ROP.[QuantityOrdered]),0) AS 'QuantityOrdered',
@@ -152,7 +153,7 @@ BEGIN
 				[SiteId],[Site],[WareHouseId],[WareHouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[IsKitType],
 				[GLAccountId],[GlAccountName],[UnitCost],[AircraftTailNumber],[TraceableToType],[TraceableTo],[TraceableToName],
 			    [TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TagDate],[StockType],[QuantityAvailable],[QuantityRemains]) 
-		SELECT WOMS.[WorkOrderMaterialsId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
+		SELECT DISTINCT WOMS.[WorkOrderMaterialsId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
 		       STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],
 			   CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,	
 			   ISNULL(CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,0) - ISNULL(tmpWOM.TotalQuantityRepaired, 0),			   
@@ -194,7 +195,7 @@ BEGIN
 				[SiteId],[Site],[WareHouseId],[WareHouse],[LocationId],[Location],[ShelfId],[Shelf],[BinId],[Bin],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[IsKitType], 
 		        [GLAccountId],[GlAccountName],[UnitCost],[AircraftTailNumber],[TraceableToType],[TraceableTo],[TraceableToName],
 			    [TagTypeId],[TaggedByType],[TaggedBy],[TaggedByName],[TagDate],[StockType],[QuantityAvailable],[QuantityRemains])
-		 SELECT WOMS.[WorkOrderMaterialsKitId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
+		 SELECT DISTINCT WOMS.[WorkOrderMaterialsKitId],WOMS.[ItemMasterId],ITM.[PartNumber],ITM.[PartDescription],WOMS.[StockLineId],STK.[StockLineNumber],
 		        STK.[ControlNumber],STK.[IdNumber],WOMS.[ConditionId],CND.[Description],WOMS.[Quantity],
 				CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END, 		
 				ISNULL(CASE WHEN ISNULL(WOMS.[QuantityTurnIn],0) = 0 THEN WOMS.[Quantity] ELSE WOMS.[QuantityTurnIn] END,0) - ISNULL(tmpWOMKit.TotalQuantityRepaired, 0),			   

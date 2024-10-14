@@ -11,9 +11,9 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    17/09/2024   RAJESH GAMI			Created
-
+	2    14/10/2024   RAJESH GAMI			Implemented logic: IsKit and IsSubWO flag for the identify the WOMaterial is kit and from SUWO or not. 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -35,7 +35,7 @@ BEGIN
 			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT
 			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvisionId INT
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
-			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
+			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 
 			DECLARE @OrderPartStatusId INT = (SELECT POPartStatusId FROM dbo.POPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
@@ -71,7 +71,7 @@ BEGIN
 			BEGIN -->>>>> Start: While Loop Main
 					SELECT @PurchaseOrderPartRecordId= PurchaseOrderPartRecordId,@IsDeletedPart = IsDeleted,@EmployeeID =EmployeeID, @SalesOrderId = SalesOrderId, 
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
-							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId
+							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -133,7 +133,7 @@ BEGIN
 									PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 									PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 									PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = TMP.IsLotAssigned,
-									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId,
+									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, PART.IsKit = TMP.IsKit, PART.IsSubWO = TMP.IsFromSubWorkOrder,
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
@@ -243,7 +243,7 @@ BEGIN
 					   ,[TaggedByType]
 					   ,[TaggedByName]
 					   ,[TaggedByTypeName]
-					   ,[TagDate])
+					   ,[TagDate], IsKit, IsSubWO)
 			
 					   (SELECT 
 						@PurchaseOrderId
@@ -338,7 +338,7 @@ BEGIN
 					   ,TaggedByType
 					   ,TaggedByName
 					   ,TaggedByTypeName
-					   ,TagDate
+					   ,TagDate,IsKit,IsFromSubWorkOrder
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();
@@ -655,14 +655,55 @@ BEGIN
 /* ----------------------------START:  WO Materials Update ---------------------------------- */					
 					IF(@WorkOrderMaterialsId > 0)
 					BEGIN
-						IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+						IF(@IsSubWO = 1)
 						BEGIN
-							UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate, 
-															  ExpectedSerialNumber = @ExpectedSerialNumber,
-															  POId = @PurchaseOrderId, 
-															  PONum = @PurchaseOrderNumber
-														  WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+							IF(@IsKIt = 1)
+							BEGIN
+								IF((SELECT COUNT(SubWorkOrderMaterialsKitId) FROM DBO.SubWorkOrderMaterialsKit WITH(NOLOCK) WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.SubWorkOrderMaterialsKit SET PONextDlvrDate = @EstDeliveryDate, 
+																	  POId = @PurchaseOrderId, 
+																	  PONum = @PurchaseOrderNumber
+																  WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId
+								END
+							END
+							ELSE
+							BEGIN
+								IF((SELECT COUNT(SubWorkOrderMaterialsId) FROM DBO.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.SubWorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate,
+																	  POId = @PurchaseOrderId, 
+																	  PONum = @PurchaseOrderNumber
+																  WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId
+								END
+							END
 						END
+						ELSE
+						BEGIN
+							IF(@IsKIt = 1)
+							BEGIN
+								IF((SELECT COUNT(WorkOrderMaterialsKitId) FROM DBO.WorkOrderMaterialsKit WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.WorkOrderMaterialsKit SET PONextDlvrDate = @EstDeliveryDate, 
+																	  POId = @PurchaseOrderId, 
+																	  PONum = @PurchaseOrderNumber
+																  WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId
+								END
+							END
+							ELSE
+							BEGIN
+								IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate, 
+																	  ExpectedSerialNumber = @ExpectedSerialNumber,
+																	  POId = @PurchaseOrderId, 
+																	  PONum = @PurchaseOrderNumber
+																  WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+								END
+							END
+						END
+
+						
 					END
 /* ----------------------------END:  WO Materials Update ---------------------------------- */	
 				SET @PartLoopId +=1

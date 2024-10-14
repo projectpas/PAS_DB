@@ -94,6 +94,10 @@
     [TaggedByName]              VARCHAR (250)   NULL,
     [TaggedByTypeName]          VARCHAR (250)   NULL,
     [TagDate]                   DATETIME2 (7)   NULL,
+    [IsKit]                     BIT             NULL,
+    [IsSubWO]                   BIT             NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
+
+
 

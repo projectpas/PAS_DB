@@ -3187,6 +3187,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveGeneralLedgerEmployeeMappingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateGeneralLedgerParam.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineBatchAccountingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RemoveGeneralLedgerSearchParams_ById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

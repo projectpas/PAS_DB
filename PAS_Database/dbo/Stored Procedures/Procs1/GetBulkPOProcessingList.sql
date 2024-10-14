@@ -8,6 +8,7 @@
 	3    02/11/2024              MOIN BLOCH                         OPTIMIZE SP
 	4    14/08/2024              MOIN BLOCH                         Added Work Order Id
 	5    16/08/2024              MOIN BLOCH                         Added [ConditionId]
+	6    14/10/2024              RAJESH GAMI						Increase datatype length for the some fields in temp table (#TEMPBulkPORecords)
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -80,29 +81,29 @@ BEGIN
 			    [OrderNo] INT NULL,
 				[ItemMasterId] BIGINT NULL,
 				[StatusId] INT NULL,
-				[StatusName] VARCHAR(10) NULL,
-				[poRfqNo] VARCHAR(20) NULL,
+				[StatusName] VARCHAR(50) NULL,
+				[poRfqNo] VARCHAR(50) NULL,
 				[PurchaseOrderId] BIGINT NULL,
-				[PN] VARCHAR(50) NULL,
+				[PN] VARCHAR(200) NULL,
 				[PNDescription] NVARCHAR(MAX) NULL,
-				[Condition]	VARCHAR(20) NULL,
+				[Condition]	VARCHAR(MAX) NULL,
 				[ConditionId] BIGINT NULL,
 				[Quantity] INT NULL,
 				[UnitCost] DECIMAL(18,2) NULL,
 				[ExtendedCost] DECIMAL(18,2) NULL,
 				[LastPurchasePrice]	DECIMAL(18,2) NULL, 
-				[LastPONumber] VARCHAR(20) NULL,
+				[LastPONumber] VARCHAR(50) NULL,
 				[LastPODate] DATETIME NULL,
-				[VendorName] VARCHAR(50) NULL,
+				[VendorName] VARCHAR(200) NULL,
 				[VendorId] BIGINT NULL,
-				[VendorCode] VARCHAR(20) NULL,
+				[VendorCode] VARCHAR(100) NULL,
 				[WorkOrderId] BIGINT NULL,
-				[WONum] VARCHAR(20) NULL,
-				[MPN] VARCHAR(50) NULL,
+				[WONum] VARCHAR(50) NULL,
+				[MPN] VARCHAR(MAX) NULL,
 				[MPNDescription]  NVARCHAR(MAX) NULL,
-				[SerialNum] VARCHAR(50) NULL,
-				[Customer] VARCHAR(20) NULL,
-				[Manufacturer] VARCHAR(50) NULL,
+				[SerialNum] VARCHAR(100) NULL,
+				[Customer] VARCHAR(200) NULL,
+				[Manufacturer] VARCHAR(100) NULL,
 				[MinimumOrderQuantity] INT NULL,
 				[IsFromBulkPO] BIT NULL,
 				[NeedBy] DATETIME NULL,
@@ -1101,6 +1102,7 @@ BEGIN
 		--IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			--ROLLBACK TRAN;
+	SELECT ERROR_NUMBER() AS ErrorNumber,ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity,ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetBulkPOProcessingList' 

@@ -22,8 +22,13 @@
     [EmployeeName]          VARCHAR (100)  NULL,
     [IncludeInStageReport]  BIT            NULL,
     [WorkableBacklog]       BIT            NULL,
+    [IncludeInTAT]          BIT            NULL,
+    [QuoteDays]             BIT            NULL,
+    [ShippedDays]           BIT            NULL,
     CONSTRAINT [PK_WorkOrderStageAudit] PRIMARY KEY CLUSTERED ([WorkOrderStageAuditId] ASC)
 );
+
+
 
 
 

@@ -3188,6 +3188,8 @@
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateGeneralLedgerParam.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineBatchAccountingDetailsById.sql" />
     <Build Include="dbo\Stored Procedures\USP_RemoveGeneralLedgerSearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOQPartsMonthlyYearlyDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOMRODashboardData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

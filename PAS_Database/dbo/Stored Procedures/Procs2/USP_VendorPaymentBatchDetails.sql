@@ -19,7 +19,6 @@
 	3    04/04/2024   AMIT GHEDIYA		Entry With Details data id.
 	4    08/29/2024   Devendra Shekh	JE Number sequence issue resolved
 	5    26/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
-	6	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -87,9 +86,6 @@ BEGIN
 		DECLARE @IsVendorPayment BIT;
 		DECLARE @VendorCreditMemoId BIGINT;
 		DECLARE @VendorPaymentDetailsId BIGINT;
-		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
-		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
-		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		DECLARE @Check INT;
 		DECLARE @DomesticWire INT;
@@ -293,10 +289,7 @@ BEGIN
 
 				SELECT @LastMSLevel = [LastMSLevel],@AllMSlevels = [AllMSlevels] FROM [dbo].[AccountingManagementStructureDetails] WITH(NOLOCK) WHERE [EntityMSID] = @ManagementStructureId AND [ModuleID] = @ModuleId AND [ReferenceID] = @ReadyToPayId;
 
-				SELECT @VendorName = [VendorName], @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'')
-				FROM dbo.Vendor V WITH(NOLOCK)
-				LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId
-				WHERE [VendorId] = @VendorId;
+				SELECT @VendorName = [VendorName] FROM dbo.Vendor WITH(NOLOCK) WHERE [VendorId] = @VendorId;
 
 				SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
@@ -535,8 +528,7 @@ BEGIN
 							   ,[CreatedDate]
 							   ,[UpdatedDate] 
 							   ,[IsActive] 
-							   ,[IsDeleted]
-							   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							   ,[IsDeleted])
 					    VALUES	
 							   (@JournalBatchDetailId
 							   ,@JournalTypeNumber
@@ -565,8 +557,7 @@ BEGIN
 							   ,GETUTCDATE()
 							   ,GETUTCDATE()
 							   ,1
-							   ,0
-							   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+							   ,0)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -641,8 +632,7 @@ BEGIN
 							       ,[CreatedDate]
 							       ,[UpdatedDate] 
 							       ,[IsActive] 
-							       ,[IsDeleted]
-								   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							       ,[IsDeleted])
 							VALUES	
 							       (@JournalBatchDetailId
 							       ,@JournalTypeNumber
@@ -671,8 +661,7 @@ BEGIN
 							       ,GETUTCDATE()
 							       ,GETUTCDATE()
 							       ,1
-							       ,0
-								   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+							       ,0)
 					      
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -747,8 +736,7 @@ BEGIN
 							        ,[CreatedDate]
 							        ,[UpdatedDate] 
 							        ,[IsActive] 
-							        ,[IsDeleted]
-									,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							        ,[IsDeleted])
 							VALUES	
 							        (@JournalBatchDetailId
 							        ,@JournalTypeNumber
@@ -777,8 +765,7 @@ BEGIN
 							        ,GETUTCDATE()
 							        ,GETUTCDATE()
 							        ,1
-							        ,0
-									,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+							        ,0);
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

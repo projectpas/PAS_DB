@@ -32,7 +32,10 @@ BEGIN
 				DECLARE @WOQMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'WorkOrderMPN');
 				DECLARE @EmployeeRoleID NVARCHAR(MAX);
 				DECLARE @OnTimePerform DECIMAL(9,2)= NULL;
+				DECLARE @OnTimePerformCount DECIMAL(9,2)= NULL;
 				DECLARE @NOTOnTimePerform DECIMAL(9,2) =NULL;
+				DECLARE @NOTOnTimePerformCount DECIMAL(9,2) =NULL;
+				DECLARE @TotalTimePerform DECIMAL(9,2) =NULL;
 				DECLARE @OverHualScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'OVERHAUL' AND MasterCompanyId = 1);
 				DECLARE @RepairScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'REPAIR' AND MasterCompanyId = 1);
 				DECLARE @BenChekScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'BENCHCHECK' AND MasterCompanyId = 1);
@@ -180,7 +183,7 @@ BEGIN
 						WOP.WorkOrderStageId, 
 						COUNT(WOP.ID) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
-					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId
+					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND WS.WorkableBacklog = 1
 					WHERE CONVERT(DATE, WOP.CreatedDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
@@ -188,7 +191,7 @@ BEGIN
 					)
 					INSERT INTO #tmpTop10WOStage (Stage, TotalPartCount)
 					SELECT
-					Name,         
+					UPPER(Name),         
 					CountOfOrders 
 					FROM tmpTop10WorkOrderStage
 					ORDER BY CountOfOrders DESC
@@ -212,7 +215,7 @@ BEGIN
 					)
 					;WITH TimeSums AS (
 					SELECT 
-							SUM(WT.Hours) AS TotalDays, 
+							SUM(WT.Days) AS TotalDays, 
 							SUM(WT.Hours) AS TotalHours, 
 							SUM(WT.Mins) AS TotalMinutes,
 							WOP.WorkOrderScopeId,
@@ -228,7 +231,8 @@ BEGIN
 					INSERT INTO #tmpTop10TATData (Scope, DaysCount)
 					SELECT
 					WorkScope,
-					sum( (TotalDays + (TotalHours / 24) + ((TotalHours % 24) + (TotalMinutes / 60)) + ((TotalMinutes % 60)) )) as totaldays
+					SUM(TotalDays + (TotalHours / 24.0) + (TotalMinutes / 1440.0)) AS totaldays
+					--sum( (TotalDays + (TotalHours / 24) + ((TotalHours % 24) + (TotalMinutes / 60)) + ((TotalMinutes % 60)) )) as totaldays
 					FROM TimeSums
 					group by WorkScope
 					ORDER BY totaldays DESC
@@ -264,7 +268,10 @@ BEGIN
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
 					)
 					Select @OnTimePerform = ((CONVERT(decimal(9,2),ontime) * 100) / total),
-						   @NOTOnTimePerform = ((CONVERT(decimal(9,2),Notontime) * 100) / total)
+						   @NOTOnTimePerform = ((CONVERT(decimal(9,2),Notontime) * 100) / total),
+						   @OnTimePerformCount = ontime,
+						   @NOTOnTimePerformCount = Notontime,
+						   @TotalTimePerform = total
 					from tmpOnTimePerfomance
 					ORDER BY total DESC
 					OFFSET 0 ROWS
@@ -283,7 +290,9 @@ BEGIN
 
 					SELECT DaysCount AS col1,Scope AS col2 FROM #tmpTop10TATData
 
-					SELECT ISNULL(@OnTimePerform,0) AS 'OnTime',ISNULL(@NOTOnTimePerform,0) AS 'NotOnTime' 
+					SELECT ISNULL(@OnTimePerformCount,0) AS 'OnTime',ISNULL(@NOTOnTimePerformCount,0) AS 'NotOnTime' 
+
+					SELECT ISNULL(@OnTimePerform,0) AS col1 ,  ISNULL(@NOTOnTimePerform,0) AS col2 ,ISNULL(@TotalTimePerform,0) AS col3 
 
 			END
 		

@@ -137,7 +137,8 @@ BEGIN
 									PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 									PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 									PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = TMP.IsLotAssigned,
-									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, PART.IsKit = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsKit END, PART.IsSubWO = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsFromSubWorkOrder END ,
+									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, 
+									--PART.IsKit = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsKit END, PART.IsSubWO = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsFromSubWorkOrder END ,
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
@@ -659,17 +660,17 @@ BEGIN
 					END -->>>>> End: Split Part While Loop
 /* ----------------------------END:  SPLIT PART Functionality ---------------------------------- */
 /* ----------------------------START:  WO Materials Update ---------------------------------- */					
-					IF(@WorkOrderMaterialsId > 0)
+					IF(@WorkOrderMaterialsId > 0 )
 					BEGIN
 						IF(@IsSubWO = 1)
 						BEGIN
-							IF(@IsKIt = 1)
+							IF(@IsKit = 1)
 							BEGIN
 								IF((SELECT COUNT(SubWorkOrderMaterialsKitId) FROM DBO.SubWorkOrderMaterialsKit WITH(NOLOCK) WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
 								BEGIN
-									UPDATE DBO.SubWorkOrderMaterialsKit SET PONextDlvrDate = @EstDeliveryDate, 
-																	  POId = @PurchaseOrderId, 
-																	  PONum = @PurchaseOrderNumber
+									UPDATE DBO.SubWorkOrderMaterialsKit SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @EstDeliveryDate END, 
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
 																  WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId
 								END
 							END
@@ -677,22 +678,22 @@ BEGIN
 							BEGIN
 								IF((SELECT COUNT(SubWorkOrderMaterialsId) FROM DBO.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
 								BEGIN
-									UPDATE DBO.SubWorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate,
-																	  POId = @PurchaseOrderId, 
-																	  PONum = @PurchaseOrderNumber
+									UPDATE DBO.SubWorkOrderMaterials SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END,
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
 																  WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId
 								END
 							END
 						END
 						ELSE
 						BEGIN
-							IF(@IsKIt = 1)
+							IF(@IsKit = 1)
 							BEGIN
 								IF((SELECT COUNT(WorkOrderMaterialsKitId) FROM DBO.WorkOrderMaterialsKit WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
 								BEGIN
-									UPDATE DBO.WorkOrderMaterialsKit SET PONextDlvrDate = @EstDeliveryDate, 
-																	  POId = @PurchaseOrderId, 
-																	  PONum = @PurchaseOrderNumber
+									UPDATE DBO.WorkOrderMaterialsKit SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END, 
+																	  POId = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @PurchaseOrderId END,
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
 																  WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId
 								END
 							END
@@ -700,15 +701,14 @@ BEGIN
 							BEGIN
 								IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
 								BEGIN
-									UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate, 
-																	  ExpectedSerialNumber = @ExpectedSerialNumber,
-																	  POId = @PurchaseOrderId, 
-																	  PONum = @PurchaseOrderNumber
+									UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END, 
+																	  ExpectedSerialNumber =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @ExpectedSerialNumber END,
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
 																  WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
 								END
 							END
 						END
-
 						
 					END
 /* ----------------------------END:  WO Materials Update ---------------------------------- */	

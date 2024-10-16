@@ -12,11 +12,12 @@
  **********************           
  ** PR   Date             Author			Change Description            
  ** --   --------         -------			----------------------------   
-    1    2 Nov 2024		Shrey Chandegara		CREATED   
+    1    2 OCT 2024		Shrey Chandegara		CREATED   
+	2    16 OCT 2024	HEMANT SALIYA			UPDATE Open Date Changes   
 	
 	EXEC dbo.GetWOMRODashboardData @MasterCompanyId=1,@StartDate='2024-10-02 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
-CREATE     PROCEDURE [dbo].[GetWOMRODashboardData]
+CREATE   PROCEDURE [dbo].[GetWOMRODashboardData]
 	@MasterCompanyId INT = NULL,
 	@StartDate DATETIME = NULL,
 	@EmployeeId BIGINT = NULL,
@@ -54,20 +55,20 @@ BEGIN
 								INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-								WHERE WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate);
+								WHERE WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.OpenDate)= @StartDate);
 
 		SET @WOQNonFlatAmount =	(SELECT ISNULL(SUM(WOQD.LaborFlatBillingAmount),0) + ISNULL(SUM(WOQD.MaterialFlatBillingAmount),0) + ISNULL(SUM(WOQD.ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) 
 								FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
 								INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WOrkOrderQUoteID
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-								WHERE   WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate AND WOQD.QuoteMethod = 0);
+								WHERE   WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.OpenDate)= @StartDate AND WOQD.QuoteMethod = 0);
 
 		SET @WOQFlatAmount =	(SELECT ISNULL(SUM(WOQD.CommonFlatRate),0) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
 								INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WOrkOrderQUoteID
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-								WHERE  WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate AND WOQD.QuoteMethod = 1);
+								WHERE  WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.OpenDate)= @StartDate AND WOQD.QuoteMethod = 1);
 		
 		SET @WOQuotedAmount = (@WOQFlatAmount + @WOQNonFlatAmount)
 
@@ -81,13 +82,13 @@ BEGIN
 											INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WOrkOrderQUoteID
 											INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 											INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-											WHERE  WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate AND WOQD.QuoteMethod = 0 AND WOQ.QuoteStatusId = @WOQApproveStatus);
+											WHERE  WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.OpenDate)= @StartDate AND WOQD.QuoteMethod = 0 AND WOQ.QuoteStatusId = @WOQApproveStatus);
 
 		SET @WOQApprovalFlatAmount = (SELECT ISNULL(SUM(WOQD.CommonFlatRate),0) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
 										INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WOrkOrderQUoteID
 										INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 										INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-										WHERE WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate AND WOQD.QuoteMethod = 1 AND WOQ.QuoteStatusId = @WOQApproveStatus);
+										WHERE WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.OpenDate)= @StartDate AND WOQD.QuoteMethod = 1 AND WOQ.QuoteStatusId = @WOQApproveStatus);
 
 		SET @WOApprovalAmount = (@WOQApprovalNonFlatAmount + @WOQApprovalFlatAmount);
 

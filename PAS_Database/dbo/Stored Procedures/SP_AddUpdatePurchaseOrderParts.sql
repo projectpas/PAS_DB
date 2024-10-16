@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -90,6 +91,9 @@ BEGIN
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
 									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
 									--, SL.CurrencyId = PT.FunctionalCurrencyId,
+										--SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
+										--SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
+										SL.WorkOrderMaterialsId = PT.WorkOrderMaterialsId,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId
@@ -133,7 +137,7 @@ BEGIN
 									PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 									PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 									PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = TMP.IsLotAssigned,
-									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, PART.IsKit = TMP.IsKit, PART.IsSubWO = TMP.IsFromSubWorkOrder,
+									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, PART.IsKit = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsKit END, PART.IsSubWO = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsFromSubWorkOrder END ,
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
@@ -338,7 +342,9 @@ BEGIN
 					   ,TaggedByType
 					   ,TaggedByName
 					   ,TaggedByTypeName
-					   ,TagDate,IsKit,IsFromSubWorkOrder
+					   ,TagDate
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsKit END
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsFromSubWorkOrder END
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();

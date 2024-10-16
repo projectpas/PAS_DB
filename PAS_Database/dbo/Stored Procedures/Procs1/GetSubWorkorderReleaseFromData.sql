@@ -98,8 +98,8 @@ BEGIN
 				                     + '<p>' +'Full details of work carried out help on Work Order: ' + ISNULL(convert(varchar(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'      
 						END ELSE '' END)          
 	            + (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END)     
-			    +(CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wos.Dualreleaselanguage,'-') +'</p>') else ''  end)            
-				+(CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wods.Dualreleaselanguage,'-') +'</p>') ELSE ''  END)        
+			    +(CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wos.Dualreleaselanguage,'-') +' '+ le.EASALicense +'</p>') else ''  end)            
+				+(CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
 		        +'</div>') Remarks,       
 		          UPPER(le.EASALicense)  as EASALicense    
          FROM [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK)     

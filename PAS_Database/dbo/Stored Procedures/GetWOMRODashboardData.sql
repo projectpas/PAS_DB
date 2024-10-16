@@ -50,7 +50,8 @@ BEGIN
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE   RC.IsPiecePart = 0 AND  RC.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,RC.CreatedDate)= @StartDate);
 
-		SET @WOQuotedUnits = (SELECT COUNT(WorkOrderQuoteId) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
+		SET @WOQuotedUnits = (SELECT COUNT(WOQD.WorkOrderQuoteDetailsId) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
+								INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.CreatedDate)= @StartDate);
@@ -70,8 +71,8 @@ BEGIN
 		
 		SET @WOQuotedAmount = (@WOQFlatAmount + @WOQNonFlatAmount)
 
-
-		SET @WOApprovalUnits = (SELECT COUNT(WorkOrderQuoteId) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
+		SET @WOApprovalUnits = (SELECT COUNT(WOQD.WorkOrderQuoteDetailsId) FROM [dbo].[WorkOrderQuote] WOQ WITH(NOLOCK)
+								INNER JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE  WOQ.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WOQ.ApprovedDate)= @StartDate AND WOQ.QuoteStatusId = @WOQApproveStatus)
@@ -106,19 +107,12 @@ BEGIN
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE  WBI.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WBI.CreatedDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 								AND @StartDate AND WBI.IsVersionIncrease = 0 AND ISNULL(WBI.IsPerformaInvoice,0) != 1)
-
-
-
 		
 		SET @WOMTDAmount = (SELECT ISNULL(SUM(WBI.GrandTotal),0) FROM [dbo].[WorkOrderBillingInvoicing] WBI WITH(NOLOCK)
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON  RMS.EntityStructureId = @ManagementStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE	 WBI.MasterCompanyId = @MasterCompanyId AND CONVERT(DATE,WBI.CreatedDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 								AND @StartDate AND WBI.IsVersionIncrease = 0 AND ISNULL(WBI.IsPerformaInvoice,0) != 1)						
-		--SET @WOQFlatAmount = (SELECT ISNULL(SUM(CommonFlatRate),0) FROM [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) WHERE WOQD.WorkOrderQuoteId IN (@WOQFlatIDs))
-		--SET @WOQNonFlatAmount = (SELECT ISNULL(SUM(LaborFlatBillingAmount),0) + ISNULL(SUM(MaterialFlatBillingAmount),0) + ISNULL(SUM(ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) FROM [dbo].[WorkOrderQuoteDetails] WOQD WITH(NOLOCK) WHERE WOQD.WorkOrderQuoteId IN (@WOQNonFlatIDs))
-
-		
 		
 		SELECT  @WOReceiptUnits AS WoReceiptUnits,
 			    @WOQuotedUnits AS WoQuotedUnits,
@@ -147,5 +141,5 @@ BEGIN
                     , @ErrorLogID                    = @ErrorLogID OUTPUT ;
             RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
             RETURN(1);
-	END CATCH   
+	END CATCH   
 END

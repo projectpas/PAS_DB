@@ -36,7 +36,8 @@ BEGIN
 		DECLARE @MasterCompanyId INT;  
 		DECLARE @MTIMasterCompanyId INT; 
 		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
-		DECLARE @UkCountryId BIGINT = 0;		
+		DECLARE @USCountryISOCode VARCHAR(100) = 'US';
+		DECLARE @CountryId BIGINT = 0;		
 
 		SET @MSModuleId = 12 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
@@ -47,8 +48,16 @@ BEGIN
 		SELECT @CommonTeardownTypeId = [CommonTeardownTypeId] FROM [DBO].[CommonTeardownType] CTT WITH(NOLOCK) 
 		WHERE CTT.[MasterCompanyId] = @MasterCompanyId AND UPPER(CTT.[TearDownCode]) = UPPER('MODIFICATIONSERVICE');
 	   
-	    --GET UK code id
-		SELECT @UkCountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;
+	    --GET Country code id
+		IF(ISNULL(@IsEasaUKLicense, 0) = 1)
+		BEGIN
+			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
+		END
+
+		IF(ISNULL(@IsEasaLicense, 0) = 1)
+		BEGIN
+			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
+		END
 
 	    SELECT 'UNITED STATES' AS Country,  
 			  '' AS trackingNo,  
@@ -93,15 +102,13 @@ BEGIN
 								+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 								+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						END ELSE '' END)   	  
-			  + (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 			 
-			  + (CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' +(ISNULL(wos.Dualreleaselanguage,'-') +' '+ le.EASALicense +'</p>') ELSE ''  END)        
-			  + (CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
-			  + '</div>') Remarks,  
-			   Upper(le.EASALicense) AS EASALicense  
+					+ (CASE WHEN @IsEasaLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</p>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaUKLicense = 1 THEN '<p style='+ '"bottom : 5px; position:absolute;font-size: 15px !important;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</p>') ELSE ''  END)        
+					+ '</div>') Remarks,  
+					Upper(le.EASALicense) AS EASALicense  
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
-			  LEFT JOIN [dbo].[WorkOrderSettings] wos  WITH(NOLOCK) ON wos.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wos.WorkOrderTypeId
-			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @UkCountryId
+			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 			  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 			  LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.StockLineId = wop.StockLineId  

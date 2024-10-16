@@ -20,7 +20,8 @@
 	4    26/03/2024   Abhishek Jirawla	  Removing Reserved quantity saved at the time of bulk stockline adjustment.
 	5	 16/04/2024   Amit Ghediya		  Updates memo text.
 	6    20/09/2024	  AMIT GHEDIYA		  Added for AutoPost Batch
-	7	 20/09/2024   Rajesh Gami      Update the StocklineAdjustment modulename while adjustment.
+	7	 20/09/2024   Rajesh Gami	      Update the StocklineAdjustment modulename while adjustment.
+	8	 14/10/2024	  Devendra Shekh	  Added new fields for [CommonBatchDetails]
      
 **************************************************************/
 
@@ -107,6 +108,10 @@ BEGIN
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @ReferenceNumber VARCHAR(50) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @BlkModuleID = ModuleId FROM Module WHERE CodePrefix='BSTKADJ';
 		
@@ -114,6 +119,8 @@ BEGIN
 				
 	    DECLARE @AccountModuleId INT = 0;
 		SELECT @AccountModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+
+		SELECT @ReferenceNumber = [BulkStkLineAdjNumber] FROM [dbo].[BulkStockLineAdjustment] WITH(NOLOCK) WHERE [BulkStkLineAdjId] = @BulkStkLineAdjHeaderId;
 		
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -344,7 +351,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -352,7 +359,7 @@ BEGIN
 						CASE WHEN @CrDrType > 0 THEN ABS(@TotalAmount) ELSE 0 END,
 						CASE WHEN @CrDrType > 0 THEN 0 ELSE ABS(@TotalAmount) END,
 						@ToManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 					-----  Accounting MS Entry  -----
@@ -390,7 +397,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -398,7 +405,7 @@ BEGIN
 					CASE WHEN @CrDrType > 0 THEN ABS(@TotalAmount) ELSE 0 END,
 					CASE WHEN @CrDrType > 0 THEN 0 ELSE ABS(@TotalAmount) END,
 					@FromManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 					

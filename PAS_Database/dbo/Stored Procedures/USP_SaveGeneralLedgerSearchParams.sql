@@ -75,6 +75,7 @@ BEGIN
 						GLS.Level9 = t.Level9,
 						GLS.Level10 = t.Level10,
 						GLS.UpdatedBy = t.CreatedBy,
+						GLS.EmployeeId = t.EmployeeId,
 						GLS.UpdatedDate = GETUTCDATE()
 					FROM [dbo].[GeneralLedgerSearchParams] GLS WITH(NOLOCK)
 					INNER JOIN @tblType_GeneralLedgerSearchParamsType t ON GLS.GeneralLedgerSearchParamsId = t.GeneralLedgerSearchParamsId

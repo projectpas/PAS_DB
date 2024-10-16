@@ -14,9 +14,11 @@
  ** PR   Date         Author				Change Description   '2024-07-30'        
  ** --   --------     -------				--------------------------------          
     1    10-04-2024  Shrey Chandegara		Created
+		2    16 OCT 2024	HEMANT SALIYA			UPDATE Open Date Changes   
+
 EXEC GetWOQPartsMonthlyYearlyDashboardData 1, 2, '2024-10-10',10,1
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetWOQPartsMonthlyYearlyDashboardData]
+CREATE   PROCEDURE [dbo].[GetWOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@EmployeeId BIGINT = NULL,
 	@StartDate DATETIME2 = NULL,
@@ -32,7 +34,10 @@ BEGIN
 				DECLARE @WOQMSModuleID INT = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'WorkOrderMPN');
 				DECLARE @EmployeeRoleID NVARCHAR(MAX);
 				DECLARE @OnTimePerform DECIMAL(9,2)= NULL;
+				DECLARE @OnTimePerformCount DECIMAL(9,2)= NULL;
 				DECLARE @NOTOnTimePerform DECIMAL(9,2) =NULL;
+				DECLARE @NOTOnTimePerformCount DECIMAL(9,2) =NULL;
+				DECLARE @TotalTimePerform DECIMAL(9,2) =NULL;
 				DECLARE @OverHualScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'OVERHAUL' AND MasterCompanyId = 1);
 				DECLARE @RepairScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'REPAIR' AND MasterCompanyId = 1);
 				DECLARE @BenChekScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'BENCHCHECK' AND MasterCompanyId = 1);
@@ -42,9 +47,6 @@ BEGIN
 						WHERE EmployeeId = @EmployeeId
 						FOR XML PATH('')
 					), 1, 1, '');
-				----Top 10 Parts Quoted
-
-				-- START: Top 10 parts by item Group Chart value  (CHART NUM: 1)--
 
 				IF OBJECT_ID(N'tempdb..#tmpTop10PartQuoted') IS NOT NULL
 				BEGIN
@@ -63,7 +65,6 @@ BEGIN
 						IM.ItemMasterId,
 						COUNT(WP.Quantity) AS TotalSalesCount
 					FROM dbo.WorkOrder WO WITH (NOLOCK)
-						--INNER JOIN   WITH (NOLOCK) ON WOQD.WorkOrderQuoteId = WOQ.WorkOrderQuoteId
 						INNER JOIN dbo.WorkOrderPartNumber WP WITH (NOLOCK) ON WP.WorkOrderId = WO.WorkOrderId  
 						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
 					WHERE CONVERT(DATE,WO.OpenDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
@@ -82,11 +83,7 @@ BEGIN
 					OFFSET 0 ROWS
 					FETCH FIRST @TopNumberDetails ROWS ONLY;
 
-					-- END --
-
-
 					-- Start : Top 10 Customers Chart value (CHART NUM: 2)--
-
 					IF OBJECT_ID(N'tempdb..#tmpTop10CustomerReceivedPart') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpTop10CustomerReceivedPart
@@ -104,11 +101,11 @@ BEGIN
 						C.Name, 
 						C.CustomerId, 
 						COUNT(*) AS CountOfOrders
-					FROM dbo.[WorkOrder] WO WITH(NOLOCK)
-					INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId
-					WHERE CONVERT(DATE, WO.CreatedDate) 
+					FROM [dbo].[ReceivingCustomerWork] RC 
+					INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RC.CustomerId
+					WHERE CONVERT(DATE, RC.ReceivedDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
-						AND @StartDate AND WO.MasterCompanyId = @MasterCompanyId
+						AND @StartDate AND RC.MasterCompanyId = @MasterCompanyId
 					GROUP BY C.CustomerId, C.Name
 					)
 					INSERT INTO #tmpTop10CustomerReceivedPart (Customer, TotalWorkOrderCount)
@@ -142,9 +139,10 @@ BEGIN
 						E.EmployeeId, 
 						COUNT(WOP.ID) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
+					INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 					INNER JOIN dbo.Employee E WITH (NOLOCK) ON E.EmployeeId = WOP.TechnicianId
 					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId
-					WHERE WS.WorkableBacklog = 1 AND CONVERT(DATE, WOP.CreatedDate) 
+					WHERE WS.WorkableBacklog = 1 AND CONVERT(DATE, WO.OpenDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate AND WOP.MasterCompanyId = @MasterCompanyId
 					GROUP BY E.FirstName, E.LastName,E.EmployeeId
@@ -180,15 +178,16 @@ BEGIN
 						WOP.WorkOrderStageId, 
 						COUNT(WOP.ID) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
-					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId
-					WHERE CONVERT(DATE, WOP.CreatedDate) 
+						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND WS.WorkableBacklog = 1
+					WHERE CONVERT(DATE, WO.OpenDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
 					GROUP BY  WS.Stage,WOP.WorkOrderStageId
 					)
 					INSERT INTO #tmpTop10WOStage (Stage, TotalPartCount)
 					SELECT
-					Name,         
+					UPPER(Name),         
 					CountOfOrders 
 					FROM tmpTop10WorkOrderStage
 					ORDER BY CountOfOrders DESC
@@ -212,15 +211,16 @@ BEGIN
 					)
 					;WITH TimeSums AS (
 					SELECT 
-							SUM(WT.Hours) AS TotalDays, 
+							SUM(WT.Days) AS TotalDays, 
 							SUM(WT.Hours) AS TotalHours, 
 							SUM(WT.Mins) AS TotalMinutes,
 							WOP.WorkOrderScopeId,
 							WOP.WorkScope
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
-					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.QuoteDays,0) = 1 AND ISNULL(Ws.IncludeInTAT,0) = 1
-					INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID AND WT.OldStageId = WS.WorkOrderStageId
-					WHERE CONVERT(DATE, WOP.CreatedDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
+						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.QuoteDays,0) = 1 AND ISNULL(Ws.IncludeInTAT,0) = 1
+						INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID AND WT.OldStageId = WS.WorkOrderStageId
+					WHERE CONVERT(DATE, WO.OpenDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
 						  AND WOP.WorkOrderScopeId IN( @OverHualScopeId ,@RepairScopeId,@BenChekScopeId) AND WOP.MasterCompanyId = @MasterCompanyId 
 						  GROUP BY WOP.WorkOrderScopeId,WOP.WorkScope
 						  )
@@ -228,7 +228,8 @@ BEGIN
 					INSERT INTO #tmpTop10TATData (Scope, DaysCount)
 					SELECT
 					WorkScope,
-					sum( (TotalDays + (TotalHours / 24) + ((TotalHours % 24) + (TotalMinutes / 60)) + ((TotalMinutes % 60)) )) as totaldays
+					SUM(TotalDays + (TotalHours / 24.0) + (TotalMinutes / 1440.0)) AS totaldays
+					--sum( (TotalDays + (TotalHours / 24) + ((TotalHours % 24) + (TotalMinutes / 60)) + ((TotalMinutes % 60)) )) as totaldays
 					FROM TimeSums
 					group by WorkScope
 					ORDER BY totaldays DESC
@@ -264,7 +265,10 @@ BEGIN
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
 					)
 					Select @OnTimePerform = ((CONVERT(decimal(9,2),ontime) * 100) / total),
-						   @NOTOnTimePerform = ((CONVERT(decimal(9,2),Notontime) * 100) / total)
+						   @NOTOnTimePerform = ((CONVERT(decimal(9,2),Notontime) * 100) / total),
+						   @OnTimePerformCount = ontime,
+						   @NOTOnTimePerformCount = Notontime,
+						   @TotalTimePerform = total
 					from tmpOnTimePerfomance
 					ORDER BY total DESC
 					OFFSET 0 ROWS
@@ -283,7 +287,9 @@ BEGIN
 
 					SELECT DaysCount AS col1,Scope AS col2 FROM #tmpTop10TATData
 
-					SELECT ISNULL(@OnTimePerform,0) AS 'OnTime',ISNULL(@NOTOnTimePerform,0) AS 'NotOnTime' 
+					SELECT ISNULL(@OnTimePerformCount,0) AS 'OnTime',ISNULL(@NOTOnTimePerformCount,0) AS 'NotOnTime' 
+
+					SELECT ISNULL(@OnTimePerform,0) AS col1 ,  ISNULL(@NOTOnTimePerform,0) AS col2 ,ISNULL(@TotalTimePerform,0) AS col3 
 
 			END
 		

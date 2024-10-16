@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateWorkOrderColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Details based in WO Id.    
@@ -18,12 +17,13 @@
  ** --   --------     -------		--------------------------------          
     1    12/30/2020   Hemant Saliya Created
 	2    07/19/2021   Hemant Saliya Added SP Call for WO Status Update
+	3    10/16/2024   Moin Bloch    Updated RevisedPartDescription if not exists
      
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
-	@WorkOrderPartNumberId int
+CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
+@WorkOrderPartNumberId int
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -85,7 +85,7 @@ BEGIN
 				SET @LoopID = @LoopID - 1;
 				END 
 
-				SELECT * FROM #WorkOrderPartMSDATA
+				--SELECT * FROM #WorkOrderPartMSDATA
 
 				UPDATE WPN SET 
 					WPN.Level1 = WMS.Level1,
@@ -95,7 +95,25 @@ BEGIN
 				FROM dbo.WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN #WorkOrderPartMSDATA WMS ON WMS.MSID = WPN.ManagementStructureId
 				WHERE WPN.ID = @WorkOrderPartNumberId
-		
+
+				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND [RevisedPartDescription] IS NULL)
+				BEGIN					
+					UPDATE WPN SET 						
+						WPN.[RevisedPartDescription] = IM.[PartDescription]				
+					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
+					WHERE WPN.[ID] = @WorkOrderPartNumberId
+				END		
+
+				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND [RevisedPartNumber] IS NULL)
+				BEGIN					
+					UPDATE WPN SET 
+						WPN.[RevisedPartNumber] = IM.[PartNumber]								
+					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
+					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
+					WHERE WPN.[ID] = @WorkOrderPartNumberId
+				END		
+
 			END
 		COMMIT  TRANSACTION
 
@@ -108,7 +126,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'UpdateWorkOrderPartNumberColumnsWithId' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@WorkOrderPartNumberId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@WorkOrderPartNumberId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

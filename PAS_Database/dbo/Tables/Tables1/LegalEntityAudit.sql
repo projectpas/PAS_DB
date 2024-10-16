@@ -45,8 +45,11 @@
     [TextTransformId]         BIGINT        NULL,
     [EnableLockScreen]        BIT           NULL,
     [TimeoutInMinutes]        INT           NULL,
+    [UKCAALicense]            VARCHAR (200) NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
+
+
 
 
 

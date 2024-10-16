@@ -281,7 +281,7 @@ BEGIN
 
 					SELECT TotalPartCount AS col1, Stage AS col2 FROM #tmpTop10WOStage
 
-					SELECT Scope AS col1,DaysCount AS col2 FROM #tmpTop10TATData
+					SELECT DaysCount AS col1,Scope AS col2 FROM #tmpTop10TATData
 
 					SELECT ISNULL(@OnTimePerform,0) AS 'OnTime',ISNULL(@NOTOnTimePerform,0) AS 'NotOnTime' 
 

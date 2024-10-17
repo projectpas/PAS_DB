@@ -323,7 +323,7 @@ BEGIN
 				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
 		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
 		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-				WHERE  CONVERT(DATE,WOQ.CreatedDate) = @Date AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
+				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = @Date AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
 				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
 			END
 			ELSE IF (@DashboardType = 13)

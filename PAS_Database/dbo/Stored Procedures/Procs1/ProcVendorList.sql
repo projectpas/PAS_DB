@@ -1,5 +1,18 @@
-﻿
-CREATE PROCEDURE [dbo].[ProcVendorList]
+﻿/*************************************************************           
+ ** File:   [ProcVendorList]           
+ ** Author:    
+ ** Description: Get Search Data for Vendor List    
+ ** Purpose:         
+ ** Date:    
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------			--------------------------------          
+    1					Unknown				Created
+    2    10/18/2024		Devendra Shekh		Add fields related to quickBooks
+**************************************************************/ 
+CREATE   PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -19,6 +32,9 @@ CREATE PROCEDURE [dbo].[ProcVendorList]
 @UpdatedBy  varchar(50) = NULL,
 @UpdatedDate  datetime = NULL,
 @IsDeleted bit = NULL,
+@QuickBooksReferenceId  varchar(200)=null,
+@isSynced  varchar(20)=null,
+@LastSyncDate datetime=null,
 @MasterCompanyId bigint=NULL
 AS
 BEGIN	
@@ -74,7 +90,10 @@ BEGIN
                     V.UpdatedBy,                   			                  
 				    V.IsDeleted,
 					V.IsActive,
-					ISNULL(A.ClassificationName, '') 'ClassificationName'
+					ISNULL(A.ClassificationName, '') 'ClassificationName',
+					V.QuickBooksReferenceId,
+					CASE WHEN ISNULL(V.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
+					V.LastSyncDate
 			   FROM dbo.Vendor V  WITH (NOLOCK) INNER JOIN  dbo.[Address] AD WITH (NOLOCK) ON V.AddressId=AD.AddressId
 			                 LEFT JOIN   dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 							 LEFT JOIN   dbo.VendorContact CC WITH (NOLOCK) ON V.VendorId = CC.VendorId AND CC.IsDefaultContact = 1
@@ -97,6 +116,8 @@ BEGIN
 					(StateOrProvince LIKE '%' +@GlobalFilter+'%') OR
 					(VendorPhoneContact LIKE '%' +@GlobalFilter+'%') OR						
 					(ClassificationName LIKE '%' +@GlobalFilter+'%') OR
+					(QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
+					(isSynced LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%')))
 					OR   
@@ -109,7 +130,10 @@ BEGIN
 					(ISNULL(@VendorPhoneContact,'') ='' OR VendorPhoneContact LIKE '%' + @VendorPhoneContact + '%') AND
 					(ISNULL(@ClassificationName,'') ='' OR ClassificationName LIKE '%' + @ClassificationName + '%') AND
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
-					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND													
+					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND	
+					(ISNULL(@QuickBooksReferenceId,'') ='' OR QuickBooksReferenceId LIKE '%' + @QuickBooksReferenceId+'%') AND
+					(ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
+					(ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
 				   )
@@ -141,7 +165,13 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='QuickBooksReferenceId')  THEN QuickBooksReferenceId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuickBooksReferenceId')  THEN QuickBooksReferenceId END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='isSynced')  THEN isSynced END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='isSynced')  THEN isSynced END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='LastSyncDate')  THEN LastSyncDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LastSyncDate')  THEN LastSyncDate END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 

@@ -26,14 +26,9 @@
     10   10/08/2024   RAJESH GAMI 	    Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
 	11   10/14/2024   Vishal Suthar		Fixed issue with reserving and adding the wrong stockline under different WO material
 
-declare @p2 dbo.POPartsToReceive
-insert into @p2 values(2852,15393,3)
-insert into @p2 values(2852,15394,3)
-
-exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2852,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1
-
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -575,8 +570,6 @@ BEGIN
 								SET @OriginalQuantity = @MainPOReferenceQty_Kit;
 							END
 
-							--IF (@Quantity > (@QuantityReserved + @QuantityIssued))-- AND @RemainingStkQty > 0)
-							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0 AND (@Quantity >= (@OriginalQuantity - (@QuantityReserved + @QuantityIssued))))
 							IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
 							BEGIN
 								IF (@SelectedWorkOrderMaterialsKitId > 0)
@@ -600,7 +593,6 @@ BEGIN
 									IF (@Quantity > 0 AND @stkQty > 0)
 									BEGIN
 										IF (@stkQuantityAvailable > = @Quantity)
-											--SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
 											SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);	-- - (@QuantityReserved + @QuantityIssued);
 										ELSE
 											SET @Qty = @stkQuantityAvailable;
@@ -693,7 +685,7 @@ BEGIN
 													DECLARE @ItmMsrId_KIT BIGINT = 0;
 													DECLARE @CondId_KIT BIGINT = 0;
 
-													SELECT @ItmMsrId_KIT = WOM.ItemMasterId, @CondId_KIT = WOM.ConditionCodeId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+													SELECT @ItmMsrId_KIT = WOM.ItemMasterId, @CondId_KIT = WOM.ConditionCodeId FROM DBO.WorkOrderMaterialsKit WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
 
 													IF ((@ItmMsrId_KIT = @stkItemMasterId OR @stkItemMasterId = @AltPartId OR @stkItemMasterId = @EquPartId) AND @CondId_KIT = (CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END))
 													BEGIN
@@ -719,7 +711,6 @@ BEGIN
 
 												UPDATE TOP (@Qty) StkDraft
 												SET 
-												--StkDraft.SOQty = CASE WHEN StkDraft.SOQty IS NULL THEN 0 ELSE StkDraft.SOQty END,
 												StkDraft.WOQty = @Qty,
 												StkDraft.WorkOrderId = @ReferenceId,
 												StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
@@ -758,9 +749,7 @@ BEGIN
 						BEGIN
 							UPDATE Stk
 							SET Stk.QuantityAvailable = @stkQuantityAvailable,
-							--Stk.QuantityOnHand = @stkQuantityOnHand,
 							Stk.QuantityReserved = @stkQuantityReserved,
-							--Stk.QuantityIssued = @stkQuantityIssued,
 							Stk.QuantityOnOrder = @stkQuantityOnOrder
 							FROM DBO.Stockline Stk 
 							WHERE Stk.StockLineId = @StkStocklineId;

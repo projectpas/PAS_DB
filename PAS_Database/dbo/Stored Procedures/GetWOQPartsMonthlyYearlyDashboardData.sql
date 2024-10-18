@@ -38,9 +38,9 @@ BEGIN
 				DECLARE @NOTOnTimePerform DECIMAL(9,2) =NULL;
 				DECLARE @NOTOnTimePerformCount DECIMAL(9,2) =NULL;
 				DECLARE @TotalTimePerform DECIMAL(9,2) =NULL;
-				DECLARE @OverHualScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'OVERHAUL' AND MasterCompanyId = 1);
-				DECLARE @RepairScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'REPAIR' AND MasterCompanyId = 1);
-				DECLARE @BenChekScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'BENCHCHECK' AND MasterCompanyId = 1);
+				DECLARE @OverHualScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'OVERHAUL' AND MasterCompanyId = @MasterCompanyId);
+				DECLARE @RepairScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'REPAIR' AND MasterCompanyId = @MasterCompanyId);
+				DECLARE @BenChekScopeId BIGINT = (SELECT WorkScopeId FROM dbo.[WorkScope] WHERE WorkScopeCode = 'BENCHCHECK' AND MasterCompanyId = @MasterCompanyId);
 				SELECT @EmployeeRoleID = STUFF((
 						SELECT DISTINCT ',' + CAST(RoleId AS VARCHAR(100))
 						FROM dbo.EmployeeUserRole WITH (NOLOCK)
@@ -218,10 +218,10 @@ BEGIN
 							WOP.WorkScope
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
 						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.QuoteDays,0) = 1 AND ISNULL(Ws.IncludeInTAT,0) = 1
-						INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID AND WT.OldStageId = WS.WorkOrderStageId
+						INNER JOIN dbo.WorkOrderTurnArroundTime WT WITH (NOLOCK) ON WT.WorkOrderPartNoId = WOP.ID --AND WT.CurrentStageId = WOP.WorkOrderStageId
+						LEFT JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WT.OldStageId AND ISNULL(WS.QuoteDays,0) = 1 AND ISNULL(Ws.IncludeInTAT,0) = 1
 					WHERE CONVERT(DATE, WO.OpenDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) AND @StartDate
-						  AND WOP.WorkOrderScopeId IN( @OverHualScopeId ,@RepairScopeId,@BenChekScopeId) AND WOP.MasterCompanyId = @MasterCompanyId 
+						  AND WOP.WorkOrderScopeId IN( @OverHualScopeId ,@RepairScopeId,@BenChekScopeId) AND WOP.MasterCompanyId = 1 
 						  GROUP BY WOP.WorkOrderScopeId,WOP.WorkScope
 						  )
 

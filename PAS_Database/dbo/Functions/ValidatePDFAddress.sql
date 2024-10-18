@@ -1,4 +1,19 @@
-﻿CREATE FUNCTION [dbo].[ValidatePDFAddress]
+﻿/*****************************************************************************
+ ** File:   [ValidatePDFAddress]
+ ** Author:   Unkwon
+ ** Description: Merge Address
+ ** Purpose:
+ ** Date:    
+ ******************************************************************************
+  ** Change History
+ ******************************************************************************
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1				  Unkwon					Created
+	2	 10/18/2024	  Devendra Shekh			Modified(Space issue resolved)
+
+******************************************************************************/ 
+CREATE   FUNCTION [dbo].[ValidatePDFAddress]
 (
     @Address1 NVARCHAR(255),
     @Address2 NVARCHAR(255),
@@ -21,15 +36,28 @@ BEGIN
     DECLARE @lineBreak NVARCHAR(10) = ', <br/>';
     DECLARE @newLine NVARCHAR(10) = '<br/>';
 
-    -- Append Address1, Address2, Address3
-    SET @address = COALESCE(NULLIF(TRIM(@Address1), '-'), '') + 
-                   COALESCE(NULLIF(TRIM(@Address2), '-'), '') +
-                   COALESCE(NULLIF(TRIM(@Address3), '-'), '');
+	-- Assinged Address1
+    IF (COALESCE(NULLIF(TRIM(@Address1), '-'), '') <> '')
+    BEGIN
+        SET @address = @Address1;
+    END
+
+	-- Append @Address2
+    IF (COALESCE(NULLIF(TRIM(@Address2), '-'), '') <> '')
+    BEGIN
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END + @Address2;
+    END
+
+	-- Append @Address3
+    IF (COALESCE(NULLIF(TRIM(@Address3), '-'), '') <> '')
+    BEGIN
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END + @Address3;
+    END
 
     -- Append City, StateOrProvince, and PostalCode
     IF (COALESCE(NULLIF(TRIM(@City), '-'), '') <> '')
     BEGIN
-        SET @address = @address + @City;
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END + @City;
     END
 
     IF (COALESCE(NULLIF(TRIM(@StateOrProvince), '-'), '') <> '')
@@ -39,24 +67,31 @@ BEGIN
 
     IF (COALESCE(NULLIF(TRIM(@PostalCode), '-'), '') <> '')
     BEGIN
-        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN ', ' ELSE '' END + @PostalCode + @lineBreak;
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN ', ' ELSE '' END + @PostalCode;
     END
 
-    -- Append Country
-    SET @address = @address + COALESCE(NULLIF(TRIM(@Country), '-'), '') + CASE WHEN LEN(@address) > 0 THEN @newLine ELSE '' END;
-
-    -- Append PhoneNumber and PhoneExt
-    SET @address = @address + COALESCE(NULLIF(TRIM(@PhoneNumber), '-'), '') + CASE WHEN LEN(@address) > 0 THEN @newLine ELSE '' END;
-    
-    IF (COALESCE(NULLIF(TRIM(@PhoneExt), '-'), '') <> '')
+	-- Append Country
+	IF (COALESCE(NULLIF(TRIM(@Country), '-'), '') <> '')
     BEGIN
-        SET @address = @address + ' ' + @PhoneExt + @newLine;
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN @lineBreak ELSE '' END + @Country;
+    END
+
+	---- Append PhoneNumber
+	IF (COALESCE(NULLIF(TRIM(@PhoneNumber), '-'), '') <> '')
+    BEGIN
+        SET @address = @address + CASE WHEN LEN(@address) > 0 THEN @newLine ELSE '' END + @PhoneNumber;
+    END
+
+    ---- Append PhoneExt
+    IF (COALESCE(NULLIF(TRIM(@PhoneExt), '-'), '') <> '' AND COALESCE(NULLIF(TRIM(@PhoneNumber), '-'), '') <> '')
+    BEGIN
+        SET @address = @address + ' ' + @PhoneExt;
     END
 
     -- Append Email
     IF (COALESCE(NULLIF(TRIM(@Email), '-'), '') <> '')
     BEGIN
-        SET @address = @address + @Email;
+        SET @address = @address + @newLine + @Email;
     END
 
     RETURN UPPER(@address);

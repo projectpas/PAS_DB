@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetCustomerList]           
  ** Author:   Ameet Prajapati
  ** Description: Get Search Data for Customer List    
@@ -19,11 +17,12 @@
     1    12/14/2020   Hemant Saliya Created
 	2    12/17/2020   Updated Like for General Filter
     3    03/13/2024   Ekta Chandegra Add master company on join
+    4    10/18/2024   Devendra Shekh Add fields related to quickBooks
 
      
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[GetCustomerList]
+CREATE   PROCEDURE [dbo].[GetCustomerList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -46,6 +45,9 @@ CREATE PROCEDURE [dbo].[GetCustomerList]
 	@CreatedBy  varchar(50)=null,
 	@UpdatedBy  varchar(50)=null,
     @IsDeleted bit= null,
+	@QuickBooksReferenceId  varchar(200)=null,
+	@isSynced  varchar(20)=null,
+	@LastSyncDate datetime=null,
 	@MasterCompanyId bigint = NULL
 
 AS
@@ -108,7 +110,10 @@ BEGIN
 					C.UpdatedDate,
 					C.UpdatedBy,
 					CA.[Description] AS CustomerType,
-					C.IsTrackScoreCard
+					C.IsTrackScoreCard,
+					C.QuickBooksReferenceId,
+					CASE WHEN ISNULL(C.QuickBooksReferenceId,'') != '' THEN 'YES' ELSE 'NO' END AS 'isSynced',
+					C.LastSyncDate
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -131,6 +136,8 @@ BEGIN
 					(CustomerClassification LIKE '%' +@GlobalFilter+'%') OR
 					(Contact LIKE '%' +@GlobalFilter+'%') OR
 					(SalesPersonPrimary LIKE '%'+@GlobalFilter+'%') OR
+					(QuickBooksReferenceId LIKE '%' +@GlobalFilter+'%') OR
+					(isSynced LIKE '%' +@GlobalFilter+'%') OR
 					(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') 
 					))
@@ -147,6 +154,9 @@ BEGIN
 					(ISNULL(@SalesPersonPrimary,'') ='' OR SalesPersonPrimary LIKE '%' + @SalesPersonPrimary+'%') and
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
+					(ISNULL(@QuickBooksReferenceId,'') ='' OR QuickBooksReferenceId LIKE '%' + @QuickBooksReferenceId+'%') AND
+					(ISNULL(@isSynced,'') ='' OR isSynced LIKE '%' + @isSynced+'%') AND
+					(ISNULL(@LastSyncDate,'') ='' OR CAST(LastSyncDate as Date)=CAST(@LastSyncDate as date)) AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
@@ -169,6 +179,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='NAME')  THEN [Name] END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CUSTOMERCODE')  THEN CustomerCode END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='ISSYNCED')  THEN isSynced END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -183,7 +196,11 @@ BEGIN
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NAME')  THEN [Name] END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE')  THEN CustomerCode END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE')  THEN CustomerCode END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUICKBOOKSREFERENCEID')  THEN QuickBooksReferenceId END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSYNCED')  THEN isSynced END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC
+
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

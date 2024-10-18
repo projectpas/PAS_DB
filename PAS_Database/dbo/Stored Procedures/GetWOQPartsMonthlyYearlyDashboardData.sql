@@ -141,7 +141,7 @@ BEGIN
 					INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 					INNER JOIN dbo.Employee E WITH (NOLOCK) ON E.EmployeeId = WOP.TechnicianId
 					INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId
-					WHERE WS.WorkableBacklog = 1 AND CONVERT(DATE, WO.OpenDate) 
+					WHERE ISNULL(WS.WorkableBacklog, 0) = 1 AND CONVERT(DATE, WO.OpenDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate AND WOP.MasterCompanyId = @MasterCompanyId
 					GROUP BY E.FirstName, E.LastName,E.EmployeeId
@@ -176,7 +176,7 @@ BEGIN
 						COUNT(WOP.ID) AS CountOfOrders
 					FROM dbo.[WorkOrderPartNumber] WOP WITH(NOLOCK)
 						INNER JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND WS.WorkableBacklog = 1
+						INNER JOIN dbo.WorkOrderStage WS WITH (NOLOCK) ON WS.WorkOrderStageId = WOP.WorkOrderStageId AND ISNULL(WS.WorkableBacklog, 0) = 1
 					WHERE CONVERT(DATE, WO.OpenDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate  AND WOP.MasterCompanyId = @MasterCompanyId
@@ -202,8 +202,8 @@ BEGIN
 						ID bigint NOT NULL IDENTITY,						
 						WorkOrderScopeId BIGINT  NULL,
 						Scope VARCHAR(100)  NULL,
-						DaysCount INT NULL,
-						PartsCount INT  NULL,
+						DaysCount DECIMAL(18,2) NULL,
+						PartsCount DECIMAL(18,2)  NULL,
 					)
 					;WITH TimeSums AS (
 					SELECT 
@@ -244,7 +244,7 @@ BEGIN
 							GROUP BY WOP.WorkOrderScopeId
 						) GPParts WHERE GPParts.WorkOrderScopeId = #tmpTop10TATData.WorkOrderScopeId
 						
-					UPDATE #tmpTop10TATData SET DaysCount = ROUND((ISNULL(DaysCount, 0) / ISNULL(PartsCount, 1)), 0)
+					UPDATE #tmpTop10TATData SET DaysCount = ROUND((    CAST( ISNULL(DaysCount, 0) AS DECIMAL(7,2))   / CAST(ISNULL(PartsCount, 1) AS DECIMAL(7,2))     ), 0) 
 
 					--Start: On Time Performance Chart Value (CHART NUM: 6)--
 

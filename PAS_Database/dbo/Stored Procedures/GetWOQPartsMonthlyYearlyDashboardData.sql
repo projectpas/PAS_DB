@@ -203,7 +203,7 @@ BEGIN
 						WorkOrderScopeId BIGINT  NULL,
 						Scope VARCHAR(100)  NULL,
 						DaysCount DECIMAL(18,2) NULL,
-						PartsCount DECIMAL(18,2)  NULL,
+						PartsCount INT  NULL,
 					)
 					;WITH TimeSums AS (
 					SELECT 
@@ -243,8 +243,9 @@ BEGIN
 								  AND WOP.WorkOrderScopeId IN( @OverHualScopeId) AND WOP.MasterCompanyId = @MasterCompanyId 
 							GROUP BY WOP.WorkOrderScopeId
 						) GPParts WHERE GPParts.WorkOrderScopeId = #tmpTop10TATData.WorkOrderScopeId
+
 						
-					UPDATE #tmpTop10TATData SET DaysCount = ROUND((    CAST( ISNULL(DaysCount, 0) AS DECIMAL(7,2))   / CAST(ISNULL(PartsCount, 1) AS DECIMAL(7,2))     ), 0) 
+					UPDATE #tmpTop10TATData SET DaysCount = ROUND(CAST(DaysCount/PartsCount AS DECIMAL(18,2)), 0)
 
 					--Start: On Time Performance Chart Value (CHART NUM: 6)--
 

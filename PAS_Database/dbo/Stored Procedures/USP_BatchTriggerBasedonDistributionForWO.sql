@@ -13,6 +13,7 @@
     2    08/05/2024		Devendra Shekh		JE Number issue Resolved
 	3    18/09/2024		AMIT GHEDIYA		Added for AutoPost Batch
 	4    10/08/2024		Devendra Shekh		Added new fields for [CommonBatchDetails]
+	5    10/21/2024		Devendra Shekh		added 'UNISSUED' for batch created while UNISSUE
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
@@ -477,6 +478,8 @@ BEGIN
 						BEGIN
 							SET @ValidDistribution = 0;
 						END
+
+						SET @JournalTypename = CASE WHEN ISNULL(@JournalTypename, '') != '' THEN @JournalTypename + ' (UNISSUED)' ELSE @JournalTypename END;
 					
 						IF(@Amount > 0 AND @ValidDistribution = 1)
 						BEGIN

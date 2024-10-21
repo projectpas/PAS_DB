@@ -24,6 +24,7 @@
 	8    15-07-2024   Devendra Shekh    Modified For Account BatchDetail Entry
 	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
 	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
+	11   11-10-2024	  Ekta Chandegra    Add history when update Part 
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -654,7 +655,7 @@ BEGIN
 
                         EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @ReceivingPurchaseOrderModule, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded, @UpdatedBy;
                         EXEC USP_CreateStocklinePartHistory @NewStocklineId, 1, 0, 0, 0;
-
+						
                         UPDATE CodePrefixes SET CurrentNummber = @CNCurrentNumber WHERE CodeTypeId = 9 AND MasterCompanyId = @MasterCompanyId;
 
                         DECLARE @StkManagementStructureModuleId BIGINT = 2;
@@ -943,6 +944,14 @@ BEGIN
                                       AND POP.ConditionId = @ConditionId;
 
                                 EXEC dbo.UpdateItemMasterPurchaseSaleDetails @ItemMasterId;
+
+								DECLARE @ItemMasterPurchaseSaleId  BIGINT = 0;
+
+								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale]
+								WHERE ItemMasterId = @ItemMasterId 
+								AND ConditionId = @ConditionId;
+
+								EXEC USP_AddUpdatePriceMasterHistory @ItemMasterPurchaseSaleId , @ReceivingPurchaseOrderModule , @MasterCompanyId , @PurchaseOrderId;
                             END
                             ELSE
                             BEGIN
@@ -959,6 +968,12 @@ BEGIN
                                     IMPS.UpdatedDate = GETUTCDATE()
                                 FROM DBO.ItemMasterPurchaseSale IMPS
                                 WHERE IMPS.ItemMasterId = @ItemMasterId AND IMPS.ConditionId = @ConditionId;
+
+								SELECT @ItemMasterPurchaseSaleId =  ItemMasterPurchaseSaleId FROM [dbo].[ItemMasterPurchaseSale]
+								WHERE ItemMasterId = @ItemMasterId 
+								AND ConditionId = @ConditionId;
+
+								EXEC USP_AddUpdatePriceMasterHistory @ItemMasterPurchaseSaleId , @ReceivingPurchaseOrderModule , @MasterCompanyId, @PurchaseOrderId;
                             END
                         END
 

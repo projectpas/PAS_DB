@@ -17,7 +17,7 @@
     1    09/22/2023   Vishal Suthar		Created
     2    10/05/2023   Vishal Suthar		Modified to get parent stockline draft details to bind as parent record
     3    04/08/2024   Vishal Suthar		Modified to update IsParent based on (Serialized) flag modified at the time of receiving
-  
+  	4    15-10-2024   RAJESH GAMI       Add IsSubWOType and their values (WOMaterialsId, IsSubWOType , IsKitType)
 declare @p4 dbo.UpdateStocklineReceivingPOType
 insert into @p4 values(28702,NULL,N'',NULL,NULL,NULL,0,7,N'',NULL,NULL,0,0,0,0,77,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2173,120.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,13,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2024-04-08 12:49:10.1230932','2024-04-08 07:19:10.0400000',0,0,0,2,0,0,1,NULL,NULL,NULL,0,120.00,N'',NULL,NULL,5,N'',0,3797,N'DHFL-78978',N'asdada',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,0,NULL,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',1,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
 insert into @p4 values(28703,NULL,N'',NULL,NULL,NULL,0,7,N'',NULL,NULL,0,0,0,0,77,NULL,NULL,N'',NULL,N'',N'',N'',NULL,NULL,NULL,N'',NULL,NULL,NULL,2173,120.00,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,13,NULL,NULL,NULL,NULL,NULL,NULL,1,NULL,1,N'ADMIN User',N'ADMIN User','2024-04-08 12:49:10.1237397','2024-04-08 07:19:10.0410000',0,0,0,2,0,0,1,NULL,NULL,NULL,0,120.00,N'',NULL,NULL,5,N'',0,3797,N'DHFL-78978',N'asdada',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,NULL,0,NULL,NULL,1,0,0,NULL,NULL,NULL,1,NULL,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N'',N'',N'',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,N'',1,NULL,NULL,NULL,0,NULL,0,0,NULL,N'',N'',0,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,0,0,0,1)
@@ -284,10 +284,15 @@ BEGIN
 			DECLARE @PrevIsSerialized BIT = 0;
 			DECLARE @PrevIsParent BIT = 0;
 			DECLARE @IsSameDetailsForAllParts BIT = 0;
-			DECLARE @IsSerialized BIT = 0;
+			DECLARE @IsSerialized BIT = 0,@WorkOrderMaterialsId BIGINT =0, @IsKit BIT = 0, @IsSubWO BIT = 0;  
+			
 
 			SELECT @SelectedStockLineDraftId = StockLineDraftId, @SelectedPurchaseOrderPartRecordId = PurchaseOrderPartRecordId, @Quantity = Quantity, @IsSameDetailsForAllParts = IsSameDetailsForAllParts, @IsSerialized = IsSerialized
 			FROM #UpdateStocklineReceivingPOType WHERE ID = @LoopID;
+			IF(@SelectedPurchaseOrderPartRecordId > 0)
+			BEGIN
+				SELECT @WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO FROM dbo.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId
+			END
 
 			SELECT @PrevIsSameDetailsForAllParts = IsSameDetailsForAllParts, @PrevIsSerialized = IsSerialized, @PrevIsParent = IsParent FROM DBO.StockLineDraft StkDraft WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;
 
@@ -374,7 +379,10 @@ BEGIN
 			StkDraft.TimeLifeDetailsNotProvided = TmpStkDraft.TimeLifeDetailsNotProvided,
 			StkDraft.SerialNumberNotProvided = TmpStkDraft.SerialNumberNotProvided,
 			StkDraft.ShippingReferenceNumberNotProvided = TmpStkDraft.ShippingReferenceNumberNotProvided,
-			StkDraft.IsParent = @PrevIsParent
+			StkDraft.IsParent = @PrevIsParent,
+			StkDraft.WorkOrderMaterialsId = @WorkOrderMaterialsId,
+			StkDraft.IsKitType = @IsKit,
+			StkDraft.IsSubWOType = @IsSubWO
 			FROM DBO.StockLineDraft StkDraft
 			INNER JOIN #UpdateStocklineReceivingPOType TmpStkDraft ON StkDraft.StockLineDraftId = TmpStkDraft.StockLineDraftId
 			WHERE StkDraft.StockLineDraftId = @SelectedStockLineDraftId;

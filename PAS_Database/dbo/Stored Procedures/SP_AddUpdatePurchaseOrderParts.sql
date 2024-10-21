@@ -13,6 +13,7 @@
  ** --   --------     -------				--------------------------------          
     1    17/09/2024   RAJESH GAMI			Created
 	2    14/10/2024   RAJESH GAMI			Implemented logic: IsKit and IsSubWO flag for the identify the WOMaterial is kit and from SUWO or not. 
+	3    16/10/2024   RAJESH GAMI			Implemented logic: IsKitType and IsSubWOType flag in the StocklineDraft
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -91,8 +92,8 @@ BEGIN
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
 									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
 									--, SL.CurrencyId = PT.FunctionalCurrencyId,
-										--SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
-										--SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
+										SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
+										SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
 										SL.WorkOrderMaterialsId = PT.WorkOrderMaterialsId,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL

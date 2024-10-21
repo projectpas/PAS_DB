@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 -- =============================================
 -- Author:		<Ayesha Sultana>
 -- Create date: <26-7-2023>
@@ -11,7 +10,8 @@
 **************************************************************   
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
-** 1    26/7/2023  Ayesha Sultana   Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
+** 1    26/7/2023   Ayesha Sultana   Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
+** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 
 **************************************************************/ 
 
@@ -45,6 +45,14 @@ BEGIN
 			UPDATE dbo.Stockline SET WorkOrderMaterialsId = NULL FROM dbo.Stockline S JOIN #TempWOtbl tmpWOM ON S.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
 			DELETE WOMS FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #TempWOtbl tmpWOM ON WOMS.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
 			DELETE WOM FROM dbo.WorkOrderMaterials WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId;
+
+			UPDATE P    
+				    SET WorkOrderMaterialsId = 0, 
+					       IsKit = 0, IsSubWO =0, 
+						   UpdatedDate = GETUTCDATE()
+					FROM DBO.PurchaseOrderPart P
+					  INNER JOIN #TempWOtbl tmp ON P.WorkOrderMaterialsId = tmp.WorkOrderMaterialsId
+					  WHERE P.WorkOrderMaterialsId  = tmp.WorkOrderMaterialsId AND ISNULL(IsKit,0) = 0 AND ISNULL(IsSubWO,0) = 0
 
 			IF OBJECT_ID(N'tempdb..#TempWOtbl') IS NOT NULL
 				BEGIN

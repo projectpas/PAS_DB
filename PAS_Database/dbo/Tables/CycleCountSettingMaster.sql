@@ -1,8 +1,8 @@
 ﻿CREATE TABLE [dbo].[CycleCountSettingMaster] (
     [CycleCountSettingId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [IsEnforceApproval]   BIT           CONSTRAINT [DF_CycleCountSettingMaster_IsEnforceApproval] DEFAULT ((0)) NOT NULL,
-    [StatusId]            BIGINT        NOT NULL,
     [Effectivedate]       DATETIME2 (7) NULL,
+    [StatusId]            BIGINT        NOT NULL,
     [MasterCompanyId]     INT           NOT NULL,
     [CreatedBy]           VARCHAR (256) NOT NULL,
     [UpdatedBy]           VARCHAR (256) NOT NULL,
@@ -13,6 +13,8 @@
     CONSTRAINT [PK_CycleCountSettingMaster] PRIMARY KEY CLUSTERED ([CycleCountSettingId] ASC),
     CONSTRAINT [FK_CycleCountSettingMaster_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

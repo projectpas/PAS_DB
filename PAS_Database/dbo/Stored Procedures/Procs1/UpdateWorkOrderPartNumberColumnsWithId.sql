@@ -18,6 +18,7 @@
     1    12/30/2020   Hemant Saliya Created
 	2    07/19/2021   Hemant Saliya Added SP Call for WO Status Update
 	3    10/16/2024   Moin Bloch    Updated RevisedPartDescription if not exists
+	4    10/21/2024   Devendra Shekh	added Fields for WPN update
      
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
@@ -91,9 +92,22 @@ BEGIN
 					WPN.Level1 = WMS.Level1,
 					WPN.Level2 = WMS.Level2,
 					WPN.Level3 = WMS.Level3,
-					WPN.Level4 = WMS.Level4
-				FROM dbo.WorkOrderPartNumber WPN WITH(NOLOCK) 
+					WPN.Level4 = WMS.Level4,
+					WPN.[PartDescription] = IM.[PartDescription],
+					WPN.[WorkOrderStatus] = WOS.[Description],
+					WPN.[Priority] = PR.[Description],
+					WPN.[WorkOrderStage] = WOSG.[Code] + '-' + WOSG.[Stage],
+					WPN.[ManufacturerName] = IM.[ManufacturerName],
+					WPN.[TechName] = UPPER(EMP.FirstName + ' ' + EMP.LastName),
+					WPN.[EmployeeStation] = UPPER(EMPS.StationName)
+				FROM [dbo].WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN #WorkOrderPartMSDATA WMS ON WMS.MSID = WPN.ManagementStructureId
+				LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
+				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
+				LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
+				LEFT JOIN [dbo].[WorkOrderStage] WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId
+				LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
+				LEFT JOIN [dbo].[EmployeeStation] EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
 				WHERE WPN.ID = @WorkOrderPartNumberId
 
 				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND [RevisedPartDescription] IS NULL)

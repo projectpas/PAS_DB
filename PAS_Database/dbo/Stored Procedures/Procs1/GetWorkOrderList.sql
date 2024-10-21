@@ -19,6 +19,7 @@
 	3    23 Jul2023   Rajesh Gami			Improve Performance
 	4    05/08/2024   HEMANT SALIYA			Serial Number Changes Updated
 	5    09/20/2024   Devendra Shekh		List WO View Resolved
+	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -38,7 +39,7 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @CustomerName varchar(50)=null,  
 	 @CustomerAffiliation varchar(50)=null,  
 	 @Stage varchar(200)=null,  
-	 @WorkOrderStatus varchar(50)=null,      
+	 @WorkOrderStatus bigint=null,      
 	 @OpenDate datetime=null,  
 	 @CustReqDate datetime=null,  
 	 @PromiseDate datetime=null,  
@@ -205,7 +206,7 @@ BEGIN
 			LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
 			LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
         --LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
-       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))  
+       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
         ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
         SELECT * INTO #TempResult from  Result  
         WHERE (  
@@ -405,7 +406,7 @@ BEGIN
 			  LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
 			  LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
-				AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))
+				AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))
 		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,WO.IsActive,WO.IsDeleted
 					,WO.WorkOrderType, WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate
 

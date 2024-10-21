@@ -33,11 +33,12 @@
 	21   13/03/2024   Moin Bloch       Modify(makes Performa Invoice to Invoice)
 	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
 	23   21/06/2024   Hemant Saliya    Added Un Applied Cash to utilize in Cash Receipt.
+	24	 11-Oct-2024  Bhargav Saliya   Get Module status 
 
 EXEC  [dbo].[SearchCustomerInvoicesByCustId] 70,1 
 **************************************************************/ 
 
-CREATE   PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
+CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
 @customerId BIGINT = NULL,
 @legalEntityId BIGINT = 0
 AS      
@@ -74,7 +75,7 @@ BEGIN
 			  0 AS 'FxRate',       
 			  S.SalesOrderNumber AS 'WOSONum',      
 			  0 AS 'NewRemainingBal',      
-			  'Open' AS 'Status',      
+			  msq.[Name] AS 'Status',      
 			  CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) END AS 'DSI',        
 			  CASE WHEN SOBI.IsProforma = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(S.NetDays,0)) > 0 
 			        THEN (DATEDIFF(DAY, SOBI.InvoiceDate, GETUTCDATE()) - ISNULL(S.NetDays,0))
@@ -108,6 +109,7 @@ BEGIN
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId      
 			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId      
 			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(S.PercentId AS INT) = p.PercentId 
+			  INNER JOIN [dbo].MasterSalesOrderQuoteStatus msq WITH(NOLOCK) ON S.SalesOrderId = msq.Id
 	          INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId-- AND MSD.Level1Id = @legalEntityId 
 			  INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = S.MasterCompanyId
@@ -121,7 +123,7 @@ BEGIN
 			  AND SOBI.IsBilling = 0 AND SOBI.RemainingAmount > 0 
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma--,SOBI.CreditMemoUsed      
+			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma,msq.[Name]--,SOBI.CreditMemoUsed      
       
 		UNION ALL    
       
@@ -138,7 +140,7 @@ BEGIN
 			 0 AS 'FxRate',      
 			 WO.WorkOrderNum AS 'WOSONum',      
 			 0 AS 'NewRemainingBal',      
-			 'Open' AS 'Status',      
+			 WOS.[Description] AS 'Status',      
 			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) END AS  'DSI',                    
 			 CASE WHEN WOBI.IsPerformaInvoice = 1 THEN 0 ELSE CASE WHEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(WO.NetDays,0)) > 0 
 			      THEN (DATEDIFF(DAY, WOBI.InvoiceDate, GETUTCDATE()) - ISNULL(WO.NetDays,0))
@@ -173,7 +175,8 @@ BEGIN
 			 LEFT JOIN  [dbo].[Customer] C WITH (NOLOCK) ON WOBI.CustomerId = C.CustomerId      
 			 LEFT JOIN  [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId      
 			 LEFT JOIN  [dbo].[Currency] Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId      
-			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = p.PercentId      
+			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = p.PercentId   
+			 LEFT JOIN  [dbo].WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = wop.WorkOrderStatusId
 			 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId  --AND MSD.Level1Id = @legalEntityId  
 			 INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			 INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = WO.MasterCompanyId
@@ -186,7 +189,7 @@ BEGIN
 		AND ISNULL(WOBI.[IsInvoicePosted], 0) != 1
 		GROUP BY  WOBI.WorkOrderId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,
-			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,WO.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice--,WOBI.CreditMemoUsed      
+			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,WO.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice,WOS.[Description]--,WOBI.CreditMemoUsed      
       
 		UNION ALL    
     
@@ -364,7 +367,7 @@ BEGIN
 			  0 AS 'FxRate',       
 			  ES.ExchangeSalesOrderNumber AS 'WOSONum',      
 			  0 AS 'NewRemainingBal',      
-			  'Open' AS 'Status',      
+			  EST.[Name] AS 'Status',      
 			  DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) AS 'DSI',        
 			  CASE WHEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(ES.NetDays,0)) > 0 
 			      THEN (DATEDIFF(DAY, ESOBI.InvoiceDate, GETUTCDATE()) - ISNULL(ES.NetDays,0))
@@ -396,6 +399,7 @@ BEGIN
 			LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON ESOBI.CustomerId = CF.CustomerId      
 			LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON ESOBI.CurrencyId = Curr.CurrencyId      
 			LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ES.[PercentId] AS INT) = p.PercentId 
+			INNER JOIN [dbo].[ExchangeStatus] EST WITH (NOLOCK) on ES.StatusId = EST.ExchangeStatusId
 	        INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ExSOMSModuleID AND MSD.ReferenceID = ESOBI.ExchangeSalesOrderId
 			INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = ES.MasterCompanyId
@@ -409,7 +413,7 @@ BEGIN
 			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
 		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, ES.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
 			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId   
+			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId,EST.[Name]   
     
  END TRY          
  BEGIN CATCH      

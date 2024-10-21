@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 -- =============================================
 -- Author:		<Ayesha Sultana>
 -- Create date: <07-11-2023>
@@ -13,9 +12,9 @@
 ** --   --------		-------				--------------------------------
 ** 1    07-11-2023		Ayesha Sultana		Created - Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
 ** 2    07-11-2023		Hemnat Saliya		Updated - Added Kit Delete option
+** 3    16/10/2024      RAJESH GAMI         Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 
 EXEC DeleteSubWOMaterialsOnIssuedOrReserved 91
-
 **************************************************************/ 
 
 CREATE    PROCEDURE [dbo].[DeleteSubWOMaterialsOnIssuedOrReserved]
@@ -51,6 +50,14 @@ BEGIN
 
 			DELETE SWOMS FROM dbo.SubWorkOrderMaterialStockLineKit SWOMS JOIN #TempSubWOtbl tmpWOM ON SWOMS.SubWorkOrderMaterialsKitId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 1
 			DELETE SWOM FROM dbo.SubWorkOrderMaterialsKit SWOM JOIN #TempSubWOtbl tmpWOM ON SWOM.SubWorkOrderMaterialsKitId = tmpWOM.SubWorkOrderMaterialsId AND ISNULL(tmpWOM.IsKit, 0) = 1;
+
+			UPDATE P    
+				    SET WorkOrderMaterialsId = 0, 
+					       IsKit = 0, IsSubWO =0, 
+						   UpdatedDate = GETUTCDATE()
+					FROM DBO.PurchaseOrderPart P
+					  INNER JOIN #TempSubWOtbl tmp ON P.WorkOrderMaterialsId = tmp.SubWorkOrderMaterialsId
+					  WHERE P.WorkOrderMaterialsId  = tmp.SubWorkOrderMaterialsId AND ISNULL(P.IsKit,0) = tmp.IsKit AND ISNULL(IsSubWO,0) = 1
 
 			IF OBJECT_ID(N'tempdb..##TempSubWOtbl') IS NOT NULL
 				BEGIN

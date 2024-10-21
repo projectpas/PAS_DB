@@ -3190,6 +3190,9 @@
     <Build Include="dbo\Stored Procedures\USP_RemoveGeneralLedgerSearchParams_ById.sql" />
     <Build Include="dbo\Stored Procedures\GetWOQPartsMonthlyYearlyDashboardData.sql" />
     <Build Include="dbo\Stored Procedures\GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Tables\CycleCountStatus.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingMasterAudit.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingMaster.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

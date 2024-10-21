@@ -3193,6 +3193,12 @@
     <Build Include="dbo\Tables\CycleCountStatus.sql" />
     <Build Include="dbo\Tables\CycleCountSettingMasterAudit.sql" />
     <Build Include="dbo\Tables\CycleCountSettingMaster.sql" />
+    <Build Include="dbo\Tables\CycleCountDetail.sql" />
+    <Build Include="dbo\Tables\CycleCount.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_Stockline_DetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_DetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdateMSDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

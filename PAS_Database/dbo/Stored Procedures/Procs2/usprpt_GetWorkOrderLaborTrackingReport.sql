@@ -17,6 +17,7 @@
 	1	25-AUG-2023		Ekta Chandegra		Convert text into uppercase
 	2	29-MARCH-2024	Ekta Chandegra		IaDeleted and IsActive flag is added
 	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
+	4   11-Oct-2024     Sahdev Saliya       Date format changes
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -146,9 +147,9 @@ BEGIN
 			
 
 			--CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 'MM/dd/yyyy hh:mm tt') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 100) END 'statusChangeDate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 'MM/dd/yyyy hh:mm tt') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 100) END 'statusChangeDate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOT.StartTime,TZ.Description)), 'MM/dd/yyyy hh:mm tt') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOT.StartTime,TZ.Description)), 100) END 'startDate', 
-			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WOT.EndTime,TZ.Description)), 'MM/dd/yyyy hh:mm tt') ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOT.EndTime,TZ.Description)), 100) END 'endDate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN (select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)) ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOL.StatusChangedDate,TZ.Description)), 100) END 'statusChangeDate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN (select [dbo].[ConvertUTCtoLocal] (WOT.StartTime,TZ.Description)) ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOT.StartTime,TZ.Description)), 100) END 'startDate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN (select [dbo].[ConvertUTCtoLocal] (WOT.EndTime,TZ.Description)) ELSE CONVERT(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WOT.EndTime,TZ.Description)), 100) END 'endDate', 
 			--UPPER(EMP.FirstName + ' ' + EMP.LastName) 'employee',
 			format(WOT.TotalHours,'00') 'totalHours', 
 		   format(WOT.TotalMinutes,'00') 'totalMinutes',
@@ -311,5 +312,5 @@ BEGIN
   IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
   BEGIN
     DROP TABLE #ManagmetnStrcture
-  END
+  END
 END

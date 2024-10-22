@@ -3,10 +3,10 @@
     [WOPartNoId]                 BIGINT          NOT NULL,
     [WorkOrderId]                BIGINT          NOT NULL,
     [WorkOrderScopeId]           BIGINT          NOT NULL,
-    [EstimatedShipDate]          DATETIME2 (7)   NOT NULL,
+    [EstimatedShipDate]          DATETIME2 (7)   NULL,
     [CustomerRequestDate]        DATETIME2 (7)   NOT NULL,
-    [PromisedDate]               DATETIME2 (7)   NOT NULL,
-    [EstimatedCompletionDate]    DATETIME2 (7)   NOT NULL,
+    [PromisedDate]               DATETIME2 (7)   NULL,
+    [EstimatedCompletionDate]    DATETIME2 (7)   NULL,
     [NTE]                        VARCHAR (30)    NULL,
     [Quantity]                   INT             NOT NULL,
     [StockLineId]                BIGINT          NOT NULL,
@@ -54,13 +54,13 @@
     [Priority]                   VARCHAR (256)   NOT NULL,
     [TechName]                   VARCHAR (256)   NULL,
     [TechStation]                VARCHAR (256)   NULL,
-    [isLocked]                   BIT             DEFAULT ((0)) NOT NULL,
+    [isLocked]                   BIT             CONSTRAINT [DF__WorkOrder__isLoc__5872D418] DEFAULT ((0)) NOT NULL,
     [ReceivedDate]               DATETIME        NULL,
-    [IsClosed]                   BIT             DEFAULT ((0)) NULL,
+    [IsClosed]                   BIT             CONSTRAINT [DF__WorkOrder__IsClo__5966F851] DEFAULT ((0)) NULL,
     [ACTailNum]                  NVARCHAR (500)  NULL,
     [ClosedDate]                 DATETIME        NULL,
     [PDFPath]                    NVARCHAR (MAX)  NULL,
-    [IsFinishGood]               BIT             DEFAULT ((0)) NULL,
+    [IsFinishGood]               BIT             CONSTRAINT [DF__WorkOrder__IsFin__5A5B1C8A] DEFAULT ((0)) NULL,
     [RevisedConditionId]         BIGINT          NULL,
     [CustomerReference]          VARCHAR (256)   NULL,
     [AssignDate]                 DATETIME2 (7)   NULL,
@@ -80,6 +80,8 @@
     [PartNumber]                 VARCHAR (200)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
 
 
 

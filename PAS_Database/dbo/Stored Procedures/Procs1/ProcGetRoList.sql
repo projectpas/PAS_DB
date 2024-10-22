@@ -123,8 +123,7 @@ BEGIN
 			 LEFT Join dbo.WorkOrder WO WITH (NOLOCK) On ROP.WorkOrderId = WO.WorkOrderId
 			 LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) On ROP.SalesOrderId = SO.SalesOrderId
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-					RO.MasterCompanyId=@MasterCompanyId AND 
-					(@VendorId  IS NULL OR RO.VendorId=@VendorId)
+					RO.MasterCompanyId=@MasterCompanyId 
 			GROUP BY RO.RepairOrderId,
 			       RO.RepairOrderNumber,
 				   RO.RepairOrderNumber,				   
@@ -362,8 +361,6 @@ BEGIN
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 			        --EMS.EmployeeId = @EmployeeId AND 
 					RO.MasterCompanyId=@MasterCompanyId 
-					 AND 
-					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	

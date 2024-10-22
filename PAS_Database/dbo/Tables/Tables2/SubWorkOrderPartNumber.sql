@@ -4,10 +4,10 @@
     [SubWorkOrderId]          BIGINT         NOT NULL,
     [ItemMasterId]            BIGINT         NOT NULL,
     [SubWorkOrderScopeId]     BIGINT         NOT NULL,
-    [EstimatedShipDate]       DATETIME2 (7)  NOT NULL,
+    [EstimatedShipDate]       DATETIME2 (7)  NULL,
     [CustomerRequestDate]     DATETIME2 (7)  NOT NULL,
-    [PromisedDate]            DATETIME2 (7)  NOT NULL,
-    [EstimatedCompletionDate] DATETIME2 (7)  NOT NULL,
+    [PromisedDate]            DATETIME2 (7)  NULL,
+    [EstimatedCompletionDate] DATETIME2 (7)  NULL,
     [NTE]                     INT            NULL,
     [Quantity]                INT            NOT NULL,
     [StockLineId]             BIGINT         NULL,
@@ -33,7 +33,7 @@
     [IsClosed]                BIT            NULL,
     [PDFPath]                 NVARCHAR (MAX) NULL,
     [islocked]                BIT            NULL,
-    [IsFinishGood]            BIT            DEFAULT ((0)) NULL,
+    [IsFinishGood]            BIT            CONSTRAINT [DF__SubWorkOr__IsFin__13739E55] DEFAULT ((0)) NULL,
     [RevisedConditionId]      BIGINT         NULL,
     [CustomerReference]       VARCHAR (256)  NULL,
     [RevisedItemmasterid]     BIGINT         NULL,
@@ -59,6 +59,8 @@
     CONSTRAINT [FK_SubWorkOrderPartNumber_Workflow] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId]),
     CONSTRAINT [FK_SubWorkOrderPartNumber_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

@@ -1,4 +1,23 @@
-﻿-- EXEC [USP_GetSubWorkOrderMPNDetails] 1169,76771,721
+﻿
+/*************************************************************           
+ ** File:   [USP_GetSubWorkOrderMPNDetails]
+ ** Author:   
+ ** Description: This stored procedure is used to Get MPN details for Sub Work Order
+ ** Purpose:         
+ ** Date:    
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    Unknown							Created
+    2    15/10/2024  Abhishek Jirawla		Modified to return blank instead of GETDATE() for Promise, Ship Date and Completion Date
+
+************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMPNDetails]  
  @workOrderMaterialsId bigint,  
@@ -26,9 +45,9 @@ BEGIN
 				ISNULL(wop.WorkOrderStatusId,0) AS 'SubWorkOrderStatusId',
 				ISNULL(wop.WorkOrderPriorityId,0) AS 'SubWorkOrderPriorityId',
 				ISNULL(wop.CustomerRequestDate,GETDATE()) AS 'CustomerRequestDate',
-				ISNULL(wop.EstimatedCompletionDate,GETDATE()) AS 'EstimatedCompletionDate',
-				ISNULL(wop.EstimatedShipDate,GETDATE()) AS 'EstimatedShipDate',
-				ISNULL(wop.PromisedDate,GETDATE()) AS 'PromisedDate',
+				ISNULL(wop.EstimatedCompletionDate, NULL) AS 'EstimatedCompletionDate',
+				ISNULL(wop.EstimatedShipDate, NULL) AS 'EstimatedShipDate',
+				ISNULL(wop.PromisedDate, NULL) AS 'PromisedDate',
 				ISNULL(wop.CustomerRequestDate,GETDATE()) AS 'CustomerRequestDatempn',
 				ISNULL(wop.PromisedDate,GETDATE()) AS 'PromisedDatempn',
 				ISNULL(wop.EstimatedCompletionDate,GETDATE()) AS 'EstimatedCompletionDatempn',

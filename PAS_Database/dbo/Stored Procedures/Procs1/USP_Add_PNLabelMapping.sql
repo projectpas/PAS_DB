@@ -12,6 +12,7 @@ EXEC [USP_GetPNLabelSettingData]
 ** 1    06/07/2023  Devendra Shekh    Add update PN Label Settings
 ** 2    13/07/2023  Devendra Shekh    added new field 'AllPNLabelSelected'
 ** 3	20 SEP 2024	BHARGAV SALIYA    added new fields [FieldDPI],[MarginLeft],[MarginRight],[MarginTop],[MarginBottom]
+** 4	20 SEP 2024	HEMANT SALIYA	  Removed NOT MATCHED BY SOURCE Condition
 
 exec dbo.USP_Add_PNLabelMapping @PnLabelIds=N'2, 25,26',@MasterCompanyId=1,@CreatedBy=N'ADMIN User',@UpdatedBy=N'ADMIN User',@FieldHeight=70,@FieldWidth=90
 exec dbo.USP_Add_PNLabelMapping @PnLabelIds=N'25, 26',@MasterCompanyId=1,@CreatedBy=N'ADMIN User',@UpdatedBy=N'ADMIN User',@FieldHeight=70,@FieldWidth=90
@@ -55,7 +56,6 @@ BEGIN
 				MERGE dbo.[PNLabelMapping] AS TARGET
 				USING #TmpPNLabel AS SOURCE ON 
 				(TARGET.PNLabelId = SOURCE.PNLabelId AND @MasterCompanyId = TARGET.MasterCompanyId) 
-				--WHEN RECORDS ARE MATCHED, UPDATE THE RECORDS IF THEREANY CHANGES
 				WHEN MATCHED 				
 					THEN UPDATE 						
 					SET	TARGET.PNLabelId = ISNULL(SOURCE.PNLabelId, 0),
@@ -72,9 +72,9 @@ BEGIN
 						TARGET.AllPNLabelSelected = @AllPNLabelSelected
 				WHEN NOT MATCHED BY TARGET 
 					THEN INSERT ([PNLabelId],[Description],[FieldWidth],[FieldHeight], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [AllPNLabelSelected],[FieldDPI],[MarginLeft],[MarginRight],[MarginTop],[MarginBottom]) 
-					VALUES (SOURCE.PNLabelId,SOURCE.PNLabel, @FieldWidth, @FieldHeight, @MasterCompanyId, GETUTCDATE(),@CreatedBy, GETUTCDATE(), @UpdatedBy, 1, 0, @AllPNLabelSelected,@FieldDPI,@MarginLeft,@MarginRight,@MarginTop,@MarginBottom)
-				WHEN NOT MATCHED BY SOURCE 
-					THEN DELETE;
+					VALUES (SOURCE.PNLabelId,SOURCE.PNLabel, @FieldWidth, @FieldHeight, @MasterCompanyId, GETUTCDATE(),@CreatedBy, GETUTCDATE(), @UpdatedBy, 1, 0, @AllPNLabelSelected,@FieldDPI,@MarginLeft,@MarginRight,@MarginTop,@MarginBottom);
+				--WHEN NOT MATCHED BY SOURCE 
+				--THEN DELETE;
 
 			END
 		COMMIT  TRANSACTION

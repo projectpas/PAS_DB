@@ -30,7 +30,7 @@
     [ConditionId]             BIGINT         DEFAULT ((0)) NOT NULL,
     [IsConvertedToSalesOrder] BIT            DEFAULT ((0)) NOT NULL,
     [IsActive]                BIT            CONSTRAINT [SalesOrderQuotePart_DC_IsActive] DEFAULT ((1)) NOT NULL,
-    [CustomerRequestDate]     DATETIME2 (7)  NOT NULL,
+    [CustomerRequestDate]     DATETIME2 (7)  NULL,
     [PromisedDate]            DATETIME2 (7)  NULL,
     [EstimatedShipDate]       DATETIME2 (7)  NULL,
     [PriorityId]              BIGINT         NOT NULL,
@@ -73,6 +73,8 @@
     CONSTRAINT [FK_SalesOrderQuotePart_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [Unique_SalesOrderQuotePart] UNIQUE NONCLUSTERED ([SalesOrderQuoteId] ASC, [ItemMasterId] ASC, [StockLineId] ASC, [MasterCompanyId] ASC, [ConditionId] ASC)
 );
+
+
 
 
 

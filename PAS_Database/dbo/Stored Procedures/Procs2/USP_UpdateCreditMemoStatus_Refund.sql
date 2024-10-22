@@ -17,6 +17,8 @@
     4    27/10/2023		Devendra Shekh        changed refund to Refund Requested
     5    27/03/2024		Devendra Shekh        added vendorId
     6    28/03/2024		Devendra Shekh        inserting data in vendorPaymentDetail for creditMemo
+	7    07/10/2024		Moin Bloch            Added AR Balance 
+	8    11/10/2024		Moin Bloch            Modified (commented credit memo for ar balance)
    
  -- exec USP_UpdateCreditMemoStatus_Refund 
 **********************/   
@@ -35,6 +37,8 @@ BEGIN
  BEGIN TRY    
    
 	BEGIN
+		DECLARE @AppModuleId BIGINT;	
+		SELECT @AppModuleId = [CodeTypeId] FROM [dbo].[CodeTypes] WHERE [CodeType] = 'CreditMemo'		
 
 		DECLARE @TotalRec BIGINT, @Start BIGINT = 1, @CustomerId BIGINT, @SumAmount BIGINT = 0, @CustomerCode VARCHAR(100) = '',@MsModuleId BIGINT = 0,
 		@CustRefStatus VARCHAR(100) = 'Refund Requested', @CustRefundId  BIGINT = 0, @StartCMMapping BIGINT = 1, @CreditMemoHeaderId BIGINT = 0;
@@ -111,6 +115,8 @@ BEGIN
 			LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId  
 			WHERE V.VendorId = @VendorId;
 			-----------------------------------------------------------------------------------------------------
+			
+			--EXEC [dbo].[USP_SaveCustomerARBalance] @AppModuleId,@CreditMemoHeaderId,@CustomerId,0,@CreditAmount,'Credit Memo Refund',@MasterCompanyId,@UserName,@UserName,0
 
 			SET @Start = @Start + 1
 		END

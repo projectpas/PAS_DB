@@ -10,6 +10,7 @@
  ** --   --------     -------		--------------------------------          
 	1    01/31/2024   AMIT GHEDIYA	Created
 	2    04/01/2024   Bhargav Saliya  CreditTerms Changes
+	3    14-Oct-2024  Bhargav Saliya  Get The SO Num From SalesOrder
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetProformaInvoicingSODetails]
 	@SalesOrderPartId BIGINT,
@@ -41,7 +42,8 @@ SET NOCOUNT ON;
 					   sotype.[Name] AS RevType, 
 					   ISNULL(sobii.NoofPieces, 0) AS NoofPieces,
 					   sobi.GrandTotal,
-					   sobi.Notes
+					   sobi.Notes,
+					   so.SalesOrderNumber
 				FROM DBO.SalesOrderPart sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

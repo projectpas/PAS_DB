@@ -9,6 +9,7 @@
 ** --   --------		-------					--------------------------------
 ** 1	09/23/2024		Devendra Shekh			Created
 ** 2	10/03/2024		Devendra Shekh			Modified to Save Employee Mapping
+** 3	10/14/2024		Devendra Shekh			Modified to Update Saved Params
 
 
 declare @p1 dbo.GeneralLedgerSearchParamsType
@@ -43,13 +44,44 @@ BEGIN
 						Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, MasterCompanyId, CreatedBy, CreatedDate, UpdatedBy, UpdatedDate, IsActive, IsDeleted) 
 				SELECT	UrlName, FromEffectiveDate, ToEffectiveDate, FromJournalId, ToJournalId, FromGLAccount, ToGLAccount, EmployeeId, 
 						Level1, Level2, Level3, Level4, Level5, Level6, Level7, Level8, Level9, Level10, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
-				FROM @tblType_GeneralLedgerSearchParamsType
+				FROM @tblType_GeneralLedgerSearchParamsType WHERE ISNULL(GeneralLedgerSearchParamsId, 0) = 0;
 
 				SET @GeneralLedgerSearchParamsId = SCOPE_IDENTITY();
 
-				SELECT @MasterCompanyId = [MasterCompanyId], @UserlName = [CreatedBy] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
+				IF(ISNULL(@GeneralLedgerSearchParamsId, 0) > 0)
+				BEGIN
+					SELECT @MasterCompanyId = [MasterCompanyId], @UserlName = [CreatedBy] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
 
-				EXEC [USP_SaveGeneralLedgerEmployeeMappingData] @GeneralLedgerSearchParamsId, @CurrentUserEmployeeId, @MasterCompanyId, @UserlName;
+					EXEC [USP_SaveGeneralLedgerEmployeeMappingData] @GeneralLedgerSearchParamsId, @CurrentUserEmployeeId, @MasterCompanyId, @UserlName;
+				END
+				ELSE
+				BEGIN
+					UPDATE GLS
+					SET 
+						GLS.FromEffectiveDate = t.FromEffectiveDate,
+						GLS.ToEffectiveDate = t.ToEffectiveDate,
+						GLS.FromJournalId = t.FromJournalId,
+						GLS.ToJournalId = t.ToJournalId,
+						GLS.FromGLAccount = t.FromGLAccount,
+						GLS.ToGLAccount = t.ToGLAccount,
+						GLS.Level1 = t.Level1,
+						GLS.Level2 = t.Level2,
+						GLS.Level3 = t.Level3,
+						GLS.Level4 = t.Level4,
+						GLS.Level5 = t.Level5,
+						GLS.Level6 = t.Level6,
+						GLS.Level7 = t.Level7,
+						GLS.Level8 = t.Level8,
+						GLS.Level9 = t.Level9,
+						GLS.Level10 = t.Level10,
+						GLS.UpdatedBy = t.CreatedBy,
+						GLS.EmployeeId = t.EmployeeId,
+						GLS.UpdatedDate = GETUTCDATE()
+					FROM [dbo].[GeneralLedgerSearchParams] GLS WITH(NOLOCK)
+					INNER JOIN @tblType_GeneralLedgerSearchParamsType t ON GLS.GeneralLedgerSearchParamsId = t.GeneralLedgerSearchParamsId
+					WHERE ISNULL(t.GeneralLedgerSearchParamsId, 0) <> 0;
+				END
+
 				--SELECT @UrlName = [UrlName] FROM [dbo].[GeneralLedgerSearchParams] WITH(NOLOCK) WHERE [GeneralLedgerSearchParamsId] = @GeneralLedgerSearchParamsId;
 
 				--IF NOT EXISTS (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name] = @UrlName AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE [Name]='Save Search' AND [ParentId] = (SELECT Id FROM dbo.[ModuleHierarchyMaster] WHERE UPPER([Name]) = 'ACCOUNTING' AND [ParentId] IS NULL)))

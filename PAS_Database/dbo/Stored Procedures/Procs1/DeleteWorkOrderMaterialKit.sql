@@ -10,6 +10,7 @@ EXEC [usp_ReserveWorkOrderMaterialsStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    03/28/2023  Vishal Suthar   Created
+** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
 
 exec dbo.[DeleteWorkOrderMaterialKit] 17
 **************************************************************/ 
@@ -23,6 +24,34 @@ BEGIN
 		BEGIN TRY
 			BEGIN TRANSACTION
 				BEGIN
+					IF OBJECT_ID(N'tempdb..##TempTableWOM') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempTableWOM
+					END
+					CREATE TABLE #TempTableWOM(WorkOrderMaterialsKitMappingId BIGINT)
+					INSERT INTO #TempTableWOM (WorkOrderMaterialsKitMappingId)
+					SELECT WorkOrderMaterialsKitMappingId FROM [DBO].[WorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND WOPartNoId = @WOPartNoId
+
+
+					IF OBJECT_ID(N'tempdb..##TempWOtblM') IS NOT NULL
+					BEGIN
+						DROP TABLE #TempWOtblM
+					END
+
+					CREATE TABLE #TempWOtblM(WorkOrderMaterialsKitId BIGINT)
+					INSERT INTO #TempWOtblM (WorkOrderMaterialsKitId)
+					SELECT DISTINCT WOM.WorkOrderMaterialsKitId
+					FROM dbo.[WorkOrderMaterialsKit] WOM WITH(NOLOCK) INNER JOIN #TempTableWOM tmp ON WOM.WorkOrderMaterialsKitMappingId = tmp.WorkOrderMaterialsKitMappingId
+					WHERE WOM.WorkOrderMaterialsKitMappingId = tmp.WorkOrderMaterialsKitMappingId
+
+					UPDATE P    
+				    SET WorkOrderMaterialsId = 0, 
+					       IsKit = 0, IsSubWO =0, 
+						   UpdatedDate = GETUTCDATE()
+					FROM DBO.PurchaseOrderPart P
+					  INNER JOIN #TempWOtblM tmp ON P.WorkOrderMaterialsId = tmp.WorkOrderMaterialsKitId
+					  WHERE P.WorkOrderMaterialsId  = tmp.WorkOrderMaterialsKitId AND ISNULL(IsKit,0) = 1 AND ISNULL(IsSubWO,0) = 0
+
 					DELETE FROM [dbo].[WorkOrderMaterialStockLineKit] WHERE WorkOrderMaterialsKitId IN (SELECT WorkOrderMaterialsKitId FROM [DBO].[WorkOrderMaterialsKit] WHERE WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM [DBO].[WorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND WOPartNoId = @WOPartNoId));
 					DELETE FROM [DBO].[WorkOrderMaterialsKit] WHERE WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM [DBO].[WorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND WOPartNoId = @WOPartNoId);
 					DELETE FROM [DBO].[WorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND WOPartNoId = @WOPartNoId;

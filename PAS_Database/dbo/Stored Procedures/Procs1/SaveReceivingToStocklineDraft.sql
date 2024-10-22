@@ -24,7 +24,7 @@
 	8    16-04-2024   Abhishek Jirawla  In AssetInventoryDraft SET Assetlife, Asset Location, DepreciationStartDate and more details
     9    11-July-2024 RAJESH GAMI       Add the tracebletype,traceble to, tagdate,tagtype and other required parent detail into stocklineDraft when part is splitted.     
 	10   26-09-2024   Abhishek Jirawla  Add Traceable to name in insert of stockline draft
-
+	11   15-10-2024   RAJESH GAMI       Add IsSubWOType and their values (WOMaterialsId, IsSubWOType , IsKitType)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -44,7 +44,7 @@ BEGIN
     DECLARE @CurrentIdNumber AS BIGINT;    
     DECLARE @IdNumber AS VARCHAR(50);    
     
-    DECLARE @PurchaseOrderPartRecordId BIGINT = 0;    
+    DECLARE @PurchaseOrderPartRecordId BIGINT = 0, @WorkOrderMaterialsId BIGINT =0, @IsKit BIT = 0, @IsSubWO BIT = 0;    
     DECLARE @QtyToTraverse INT = 0;    
     DECLARE @QtyOrdered INT = 0;    
     DECLARE @ItemMasterId BIGINT = 0;    
@@ -117,8 +117,10 @@ BEGIN
 	 @TaggedByType = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TaggedByType FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TaggedByType END), 
 	 @TaggedBy = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TaggedBy FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TaggedBy END), 
 	 @TagDate = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TagDate FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TagDate END)
+	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     
+     PRINT '@PurchaseOrderPartRecordId'
+	 PRINT @PurchaseOrderPartRecordId
 	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
@@ -210,7 +212,7 @@ BEGIN
       [StockLineId],[TaggedBy],[TaggedByName],[UnitOfMeasureId],[UnitOfMeasure],[RevisedPartId],[RevisedPartNumber],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],    
       [CertifiedType],[CertTypeId],[CertType],[IsCustomerStock],[isCustomerstockType],[CustomerId],[CalibrationVendorId],[PerformedById],[LastCalibrationDate],[NextCalibrationDate],    
       [LotId],[SalesOrderId],[SubWorkOrderId],[ExchangeSalesOrderId],[WOQty],[SOQty],[ForStockQty],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],    
-      [VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife])    
+      [VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife],IsKitType, IsSubWOType)    
       
       SELECT IM.partnumber, NULL, NULL, NULL, @ItemMasterId, @Quantity, @ConditionId, '', 0, NULL, IM.WarehouseId,     
       IM.LocationId, NULL, NULL, @TraceableTo, IM.ManufacturerId, IM.ManufacturerName, NULL, NULL, NULL, NULL,    
@@ -219,14 +221,14 @@ BEGIN
       IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
       NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
       NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
-	  NULL, 0, NULL, NULL, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
+	  NULL, 0, NULL, @WorkOrderMaterialsId, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
       NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
       IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
       '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
       NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
       @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife    
+      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
       FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
       SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    

@@ -21,6 +21,8 @@
 	6	 19/12/2023  Ayesha Sultana		  Date Time UTC convert - using LE from SSRS
 	7	 10/01/2024  Moin Bloch		      Set TDate Format to MM-dd-yyy
     8	1st July 2024    Bhargav Saliya	  Set [EntryDate] Format to 'MM-dd-yyy' AND ALSO [DEntryDate]
+    9	 09/10/2024	 Devendra Shekh		  Set TDate Format to 'MM/dd/yyyy hh:mm:ss'
+    10	 14/10/2024	 Devendra Shekh		  Set EntryDate Format to 'MM/dd/yyyy hh:mm:ss'
 -- EXEC GetMultipleJournalBatchHeaderById '1524,1523,1521,1520,1519,1518,1517,1516,1515,1495,1513,1467,1500',1 
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[GetMultipleJournalBatchHeaderById]   
@@ -49,7 +51,8 @@ BEGIN
    JBH.[BatchName],  
    JBH.[CurrentNumber],  
    --CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS EntryDate,
-   FORMAT(CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy') AS EntryDate, 
+   --FORMAT(CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy') AS EntryDate, 
+   FORMAT(CAST(DBO.ConvertUTCtoLocal(JBH.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss') AS EntryDate, 
    CAST(DBO.ConvertUTCtoLocal(JBH.[PostDate], @CurrntEmpTimeZoneDesc) AS DATETIME) AS PostDate, 
    JBH.[AccountingPeriod],  
    JBH.[StatusId],  
@@ -77,16 +80,16 @@ BEGIN
    CD.CreditAmount AS Cr,
    CD.DebitAmount AS Dr,
    CD.GlAccountNumber + ' - ' + CD.GlAccountName AS GLAccount,
-   --Cast(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) as datetime) as TDate, 
-   CASE WHEN UPPER(DM.DistributionCode) = UPPER('WOINVOICINGTAB') OR
-             UPPER(DM.DistributionCode) = UPPER('SOINVOICE') OR
-			 UPPER(DM.DistributionCode) = UPPER('EX-FeeBilling') OR			 
-             UPPER(DM.DistributionCode) = UPPER('NonPOInvoice') OR 
-             UPPER(DM.DistributionCode) = UPPER('ReconciliationRO') OR
-			 UPPER(DM.DistributionCode) = UPPER('ReconciliationPO') 
-        THEN FORMAT(CD.TransactionDate,'MM/dd/yyyy') 
-		ELSE FORMAT(CAST(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss')
-		END	AS TDate,   
+   FORMAT(CAST(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss') as TDate, 
+  -- CASE WHEN UPPER(DM.DistributionCode) = UPPER('WOINVOICINGTAB') OR
+  --           UPPER(DM.DistributionCode) = UPPER('SOINVOICE') OR
+		--	 UPPER(DM.DistributionCode) = UPPER('EX-FeeBilling') OR			 
+  --           UPPER(DM.DistributionCode) = UPPER('NonPOInvoice') OR 
+  --           UPPER(DM.DistributionCode) = UPPER('ReconciliationRO') OR
+		--	 UPPER(DM.DistributionCode) = UPPER('ReconciliationPO') 
+  --      THEN FORMAT(CD.TransactionDate,'MM/dd/yyyy') 
+		--ELSE FORMAT(CAST(DBO.ConvertUTCtoLocal(CD.TransactionDate, @CurrntEmpTimeZoneDesc) AS DATETIME),'MM/dd/yyyy hh:mm:ss')
+		--END	AS TDate,   
    BS.[Name] AS 'BatchStatus',
    @CurrentDateTime AS PrintedDate
   FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)  

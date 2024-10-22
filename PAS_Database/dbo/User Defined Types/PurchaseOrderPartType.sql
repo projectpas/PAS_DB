@@ -100,7 +100,10 @@
     [ExpectedSerialNumber]      VARCHAR (100)   NULL,
     [RequestedQtyFromWO]        INT             NULL,
     [ModuleId]                  INT             NULL,
-    [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL);
+    [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL,
+    [IsKit]                     BIT             DEFAULT ((0)) NULL);
+
+
 
 
 

@@ -15,6 +15,7 @@
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4   03/06/2024      Bhargav Saliya  Convert  Into Temp table SP
 	5	03/28/2024		Bhargav Saliya  Resolve Snapshot: MRO Billing amount issue
+	6	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
 -- EXEC GetDashboardViewData 
 ************************************************************************/
 
@@ -22,7 +23,8 @@ CREATE   PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
 	@DashboardType INT = NULL,
-	@EmployeeId BIGINT = NULL
+	@EmployeeId BIGINT = NULL,
+	@ManagementStructureId BIGINT = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -37,7 +39,8 @@ BEGIN
 			DECLARE @SalesOrderModuleID AS INT =17
 			DECLARE @SalesOrderQouteModuleID AS INT =18
 			DECLARE @SpeedQouteModuleID AS INT =27
-
+			DECLARE @WOQApproveStatus AS INT;
+			SET @WOQApproveStatus = (SELECT WorkOrderQuoteStatusId FROM [dbo].[WorkOrderQuoteStatus] WHERE Description = 'Approved')
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
 			print @DashboardType
@@ -238,6 +241,111 @@ BEGIN
 				AND SOQ.IsDeleted = 0
 				AND CONVERT(DATE, SOQ.OpenDate) = CONVERT(DATE, @Date) 
 				AND SOQ.MasterCompanyId = @MasterCompanyId
+			END
+			ELSE IF (@DashboardType = 9)
+			BEGIN
+				SELECT DISTINCT
+						WO.WorkOrderId,
+						rec_cust.PartNumber, 
+						item.PartDescription, 
+						rec_cust.WorkScope, 
+						item.ItemGroup,
+						rec_cust.Quantity, 
+						wo.WorkOrderNum, 
+						rec_cust.CustomerName, 
+						(emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+					FROM 
+						DBO.ReceivingCustomerWork rec_cust WITH (NOLOCK)
+						INNER JOIN DBO.ItemMaster item WITH (NOLOCK) ON rec_cust.ItemMasterId = item.ItemMasterId
+						--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 1 AND MSD.ReferenceID = rec_cust.ReceivingCustomerWorkId
+						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON rec_cust.ManagementStructureId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+						LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON rec_cust.WorkOrderId = WO.WorkOrderId
+						LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+					WHERE 
+						rec_cust.IsActive = 1 
+						AND rec_cust.IsDeleted = 0 
+						AND CONVERT(DATE, rec_cust.CreatedDate) = CONVERT(DATE, @Date) 
+						AND rec_cust.MasterCompanyId = @MasterCompanyId
+						AND  rec_cust.IsPiecePart = 0 
+			END
+			ELSE IF (@DashboardType = 10)
+			BEGIN
+				SELECT DISTINCT
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				wobii.GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+				WHERE wobi.IsActive = 1 
+				AND wobi.IsDeleted = 0 
+				AND wobi.IsVersionIncrease = 0
+				AND CONVERT(DATE,wobi.CreatedDate) BETWEEN DATEFROMPARTS(YEAR(@Date), MONTH(@Date), 1) 
+								AND @Date 
+				AND wobi.MasterCompanyId = @MasterCompanyId
+				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
+			END
+			ELSE IF (@DashboardType = 11)
+			BEGIN
+				SELECT DISTINCT
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				 CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL(SUM(WOQD.CommonFlatRate),0) ELSE ISNULL(SUM(WOQD.LaborFlatBillingAmount),0) + ISNULL(SUM(WOQD.MaterialFlatBillingAmount),0) + ISNULL(SUM(WOQD.ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) END AS GrandTotal
+				, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
+				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON WOQ.WorkOrderId = wop.WorkOrderId --and wobii.WorkOrderPartId = wop.ID
+				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+				WHERE  CONVERT(DATE,WOQ.CreatedDate) = @Date 
+				AND WOQ.MasterCompanyId = @MasterCompanyId
+				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+			END
+			ELSE IF (@DashboardType = 12)
+			BEGIN
+				SELECT DISTINCT
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				 CASE WHEN ISNULL(WOQD.QuoteMethod,0) = 1 THEN ISNULL(SUM(WOQD.CommonFlatRate),0) ELSE ISNULL(SUM(WOQD.LaborFlatBillingAmount),0) + ISNULL(SUM(WOQD.MaterialFlatBillingAmount),0) + ISNULL(SUM(WOQD.ChargesFlatBillingAmount),0) + ISNULL(SUM(FreightFlatBillingAmount),0) END AS GrandTotal
+				, WOQ.CustomerName, WOQ.QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK)
+				INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON WOQ.WorkOrderId = wop.WorkOrderId --and wobii.WorkOrderPartId = wop.ID
+				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON WOQD.ItemMasterId = item.ItemMasterId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WOQ.SalesPersonId = emp.EmployeeId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RMS.EntityStructureId = @ManagementStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+				WHERE  CONVERT(DATE,WOQ.ApprovedDate) = @Date AND WOQ.MasterCompanyId = @MasterCompanyId AND  WOQ.QuoteStatusId = @WOQApproveStatus
+				GROUP BY item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,WOQD.QuoteMethod, WOQ.CustomerName,WOQ.QuoteNumber,emp.FirstName , emp.LastName
+			END
+			ELSE IF (@DashboardType = 13)
+			BEGIN
+				SELECT DISTINCT
+				item.PartNumber, item.PartDescription, wop.WorkScope, item.ItemGroup,
+				wobii.GrandTotal, wo.CustomerName, wo.WorkOrderNum, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.WorkOrderBillingInvoicing wobi WITH (NOLOCK)
+				INNER JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH (NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId
+				LEFT JOIN DBO.WorkOrder WO WITH (NOLOCK) ON wobi.WorkOrderId = WO.WorkOrderId
+				LEFT JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId and wobii.WorkOrderPartId = wop.ID
+				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON wop.ItemMasterId = item.ItemMasterId
+				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON WO.SalesPersonId = emp.EmployeeId
+				INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+		        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+		        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
+				WHERE wobi.IsActive = 1 
+				AND wobi.IsDeleted = 0 
+				AND wobi.IsVersionIncrease = 0
+				AND CONVERT(DATE, wobi.InvoiceDate) = CONVERT(DATE, @Date) 
+				AND wobi.MasterCompanyId = @MasterCompanyId
+				AND ISNULL(wobi.IsPerformaInvoice, 0) = 0
 			END
 		END
 	END TRY    

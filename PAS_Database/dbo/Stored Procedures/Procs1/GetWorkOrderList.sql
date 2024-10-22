@@ -19,6 +19,8 @@
 	3    23 Jul2023   Rajesh Gami			Improve Performance
 	4    05/08/2024   HEMANT SALIYA			Serial Number Changes Updated
 	5    09/20/2024   Devendra Shekh		List WO View Resolved
+	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
+	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderList]
@@ -38,7 +40,7 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @CustomerName varchar(50)=null,  
 	 @CustomerAffiliation varchar(50)=null,  
 	 @Stage varchar(200)=null,  
-	 @WorkOrderStatus varchar(50)=null,      
+	 @WorkOrderStatus bigint=null,      
 	 @OpenDate datetime=null,  
 	 @CustReqDate datetime=null,  
 	 @PromiseDate datetime=null,  
@@ -117,59 +119,44 @@ BEGIN
     ELSE IF @StatusID = 2  
     BEGIN   
 		SET @IsActive = null  
-    END   
+    END
   
-    IF COALESCE(@WorkOrderStatus, '') <> ''    
-    BEGIN   
-     IF Upper(@WorkOrderStatus) = 'OPEN'   
-      BEGIN  
-       SET @WorkOrderStatusId = 1  
-      END  
-     ELSE IF Upper(@WorkOrderStatus) = 'CLOSED'   
-      BEGIN  
-       SET @WorkOrderStatusId = 2  
-      END  
-     ELSE IF Upper(@WorkOrderStatus) = 'CANCELED'   
-      BEGIN  
-       SET @WorkOrderStatusId = 3  
-      END  
-     ELSE IF Upper(@WorkOrderStatus) = 'ALL'   
-      BEGIN  
-       SET @WorkOrderStatusId = 0  
-       print @WorkOrderStatus  
-      END  
-    END  
-  
-	DECLARE @EmpLegalEntiyId BIGINT = 0;
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	--DECLARE @EmpLegalEntiyId BIGINT = 0;
+	--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
-	SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
-	SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
-	WHERE LE.LegalEntityId = @EmpLegalEntiyId;
+	--SELECT @EmpLegalEntiyId = LegalEntityId FROM DBO.Employee WHERE EmployeeId = @EmployeeId;
+	--SELECT @CurrntEmpTimeZoneDesc = TZ.[Description] FROM DBO.LegalEntity LE WITH (NOLOCK) INNER JOIN DBO.TimeZone TZ WITH (NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId 
+	--WHERE LE.LegalEntityId = @EmpLegalEntiyId;
 
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
-      ;WITH Result AS(  
+      ;WITH LatestShipping AS (
+		SELECT	WorkOrderId,
+				FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
+				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
+				GROUP BY WorkOrderId
+	   )
+	   ,Result AS(  
        SELECT   
 			UPPER(WO.WorkOrderNum) AS WorkOrderNum,
 			UPPER(WO.WorkOrderId) AS WorkOrderId,
 			UPPER(WO.CustomerId) AS CustomerId,
-			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(IM.partnumber) END AS PartNos,
-			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(IM.partnumber) END AS PartNoType,
-			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(IM.PartDescription) END AS PNDescription,
-			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(IM.PartDescription) END AS PNDescriptionType,
-			UPPER(IM.ManufacturerName) AS ManufacturerName,  
-			UPPER(IM.ManufacturerName) AS ManufacturerNameType,  
+			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNos,
+			CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNoType,
+			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescription,
+			CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescriptionType,
+			UPPER(WPN.ManufacturerName) AS ManufacturerName,  
+			UPPER(WPN.ManufacturerName) AS ManufacturerNameType,  
 			UPPER(WPN.WorkScope) AS WorkScope,
 			UPPER(WPN.WorkScope) AS WorkScopeType,
-			UPPER(PR.Description) AS Priority,
-			UPPER(PR.Description) As PriorityType,
+			UPPER(WPN.Priority) AS Priority,
+			UPPER(WPN.Priority) As PriorityType,
 			UPPER(WO.CustomerName) AS CustomerName,
 			UPPER(WO.CustomerType) AS CustomerType,
-			UPPER(WOSG.Code + '-' + WOSG.Stage) AS Stage,  
-			UPPER(WOSG.Code + '-' + WOSG.Stage) AS StageType,  
-			UPPER(WOS.Description) AS WorkOrderStatus,  
-			UPPER(WOS.Description) AS WorkOrderStatusType,  
+			UPPER(WPN.WorkOrderStage) AS Stage,  
+			UPPER(WPN.WorkOrderStage) AS StageType,  
+			UPPER(WPN.WorkOrderStatus) AS WorkOrderStatus,  
+			UPPER(WPN.WorkOrderStatus) AS WorkOrderStatusType,  
 			WO.OpenDate,  
 			WPN.CustomerRequestDate,  
 			WPN.CustomerRequestDate AS CustomerRequestDateType,  
@@ -177,8 +164,10 @@ BEGIN
 			WPN.PromisedDate AS PromisedDateType,  
 			WPN.EstimatedShipDate,  
 			WPN.EstimatedShipDate AS EstimatedShipDateType,  
-			((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDate,  
-			((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDateType,  
+			LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
+			LWS.EstimatedCompletionDate AS EstimatedCompletionDate,
+			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDate,  
+			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDateType,  
 			WO.CreatedDate,  
 			WO.UpdatedDate,  
 			UPPER(WO.CreatedBy) AS CreatedBy,
@@ -186,26 +175,27 @@ BEGIN
 			WO.IsActive,  
 			WO.IsDeleted,  
 			WPN.WorkOrderStatusId,  
-			UPPER(WT.Description) AS WorkOrderType,
-			UPPER(EMP.FirstName + ' ' + EMP.LastName) AS TechName,
-			UPPER(EMPS.StationName) AS TechStation,
+			UPPER(WO.WorkOrderType) AS WorkOrderType,
+			UPPER(WPN.TechName) AS TechName,
+			UPPER(WPN.EmployeeStation) AS TechStation,
 			--UPPER(STL.SerialNumber) AS SerialNumber,
 			CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END AS SerialNumber,
 			UPPER(WPN.CustomerReference) AS CustomerReference,
 			UPPER(WPN.CustomerReference) AS CustomerReferenceType
-       FROM WorkOrder WO WITH(NOLOCK)  
+       FROM dbo.WorkOrder WO WITH(NOLOCK)  
 			JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
-			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
-			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
-			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
-			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
-			JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId  
+			LEFT JOIN LatestShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
+			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
+			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
+			--JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
+			--JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
+			--JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId  
 			--LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
-			LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
-			LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
-        --LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
-       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))  
+			--LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
+			--LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
+			--LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
+       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))  
         ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
         SELECT * INTO #TempResult from  Result  
         WHERE (  
@@ -339,7 +329,13 @@ BEGIN
       ELSE  
        BEGIN     
        print  'Step 2';  
-	     ;WITH Main AS(  
+	     ;WITH LatestWorkOrderShipping AS (
+				SELECT	WorkOrderId,
+						FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
+				FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
+				GROUP BY WorkOrderId
+		 ),
+		 Main AS(  
          SELECT DISTINCT   
 				UPPER(WO.WorkOrderNum) AS WorkOrderNum,
 				WO.WorkOrderId,
@@ -354,31 +350,40 @@ BEGIN
 				UPPER(WO.UpdatedBy) AS UpdatedBy,
 				WO.IsActive,
 				WO.IsDeleted,
-				WT.Description AS 'WorkOrderType',
-				(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
-				(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
+				WO.WorkOrderType AS 'WorkOrderType',
+				LWS.EstimatedCompletionDate AS EstimatedCompletionDateType,
+				LWS.EstimatedCompletionDate AS EstimatedCompletionDate
+				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
+				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM dbo.WorkOrder WO WITH (NOLOCK)   
-			JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
+			LEFT JOIN LatestWorkOrderShipping LWS ON WO.WorkOrderId = LWS.WorkOrderId
 			WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
 			))
+			, WorkOrderPartCount AS (
+			SELECT WorkOrderId, COUNT(WorkOrderId) AS PartCount
+			FROM dbo.WorkOrderPartNumber
+			GROUP BY WorkOrderId	
+			)
 
-		 SELECT DISTINCT   
+			SELECT DISTINCT   
 			  WorkOrderNum, WO.WorkOrderId, WO.CustomerId, CustomerName, CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate, WO.CreatedBy, WO.UpdatedBy, WO.IsActive, WO.IsDeleted, WorkOrderType,
-			  (CASE WHEN ((SELECT COUNT(WOPN.WorkOrderId) FROM dbo.WorkOrderPartNumber WOPN WHERE WOPN.WorkOrderId = WO.WorkOrderId) > 1 ) Then 'Multiple' ELse  'Single' End) AS 'RowStatus',
-			  MAX(I.PartNumber)  as 'PartNumberType',
-			  MAX(I.PartNumber)  as 'PartNumber',
-			  MAX(I.PartDescription)  as 'PartDescriptionType',
-			  MAX(I.PartDescription)  as 'PartDescription',
-			  MAX(I.ManufacturerName)  as 'ManufacturerNameType',
-			  MAX(I.ManufacturerName)  as 'ManufacturerName',
-			  MAX(SC.WorkScopeCode)  as 'WorkScopeType',
-			  MAX(SC.WorkScopeCode)  as 'WorkScopeDescription',
-			  MAX(P.Description)  as 'PriorityType',
-			  MAX(P.Description)  as 'PriorityDescription',
-			  MAX(WOS.Code + '-' + WOS.Stage)  as 'StageType',
-			  MAX(WOS.Code + '-' + WOS.Stage)  as 'WOStageDescription',
-			  MAX(WOST.Description)  as 'WorkOrderStatusType',
-			  MAX(WOST.Description)  as 'WorkOrderStatus',
+			  --(CASE WHEN ((SELECT COUNT(WOPN.WorkOrderId) FROM dbo.WorkOrderPartNumber WOPN WHERE WOPN.WorkOrderId = WO.WorkOrderId) > 1 ) Then 'Multiple' ELse  'Single' End) AS 'RowStatus',
+			  CASE WHEN WOPC.PartCount > 1 THEN 'Multiple' ELSE 'Single' END AS 'RowStatus',
+			  MAX(WPN.PartNumber)  as 'PartNumberType',
+			  MAX(WPN.PartNumber)  as 'PartNumber',
+			  MAX(WPN.PartDescription)  as 'PartDescriptionType',
+			  MAX(WPN.PartDescription)  as 'PartDescription',
+			  MAX(WPN.ManufacturerName)  as 'ManufacturerNameType',
+			  MAX(WPN.ManufacturerName)  as 'ManufacturerName',
+			  MAX(WPN.WorkScope)  as 'WorkScopeType',
+			  MAX(WPN.WorkScope)  as 'WorkScopeDescription',
+			  MAX(WPN.Priority)  as 'PriorityType',
+			  MAX(WPN.Priority)  as 'PriorityDescription',
+			  MAX(WPN.WorkOrderStage)  as 'StageType',
+			  MAX(WPN.WorkOrderStage)  as 'WOStageDescription',
+			  MAX(WPN.WorkOrderStatus)  as 'WorkOrderStatusType',
+			  MAX(WPN.WorkOrderStatus)  as 'WorkOrderStatus',
 			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'CustomerRequestDateType',
 			  MAX(FORMAT(WPN.CustomerRequestDate, 'yyyy-MM-ddTHH:mm:ss') )  as 'CustomerRequestDate',
 			  MAX(FORMAT(WPN.PromisedDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'PromisedDateType',
@@ -387,27 +392,28 @@ BEGIN
 			  MAX(FORMAT(WPN.EstimatedShipDate, 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedShipDate',
 			  WO.EstimatedCompletionDateType,
 			  WO.EstimatedCompletionDate,
-			  MAX(emp.FirstName + ' ' + emp.LastName)  as 'TechNameType',
-			  MAX(emp.FirstName + ' ' + emp.LastName)  as 'TechName',
-			  MAX(emps.StationName)  as 'TechStationType',
-			  MAX(emps.StationName)  as 'TechStation',
+			  MAX(WPN.TechName)  as 'TechNameType',
+			  MAX(WPN.TechName)  as 'TechName',
+			  MAX(WPN.EmployeeStation)  as 'TechStationType',
+			  MAX(WPN.EmployeeStation)  as 'TechStation',
 			  MAX(WPN.CustomerReference)  as 'CustomerReferenceType',
 			  MAX(WPN.CustomerReference)  as 'CustomerReference',
 			  MAX(CASE WHEN ISNULL(WPN.RevisedSerialNumber, '') != '' THEN UPPER(WPN.RevisedSerialNumber) ELSE UPPER(WPN.CurrentSerialNumber) END) AS SerialNumber
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN dbo.WorkOrderPartNumber WPN WITH (NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId
-			  LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
-			  LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
-			  LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId
-			  LEFT JOIN dbo.WorkOrderStage WOS WITH(NOLOCK) On WPN.WorkOrderStageId  = WOS.WorkOrderStageId
-			  LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
-			  LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
-			  LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
+			  JOIN WorkOrderPartCount WOPC ON WO.WorkOrderId = WOPC.WorkOrderId
+			  --LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
+			  --LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
+			  --LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId
+			  --LEFT JOIN dbo.WorkOrderStage WOS WITH(NOLOCK) On WPN.WorkOrderStageId  = WOS.WorkOrderStageId
+			  --LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
+			  --LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
+			  --LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
           WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR WO.IsActive=@IsActive)   
-				AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))
-		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,WO.IsActive,WO.IsDeleted
-					,WO.WorkOrderType, WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate
+				AND (@WorkOrderStatus = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatus))
+		  GROUP BY	WO.WorkOrderNum,WO.WorkOrderId,WO.CustomerId,WO.CustomerName ,WO.CustomerType, WO.OpenDate, WO.CreatedDate, WO.UpdatedDate,WO.CreatedBy, WO.UpdatedBy,
+					WO.IsActive,WO.IsDeleted,WO.WorkOrderType, WO.EstimatedCompletionDateType,  WO.EstimatedCompletionDate,WOPC.PartCount
 
          SELECT DISTINCT WorkOrderNum, WorkOrderId, CustomerId, CustomerName, CustomerType, OpenDate, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, IsActive, IsDeleted, WorkOrderType,
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX(PartNumberType) End)  as 'PartNumberType',

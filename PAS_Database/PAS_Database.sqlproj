@@ -3187,11 +3187,30 @@
     <Build Include="dbo\Stored Procedures\USP_SaveGeneralLedgerEmployeeMappingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckDuplicateGeneralLedgerParam.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineBatchAccountingDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RemoveGeneralLedgerSearchParams_ById.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOQPartsMonthlyYearlyDashboardData.sql" />
+    <Build Include="dbo\Stored Procedures\GetWOMRODashboardData.sql" />
+    <Build Include="dbo\Tables\CycleCountStatus.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingMasterAudit.sql" />
+    <Build Include="dbo\Tables\CycleCountSettingMaster.sql" />
+    <Build Include="dbo\Tables\CycleCountDetail.sql" />
+    <Build Include="dbo\Tables\CycleCount.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_Stockline_DetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_DetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdateMSDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdate.sql" />
+    <Build Include="dbo\Tables\PriceMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdatePriceMasterHistory.sql" />
+    <Build Include="dbo\Stored Procedures\UpdatePriceMasterDetails.sql" />
+    <Build Include="dbo\Stored Procedures\ItemMasterPriceListForBulkUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\GetPriceMasterHistoryById.sql" />
+    <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_SPRINT_48.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_49.dacpac" />
   </ItemGroup>
 </Project>

@@ -18,6 +18,7 @@
 	2    14/02/2023		     Moin Bloch			 Updated Used Distribution Setup Code Insted of Name 
 	3    07/23/2024			 AMIT GHEDIYA		 Update new Destribution.
 	4    20/09/2024	         AMIT GHEDIYA		 Added for AutoPost Batch
+	5	 18/10/2024		Devendra Shekh			Added new fields for [CommonBatchDetails]
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
@@ -97,6 +98,9 @@ BEGIN
 		DECLARE @Moduleids VARCHAR(250) = ''
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -150,9 +154,11 @@ BEGIN
 				   @Shelf=[ShelfName], 
 			       @StkGlAccountId = sl.[AcquiredGLAccountId], 
 				   @StkGlAccountName = gl.[AccountName], 
-				   @StkGlAccountNumber = gl.[AccountCode]
+				   @StkGlAccountNumber = gl.[AccountCode],
+				   @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'')
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK)
 			LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON sl.AcquiredGLAccountId = gl.GLAccountId
+			LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON sl.CurrencyId = CU.CurrencyId
 			WHERE [AssetInventoryId] = @AssetInventoryId;
 									
 		    SELECT @LastMSLevel = LastMSLevel,
@@ -408,7 +414,8 @@ BEGIN
 						 [CreatedDate],
 						 [UpdatedDate],
 						 [IsActive],
-						 [IsDeleted])
+						 [IsDeleted]
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -437,7 +444,8 @@ BEGIN
 						 GETUTCDATE(),
 						 GETUTCDATE(),
 						 1,
-						 0)
+						 0
+						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 			SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -542,7 +550,8 @@ BEGIN
 						 [CreatedDate],
 						 [UpdatedDate],
 						 [IsActive],
-						 [IsDeleted])
+						 [IsDeleted]
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -571,7 +580,8 @@ BEGIN
 						 GETUTCDATE(),
 						 GETUTCDATE(),
 						 1,
-						 0)
+						 0
+						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 			 SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

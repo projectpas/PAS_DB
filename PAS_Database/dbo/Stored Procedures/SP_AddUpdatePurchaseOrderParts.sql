@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -11,9 +12,10 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    17/09/2024   RAJESH GAMI			Created
-
+	2    14/10/2024   RAJESH GAMI			Implemented logic: IsKit and IsSubWO flag for the identify the WOMaterial is kit and from SUWO or not. 
+	3    16/10/2024   RAJESH GAMI			Implemented logic: IsKitType and IsSubWOType flag in the StocklineDraft
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -35,7 +37,7 @@ BEGIN
 			DECLARE @ApproveStatusId INT, @ApproveStatus VARCHAR(100),@SalesOrderId BIGINT,@ConditionId BIGINT
 			DECLARE @ItemMasterId BIGINT,@SalesOrderPartId BIGINT,@ExchProvisionId INT
 			DECLARE @IsCreateExchange BIT = 0, @CoreDueDate DATETIME,@MainWorkOrderMaterialsId BIGINT
-			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
+			DECLARE @PurchaseOrderPartRecordIdSplit BIGINT,@SplitPartIsDeleted BIT, @WorkOrderMaterialsId BIGINT,@IsKit BIT = 0,@IsSubWO BIT = 0,@EstDeliveryDate DATETIME, @ExpectedSerialNumber VARCHAR(100)
 
 			DECLARE @OrderPartStatusId INT = (SELECT POPartStatusId FROM dbo.POPartStatus WITH(NOLOCK) WHERE LOWER(Description) ='order')
 			SELECT TOP 1 @ApproveStatusId = ApprovalStatusId,@ApproveStatus = [Description]  FROM DBO.ApprovalStatus WITH(NOLOCK) WHERE LOWER(Name) = 'approved' AND ISNULL(IsActive,0) = 1
@@ -71,7 +73,7 @@ BEGIN
 			BEGIN -->>>>> Start: While Loop Main
 					SELECT @PurchaseOrderPartRecordId= PurchaseOrderPartRecordId,@IsDeletedPart = IsDeleted,@EmployeeID =EmployeeID, @SalesOrderId = SalesOrderId, 
 							@ConditionId = ConditionId,@ItemMasterId =ItemMasterId, @WorkOrderMaterialsId = WorkOrderMaterialsId,@EstDeliveryDate =EstDeliveryDate,
-							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId
+							@ExpectedSerialNumber = ExpectedSerialNumber,@ManagementStructureId =ManagementStructureId, @IsKit = IsKit, @IsSubWO = IsFromSubWorkOrder
 							FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId;
 					IF(@PurchaseOrderPartRecordId > 0)  -->>>>> Start:1 @PurchaseOrderPartRecordId > 0
 					BEGIN						
@@ -90,6 +92,9 @@ BEGIN
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
 									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
 									--, SL.CurrencyId = PT.FunctionalCurrencyId,
+										SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
+										SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
+										SL.WorkOrderMaterialsId = PT.WorkOrderMaterialsId,
 									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId
@@ -133,7 +138,8 @@ BEGIN
 									PART.ExchangeSalesOrderId = TMP.ExchangeSalesOrderId,PART.ExchangeSalesOrderNo = TMP.ExchangeSalesOrderNo,
 									PART.ManufacturerPN = TMP.ManufacturerPN,PART.AssetModel = TMP.AssetModel,
 									PART.AssetClass = TMP.AssetClass,PART.IsLotAssigned = TMP.IsLotAssigned,
-									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId,
+									PART.LotId = TMP.LotId,PART.WorkOrderMaterialsId = TMP.WorkOrderMaterialsId, 
+									--PART.IsKit = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsKit END, PART.IsSubWO = CASE WHEN ISNULL(TMP.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE TMP.IsFromSubWorkOrder END ,
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
@@ -243,7 +249,7 @@ BEGIN
 					   ,[TaggedByType]
 					   ,[TaggedByName]
 					   ,[TaggedByTypeName]
-					   ,[TagDate])
+					   ,[TagDate], IsKit, IsSubWO)
 			
 					   (SELECT 
 						@PurchaseOrderId
@@ -339,6 +345,8 @@ BEGIN
 					   ,TaggedByName
 					   ,TaggedByTypeName
 					   ,TagDate
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsKit END
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsFromSubWorkOrder END
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();
@@ -638,9 +646,9 @@ BEGIN
 										PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
 										PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate
 									FROM DBO.PurchaseOrderPart PART
-									JOIN #tmpPoPartList TMP							 
-										ON PART.PurchaseOrderPartRecordId = TMP.PurchaseOrderPartRecordId
-									JOIN #tmpPoSplitParts split ON TMP.PoPartSrNum = split.PoPartSrNum
+									JOIN #tmpPoSplitParts split							 
+										ON PART.PurchaseOrderPartRecordId = split.PurchaseOrderPartRecordId
+									JOIN #tmpPoPartList TMP ON TMP.PoPartSrNum = split.PoPartSrNum
 									WHERE PART.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordIdSplit
 
 									EXEC dbo.[PROCAddPOMSData] @PurchaseOrderPartRecordIdSplit,@ManagementStructureIdSplit,@MasterCompanyId,@userName,@userName,@ModuleId,4, 0
@@ -653,16 +661,56 @@ BEGIN
 					END -->>>>> End: Split Part While Loop
 /* ----------------------------END:  SPLIT PART Functionality ---------------------------------- */
 /* ----------------------------START:  WO Materials Update ---------------------------------- */					
-					IF(@WorkOrderMaterialsId > 0)
+					IF(@WorkOrderMaterialsId > 0 )
 					BEGIN
-						IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+						IF(@IsSubWO = 1)
 						BEGIN
-							UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = @EstDeliveryDate, 
-															  ExpectedSerialNumber = @ExpectedSerialNumber,
-															  POId = @PurchaseOrderId, 
-															  PONum = @PurchaseOrderNumber
-														  WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+							IF(@IsKit = 1)
+							BEGIN
+								IF((SELECT COUNT(SubWorkOrderMaterialsKitId) FROM DBO.SubWorkOrderMaterialsKit WITH(NOLOCK) WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.SubWorkOrderMaterialsKit SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @EstDeliveryDate END, 
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
+																  WHERE SubWorkOrderMaterialsKitId = @WorkOrderMaterialsId
+								END
+							END
+							ELSE
+							BEGIN
+								IF((SELECT COUNT(SubWorkOrderMaterialsId) FROM DBO.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.SubWorkOrderMaterials SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END,
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
+																  WHERE SubWorkOrderMaterialsId = @WorkOrderMaterialsId
+								END
+							END
 						END
+						ELSE
+						BEGIN
+							IF(@IsKit = 1)
+							BEGIN
+								IF((SELECT COUNT(WorkOrderMaterialsKitId) FROM DBO.WorkOrderMaterialsKit WITH(NOLOCK) WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.WorkOrderMaterialsKit SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END, 
+																	  POId = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @PurchaseOrderId END,
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
+																  WHERE WorkOrderMaterialsKitId = @WorkOrderMaterialsId
+								END
+							END
+							ELSE
+							BEGIN
+								IF((SELECT COUNT(WorkOrderMaterialsId) FROM DBO.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId) > 0)
+								BEGIN
+									UPDATE DBO.WorkOrderMaterials SET PONextDlvrDate = CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE   @EstDeliveryDate END, 
+																	  ExpectedSerialNumber =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @ExpectedSerialNumber END,
+																	  POId =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderId END, 
+																	  PONum =  CASE WHEN @IsDeletedPart = 1 THEN NULL ELSE  @PurchaseOrderNumber END
+																  WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId
+								END
+							END
+						END
+						
 					END
 /* ----------------------------END:  WO Materials Update ---------------------------------- */	
 				SET @PartLoopId +=1
@@ -685,7 +733,7 @@ BEGIN
 
 			 DELETE SPLIT FROM #tmpPoSplitAllPartList SPLIT INNER JOIN #tmpPoPartList P ON P.PoPartSrNum = SPLIT.PoPartSrNum 
 			 WHERE SPLIT.IsDeleted = 1 OR P.IsDeleted = 1
-			  DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
+			 DELETE FROM #tmpPoPartList WHERE IsDeleted = 1
 
 			 SELECT * FROM #tmpPoPartList
 			 SELECT * FROM #tmpPoSplitAllPartList

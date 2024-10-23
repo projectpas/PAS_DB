@@ -221,14 +221,14 @@ BEGIN
       IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
       NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
       NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
-	  NULL, 0, NULL, @WorkOrderMaterialsId, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
+	  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
       NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
       IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
       '', NULL, NULL, @ShipViaName, NULL, NULL, ISNULL(@TagTypeId, 0), 'STL_DRFT-000000',     
       NULL, @TaggedBy, NULL, IM.PurchaseUnitOfMeasureId, IM.PurchaseUnitOfMeasure, NULL, NULL, ISNULL(@TaggedByType, 0), NULL, NULL, NULL,    
       NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL,    
       @LotId, NULL, NULL, NULL, NULL, NULL, @QtyToTraverse, NULL, NULL, NULL, NULL, NULL, NULL,    
-      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,@IsKit, @IsSubWO    
+      NULL, NULL, NULL, 0, 0, NULL,IM.isTimeLife,CASE WHEN @IsKit = 0 THEN NULL ELSE @IsKit END , CASE WHEN @IsSubWO = 0 THEN NULL ELSE @IsSubWO END     
       FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
       SELECT @NewStocklineDraftId = SCOPE_IDENTITY();    

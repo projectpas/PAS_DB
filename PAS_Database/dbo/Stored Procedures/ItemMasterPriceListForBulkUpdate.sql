@@ -5,7 +5,7 @@
  ** Purpose:         
  ** Date:   30/08/2024      
           
- ** PARAMETERS: @ItemMasterId BIGINT, @MasterCompanyId
+ ** PARAMETERS: @ItemMasterId BIGINT, @MasterCompanyId BIGINT
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -21,8 +21,8 @@
 
 CREATE      PROCEDURE [dbo].[ItemMasterPriceListForBulkUpdate]
 (
-	@ItemMasterId BIGINT = 0,
-	@MasterCompanyId BIGINT = 1
+	@ItemMasterId BIGINT,
+	@MasterCompanyId BIGINT
 )
 AS
 BEGIN

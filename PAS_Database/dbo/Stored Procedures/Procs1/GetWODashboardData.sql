@@ -91,7 +91,8 @@ BEGIN
 
 				CREATE TABLE #tmpWorkOrderData
 				(
-					 ID BIGINT NOT NULL IDENTITY, 					 
+					 ID BIGINT NOT NULL IDENTITY,
+					 WorkOrderId VARCHAR(20) NULL,
 					 WorkOrderNum VARCHAR(20) NULL,
 					 PartNumber VARCHAR(500) NULL,
 					 PartDescription VARCHAR(500) NULL,
@@ -124,9 +125,9 @@ BEGIN
 
 				SELECT @RecStageCode = StageCode FROM dbo.WorkOrderStage WOSG WITH (NOLOCK) WHERE WorkOrderStageId = @WorkOrderStageId
 
-				INSERT INTO #tmpWorkOrderData (WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
+				INSERT INTO #tmpWorkOrderData (WorkOrderId, WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId)
-				SELECT DISTINCT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT WO.WorkOrderId, WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, 
 					CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType,
 					p.Description AS [Priority], 
@@ -149,7 +150,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT DISTINCT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
 					'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
 					0 AS EstRevenue, 
@@ -165,7 +166,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT DISTINCT WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT WO.WorkOrderId,WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, p.Description AS [Priority], 
 					(EMP.FirstName + ' ' + EMP.LastName) AS Techname, WO.OpenDate, WOP.CustomerRequestDate AS CustReqDate,
 					ISNULL(WOC.Revenue, 0) AS EstRevenue,
@@ -186,7 +187,7 @@ BEGIN
 
 				UNION ALL 
 
-				SELECT DISTINCT '' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
+				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
 					'' AS Techname, RC.ReceivedDate AS OpenDate, RC.CustReqDate AS CustReqDate,
 					0 AS EstRevenue, 
@@ -202,11 +203,11 @@ BEGIN
 				AND RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
 				;With Result AS(
-					SELECT DISTINCT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
+					SELECT DISTINCT WorkOrderId,WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 						[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId FROM #tmpWorkOrderData
 					),
 				FinalResult AS (
-				SELECT WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
+				SELECT WorkOrderId, WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 				[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId FROM Result
 				WHERE (
 					(@GlobalFilter <> '' AND ((WorkOrderNum like '%' + @GlobalFilter +'%' ) OR 
@@ -246,7 +247,7 @@ BEGIN
 							)),
 					ResultCount AS (Select COUNT(WorkOrderNum) AS NumberOfItems FROM FinalResult)
 
-					SELECT WorkOrderNum, PartNumber, PartDescription, Customer,SerialNumber, WOStage, [Priority], WOType,
+					SELECT WorkOrderId , WorkOrderNum, PartNumber, PartDescription, Customer,SerialNumber, WOStage, [Priority], WOType,
 					 Techname, OpenDate, CustReqDate,EstRevenue, EstCost,  EstMargin, PONumber, RONumber, NumberOfItems,WOpartId FROM FinalResult, ResultCount
 					ORDER BY  
 					CASE WHEN (@SortOrder = 1 AND @SortColumn='WORKORDERNUM')  THEN WorkOrderNum END ASC,

@@ -67,8 +67,13 @@
     [FreightFlatRate]          DECIMAL (18, 2) NULL,
     [IsChargeFlatRate]         BIT             NULL,
     [ChargeFlatRate]           DECIMAL (18, 2) NULL,
+    [FunctionalCurrencyId]     INT             NULL,
+    [ReportCurrencyId]         INT             NULL,
+    [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
+
+
 
 
 

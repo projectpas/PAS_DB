@@ -109,8 +109,9 @@ BEGIN TRY
 
 	SELECT @BillingMethod = soq.ChargesBilingMethodId, @FlatCharges = soq.TotalCharges FROM dbo.SalesOrderQuote soq WITH(NOLOCK) WHERE soq.SalesOrderQuoteId = @ID
 
-	SELECT @TotalCost = sum(soqp.NetSales)
-		  FROM dbo.SalesOrderQuotePart soqp  WITH(NOLOCK)
+	SELECT @TotalCost = sum(SOC.NetSaleAmount)
+		  FROM dbo.SalesOrderQuotePartV1 soqp WITH(NOLOCK)
+		  INNER JOIN DBO.SalesOrderQuotePartCost SOC WITH(NOLOCK) ON soqp.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
 		  WHERE soqp.SalesOrderQuoteId = @ID
 
 	IF @BillingMethod = 3
@@ -142,8 +143,9 @@ BEGIN TRY
 
 	SELECT @BillingMethod_SO = so.ChargesBilingMethodId, @FlatCharges_SO = so.TotalCharges FROM dbo.SalesOrder so WITH(NOLOCK) WHERE so.SalesOrderId = @ID
 
-	SELECT @TotalCost = sum(sop.NetSales)
-		  FROM dbo.SalesOrderPart sop WITH(NOLOCK)
+	SELECT @TotalCost = sum(SOC.NetSaleAmount)
+		  FROM dbo.SalesOrderPartV1 sop WITH(NOLOCK)
+		  INNER JOIN DBO.SalesOrderPartCost SOC WITH(NOLOCK) ON sop.SalesOrderPartId = SOC.SalesOrderPartId
 		  WHERE sop.SalesOrderId = @ID
 
 	IF @BillingMethod_SO = 3

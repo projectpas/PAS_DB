@@ -111,7 +111,8 @@ BEGIN
        Where SalesOrderQuoteId=SOQ.SalesOrderQuoteId  
       ) A  
       Outer Apply (  
-       Select SUM(S.UnitCost) as 'Cost',SUM(S.NetSales) as 'NetSales' from SalesOrderQuotePart S  
+       Select SUM(SOC.UnitCost) as 'Cost',SUM(SOC.NetSaleAmount) as 'NetSales' from SalesOrderQuotePartV1 S 
+	   INNER JOIN SalesOrderQuotePartCost SOC ON S.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
        Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId  
       ) B  
       Where (SOQ.IsDeleted=@IsDeleted) and (@StatusID is null or SOQ.StatusId=@StatusID) AND SOQ.MasterCompanyId = @MasterCompanyId),PartCTE AS(  
@@ -121,7 +122,7 @@ BEGIN
       Outer Apply(  
        SELECT   
           STUFF((SELECT ',' + I.partnumber  
-           FROM SalesOrderQuotePart S WITH (NOLOCK)  
+           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
            Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PartNumber  
@@ -137,7 +138,7 @@ BEGIN
        SELECT   
           STUFF((SELECT ', ' + MA.Name
            FROM SalesOrderQuote S WITH (NOLOCK)  
-           Left Join SalesOrderQuotePart SP WITH (NOLOCK) on S.SalesOrderQuoteId = SP.SalesOrderQuoteId
+           Left Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on S.SalesOrderQuoteId = SP.SalesOrderQuoteId
 	  Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
       LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
@@ -152,7 +153,7 @@ BEGIN
       Outer Apply(  
        SELECT   
           STUFF((SELECT ', ' + I.PartDescription  
-           FROM SalesOrderQuotePart S WITH (NOLOCK)  
+           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
            Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PartDescription  
@@ -166,7 +167,7 @@ BEGIN
       Outer Apply(  
        SELECT   
           STUFF((SELECT ', ' + P.Description  
-           FROM SalesOrderQuotePart S WITH (NOLOCK)  
+           FROM SalesOrderQuotePartV1 S WITH (NOLOCK)  
            Left Join Priority P WITH (NOLOCK) On P.PriorityId=S.PriorityId  
            Where S.SalesOrderQuoteId=SQ.SalesOrderQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0  
            FOR XML PATH('')), 1, 1, '') PriorityDescription  

@@ -16,9 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
      
- -- EXEC DBO.GetSalesOrderQuoteById 766
+ -- EXEC DBO.GetSalesOrderQuoteById 851
 **************************************************************/ 
-CREATE   PROCEDURE [DBO].[GetSalesOrderQuoteById]
+CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteById]
     @SalesOrderQuoteId INT
 AS
 BEGIN
@@ -115,7 +115,7 @@ BEGIN
 			soq.QtyRequested,
 			soq.QtyToBeQuoted,
 			soq.QuoteSentDate,
-			(SELECT SUM(CONVERT(DECIMAL, cta.TaxRate)) FROM CustomerTaxTypeRateMapping cta WHERE cta.CustomerId = soq.CustomerId) AS TaxRate,
+			(SELECT ISNULL(SUM(CONVERT(DECIMAL, cta.TaxRate)), 0) FROM CustomerTaxTypeRateMapping cta WHERE cta.CustomerId = soq.CustomerId) AS TaxRate,
 			soq.IsNewVersionCreated,
 			soq.ManagementStructureName1,
 			soq.ManagementStructureName2,

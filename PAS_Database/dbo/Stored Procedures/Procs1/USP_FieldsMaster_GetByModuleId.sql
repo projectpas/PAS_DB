@@ -1,4 +1,12 @@
-﻿--exec USP_FieldsMaster_GetByModuleId 15,1
+﻿/**************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date				Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1   22-Oct-2024     Sahdev Saliya       fixed error in cursor added local
+
+	EXEC [dbo].[USP_FieldsMaster_GetByModuleId] 1,1
+**************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_FieldsMaster_GetByModuleId]
 @ModuleId bigint=10,
@@ -70,7 +78,7 @@ SET NOCOUNT ON;
 	DECLARE @ValueName NVARCHAR(50)
 	DECLARE @ApplyFilter NVARCHAR(200)
 	DECLARE @FieldType NVARCHAR(100)
-	DECLARE tablefeildcursor CURSOR FOR 
+	DECLARE tablefeildcursor CURSOR LOCAL FOR 
 			SELECT AutoId,TableName, IDName, ValueName,ISNULL(ApplyFilter,''),FieldType FROM dbo.GlobalFilter WHERE ModuleId=@ModuleId and isnull(TableName,'')!='' and IsActive=1 ORDER BY Sequnse ASC
 				OPEN tablefeildcursor  
 				FETCH NEXT FROM tablefeildcursor INTO @AutoId,@TableName,@IDName,@ValueName,@ApplyFilter,@FieldType
@@ -135,6 +143,6 @@ SET NOCOUNT ON;
 			,@ApplicationName = @ApplicationName
 			,@ErrorLogID = @ErrorLogID OUTPUT;
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
-		RETURN (1);           
-	END CATCH
+		RETURN (1);           
+	END CATCH
 END

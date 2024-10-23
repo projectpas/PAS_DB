@@ -3205,6 +3205,37 @@
     <Build Include="dbo\Stored Procedures\ItemMasterPriceListForBulkUpdate.sql" />
     <Build Include="dbo\Stored Procedures\GetPriceMasterHistoryById.sql" />
     <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
+    <Build Include="dbo\Tables\SalesOrderStocklineV1.sql" />
+    <Build Include="dbo\Tables\SalesOrderStockLineCost.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteStocklineV1.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteStockLineCost.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuotePartV1.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuotePartCost.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteCost.sql" />
+    <Build Include="dbo\Tables\SalesOrderPartV1.sql" />
+    <Build Include="dbo\Tables\SalesOrderPartCost.sql" />
+    <Build Include="dbo\Tables\SalesOrderCost.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOQPartCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOQCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOPartCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOCostDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOQAnalysisData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSalesOrderQuotePart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateSalesOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\SalesOrderReserveUnReserveParts.sql" />
+    <Build Include="dbo\Stored Procedures\GetUnReservedStockPartsListBySOId.sql" />
+    <Build Include="dbo\Stored Procedures\GetUnReservedStockPartsDataById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePartView.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteParts.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuoteById.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderPartView.sql" />
+    <Build Include="dbo\Stored Procedures\GetPartsViewBySalesOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\GetPackagingLabel.sql" />
+    <Build Include="dbo\User Defined Types\SOStockLineListType.sql" />
+    <Build Include="dbo\User Defined Types\SOQStockLineListType.sql" />
+    <Build Include="dbo\User Defined Types\SOQPartListType.sql" />
+    <Build Include="dbo\User Defined Types\SOPartListType.sql" />
+    <Build Include="dbo\User Defined Types\SalesOrderReserveIssueParts.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

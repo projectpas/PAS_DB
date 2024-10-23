@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSalesOrderPartsList]           
  ** Author:   Hemant Saliya
  ** Description: 
@@ -15,14 +13,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    03/22/2023   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    03/22/2023   Hemant Saliya		Created
+	2    10/17/2024   Vishal Suthar		Modified to make use of new SO tables
      
  EXECUTE USP_GetSalesOrderPartsList 254
-
-**************************************************************/ 
-    
+**************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSalesOrderPartsList]    
 (    
 @SalesOrderId INT
@@ -35,8 +32,9 @@ SET NOCOUNT ON
 		BEGIN TRY
 			BEGIN TRANSACTION
 				BEGIN 
-				SELECT DISTINCT SOP.ItemMasterId, IM.partnumber, SalesOrderPartId from dbo.SalesOrderPart SOP  WITH(NOLOCK) 
-					JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SOP.ItemMasterId = IM.ItemMasterId
+				SELECT DISTINCT SOP.ItemMasterId, IM.partnumber, SalesOrderPartId 
+				FROM dbo.SalesOrderPartV1 SOP  WITH(NOLOCK) 
+				JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SOP.ItemMasterId = IM.ItemMasterId
 				WHERE SOP.SalesOrderId = @SalesOrderId
 				GROUP BY SOP.ItemMasterId, SalesOrderPartId, IM.partnumber
 				END

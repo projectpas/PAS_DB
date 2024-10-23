@@ -10,8 +10,9 @@
 ** PR   Date         Author				Change Description                
 ** --   --------     -------			--------------------------------              
  1   18/03/2024		Hemant Saliya		Created 
+ 2   17/10/2024		Vishal Suthar		Modified to make use of new SO part tables
  
-EXEC USP_GetSalesOrderBillingInvoicingItemDetails 1039
+EXEC USP_GetSalesOrderBillingInvoicingItemDetails 1
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingItemDetails](    
@@ -38,9 +39,11 @@ BEGIN
 				);
 
 				INSERT INTO #SalesOrderBillingInvoiceChildList(SalesOrderPartId, ItemMasterId, ConditionId, StocklineId, UnitPrice)
-				SELECT SOP.SalesOrderPartId, SOP.ItemMasterId, SOP.ConditionId, SOP.StockLineId, SOP.UnitSalesPricePerUnit AS UnitPrice					   
+				SELECT SOP.SalesOrderPartId, SOP.ItemMasterId, SOP.ConditionId, Stk.StockLineId, SOPC.UnitSalesPrice AS UnitPrice					   
 				FROM dbo.SalesOrder SO WITH(NOLOCK) 
-					JOIN dbo.SalesOrderPart SOP WITH(NOLOCK) ON  SO.SalesOrderId = SOP.SalesOrderId
+					JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON  SO.SalesOrderId = SOP.SalesOrderId
+					LEFT JOIN dbo.SalesOrderStocklineV1 Stk WITH(NOLOCK) ON Stk.SalesOrderPartId = SOP.SalesOrderPartId
+					LEFT JOIN dbo.SalesOrderPartCost SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 					LEFT JOIN dbo.SalesOrderFreight SOF WITH(NOLOCK) ON  SOF.SalesOrderPartId = SOP.SalesOrderPartId
 					LEFT JOIN dbo.SalesOrderCharges SOC WITH(NOLOCK) ON  SOC.SalesOrderPartId = SOP.SalesOrderPartId
 				WHERE SOP.SalesOrderPartId = @SalesOrderPartId

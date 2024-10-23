@@ -10,7 +10,9 @@
  ** --   --------     -------		--------------------------------          
     1    06/15/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
     2    06/21/2023   Vishal Suthar Updated the SP to include pick ticket even after invoice is created
+    3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket stockline list from new SO Part tables
 
+EXEC [dbo].[SearchStockLinePickTicketPop] 3, 7, 1103, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
 	@ItemMasterIdlist bigint, 
@@ -75,14 +77,9 @@ BEGIN
 						 (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-					--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-					--						THEN @ConditionId ELSE sl.ConditionId 
-					--						END
-				LEFT JOIN DBO.SalesOrderPart sop on sop.StockLineId = sl.StockLineId
-					--AND sop.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-					--						THEN @ConditionId ELSE sl.ConditionId 
-					--						END
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
+				LEFT JOIN DBO.SalesOrderPartV1 sop on sop.SalesOrderPartId = stk.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -145,20 +142,12 @@ BEGIN
 						 ,CONVERT(BIT,0) AS PMA
 						 ,Smf.Name as StkLineManufacturer
 						 ,((sor.QtyToReserve + (SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId)) - 
-						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId)) 
-						 --- (SELECT ISNULL(SUM(SOBI.NoofPieces), 0) FROM SalesOrderBillingInvoicing SOB
-							--LEFT JOIN SalesOrderBillingInvoicingItem SOBI WITH(NOLOCK) on SOBI.SOBillingInvoicingId = SOB.SOBillingInvoicingId 
-							--WHERE SOB.SalesOrderId = @SalesOrderId AND SOBI.SalesOrderPartId = sop.SalesOrderPartId AND SOBI.IsVersionIncrease = 0)
+						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartId = sop.SalesOrderPartId))
 						 AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
-				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-					--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-					--						THEN @ConditionId ELSE sl.ConditionId 
-					--						END
-				LEFT JOIN DBO.SalesOrderPart sop on sop.StockLineId = sl.StockLineId
-					AND sop.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-											THEN @ConditionId ELSE sl.ConditionId 
-											END
+				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
+				LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
+				LEFT JOIN DBO.SalesOrderPartV1 sop on sop.SalesOrderPartId = stk.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.SalesOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId

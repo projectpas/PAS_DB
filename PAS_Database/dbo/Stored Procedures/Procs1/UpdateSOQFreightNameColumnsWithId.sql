@@ -1,9 +1,23 @@
-﻿-- =============================================
--- Author:		Vishal Suthar
--- Create date: 23-Dec-2020
--- Description:	Update name columns into corrosponding reference Id values from respective master table
--- =============================================
---  EXEC [dbo].[UpdateSOQNameColumnsWithId] 5
+﻿/*************************************************************           
+ ** File:   [UpdateSOQChargeNameColumnsWithId]           
+ ** Author: Vishal Suthar
+ ** Description: Update name columns into corrosponding reference Id values from respective master table
+ ** Purpose:         
+ ** Date: 23-Dec-2020
+          
+ ** PARAMETERS:
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/17/2024   Vishal Suthar		Modified to make use of new SOQ tables
+     
+--  EXEC [dbo].[UpdateSOQFreightNameColumnsWithId] 5
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateSOQFreightNameColumnsWithId]
 	@SalesOrderQuoteId int
 AS
@@ -26,7 +40,7 @@ BEGIN
 		LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON soqf.UOMId = uom.UnitOfMeasureId
 		LEFT JOIN DBO.UnitOfMeasure duom WITH (NOLOCK) ON soqf.DimensionUOMId = duom.UnitOfMeasureId
 		LEFT JOIN DBO.Currency c WITH (NOLOCK) ON soqf.CurrencyId = c.CurrencyId
-		LEFT JOIN DBO.SalesOrderQuotePart part WITH (NOLOCK) ON soqf.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuotePartV1 part WITH (NOLOCK) ON soqf.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		Where soqf.SalesOrderQuoteId = @SalesOrderQuoteId
 	END
 	COMMIT  TRANSACTION

@@ -13,9 +13,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-	 1    01/31/2024   AMIT GHEDIYA			Added IsPerforma for Billing
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	01/31/2024		AMIT GHEDIYA		Added IsPerforma for Billing
+	2	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
      
  EXEC [dbo].[sp_GetSOShippingChildList] 814, 318, 15  
 **************************************************************/
@@ -34,22 +35,22 @@ BEGIN
   SELECT DISTINCT sopt.SOPickTicketId, sos.SalesOrderShippingId, CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
   CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sos.SOShippingNum ELSE NULL END AS SOShippingNum,  
   sopt.SOPickTicketNumber, sopt.QtyToShip, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
-  sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, sop.ItemNo,  
+  sl.SerialNumber, cr.[Name] as CustomerName, soc.CustomsValue, soc.CommodityCode, ISNULL(sosi.QtyShipped,0) as QtyShipped, 0 AS ItemNo,-- sop.ItemNo,  
   sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
   sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
   CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
   SOBI.SalesOrderShippingId AS  SOShippingId,
   sosi.FedexPdfPath 
   FROM DBO.SOPickTicket sopt WITH (NOLOCK)   
-  INNER JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId   
-     AND sop.SalesOrderPartId = sopt.SalesOrderPartId  
+  INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId  
+  LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId  
   LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId   
      AND sosi.SOPickTicketId = sopt.SOPickTicketId  
   LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId   
      AND sos.SalesOrderId = sopt.SalesOrderId  
   INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
   LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-  LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId  
+  LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
   LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) ON soc.SalesOrderShippingId = sos.SalesOrderShippingId  
   LEFT JOIN DBO.Customer cr WITH (NOLOCK)  on cr.CustomerId = so.CustomerId  
   LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   

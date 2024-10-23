@@ -1,9 +1,4 @@
-﻿
-
-
-
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetSOQApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -21,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
 
-EXEC [dbo].[USP_GetSOQApprovalList]  71
+EXEC [dbo].[USP_GetSOQApprovalList] 766
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
@@ -36,7 +31,7 @@ BEGIN
     BEGIN TRY
     BEGIN TRANSACTION
       BEGIN
-		
+		/*
 		IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuotePart') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpSalesOrderQuotePart
@@ -192,6 +187,87 @@ BEGIN
 		LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 		WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
+		*/
+
+		SELECT soq.SalesOrderQuoteId,
+			soq.SalesOrderQuoteNumber,
+			soq.Version,
+			soq.CustomerId,
+			soqp.SalesOrderQuotePartId AS SalesOrderQuotePartId,
+			soqp.ItemMasterId AS ItemMasterId,
+			im.PartNumber AS PartNumber,
+			im.PartDescription AS PartDescription,
+			NULL AS StocklineId,
+			soq.OpenDate,
+			soq.CreatedDate,
+			soq.ApprovedDate,
+			soq.StatusChangeDate,
+			'I' AS MethodType,
+			sqp.InternalApprovedDate,
+			sqp.InternalSentDate,
+			app.FirstName + ' ' + app. LastName AS InternalApprovedBy,
+			sqp.CustomerApprovedDate,
+			sqp.CustomerSentDate,
+			con.FirstName + ' ' + con.LastName AS CustomerApprovedBy,
+			sqp.SalesOrderQuoteApprovalId AS SalesOrderQuoteApprovalId,
+			sqp.InternalApprovedById AS InternalApprovedById,
+			sqp.CustomerApprovedById AS CustomerApprovedById,
+			sqp.RejectedById,
+			sqp.RejectedByName,
+			sqp.RejectedDate,
+			sqp.InternalRejectedById,
+			sqp.InternalRejectedByName,
+			sqp.InternalRejectedDate,
+			sqp.InternalSentToId,
+			sqp.InternalSentToName,
+			sqp.InternalSentById,
+			sqp.InternalMemo,
+			sqp.CustomerMemo,
+			sqp.CreatedBy,
+			sqp.UpdatedBy,
+			sqp.UpdatedDate,
+			1 AS IsActive,
+			0 AS IsDeleted,
+			sqp.ApprovalActionId AS ApprovalActionId,
+			sqp.ApprovalActionId AS ActionStatus,
+			sqp.InternalStatusId AS InternalStatusId,
+			CASE WHEN sqp.CustomerStatusId IS null THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
+			1 AS IsInternalApprove,
+			soqp.QtyQuoted Qty,
+			soqpc.UnitSalesPrice UnitSalePrice,
+			soqpc.MarkUpPercentage,
+			0 SalesBeforeDiscount,
+			soqpc.DiscountPercentage Discount,
+			soqpc.DiscountAmount,
+			soqpc.NetSaleAmount NetSales,
+			soqpc.UnitCost,
+			soqpc.UnitSalesPriceExtended SalesPriceExtended,
+			soqpc.MarkUpAmount MarkupExtended,
+			soqpc.DiscountAmount SalesDiscountExtended,
+			soqpc.NetSaleAmount NetSalePriceExtended,
+			soqpc.UnitCostExtended,
+			soqpc.MarginAmount,
+			soqpc.MarginAmount AS MarginAmountExtended,
+			soqpc.MarginPercentage,
+			soqpc.TaxAmount,
+			soqpc.TaxPercentage,
+			--sop.TaxType,
+			'' AS TaxType,
+			soqpc.NetSaleAmount + soqpc.TaxAmount + 
+			(CASE WHEN
+			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL THEN 
+			0 ELSE 
+			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) END) AS TotalSales,
+			soq.IsEnforceApproval,
+			soq.EnforceEffectiveDate
+		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
+		INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
+		INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
+		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
+		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
+		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
+		WHERE soq.IsDeleted = 0 AND soqp.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 	  END
     COMMIT TRANSACTION

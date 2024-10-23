@@ -25,24 +25,24 @@ CREATE   PROCEDURE [dbo].[SearchPNViewData]
  @SalesOrderNumber varchar(50)=null,  
  @CustomerName varchar(50)=null,  
  @Status varchar(50)=null,  
-    @QuoteAmount numeric(18,4)=null,  
-    @SoAmount numeric(18,4)=null,  
-    @QuoteDate datetime=null,  
-    @SalesPerson varchar(50)=null,  
-    @PriorityType varchar(50)=null,  
-    @PartNumberType varchar(50)=null,  
-    @PartDescriptionType varchar(50)=null,  
-    @CustomerReference varchar(50)=null,  
-    @CustomerType varchar(50)=null,  
+ @QuoteAmount numeric(18,4)=null,  
+ @SoAmount numeric(18,4)=null,  
+ @QuoteDate datetime=null,  
+ @SalesPerson varchar(50)=null,  
+ @PriorityType varchar(50)=null,  
+ @PartNumberType varchar(50)=null,  
+ @PartDescriptionType varchar(50)=null,  
+ @CustomerReference varchar(50)=null,  
+ @CustomerType varchar(50)=null,  
  @VersionNumber varchar(50)=null,  
-    @CreatedDate datetime=null,  
-    @UpdatedDate  datetime=null,  
+ @CreatedDate datetime=null,  
+ @UpdatedDate  datetime=null,  
  @CreatedBy  varchar(50)=null,  
  @UpdatedBy  varchar(50)=null,  
-    @IsDeleted bit= null,  
+ @IsDeleted bit= null,  
  @MasterCompanyId int = null,  
  @EmployeeId bigint,
- @ManufacturerType varchar(50)=null
+ @ManufacturerType varchar(50) = null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -78,7 +78,6 @@ BEGIN
      Set @SoAmount=null  
     End  
   
-  
     If @StatusID=0  
     Begin   
      Set @StatusID=null  
@@ -91,21 +90,23 @@ BEGIN
     DECLARE @MSModuleID INT = 18; -- Sales Order Quote Management Structure Module ID  
    -- Insert statements for procedure here  
    ;With Result AS(  
-    Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',ISNULL(SP.NetSales,0) as 'QuoteAmount',  
+    Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'QuoteDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',ISNULL(SPC.NetSaleAmount,0) as 'QuoteAmount',  
     SOQ.CreatedDate,SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(P.Description,'') as 'Priority',IsNull(P.Description,'') as 'PriorityType',(E.FirstName+' '+E.LastName)as SalesPerson,  
     IsNull(IM.partnumber,'') as 'PartNumber',M.Name As 'ManufacturerType',IsNull(IM.partnumber,'') as 'PartNumberType',IsNull(im.PartDescription,'') as 'PartDescription',IsNull(im.PartDescription,'') as 'PartDescriptionType',  
     Ct.CustomerTypeName as 'CustomerType',SO.SalesOrderNumber,SOP.NetSales as 'SoAmount',SOQ.UpdatedDate,SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber'  
-    from SalesOrderQuote SOQ WITH (NOLOCK)  
-    Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id  
-    Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId  
-    Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId  
-    Left Join SalesOrderQuotePart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0  
-    Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId  
+    from DBO.SalesOrderQuote SOQ WITH (NOLOCK)  
+    Inner Join DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id  
+    Inner Join DBO.Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId  
+    Inner Join DBO.CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId  
+    --Left Join DBO.SalesOrderQuotePart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0  
+    Left Join DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted=0  
+    LEFT Join DBO.SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+    Left Join DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId  
     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-    Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
-    Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId  
-    Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  
-    Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null  
+    Left Join DBO.Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
+    Left Join DBO.Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId  
+    Left Join DBO.SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  
+    Left Join DBO.SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null  
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId  
     INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  

@@ -1,4 +1,24 @@
-﻿-- [dbo].[sp_GetSOShippingParentList] 60
+﻿/*************************************************************           
+ ** File:   [sp_GetSOShippingParentList]           
+ ** Author:   
+ ** Description: 
+ ** Purpose:         
+ ** Date:   
+
+ ** PARAMETERS:           
+ @UserType varchar(60)   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
+     
+ -- [dbo].[sp_GetSOShippingParentList] 60
+**************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
 AS
@@ -16,11 +36,12 @@ BEGIN
 		SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
 		CASE WHEN SUM(ISNULL(sopt.QtyToShip, 0)) = SUM(ISNULL(sosi.QtyShipped, 0)) THEN 'Shipped'
 		ELSE 'Shipping' END AS [Status]
-		FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
+		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId AND sl.ConditionId = sop.ConditionId
+		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
 					AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 

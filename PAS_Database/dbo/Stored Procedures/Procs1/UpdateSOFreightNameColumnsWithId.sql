@@ -1,6 +1,24 @@
-﻿
--- =============================================
---  EXEC [dbo].[UpdateSOFreightNameColumnsWithId] 5
+﻿/*************************************************************           
+ ** File:   [UpdateSOFreightNameColumnsWithId]           
+ ** Author:   
+ ** Description: 
+ ** Purpose:         
+ ** Date: 
+          
+ ** PARAMETERS:           
+ @MasterCompanyId BIGINT   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/17/2024   Vishal Suthar		Modified to make use of new SO tables
+     
+ --  EXEC [dbo].[UpdateSOFreightNameColumnsWithId] 5
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateSOFreightNameColumnsWithId]
 	@SalesOrderId int
 AS
@@ -23,7 +41,7 @@ BEGIN
 		LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON sof.UOMId = uom.UnitOfMeasureId
 		LEFT JOIN DBO.UnitOfMeasure duom WITH (NOLOCK) ON sof.DimensionUOMId = duom.UnitOfMeasureId
 		LEFT JOIN DBO.Currency c WITH (NOLOCK) ON sof.CurrencyId = c.CurrencyId
-		LEFT JOIN DBO.[SalesOrderPart] sop WITH (NOLOCK) ON sof.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN DBO.[SalesOrderPartV1] sop WITH (NOLOCK) ON sof.SalesOrderPartId = sop.SalesOrderPartId
 		Where sof.SalesOrderId = @SalesOrderId
 	END
 	COMMIT  TRANSACTION

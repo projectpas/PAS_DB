@@ -11,7 +11,8 @@
  ** PR   Date          Author		Change Description            
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
-	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	3	10/15/2024		VISHAL SUTHAR	Modified to make use of new SO part tables
 
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetPackagingLabelPrint]
@@ -25,7 +26,7 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.SalesOrderId, sl.StockLineNumber, sop.Qty, sopt.QtyToShip as QtyPicked, 
+		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.SalesOrderId, sl.StockLineNumber, sop.QtyOrder Qty, sopt.QtyToShip as QtyPicked, 
 		imt.partnumber as PartNumber,imt.PartDescription, sopt.SOPickTicketNumber,
 		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
 		so.SalesOrderNumber,uom.ShortName as UOM, 
@@ -38,9 +39,10 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.SalesOrderPartId = sopt.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.SalesOrderShippingItem SSI WITH(NOLOCK) ON SSI.SOPickTicketId = sopt.SOPickTicketId
-		INNER JOIN SalesOrderPart sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId

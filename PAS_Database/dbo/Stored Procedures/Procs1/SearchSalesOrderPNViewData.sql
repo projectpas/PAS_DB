@@ -88,29 +88,30 @@ BEGIN
     Select DISTINCT SO.SalesOrderId, SO.SalesOrderNumber, SOQ.SalesOrderQuoteNumber, SO.OpenDate as 'OpenDate',SO.ContractReference as ContractReference,   
     --SO.OpenDate as 'QuoteDate'  
     SOQ.OpenDate as 'QuoteDate'  
-    , C.CustomerId, C.Name as 'CustomerName', MST.Name as 'Status', ISNULL(SP.NetSales,0) as 'QuoteAmount',  
-    ISNULL(SP.UnitCost, 0) as 'UnitCost', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDate', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDateType', SO.StatusId, SO.CustomerReference, IsNull(P.Description, '') as 'Priority', IsNull(P.Description, '') as 'PriorityType', (E.FirstName+' '+E.LastName)as SalesPerson,  
+    , C.CustomerId, C.Name as 'CustomerName', MST.Name as 'Status', ISNULL(SPC.NetSaleAmount, 0) as 'QuoteAmount',  
+    ISNULL(SPC.UnitCost, 0) as 'UnitCost', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDate', ISNULL(SP.CustomerRequestDate, '0001-01-01') as 'RequestedDateType', SO.StatusId, SO.CustomerReference, IsNull(P.Description, '') as 'Priority', IsNull(P.Description, '') as 'PriorityType', (E.FirstName+' '+E.LastName)as SalesPerson,  
     IsNull(IM.partnumber,'') as 'PartNumber',M.Name As 'ManufacturerType', IsNull(IM.partnumber,'') as 'PartNumberType', IsNull(im.PartDescription,'') as 'PartDescription', IsNull(im.PartDescription,'') as 'PartDescriptionType',  
     SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDate', ISNULL(SP.EstimatedShipDate, '0001-01-01') as 'EstimatedShipDateType', ISNULL(SP.PromisedDate, '0001-01-01') as 'PromisedDate',  
     ISNULL(SO.ShippedDate, '0001-01-01') as 'ShippedDate',   
     SO.IsDeleted, --dbo.GenearteVersionNumber(SO.Version) as 'VersionNumber'  
     SOQ.VersionNumber  
-    from SalesOrder SO WITH (NOLOCK)  
-    Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SO.StatusId = MST.Id  
-    Inner Join Customer C WITH (NOLOCK) on C.CustomerId = SO.CustomerId  
-    Left Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0  
-    Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
+    from DBO.SalesOrder SO WITH (NOLOCK)  
+    Inner Join DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SO.StatusId = MST.Id  
+    Inner Join DBO.Customer C WITH (NOLOCK) on C.CustomerId = SO.CustomerId  
+    Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0  
+    Left Join DBO.SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId = SP.SalesOrderPartId
+    Left Join DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-    Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId  
-    Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId  
-    Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId  
+    Left Join DBO.Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId  
+    Left Join DBO.[Priority] P WITH (NOLOCK) on SP.PriorityId=P.PriorityId  
+    Left Join DBO.SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId  
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId  
     INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId  
     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
     Where (SO.IsDeleted = @IsDeleted) and (@StatusID is null or SO.StatusId = @StatusID)  
     AND SO.MasterCompanyId = @MasterCompanyId  
     Group By SO.SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, SO.OpenDate,SO.ContractReference, SOQ.OpenDate, C.CustomerId, C.Name,   
-    MST.Name, SP.NetSales, SP.UnitCost, SP.CustomerRequestDate, SO.StatusId, SO.CustomerReference,  
+    MST.Name, SPC.NetSaleAmount, SPC.UnitCost, SP.CustomerRequestDate, SO.StatusId, SO.CustomerReference,  
     P.Description, E.FirstName, E.LastName, IM.partnumber,M.Name, IM.PartDescription, SOQ.VersionNumber,   
     SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SO.ShippedDate, SO.IsDeleted, SO.Version),  
     --ResultCount AS (Select COUNT(SalesOrderId) AS NumberOfItems FROM Result)  

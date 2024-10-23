@@ -25,7 +25,8 @@
 	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
 	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
 	11   11-10-2024	  Ekta Chandegra    Add history when update Part
-	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType)
+	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType) 
+
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  

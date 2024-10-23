@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------    ---------		--------------------------------          
     1    04/10/2023  Rajesh Gami    Created
+	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
      
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
@@ -266,12 +267,8 @@ BEGIN
 												  [CogsPartsCost], [CommissionExpense], [TotalExpense], [MarginAmt], [MarginPercent],
 												  @MasterCompanyId,@CreatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),[FreightCost],[InsuranceCost],[HandlingCost],[TeardownCost],[SoldCost],SalesUnitPrice, ISNULL(SalesUnitPrice,0) * Qty
 												  ,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE @PercentValue END)
-												  ,(CASE WHEN @IsUseMargin = 0 THEN (ISNULL(SalesUnitPrice,0) * Qty) - ((SELECT TOP 1 Sp.UnitCost FROM dbo.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId])*lot.Qty) ELSE  (ISNULL(SalesUnitPrice,0) * Qty) - (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
-												  ,(CASE WHEN @IsUseMargin = 0 THEN ISNULL((SELECT TOP 1 ISNULL(Sp.UnitCost,0) FROM dbo.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]),0)* Qty ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
-												 
-												 --,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE @PercentValue END)
-												  --,(CASE WHEN @IsUseMargin = 0 THEN (SELECT TOP 1 Sp.UnitCost FROM dbo.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]) ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
-												  --,(CASE WHEN @IsUseMargin = 0 THEN 0 ELSE ((ISNULL(SalesUnitPrice,0) * Qty)- (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0)*Qty) * @PercentValue)/100)))) END)
+												  ,(CASE WHEN @IsUseMargin = 0 THEN (ISNULL(SalesUnitPrice,0) * Qty) - ((SELECT TOP 1 SPC.UnitCost FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0 WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId])*lot.Qty) ELSE  (ISNULL(SalesUnitPrice,0) * Qty) - (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
+												  ,(CASE WHEN @IsUseMargin = 0 THEN ISNULL((SELECT TOP 1 ISNULL(SPC.UnitCost,0) FROM dbo.SalesOrderPartV1 SP WITH(NOLOCK) INNER JOIN dbo.SalesOrderPartCost SPC WITH(NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId AND SPC.IsDeleted = 0  WHERE SP.SalesOrderPartId = [ChildId] AND SP.SalesOrderId = [ReferenceId]),0)* Qty ELSE (Convert(DECIMAL(18,2),(((ISNULL(SalesUnitPrice,0) * Qty) * @PercentValue)/100))) END)
 				FROM #tmpLotCalculationDetailsType lot 
 				WHERE lot.ID = @count;
 

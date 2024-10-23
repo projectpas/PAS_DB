@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetCreditMemoPartsForPrint]           
  ** Author: Moin Bloch
  ** Description: Get Customer RMAPartsDetails
@@ -12,6 +11,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Moin Bloch    Created
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	
  --  EXEC GetCreditMemoPartsForPrint 93,0,38
 **************************************************************/ 
@@ -32,7 +32,8 @@ BEGIN
 					   CM.PartDescription,
 					   CO.Code AS 'Codition',
 					   SOBI.InvoiceNo,
-					   SOPN.CustomerReference,
+					   --SOPN.CustomerReference,
+					   '' AS CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   CM.UnitPrice,
@@ -40,7 +41,8 @@ BEGIN
 				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)						
 					INNER JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
 					INNER JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-					INNER JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId
+					INNER JOIN  dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+					INNER JOIN  dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON CM.StocklineId = SOV.StockLineId
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
 				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId;

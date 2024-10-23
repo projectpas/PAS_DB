@@ -19,13 +19,20 @@
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1103
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
-    @SalesOrderId INT
+    @SalesOrderId INT,
+	@ItemMasterId BIGINT = NULL
 AS
 BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   SET NOCOUNT ON
   BEGIN TRY
 		DECLARE @PartStatus INT = 5;
+
+		IF(@ItemMasterId = 0) 
+		BEGIN
+			SET @ItemMasterId = NULL;	
+		END
+
 		SELECT DISTINCT
 			   sopi.SalesOrderReservePartId,
 			   sop.SalesOrderPartId,
@@ -75,7 +82,8 @@ BEGIN
 		WHERE so.IsDeleted = 0 
 		AND sop.IsDeleted = 0
 		AND sopi.TotalReserved > 0
-		AND so.SalesOrderId = @SalesOrderId;
+		AND so.SalesOrderId = @SalesOrderId
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId);
   END TRY
   BEGIN CATCH
     IF @@trancount > 0

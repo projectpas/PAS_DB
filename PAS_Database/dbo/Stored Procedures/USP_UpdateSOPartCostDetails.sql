@@ -121,7 +121,7 @@ SET NOCOUNT ON
 
 							SELECT @SOPartId = [SalesOrderPartId], @SOStocklineId = [SalesOrderStocklineId] FROM #SOStocklineDetails WHERE ID  = @MasterLoopID
 
-							SELECT @PartQty = QtyQuoted FROM [DBO].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SOPartId;
+							SELECT @PartQty = QtyOrder FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SOPartId;
 							SELECT @StockLineQty = QtyOrder FROM [DBO].[SalesOrderStocklineV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							DECLARE @calculatedCharges BIGINT;

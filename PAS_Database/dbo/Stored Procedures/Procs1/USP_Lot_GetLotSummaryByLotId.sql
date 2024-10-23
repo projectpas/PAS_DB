@@ -11,10 +11,11 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    05/05/2023   Rajesh Gami     Created
+	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 **************************************************************
  EXEC USP_Lot_GetLotSummaryByLotId 62 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
+CREATE PROCEDURE [dbo].[USP_Lot_GetLotSummaryByLotId] 
 @LotId bigint =0
 AS
 BEGIN
@@ -47,10 +48,11 @@ BEGIN
 			--SELECT @SoldCost = ISNULL(SUM(ISNULL(ExtSalesUnitPrice,0)),0)
 			--	   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
 			
-			SELECT @SoldCost = ISNULL(SUM(ISNULL(SOP.UnitCost,0) * ISNULL(LCD.Qty,0)),0)
+			SELECT @SoldCost = ISNULL(SUM(ISNULL(SOPC.UnitCost,0) * ISNULL(LCD.Qty,0)),0)
 				   FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) 
 				   INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId
-				   INNER JOIN DBO.SalesOrderPart SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
+				   INNER JOIN DBO.SalesOrderPartV1 SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
+				   INNER JOIN DBO.SalesOrderPartCost SOPC WITH(NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.IsDeleted = 0
 				   WHERE LCD.LotId = @LotId  AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))
 
 

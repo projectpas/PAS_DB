@@ -28,9 +28,10 @@
     CONSTRAINT [FK_SalesOrderStockLine_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderStockLine_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderStockLine_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
-    CONSTRAINT [FK_SalesOrderStockLine_SalesOrderPart] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPart] ([SalesOrderPartId]),
     CONSTRAINT [FK_SalesOrderStockLine_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

@@ -25,8 +25,11 @@
     [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_SalesOrderQuotePartV1_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                BIT             CONSTRAINT [DF_SalesOrderQuotePartV1_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_SalesOrderQuotePartV1_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [OldSalesOrderPartId]     BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuotePartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 

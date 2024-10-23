@@ -17,10 +17,11 @@
     1    12/08/2021   Vishal Suthar Modified the logic
     2    01/10/2024   Vishal Suthar Modified to make use of New SO Part Tables
      
- exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1103
+ exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=1103,120
 **************************************************************/
 CREATE    PROC [dbo].[GetReserveStockPartsListBySOId]
-	@SalesOrderId  bigint
+	@SalesOrderId  BIGINT,
+	@ItemMasterId BIGINT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -313,7 +314,12 @@ BEGIN
 		--	AltPartMasterPartId, EquPartMasterPartId, QtyToReserve, QtyToBeReserved, QuantityReserved, QuantityAvailable, QuantityOnHand, 
 		--	QuantityOnOrder, StockLineId, StockLineNumber, ControlNumber, StockType, MasterCompanyId,LotId,IsLotQty FROM #tmpReservedSalesOrderParts
 
-		SELECT DISTINCT so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description as Condition, Stk.SalesOrderPartId AS SalesOrderPartId,
+		IF(@ItemMasterId = 0) 
+		BEGIN
+			SET @ItemMasterId = NULL;	
+		END
+
+		SELECT DISTINCT so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description as Condition, SOP.SalesOrderPartId AS SalesOrderPartId,
 			im.PartNumber, im.PartDescription,im.ManufacturerName ManufacturerName, SUM(SOP.QtyOrder) as Quantity
 			, ISNULL(sor.ReservedById, 0) AS ReservedById
 			, ISNULL(sor.IssuedById, 0) AS IssuedById
@@ -325,7 +331,7 @@ BEGIN
 			, 0 AS QtyToReserve
 			, (ISNULL(SUM(sop.QtyOrder), 0) - 
 			(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SOR.StockLineId = sl.StockLineId AND SOR.SalesOrderId = @SalesOrderId) - 
-			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = Stk.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved
+			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved
 			, ISNULL(SUM(sor.TotalReserved), 0) AS QuantityReserved
 			, sl.QuantityAvailable, sl.QuantityOnHand, sl.QuantityOnOrder, sl.StockLineId
 			, sl.StockLineNumber, sl.ControlNumber,
@@ -344,14 +350,15 @@ BEGIN
 			WHERE so.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId
 			AND SL.QuantityAvailable > 0
 			AND SL.IsCustomerStock = 0
-			AND SL.IsParent = 1				
+			AND SL.IsParent = 1		
+			AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 			GROUP BY so.SalesOrderId, im.ItemMasterId, sop.ConditionId, cond.Description,
 			im.PartNumber, im.PartDescription,im.ManufacturerName
 			, sl.QuantityAvailable
 			, sl.QuantityOnHand
 			, sl.QuantityOnOrder
 			--, sl.StockLineId
-			, Stk.SalesOrderPartId
+			, SOP.SalesOrderPartId
 			, sl.StockLineId
 			, sl.StockLineNumber, sl.ControlNumber
 			,SO.MasterCompanyId
@@ -364,7 +371,7 @@ BEGIN
 			--,SOP.LotId,SOP.IsLotQty
 			Having (ISNULL(SUM(sop.QtyOrder), 0) - 
 			(SELECT ISNULL(SUM(sor.TotalReserved), 0) FROM DBO.SalesOrderReserveParts SOR WITH (NOLOCK) WHERE SOR.StockLineId = sl.StockLineId AND SOR.SalesOrderId = @SalesOrderId) - 
-			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = Stk.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0
+			(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId Where SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) > 0
 	END
 	COMMIT  TRANSACTION
 	END TRY    

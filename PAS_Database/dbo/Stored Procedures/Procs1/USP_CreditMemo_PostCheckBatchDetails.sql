@@ -29,6 +29,7 @@
 	13   04/22/2024   Devendra Shekh	modified to manage module Data InvoiceTypeId Wise
 	14   20/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	15	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	16   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -259,7 +260,7 @@ BEGIN
 					BEGIN
 						SELECT @InvoiceReferenceId = SL.StockLineId, @ManagementStructureId = SL.ManagementStructureId  
 						FROM [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
-							JOIN [dbo].[SalesOrderPart] SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
+							JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SalesOrderPartId
 							JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
 						WHERE SOBillingInvoicingItemId = @BillingInvoicingItemId;
 

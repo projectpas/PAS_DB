@@ -3236,6 +3236,9 @@
     <Build Include="dbo\User Defined Types\SOQPartListType.sql" />
     <Build Include="dbo\User Defined Types\SOPartListType.sql" />
     <Build Include="dbo\User Defined Types\SalesOrderReserveIssueParts.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesQuoteResponse.sql" />
+    <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePrintData.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsSalesorderItemMaster.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

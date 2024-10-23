@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	 1    01/29/2024   AMIT GHEDIYA			Created
+	 2    10/16/2024   Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
      
  EXEC [dbo].[sp_GetSalesOrderPerformaInvoiceChildList] 814, 318, 15  
 **************************************************************/
@@ -35,14 +36,14 @@ BEGIN
 				sobi.InvoiceDate,
 				sobi.InvoiceNo AS InvoiceNo,
 				'' AS SOShippingNum, 
-				sop.Qty AS QtyToBill, 
+				sop.QtyOrder AS QtyToBill, 
 				so.SalesOrderNumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
 				sl.SerialNumber, cr.[Name] AS CustomerName,   
-				sop.StockLineId,  
+				sov.StockLineId,  
 				(SELECT b.NoofPieces FROM SalesOrderBillingInvoicing a WITH (NOLOCK) 
 					INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 					WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS QtyBilled,  
-				sop.ItemNo,  
+				'' AS ItemNo,  
 				sop.SalesOrderId, sop.SalesOrderPartId, cond.Description AS 'Condition',   
 				curr.Code as 'CurrencyCode',  
 				sobi.GrandTotal as 'TotalSales',  
@@ -55,12 +56,13 @@ BEGIN
 				sobii.VersionNo, 
 				(CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsVersionIncrease,
 				CASE WHEN sobi.SOBillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice
-				FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
+				LEFT JOIN DBO.SalesOrderStockLineV1 sov WITH (NOLOCK) ON sov.SalesOrderPartId = sop.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 1
 				LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SOBillingInvoicingId = sobii.SOBillingInvoicingId  AND ISNULL(sobi.IsProforma,0) = 1
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId  
+				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sov.StockLineId  
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.CurrencyId  

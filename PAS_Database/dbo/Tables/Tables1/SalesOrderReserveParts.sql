@@ -27,9 +27,10 @@
     CONSTRAINT [PK_SalesOrderReserveParts] PRIMARY KEY CLUSTERED ([SalesOrderReservePartId] ASC),
     CONSTRAINT [FK_SalesOrderReserveParts_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderReserveParts_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SalesOrderReserveParts_SalesOrderPart] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPart] ([SalesOrderPartId]),
     CONSTRAINT [FK_SalesOrderReserveParts_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

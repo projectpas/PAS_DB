@@ -19,6 +19,7 @@
 	3    28-MARCH-2024  Ekta Chandegra		IsActive and IsDelete flag is added 
 	4    26-JUNE-2024	Vishal Suthar		Added filter to show only latest version of quote
 	5    04-Sept-2024   Shrey Chandegara	Divide 0 by 0 in some case therfor add case condition in "TotalMarginAmtPerc"
+	6    10-OCT-2024    Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
        
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuotesReport] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -91,8 +92,10 @@ BEGIN
 		  FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 			  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 			  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			  LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
-			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQP.stocklineId = STL.StockLineId   
+			  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+			  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
+			  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
+			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
 			  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
 		  WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)  
@@ -120,20 +123,22 @@ BEGIN
       SELECT COUNT(1) OVER () AS TotalRecordsCount,  
 			UPPER(SOQ.CustomerName) 'customer',  
 			UPPER(SOQ.CustomerCode) 'custcode',  
-			(SOQP.PartNumber) 'pn',  
-			(SOQP.PartDescription) 'pndescription',  
+			--(SOQP.PartNumber) 'pn',  
+			--(SOQP.PartDescription) 'pndescription',
+			ITM.partnumber 'pn',
+			ITM.PartDescription 'pndescription',
 			UPPER(STL.SerialNumber) 'sernum',  
-			UPPER(SOQP.ConditionName) 'cond',  
+			UPPER(CON.Description) 'cond',  
 			UPPER(SOQ.SalesOrderQuoteNumber) 'qtenum',  
 			UPPER(SOQ.Versionnumber) 'vernum',  
 			UPPER(SOQ.statusname) 'quoteStatus',  
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'qtedate', 
-			ISNULL((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0)),0) 'qterev',
-			ISNULL(ISNULL(SOQP.UnitCostExtended, 0),0) 'qtedirectcost',  
-			ISNULL(((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0))),0) 'qtemarginamt',  
-		    ISNULL((((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0)))*100) /  
-			CASE WHEN (ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))>0 THEN ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0) ELSE 1 END,0) 'marginperc',  
+			ISNULL((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0)),0) 'qterev',
+			ISNULL(ISNULL(SOQPC.UnitCostExtended, 0),0) 'qtedirectcost',  
+			ISNULL(((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0))),0) 'qtemarginamt',  
+		    ISNULL((((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0)))*100) /  
+			CASE WHEN (ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))>0 THEN ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0) ELSE 1 END,0) 'marginperc',  
 			UPPER(SOQ.CustomerContactName) 'contactname',  
 			UPPER(SOQ.CustomerContactemail) 'email',  
 			UPPER(MSD.Level1Name) AS level1,  
@@ -148,14 +153,19 @@ BEGIN
 			UPPER(MSD.Level10Name) AS level10,
 			UPPER(SOQ.SalesPersonName) 'salesperson',  
 			UPPER(SOQ.CustomerServiceRepName) 'csr',
-			ISNULL(SOQP.NetSales, 0) as 'netsales',
+			ISNULL(SOQPC.NetSaleAmount, 0) as 'netsales',
 			ISNULL(Charges.BillingAmount, 0) 'chargesbillingamt',
 			SOQ.MasterCompanyId
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 		  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		  LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
-		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQP.stocklineId = STL.StockLineId   
+		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
+		  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
+		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
+		  LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = SOQP.ItemMasterId
+		  LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
+		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		    GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
       WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)

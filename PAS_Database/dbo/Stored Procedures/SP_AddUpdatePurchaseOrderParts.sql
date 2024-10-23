@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -334,7 +333,7 @@ BEGIN
 					   ,AssetClass
 					   ,@IsLotAssigned
 					   ,@LotId
-					   ,WorkOrderMaterialsId
+					   ,CASE WHEN WorkOrderMaterialsId = 0 THEN  NULL ELSE WorkOrderMaterialsId END
 					   ,VendorRFQPOPartRecordId
 					   ,TraceableTo
 					   ,TraceableToName
@@ -345,8 +344,8 @@ BEGIN
 					   ,TaggedByName
 					   ,TaggedByTypeName
 					   ,TagDate
-					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsKit END
-					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN 0 ELSE IsFromSubWorkOrder END
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsKit = 0 THEN NULL ELSE IsKit END) END
+					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsFromSubWorkOrder = 0  THEN  NULL ELSE IsFromSubWorkOrder END) END
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();

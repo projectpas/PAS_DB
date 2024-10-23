@@ -174,8 +174,7 @@ BEGIN
   -- group by popr.PurchaseOrderPartId,popr.ReferenceId,RO.RepairOrderNumber  
   ) AS RepairOrderRefNumber
   WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
-   AND PO.MasterCompanyId = @MasterCompanyId       
-   AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)      
+   AND PO.MasterCompanyId = @MasterCompanyId      
   GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,      
    PO.PurchaseOrderNumber,      
             PO.OpenDate,      
@@ -462,8 +461,7 @@ BEGIN
 	   LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))       
 		   --AND EMS.EmployeeId =  @EmployeeId       
-		AND PO.MasterCompanyId = @MasterCompanyId       
-		AND  (@VendorId  IS NULL OR PO.VendorId = @VendorId)      
+		AND PO.MasterCompanyId = @MasterCompanyId           
 	  ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)      
 	  SELECT * INTO #TempResult FROM  Result      
 	   WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR      

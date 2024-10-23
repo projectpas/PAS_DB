@@ -210,6 +210,12 @@ SET NOCOUNT ON
 		 	[StockLineId] [bigint] NULL,
 		 	[IsKitType] [bit] NULL,
 		 	[KitQty] [int] NULL,
+			[VendorId] [bigint] NULL,
+			[VendorName] [varchar](150) NULL,
+			[VendorCode] [varchar](150) NULL,
+			[PoVendorId] [bigint] NULL,
+			[PoVendorName] [varchar](150) NULL,
+			[PoVendorCode] [varchar](150) NULL,
 		 )
   
 		 INSERT INTO #tmpStockline SELECT         
@@ -351,7 +357,7 @@ SET NOCOUNT ON
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
-								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber])
+								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 					IM.PartNumber,  
 					IM.PartDescription,   
@@ -518,7 +524,13 @@ SET NOCOUNT ON
 								END
 							ELSE MSTL.AltPartMasterPartId
 							END)
-						) AS AlterPartNumber
+						) AS AlterPartNumber,
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 				FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -536,7 +548,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
-					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
+					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
@@ -553,7 +566,7 @@ SET NOCOUNT ON
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
-								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber])
+								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 					IM.PartNumber,  
 					IM.PartDescription,   
@@ -718,7 +731,13 @@ SET NOCOUNT ON
 								END
 							ELSE MSTL.AltPartMasterPartId
 							END)
-						) AS AlterPartNumber
+						) AS AlterPartNumber,
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -737,6 +756,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
+					LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 					LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
@@ -756,7 +776,7 @@ SET NOCOUNT ON
 								[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
-								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber])
+								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 				SELECT DISTINCT   
 				  IM.PartNumber,  
 				  IM.PartDescription,   
@@ -923,7 +943,13 @@ SET NOCOUNT ON
 							END
 						ELSE MSTL.AltPartMasterPartId
 						END)
-					) AS AlterPartNumber
+					) AS AlterPartNumber,
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 			 FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -941,7 +967,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId  
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
-				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
+				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId 
+				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 			 AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
@@ -957,7 +984,7 @@ SET NOCOUNT ON
 							[WorkOrderId], [QtyOnOrder], [QtyOnBkOrder], [PONum], [PONextDlvrDate], [POId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 							[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 							[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [Figure], [Item], [StockLineFigure], [StockLineItem],
-							[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber])
+							[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode])
 			 SELECT DISTINCT   
 				  IM.PartNumber,  
 				  IM.PartDescription,   
@@ -1122,7 +1149,13 @@ SET NOCOUNT ON
 							END
 						ELSE MSTL.AltPartMasterPartId
 						END)
-					) AS AlterPartNumber
+					) AS AlterPartNumber,
+					CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 			 FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -1141,6 +1174,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = WOM.SubWorkOrderId  
 				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
+				  LEFT JOIN dbo.RepairOrder WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
@@ -1277,6 +1311,8 @@ SET NOCOUNT ON
   
   END TRY      
   BEGIN CATCH        
+  SELECT ERROR_NUMBER() AS ErrorNumber,ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity,ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
+		
    IF @@trancount > 0  
     PRINT 'ROLLBACK'  
     ROLLBACK TRAN;  

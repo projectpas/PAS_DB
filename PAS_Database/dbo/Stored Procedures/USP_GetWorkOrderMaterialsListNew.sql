@@ -248,6 +248,9 @@ SET NOCOUNT ON
 					[VendorId] [bigint] NULL,
 					[VendorName] [varchar](150) NULL,
 					[VendorCode] [varchar](150) NULL,
+					[PoVendorId] [bigint] NULL,
+					[PoVendorName] [varchar](150) NULL,
+					[PoVendorCode] [varchar](150) NULL,
 					[Figure] [nvarchar](250) NULL,
 					[Item] [nvarchar](250) NULL,
 					[StockLineFigure] [nvarchar](250) NULL,
@@ -386,7 +389,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
 								[IsExchangeTender])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -573,7 +576,10 @@ SET NOCOUNT ON
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
-						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode'
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 						,WOM.Figure Figure
 						,WOM.Item Item
 						,MSTL.Figure StockLineFigure
@@ -622,7 +628,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
 								[IsExchangeTender])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -800,7 +806,10 @@ SET NOCOUNT ON
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
-						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode'
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 						,WOM.Figure Figure
 						,WOM.Item Item
 						,CASE WHEN isnull(MSTL.StockLineId,0)=0 then WOM.Figure else MSTL.Figure end as StockLineFigure
@@ -852,7 +861,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
 								[IsExchangeTender])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1038,7 +1047,10 @@ SET NOCOUNT ON
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
-						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode'
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 						,WOM.Figure Figure
 						,WOM.Item Item
 						,MSTL.Figure StockLineFigure
@@ -1087,7 +1099,7 @@ SET NOCOUNT ON
 								[UnitOfMeasureId], [WorkOrderMaterialsId], [WorkFlowWorkOrderId], [WorkOrderId], [ItemMasterId], [ItemClassificationId], [PurchaseUnitOfMeasureId], [Memo], [IsDeferred], [TaskId],
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [ParentWorkOrderMaterialsId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM],
 								[Defered], [IsRoleUp], [ProvisionId], [IsSubWorkOrderCreated], [IsSubWorkOrderClosed], [SubWorkOrderId], [SubWorkOrderStockLineId], [IsFromWorkFlow], [Employeename], [RONextDlvrDate],
-								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
+								[RepairOrderNumber], [RepairOrderId], [VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode], [Figure], [Item], [StockLineFigure], [StockLineItem], [StockLineId], [IsKitType], [KitQty], [ExpectedSerialNumber],
 								[IsExchangeTender])
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1265,7 +1277,10 @@ SET NOCOUNT ON
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.RepairOrderId ELSE RO.RepairOrderId END AS 'RepairOrderId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorId ELSE RO.VendorId END AS 'VendorId',
 						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorName ELSE RO.VendorName END AS 'VendorName',
-						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode'
+						CASE WHEN WOMS_RO.RepairOrderId IS NOT NULL THEN WOMS_RO.VendorCode ELSE RO.VendorCode END AS 'VendorCode',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorId from dbo.PurchaseOrder po WITH (NOLOCK) where po.PurchaseOrderId = wom.POId) ELSE 0 END AS 'PoVendorId',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorName from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorName',
+						CASE WHEN WOM.POId IS NOT NULL THEN (select TOP 1 po.VendorCode from dbo.PurchaseOrder po WITH (NOLOCK) where wom.POId = po.PurchaseOrderId) ELSE '' END AS 'PoVendorCode'
 						,WOM.Figure Figure
 						,WOM.Item Item
 						,CASE WHEN isnull(MSTL.StockLineId,0)=0 then WOM.Figure else MSTL.Figure end as StockLineFigure
@@ -1461,7 +1476,9 @@ SET NOCOUNT ON
 			END
 		--COMMIT  TRANSACTION
 		END TRY    
-		BEGIN CATCH      
+		BEGIN CATCH   
+		SELECT ERROR_NUMBER() AS ErrorNumber,ERROR_STATE() AS ErrorState, ERROR_SEVERITY() AS ErrorSeverity,ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine,ERROR_MESSAGE() AS ErrorMessage;
+		
 			IF @@trancount > 0
 				PRINT 'ROLLBACK'
 				--ROLLBACK TRAN;

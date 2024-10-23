@@ -1,10 +1,10 @@
 ﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 766
-CREATE   PROCEDURE [DBO].[GetSalesOrderQuotePrintData]
+CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePrintData]
     @SalesQuoteId INT
 AS
 BEGIN
     SELECT 
-        ISNULL(sop.ItemNo, 0) AS ItemNo,
+        0 AS ItemNo,
         so.CustomerId,
         ISNULL(cust.Name, '') AS ClientName,
         ISNULL(cust.Email, '') AS CustEmail,
@@ -38,15 +38,17 @@ BEGIN
             THEN ISNULL(so.TotalCharges, 0)
             ELSE ISNULL(soCharges.BillingAmount, 0)
         END AS MiscCharges,
-        ISNULL(sop.TaxPercentage, 0) AS TaxRate,
-        ISNULL((sop.TaxPercentage * sop.QtyRequested * sop.UnitSalePrice) / 100, 0) AS Tax,
+        ISNULL(sopc.TaxPercentage, 0) AS TaxRate,
+        ISNULL((sopc.TaxPercentage * sop.QtyRequested * sopc.UnitSalesPrice) / 100, 0) AS Tax,
         0 AS ShippingAndHandling, -- Static Value
         0 AS OtherTax, -- Static Value
         so.ManagementStructureId,
         -- Barcode Generation Logic (if needed can be implemented in SQL or outside of the SP)
         '' AS Barcode -- Placeholder for the barcode, should be handled in application code
     FROM SalesOrderQuote so
-    LEFT JOIN SalesOrderQuotePart sop ON so.SalesOrderQuoteId = sop.SalesOrderQuoteId
+    LEFT JOIN SalesOrderQuotePartV1 sop ON so.SalesOrderQuoteId = sop.SalesOrderQuoteId
+    LEFT JOIN SalesOrderQuoteStocklineV1 stk ON stk.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
+    LEFT JOIN SalesOrderQuotePartCost sopc ON sopc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN ItemMaster itemMaster ON sop.ItemMasterId = itemMaster.ItemMasterId
     LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN Condition cp ON sop.ConditionId = cp.ConditionId
@@ -58,10 +60,10 @@ BEGIN
     LEFT JOIN Countries cont ON custAddress.CountryId = cont.countries_id
     LEFT JOIN Currency cur ON so.CurrencyId = cur.CurrencyId
     LEFT JOIN CreditTerms ct ON cf.CreditTermsId = ct.CreditTermsId
-    LEFT JOIN StockLine sl ON sop.StockLineId = sl.StockLineId
+    LEFT JOIN StockLine sl ON stk.StockLineId = sl.StockLineId
     LEFT JOIN SalesOrderQuoteFreight soFreight ON so.SalesOrderQuoteId = soFreight.SalesOrderQuoteId AND soFreight.IsActive = 1 AND soFreight.IsDeleted = 0
     LEFT JOIN SalesOrderQuoteCharges soCharges ON so.SalesOrderQuoteId = soCharges.SalesOrderQuoteId AND soCharges.IsActive = 1 AND soCharges.IsDeleted = 0
-    LEFT JOIN StockLine qs ON sop.StockLineId = qs.StockLineId
+    LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
     LEFT JOIN PurchaseOrder po ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN RepairOrder ro ON qs.RepairOrderId = ro.RepairOrderId
     WHERE so.SalesOrderQuoteId = @SalesQuoteId 

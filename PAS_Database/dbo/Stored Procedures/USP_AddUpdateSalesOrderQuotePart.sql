@@ -12,9 +12,7 @@
     1    07/25/2024   Vishal Suthar	 Created
 
 declare @p1 dbo.SOQPartListType
-insert into @p1 values(1,766,3,7,3,180079,1,1,1,2,1,1,NULL,NULL,1.000000,250,0,0,250,0,90,160.00,'2024-09-18 00:00:00','2024-09-19 00:00:00','2024-09-20 00:00:00',250.00,0,0,250,90,64,0,NULL,N'',NULL,1,N'ADMIN User')
-insert into @p1 values(1,766,3,7,3,180078,1,2,1,2,1,1,NULL,NULL,1.000000,120,0,0,120,0,90,30.00,'2024-09-18 00:00:00','2024-09-19 00:00:00','2024-09-20 00:00:00',120.00,0,0,120,90,25,0,NULL,N'',NULL,1,N'ADMIN User')
-insert into @p1 values(NULL,766,7,7,3,NULL,1,NULL,1,1,1,0,NULL,19,1.000000,2000,0,0,2000,200,2000,0,'2024-09-18 00:00:00','2024-09-19 00:00:00','2024-09-20 00:00:00',2000.00,0,0,2000,2000,0,10,NULL,N'',NULL,1,N'ADMIN User')
+insert into @p1 values(NULL,867,3,9,3,181902,1,NULL,1,2,1,1,NULL,1,1.000000,330,0,0,330,49.5,10,320.00,NULL,NULL,NULL,330.00,0,0,330,10,96.97,15,NULL,N'',NULL,1,N'ADMIN User')
 
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
@@ -141,7 +139,10 @@ BEGIN
 				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
 				FROM #SOQPartDetails WHERE ID = @SOQPartLoopID;
 
-				SET @SalesOrderQuotePartId = @@IDENTITY;
+				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
+
+				PRINT 'NEW ID'
+				PRINT @SalesOrderQuotePartId;
 
 				DECLARE @SalesPrice AS decimal(18,4);
 				DECLARE @MarkUpAmt AS decimal(18,4);
@@ -196,11 +197,14 @@ BEGIN
 				--BEGIN
 					--SELECT @StockLineId = StockLineId, @QtyQuoted = QuantityToQuote FROM #SOQPartStocklineDetails WHERE ID  = @MasterLoopID
 
+					PRINT 'INSERT @SalesOrderQuotePartId'
+					PRINT @SalesOrderQuotePartId
+
 					INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 					SELECT @SalesOrderQuotePartId, STK.StockLineId, @ConditionId, @QuantityToQuote, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOQPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 					FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-					SET @InsertedSalesOrderQuoteStocklineId = @@IDENTITY;
+					SET @InsertedSalesOrderQuoteStocklineId = SCOPE_IDENTITY();
 
 					SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 					SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
@@ -226,7 +230,11 @@ BEGIN
 		ELSE
 		BEGIN
 			UPDATE [DBO].[SalesOrderQuotePartV1]
-			SET Notes = @Notes
+			SET 
+			CustomerRequestDate = @CustomerRequestDate,
+			PromisedDate = @PromisedDate,
+			EstimatedShipDate = @EstimatedShipDate,
+			Notes = @Notes
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

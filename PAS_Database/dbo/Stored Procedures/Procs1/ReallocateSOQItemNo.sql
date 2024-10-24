@@ -25,7 +25,7 @@ BEGIN
 			)
 
 			INSERT INTO #tmpSalesOrderQuotePart(SalesOrderQuotePartid,ItemMasterId,ConditionId)
-			SELECT SalesOrderQuotePartId, ItemMasterId, ConditionId FROM dbo.SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId AND IsDeleted = 0  order by SalesOrderQuotePartId DESC
+			SELECT SalesOrderQuotePartId, ItemMasterId, ConditionId FROM dbo.SalesOrderQuotePartV1 WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId AND IsDeleted = 0  order by SalesOrderQuotePartId DESC
 
 			DECLARE  @MasterLoopID as bigint  = 0;
 			DECLARE  @ConditionID as bigint  = 0;
@@ -51,12 +51,12 @@ BEGIN
 				 SET @MasterLoopID = @MasterLoopID - 1;
 			END
 			 
-			UPDATE SalesOrderQuotePart
-			SET ItemNo = t.LineId
-			   FROM dbo.SalesOrderQuotePart SOP WITH(NOLOCK) INNER JOIN #tmpSalesOrderQuotePart t
-			        ON SOP.SalesOrderQuotePartId = t.SalesOrderQuotePartId		
+			--UPDATE SalesOrderQuotePartV1
+			--SET ItemNo = t.LineId
+			--   FROM dbo.SalesOrderQuotePart SOP WITH(NOLOCK) INNER JOIN #tmpSalesOrderQuotePart t
+			--        ON SOP.SalesOrderQuotePartId = t.SalesOrderQuotePartId		
 
-			SELECT CustomerReference as [value] FROM SalesOrderQuotePart WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId
+			SELECT '' as [value] FROM SalesOrderQuotePartV1 WITH (NOLOCK) Where SalesOrderQuoteId = @SalesOrderQuoteId
 		END
 
 	END TRY    

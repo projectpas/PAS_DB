@@ -18,6 +18,7 @@
     2   05/26/2023		HEMANT SALIYA		Updated For WorkOrder Settings
 	3   04-SEPT-2023    Ekta Chandegra      Convert text into uppercase
 	4   27-AUG-2024     Devendra Shekh      date issue resolved
+	5   23-Oct-2024     Sahdev Saliya       Added new failed WO Number in the Work Order Management Report for filter  
 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
@@ -42,6 +43,7 @@ BEGIN
 		@Todate DATETIME,
 		@Customer VARCHAR(50) = NULL,
 		@techNames VARCHAR(50) = NULL,
+		@wonum VARCHAR(50) = NULL,
 		@partnumber VARCHAR(50) = NULL,
 		@level1 VARCHAR(MAX) = NULL,
 		@level2 VARCHAR(MAX) = NULL,
@@ -75,6 +77,9 @@ BEGIN
 
 			@techNames=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tech Name' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @techNames END,
+
+			@wonum=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Wo Num' 
+			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @wonum END,
 
 			@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,
@@ -133,6 +138,7 @@ BEGIN
 				AND	WO.CustomerId=ISNULL(@Customer,WO.CustomerId) 
 				AND (ISNULL(@stage,'')='' OR WTT.CurrentStageId IN(SELECT value FROM String_split(ISNULL(@stage,''), ',')))
 				AND (@techNames IS NULL OR WPN.TechnicianId = @techNames)
+				AND (@wonum IS NULL OR WO.WorkOrderId = @wonum)
 				AND	WPN.ItemMasterId=ISNULL(@partnumber,WPN.ItemMasterId) 
 				AND WO.mastercompanyid = @MasterCompanyId AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))
 				AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
@@ -229,6 +235,7 @@ BEGIN
 				AND	WO.CustomerId=ISNULL(@Customer,WO.CustomerId) 
 				AND (ISNULL(@stage,'')='' OR WTT.CurrentStageId IN(SELECT value FROM String_split(ISNULL(@stage,''), ','))) 
 			    AND (@techNames IS NULL OR WPN.TechnicianId = @techNames)
+				AND (@wonum IS NULL OR WO.WorkOrderId = @wonum)
 				AND	WPN.ItemMasterId=ISNULL(@partnumber,WPN.ItemMasterId) 
 				AND WO.mastercompanyid = @MasterCompanyId AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))
 				AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))

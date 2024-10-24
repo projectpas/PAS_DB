@@ -1,4 +1,12 @@
-﻿    
+﻿
+/***************************************************************************************************************************************             
+  ** Change History             
+ ***************************************************************************************************************************************             
+ ** PR   Date						 Author							Change Description              
+ ** --   --------					 -------						-------------------------------            
+    1   	
+	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
+****************************************************************************************************************************************/ 
 CREATE    PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
  @loginUserName varchar(50) = NULL,    
@@ -28,8 +36,9 @@ BEGIN
    DECLARE @IdCodeTypeId BIGINT;    
    DECLARE @CurrentPORFQNumber AS BIGINT;    
    DECLARE @PORFQNumber AS VARCHAR(50);    
-    
+   DECLARE @level1Id bigint = 0, @legalEntityId bigint = 0,@VendorModule VARCHAR(100) = 'Vendor',@ReturnCurrencyId INT = 0,@VendorId BIGINT = 0;
    SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'VendorRFQPurchaseOrder';    
+  
        
    IF OBJECT_ID(N'tempdb..#tmpReturnTbl') IS NOT NULL    
    BEGIN    
@@ -96,7 +105,16 @@ BEGIN
    Set @TotalRecord = (Select Count(*) from #BulkPORFQItemType)    
    Select @TotalDistictRecord = Count(*),@MainLoopId =MIN(Id) from #tempGroupByCount    
    SELECT TOP 1 @ManagementStructureID = ManagementStructureId FROM #BulkPORFQItemType    
-       
+   SELECT @level1Id=ISNULL(Level1Id,0) FROM dbo.PurchaseOrderManagementStructureDetails WITH (NOLOCK) WHERE ModuleID = 20 AND EntityMSID = @ManagementStructureID   
+   SELECT TOP 1 @legalEntityId = LegalEntityId FROM ManagementStructureLevel WITH (NOLOCK) WHERE ID = @level1Id
+   SET @VendorId = (SELECT TOP 1 VendorId FROM @tbl_BulkPORFQDetailType)
+   SET @ReturnCurrencyId = (SELECT [CurrencyId] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId)
+   IF(ISNULL(@ReturnCurrencyId,0) = 0)
+   BEGIN
+	   SET @ReturnCurrencyId = (SELECT CU.CurrencyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) JOIN [dbo].[Currency] CU WITH(NOLOCK) 
+													  ON CU.CurrencyId = LE.FunctionalCurrencyId  WHERE LE.[LegalEntityId] = @LegalEntityId)
+   END
+
    --SELECT @WorkOrderMaterialsIds = STRING_AGG ( WorkOrderMaterialsId, ',') FROM #BulkPORFQItemType;    
    --SELECT @WorkOrderMaterialsKitIds = STRING_AGG ( WorkOrderMaterialsKitId, ',') FROM #BulkPORFQItemType;    
     
@@ -143,17 +161,17 @@ BEGIN
             ,[VendorContactId], [VendorContact], [VendorContactPhone], [CreditTermsId], [Terms], [CreditLimit], [RequestedBy], [Requisitioner], [StatusId], [Status], [StatusChangeDate]    
             ,[Resale], [DeferredReceiver], [Memo], [Notes], [ManagementStructureId], [Level1], [Level2], [Level3], [Level4]    
             ,[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PDFPath]    
-    ,IsFromBulkPO,NeedByDate)    
-       SELECT TOP 1 @PORFQNumber, GETDATE(), NULL, @PriorityId, '', V.VendorId, V.VendorName, V.VendorCode,    
+    ,IsFromBulkPO,NeedByDate,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate)    
+       SELECT TOP 1 @PORFQNumber, cast(GETUTCDATE() as DATE), NULL, @PriorityId, '', V.VendorId, V.VendorName, V.VendorCode,    
        VC.VendorContactId,     
        (SELECT (C1.FirstName + ' ' + C1.LastName) FROM [dbo].[VendorContact] VC1 WITH (NOLOCK) INNER JOIN [dbo].[Contact] C1 WITH (NOLOCK) ON VC1.ContactId = C1.ContactId    
        WHERE VC1.VendorId = V.VendorId AND VC1.IsDefaultContact = 1),    
        (SELECT C1.WorkPhone FROM [dbo].[VendorContact] VC1 WITH (NOLOCK) INNER JOIN [dbo].[Contact] C1 WITH (NOLOCK) ON VC1.ContactId = C1.ContactId    
        WHERE VC1.VendorId = V.VendorId AND VC1.IsDefaultContact = 1),     
-       ISNULL(V.CreditTermsId,0), CT.[Name], V.CreditLimit, @employeeId, @loginUserName, @OpenStatusId/* PO.[StatusId] */,'Open' /* (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus WITH (NOLOCK) Where VendorRFQStatusId = PO.StatusId ) */, GETDATE(),    
+       ISNULL(V.CreditTermsId,0), CT.[Name], V.CreditLimit, @employeeId, @loginUserName, @OpenStatusId/* PO.[StatusId] */,'Open' /* (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus WITH (NOLOCK) Where VendorRFQStatusId = PO.StatusId ) */, GETUTCDATE(),    
        @IsResale, @IsDeferredReceiver,'', '', PO.ManagementStructureId, NULL, NULL, NULL, NULL,    
-       @MstCompanyId, @updatedByName, @updatedByName, GETDATE(), GETDATE(), 1, 0, NULL,    
-       1,PO.NeedBy    
+       @MstCompanyId, @updatedByName, @updatedByName, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL,    
+       1,cast(PO.NeedBy as DATE),@ReturnCurrencyId,@ReturnCurrencyId,1.00    
        FROM #BulkPORFQItemType PO    
        INNER JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = PO.VendorId    
        LEFT JOIN [dbo].[VendorContact] VC WITH (NOLOCK) ON VC.VendorId = V.VendorId    
@@ -197,8 +215,8 @@ BEGIN
      ISNULL(TYP.UnitCost,0),(ISNULL(TYP.Quantity,0) * ISNULL(TYP.UnitCost,0)),TYP.WorkOrderId,TYP.WorkOrderNo,    
      IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,    
      TYP.ManagementStructureId,    
-     TYP.MasterCompanyId,@updatedByName,@updatedByName,GETDATE(),GETDATE(),1,0,    
-     TYP.NeedBy,TYP.EstReceivedDate    
+     TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,    
+     cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)    
      FROM #BulkPORFQItemType TYP    
      INNER JOIN dbo.ItemMaster IM on TYP.ItemMasterId = IM.ItemMasterId    
      LEFT JOIN dbo.Currency C on Im.PurchaseCurrencyId = C.CurrencyId    

@@ -25,7 +25,7 @@
 	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
 	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
 	11   11-10-2024	  Ekta Chandegra    Add history when update Part
-	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType) 
+	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType), And manage NULL value 
 
     
 declare @p2 dbo.POPartsToReceive  
@@ -556,7 +556,7 @@ BEGIN
 						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
 						NULL,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
 						[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],
-						[WorkOrderId],[WorkOrderMaterialsId],ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
+						[WorkOrderId],CASE WHEN [WorkOrderMaterialsId] = 0 THEN NULL ELSE[WorkOrderMaterialsId]END,ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
 							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,
 						CASE WHEN @IsSerializedPart = 1 THEN [Quantity] 
 							ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,

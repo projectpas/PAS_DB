@@ -18,6 +18,8 @@
 	2	29-MARCH-2024	Ekta Chandegra		IaDeleted and IsActive flag is added
 	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
 	4   11-Oct-2024     Sahdev Saliya       Date format changes
+	5   23-Oct-2024     Sahdev Saliya       Added new failed PartNumber in the Technician Labor Entry Report for filter
+
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -38,6 +40,7 @@ BEGIN
 		@Todate DATETIME,
 		@WorkOrderId BIGINT = NULL,
 		@EmployeeId BIGINT = NULL,
+		@partnumber VARCHAR(50) = NULL,
 		@level1 VARCHAR(MAX) = NULL,
 		@level2 VARCHAR(MAX) = NULL,
 		@level3 VARCHAR(MAX) = NULL,
@@ -64,6 +67,9 @@ BEGIN
 
 			@EmployeeId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @EmployeeId END,
+
+			@partnumber=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN' 
+			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @partnumber END,
 
 			@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,
@@ -117,6 +123,7 @@ BEGIN
 					AND WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
+					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -186,6 +193,7 @@ BEGIN
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
+					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
@@ -248,6 +256,7 @@ BEGIN
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND (@EmployeeId IS NULL OR WOL.EmployeeId = @EmployeeId)
+					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
 					AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 					AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))

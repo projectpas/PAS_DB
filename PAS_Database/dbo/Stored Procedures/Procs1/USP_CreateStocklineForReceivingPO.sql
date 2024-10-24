@@ -24,7 +24,9 @@
 	8    15-07-2024   Devendra Shekh    Modified For Account BatchDetail Entry
 	9	 26-07-2024   Bhargav Saliya    Fixed Calculation of UnitSalesPrice In [ItemMasterPurchaseSale] When We Create Receving PO Stockline
 	10	 05-08-2024   Devendra Shekh    Non-Stock, Accounting Entry Issue Resolved
-	11   11-10-2024	  Ekta Chandegra    Add history when update Part 
+	11   11-10-2024	  Ekta Chandegra    Add history when update Part
+	12   23-10-2024	  Rajesh Gami       Add new field in StocklineDraft Table (IsKitType, IsSubWOType) 
+
     
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -294,7 +296,10 @@ BEGIN
                         [Adjustment] [decimal](18, 2) NULL,
                         [SerialNumberNotProvided] [bit] NULL,
                         [ShippingReferenceNumberNotProvided] [bit] NULL,
-                        [IsStkTimeLife] [bit] NULL
+                        [IsStkTimeLife] [bit] NULL,
+						[IsKitType] [bit] NULL,
+						[IsSubWOType] [bit] NULL
+						
                     )
 
                     INSERT INTO #tmpStocklineDraft
@@ -311,7 +316,7 @@ BEGIN
 					WorkOrderMaterialsName,TagTypeId,StockLineDraftNumber,StockLineId,TaggedBy,TaggedByName,UnitOfMeasureId,UnitOfMeasure,RevisedPartId,RevisedPartNumber,TaggedByType,TaggedByTypeName,CertifiedById,
 					CertifiedTypeId,CertifiedType,CertTypeId,CertType,IsCustomerStock,isCustomerstockType,CustomerId,CalibrationVendorId,PerformedById,LastCalibrationDate,NextCalibrationDate,LotId,SalesOrderId,
 					SubWorkOrderId,ExchangeSalesOrderId,WOQty,SOQty,ForStockQty,IsLotAssigned,LOTQty,LOTQtyReserve,OriginalCost,POOriginalCost,ROOriginalCost,VendorRMAId,VendorRMADetailId,LotMainStocklineId,
-					IsFromInitialPO,LotSourceId,Adjustment,SerialNumberNotProvided,ShippingReferenceNumberNotProvided,IsStkTimeLife
+					IsFromInitialPO,LotSourceId,Adjustment,SerialNumberNotProvided,ShippingReferenceNumberNotProvided,IsStkTimeLife,IsKitType,IsSubWOType
 					FROM DBO.StocklineDraft StkDraft WITH (NOLOCK)
                     WHERE StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND StockLineNumber IS NULL
                     ORDER BY CreatedDate;

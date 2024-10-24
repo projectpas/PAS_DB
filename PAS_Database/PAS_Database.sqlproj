@@ -3239,6 +3239,11 @@
     <Build Include="dbo\Stored Procedures\GetSalesQuoteResponse.sql" />
     <Build Include="dbo\Stored Procedures\GetSalesOrderQuotePrintData.sql" />
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsSalesorderItemMaster.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteStocklineV1Audit.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteStockLineCostAudit.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuotePartV1Audit.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuotePartCostAudit.sql" />
+    <Build Include="dbo\Tables\SalesOrderQuoteCostAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -25,6 +25,12 @@
     [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_SalesOrderQuotePartV1_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                BIT             CONSTRAINT [DF_SalesOrderQuotePartV1_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_SalesOrderQuotePartV1_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [PartNumber]              VARCHAR (100)   NULL,
+    [PartDescription]         NVARCHAR (MAX)  NULL,
+    [ConditionName]           VARCHAR (100)   NULL,
+    [CurrencyName]            VARCHAR (100)   NULL,
+    [PriorityName]            VARCHAR (100)   NULL,
+    [StatusName]              VARCHAR (100)   NULL,
     [OldSalesOrderPartId]     BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
@@ -33,3 +39,16 @@
 
 
 
+
+
+
+GO
+CREATE TRIGGER [dbo].[Trg_SalesOrderQuotePartV1Audit]
+   ON  [dbo].[SalesOrderQuotePartV1]
+   AFTER INSERT,DELETE,UPDATE
+AS 
+BEGIN
+	INSERT INTO SalesOrderQuotePartV1Audit
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

@@ -9,6 +9,7 @@
 	4    14/08/2024              MOIN BLOCH                         Added Work Order Id
 	5    16/08/2024              MOIN BLOCH                         Added [ConditionId]
 	6    14/10/2024              RAJESH GAMI						Increase datatype length for the some fields in temp table (#TEMPBulkPORecords)
+	7    21/10/2024              RAJESH GAMI						Change the logic to deleted WO and WO Material should not be in the list
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -188,7 +189,7 @@ BEGIN
 			    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
 			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 												
-		   WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
+		   WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 				
 		 --  UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
 		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
@@ -261,7 +262,7 @@ BEGIN
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
 					  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 					  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
-
+					  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 			-- UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash2.[PurchaseOrderUnitCost],0),
 		 --                                [LastPONumber] = ISNULL(tmpcash2.[PurchaseOrderNumber],''),
 			--							 [LastPODate] = [EntryDate],
@@ -329,7 +330,7 @@ BEGIN
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
 					INNER JOIN [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
 					INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) on POP.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND PO.IsFromBulkPO = 1
-			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
+			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 		   
 		 --  UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
 		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
@@ -398,7 +399,7 @@ BEGIN
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
 					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
 					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
-			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
+			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0 
 			  
 			--UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
 		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
@@ -472,7 +473,7 @@ BEGIN
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
 			  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 			  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
-
+			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 			--  UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
 		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
 			--							 [LastPODate] = [EntryDate],
@@ -540,7 +541,7 @@ BEGIN
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
 					INNER JOIN [dbo].[VendorRFQPurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
 					INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) on POP.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND PO.IsFromBulkPO = 1						
-			  WHERE  WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
+			  WHERE  WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 
 			UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
 		                                 [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
@@ -715,7 +716,7 @@ BEGIN
 
 		WHERE	WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 		   AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
-		   			
+		   	 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0		
 			--2
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -771,7 +772,7 @@ BEGIN
 					  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 					  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 					  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
-					  			
+					   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0			
 			--3
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
@@ -822,7 +823,7 @@ BEGIN
 
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 			  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus  WITH (NOLOCK)  WHERE VendorRFQStatusId = PO.StatusId) ELSE (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus WITH (NOLOCK)  WHERE [Status] = 'Open') END  = @filterAsStatus
-			  			  
+			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0			  
 			-- ************************************* KIT Bulk PO ***************************************	  			   			   			  					 		 			  	   	   	  	 
 		
 			--4
@@ -874,6 +875,7 @@ BEGIN
 					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 			        AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
+					 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 					 			
 			--5
 		
@@ -928,6 +930,7 @@ BEGIN
 			  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 			  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 			  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
+			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 			  			
 			--6
 
@@ -978,6 +981,7 @@ BEGIN
 					INNER JOIN [dbo].[VendorRFQPurchaseOrder] PO WITH(NOLOCK) on POP.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId AND PO.IsFromBulkPO = 1									 
 			  WHERE  WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 			  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus  WITH (NOLOCK)  WHERE VendorRFQStatusId = PO.StatusId) ELSE (SELECT TOP 1 [Status] FROM dbo.VendorRFQStatus WITH (NOLOCK)  WHERE [Status] = 'Open') END  = @filterAsStatus
+			  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 
 
 			UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),

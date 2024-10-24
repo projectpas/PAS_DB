@@ -69,8 +69,13 @@
     [PercentId]                 BIGINT          NULL,
     [Days]                      INT             NULL,
     [NetDays]                   INT             NULL,
+    [FunctionalCurrencyId]      INT             NULL,
+    [ReportCurrencyId]          INT             NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
+
+
 
 
 

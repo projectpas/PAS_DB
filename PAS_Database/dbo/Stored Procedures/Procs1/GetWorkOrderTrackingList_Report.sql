@@ -18,7 +18,7 @@
     2   05/26/2023		HEMANT SALIYA		Updated For WorkOrder Settings
 	3   04-SEPT-2023    Ekta Chandegra      Convert text into uppercase
 	4   27-AUG-2024     Devendra Shekh      date issue resolved
-	5   23-Oct-2024     Sahdev Saliya       Added new failed WO Number in the Work Order Management Report for filter  
+	5   23-Oct-2024     Sahdev Saliya       Added new field WO Number in the Work Order Management Report for filter  
 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/

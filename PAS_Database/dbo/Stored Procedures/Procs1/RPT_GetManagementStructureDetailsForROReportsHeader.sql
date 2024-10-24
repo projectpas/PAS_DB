@@ -13,10 +13,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/25/2023   Amit Ghediya  Created
+	2    24-Oct-2024  Sahdev Saliya  Address convert into single string value
 
  EXECUTE RPT_GetManagementStructureDetailsForROReportsHeader 1,1,1611
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForROReportsHeader]    
+CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForROReportsHeader]    
 (    
 	@ManagementStructId  BIGINT  = NULL,
 	@MasterCompanyId BIGINT  = NULL,
@@ -48,15 +49,6 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					(Upper(ad.Line1) +'<br/>' +
-					CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
-					CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
-					CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
-					CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)ELSE ''END +
-					CASE WHEN ISNULL(co.countries_name,'') != '' THEN ' '+ Upper(co.countries_name)+'<br/>'ELSE ''END +
-					CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END) MergedAddress
-					,
 
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
@@ -66,6 +58,7 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'')),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,

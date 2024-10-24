@@ -50,6 +50,7 @@
     [InvoiceDate]                         DATETIME2 (7)   NULL,
     [Id]                                  BIGINT          NULL,
     [GLARAccount]                         VARCHAR (200)   NULL,
+    [CustomerPaymentDetailsId]            BIGINT          NULL,
     CONSTRAINT [PK_InvoicePaymentsAudit] PRIMARY KEY CLUSTERED ([PaymentAuditId] ASC)
 );
 

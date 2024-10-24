@@ -49,6 +49,7 @@
     [InvoiceDate]                         DATETIME2 (7)   NULL,
     [Id]                                  BIGINT          NULL,
     [GLARAccount]                         VARCHAR (200)   NULL,
+    [CustomerPaymentDetailsId]            BIGINT          NULL,
     CONSTRAINT [PK_InvoicePayments] PRIMARY KEY CLUSTERED ([PaymentId] ASC),
     CONSTRAINT [FK_InvoicePayments_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoicePayments_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

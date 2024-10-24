@@ -22,6 +22,7 @@
 	7	 19/02/2024	  Devendra Shekh	removed isperforma and added isinvoiceposted Flage for WO
 	8    15-Apr-2024  Bhargav Saliya    CreditTerms Changes
 	9    24/06/2024   HEMANT SALIYA		Added Un Applied Cash in Cash Receipt
+	10	 24/10/2024	  Devendra Shekh	added [CustomerPaymentDetailsId] to select
       
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 10135,0,2,11      
@@ -33,7 +34,7 @@
 EXEC GetCustomerInvoicePaymentsByReceiptId 366,0,2,70,1      
       
 **************************************************************/      
-CREATE     PROCEDURE [dbo].[GetCustomerInvoicePaymentsByReceiptId]      
+CREATE   PROCEDURE [dbo].[GetCustomerInvoicePaymentsByReceiptId]      
 @ReceiptId BIGINT = NULL,      
 @PageIndex int = NULL,      
 @Opr int = NULL,      
@@ -104,6 +105,7 @@ BEGIN
 			 ,[InvoiceDate]      
 			 ,[Id]      
 			 ,[GLARAccount]      
+			 ,[CustomerPaymentDetailsId]      
 		 FROM [dbo].[InvoicePayments] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex      
 	END      
 	IF(@Opr=2)      
@@ -131,7 +133,7 @@ BEGIN
 			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
 			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
 			   ELSE 0 END AS 'DiscountAvailable'    
-  
+				,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
 			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId     
 			  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId    
@@ -202,7 +204,8 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.GLARAccount    ELSE '' END AS 'GLARAccount',      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,  
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(SO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable        
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(SO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
+			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)      
 			INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId      
 			INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=SO.CustomerId      
@@ -262,6 +265,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,        
 			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
+			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK)      
 			 LEFT JOIN  [dbo].[WorkOrderBillingInvoicingItem] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId =WOBI.BillingInvoicingId AND ISNULL(WOBII.IsInvoicePosted, 0) = 0
 			 LEFT JOIN  [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.WorkOrderId AND WOPN.ID = WOBII.WorkOrderPartId      
@@ -326,6 +330,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected' ,  
 			  NULL AS DiscountDate,        
 			  0 AS DiscountAvailable   
+			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)      
 			  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.IsDeleted = 0    
 			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON CMD.InvoiceId =  SOBI.SOBillingInvoicingId AND CMD.IsWorkOrder = 0   
@@ -386,6 +391,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END ELSE 0 END AS 'Selected' ,  
 			  NULL AS DiscountDate,        
 			  0 AS DiscountAvailable   
+			  ,IPT.[CustomerPaymentDetailsId]
 		 FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)      
 			  LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CCP.CustomerId = C.CustomerId      
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CCP.CustomerId = CF.CustomerId  
@@ -444,6 +450,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(ESO.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(ESO.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,  
 			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(ESO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable        
+			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)      
 			  INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId=ESOBI.ExchangeSalesOrderId      
 			  INNER JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId=ESO.CustomerId      
@@ -459,12 +466,12 @@ BEGIN
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
           ,[CtrlNum],[InvoiceType],[OriginalAmount],[NewRemainingBal],[DocNum],[CurrencyCode],[FxRate],[WOSONum],[DSI],[DSO],[AmountPastDue],[ARBalance],[InvDueDate]      
-          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable] FROM CTE      
+          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable],[CustomerPaymentDetailsId] FROM CTE      
      GROUP BY [PaymentId],[CustomerId],[SOBillingInvoicingId],[ReceiptId],[IsMultiplePaymentMethod],[IsCheckPayment],[IsWireTransfer],[IsEFT],[IsCCDCPayment]      
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
           ,[CtrlNum],[InvoiceType],[OriginalAmount],[NewRemainingBal],[DocNum],[CurrencyCode],[FxRate],[WOSONum],[DSI],[DSO],[AmountPastDue],[ARBalance],[InvDueDate]      
-          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable]    
+          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable] ,[CustomerPaymentDetailsId]
      ORDER BY [Selected] DESC,[InvoiceType]    
       
 	END      
@@ -490,7 +497,7 @@ BEGIN
 			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
 			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
 			   ELSE 0 END AS 'DiscountAvailable'    
-  
+			  ,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
 			  LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = INV.SOBillingInvoicingId      
 			  LEFT JOIN [dbo].[WorkOrderBillingInvoicing] WOBI WITH (NOLOCK) ON WOBI.BillingInvoicingId = INV.SOBillingInvoicingId      
@@ -517,12 +524,12 @@ BEGIN
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
           ,[CtrlNum],[InvoiceType],[OriginalAmount],[NewRemainingBal],[DocNum],[CurrencyCode],[FxRate],[WOSONum],[DSI],[DSO],[AmountPastDue],[ARBalance],[InvDueDate]      
-          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable] FROM CTE      
+          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable],[CustomerPaymentDetailsId] FROM CTE      
      GROUP BY [PaymentId],[CustomerId],[SOBillingInvoicingId],[ReceiptId],[IsMultiplePaymentMethod],[IsCheckPayment],[IsWireTransfer],[IsEFT],[IsCCDCPayment]      
           ,[MasterCompanyId],[PaymentAmount],[DiscAmount],[DiscType],[BankFeeAmount],[BankFeeType],[OtherAdjustAmt],[Reason],[RemainingBalance],[Status]      
           ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsDeposite],[IsTradeReceivable],[TradeReceivableORMiscReceiptGLAccnt]      
           ,[CtrlNum],[InvoiceType],[OriginalAmount],[NewRemainingBal],[DocNum],[CurrencyCode],[FxRate],[WOSONum],[DSI],[DSO],[AmountPastDue],[ARBalance],[InvDueDate]      
-          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable]    
+          ,[CreditLimit],[CreditTermName],[LastMSLevel],[AllMSlevels],[PageIndex],[RemainingAmount],[InvoiceDate],[Id],[GLARAccount],[Selected],[DiscountDate],[DiscountAvailable],[CustomerPaymentDetailsId]    
     ORDER BY [Selected] DESC,[InvoiceType]    
       
   END      

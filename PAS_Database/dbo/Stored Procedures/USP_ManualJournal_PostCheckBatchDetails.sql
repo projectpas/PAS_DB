@@ -18,6 +18,7 @@
 	2    02/19/2024	  HEMANT SALIYA	    Updated for Restrict Accounting Entry by Master Company
 	3    25/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	4	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	5	 25/10/2024	  Devendra Shekh	Added ReferenceName and Currency for CommonBatchDetails
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -107,6 +108,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @JournalNumber VARCHAR(100) = '';
+		DECLARE @ReferenceName VARCHAR(100) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
@@ -261,12 +263,41 @@ BEGIN
 					[Credit] [decimal](18,2) NULL,
 					[ManagementStructureId] [bigint] NULL,
 					[LastMSLevel] [varchar](200) NULL,
-					[AllMSlevels] [varchar](MAX) NULL
+					[AllMSlevels] [varchar](MAX) NULL,
+					[CurrencyCode] [varchar](10) NULL,
+					[ReferenceName] [varchar](100) NULL,
 				)
 
-				INSERT INTO #tmpManualJournalDetails ([ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels])
-				SELECT [ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels] 
-				FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
+				;With referenceResult AS (
+					SELECT  MJD.ManualJournalHeaderId,
+							MJD.ManualJournalDetailsId,
+							MJD.ReferenceId,
+							CU.Name AS 'ReferenceName',
+							CY.Code AS 'CurrencyCode'
+					FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
+					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON MJD.ReferenceId = CU.CustomerId AND MJD.ReferenceTypeId = 1
+					LEFT JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = CU.CustomerId
+					LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON CY.CurrencyId = CF.CurrencyId
+					WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND MJD.IsActive = 1 AND MJD.ReferenceTypeId = 1
+
+					UNION
+
+					SELECT  MJD.ManualJournalHeaderId,
+							MJD.ManualJournalDetailsId,
+							MJD.ReferenceId,
+							V.VendorName AS 'ReferenceName',
+							CY.Code AS 'CurrencyCode'
+					FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
+					LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON MJD.ReferenceId = V.VendorId AND MJD.ReferenceTypeId = 2
+					LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON CY.CurrencyId = V.CurrencyId
+					WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND MJD.IsActive = 1 AND MJD.ReferenceTypeId = 2
+				)
+
+				INSERT INTO #tmpManualJournalDetails ([ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[CurrencyCode],[ReferenceName])
+				SELECT MJD.[ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],tmpRes.CurrencyCode,tmpRes.ReferenceName
+				FROM [DBO].[ManualJournalDetails] MJD WITH(NOLOCK)
+				LEFT JOIN referenceResult tmpRes ON tmpRes.ManualJournalDetailsId = MJD.ManualJournalDetailsId
+				WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 				SELECT  @MasterLoopID = MAX(ID) FROM #tmpManualJournalDetails
 
@@ -278,7 +309,10 @@ BEGIN
 						   @Credit = [Credit],
 						   @ManualJorManagementStructureId = [ManagementStructureId],
 						   @LastMSLevel = [LastMSLevel],
-						   @AllMSlevels = [AllMSlevels]
+						   @AllMSlevels = [AllMSlevels],
+						   @LocalCurrencyCode = ISNULL([CurrencyCode],''),
+						   @ForeignCurrencyCode = ISNULL([CurrencyCode],''),
+						   @ReferenceName = ISNULL([ReferenceName],'')
 					FROM #tmpManualJournalDetails WHERE [ID] = @MasterLoopID;
 					
 					SELECT @GlAccountNumber = AccountCode, @GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId;
@@ -309,7 +343,7 @@ BEGIN
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,
 						@ManualJorManagementStructureId ,@DistributionCodeName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,@ReferenceName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
 

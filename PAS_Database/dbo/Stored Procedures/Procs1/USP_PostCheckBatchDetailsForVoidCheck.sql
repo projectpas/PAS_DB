@@ -14,13 +14,14 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    06/30/2023   Satish Gohil	Created	
-	2    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
-	3    22/01/2024	  Moin Bloch	Modify(Added PdfPath Null when IsVoidedCheck Is True)
+    1    06/30/2023   Satish Gohil		Created	
+	2    08/09/2023	  Satish Gohil		Modify(Dynamic distribution set and discount taken distribution added)
+	3    22/01/2024	  Moin Bloch		Modify(Added PdfPath Null when IsVoidedCheck Is True)
+	4	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
      
 **************************************************************/
 
-CREATE    PROCEDURE [dbo].[USP_PostCheckBatchDetailsForVoidCheck]
+CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetailsForVoidCheck]
 (
 	@tbl_VoidedCheckListType VoidedCheckListType Readonly
 )
@@ -76,6 +77,9 @@ BEGIN
 		DECLARE @CrDrType INT
 		DECLARE @ValidDistribution BIT = 1;
 		DECLARE @BankGLAccId BIGINT
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL          
 		BEGIN          
@@ -146,6 +150,10 @@ BEGIN
 			SELECT @ManagementStructureId = ManagementStructureId FROM DBO.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
 			SELECT @ModuleId = ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName = 'ReadyToPay'
 			SELECT @LastMSLevel = LastMSLevel,@AllMSlevels = AllMSlevels FROM dbo.AccountingManagementStructureDetails WITH(NOLOCK) WHERE EntityMSID = @ManagementStructureId AND ModuleID = @ModuleId AND ReferenceID = @ReadyToPayId
+
+			SELECT @VendorName = VendorName, @LocalCurrencyCode = ISNULL(CY.Code,''), @ForeignCurrencyCode = ISNULL(CY.Code,'')
+			FROM dbo.Vendor V WITH(NOLOCK)
+			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON CY.CurrencyId = V.CurrencyId WHERE VendorId = @VendorId
 
 			INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 			SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
@@ -274,7 +282,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -282,7 +290,7 @@ BEGIN
 					CASE WHEN @CrDrType = 0 THEN @TotalAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 0 THEN 0 ELSE @TotalAmount END,
 					@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			
@@ -309,7 +317,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -317,7 +325,7 @@ BEGIN
 						CASE WHEN @CrDrType = 0 THEN @CheckAmount ELSE 0 END,
 						CASE WHEN @CrDrType = 0 THEN 0 ELSE @CheckAmount END,
 						@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			
@@ -339,7 +347,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -347,7 +355,7 @@ BEGIN
 						CASE WHEN @CrDrType = 0 THEN @DiscountAmount ELSE 0 END,
 						CASE WHEN @CrDrType = 0 THEN 0 ELSE @DiscountAmount END,
 						@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			

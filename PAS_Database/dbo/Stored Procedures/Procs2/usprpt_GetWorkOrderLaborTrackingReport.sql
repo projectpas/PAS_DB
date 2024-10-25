@@ -18,7 +18,7 @@
 	2	29-MARCH-2024	Ekta Chandegra		IaDeleted and IsActive flag is added
 	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
 	4   11-Oct-2024     Sahdev Saliya       Date format changes
-	5   23-Oct-2024     Sahdev Saliya       Added new failed PartNumber in the Technician Labor Entry Report for filter
+	5   23-Oct-2024     Sahdev Saliya       Added new field PartNumber in the Technician Labor Entry Report for filter
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 

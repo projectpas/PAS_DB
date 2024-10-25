@@ -17,6 +17,7 @@
     1    07/16/2024   Vishal Suthar		Created
     2    09/12/2024   Vishal Suthar		Fixed an issue with getting the credit term for matching
 	3    09/16/2024   AMIT GHEDIYA		Adding FunctionalCurrencyId,ReportCurrencyId and ForeignExchangeRate for ConvertSOQToSO
+	4    10/21/2024   AMIT GHEDIYA		Updated old table with new table.
 
 declare @p13 bigint
 set @p13=NULL
@@ -65,7 +66,7 @@ BEGIN
 	WITH SalesOrderQuoteAnalysisView AS (SELECT 
 		part.SalesOrderQuotePartId,
 		part.SalesOrderQuoteId,
-		part.NetSales,
+		partc.NetSaleAmount NetSales,
 		ISNULL((
 			SELECT SUM(charges.BillingAmount)
 			FROM DBO.SalesOrderQuoteCharges charges WITH (NOLOCK)
@@ -75,8 +76,10 @@ BEGIN
 				AND charges.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		), 0) AS Misc
 	FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
-	JOIN DBO.SalesOrderQuotePart part WITH (NOLOCK) ON soq.SalesOrderQuoteId = part.SalesOrderQuoteId
-	LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON part.StockLineId = qs.StockLineId
+	JOIN DBO.SalesOrderQuotePartV1 part WITH (NOLOCK) ON soq.SalesOrderQuoteId = part.SalesOrderQuoteId
+	LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+	LEFT JOIN DBO.SalesOrderQuotePartCost partc WITH (NOLOCK) ON partc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+	LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
 	WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0)
 	,SalesOrderQuoteAnalysisData AS (
 		SELECT NetSales, Misc FROM SalesOrderQuoteAnalysisView WHERE SalesOrderQuoteId = @SalesOrderQuoteId
@@ -187,95 +190,186 @@ BEGIN
 
 
 	/* Transfer Parts */
-	INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
-	[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],
-	[SalesPriceExtended],[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],
-	[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
-	[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
-	[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-	SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
-	sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
-	sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
-	sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
-	@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
-	sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
-	FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
-	WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId
-    AND ((@TransferStockline = 0 AND LOWER(sop.MethodType) <> 's') OR @TransferStockline = 1)
-	AND ISNULL(sop.IsNoQuote, 0) <> 1;
+	--INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
+	--[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],
+	--[SalesPriceExtended],[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],
+	--[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
+	--[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
+	--[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
+	--SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
+	--sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
+	--sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
+	--sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
+	--@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
+	--sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
+	--FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
+	--WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId
+ --   AND ((@TransferStockline = 0 AND LOWER(sop.MethodType) <> 's') OR @TransferStockline = 1)
+	--AND ISNULL(sop.IsNoQuote, 0) <> 1;
 
-	DECLARE @LoopID AS INT;
-	CREATE TABLE #sopList
+	DECLARE @SOQLoopID AS INT;
+	CREATE TABLE #soqpList
     (
         ID BIGINT NOT NULL IDENTITY,
-        [SalesOrderPartId] [bigint] NULL,
         [SalesOrderQuotePartId] [bigint] NULL,
         [ItemMasterId] [bigint] NULL,
-        [ConditionId] [bigint] NULL
+        [ConditionId] [bigint] NULL,
+		[CreatedBy] [varchar](100) NULL,
+		[MasterCompanyId] [int] NULL
     )
 
-	INSERT INTO #sopList
+	INSERT INTO #soqpList
     (
-        [SalesOrderPartId],
         [SalesOrderQuotePartId],
         [ItemMasterId],
-        [ConditionId]
+        [ConditionId],
+		[CreatedBy],
+		[MasterCompanyId]
     )
-	SELECT DISTINCT sopp.SalesOrderPartId, sopp.SalesOrderQuotePartId, sopp.ItemMasterId, sopp.ConditionId
-	FROM DBO.SalesOrderPart sopp WITH (NOLOCK) WHERE sopp.SalesOrderId = @SalesOrderId;
+	SELECT DISTINCT SOQP.SalesOrderQuotePartId, 
+	SOQP.ItemMasterId, SOQP.ConditionId, SOQP.CreatedBy, SOQP.MasterCompanyId
+	FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
+	WHERE SOQP.SalesOrderQuoteId = @SalesOrderQuoteId
+	AND ((@TransferStockline = 0) OR @TransferStockline = 1)
+	AND ISNULL(SOQP.IsNoQuote, 0) <> 1;
 
-	SELECT @LoopID = MAX(ID) FROM #sopList;
-	WHILE (@LoopID > 0)
+	SELECT @SOQLoopID = MAX(ID) FROM #soqpList;
+	WHILE (@SOQLoopID > 0)
 	BEGIN
 		DECLARE @CurrentSOPartId BIGINT = NULL;
+		DECLARE @NewSOStocklineId BIGINT = NULL;		
 		DECLARE @CurrentSOQPartId BIGINT = NULL;
 		DECLARE @CurrentItemMasterId BIGINT = NULL;
 		DECLARE @CurrentConditionId BIGINT = NULL;
+		DECLARE @CreatedBy VARCHAR(100);
+		DECLARE @MasterCompanyId BIGINT = 0;
 
-		SELECT @CurrentSOPartId = SOP.SalesOrderPartId, @CurrentSOQPartId = SOP.SalesOrderQuotePartId, @CurrentItemMasterId = SOP.ItemMasterId, @CurrentConditionId = SOP.ConditionId FROM #sopList SOP WHERE SOP.ID = @LoopID;
+		SELECT @CurrentSOQPartId = SOQP.SalesOrderQuotePartId,
+		@CurrentItemMasterId = SOQP.ItemMasterId, @CurrentConditionId = SOQP.ConditionId , @CreatedBy = SOQP.CreatedBy, @MasterCompanyId = SOQP.MasterCompanyId
+		FROM #soqpList SOQP WHERE SOQP.ID = @SOQLoopID;
+
+		/* Transfer Part Data */
+			INSERT INTO DBO.SalesOrderPartV1 ([SalesOrderId],
+				[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[CurrencyId],
+				[QtyReserved],
+				[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],
+				[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],
+				[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderQuotePartId])
+			SELECT @SalesOrderId,
+				sop.[ItemMasterId],sop.[ConditionId],sop.[QtyRequested],sop.[QtyQuoted],sop.[CurrencyId],
+				0,
+				sop.[PriorityId],sop.[StatusId],sop.[FxRate],sop.[CustomerRequestDate],sop.[PromisedDate],
+				sop.[EstimatedShipDate],sop.[Notes],sop.[MasterCompanyId],sop.[CreatedBy],GETUTCDATE(),
+				sop.[UpdatedBy],GETUTCDATE(),sop.[IsActive],sop.[IsDeleted],sop.[SalesOrderQuotePartId]
+			FROM DBO.SalesOrderQuotePartV1 sop WITH(NOLOCK)
+			WHERE sop.SalesOrderQuotePartId = @CurrentSOQPartId
+			AND ((@TransferStockline = 0) OR @TransferStockline = 1)
+			AND ISNULL(sop.IsNoQuote, 0) <> 1;
+
+			SET @CurrentSOPartId = SCOPE_IDENTITY();
+		/* END Transfer Part Data */
+
+		/* Transfer Part Cost */
+			INSERT INTO DBO.SalesOrderPartCost([SalesOrderId],[SalesOrderPartId],[UnitSalesPrice],[UnitSalesPriceExtended],[UnitCost],
+					[UnitCostExtended],[MarkUpPercentage],[MarkUpAmount],[MarginAmount],[MarginPercentage],
+					[DiscountPercentage],[DiscountAmount],[TaxPercentage],[TaxAmount],[NetSaleAmount],
+					[MiscCharges],[Freight],[TotalRevenue],[MasterCompanyId],[CreatedBy],
+					[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+			SELECT @SalesOrderId,@CurrentSOPartId,SOPC.[UnitSalesPrice],SOPC.[UnitSalesPriceExtended],SOPC.[UnitCost],
+					SOPC.[UnitCostExtended],SOPC.[MarkUpPercentage],SOPC.[MarkUpAmount],SOPC.[MarginAmount],SOPC.[MarginPercentage],
+					SOPC.[DiscountPercentage],SOPC.[DiscountAmount],SOPC.[TaxPercentage],SOPC.[TaxAmount],SOPC.[NetSaleAmount],
+					SOPC.[MiscCharges],SOPC.[Freight],SOPC.[TotalRevenue],SOPC.[MasterCompanyId],SOPC.[CreatedBy],
+					GETUTCDATE(),SOPC.[UpdatedBy],GETUTCDATE(),SOPC.[IsActive],SOPC.[IsDeleted]
+			FROM DBO.SalesOrderQuotePartCost SOPC WITH(NOLOCK)
+			WHERE SOPC.SalesOrderQuotePartId = @CurrentSOQPartId 
+			AND SOPC.SalesOrderQuoteId = @SalesOrderQuoteId;
+		/* END Transfer Part Cost */
+
+		/* Checking if part stockline exists or not */
+		IF EXISTS(SELECT 1 FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK) WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId)
+		BEGIN
+			DECLARE @CurrentSOQStocklineId BIGINT = NULL;
+
+			SELECT @CurrentSOQStocklineId = SalesOrderQuoteStocklineId FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
+			WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId;
+
+			/* Transfer Part Stockline */
+				INSERT INTO DBO.SalesOrderStocklineV1([SalesOrderPartId],
+					[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+					[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],
+					[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+				SELECT @CurrentSOPartId,
+					SOPSTK.[StockLineId],SOPSTK.[ConditionId],SOPSTK.[QtyQuoted],0,SOPSTK.[QtyAvailable],SOPSTK.[QtyOH],
+					SOPSTK.[CustomerRequestDate],SOPSTK.[PromisedDate],SOPSTK.[EstimatedShipDate],StatusId,SOPSTK.[MasterCompanyId],
+					SOPSTK.[CreatedBy],GETUTCDATE(),UpdatedBy,GETUTCDATE(),IsActive,IsDeleted
+				FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
+				WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId;
+
+				SET @NewSOStocklineId = SCOPE_IDENTITY();
+			/* END Transfer Part Stockline */
+
+			/* Transfer Part Stockline Cost */
+				INSERT INTO DBO.SalesOrderStockLineCost([SalesOrderId],[SalesOrderPartId],[SalesOrderStocklineId],[UnitSalesPrice],[UnitSalesPriceExtended],
+					   [UnitCost],[UnitCostExtended],[MarkUpPercentage],[MarkUpAmount],[DiscountPercentage],
+					   [DiscountAmount],[MarginAmount],[MarginPercentage],[NetSaleAmount],[MasterCompanyId],
+					   [CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted])
+				SELECT @SalesOrderId,@CurrentSOPartId,@NewSOStocklineId,SOSCO.[UnitSalesPrice],SOSCO.[UnitSalesPriceExtended],
+					   SOSCO.[UnitCost],SOSCO.[UnitCostExtended],SOSCO.[MarkUpPercentage],SOSCO.[MarkUpAmount],SOSCO.[DiscountPercentage],
+					   SOSCO.[DiscountAmount],SOSCO.[MarginAmount],SOSCO.[MarginPercentage],SOSCO.[NetSaleAmount],SOSCO.[MasterCompanyId],
+					   SOSCO.[CreatedBy],GETUTCDATE(),SOSCO.[UpdatedBy],GETUTCDATE(),SOSCO.[IsActive],SOSCO.[IsDeleted]
+				FROM DBO.SalesOrderQuoteStockLineCost SOSCO
+				WHERE SOSCO.SalesOrderQuoteStocklineId = @CurrentSOQStocklineId
+				AND SOSCO.SalesOrderQuoteId = @SalesOrderQuoteId
+				AND SOSCO.SalesOrderQuotePartId = @CurrentSOQPartId
+			/* END Transfer Part Stockline Cost */
+		END		
 
 		/* Transfer Freights */
-		IF (@TransferFreight = 1)
-		BEGIN
-			INSERT INTO DBO.SalesOrderFreight ([SalesOrderQuoteId],[SalesOrderId],[SalesOrderPartId],[ShipViaId],[Weight],[Memo],[Amount],[MarkupPercentageId],
-			[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],[BillingRate],[BillingAmount],[Length],[Width],[Height],[UOMId],[DimensionUOMId],[CurrencyId],
-			[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId])
-			SELECT sof.SalesOrderQuoteId, @SalesOrderId, @CurrentSOPartId, sof.ShipViaId, sof.[Weight], sof.Memo, sof.Amount, sof.MarkupPercentageId,
-			sof.MarkupFixedPrice, sof.HeaderMarkupId, sof.BillingMethodId, sof.BillingRate, sof.BillingAmount, sof.[Length], sof.Width, sof.Height, sof.UOMId, sof.DimensionUOMId, sof.CurrencyId,
-			sof.MasterCompanyId, sof.CreatedBy, sof.UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, sof.IsActive, sof.IsDeleted, sof.HeaderMarkupPercentageId, sof.ItemMasterId, sof.ConditionId
-			FROM DBO.SalesOrderQuoteFreight sof WITH (NOLOCK)
-			LEFT JOIN #sopList sop ON sop.ItemMasterId = sof.ItemMasterId AND sop.ConditionId = sof.ConditionId
-			WHERE sof.SalesOrderQuotePartId = @CurrentSOQPartId;
-		END
+			IF (@TransferFreight = 1)
+			BEGIN
+				INSERT INTO DBO.SalesOrderFreight ([SalesOrderQuoteId],[SalesOrderId],[SalesOrderPartId],[ShipViaId],[Weight],[Memo],[Amount],[MarkupPercentageId],
+				[MarkupFixedPrice],[HeaderMarkupId],[BillingMethodId],[BillingRate],[BillingAmount],[Length],[Width],[Height],[UOMId],[DimensionUOMId],[CurrencyId],
+				[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId])
+				SELECT sof.SalesOrderQuoteId, @SalesOrderId, @CurrentSOPartId, sof.ShipViaId, sof.[Weight], sof.Memo, sof.Amount, sof.MarkupPercentageId,
+				sof.MarkupFixedPrice, sof.HeaderMarkupId, sof.BillingMethodId, sof.BillingRate, sof.BillingAmount, sof.[Length], sof.Width, sof.Height, sof.UOMId, sof.DimensionUOMId, sof.CurrencyId,
+				sof.MasterCompanyId, sof.CreatedBy, sof.UpdatedBy, GETUTCDATE() AS CreatedDate, GETUTCDATE() AS UpdatedDate, sof.IsActive, sof.IsDeleted, sof.HeaderMarkupPercentageId, sof.ItemMasterId, sof.ConditionId
+				FROM DBO.SalesOrderQuoteFreight sof WITH (NOLOCK)
+				--LEFT JOIN #sopList sop ON sop.ItemMasterId = sof.ItemMasterId AND sop.ConditionId = sof.ConditionId
+				WHERE sof.SalesOrderQuotePartId = @CurrentSOQPartId;
+			END
+		/* END Transfer Freights */
 
 		/* Transfer Charges */
-		IF (@TransferCharges = 1)
-		BEGIN
-			INSERT INTO DBO.SalesOrderCharges ([SalesOrderQuoteId],[SalesOrderId],[SalesOrderPartId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],
-			[Description],[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId],[RefNum],
-			[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId],[UOMId])
-			SELECT soc.[SalesOrderQuoteId], @SalesOrderId, @CurrentSOPartId, soc.[ChargesTypeId], soc.[VendorId], soc.[Quantity], soc.[MarkupPercentageId],
-			soc.[Description], soc.[UnitCost], soc.[ExtendedCost], soc.[MasterCompanyId], soc.[MarkupFixedPrice], soc.[BillingMethodId], soc.[BillingAmount], soc.[BillingRate], soc.[HeaderMarkupId], soc.[RefNum],
-			soc.[CreatedBy], soc.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), soc.[IsActive], soc.[IsDeleted], soc.[HeaderMarkupPercentageId], soc.[ItemMasterId], soc.[ConditionId], soc.[UnitOfMeasureId]
-			FROM DBO.SalesOrderQuoteCharges soc WITH (NOLOCK)
-			LEFT JOIN #sopList sop ON sop.ItemMasterId = soc.ItemMasterId AND sop.ConditionId = soc.ConditionId
-			WHERE soc.SalesOrderQuotePartId = @CurrentSOQPartId;
-		END
+			IF (@TransferCharges = 1)
+			BEGIN
+				INSERT INTO DBO.SalesOrderCharges ([SalesOrderQuoteId],[SalesOrderId],[SalesOrderPartId],[ChargesTypeId],[VendorId],[Quantity],[MarkupPercentageId],
+				[Description],[UnitCost],[ExtendedCost],[MasterCompanyId],[MarkupFixedPrice],[BillingMethodId],[BillingAmount],[BillingRate],[HeaderMarkupId],[RefNum],
+				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[HeaderMarkupPercentageId],[ItemMasterId],[ConditionId],[UOMId])
+				SELECT soc.[SalesOrderQuoteId], @SalesOrderId, @CurrentSOPartId, soc.[ChargesTypeId], soc.[VendorId], soc.[Quantity], soc.[MarkupPercentageId],
+				soc.[Description], soc.[UnitCost], soc.[ExtendedCost], soc.[MasterCompanyId], soc.[MarkupFixedPrice], soc.[BillingMethodId], soc.[BillingAmount], soc.[BillingRate], soc.[HeaderMarkupId], soc.[RefNum],
+				soc.[CreatedBy], soc.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), soc.[IsActive], soc.[IsDeleted], soc.[HeaderMarkupPercentageId], soc.[ItemMasterId], soc.[ConditionId], soc.[UnitOfMeasureId]
+				FROM DBO.SalesOrderQuoteCharges soc WITH (NOLOCK)
+				--LEFT JOIN #sopList sop ON sop.ItemMasterId = soc.ItemMasterId AND sop.ConditionId = soc.ConditionId
+				WHERE soc.SalesOrderQuotePartId = @CurrentSOQPartId;
+			END
+		/* END Transfer Charges */
 
-		IF EXISTS (SELECT TOP 1 SOP.SalesOrderPartId FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @SalesOrderId)
-		BEGIN
-			INSERT INTO DBO.SalesOrderApproval ([SalesOrderId],[SalesOrderPartId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[CustomerId],[InternalMemo],
-			[InternalSentDate],[InternalApprovedDate],[InternalApprovedById],[CustomerSentDate],[CustomerApprovedDate],[CustomerApprovedById],[ApprovalActionId],
-			[CustomerStatusId],[InternalStatusId],[CustomerMemo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-			[InternalApprovedBy],[CustomerApprovedBy],[ApprovalAction],[CustomerStatus],[InternalStatus],[RejectedById],[RejectedByName],[RejectedDate],
-			[InternalRejectedById],[InternalRejectedByName],[InternalRejectedDate],[InternalSentToId],[InternalSentToName],[InternalSentById])
-			SELECT @SalesOrderId, @CurrentSOPartId, SOQA.[SalesOrderQuoteId], SOQA.[SalesOrderQuotePartId], SOQA.[CustomerId], SOQA.[InternalMemo],
-			SOQA.[InternalSentDate], SOQA.[InternalApprovedDate], SOQA.[InternalApprovedById], SOQA.[CustomerSentDate], SOQA.[CustomerApprovedDate], SOQA.[CustomerApprovedById], SOQA.[ApprovalActionId],
-			SOQA.[CustomerStatusId], SOQA.[InternalStatusId], SOQA.[CustomerMemo], SOQA.[MasterCompanyId], SOQA.[CreatedBy], SOQA.[UpdatedBy], SOQA.[CreatedDate], SOQA.[UpdatedDate], SOQA.[IsActive], SOQA.[IsDeleted],
-			SOQA.[InternalApprovedBy], SOQA.[CustomerApprovedBy], SOQA.[ApprovalAction], SOQA.[CustomerStatus], SOQA.[InternalStatus], SOQA.[RejectedById], SOQA.[RejectedByName], SOQA.[RejectedDate],
-			SOQA.[InternalRejectedById], SOQA.[InternalRejectedByName], SOQA.[InternalRejectedDate], SOQA.[InternalSentToId], SOQA.[InternalSentToName], SOQA.[InternalSentById]
-			FROM DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) WHERE SOQA.SalesOrderQuotePartId = @CurrentSOQPartId;
-		END
+		/* Transfer SalesOrderApproval */
+			IF EXISTS (SELECT TOP 1 SOP.SalesOrderPartId FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @SalesOrderId)
+			BEGIN
+				INSERT INTO DBO.SalesOrderApproval ([SalesOrderId],[SalesOrderPartId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[CustomerId],[InternalMemo],
+				[InternalSentDate],[InternalApprovedDate],[InternalApprovedById],[CustomerSentDate],[CustomerApprovedDate],[CustomerApprovedById],[ApprovalActionId],
+				[CustomerStatusId],[InternalStatusId],[CustomerMemo],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+				[InternalApprovedBy],[CustomerApprovedBy],[ApprovalAction],[CustomerStatus],[InternalStatus],[RejectedById],[RejectedByName],[RejectedDate],
+				[InternalRejectedById],[InternalRejectedByName],[InternalRejectedDate],[InternalSentToId],[InternalSentToName],[InternalSentById])
+				SELECT @SalesOrderId, @CurrentSOPartId, SOQA.[SalesOrderQuoteId], SOQA.[SalesOrderQuotePartId], SOQA.[CustomerId], SOQA.[InternalMemo],
+				SOQA.[InternalSentDate], SOQA.[InternalApprovedDate], SOQA.[InternalApprovedById], SOQA.[CustomerSentDate], SOQA.[CustomerApprovedDate], SOQA.[CustomerApprovedById], SOQA.[ApprovalActionId],
+				SOQA.[CustomerStatusId], SOQA.[InternalStatusId], SOQA.[CustomerMemo], SOQA.[MasterCompanyId], SOQA.[CreatedBy], SOQA.[UpdatedBy], SOQA.[CreatedDate], SOQA.[UpdatedDate], SOQA.[IsActive], SOQA.[IsDeleted],
+				SOQA.[InternalApprovedBy], SOQA.[CustomerApprovedBy], SOQA.[ApprovalAction], SOQA.[CustomerStatus], SOQA.[InternalStatus], SOQA.[RejectedById], SOQA.[RejectedByName], SOQA.[RejectedDate],
+				SOQA.[InternalRejectedById], SOQA.[InternalRejectedByName], SOQA.[InternalRejectedDate], SOQA.[InternalSentToId], SOQA.[InternalSentToName], SOQA.[InternalSentById]
+				FROM DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) WHERE SOQA.SalesOrderQuotePartId = @CurrentSOQPartId AND SOQA.SalesOrderQuoteId = @SalesOrderQuoteId;
+			END
+		/* END Transfer SalesOrderApproval */
 
 		IF (@ReserveStockline = 1)
 		BEGIN
@@ -283,16 +377,17 @@ BEGIN
 			DECLARE @StocklineId BIGINT = NULL;
 			DECLARE @ReservedQty INT = NULL;
 
-			SELECT @StocklineId = SOP.StocklineId FROM DBO.SalesOrderPart SOP WHERE SOP.SalesOrderPartId = @CurrentSOPartId;
+			SELECT @StocklineId = SOPSTK.StocklineId FROM DBO.SalesOrderStocklineV1 SOPSTK WHERE SOPSTK.SalesOrderPartId = @CurrentSOPartId;
 
 			INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],
 			[AltPartMasterPartId],[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],
 			[UpdatedDate],[IsActive],[IsDeleted],[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
-			SELECT @SalesOrderId, SOP.StockLineId, SOP.[ItemMasterId], 1, 0, NULL, 0,
-			NULL, CASE WHEN Stk.QuantityAvailable >= SOP.Qty THEN SOP.Qty ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
-			GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.Qty THEN SOP.Qty ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
-			FROM DBO.SalesOrderPart SOP 
-			INNER JOIN DBO.Stockline Stk ON SOP.StockLineId = Stk.StockLineId
+			SELECT @SalesOrderId, SOPSTK.StockLineId, SOP.[ItemMasterId], 1, 0, NULL, 0,
+			NULL, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, 0, @EmployeeId, GETUTCDATE(), NULL, NULL, @EmployeeName, GETUTCDATE(), @EmployeeName,
+			GETUTCDATE(), 1, 0, SOP.SalesOrderPartId, CASE WHEN Stk.QuantityAvailable >= SOP.QtyOrder THEN SOP.QtyOrder ELSE Stk.QuantityAvailable END, NULL, SOP.MasterCompanyId
+			FROM DBO.SalesOrderPartV1 SOP WITH(NOLOCK)
+			INNER JOIN DBO.SalesOrderStocklineV1 SOPSTK WITH(NOLOCK) ON SOPSTK.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN DBO.Stockline Stk ON SOPSTK.StockLineId = Stk.StockLineId
 			WHERE SOP.SalesOrderPartId = @CurrentSOPartId;
 
 			SELECT @InsertedReservePartId = SCOPE_IDENTITY();
@@ -307,16 +402,48 @@ BEGIN
 			EXEC USP_AddUpdateStocklineHistory @StocklineId, @SOModuleId, @SalesOrderId, @SOQModuleId, @SalesOrderQuoteId, 2, @ReservedQty, @EmployeeName;
 		END
 
-		UPDATE DBO.SalesOrderQuotePart SET IsConvertedToSalesOrder = 1, StatusId = @ClosedPartStatusId WHERE SalesOrderQuotePartId = @CurrentSOQPartId;
+		UPDATE DBO.SalesOrderQuotePartV1 SET IsConvertedToSalesOrder = 1, StatusId = @ClosedPartStatusId WHERE SalesOrderQuotePartId = @CurrentSOQPartId;
+		
+		/* Update SOPart Cost Details */
+		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @CurrentSOPartId, @CreatedBy, @MasterCompanyId;
 
-		SET @LoopID = @LoopID - 1;
+		SET @SOQLoopID = @SOQLoopID - 1;
 	END
+
+	
+
+	--DECLARE @LoopID AS INT;
+	--CREATE TABLE #sopList
+ --   (
+ --       ID BIGINT NOT NULL IDENTITY,
+ --       [SalesOrderPartId] [bigint] NULL,
+ --       [SalesOrderQuotePartId] [bigint] NULL,
+ --       [ItemMasterId] [bigint] NULL,
+ --       [ConditionId] [bigint] NULL
+ --   )
+
+	--INSERT INTO #sopList
+ --   (
+ --       [SalesOrderPartId],
+ --       [SalesOrderQuotePartId],
+ --       [ItemMasterId],
+ --       [ConditionId]
+ --   )
+	--SELECT DISTINCT sopp.SalesOrderPartId,0, --sopp.SalesOrderQuotePartId, 
+	--sopp.ItemMasterId, sopp.ConditionId
+	--FROM DBO.SalesOrderPartV1 sopp WITH (NOLOCK) WHERE sopp.SalesOrderId = @SalesOrderId;
+
+	--SELECT @LoopID = MAX(ID) FROM #sopList;
+	--WHILE (@LoopID > 0)
+	--BEGIN	
+	--	SET @LoopID = @LoopID - 1;
+	--END
 
 	DECLARE @ApprovedActionId BIGINT = 5;
 	DECLARE @SOQPartClosedStatusId BIGINT = 2;
 
 	IF NOT EXISTS (SELECT TOP 1 * FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) 
-				INNER JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+				INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 				LEFT JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQA.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 				WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId AND SOQA.ApprovalActionId <> @ApprovedActionId)
 	BEGIN

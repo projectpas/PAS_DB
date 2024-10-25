@@ -32,6 +32,9 @@
     [CurrencyName]          VARCHAR (100)   NULL,
     [PriorityName]          VARCHAR (100)   NULL,
     [StatusName]            VARCHAR (100)   NULL,
+    [SalesOrderQuotePartId] BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 

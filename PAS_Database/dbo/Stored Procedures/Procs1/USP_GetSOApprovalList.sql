@@ -18,7 +18,7 @@
     2    01/04/2022   Vishal Suthar Added Internal Sent fields
     3    09/27/2024   Vishal Suthar Modified the query to use new so part tables
 
-EXEC [dbo].[USP_GetSOApprovalList]  64
+EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
 (
@@ -192,7 +192,7 @@ BEGIN
 		--WHERE sop.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderId = @SalesOrderId;
 
 
-		SELECT so.SalesOrderId,
+		SELECT DISTINCT so.SalesOrderId,
 			so.SalesOrderNumber,
 			so.Version,
 			so.CustomerId,

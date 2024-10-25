@@ -264,7 +264,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId
 					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
@@ -484,7 +484,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId
 					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
@@ -789,7 +789,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId
 					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
@@ -958,7 +958,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId  AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId
 					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1

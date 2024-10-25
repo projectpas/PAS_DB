@@ -275,10 +275,22 @@ BEGIN
 				WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 			END
 
-			UPDATE [DBO].[SalesOrderQuotePartV1]
-			SET QtyRequested = @QtyRequested,
-			QtyQuoted = @QtyQuoted_U
-			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			;WITH QuotedSums AS (
+				SELECT SOP.SalesOrderQuotePartId, SUM(ISNULL(SOS.QtyQuoted, 0)) AS TotalQtyQuoted
+				FROM [DBO].[SalesOrderQuotePartV1] SOP
+				LEFT JOIN [DBO].[SalesOrderQuoteStocklineV1] SOS ON SOP.SalesOrderQuotePartId = SOS.SalesOrderQuotePartId
+				GROUP BY SOP.SalesOrderQuotePartId
+			)
+			UPDATE SOP
+			SET SOP.QtyRequested = @QtyRequested,
+				SOP.QtyQuoted = QS.TotalQtyQuoted
+			FROM [DBO].[SalesOrderQuotePartV1] SOP
+			INNER JOIN QuotedSums QS ON SOP.SalesOrderQuotePartId = QS.SalesOrderQuotePartId
+			WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			--UPDATE [DBO].[SalesOrderQuotePartV1]
+			--SET QtyRequested = @QtyRequested,
+			--QtyQuoted = @QtyQuoted_U
+			--WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 		END
 
 		SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;

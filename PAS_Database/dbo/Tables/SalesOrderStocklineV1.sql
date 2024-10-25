@@ -18,7 +18,23 @@
     [UpdatedDate]           DATETIME2 (7) CONSTRAINT [DF_SalesOrderStocklineV1_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]              BIT           CONSTRAINT [DF_SalesOrderStocklineV1_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT           CONSTRAINT [DF_SalesOrderStocklineV1_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [StocklineNumber]       VARCHAR (100) NULL,
+    [ConditionName]         VARCHAR (100) NULL,
+    [StatusName]            VARCHAR (100) NULL,
     CONSTRAINT [PK_SalesOrderStocklineV1] PRIMARY KEY CLUSTERED ([SalesOrderStocklineId] ASC),
     CONSTRAINT [FK_SalesOrderStocklineV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
+
+
+
+GO
+CREATE TRIGGER [dbo].[Trg_SalesOrderStocklineV1Audit]
+   ON  [dbo].[SalesOrderStocklineV1]
+   AFTER INSERT,DELETE,UPDATE
+AS
+BEGIN
+	INSERT INTO SalesOrderStocklineV1Audit
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

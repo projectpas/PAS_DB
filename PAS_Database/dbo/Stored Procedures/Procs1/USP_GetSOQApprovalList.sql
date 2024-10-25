@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    10/08/2021   Vishal Suthar Created
 
-EXEC [dbo].[USP_GetSOQApprovalList] 766
+EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
@@ -263,7 +263,7 @@ BEGIN
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
 		INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
-		LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
+		LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId

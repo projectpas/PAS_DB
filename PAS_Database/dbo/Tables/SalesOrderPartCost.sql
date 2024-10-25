@@ -28,3 +28,16 @@
     CONSTRAINT [PK_SalesOrderPartCost] PRIMARY KEY CLUSTERED ([SalesOrderPartCostId] ASC)
 );
 
+
+
+
+GO
+CREATE TRIGGER [dbo].[Trg_SalesOrderPartCostAudit]
+   ON  [dbo].[SalesOrderPartCost]
+   AFTER INSERT,DELETE,UPDATE
+AS
+BEGIN
+	INSERT INTO SalesOrderPartCostAudit
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

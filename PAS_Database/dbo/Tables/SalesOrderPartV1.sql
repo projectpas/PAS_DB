@@ -25,8 +25,27 @@
     [IsActive]            BIT             CONSTRAINT [DF_SalesOrderPartV1_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]           BIT             CONSTRAINT [DF_SalesOrderPartV1_IsDeleted] DEFAULT ((0)) NOT NULL,
     [OldSalesOrderPartId] BIGINT          NULL,
+    [PartNumber]          VARCHAR (100)   NULL,
+    [PartDescription]     VARCHAR (100)   NULL,
+    [ConditionName]       VARCHAR (100)   NULL,
+    [CurrencyName]        VARCHAR (100)   NULL,
+    [PriorityName]        VARCHAR (100)   NULL,
+    [StatusName]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_SalesOrderPartV1] PRIMARY KEY CLUSTERED ([SalesOrderPartId] ASC),
     CONSTRAINT [FK_SalesOrderPartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
 
+
+
+
+GO
+CREATE TRIGGER [dbo].[Trg_SalesOrderPartV1Audit]
+   ON  [dbo].[SalesOrderPartV1]
+   AFTER INSERT,DELETE,UPDATE
+AS 
+BEGIN
+	INSERT INTO SalesOrderPartV1Audit
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

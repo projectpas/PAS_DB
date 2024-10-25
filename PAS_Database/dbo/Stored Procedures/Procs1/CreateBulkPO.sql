@@ -115,14 +115,14 @@ BEGIN
 			SELECT TOP 1 @ManagementStructureID = ManagementStructureId FROM #BulkPOItemType
 			SELECT @level1Id=ISNULL(Level1Id,0) FROM dbo.PurchaseOrderManagementStructureDetails WITH (NOLOCK) WHERE ModuleID = 4 AND EntityMSID = @ManagementStructureID
 			SELECT TOP 1 @legalEntityId = LegalEntityId FROM ManagementStructureLevel WITH (NOLOCK) WHERE ID = @level1Id
-			SET @VendorId = (SELECT TOP 1 VendorId FROM @tbl_BulkPODetailType)
-			SET @ReturnCurrencyId = (SELECT [CurrencyId] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId)
-			IF(ISNULL(@ReturnCurrencyId,0) = 0)
-			BEGIN
-				SET @ReturnCurrencyId = (SELECT CU.CurrencyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) JOIN [dbo].[Currency] CU WITH(NOLOCK) 
-															  ON CU.CurrencyId = LE.FunctionalCurrencyId  WHERE LE.[LegalEntityId] = @LegalEntityId)
-				SET @ReturnCurrency = CASE WHEN @ReturnCurrencyId > 0 THEN (SELECT TOP 1 Code FROM dbo.Currency WITH(NOLOCK) WHERE CurrencyId = @ReturnCurrencyId) ELSE '' END
-			END
+			--SET @VendorId = (SELECT TOP 1 VendorId FROM @tbl_BulkPODetailType)
+			--SET @ReturnCurrencyId = (SELECT [CurrencyId] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @VendorId)
+			--IF(ISNULL(@ReturnCurrencyId,0) = 0)
+			--BEGIN
+			--	SET @ReturnCurrencyId = (SELECT CU.CurrencyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) JOIN [dbo].[Currency] CU WITH(NOLOCK) 
+			--												  ON CU.CurrencyId = LE.FunctionalCurrencyId  WHERE LE.[LegalEntityId] = @LegalEntityId)
+			--	SET @ReturnCurrency = CASE WHEN @ReturnCurrencyId > 0 THEN (SELECT TOP 1 Code FROM dbo.Currency WITH(NOLOCK) WHERE CurrencyId = @ReturnCurrencyId) ELSE '' END
+			--END
 
 			SELECT @WorkOrderMaterialsIds = STRING_AGG ( WorkOrderMaterialsId, ',') FROM #BulkPOItemType;
 			SELECT @WorkOrderMaterialsKitIds = STRING_AGG ( WorkOrderMaterialsKitId, ',') FROM #BulkPOItemType;
@@ -162,8 +162,17 @@ BEGIN
 									(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
 				END
 				/*****************End Prefixes*******************/	
+			
 				print 'Step 1'
 				set @LoopVendorId = (SELECT VendorId FROM #tempGroupByCount where id = @MainLoopId)
+					SET @ReturnCurrencyId = (SELECT [CurrencyId] FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorId] = @LoopVendorId)
+					IF(ISNULL(@ReturnCurrencyId,0) = 0)
+					BEGIN
+						SET @ReturnCurrencyId = (SELECT CU.CurrencyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) JOIN [dbo].[Currency] CU WITH(NOLOCK) 
+																	  ON CU.CurrencyId = LE.FunctionalCurrencyId  WHERE LE.[LegalEntityId] = @LegalEntityId)
+						SET @ReturnCurrency = CASE WHEN @ReturnCurrencyId > 0 THEN (SELECT TOP 1 Code FROM dbo.Currency WITH(NOLOCK) WHERE CurrencyId = @ReturnCurrencyId) ELSE '' END
+					END
+
 				INSERT INTO [dbo].[PurchaseOrder] 
 				([PurchaseOrderNumber], [OpenDate], [ClosedDate], [PriorityId], [Priority], [VendorId], [VendorName], [VendorCode]
 	           ,[VendorContactId], [VendorContact], [VendorContactPhone], [CreditTermsId], [Terms], [CreditLimit], [RequestedBy], [Requisitioner], [StatusId], [Status], [StatusChangeDate]

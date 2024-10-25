@@ -3205,6 +3205,7 @@
     <Build Include="dbo\Stored Procedures\ItemMasterPriceListForBulkUpdate.sql" />
     <Build Include="dbo\Stored Procedures\GetPriceMasterHistoryById.sql" />
     <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateInvoicePayment.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSetup_ById.sql" />
   </ItemGroup>
   <ItemGroup>

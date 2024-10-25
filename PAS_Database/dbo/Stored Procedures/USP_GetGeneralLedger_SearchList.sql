@@ -14,6 +14,7 @@
 	3    10/02/2024   Devendra Shekh	     Modifed to get JE number with from Id
 	4    10/08/2024   Devendra Shekh	     Modifed (Managed Null values)
 	5    10/09/2024   Devendra Shekh	     Modifed (Added new fields [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule])
+	6    10/25/2024   Devendra Shekh	     Modifed (Added customerId to select)
 
 exec USP_GetGeneralLedger_SearchList 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate='2024-09-09 00:00:00',@ToEffectiveDate='2024-10-09 00:00:00',@FromJournalId=N'0',@ToJournalId=N'0',
@@ -110,6 +111,7 @@ BEGIN
 			[JournalTypeName] [varchar](200) NULL,
 			[ReferenceId] [bigint] NULL,
 			[ReferenceModule] [varchar](200) NULL,
+			[CustomerId] [bigint] NULL,
 		);
 
 		CREATE TABLE #TempTotalAmount
@@ -151,7 +153,7 @@ BEGIN
 
 		INSERT INTO #TempJournalDetails ([CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
 										 [GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], [MastercompanyId]
-										 , [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule])
+										 , [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule],[CustomerId])
 		SELECT DISTINCT	CBD.CommonJournalBatchDetailId,
 				ISNULL(BH.AccountingPeriod,'') AS 'AccountPeriodName',
 				ISNULL(CBD.DebitAmount, 0) AS 'DebitAmount',
@@ -244,6 +246,7 @@ BEGIN
 					WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
 					OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
 					ELSE '' END
+				,CASE WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.CustomerId ELSE 0 END AS 'CustomerId'
 		FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
 		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BH.JournalBatchHeaderId = BD.JournalBatchHeaderId
@@ -307,7 +310,7 @@ BEGIN
 		BEGIN
 			SELECT COUNT(2) OVER () AS NumberOfItems, [CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
 					[GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], FC.[MastercompanyId]
-					,WC.TotalDebitAmount, WC.TotalCreditAmount, [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule]
+					,WC.TotalDebitAmount, WC.TotalCreditAmount, [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule], [CustomerId]
 			FROM #TempJournalDetails FC
 			INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId  
 			ORDER BY [EntryDate] DESC
@@ -316,7 +319,7 @@ BEGIN
 		BEGIN
 			SELECT COUNT(2) OVER () AS NumberOfItems, [CommonJournalBatchDetailId], [AccountPeriodName], [DebitAmount], [CreditAmount], [Currency], [DocumentNumber], [EffectiveDate], [EntryDate], [Distribution], [JournalId], 
 					[GLAccountName], [TypeName], [EmployeeName], [Level1], [Level2], [Level3], [Level4], [Level5], [Level6], [Level7], [Level8], [Level9], [Level10], FC.[MastercompanyId]
-					,WC.TotalDebitAmount, WC.TotalCreditAmount, [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule]
+					,WC.TotalDebitAmount, WC.TotalCreditAmount, [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule], [CustomerId]
 			FROM #TempJournalDetails FC
 			INNER JOIN #TempTotalAmount WC ON FC.MastercompanyId = WC.MastercompanyId
 			ORDER BY [EntryDate] DESC

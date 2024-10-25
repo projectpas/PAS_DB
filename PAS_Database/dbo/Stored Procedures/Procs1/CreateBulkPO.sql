@@ -7,6 +7,7 @@
     1   	
 	2    14/08/2024              MOIN BLOCH                         Converted Error Log Id in Varchar
 	3    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
+	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
 ****************************************************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -41,7 +42,7 @@ BEGIN
 			DECLARE @siteNameBill varchar(200), @siteNameShip varchar(200),@contactId bigint, @contactName varchar(200),@contactNo varchar(20), @addressId bigint
 			DECLARE @Address1 varchar(max),@Address2 varchar(max),@Address3 varchar(max),@City varchar(100),@StateOrProvince varchar(100),@PostalCode varchar(max),@CountryId int
 			DECLARE @UserTypeName varchar(100),@UserName varchar(100),@Country varchar(100)
-			DECLARE @ShipViaId bigint,@ShipVia varchar(200) ,@ShippingViaId bigint ,@VendorModule VARCHAR(100) = 'Vendor',@ReturnCurrencyId INT = 0,@VendorId BIGINT = 0;
+			DECLARE @ShipViaId bigint,@ShipVia varchar(200) ,@ShippingViaId bigint ,@VendorModule VARCHAR(100) = 'Vendor',@ReturnCurrencyId INT = 0,@VendorId BIGINT = 0,@ReturnCurrency varchar(10);
 			SELECT @UserTypeName= ModuleName FROM dbo.Module WITH (NOLOCK)  WHERE ModuleId = 9;
 			
 			SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Purchase';
@@ -120,6 +121,7 @@ BEGIN
 			BEGIN
 				SET @ReturnCurrencyId = (SELECT CU.CurrencyId FROM [dbo].[LegalEntity] LE WITH(NOLOCK) JOIN [dbo].[Currency] CU WITH(NOLOCK) 
 															  ON CU.CurrencyId = LE.FunctionalCurrencyId  WHERE LE.[LegalEntityId] = @LegalEntityId)
+				SET @ReturnCurrency = CASE WHEN @ReturnCurrencyId > 0 THEN (SELECT TOP 1 Code FROM dbo.Currency WITH(NOLOCK) WHERE CurrencyId = @ReturnCurrencyId) ELSE '' END
 			END
 
 			SELECT @WorkOrderMaterialsIds = STRING_AGG ( WorkOrderMaterialsId, ',') FROM #BulkPOItemType;
@@ -208,7 +210,7 @@ BEGIN
 					[ManagementStructureId], [Level1], [Level2], [Level3], [Level4], [ParentId], [isParent], [Memo], [POPartSplitUserTypeId], [POPartSplitUserType], [POPartSplitUserId], [POPartSplitUser],
 					[POPartSplitSiteId], [POPartSplitSiteName], [POPartSplitAddressId], [POPartSplitAddress1], [POPartSplitAddress2], [POPartSplitAddress3], [POPartSplitCity], [POPartSplitState],
 					[POPartSplitPostalCode], [POPartSplitCountryId], [POPartSplitCountryName], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-					[DiscountPercentValue], [ExchangeSalesOrderId], [ExchangeSalesOrderNo], [ManufacturerPN], [AssetModel], [AssetClass],NeedByDate,EstDeliveryDate)
+					[DiscountPercentValue], [ExchangeSalesOrderId], [ExchangeSalesOrderNo], [ManufacturerPN], [AssetModel], [AssetClass],NeedByDate,EstDeliveryDate, WorkOrderMaterialsId, IsKit, IsSubWO)
 					--OUTPUT INSERTED.PurchaseOrderPartRecordId INTO @NewId(MyNewId)
 					SELECT
 						@NewPurchaseOrderId, TYP.ItemMasterId,IM.partnumber, IM.PartDescription,NULL,NULL,NULL,
@@ -218,13 +220,16 @@ BEGIN
 							END
 						END
 					,IM.ManufacturerId,IM.ManufacturerName,
-					POS.PriorityId,POS.[Priority],TYP.ConditionId, TYP.Condition,ISNULL(TYP.Quantity,0),ISNULL(TYP.Quantity,0),0,ISNULL(IMP.PP_VendorListPrice,0),ISNULL(PP_PurchaseDiscPerc,0),ISNULL(PP_PurchaseDiscAmount,0),
-					0,ISNULL(TYP.UnitCost,0),(ISNULL(TYP.UnitCost,0) * ISNULL(TYP.Quantity,0)),Im.PurchaseCurrencyId, C.Code,1.0,Im.PurchaseCurrencyId, C.Code,TYP.WorkOrderId,TYP.WorkOrderNo,
+					POS.PriorityId,POS.[Priority],TYP.ConditionId, TYP.Condition,ISNULL(TYP.Quantity,0),ISNULL(TYP.Quantity,0),0,
+					--ISNULL(IMP.PP_VendorListPrice,0),ISNULL(PP_PurchaseDiscPerc,0),ISNULL(PP_PurchaseDiscAmount,0),
+					ISNULL(TYP.UnitCost,0),0,0,
+					0,ISNULL(TYP.UnitCost,0),(ISNULL(TYP.UnitCost,0) * ISNULL(TYP.Quantity,0)),@ReturnCurrencyId, @ReturnCurrency,1.0,@ReturnCurrencyId,@ReturnCurrency,TYP.WorkOrderId,TYP.WorkOrderNo,
 					NULL,NULL,NULL,NULL,NULL,NULL,1,'STOCK',IM.GLAccountId,IM.GLAccount,IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,
 					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,
-					0,NULL,NULL,NULL,NULL,NULL,cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)
+					0,NULL,NULL,NULL,NULL,NULL,cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE), CASE WHEN TYP.WorkOrderMaterialsId > 0 THEN TYP.WorkOrderMaterialsId ELSE  (CASE WHEN TYP.WorkOrderMaterialsKitId > 0 THEN TYP.WorkOrderMaterialsKitId ELSE NULL END) END,
+					CASE WHEN TYP.WorkOrderMaterialsId > 0 THEN 0 ELSE (CASE WHEN TYP.WorkOrderMaterialsKitId > 0 THEN 1 ELSE NULL END) END,NULL
 					FROM #BulkPOItemType TYP
 					INNER JOIN dbo.ItemMaster IM on TYP.ItemMasterId = IM.ItemMasterId
 					LEFT JOIN dbo.Currency C on Im.PurchaseCurrencyId = C.CurrencyId
@@ -291,6 +296,7 @@ BEGIN
 				SELECT @Address1 = Line1,@Address2 =Line2,@Address3 = Line3, @City = City, @StateOrProvince = StateOrProvince, @PostalCode = PostalCode,@CountryId = ISNULL(CountryId,0) FROM dbo.Address WITH (NOLOCK) WHERE AddressId = @addressId
 				SELECT @Country = countries_name FROM dbo.Countries WITH(NOLOCK) where countries_id = @CountryId
 				SELECT TOP 1 @ShipVia= Name, @ShipViaId = ShippingViaId FROM dbo.ShippingVia WHERE Name = 'DHL' AND MasterCompanyId = @MstCompanyId
+				Select TOP 1 @ShippingViaId = LegalEntityShippingId from DBO.LegalEntityShipping where ShipViaId = @ShipViaId AND LegalEntityId = @legalEntityId
 				INSERT INTO [dbo].[AllAddress]
 					   ([ReffranceId],[ModuleId],[UserType],[UserId],[SiteId],[SiteName],[AddressId],[IsModuleOnly],[IsShippingAdd]
 					   ,[Memo],[ContactId],[ContactName],ContactPhoneNo,[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId]

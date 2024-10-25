@@ -15,6 +15,9 @@
     [IsDeleted]                         BIT            CONSTRAINT [DF__AccountingIntegrationSetupAudit__IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsEnabled]                         BIT            NULL,
     [APIKey]                            VARCHAR (500)  NULL,
+    [IsDefault]                         BIT            NULL,
     CONSTRAINT [PK_AccountingIntegrationSetupAudit] PRIMARY KEY CLUSTERED ([AccountingIntegrationSetupAuditId] ASC)
 );
+
+
 

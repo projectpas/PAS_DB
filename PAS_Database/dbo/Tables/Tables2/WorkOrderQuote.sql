@@ -33,6 +33,8 @@
     [CustomerContact]           VARCHAR (200)   NULL,
     [CreditLimit]               DECIMAL (18, 2) NULL,
     [CreditTerms]               VARCHAR (200)   NULL,
+    [ReportCurrencyId]          INT             NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_WorkOrderQuote] PRIMARY KEY CLUSTERED ([WorkOrderQuoteId] ASC),
     CONSTRAINT [FK_WorkOrderQuote_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderQuote_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -43,6 +45,8 @@
     CONSTRAINT [FK_WorkOrderQuote_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderQuote_WorkOrderQuoteStatus] FOREIGN KEY ([QuoteStatusId]) REFERENCES [dbo].[WorkOrderQuoteStatus] ([WorkOrderQuoteStatusId])
 );
+
+
 
 
 GO

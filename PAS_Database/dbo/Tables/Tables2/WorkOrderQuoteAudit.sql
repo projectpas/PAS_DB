@@ -34,6 +34,10 @@
     [CustomerContact]           VARCHAR (200)   NULL,
     [CreditLimit]               DECIMAL (18, 2) NULL,
     [CreditTerms]               VARCHAR (200)   NULL,
+    [ReportCurrencyId]          INT             NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_WorkOrderQuoteAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteAuditId] ASC)
 );
+
+
 

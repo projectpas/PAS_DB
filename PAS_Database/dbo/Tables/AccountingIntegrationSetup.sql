@@ -14,8 +14,11 @@
     [IsDeleted]                    BIT            NOT NULL,
     [IsEnabled]                    BIT            NULL,
     [APIKey]                       VARCHAR (500)  NULL,
+    [IsDefault]                    BIT            NULL,
     CONSTRAINT [PK_AccountingIntegrationSetup] PRIMARY KEY CLUSTERED ([AccountingIntegrationSetupId] ASC)
 );
+
+
 
 
 

@@ -208,7 +208,7 @@ BEGIN
 					[ManagementStructureId], [Level1], [Level2], [Level3], [Level4], [ParentId], [isParent], [Memo], [POPartSplitUserTypeId], [POPartSplitUserType], [POPartSplitUserId], [POPartSplitUser],
 					[POPartSplitSiteId], [POPartSplitSiteName], [POPartSplitAddressId], [POPartSplitAddress1], [POPartSplitAddress2], [POPartSplitAddress3], [POPartSplitCity], [POPartSplitState],
 					[POPartSplitPostalCode], [POPartSplitCountryId], [POPartSplitCountryName], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
-					[DiscountPercentValue], [ExchangeSalesOrderId], [ExchangeSalesOrderNo], [ManufacturerPN], [AssetModel], [AssetClass],NeedByDate,EstDeliveryDate)
+					[DiscountPercentValue], [ExchangeSalesOrderId], [ExchangeSalesOrderNo], [ManufacturerPN], [AssetModel], [AssetClass],NeedByDate,EstDeliveryDate, WorkOrderMaterialsId, IsKit, IsSubWO)
 					--OUTPUT INSERTED.PurchaseOrderPartRecordId INTO @NewId(MyNewId)
 					SELECT
 						@NewPurchaseOrderId, TYP.ItemMasterId,IM.partnumber, IM.PartDescription,NULL,NULL,NULL,
@@ -224,7 +224,8 @@ BEGIN
 					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,
-					0,NULL,NULL,NULL,NULL,NULL,cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)
+					0,NULL,NULL,NULL,NULL,NULL,cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE), CASE WHEN TYP.WorkOrderMaterialsId > 0 THEN TYP.WorkOrderMaterialsId ELSE  (CASE WHEN TYP.WorkOrderMaterialsKitId > 0 THEN TYP.WorkOrderMaterialsKitId ELSE NULL END) END,
+					CASE WHEN TYP.WorkOrderMaterialsId > 0 THEN 0 ELSE (CASE WHEN TYP.WorkOrderMaterialsKitId > 0 THEN 1 ELSE NULL END) END,NULL
 					FROM #BulkPOItemType TYP
 					INNER JOIN dbo.ItemMaster IM on TYP.ItemMasterId = IM.ItemMasterId
 					LEFT JOIN dbo.Currency C on Im.PurchaseCurrencyId = C.CurrencyId
@@ -291,6 +292,7 @@ BEGIN
 				SELECT @Address1 = Line1,@Address2 =Line2,@Address3 = Line3, @City = City, @StateOrProvince = StateOrProvince, @PostalCode = PostalCode,@CountryId = ISNULL(CountryId,0) FROM dbo.Address WITH (NOLOCK) WHERE AddressId = @addressId
 				SELECT @Country = countries_name FROM dbo.Countries WITH(NOLOCK) where countries_id = @CountryId
 				SELECT TOP 1 @ShipVia= Name, @ShipViaId = ShippingViaId FROM dbo.ShippingVia WHERE Name = 'DHL' AND MasterCompanyId = @MstCompanyId
+				Select TOP 1 @ShippingViaId = LegalEntityShippingId from DBO.LegalEntityShipping where ShipViaId = @ShipViaId AND LegalEntityId = @legalEntityId
 				INSERT INTO [dbo].[AllAddress]
 					   ([ReffranceId],[ModuleId],[UserType],[UserId],[SiteId],[SiteName],[AddressId],[IsModuleOnly],[IsShippingAdd]
 					   ,[Memo],[ContactId],[ContactName],ContactPhoneNo,[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId]

@@ -218,7 +218,9 @@ BEGIN
 							END
 						END
 					,IM.ManufacturerId,IM.ManufacturerName,
-					POS.PriorityId,POS.[Priority],TYP.ConditionId, TYP.Condition,ISNULL(TYP.Quantity,0),ISNULL(TYP.Quantity,0),0,ISNULL(IMP.PP_VendorListPrice,0),ISNULL(PP_PurchaseDiscPerc,0),ISNULL(PP_PurchaseDiscAmount,0),
+					POS.PriorityId,POS.[Priority],TYP.ConditionId, TYP.Condition,ISNULL(TYP.Quantity,0),ISNULL(TYP.Quantity,0),0,
+					--ISNULL(IMP.PP_VendorListPrice,0),ISNULL(PP_PurchaseDiscPerc,0),ISNULL(PP_PurchaseDiscAmount,0),
+					ISNULL(TYP.UnitCost,0),0,0,
 					0,ISNULL(TYP.UnitCost,0),(ISNULL(TYP.UnitCost,0) * ISNULL(TYP.Quantity,0)),Im.PurchaseCurrencyId, C.Code,1.0,Im.PurchaseCurrencyId, C.Code,TYP.WorkOrderId,TYP.WorkOrderNo,
 					NULL,NULL,NULL,NULL,NULL,NULL,1,'STOCK',IM.GLAccountId,IM.GLAccount,IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,
 					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,
@@ -292,7 +294,6 @@ BEGIN
 				SELECT @Address1 = Line1,@Address2 =Line2,@Address3 = Line3, @City = City, @StateOrProvince = StateOrProvince, @PostalCode = PostalCode,@CountryId = ISNULL(CountryId,0) FROM dbo.Address WITH (NOLOCK) WHERE AddressId = @addressId
 				SELECT @Country = countries_name FROM dbo.Countries WITH(NOLOCK) where countries_id = @CountryId
 				SELECT TOP 1 @ShipVia= Name, @ShipViaId = ShippingViaId FROM dbo.ShippingVia WHERE Name = 'DHL' AND MasterCompanyId = @MstCompanyId
-				Select TOP 1 @ShippingViaId = LegalEntityShippingId from DBO.LegalEntityShipping where ShipViaId = @ShipViaId AND LegalEntityId = @legalEntityId
 				INSERT INTO [dbo].[AllAddress]
 					   ([ReffranceId],[ModuleId],[UserType],[UserId],[SiteId],[SiteName],[AddressId],[IsModuleOnly],[IsShippingAdd]
 					   ,[Memo],[ContactId],[ContactName],ContactPhoneNo,[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId]

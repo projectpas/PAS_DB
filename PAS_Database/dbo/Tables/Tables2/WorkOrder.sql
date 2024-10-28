@@ -36,6 +36,9 @@
     [Days]                    INT             NULL,
     [NetDays]                 INT             NULL,
     [WorkOrderType]           VARCHAR (50)    NULL,
+    [FunctionalCurrencyId]    INT             NULL,
+    [ReportCurrencyId]        INT             NULL,
+    [ForeignExchangeRate]     DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -48,6 +51,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 
@@ -113,6 +118,7 @@ GO
  ** --   --------     -------		-------------------------------            
     2    18/03/2024   Bhargav Saliya    Add New Fields [PercentId],[Days],[NetDays]
 	3	 07/20/2024	  Bhargav Saliya    Move Audit Table in backup DB
+	4	 10/28/2024	  AMIT GHEDIYA		Added Curr in workorder & audit table.
 	
 **************************************************************/ 
 CREATE     TRIGGER [dbo].[Trg_WorkOrderAudit]
@@ -144,11 +150,13 @@ BEGIN
     SELECT WorkOrderId, WorkOrderNum,IsSinglePN,WorkOrderTypeId,OpenDate,CustomerId,WorkOrderStatusId, EmployeeId,
 	MasterCompanyId,CreatedBy,UpdatedBy,GETUTCDATE(),GETUTCDATE(),IsActive,IsDeleted,SalesPersonId,CSRId,ReceivingCustomerWorkId,
 	Memo, Notes, CustomerContactId, @Status, CustomerName,
-	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId,IsManualForm,PercentId,Days,NetDays
+	@ContactName, @ContactPhone, CreditLimit, CreditTerms, @SalesPerson, @CSR, @Employee, @TearDownTypes,RMAHeaderId,IsWarranty,IsAccepted,ReasonId,Reason,CreditTermId,IsManualForm,PercentId,Days,NetDays,
+	FunctionalCurrencyId, ReportCurrencyId, ForeignExchangeRate
 	FROM INSERTED 
 
 	SET NOCOUNT ON;
 END
+
 GO
 DISABLE TRIGGER [dbo].[Trg_WorkOrderAudit]
     ON [dbo].[WorkOrder];

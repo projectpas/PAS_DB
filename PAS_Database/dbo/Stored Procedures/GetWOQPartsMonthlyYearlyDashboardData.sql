@@ -107,7 +107,7 @@ BEGIN
 					INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RC.CustomerId
 					WHERE CONVERT(DATE, RC.ReceivedDate) 
 						BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
-						AND @StartDate AND RC.MasterCompanyId = @MasterCompanyId
+						AND @StartDate AND RC.MasterCompanyId = @MasterCompanyId AND ISNULL(RC.IsPiecePart,0) = 0
 					GROUP BY C.CustomerId, C.Name
 					)
 					INSERT INTO #tmpTop10CustomerReceivedPart (Customer, TotalWorkOrderCount)

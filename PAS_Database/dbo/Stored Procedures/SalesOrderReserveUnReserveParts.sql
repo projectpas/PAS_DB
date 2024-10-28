@@ -16,7 +16,10 @@
  ** --   --------     -------			--------------------------------          
     1    08/10/2024   AMIT GHEDIYA		Created
 
-EXEC [dbo].[SalesOrderReserveUnReserveParts] 
+declare @p1 dbo.SalesOrderReserveIssueParts
+insert into @p1 values(NULL,1267,1437,181650,10,N'3628',N'SPRING',NULL,NULL,0,NULL,NULL,0,15,15,7,NULL,0,NULL,0,0,NULL,0,NULL,1,NULL,NULL,NULL,NULL,0,'2024-10-25 18:56:53.6040000',2,'2024-10-25 18:56:53.6040000',N'OEM',N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000038',N'CNTL-000881',NULL,N'MOOG INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-10-26 00:26:53.6005436','2024-10-26 00:26:53.6005438',1,0)
+
+exec dbo.SalesOrderReserveUnReserveParts @tbl_SalesOrderReserveIssueParts=@p1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SalesOrderReserveUnReserveParts] 
 (
@@ -192,9 +195,8 @@ BEGIN
 			BEGIN
 				--Checking for part data without stockline
 				IF NOT EXISTS(SELECT SOP.SalesOrderPartId FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
-					  INNER JOIN [DBO].[SalesOrderStocklineV1] SOSP WITH(NOLOCK) ON SOSP.SalesOrderPartId = SOP.SalesOrderPartId
-					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
-						AND SOP.ConditionId = @ConditionId) --AND SOSP.StockLineId IS NULL
+					  LEFT JOIN [DBO].[SalesOrderStocklineV1] SOSP WITH(NOLOCK) ON SOSP.SalesOrderPartId = SOP.SalesOrderPartId
+					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOSP.StockLineId = @StockLineId) --AND SOSP.StockLineId IS NULL
 				BEGIN
 					--Get Part Data
 					SELECT @PartQty = SOP.QtyOrder, 
@@ -207,7 +209,7 @@ BEGIN
 					       @EstimatedShipDate = SOP.EstimatedShipDate
 					       --@PartSalesPriceExtended = SOPC.UnitSalesPriceExtended
 					FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
-					INNER JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
+					LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.SalesOrderId = SOP.SalesOrderId
 					WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
 					AND SOP.ConditionId = @ConditionId;
 				
@@ -239,7 +241,7 @@ BEGIN
 					SELECT @PartSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 					FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-					SET @InsertedSalesOrderStocklineId = @@IDENTITY;
+					SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
 					INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
 					[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
@@ -256,10 +258,9 @@ BEGIN
 				ELSE
 				BEGIN 
 					--Checking for part data with stockline
-					IF NOT EXISTS(SELECT TOP 1 1 FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
+					IF EXISTS(SELECT TOP 1 1 FROM [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK)
 						 INNER JOIN [DBO].[SalesOrderStocklineV1] SOS WITH(NOLOCK) ON SOS.SalesOrderPartId = SOP.SalesOrderPartId
-						 WHERE SOP.SalesOrderId = @SalesOrderId AND SOP.ItemMasterId = @ItemMasterId
-						AND SOP.ConditionId = @ConditionId)
+						 WHERE SOP.SalesOrderId = @SalesOrderId AND SOS.StockLineId = @StockLineId)
 					BEGIN
 						DECLARE @QtyAdded INT = 0,@QtyAfterReserve INT = 0,@NewSalesOrderPartId BIGINT = 0;
 
@@ -313,14 +314,14 @@ BEGIN
 							SELECT @SalesOrderId, ItemMasterId, ConditionId, @PartQtyRequested, @PartQty, @QtyToReserve, @PartCurrencyId, @PartFxRate, @PartPriorityId, @SOPartStatus, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, '', MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
 							FROM #SalesOrderReserveIssueParts WITH(NOLOCK) WHERE [ID] = @MasterLoopID;
 
-							SET @NewSalesOrderPartId = @@IDENTITY;
+							SET @NewSalesOrderPartId = SCOPE_IDENTITY();
 
 							-- Added at Stockline Level
 							INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 							SELECT @NewSalesOrderPartId, STK.StockLineId, @ConditionId, @QtyToReserve, @QtyToReserve, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 							FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-							SET @InsertedSalesOrderStocklineId = @@IDENTITY;
+							SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
 							-- Added at StocklineCost
 							INSERT INTO [dbo].[SalesOrderStockLineCost] ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
@@ -388,6 +389,29 @@ BEGIN
 					AND SalesOrderId = @SalesOrderId
 					AND StockLineId = @StockLineId
 					AND ItemMasterId = @ItemMasterId;
+
+				--Update Reserve Part into SalesOrderReserveParts
+				UPDATE [DBO].[SalesOrderStocklineV1] 
+				SET UpdatedBy = @CreatedBy,
+					UpdatedDate = GETUTCDATE(),
+					QtyReserved = @ReservePartTotalReserved
+				WHERE SalesOrderPartId = @SalesOrderPartId 
+					AND StockLineId = @StockLineId
+
+				IF(@ReserveStatusId = @PartStatusId)
+				BEGIN
+					UPDATE DBO.Stockline
+					SET QuantityAvailable = QuantityAvailable - @QtyToReserve,
+					QuantityReserved = QuantityReserved + @QtyToReserve
+					WHERE StockLineId = @StockLineId;
+				END
+				ELSE IF(@UnReserveStatusId = @PartStatusId)
+				BEGIN
+					UPDATE DBO.Stockline
+					SET QuantityAvailable = QuantityAvailable + @QtyToUnReserve,
+					QuantityReserved = QuantityReserved - @QtyToUnReserve
+					WHERE StockLineId = @StockLineId;
+				END
 			END
 			ELSE
 			BEGIN
@@ -434,11 +458,28 @@ BEGIN
 						   0,NULL,@ReservePartQtyToReserve,0,@ReservedById,@ReservedDate,
 						   0,NULL,@CreatedBy,GETUTCDATE(),@CreatedBy,GETUTCDATE(),
 						   1,0,@SalesOrderPartId,@ReservePartTotalReserved,0,@MasterCompanyId;
+
+					IF(@ReserveStatusId = @PartStatusId)
+					BEGIN
+						UPDATE DBO.Stockline
+						SET QuantityAvailable = QuantityAvailable - @ReservePartQtyToReserve,
+						QuantityReserved = QuantityReserved + @ReservePartQtyToReserve
+						WHERE StockLineId = @StockLineId;
+					END
+					ELSE IF(@UnReserveStatusId = @PartStatusId)
+					BEGIN
+						UPDATE DBO.Stockline
+						SET QuantityAvailable = QuantityAvailable + @ReservePartQtyToReserve,
+						QuantityReserved = QuantityReserved - @ReservePartQtyToReserve
+						WHERE StockLineId = @StockLineId;
+					END
 				END
 			END
 
 			SET @MasterLoopID = @MasterLoopID - 1;			
 		END
+
+			
 
 		--Return Data
 		SELECT @SalesOrderPartId AS 'SalesOrderPartId',@SalesOrderId AS 'SalesOrderId';

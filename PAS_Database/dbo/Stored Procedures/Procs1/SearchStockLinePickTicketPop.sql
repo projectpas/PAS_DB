@@ -11,8 +11,9 @@
     1    06/15/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
     2    06/21/2023   Vishal Suthar Updated the SP to include pick ticket even after invoice is created
     3    10/15/2024   Vishal Suthar Modified SP to get Pick ticket stockline list from new SO Part tables
+    4    10/29/2024   Vishal Suthar Modified SP to get SalesOrderStocklineId
 
-EXEC [dbo].[SearchStockLinePickTicketPop] 3, 7, 1103, 0
+EXEC [dbo].[SearchStockLinePickTicketPop] 318, 7, 1272, 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop]
 	@ItemMasterIdlist bigint, 
@@ -31,6 +32,7 @@ BEGIN
 		BEGIN
 			SELECT DISTINCT
 					sop.SalesOrderPartId
+					,stk.SalesOrderStocklineId
 					,im.PartNumber
 					,sl.StockLineId
 					,im.ItemMasterId As PartId
@@ -101,6 +103,7 @@ BEGIN
 		BEGIN
 			SELECT DISTINCT
 					sop.SalesOrderPartId
+					,stk.SalesOrderStocklineId
 					,im.PartNumber
 					,sl.StockLineId
 					,im.ItemMasterId As PartId

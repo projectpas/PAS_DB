@@ -16,7 +16,7 @@
  ** --   --------     -------		--------------------------------          
 	1    10/15/2024   Vishal Suthar Modified SP to get Pick ticket child table list from new SO Part tables
      
--- EXEC [dbo].[sp_GetPickTicketChildList] 1103, 3, 7
+	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
 CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
 	@SalesOrderId  bigint,
@@ -31,16 +31,16 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 
-		SELECT sopt.SOPickTicketNumber, sopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber, sopt.CreatedDate as PickedDate,
+		SELECT DISTINCT sopt.SOPickTicketNumber, sopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber, CAST(sopt.CreatedDate AS DATE) as PickedDate,
 		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.SOPickTicketId, sopt.SalesOrderId, sopt.SalesOrderPartId,
-		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, sopt.ConfirmedDate, 
+		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, CAST(sopt.ConfirmedDate AS DATE) AS ConfirmedDate, 
 		sl.StockLineId, sopt.IsConfirmed 
-		FROM SOPickTicket sopt WITH(NOLOCK)
-		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
-		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sopt.SalesOrderPartId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
-		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
-		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
+		FROM DBO.SOPickTicket sopt WITH(NOLOCK)
+		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
+		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
+		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId
 	
 	END

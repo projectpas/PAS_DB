@@ -11,11 +11,12 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** PR   Date				Author				  Change Description  
 ** --   --------		-------					--------------------------------
 ** 1     
-** 2    21-07-2023      Bhargav Saliya            Change Date In UTC
-** 3    21-07-2023      Devendra Shekh            added qtyremaing for insert AND UPDATE
-** 4    25-09-2023      Devendra Shekh            pick ticket issue resolved
-** 5    08-11-2023      Amit Ghediya              pick ticket issue for multipele part resolved
-** 6    18-12-2023		Rajesh Gami				  Remove SalesOrderPart Status from here, As per new requirement we are using only Open, Fulfilled, Order, Shipped and Billed Status. 
+** 2    21-07-2023      Bhargav Saliya          Change Date In UTC
+** 3    21-07-2023      Devendra Shekh          added qtyremaing for insert AND UPDATE
+** 4    25-09-2023      Devendra Shekh          pick ticket issue resolved
+** 5    08-11-2023      Amit Ghediya            pick ticket issue for multipele part resolved
+** 6    18-12-2023		Rajesh Gami			    Remove SalesOrderPart Status from here, As per new requirement we are using only Open, Fulfilled, Order, Shipped and Billed Status. 
+** 7    29-10-2024		Vishal Suthar			Modified to add one more column SalesOrderStocklineId
 
 EXEC Usp_savePickTicketItemInterface
 ********************************************************************************/
@@ -29,6 +30,7 @@ CREATE PROCEDURE [dbo].[sp_savePickTicketItemInterface]
   @IsActive bit =0,  
   @IsDeleted bit =0,  
   @SalesOrderPartId bigint=0,  
+  @SalesOrderStocklineId bigint=0,  
   @Qty int = 0,  
   @QtyToShip int=0,  
   @MasterCompanyId int=0,  
@@ -78,10 +80,10 @@ BEGIN
 
    INSERT INTO [dbo].[SOPickTicket]  
      ([SOPickTicketNumber], [SalesOrderId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive],  
-     [IsDeleted], [SalesOrderPartId], [Qty], [QtyToShip], [MasterCompanyId], [Status],  
+     [IsDeleted], [SalesOrderPartId], [SalesOrderPartStocklineId], [Qty], [QtyToShip], [MasterCompanyId], [Status],  
      [PickedById], [ConfirmedById], [Memo], [IsConfirmed], [QtyRemaining])  
    VALUES(@SOPickTicketNumber, @SalesOrderId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted,   
-     @SalesOrderPartId,  
+     @SalesOrderPartId, @SalesOrderStocklineId,  
      @Qty, @QtyToShip, @MasterCompanyId, @Status, @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@QtyRemaining);  
   
    IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  

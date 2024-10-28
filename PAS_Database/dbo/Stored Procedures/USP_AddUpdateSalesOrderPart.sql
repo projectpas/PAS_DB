@@ -137,7 +137,7 @@ BEGIN
 				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0
 				FROM #SOPartDetails WHERE ID = @SOPartLoopID;
 
-				SET @SalesOrderPartId = @@IDENTITY;
+				SET @SalesOrderPartId = SCOPE_IDENTITY();
 
 				DECLARE @SalesPrice AS decimal(18,4);
 				DECLARE @MarkUpAmt AS decimal(18,4);
@@ -172,7 +172,7 @@ BEGIN
 				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
 				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-				SET @InsertedSalesOrderStocklineId = @@IDENTITY;
+				SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
 
 				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
@@ -241,6 +241,18 @@ BEGIN
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
 
+			;WITH QuotedSums AS (
+				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
+				FROM [DBO].[SalesOrderPartV1] SOP
+				LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+				GROUP BY SOP.SalesOrderPartId
+			)
+			UPDATE SOP
+			SET SOP.QtyRequested = @QtyRequested,
+				SOP.QtyOrder = QS.TotalQtyQuoted
+			FROM [DBO].[SalesOrderPartV1] SOP
+			INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
+			WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			--UPDATE [DBO].[SalesOrderPartV1]
 			--SET QtyRequested = @QtyRequested,
 			--QtyOrder = @QtyQuoted_U

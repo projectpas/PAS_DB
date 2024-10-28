@@ -18,7 +18,7 @@
 	1	01/31/2024		AMIT GHEDIYA		Added IsPerforma for Billing
 	2	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
      
- EXEC [dbo].[sp_GetSOShippingChildList] 814, 318, 15  
+ EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
  @SalesOrderId  bigint,  
@@ -43,7 +43,7 @@ BEGIN
   sosi.FedexPdfPath 
   FROM DBO.SOPickTicket sopt WITH (NOLOCK)   
   INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId  
-  LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId  
+  LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId --stk.SalesOrderPartId = sop.SalesOrderPartId  
   LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId   
      AND sosi.SOPickTicketId = sopt.SOPickTicketId  
   LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId   

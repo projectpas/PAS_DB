@@ -45,6 +45,12 @@
     [CMMWarning]                 BIT           DEFAULT ((0)) NOT NULL,
     [CMMWarningAtReceiving]      BIT           DEFAULT ((0)) NOT NULL,
     [CMMWarningAtShipping]       BIT           DEFAULT ((0)) NOT NULL,
+    [CMMRestriction]             BIT           NULL,
+    [NoCMMWarning]               BIT           NULL,
+    [CapesRestriction]           BIT           NULL,
+    [CapesWarningAtReceiving]    BIT           NULL,
+    [CapesWarningAtShipping]     BIT           NULL,
+    [NoCapesWarning]             BIT           NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

@@ -19,6 +19,7 @@
 	3    25/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	4	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 25/10/2024	  Devendra Shekh	Added ReferenceName and Currency for CommonBatchDetails
+	6	 28/10/2024	  Devendra Shekh	Modified(get currency from header if referenceName is not there)
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -266,6 +267,7 @@ BEGIN
 					[AllMSlevels] [varchar](MAX) NULL,
 					[CurrencyCode] [varchar](10) NULL,
 					[ReferenceName] [varchar](100) NULL,
+					[FXRate] [decimal](18,2) NULL,
 				)
 
 				;With referenceResult AS (
@@ -273,7 +275,8 @@ BEGIN
 							MJD.ManualJournalDetailsId,
 							MJD.ReferenceId,
 							CU.Name AS 'ReferenceName',
-							CY.Code AS 'CurrencyCode'
+							CY.Code AS 'CurrencyCode',
+							@FXRate AS FXRate
 					FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
 					LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON MJD.ReferenceId = CU.CustomerId AND MJD.ReferenceTypeId = 1
 					LEFT JOIN [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = CU.CustomerId
@@ -286,15 +289,29 @@ BEGIN
 							MJD.ManualJournalDetailsId,
 							MJD.ReferenceId,
 							V.VendorName AS 'ReferenceName',
-							CY.Code AS 'CurrencyCode'
+							CY.Code AS 'CurrencyCode',
+							@FXRate AS FXRate
 					FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
 					LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON MJD.ReferenceId = V.VendorId AND MJD.ReferenceTypeId = 2
 					LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON CY.CurrencyId = V.CurrencyId
 					WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND MJD.IsActive = 1 AND MJD.ReferenceTypeId = 2
+					
+					UNION
+
+					SELECT  MJD.ManualJournalHeaderId,
+							MJD.ManualJournalDetailsId,
+							MJD.ReferenceId,
+							'' AS 'ReferenceName',
+							CFC.Code AS 'CurrencyCode',
+							ISNULL(MHD.ConversionRate, @FXRate) AS FXRate
+					FROM [dbo].[ManualJournalHeader] MHD WITH(NOLOCK)
+					INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJD.ManualJournalHeaderId = MHD.ManualJournalHeaderId
+					LEFT JOIN [dbo].[Currency] CFC WITH(NOLOCK) ON CFC.CurrencyId = MHD.FunctionalCurrencyId
+					WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND MJD.IsActive = 1 AND ISNULL(MJD.ReferenceTypeId, 0) = 0
 				)
 
-				INSERT INTO #tmpManualJournalDetails ([ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[CurrencyCode],[ReferenceName])
-				SELECT MJD.[ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],tmpRes.CurrencyCode,tmpRes.ReferenceName
+				INSERT INTO #tmpManualJournalDetails ([ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],[CurrencyCode],[ReferenceName], [FXRate])
+				SELECT MJD.[ManualJournalDetailsId],[GlAccountId],[Debit],[Credit],[ManagementStructureId],[LastMSLevel],[AllMSlevels],tmpRes.CurrencyCode,tmpRes.ReferenceName,tmpRes.FXRate
 				FROM [DBO].[ManualJournalDetails] MJD WITH(NOLOCK)
 				LEFT JOIN referenceResult tmpRes ON tmpRes.ManualJournalDetailsId = MJD.ManualJournalDetailsId
 				WHERE MJD.ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
@@ -312,7 +329,8 @@ BEGIN
 						   @AllMSlevels = [AllMSlevels],
 						   @LocalCurrencyCode = ISNULL([CurrencyCode],''),
 						   @ForeignCurrencyCode = ISNULL([CurrencyCode],''),
-						   @ReferenceName = ISNULL([ReferenceName],'')
+						   @ReferenceName = ISNULL([ReferenceName],''),
+						   @FXRate = [FXRate]
 					FROM #tmpManualJournalDetails WHERE [ID] = @MasterLoopID;
 					
 					SELECT @GlAccountNumber = AccountCode, @GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId = @GlAccountId;

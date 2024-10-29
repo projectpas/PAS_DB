@@ -46,7 +46,7 @@ BEGIN
     DECLARE @CustomerId varchar(100) = NULL 
 
 	DECLARE @ApprovedQuoteStatusId INT = 0
-	SELECT @ApprovedQuoteStatusId = WorkOrderQuoteStatusId FROM WorkOrderQuoteStatus WHERE Description = 'Approved';
+	SELECT @ApprovedQuoteStatusId = WorkOrderQuoteStatusId FROM DBO.WorkOrderQuoteStatus  WITH (NOLOCK) WHERE Description = 'Approved';
 
      DECLARE @ModuleID INT = 12; -- MS Module ID    
      SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END    

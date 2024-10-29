@@ -66,7 +66,7 @@ BEGIN
 		DECLARE @POOpenStatusId INT;
 		DECLARE @POOpenStatus VARCHAR(10);
 		DECLARE @RFQPOOpenStatusId INT;
-		DECLARE @RFQPOOpenStatus VARCHAR(10),@ARConditionCode varchar(50) = 'ASREMOVE';
+		DECLARE @RFQPOOpenStatus VARCHAR(10),@ARConditionCode varchar(50) = (SELECT TOP 1 Code FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId);
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		
 		SELECT @StageId = [WorkOrderStageId] FROM [dbo].[PurchaseOrderSettingMaster] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;

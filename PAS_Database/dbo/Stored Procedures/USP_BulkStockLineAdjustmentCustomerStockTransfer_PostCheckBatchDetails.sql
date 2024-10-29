@@ -22,6 +22,7 @@
 	6    20/09/2024	  AMIT GHEDIYA		  Added for AutoPost Batch
 	7	 20/09/2024   Rajesh Gami	      Update the StocklineAdjustment modulename while adjustment.
 	8	 14/10/2024	  Devendra Shekh	  Added new fields for [CommonBatchDetails]
+	9    29/10/2024   AMIT GHEDIYA		  Handle bypass accounting entry.
      
 **************************************************************/
 
@@ -112,6 +113,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @ReferenceNumber VARCHAR(50) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @IsAccountByPass BIT = 0;
 
 		SELECT @BlkModuleID = ModuleId FROM Module WHERE CodePrefix='BSTKADJ';
 		
@@ -122,6 +124,9 @@ BEGIN
 
 		SELECT @ReferenceNumber = [BulkStkLineAdjNumber] FROM [dbo].[BulkStockLineAdjustment] WITH(NOLOCK) WHERE [BulkStkLineAdjId] = @BulkStkLineAdjHeaderId;
 		
+		--Get bypass flag from mastercompany.
+		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId
+
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmpCodePrefixes
@@ -138,6 +143,12 @@ BEGIN
 			StartsFrom BIGINT NULL,
 		)    
 		
+		SELECT @Amount = SUM(ISNULL(ABS(NewUnitCostTotransfer),0))
+		FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) 
+		WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;
+
+		IF(ISNULL(@Amount,0) <> 0 AND @IsAccountByPass = 0)
+		BEGIN
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER(@DistributionCodeName)
 			
 			SELECT TOP 1 @JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) FROM [DBO].[DistributionSetup] WITH(NOLOCK)
@@ -432,6 +443,7 @@ BEGIN
 
 			SET @TotalDebit=0;
 			SET @TotalCredit=0;
+		
 			SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId GROUP BY JournalBatchDetailId
 			UPDATE [dbo].[BatchDetails] SET DebitAmount = @TotalDebit,CreditAmount=@TotalCredit,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy  WHERE JournalBatchDetailId=@JournalBatchDetailId
 
@@ -444,14 +456,17 @@ BEGIN
 			BEGIN
 				EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 			END
-		--END  /**END : IF(ISNULL(@Amount,0) <> 0)***/
+		END  /**END : IF(ISNULL(@Amount,0) <> 0)***/
 
 		
 		SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM [DBO].[BatchDetails] 
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		IF(ISNULL(@JournalBatchDetailId, 0) <> 0)
+		BEGIN
+			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId;
+		END
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 		--Post the bulkstockline adj.

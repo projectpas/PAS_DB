@@ -18,7 +18,7 @@
     2    07/25/2024  Bhargav Saliya		Get ShippingTerms
 	3    10/22/2024	 Amit Ghediya		Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate for view quote.
 
---EXEC [dbo].[GetViewExchangeQuoteById] 138
+--EXEC [dbo].[GetViewExchangeQuoteById] 262
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[GetViewExchangeQuoteById]
 	@ExchangeQuoteId bigint
@@ -47,7 +47,9 @@ BEGIN
 				custfc.CurrencyId, cur.Code AS CurrencyName, msd.EntityMSID AS EntityStructureId, msd.LastMSLevel, msd.AllMSlevels, soq.IsEnforceApproval AS IsEnforceApproval, soq.EnforceEffectiveDate AS EnforceEffectiveDate,
 				soq.EmployeeId, exchso.ExchangeSalesOrderNumber, exchso.ExchangeSalesOrderId, custAddress.Line1 AS CustomerAddress1, custAddress.Line2 AS CustomerAddress2, custAddress.City AS CustomerCity, custAddress.StateOrProvince AS CustomerState,
 				custAddress.PostalCode AS CustomerPostalCode, cconc.countries_name AS CustomerCountry,soq.CustomerServiceRepName AS CustomerSeviceRepName,soq.CreditTermName AS CreditTerms,ISNULL(AllShipVia.ShippingTerms, '') AS ShippingTerms,
-				Funcur.Code AS FunctionalCurrency,soq.ForeignExchangeRate,Loccur.Code AS ReportCurrency
+				soq.FunctionalCurrencyId,soq.ReportCurrencyId,soq.ForeignExchangeRate,
+				cur.Code AS FunctionalCurrency,
+				rcur.code AS ReportCurrency
 				FROM 
 				DBO.ExchangeQuote soq WITH (NOLOCK)
 				INNER JOIN DBO.ExchangeManagementStructureDetails msd WITH (NOLOCK) ON soq.ExchangeQuoteId = msd.ReferenceID AND msd.ModuleID = 58
@@ -65,9 +67,8 @@ BEGIN
 				INNER JOIN DBO.Address custAddress WITH (NOLOCK) on cust.AddressId = custAddress.AddressId
 				LEFT JOIN DBO.Countries cconc WITH (NOLOCK) on custAddress.CountryId = cconc.countries_id
 				LEFT JOIN DBO.CustomerFinancial custfc WITH (NOLOCK) on cust.CustomerId = custfc.CustomerId
-				LEFT JOIN DBO.Currency cur WITH (NOLOCK) on custfc.CurrencyId = cur.CurrencyId
-				LEFT JOIN DBO.Currency Funcur WITH (NOLOCK) on soq.FunctionalCurrencyId = Funcur.CurrencyId
-				LEFT JOIN DBO.Currency Loccur WITH (NOLOCK) on soq.ReportCurrencyId = Loccur.CurrencyId
+				LEFT JOIN DBO.Currency cur WITH (NOLOCK) on soq.FunctionalCurrencyId = cur.CurrencyId
+				LEFT JOIN DBO.Currency rcur WITH (NOLOCK) on soq.ReportCurrencyId = rcur.CurrencyId
 				LEFT JOIN DBO.CustomerContact cust_cont WITH (NOLOCK) on soq.CustomerContactId = cust_cont.CustomerContactId
 				LEFT JOIN DBO.Contact cont WITH (NOLOCK) on cust_cont.ContactId = cont.ContactId
 				LEFT JOIN DBO.ExchangeSalesOrder exchso WITH (NOLOCK) on soq.ExchangeQuoteId = exchso.ExchangeQuoteId

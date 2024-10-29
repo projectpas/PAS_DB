@@ -6,11 +6,11 @@
     [RefferenceNumber]                   VARCHAR (100)   NULL,
     [ItemMasterId]                       BIGINT          NULL,
     [PartNumber]                         VARCHAR (50)    NULL,
-    [PNDescription]                      VARCHAR (200)   NULL,
+    [PNDescription]                      NVARCHAR (MAX)  NULL,
     [Manufacturer]                       VARCHAR (200)   NULL,
     [ItemMasterPurchaseSaleId]           BIGINT          NULL,
     [ConditionId]                        BIGINT          NULL,
-    [ConditionName]                      VARCHAR (50)    NULL,
+    [ConditionName]                      VARCHAR (200)   NULL,
     [PP_UOMId]                           BIGINT          NULL,
     [PP_UOMName]                         VARCHAR (50)    NULL,
     [PP_CurrencyId]                      INT             NULL,
@@ -20,7 +20,7 @@
     [PP_PurchaseDiscAmount]              DECIMAL (18, 2) NULL,
     [PP_UnitPurchasePrice]               DECIMAL (18, 2) NULL,
     [SalePriceSelectId]                  BIGINT          NULL,
-    [SalePriceSelectName]                VARCHAR (50)    NULL,
+    [SalePriceSelectName]                VARCHAR (200)   NULL,
     [SP_FSP_UOMId]                       BIGINT          NULL,
     [SP_FSP_UOMName]                     VARCHAR (50)    NULL,
     [SP_FSP_CurrencyId]                  INT             NULL,
@@ -36,4 +36,6 @@
     [IsActive]                           BIT             NULL,
     [IsDeleted]                          BIT             NULL
 );
+
+
 

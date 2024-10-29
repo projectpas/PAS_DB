@@ -12,7 +12,7 @@
 ** --   --------    -------         --------------------------------
 ** 1    26/7/2023   Ayesha Sultana   Delete WO Materials & its Stockline if not issued/ reserved & no WO Provision
 ** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
-
+** 3    29/10/2024  RAJESH GAMI      Un Mapped WO if there is no other material link with the same workorder in the PurchaseOrder Part
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
@@ -24,7 +24,7 @@ BEGIN
 		
 		BEGIN TRY
 			BEGIN TRANSACTION
-
+			DECLARE @WorkOrderId BIGINT = (SELECT top 1 WorkOrderId FROM DBO.WorkOrderWorkFlow WITH(NOLOCK)  WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId)
 			IF OBJECT_ID(N'tempdb..##TempWOtbl') IS NOT NULL
 				BEGIN
 					DROP TABLE #TempWOtbl
@@ -47,12 +47,22 @@ BEGIN
 			DELETE WOM FROM dbo.WorkOrderMaterials WOM JOIN #TempWOtbl tmpWOM ON WOM.WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId;
 
 			UPDATE P    
-				    SET WorkOrderMaterialsId = 0, 
-					       IsKit = 0, IsSubWO =0, 
+				    SET WorkOrderMaterialsId = NULL, 
+					       IsKit = NULL, IsSubWO =NULL, 
 						   UpdatedDate = GETUTCDATE()
 					FROM DBO.PurchaseOrderPart P
 					  INNER JOIN #TempWOtbl tmp ON P.WorkOrderMaterialsId = tmp.WorkOrderMaterialsId
 					  WHERE P.WorkOrderMaterialsId  = tmp.WorkOrderMaterialsId AND ISNULL(IsKit,0) = 0 AND ISNULL(IsSubWO,0) = 0
+			/****** Unmapped the Workorder if there is no other material link with the same workorder in the PurchaseOrder Part ********/
+			IF((SELECT COUNT(1) FROM dbo.PurchaseOrderPart WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId) = 1)
+			BEGIN
+				UPDATE P    
+				    SET	   WorkOrderId = NULL, WorkOrderNo = NULL,
+						   WorkOrderMaterialsId = NULL, 
+					       IsKit = NULL, IsSubWO =NULL, 
+						   UpdatedDate = GETUTCDATE()
+					FROM DBO.PurchaseOrderPart P WHERE P.WorkOrderId = @WorkOrderId
+			END
 
 			IF OBJECT_ID(N'tempdb..#TempWOtbl') IS NOT NULL
 				BEGIN

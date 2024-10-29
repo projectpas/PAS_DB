@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [USP_GetManagementStructureDetailsForReportsHeader]
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Reserve Or Release Stockline for Sub WO
@@ -15,9 +16,10 @@
  ** --   --------     -------			--------------------------------          
     1    08/12/2021   Hemant Saliya		Created
     2    08/29/2024   Devendra Shekh	added new field TimeZoneDateTime
+	3	 10/29/2024	  Bhargav Saliya    Added Merge Address
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
+CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
 (    
 	@managementStructureId  BIGINT  = NULL
 )    
@@ -46,9 +48,10 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
+					Email = Upper(c.Email),
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,c.Email)),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = Upper(c.Email),
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,

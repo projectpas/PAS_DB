@@ -1,10 +1,10 @@
-﻿CREATE   VIEW [dbo].[vw_MasterDiscountTypeAudit]
+﻿CREATE    VIEW [dbo].[vw_MasterDiscountTypeAudit]
 AS
 SELECT DA.[MasterDiscountTypeAuditId]  AS PkID
       ,DA.[Id] AS ID
       ,DA.[Name]	  
-      ,DA.[Description]
-	  ,GL.[AccountName] AS 'GL Account'
+      ,DA.[Description] 
+	  ,(GL.[AccountCode] + '-' + GL.[AccountName]) AS 'GL Account'
       ,DA.[CreatedBy] AS [Created By]
       ,DA.[CreatedDate] AS [Created Date]
       ,DA.[UpdatedBy] AS [Updated By]

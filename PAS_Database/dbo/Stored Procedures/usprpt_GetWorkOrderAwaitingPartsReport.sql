@@ -206,16 +206,12 @@ BEGIN
 		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
 		MAX(UPPER(WOS.Stage)) 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
-		
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 107) END 'opendate',  
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.CustomerRequestDate), 107) END 'requestdate',    
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.EstimatedShipDate), 107) END 'estimatedShipDate',  
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') END 'opendate',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') END 'requestdate',    
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') END 'estimatedShipDate',  
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
-
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOQ.ApprovedDate), 107) END 'dateQuoteApproved',
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') END 'dateQuoteApproved',
 		UPPER(MAX(MSD.Level1Name)) AS level1,      
 		UPPER(MAX(MSD.Level2Name)) AS level2,     
 		UPPER(MAX(MSD.Level3Name)) AS level3,     
@@ -226,8 +222,7 @@ BEGIN
 		UPPER(MAX(MSD.Level8Name)) AS level8,     
 		UPPER(MAX(MSD.Level9Name)) AS level9,     
 		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
-		MAX(WO.MasterCompanyId) MasterCompanyId  
-
+		MAX(WO.MasterCompanyId) MasterCompanyId 
 	FROM DBO.WorkOrder WO WITH (NOLOCK)      
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
 		INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
@@ -235,7 +230,7 @@ BEGIN
 		LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND QuoteStatusId = @ApprovedQuoteStatusId
 		LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
-		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
+		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID    
 		LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
@@ -244,7 +239,6 @@ BEGIN
 		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		INNER JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
-		 
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
@@ -252,7 +246,6 @@ BEGIN
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
 		AND (ISNULL(@Stage,'') ='' OR WOS.WorkOrderStageId IN (SELECT value FROM String_split(ISNULL(@Stage,WOS.WorkOrderStageId), ',')))     
 		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed  
-		--AND WO.WorkOrderId NOT IN (ISNULL(woshi.WorkOrderId,0))  
 		AND WO.mastercompanyid = @MasterCompanyId 
 		AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))    
 		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
@@ -265,7 +258,6 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-  
      GROUP BY WO.WorkOrderId, tmpWOM.Quantity
 
 	INSERT INTO #AwaitingPartsData
@@ -275,20 +267,15 @@ BEGIN
 		MAX(UPPER(C.Name)) 'customername',
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
-		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		--MAX(ISNULL((SELECT ISNULL(MAX(RepairOrderNumber),0) FROM dbo.RepairOrder rep WITH(NOLOCK) where rep.RepairOrderId = SL.RepairOrderId),0)) 'ronum',     
+		MAX(UPPER(IM.PartDescription)) 'pnDescription',     
 		MAX(UPPER(WOS.Stage)) 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
-		
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 107) END 'opendate',  
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.CustomerRequestDate), 107) END 'requestdate',    
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.EstimatedShipDate), 107) END 'estimatedShipDate',  
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') END 'opendate',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') END 'requestdate',    
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') END 'estimatedShipDate',
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
-
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOQ.ApprovedDate), 107) END 'dateQuoteApproved',
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') END 'dateQuoteApproved',
 		UPPER(MAX(MSD.Level1Name)) AS level1,      
 		UPPER(MAX(MSD.Level2Name)) AS level2,     
 		UPPER(MAX(MSD.Level3Name)) AS level3,     
@@ -300,7 +287,6 @@ BEGIN
 		UPPER(MAX(MSD.Level9Name)) AS level9,     
 		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
-
 	FROM DBO.WorkOrder WO WITH (NOLOCK)      
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
 		INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
@@ -308,7 +294,7 @@ BEGIN
 		INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND QuoteStatusId = @ApprovedQuoteStatusId
 		LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
-		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
+		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID    
 		LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
@@ -317,17 +303,13 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
 		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
-		 
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
-		AND ISNULL(WO.IsDeleted, 0) = 0  
-		--CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  AND  
-		 
+		AND ISNULL(WO.IsDeleted, 0) = 0
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
 		AND (ISNULL(@Stage,'') ='' OR WOS.WorkOrderStageId IN (SELECT value FROM String_split(ISNULL(@Stage,WOS.WorkOrderStageId), ',')))     
-		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed  
-		--AND WO.WorkOrderId NOT IN (ISNULL(woshi.WorkOrderId,0))  
+		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed 
 		AND WO.mastercompanyid = @MasterCompanyId 
 		AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))    
 		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
@@ -340,7 +322,6 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-  
      GROUP BY WO.WorkOrderId, tmpWOM.Quantity
 
  INSERT INTO #AwaitingPartsData
@@ -353,16 +334,12 @@ BEGIN
 		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
 		MAX(UPPER(WOS.Stage)) 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
-		
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 107) END 'opendate',  
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.CustomerRequestDate), 107) END 'requestdate',    
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.EstimatedShipDate), 107) END 'estimatedShipDate',  
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') END 'opendate',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') END 'requestdate',    
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') END 'estimatedShipDate',
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
-
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOQ.ApprovedDate), 107) END 'dateQuoteApproved',
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') END 'dateQuoteApproved',
 		UPPER(MAX(MSD.Level1Name)) AS level1,      
 		UPPER(MAX(MSD.Level2Name)) AS level2,     
 		UPPER(MAX(MSD.Level3Name)) AS level3,     
@@ -374,7 +351,6 @@ BEGIN
 		UPPER(MAX(MSD.Level9Name)) AS level9,     
 		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
-
 	FROM DBO.SubWorkOrder SWO WITH (NOLOCK)    
 		INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId 
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
@@ -383,7 +359,7 @@ BEGIN
 		INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND QuoteStatusId = @ApprovedQuoteStatusId
 		LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
-		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
+		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID    
 		LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
@@ -392,15 +368,13 @@ BEGIN
 		INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		INNER JOIN DBO.SubWorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
 		INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
-		 
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  		 
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
 		AND (ISNULL(@Stage,'') ='' OR WOS.WorkOrderStageId IN (SELECT value FROM String_split(ISNULL(@Stage,WOS.WorkOrderStageId), ',')))     
-		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed  
-		--AND WO.WorkOrderId NOT IN (ISNULL(woshi.WorkOrderId,0))  
+		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed 
 		AND WO.mastercompanyid = @MasterCompanyId 
 		AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))    
 		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
@@ -413,7 +387,6 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-  
      GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity
 
 
@@ -425,19 +398,14 @@ BEGIN
 		MAX(UPPER(WOQ.QuoteNumber)) 'woqnum',
 		MAX(UPPER(IM.partnumber)) 'pn',    
 		MAX(UPPER(IM.PartDescription)) 'pnDescription',    
-		--MAX(ISNULL((SELECT ISNULL(MAX(RepairOrderNumber),0) FROM dbo.RepairOrder rep WITH(NOLOCK) where rep.RepairOrderId = SL.RepairOrderId),0)) 'ronum',     
 		MAX(UPPER(WOS.Stage)) 'stagecode',  
 		MAX(WOM.ExtendedCost) 'approvedamount',
-		
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 107) END 'opendate',  
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.CustomerRequestDate), 107) END 'requestdate',    
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOPN.EstimatedShipDate), 107) END 'estimatedShipDate',  
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') ELSE FORMAT((select [dbo].[ConvertUTCtoLocal] (MAX(WO.OpenDate),Max(TZ.Description))), 'MM/dd/yyyy') END 'opendate',  
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.CustomerRequestDate), 'MM/dd/yyyy') END 'requestdate',    
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOPN.EstimatedShipDate), 'MM/dd/yyyy') END 'estimatedShipDate',  
 		ISNULL(tmpWOM.Quantity, 0) 'quantityRequested',
 		SUM(ISNULL(STK.QuantityAvailable, 0)) 'quantityAvailable',
-
-		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), MAX(WOQ.ApprovedDate), 107) END 'dateQuoteApproved',
-
+		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') ELSE FORMAT(MAX(WOQ.ApprovedDate), 'MM/dd/yyyy') END 'dateQuoteApproved',
 		UPPER(MAX(MSD.Level1Name)) AS level1,      
 		UPPER(MAX(MSD.Level2Name)) AS level2,     
 		UPPER(MAX(MSD.Level3Name)) AS level3,     
@@ -449,7 +417,6 @@ BEGIN
 		UPPER(MAX(MSD.Level9Name)) AS level9,     
 		UPPER(MAX(MSD.Level10Name)) AS level10 ,  
 		MAX(WO.MasterCompanyId) MasterCompanyId  
-
 	FROM DBO.SubWorkOrder SWO WITH (NOLOCK)
 		INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId     
 		INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId     
@@ -458,7 +425,7 @@ BEGIN
 		INNER JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId AND QuoteStatusId = @ApprovedQuoteStatusId   
 		LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
 		LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
-		LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
+		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID    
 		LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 		LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON ES.Level1Id = MSL.ID
 		LEFT JOIN [dbo].LegalEntity le WITH(NOLOCK) ON MSL.LegalEntityId = le.LegalEntityId
@@ -466,18 +433,14 @@ BEGIN
 	    LEFT JOIN #tmpMultipleSubWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[SubWorkOrderId] = SWO.[SubWorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IM.ItemMasterId    
 		LEFT JOIN DBO.SubWorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsKitId
-		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1    
-		 
+		LEFT JOIN DBO.Stockline STK WITH (NOLOCK) ON tmpWOM.ItemMasterId = STK.ItemMasterId AND tmpWOM.ConditionId = STK.ConditionId AND STK.IsParent = 1   
 	WHERE    
 		WO.CustomerId=ISNULL(@CustomerId,WO.CustomerId)
 		AND ISNULL(WO.IsDeleted, 0) = 0  
-		--CAST((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)) AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  AND  
-		 
 		AND ISNULL(WO.IsActive, 1) = 1 
 		AND  ISNULL(WO.WorkOrderStatusId, 0) != 2 -----WO Not Closed  
 		AND (ISNULL(@Stage,'') ='' OR WOS.WorkOrderStageId IN (SELECT value FROM String_split(ISNULL(@Stage,WOS.WorkOrderStageId), ',')))     
 		AND  ISNULL(WOPN.WorkOrderStatusId, 0) != 2 AND  ISNULL(WOPN.IsClosed, 0) != 1 -----MPN Not Closed  
-		--AND WO.WorkOrderId NOT IN (ISNULL(woshi.WorkOrderId,0))  
 		AND WO.mastercompanyid = @MasterCompanyId 
 		AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))    
 		AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))    
@@ -490,7 +453,6 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-  
      GROUP BY SWO.SubWorkOrderId, tmpWOM.Quantity
 
 

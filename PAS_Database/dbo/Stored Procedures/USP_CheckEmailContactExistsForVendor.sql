@@ -14,6 +14,7 @@
     1    08/14/2024  	Devendra Shekh			Created     
     2    08/20/2024  	Devendra Shekh			added @VendorContactId param     
 	3    09/18/2024     Sahdev Saliya           Contact info Restriction Message changes
+	4    10/28/2024  	Devendra Shekh			added Primary to @ReturnMsg
  
  EXEC [USP_CheckEmailContactExistsForVendor] 12
 *********************************************/ 
@@ -30,7 +31,7 @@ BEGIN
 					@ExistingEmail VARCHAR(100),
 					@ExistingContactEmail VARCHAR(100),
 					@ContactId BIGINT,
-					@ReturnMsg VARCHAR(150) = 'Please update email address and/or phone number.';
+					@ReturnMsg VARCHAR(150) = 'Please update Primary email address and/or phone number.';
 			
 			--Get Email & Phone from Customer Primary Comtact details.
 			SELECT @ContactId = [ContactId] FROM [dbo].[VendorContact] WITH(NOLOCK) WHERE [VendorId] = @VendorId AND [IsDefaultContact] = 1;

@@ -3207,7 +3207,9 @@
     <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateInvoicePayment.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSetup_ById.sql" />
+    <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderAwaitingPartsReport.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

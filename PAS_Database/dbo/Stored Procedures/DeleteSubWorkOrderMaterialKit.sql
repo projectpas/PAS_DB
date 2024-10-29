@@ -11,7 +11,7 @@ EXEC [DeleteSubWorkOrderMaterialKit]
 ** --   --------		-------				--------------------------------
 ** 1    12/12/2023	 Devendra Shekh			Created
 ** 2    16/10/2024  RAJESH GAMI      Un Mapped PO by WO-SubWO Materials Id | KIT, While Delete the Materials
-
+** 3    29/10/2024  RAJESH GAMI      Un Mapped Sub WO if there is no other material link with the same Sub workorder in the PurchaseOrder Part
 exec dbo.[DeleteSubWorkOrderMaterialKit] 17
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[DeleteSubWorkOrderMaterialKit]
@@ -24,7 +24,7 @@ BEGIN
 		BEGIN TRY
 			BEGIN TRANSACTION
 				BEGIN
-
+				DECLARE @SubWorkOrderId BIGINT = 0;
 				IF OBJECT_ID(N'tempdb..##TempTableWOM') IS NOT NULL
 					BEGIN
 						DROP TABLE #TempTableWOM
@@ -43,6 +43,8 @@ BEGIN
 					SELECT DISTINCT WOM.SubWorkOrderMaterialsKitId
 					FROM dbo.[SubWorkOrderMaterialsKit] WOM WITH(NOLOCK) INNER JOIN #TempTableWOM tmp ON WOM.SubWorkOrderMaterialsKitMappingId = tmp.SubWorkOrderMaterialsKitMappingId
 					WHERE WOM.SubWorkOrderMaterialsKitMappingId = tmp.SubWorkOrderMaterialsKitMappingId
+					
+					SET @SubWorkOrderId = (SELECT TOP 1 SubWorkOrderId FROM dbo.SubWorkOrderMaterialsKit WOM WITH(NOLOCK) WHERE SubWorkOrderMaterialsKitId = (SELECT top 1 SubWorkOrderMaterialsKitId FROM #TempWOtblM))
 
 					UPDATE P    
 				    SET WorkOrderMaterialsId = 0, 
@@ -52,6 +54,16 @@ BEGIN
 					  INNER JOIN #TempWOtblM tmp ON P.WorkOrderMaterialsId = tmp.SubWorkOrderMaterialsKitId
 					  WHERE P.WorkOrderMaterialsId  = tmp.SubWorkOrderMaterialsKitId AND ISNULL(IsKit,0) = 1 AND ISNULL(IsSubWO,0) = 1
 
+					/****** Unmapped the SubWorkorder if there is no other material link with the same sub workorder in the PurchaseOrder Part ********/
+					IF((SELECT COUNT(1) FROM dbo.PurchaseOrderPart WITH(NOLOCK) WHERE SubWorkOrderId = @SubWorkOrderId) = 1)
+					BEGIN
+						UPDATE P    
+							SET	   SubWorkOrderId = NULL, SubWorkOrderNo = NULL,
+								   WorkOrderMaterialsId = NULL, 
+								   IsKit = NULL, IsSubWO =NULL, 
+								   UpdatedDate = GETUTCDATE()
+							FROM DBO.PurchaseOrderPart P WHERE P.SubWorkOrderId = @SubWorkOrderId
+					END
 
 					DELETE FROM [dbo].[SubWorkOrderMaterialStockLineKit] WHERE SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsKitId FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId));
 					DELETE FROM [DBO].[SubWorkOrderMaterialsKit] WHERE [SubWorkOrderMaterialsKitMappingId] IN (SELECT [SubWorkOrderMaterialsKitMappingId] FROM [DBO].[SubWorkOrderMaterialsKitMapping] WHERE KitId = @KitId AND SubWOPartNoId = @SubWOPartNoId);

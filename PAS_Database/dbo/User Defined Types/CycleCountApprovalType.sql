@@ -1,0 +1,22 @@
+﻿CREATE TYPE [dbo].[CycleCountApprovalType] AS TABLE (
+    [CycleCountApprovalId] BIGINT         NULL,
+    [CycleCountId]         BIGINT         NULL,
+    [CycleCountDetailId]   BIGINT         NULL,
+    [InternalSentToId]     BIGINT         NULL,
+    [InternalSentToName]   VARCHAR (100)  NULL,
+    [InternalSentById]     BIGINT         NULL,
+    [SentDate]             DATETIME2 (7)  NULL,
+    [ApprovedDate]         DATETIME2 (7)  NULL,
+    [ApprovedById]         BIGINT         NULL,
+    [ApprovedByName]       VARCHAR (200)  NULL,
+    [RejectedDate]         DATETIME2 (7)  NULL,
+    [RejectedBy]           BIGINT         NULL,
+    [RejectedByName]       VARCHAR (200)  NULL,
+    [StatusId]             INT            NULL,
+    [StatusName]           VARCHAR (50)   NULL,
+    [ActionId]             INT            NULL,
+    [Memo]                 NVARCHAR (MAX) NULL,
+    [MasterCompanyId]      INT            NULL,
+    [CreatedBy]            VARCHAR (256)  NULL,
+    [UpdatedBy]            VARCHAR (256)  NULL);
+

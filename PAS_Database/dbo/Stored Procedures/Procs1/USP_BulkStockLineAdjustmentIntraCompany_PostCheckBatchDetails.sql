@@ -147,7 +147,7 @@ BEGIN
 		FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) 
 		WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;
 
-		IF(ISNULL(@Amount,0) <> 0 AND @IsAccountByPass = 0)
+		IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@IsAccountByPass,0) = 0)
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentINTRACOTRANSDIV')
 			

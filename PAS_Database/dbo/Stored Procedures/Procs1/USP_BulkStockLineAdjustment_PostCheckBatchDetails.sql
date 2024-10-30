@@ -142,7 +142,7 @@ BEGIN
 		WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;
 
 		-- Check is bypass or not.
-		IF(@IsAccountByPass = 0) 
+		IF(ISNULL(@IsAccountByPass,0) = 0) 
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentQty')
 			

@@ -15,13 +15,14 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------  
 	1    08/06/2020   HEMANT SALIYA	     CREATED
+	2    29/10/2024   Devendra Shekh	 Modified(added RedirectUrl,IntigrationStatus to select)
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
 @LastRun=NULL,@ModuleName=NULL,@MasterCompanyId=1,@LastSycDate=NULL
 
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
+CREATE   PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn VARCHAR(50)=null,
@@ -32,7 +33,8 @@ CREATE     PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@LastRun datetime=null,
 	@ModuleName VARCHAR(50)=null,
 	@MasterCompanyId bigint = NULL,
-	@LastSycDate datetime=null
+	@LastSycDate datetime=null,
+	@IntigrationStatus VARCHAR(50)=null
 
 AS
 BEGIN
@@ -176,11 +178,14 @@ BEGIN
 					ACI.UpdatedDate,
 					ACI.UpdatedBy,
 					ACI.IsActive,
-					ACI.IsDeleted
+					ACI.IsDeleted,
+					ACS.RedirectUrl,
+					'Connect' AS [IntigrationStatus]
 			FROM dbo.AccountingIntegrationSettings ACI WITH (NOLOCK)
 					LEFT JOIN #InsertedSyncRecords SR WITH (NOLOCK) ON SR.MasterCompanyId = ACI.MasterCompanyId 
 					LEFT JOIN #InsertedPendingSyncRecords PSR WITH (NOLOCK) ON PSR.MasterCompanyId = ACI.MasterCompanyId
 					LEFT JOIN #InsertedTotalRecords TR WITH (NOLOCK) ON TR.MasterCompanyId = ACI.MasterCompanyId
+					LEFT JOIN dbo.AccountingIntegrationSetup ACS WITH (NOLOCK) ON ACS.MasterCompanyId = ACI.MasterCompanyId AND ACS.IntegrationId = ACI.IntegrationId
 			WHERE ACI.MasterCompanyId = @MasterCompanyId --AND ( AND (@IsActive IS NULL OR ACI.IsActive = @IsActive))
 			), ResultCount AS(SELECT COUNT(AccountingIntegrationSettingsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
@@ -192,13 +197,15 @@ BEGIN
 					(ModuleName LIKE '%' +@GlobalFilter+'%') OR
 					(SyncRecords LIKE '%' +@GlobalFilter+'%') OR
 					(PendingSyncRecords LIKE '%' +@GlobalFilter+'%') OR
-					(TotalCount LIKE '%' +@GlobalFilter+'%') 
+					(TotalCount LIKE '%' +@GlobalFilter+'%') OR
+					(IntigrationStatus LIKE '%' +@GlobalFilter+'%') 
 					))
 					OR   
 					(@GlobalFilter='' AND 
 					(ISNULL(@IntegrationWith,'') ='' OR cast(IntegrationWith as VARCHAR) LIKE '%' + @IntegrationWith+'%') AND
 					(ISNULL(@LastRun,'') ='' OR CAST(LastRun as Date)=CAST(@LastRun as date))AND
 					(ISNULL(@ModuleName,'') ='' OR ModuleName LIKE '%' + @ModuleName+'%') AND
+					(ISNULL(@IntigrationStatus,'') ='' OR IntigrationStatus LIKE '%' + @IntigrationStatus+'%') AND
 					(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun as date)=CAST(@LastSycDate as date))))
 
 			Select @Count = COUNT(AccountingIntegrationSettingsId) FROM #TempResult			
@@ -212,13 +219,15 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END ASC,
 
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='MODULENAME')  THEN ModuleName END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

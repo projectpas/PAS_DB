@@ -17,8 +17,9 @@
 	3    11/09/2023					 Update for nonPoInvoice
 	4    19/03/2023  Amit Ghediya    Update for Check Register
 	5    19/03/2023  Amit Ghediya    Update for Check Register filter 
+	6    24/10/2024  Moin Bloch      Update Added Cycle Count 
      
---exec [dbo].[usp_GetApprovalListByTaskId] 11, 1
+-- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
 	@TaskId  BIGINT,
@@ -274,7 +275,21 @@ BEGIN TRY
 			  WHERE VRTPDH.LegalEntityId = @ID AND VRTPD.IsGenerated IS NULL
 					AND ISNULL(VRTPD.IsCheckPrinted,0) = 0 AND ISNULL(VRTPD.CheckNumber,'') = ''
 	END
-
+	ElSE IF UPPER(@TaskType) = 'CYCLE COUNT APPROVAL'
+	BEGIN
+		SET @TotalCostText = 'Total Cycle Count Cost'
+		
+		SELECT @TotalCost = ISNULL(SUM(CCD.[DifferenceAmount]),0)
+		  FROM [dbo].[CycleCountDetail] CCD  WITH(NOLOCK)
+		  WHERE CCD.[CycleCountId] = @ID
+				
+	    SELECT @MSID = SC.[ManagementStructureId],
+		       @EID = SC.[RequestedById],
+		       @MasterCompanyID = SC.[MasterCompanyId]
+		  FROM [dbo].[CycleCount] SC  WITH(NOLOCK)
+		   WHERE SC.[CycleCountId] = @ID
+	END
+	   	  
 	SET @TotalCost  = ISNULL(@TotalCost,0)
 
 	SELECT DISTINCT Ar.ApproverId,

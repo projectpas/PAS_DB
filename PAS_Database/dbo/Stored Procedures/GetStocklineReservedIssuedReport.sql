@@ -71,15 +71,15 @@ BEGIN
 	  DECLARE @RMAReplaced INT;
 	  DECLARE @RMARefunded INT;
 	  DECLARE @RMACancel INT;
-	  SET @WOStatusId = (SELECT  Id FROM WorkOrderStatus WHERE Description = 'Closed')
-	  SET @ROStatusId = (SELECT  ROStatusId FROM ROStatus WHERE Description = 'Closed')
-	  SET @ExchStatusId = (SELECT  ROStatusId FROM ROStatus WHERE Description = 'Closed')
-	  SET @ROCancelStatusId = (SELECT  ROStatusId FROM ROStatus WHERE Description = 'Canceled')
-	  SET @ExchCancelStatusId = (SELECT  ROStatusId FROM ROStatus WHERE Description = 'Cancelled')
-	  SET @RMAShipToVendor = (SELECT  VendorRMAStatusId FROM VendorRMAStatus WHERE VendorRMAStatus = 'Shipped To Vendor')
-	  SET @RMAReplaced = (SELECT VendorRMAStatusId FROM VendorRMAStatus WHERE VendorRMAStatus = 'Replaced')
-	  SET @RMARefunded = (SELECT  VendorRMAStatusId FROM VendorRMAStatus WHERE VendorRMAStatus = 'Refunded')
-	  SET @RMACancel = (SELECT  VendorRMAStatusId FROM VendorRMAStatus WHERE VendorRMAStatus = 'Canceled')
+	  SET @WOStatusId = (SELECT  Id FROM dbo.WorkOrderStatus WITH(NOLOCK) WHERE Description = 'Closed')
+	  SET @ROStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
+	  SET @ExchStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Closed')
+	  SET @ROCancelStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Canceled')
+	  SET @ExchCancelStatusId = (SELECT  ROStatusId FROM dbo.ROStatus WITH(NOLOCK) WHERE Description = 'Cancelled')
+	  SET @RMAShipToVendor = (SELECT  VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Shipped To Vendor')
+	  SET @RMAReplaced = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Replaced')
+	  SET @RMARefunded = (SELECT  VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Refunded')
+	  SET @RMACancel = (SELECT  VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Canceled')
 
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 	  IF @SortColumn IS NULL

@@ -12,8 +12,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/10/2024   Moin Bloch    Created
+	2    24/10/2024   Moin Bloch    Added RequestedById
 
-  EXEC [dbo].[USP_CycleCount_AddUpdate] 1,'2024-10-15','19:36',1,1,1,1,'ADMIN User','ADMIN User'    
+  EXEC [dbo].[USP_CycleCount_AddUpdate] 1,'2024-10-15','19:36',1,1,1,2,1,'ADMIN User','ADMIN User'    
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_AddUpdate]
 @CycleCountId BIGINT,
@@ -22,6 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_CycleCount_AddUpdate]
 @StatusId INT,
 @ManagementStructureId BIGINT,  
 @IsEnforce BIT,
+@RequestedById BIGINT,
 @MasterCompanyId INT,
 @CreatedBy VARCHAR(200),
 @UpdatedBy VARCHAR(200)
@@ -62,6 +64,7 @@ BEGIN
 									[StatusId],
 									[ManagementStructureId], 
 								    [IsEnforce],
+									[RequestedById],
 									[MasterCompanyId],
 									[CreatedBy],
 									[UpdatedBy],
@@ -75,6 +78,7 @@ BEGIN
 									 @StatusId,
 									 @ManagementStructureId,
 							         @IsEnforce,
+									 @RequestedById,
 									 @MasterCompanyId,
 									 @CreatedBy,
 									 @UpdatedBy,
@@ -96,7 +100,6 @@ BEGIN
 							   [EntryTime] = @EntryTime, 
 							   [StatusId] = @StatusId, 
 							   [ManagementStructureId] = @ManagementStructureId, 
-							   [IsEnforce] = @IsEnforce, 							   
 							   [UpdatedBy] = @UpdatedBy, 
 							   [UpdatedDate] = GETUTCDATE() 							
                          WHERE [CycleCountId] = @CycleCountId;	

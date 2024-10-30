@@ -12,6 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/10/2024   Moin Bloch    Created
+	2    24/10/2024   Moin Bloch    Added RequestedById
+	3    29/10/2024   Moin Bloch    Added ApproverId,ApprovedBy,DateApproved
 
   EXEC [dbo].[USP_CycleCount_DetailsById] 1,1
 ************************************************************************/
@@ -30,6 +32,10 @@ BEGIN
 			  ,[StatusId]
 			  ,[ManagementStructureId]
 			  ,CASE WHEN [IsEnforce] = 1 THEN 1 ELSE 0 END IsEnforce
+			  ,[RequestedById]			  
+              ,[ApproverId]
+			  ,[ApprovedBy]
+			  ,[DateApproved]
 			  ,[MasterCompanyId]
 			  ,[CreatedBy]
 			  ,[UpdatedBy]	

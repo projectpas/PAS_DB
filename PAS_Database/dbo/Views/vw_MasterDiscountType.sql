@@ -12,5 +12,5 @@ SELECT MD.[Id]
       ,MD.[UpdatedDate]
       ,MD.[IsActive]
       ,MD.[IsDeleted]
-  FROM [dbo].[MasterDiscountType] MD 
-  LEFT JOIN [dbo].[GLAccount] GL ON MD.GLAccountId=GL.GLAccountId
+  FROM [dbo].[MasterDiscountType] MD WITH(NOLOCK)
+  LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON MD.GLAccountId=GL.GLAccountId

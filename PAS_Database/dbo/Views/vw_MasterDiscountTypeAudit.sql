@@ -12,4 +12,4 @@ SELECT DA.[MasterDiscountTypeAuditId]  AS PkID
       ,DA.[IsActive] 'Active ?'
       ,DA.[IsDeleted] 'Deleted ?'	  
   FROM [dbo].[MasterDiscountTypeAudit] DA WITH(NOLOCK)
-  JOIN [dbo].[GLAccount] GL ON  DA.GLAccountId = GL.GLAccountId
+  JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON  DA.GLAccountId = GL.GLAccountId

@@ -18,6 +18,7 @@
 	5    04/19/2024   Devendra Shekh   added data for Exchange SO
 	6    04/22/2024   Devendra Shekh   tax amt issue for Exchange Resolved and modified for InvocieTypeId Field
 	7    04/24/2024   Devendra Shekh   so duplicate record issue resolved
+	8	 10/30/2024	  AMIT GHEDIYA	   handle flat rate from woq -> wo to cm.
 	
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
@@ -266,14 +267,20 @@ BEGIN
 
 				END
 				ELSE 
-				BEGIN 
+				BEGIN	
 					SELECT WOBI.BillingInvoicingId as InvoiceId, WOBI.InvoiceNo [InvoiceNo], WOBII.WOBillingInvoicingItemId as BillingInvoicingItemId,
 						WOBI.InvoiceStatus [InvoiceStatus], WOBI.InvoiceDate [InvoiceDate], WO.WorkOrderNum as ReferenceNo,				
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as AltPartNumber,'' as CustPartNumber,
 						WOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId,WOBII.NoofPieces as Qty,WOBII.GrandTotal as UnitPrice,(WOBII.NoofPieces * WOBII.GrandTotal)  as Amount,
 						RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
-						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId], WOBII.MaterialCost As [PartsUnitCost],
+						IsWorkOrder=1,WOBI.WorkOrderId AS [ReferenceId], 
+						--WOBII.MaterialCost As [PartsUnitCost],
+						CASE WHEN 
+							ISNULL(WOBII.MaterialCost,0) > 0 THEN (WOBII.MaterialCost)
+						ELSE  CASE WHEN (ISNULL(WOBII.MaterialCost,0) + ISNULL(WOBII.LaborCost,0) + ISNULL(WOBII.MiscCharges,0) + ISNULL(WOBII.Freight,0)) <= 0 THEN ISNULL(WOBII.SubTotal,0)
+							  END
+						END AS [PartsUnitCost], 
 						(WOBII.MaterialCost * -1) As [PartsRevenue], 
 						(WOBII.LaborCost * -1) AS  [LaborRevenue], 
 						(WOBII.MiscCharges * -1) AS [MiscRevenue], 

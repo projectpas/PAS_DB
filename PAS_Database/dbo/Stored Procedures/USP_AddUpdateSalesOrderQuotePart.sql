@@ -279,6 +279,7 @@ BEGIN
 				SELECT SOP.SalesOrderQuotePartId, SUM(ISNULL(SOS.QtyQuoted, 0)) AS TotalQtyQuoted
 				FROM [DBO].[SalesOrderQuotePartV1] SOP
 				LEFT JOIN [DBO].[SalesOrderQuoteStocklineV1] SOS ON SOP.SalesOrderQuotePartId = SOS.SalesOrderQuotePartId
+				WHERE SOS.SalesOrderQuotePartId IS NOT NULL
 				GROUP BY SOP.SalesOrderQuotePartId
 			)
 			UPDATE SOP

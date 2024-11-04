@@ -17,7 +17,7 @@
  ** --   --------		-------				--------------------------------          
 	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
      
- -- [dbo].[sp_GetSOShippingParentList] 60
+ -- [dbo].[sp_GetSOShippingParentList] 1269
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
@@ -39,13 +39,13 @@ BEGIN
 		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
+		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
 					AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
-					AND sos.SalesOrderId = sopt.SalesOrderId
+					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
 		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.SalesOrderId, sop.ConditionId
 	END

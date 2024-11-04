@@ -14,8 +14,9 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    25/10/2024  Moin Bloch     Created
+	2    30/10/2024  Moin Bloch     Added Employee Table Join
      
--- EXEC USP_CycleCount_ApprovalList 12,1
+-- EXEC USP_CycleCount_ApprovalList 20,1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_ApprovalList]
 @CycleCountId BIGINT,
@@ -46,12 +47,12 @@ BEGIN
 			   CD.[DifferenceAmount],       
 			   ISNULL(CA.[ApprovedDate], GETUTCDATE()) AS ApprovedDate,
 			   ISNULL(CA.[SentDate], GETUTCDATE()) AS SentDate,
-			   CA.[ApprovedByName] AS ApprovedBy,
-			   ISNULL(CA.[RejectedDate], GETUTCDATE()) AS RejectedDate,
-			   CA.[RejectedByName] AS RejectedBy,        
+			   ISNULL(CE.FirstName +' '+ CE.LastName,'') AS ApprovedBy,
+			   ISNULL(CA.[RejectedDate], GETUTCDATE()) AS RejectedDate,			   
+			   ISNULL(RE.FirstName +' '+ RE.LastName,'') AS RejectedBy,
 			   ISNULL(CA.[CycleCountApprovalId], 0) AS CycleCountApprovalId,
 			   CD.[MasterCompanyId],
-			   ISNULL(CA.[ApprovedById], 0) AS ApprovedById,
+			   ISNULL(CA.[ApprovedById], 0) AS ApprovedById,			   
 			   ISNULL(CA.[Memo], '') AS Memo,			  
 			   CA.CreatedBy,
 			   CA.UpdatedBy,
@@ -73,9 +74,10 @@ BEGIN
 		FROM [dbo].[CycleCountDetail] CD WITH(NOLOCK)
 		INNER JOIN [dbo].[CycleCount] CC WITH(NOLOCK) ON CD.[CycleCountId] = CC.[CycleCountId]
 		 LEFT JOIN [dbo].[CycleCountApproval] CA WITH(NOLOCK) ON CD.[CycleCountDetailId] = CA.[CycleCountDetailId]
+		 LEFT JOIN [dbo].[Employee] CE WITH(NOLOCK) ON CA.[ApprovedById] = CE.[EmployeeId]
+		 LEFT JOIN [dbo].[Employee] RE WITH(NOLOCK) ON CA.[RejectedBy] = RE.[EmployeeId]
 		  WHERE CD.[CycleCountId] = @CycleCountId 
-		    AND CD.[IsDeleted] = 0;       
-			
+		    AND CD.[IsDeleted] = 0; 
 	END TRY    
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

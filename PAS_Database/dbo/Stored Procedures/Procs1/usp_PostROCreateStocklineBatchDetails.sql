@@ -21,6 +21,7 @@
 	10   19/09/2024	  AMIT GHEDIYA   Added for AutoPost Batch
 	11	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
 	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
+	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -59,6 +60,8 @@ BEGIN
 					DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 					DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 					DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+					DECLARE @RROReferenceModule VARCHAR(100) = 'RRO';
+					DECLARE @ASSETReferenceModule VARCHAR(100) = 'ASSET';
 
 					IF OBJECT_ID(N'tempdb..#StocklinePostType') IS NOT NULL    
 					BEGIN    
@@ -409,13 +412,13 @@ BEGIN
 										BEGIN
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
 												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@STKGlAccountId ,@STKGlAccountNumber ,@STKGlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -440,13 +443,13 @@ BEGIN
 
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
 												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -516,13 +519,13 @@ BEGIN
 										BEGIN
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
 												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceId,@ASSETReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -546,13 +549,13 @@ BEGIN
 
 											INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
-												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
 												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceId,@ASSETReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 

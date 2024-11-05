@@ -40,8 +40,11 @@
     [LocalCurrency]              VARCHAR (20)    NULL,
     [FXRate]                     DECIMAL (18, 2) NULL,
     [ForeignCurrency]            VARCHAR (20)    NULL,
+    [ReferenceModule]            VARCHAR (100)   NULL,
     CONSTRAINT [PK_CommonBatchDetails] PRIMARY KEY CLUSTERED ([CommonJournalBatchDetailId] ASC)
 );
+
+
 
 
 

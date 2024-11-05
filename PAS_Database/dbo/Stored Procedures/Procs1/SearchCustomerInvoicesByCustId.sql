@@ -121,7 +121,7 @@ BEGIN
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
 			  AND SOBI.CustomerId = @customerId 
-			  --AND SOBI.IsBilling = 0 
+			  AND ISNULL(SOBI.[IsBilling], 0) != 1
 			  AND SOBI.RemainingAmount > 0 
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       

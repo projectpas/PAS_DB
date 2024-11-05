@@ -34,8 +34,9 @@
 	22   19/04/2024   Moin Bloch       Modify(CM Status Issue)
 	23   21/06/2024   Hemant Saliya    Added Un Applied Cash to utilize in Cash Receipt.
 	24	 11-Oct-2024  Bhargav Saliya   Get Module status 
+	25   11/05/2024	  AMIT GHEDIYA	   Update condition.
 
-EXEC  [dbo].[SearchCustomerInvoicesByCustId] 70,1 
+EXEC  [dbo].[SearchCustomerInvoicesByCustId] 90,1 
 **************************************************************/ 
 
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesByCustId]      
@@ -109,7 +110,7 @@ BEGIN
 			  LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId      
 			  LEFT JOIN [dbo].[Currency] Curr WITH (NOLOCK) ON SOBI.CurrencyId = Curr.CurrencyId      
 			  LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(S.PercentId AS INT) = p.PercentId 
-			  INNER JOIN [dbo].MasterSalesOrderQuoteStatus msq WITH(NOLOCK) ON S.SalesOrderId = msq.Id
+			  INNER JOIN [dbo].[MasterSalesOrderQuoteStatus] msq WITH(NOLOCK) ON S.StatusId = msq.Id
 	          INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId-- AND MSD.Level1Id = @legalEntityId 
 			  INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = S.MasterCompanyId
@@ -120,7 +121,8 @@ BEGIN
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
 			  AND SOBI.CustomerId = @customerId 
-			  AND SOBI.IsBilling = 0 AND SOBI.RemainingAmount > 0 
+			  --AND SOBI.IsBilling = 0 
+			  AND SOBI.RemainingAmount > 0 
 		GROUP BY SOBI.SalesOrderId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
 			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsProforma,msq.[Name]--,SOBI.CreditMemoUsed      
@@ -176,7 +178,7 @@ BEGIN
 			 LEFT JOIN  [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON WOBI.CustomerId = CF.CustomerId      
 			 LEFT JOIN  [dbo].[Currency] Curr WITH (NOLOCK) ON WOBI.CurrencyId = Curr.CurrencyId      
 			 LEFT JOIN  [dbo].[Percent] p WITH(NOLOCK) ON CAST(WO.PercentId AS INT) = p.PercentId   
-			 LEFT JOIN  [dbo].WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = wop.WorkOrderStatusId
+			 LEFT JOIN  [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = wop.WorkOrderStatusId
 			 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @WOMSModuleID AND MSD.ReferenceID = wobii.WorkOrderPartId  --AND MSD.Level1Id = @legalEntityId  
 			 INNER JOIN [dbo].[ManagementStructureLevel] ML WITH(NOLOCK) ON MSD.Level1Id = ML.ID AND ML.LegalEntityId = @LegalEntityId
 			 INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = WO.MasterCompanyId

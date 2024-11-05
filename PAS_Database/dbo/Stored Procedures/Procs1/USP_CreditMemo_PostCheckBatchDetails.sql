@@ -29,7 +29,8 @@
 	13   04/22/2024   Devendra Shekh	modified to manage module Data InvoiceTypeId Wise
 	14   20/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	15	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	16   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+	16	 04/11/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	17   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -101,6 +102,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @CustomerName VARCHAR(150) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'CUSTOMER CREDIT MEMO';
 
 		SELECT @WOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOInvoiceTypeId = CustomerInvoiceTypeId FROM [DBO].[CustomerInvoiceType] WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -584,7 +586,7 @@ BEGIN
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					SELECT  @JournalBatchDetailId,@JournalTypeNumber,@currentNo,DistributionSetupId,DistributionName,@JournalBatchHeaderId,1 
 							,GlAccountId ,GlAccountNumber ,GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 							--CASE WHEN IsDebit = 0 THEN 1 ELSE 0 END,
@@ -592,7 +594,7 @@ BEGIN
 							DebitAmount,
 							CreditAmount,
 							ManagementStructureId ,'CreditMemo',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@DocumentNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@DocumentNumber,@CustomerName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@CreditMemoHeaderId,@ReferenceModule
 					FROM #tmpCommonBatchDetails WHERE ID  = @MasterLoopID;
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();

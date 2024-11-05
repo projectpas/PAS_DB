@@ -20,6 +20,7 @@
 	4	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 25/10/2024	  Devendra Shekh	Added ReferenceName and Currency for CommonBatchDetails
 	6	 28/10/2024	  Devendra Shekh	Modified(get currency from header if referenceName is not there)
+	7	 04/11/2024	  Devendra Shekh	Added ReferenceModule For [CommonBatchDetails]
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -111,6 +112,7 @@ BEGIN
 		DECLARE @JournalNumber VARCHAR(100) = '';
 		DECLARE @ReferenceName VARCHAR(100) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'MANUALJOURNAL';
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
@@ -353,7 +355,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -361,7 +363,7 @@ BEGIN
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,
 						@ManualJorManagementStructureId ,@DistributionCodeName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,@ReferenceName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,@ReferenceName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule);
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
 

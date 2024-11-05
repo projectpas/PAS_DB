@@ -14,7 +14,7 @@
     1    07/08/2023   Ekta Chandegra     Convert text into uppercase   
     2    09/20/2024   Vishal Suthar      Modified the SOQ table joins with new tables
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[SearchSOQViewData]
+CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
  @PageNumber int,
  @PageSize int,
@@ -98,7 +98,8 @@ BEGIN
       from dbo.SalesOrderQuote SOQ WITH (NOLOCK) Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id  
       Inner Join Customer C WITH (NOLOCK) on SOQ.CustomerId=C.CustomerId  
       Inner Join CustomerType CT WITH (NOLOCK) on SOQ.AccountTypeId=CT.CustomerTypeId  
-	  Left Join SalesOrderPart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId
+	  Left Join SalesOrderQuotePartV1 SOQP WITH (NOLOCK) on SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
+	  Left Join SalesOrderPartV1 SP WITH (NOLOCK) on SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 	  Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId  
       LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId 
       Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
@@ -107,8 +108,10 @@ BEGIN
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
       Outer Apply(  
-       Select SUM(NetSales) as SoAmount from SalesOrderPart   
-       Where SalesOrderQuoteId=SOQ.SalesOrderQuoteId  
+       Select SUM(SOPC.NetSaleAmount) as SoAmount from SalesOrderPartV1 SOP
+	   INNER JOIN DBO.SalesOrderPartCost SOPC ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+	   INNER JOIN DBO.SalesOrderQuotePartV1 SOQP ON SOQP.SalesOrderQuotePartId = SOP.SalesOrderQuotePartId
+       Where SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId  
       ) A  
       Outer Apply (  
        Select SUM(SOC.UnitCost) as 'Cost',SUM(SOC.NetSaleAmount) as 'NetSales' from SalesOrderQuotePartV1 S 

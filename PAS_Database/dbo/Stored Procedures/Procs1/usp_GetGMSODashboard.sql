@@ -16,10 +16,11 @@
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	4    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
      
 EXECUTE   [dbo].[usp_GetGMSODashboard] 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetGMSODashboard]
+CREATE      PROCEDURE [dbo].[usp_GetGMSODashboard]
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -29,11 +30,12 @@ BEGIN
     BEGIN TRANSACTION
       SELECT
         SOBI.SubTotal + SOBI.MiscCharges + SOBI.Freight AS PartsSaleBilling,
-        SOP.marginamount AS PartsSaleGM,
+        SOPC.marginamount AS PartsSaleGM,
         SOBI.invoicedate 'SALE DATE'
       FROM SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
       INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
-      INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+      INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+      INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 	  WHERE ISNULL(SOBI.IsProforma,0) = 0
     COMMIT TRANSACTION
   END TRY

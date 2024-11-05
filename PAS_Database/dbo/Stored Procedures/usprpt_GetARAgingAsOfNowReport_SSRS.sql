@@ -16,10 +16,11 @@
  ** --   --------		-------				--------------------------------          
 	1	 08-05-2024		Moin Bloch  		Created
 	2    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
-     
+    3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables 
+
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
+CREATE      PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,
@@ -449,8 +450,9 @@ BEGIN
 							   @SOModuleTypeId,  --'SalesOrder',
 							   LegalEntityName = (SELECT   
 								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+									 FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
+										LEFT JOIN [dbo].[SalesOrderStocklineV1] STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+										JOIN [dbo].[Stockline] SL ON SL.StockLineId = STK.StockLineId
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
@@ -1239,7 +1241,7 @@ BEGIN
 								CASE WHEN SOBI.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, SOBI.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
 								DATEADD(DAY, SO.[NetDays],SOBI.[InvoiceDate]), -- 'DueDate',     
 								STUFF((SELECT DISTINCT ',' + UPPER(SOP.[CustomerReference]) 
-									FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)									 
+									FROM [dbo].[SalesOrder] SOP WITH (NOLOCK)									 
 									WHERE SOP.[SalesOrderId] = SO.[SalesOrderId]
 									FOR XML PATH('')), 1, 1, ''),
 								UPPER(ISNULL(SO.[SalesPersonName],'Unassigned')),
@@ -1303,8 +1305,9 @@ BEGIN
 							   @SOModuleTypeId,  --'SalesOrder',
 							   LegalEntityName = (SELECT   
 								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+									 FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
+										LEFT JOIN [dbo].[SalesOrderStocklineV1] STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+										JOIN [dbo].[Stockline] SL ON SL.StockLineId = STK.StockLineId
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  

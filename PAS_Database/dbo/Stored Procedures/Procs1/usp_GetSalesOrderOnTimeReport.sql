@@ -19,10 +19,11 @@
     1                 Swetha			 Created
 	2	        	  Swetha			 Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
-     
+    4    11/04/2024	  Vishal Suthar		 Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetSalesOrderOnTimeReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -150,12 +151,11 @@ BEGIN
         E.firstname + ' ' + E.lastname AS 'Sales Person',
         E1.firstname + ' ' + E1.lastname AS 'CSR'
       FROM dbo.salesorder AS SO WITH (NOLOCK)
-      LEFT OUTER JOIN dbo.customer WITH (NOLOCK)
-        ON SO.customerid = customer.customerid
-        LEFT OUTER JOIN dbo.salesorderpart AS SOP WITH (NOLOCK)
-          ON SO.salesorderid = SOP.salesorderid
+      LEFT OUTER JOIN dbo.customer WITH (NOLOCK) ON SO.customerid = customer.customerid
+        LEFT OUTER JOIN dbo.salesorderpartv1 AS SOP WITH (NOLOCK) ON SO.salesorderid = SOP.salesorderid
+        LEFT OUTER JOIN dbo.SalesOrderStocklineV1 AS SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT OUTER JOIN dbo.stockline AS STL WITH (NOLOCK)
-          ON SOP.stocklineid = STL.stocklineid and STL.IsParent=1
+          ON SOPS.stocklineid = STL.stocklineid and STL.IsParent=1
         --LEFT OUTER JOIN DBO.WorkOrder AS WO WITH(NOLOCK) ON STl.WorkOrderId = WO.WorkOrderId           
         LEFT OUTER JOIN dbo.itemmaster WITH (NOLOCK)
           ON SOP.itemmasterid = itemmaster.itemmasterid

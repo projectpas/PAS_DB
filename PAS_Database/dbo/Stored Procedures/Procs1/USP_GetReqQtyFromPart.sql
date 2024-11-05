@@ -14,10 +14,11 @@
  ** --   --------     -------			--------------------------------                  
     1    04/05/2023   Shrey Chandegara  Created        
     2    12/06/2023   Vishal Suthar		Modified to see qty from material KIT        
-             
+    3    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	
  EXECUTE USP_GetReqQtyFromPart 2688, 14760, 4378, 1      
 **************************************************************/         
-CREATE    PROCEDURE [dbo].[USP_GetReqQtyFromPart]
+CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
 	@PurchaseOrderId BIGINT,      
 	@PurchaseOrderPartRecordId BIGINT,      
 	@ReferenceId BIGINT,      
@@ -34,11 +35,11 @@ BEGIN
 	SELECT CASE WHEN @ModuleId = 3      
        THEN (SELECT DISTINCT ISNULL((ISNULL(SUM(CASE WHEN SOP.QtyRequested IS NOT NULL THEN SOP.QtyRequested ELSE SOP_A.QtyRequested END),0)- ISNULL(SUM(SORP.QtyToReserve),0)),0)
                 FROM PurchaseOrderPart POP  WITH (NOLOCK)    
-                LEFT JOIN [DBO].[SalesOrderPart] SOP WITH (NOLOCK) ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId AND SOP.SalesOrderId = @ReferenceId    
+                LEFT JOIN [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.ItemMasterId = POP.ItemMasterId AND SOP.ConditionId = POP.ConditionId AND SOP.SalesOrderId = @ReferenceId    
                 LEFT JOIN [DBO].[SalesOrderReserveParts] SORP WITH (NOLOCK) ON SORP.SalesOrderPartId = SOP.SalesOrderPartId  AND SORP.ItemMasterId = POP.ItemMasterId 
 				LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = POP.ItemMasterId
                 LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
-				LEFT JOIN [DBO].[SalesOrderPart] SOP_A WITH (NOLOCK) ON (SOP_A.ItemMasterId = Nha.MappingItemMasterId OR SOP_A.ItemMasterId = MainNha.ItemMasterId) AND SOP_A.ConditionId = POP.ConditionId AND SOP_A.SalesOrderId = @ReferenceId
+				LEFT JOIN [DBO].[SalesOrderPartV1] SOP_A WITH (NOLOCK) ON (SOP_A.ItemMasterId = Nha.MappingItemMasterId OR SOP_A.ItemMasterId = MainNha.ItemMasterId) AND SOP_A.ConditionId = POP.ConditionId AND SOP_A.SalesOrderId = @ReferenceId
                 WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId-- AND SOP.SalesOrderId = @ReferenceId
 				Group By SOP.QtyRequested,SORP.QtyToReserve)       
        

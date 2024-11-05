@@ -15,10 +15,11 @@
  ** --   --------		-------			--------------------------------            
     1    03/06/2024		AMIT GHEDIYA	 Created  
 	2    13/06/2024		AMIT GHEDIYA	 Update for get only part which is reserve qty. 
+	3    11/05/2024		Vishal Suthar	 Modified to make use of new SO Part tables
 
 -- exec GetSalesOrderPartsViewById 50 
 ************************************************************************/   
-CREATE     PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
+CREATE      PROCEDURE [dbo].[GetSalesOrderPartsViewById]    
 	@SalesOrderId BIGINT    
 AS    
 BEGIN    
@@ -66,8 +67,9 @@ BEGIN
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber
-		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
-				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
@@ -82,8 +84,9 @@ BEGIN
 			UPPER(qs.SerialNumber) AS SerialNumber,
 			UPPER(ISNULL(cp.Description, '')) AS Condition,
 			UPPER(itemMaster.PartNumber) AS PartNumber
-		FROM  [dbo].[SalesOrderPart] part WITH(NOLOCK)
-				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
+		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
+				LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON part.SalesOrderPartId = sos.SalesOrderPartId

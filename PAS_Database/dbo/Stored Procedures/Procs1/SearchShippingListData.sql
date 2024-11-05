@@ -13,8 +13,10 @@
 	2    24/08/2023				 Ayesha Sultana						vendor rma changes & sorting fixes
 	2    28/08/2023				 Ayesha Sultana						ShipVia & ShipDate fetch
 	4    11/09/2023				 Ayesha Sultana						BUG FIXES ON RECORD COUNT
+	5	 11/04/2024				 Vishal Suthar						Modified to make use of new SO Part tables
+
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[SearchShippingListData] 
+CREATE      PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -122,7 +124,7 @@ BEGIN
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId
 
-					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
 						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
@@ -353,7 +355,7 @@ BEGIN
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId
 
-					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
 							INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
@@ -580,7 +582,7 @@ BEGIN
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId
 
-					FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
 						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId

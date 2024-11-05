@@ -15,11 +15,12 @@
 	2	 02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
 	3	 04/19/2024	  Devendra Shekh	added data for Exchange SO
 	4	 04/19/2024	  Devendra Shekh	modified for invoiceTypeId changes
-	
+	5    11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+
  -- exec sp_GetCustomerInvoicedatabyInvoiceId 213,0,3    
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
+CREATE    PROCEDURE [dbo].[sp_GetCustomerInvoicedatabyInvoiceId]
 @InvoicingId BIGINT,
 @isWorkOrder BIT,
 @InvoiceTypeId INT
@@ -65,7 +66,7 @@ BEGIN
 			   ,'0' as PartCount
 			   ,@SOInvoiceTypeId AS 'InvoiceTypeId'
 			FROM [dbo].SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
-				LEFT JOIN [dbo].SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
+				LEFT JOIN [dbo].SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
 				LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN [dbo].SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId

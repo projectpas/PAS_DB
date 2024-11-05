@@ -17,10 +17,11 @@
  ** --   --------     -------			--------------------------------          
     1    10/19/2023   Vishal Suthar		Added history
     2    08/13/2023   Vishal Suthar		Modified to update PO Number and Est Dlvry Date when Alt or Equ part is mapped
-	
+	3	 11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+
  EXEC sp_UpdatePOPartReferenceDetail 214  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[sp_UpdatePOPartReferenceDetail]  
+CREATE    PROCEDURE [dbo].[sp_UpdatePOPartReferenceDetail]  
  @PurchaseOrderPartId  bigint  
 AS  
 BEGIN  
@@ -62,11 +63,11 @@ BEGIN
 	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 5    AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
   
-	UPDATE dbo.SalesOrderPart  
+	UPDATE dbo.SalesOrderPartV1  
 	SET PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate  
 	FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 	LEFT JOIN dbo.PurchaseOrderPartReference PP WITH (NOLOCK) ON PP.PurchaseOrderId = POP.PurchaseOrderId AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
-	INNER JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SOP.SalesOrderId = PP.ReferenceId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId  
+	INNER JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = PP.ReferenceId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId  
 	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
 	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 3   AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
   

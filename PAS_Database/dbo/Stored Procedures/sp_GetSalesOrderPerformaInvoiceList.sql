@@ -9,10 +9,11 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    01/29/2024   AMIT GHEDIYA			Created
+	2	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 
 --   EXEC sp_GetSalesOrderPerformaInvoiceList 814
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
+CREATE      PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -29,18 +30,19 @@ BEGIN
 								imt.ItemMasterId AS SalesOrderPartId,				
 								'' AS [Status],
 								0 AS ItemNo,
-								sop.Qty AS Qty
-						FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+								sop.QtyOrder AS Qty
+						FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
+							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId
+							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
 							LEFT JOIN DBO.SalesOrderBillingInvoicing sobi WITH (NOLOCK) ON sobi.SalesOrderId = sop.SalesOrderId AND ISNULL(sobi.IsProforma,0) = 1
 							LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND ISNULL(sobii.IsProforma,0) = 1
-										AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.Qty
+										AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND sobii.NoofPieces = sop.QtyOrder
 										AND sobii.IsVersionIncrease = 0
 						WHERE sop.SalesOrderId = @SalesOrderId --AND ISNULL(sop.StockLineId,0) >0
 						GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription,
-							sop.SalesOrderId, imt.ItemMasterId, sop.Qty, sop.ConditionId;
+							sop.SalesOrderId, imt.ItemMasterId, sop.QtyOrder, sop.ConditionId;
 			END
 			COMMIT  TRANSACTION
 		END TRY    

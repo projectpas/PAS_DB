@@ -8,13 +8,14 @@ EXEC [ReallocateItemNo]
 ** Change History 
 **************************************************************   
 ** PR   Date			 Author				 Change Description  
-** --   --------		-------			 --------------------------------
-** 1    12/30/2021		HEMANT SALIYA	  Update Ssales Order Index
+** --   --------		-------			--------------------------------
+** 1    12/30/2021		HEMANT SALIYA	Update Ssales Order Index
+   2	11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
 
 *************************************************************
 EXEC [dbo].[ReallocateItemNo]  1010
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[ReallocateItemNo]  
+CREATE      PROCEDURE [dbo].[ReallocateItemNo]  
   @SalesOrderId BIGINT
 AS
 BEGIN
@@ -40,7 +41,7 @@ BEGIN
 			)
 
 			INSERT INTO #tmpSalesOrderPart(SalesOrderPartid,ItemMasterId,ConditionId,QtyRequested,qty)
-			SELECT SalesOrderPartId,ItemMasterId,ConditionId,QtyRequested,qty FROM dbo.SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
+			SELECT SalesOrderPartId,ItemMasterId,ConditionId,QtyRequested,QtyOrder FROM dbo.SalesOrderPartV1 WITH (NOLOCK) Where SalesOrderId = @SalesOrderId AND IsDeleted = 0  order by SalesOrderPartId DESC
 
 			DECLARE  @MasterLoopID as BIGINT  = 0;
 			DECLARE  @ConditionID as BIGINT  = 0;
@@ -67,25 +68,25 @@ BEGIN
 
 				If( (SELECT SUM(ISNULL(qty, 0)) FROM #tmpSalesOrderPart WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId) > @QtyRequested)
 				BEGIN
-					UPDATE SalesOrderPart
+					UPDATE SalesOrderPartV1
 					SET QtyRequested = tmp.QtyRequested
 					FROM(
-						SELECT SUM(ISNULL(SOP.qty, 0)) AS QtyRequested, SalesOrderId, ConditionId, ItemMasterID
-						   FROM dbo.SalesOrderPart SOP WITH(NOLOCK) 
+						SELECT SUM(ISNULL(SOP.QtyOrder, 0)) AS QtyRequested, SalesOrderId, ConditionId, ItemMasterID
+						   FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK) 
 						   WHERE ConditionId = @ConditionID AND ItemMasterID = @ItemMasterId AND SalesOrderId = @SalesOrderId
 						   GROUP BY SalesOrderId, ConditionId, ItemMasterID
-					)tmp WHERE tmp.SalesOrderId = SalesOrderPart.SalesOrderId AND tmp.ItemMasterID = SalesOrderPart.ItemMasterID AND tmp.ConditionId = SalesOrderPart.ConditionId
+					)tmp WHERE tmp.SalesOrderId = SalesOrderPartV1.SalesOrderId AND tmp.ItemMasterID = SalesOrderPartV1.ItemMasterID AND tmp.ConditionId = SalesOrderPartV1.ConditionId
 				END
 				
 				SET @MasterLoopID = @MasterLoopID - 1;
 			END
 
-			UPDATE SalesOrderPart
-			SET ItemNo = t.LineId
-			   FROM dbo.SalesOrderPart SOP WITH(NOLOCK)  INNER JOIN #tmpSalesOrderPart t
-			        ON SOP.SalesOrderPartId = t.SalesOrderPartId		
+			--UPDATE SalesOrderPart
+			--SET ItemNo = t.LineId
+			--   FROM dbo.SalesOrderPart SOP WITH(NOLOCK)  INNER JOIN #tmpSalesOrderPart t
+			--        ON SOP.SalesOrderPartId = t.SalesOrderPartId		
 
-			SELECT CustomerReference as [value] FROM SalesOrderPart WITH (NOLOCK) Where SalesOrderId = @SalesOrderId
+			SELECT CustomerReference as [value] FROM SalesOrder WITH (NOLOCK) Where SalesOrderId = @SalesOrderId
 		END
 	END TRY    
 	BEGIN CATCH      

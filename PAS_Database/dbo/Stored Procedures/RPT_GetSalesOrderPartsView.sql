@@ -12,11 +12,12 @@ EXEC [RPT_GetSalesOrderPartsView]
 ** 1    01/10/2024  AMIT GHEDIYA    Created
    2    01/18/2024  AMIT GHEDIYA    Remove duplication part display.
    3    16/09/2024  AMIT GHEDIYA    Get Curr From Header data in print.
+   4	11/04/2024	Vishal Suthar	Modified to make use of new SO Part tables
 
 EXEC RPT_GetSalesOrderPartsView 567
 
 **************************************************************/
-CREATE       PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
+CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -33,19 +34,19 @@ BEGIN
 		SELECT
 			sp.SalesOrderId,
 			sp.SalesOrderPartId,
-			sp.SalesOrderQuoteId,
+			q.SalesOrderQuoteId,
 			sp.ItemMasterId,
-			sp.StockLineId,
+			stk.StockLineId,
 			UPPER(ISNULL(sl.StockLineNumber, '')) AS StockLineNumber,
 			sp.FxRate,
-			sp.Qty,
+			sp.QtyOrder Qty,
 			sp.QtyRequested,
-			sp.UnitSalePrice,
-			sp.MarkUpPercentage,
-			sp.SalesBeforeDiscount,
-			sp.Discount,
-			sp.DiscountAmount,
-			ISNULL(CAST(sp.NetSales AS decimal), 0) AS NetSales,
+			sopc.NetSaleAmount UnitSalePrice,
+			sopc.MarkUpPercentage MarkUpPercentage,
+			0 SalesBeforeDiscount,
+			sopc.DiscountPercentage Discount,
+			sopc.DiscountAmount,
+			ISNULL(CAST(sopc.NetSaleAmount AS decimal), 0) AS NetSales,
 			sp.MasterCompanyId,
 			sp.CreatedBy,
 			sp.CreatedDate,
@@ -73,16 +74,16 @@ BEGIN
 			sl.IsSerialized,
 			ISNULL(sl.SerialNumber, '') AS SerialNumber,
 			ISNULL(sl.ControlNumber, '') AS ControlNumber,
-			sp.UnitCost,
+			sopc.UnitCost,
 			--sp.Qty * ISNULL(sp.UnitSalesPricePerUnit, 0) AS SalesPriceExtended,
-			CONVERT(varchar, CAST(ISNULL(ISNULL(sp.Qty,0) * ISNULL(sp.UnitSalesPricePerUnit, 0), 0) AS money), 1) AS SalesPriceExtended,
-			sp.MarkupExtended,
-			sp.SalesDiscountExtended,
-			sp.NetSalePriceExtended,
-			sp.UnitCostExtended,
-			sp.MarginAmount,
-			sp.MarginAmountExtended,
-			sp.MarginPercentage,
+			CONVERT(varchar, CAST(ISNULL(ISNULL(sp.QtyOrder,0) * ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) AS SalesPriceExtended,
+			sopc.MarginAmount MarkupExtended,
+			sopc.DiscountAmount SalesDiscountExtended,
+			sopc.NetSaleAmount NetSalePriceExtended,
+			sopc.UnitCostExtended,
+			sopc.MarginAmount,
+			sopc.MarginAmount MarginAmountExtended,
+			sopc.MarginPercentage,
 			--COALESCE(currencyDisplayName, '') AS CurrencyDescription,
 			sp.ConditionId,
 			UPPER(ISNULL(cp.Description, '')) AS ConditionDescription,
@@ -110,7 +111,7 @@ BEGIN
 				  AND IsDeleted = 0
 				  AND CustomerStatusId = 1
 			) > 0 THEN 1 ELSE 0 END AS IsApproved,
-			UPPER(sp.CustomerReference) AS CustomerReference,
+			UPPER(so.CustomerReference) AS CustomerReference,
 			ISNULL(imx.ExportECCN, '') AS ECCN,
 			ISNULL(imx.ITARNumber, '') AS ITAR,
 			ISNULL(um.ShortName, '') AS UomName,
@@ -138,13 +139,16 @@ BEGIN
 			), 0) AS QtyToShip,
 			ISNULL(REPLACE(REPLACE(ISNULL(sp.Notes,''), '<p>', ''),'</p>',''), '') AS Notes,
 			ISNULL(REPLACE(REPLACE(ISNULL(so.Notes,''), '<p>', ''),'</p>',''), '') AS NotesHeader,
-			ISNULL(sp.MarkupPerUnit, 0) AS MarkupPerUnit,
-			ISNULL(sp.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,
-			ISNULL(sp.GrossSalePrice, 0) AS GrossSalePrice,
-			ISNULL(sp.TaxPercentage, 0) AS TaxPercentage,
-			ISNULL(sp.TaxType, '') AS TaxType,
-			ISNULL(sp.TaxAmount, 0) AS TaxAmount,
-			ISNULL(sp.AltOrEqType, '') AS AltOrEqType,
+			ISNULL(sopc.MarkUpAmount, 0) AS MarkupPerUnit,
+			--ISNULL(sopc.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,
+			0 AS GrossSalePricePerUnit,
+			--ISNULL(sopc.GrossSalePrice, 0) AS GrossSalePrice,
+			0 AS GrossSalePrice,
+			ISNULL(sopc.TaxPercentage, 0) AS TaxPercentage,
+			--ISNULL(sopc.TaxType, '') AS TaxType,
+			'' AS TaxType,
+			ISNULL(sopc.TaxAmount, 0) AS TaxAmount,
+			'' AS AltOrEqType,
 			COALESCE((
 				SELECT COALESCE(SUM(BillingAmount), 0)
 				FROM dbo.SalesOrderFreight WITH(NOLOCK)
@@ -169,7 +173,7 @@ BEGIN
 				WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 				ELSE 'OEM'
 			END AS StockType,
-			ISNULL(sp.ItemNo, 0) AS ItemNo,
+			0 AS ItemNo,
 			ISNULL(sp.POId, 0) AS POId,
 			ISNULL(sp.PONumber, '') AS PONumber,
 			ISNULL(sp.PONextDlvrDate, NULL) AS PONextDlvrDate,
@@ -177,7 +181,7 @@ BEGIN
 			ISNULL(ro.RepairOrderNumber, '') AS RONumber,
 			ISNULL(rop.EstRecordDate, NULL) AS EstRecordDate,
 			--ISNULL(sp.UnitSalesPricePerUnit, 0) AS UnitSalesPricePerUnit,
-			CONVERT(varchar, CAST(ISNULL(sp.UnitSalesPricePerUnit, 0) AS money), 1) AS UnitSalesPricePerUnit,
+			CONVERT(varchar, CAST(ISNULL(sopc.NetSaleAmount, 0) AS money), 1) AS UnitSalesPricePerUnit,
 			ISNULL(im.ItemClassificationName, '') AS ItemClassification,
 			ISNULL(im.ItemGroup, '') AS ItemGroup,
 			ISNULL(rop.EstRecordDate, NULL) AS roNextDlvrDate,
@@ -187,7 +191,7 @@ BEGIN
 
 			--MiscCharges = this.Context.SalesOrder.Where(p => p.SalesOrderId == salesOrderId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().ChargesBilingMethodId == 3 ? (decimal)this.Context.SalesOrder.Where(p => p.SalesOrderId == salesOrderId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().TotalCharges :
    --                                     (this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount == null ? 0 : (decimal)this.Context.SalesOrderCharges.Where(p => p.SalesOrderId == salesOrderId && p.ItemMasterId == sop.ItemMasterId && p.IsActive == true && p.IsDeleted == false).FirstOrDefault().BillingAmount),
-			SubTotal = ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+			SubTotal = ISNULL(ISNULL(sopc.NetSaleAmount, 0) * ISNULL(sp.QtyOrder,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN 
 										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0) 
@@ -216,7 +220,7 @@ BEGIN
 							END END,0),
 
 			SalesTax = ISNULL(
-				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+				ISNULL(ISNULL(sopc.NetSaleAmount,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN 
 										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
@@ -230,7 +234,7 @@ BEGIN
 			,0),
 
 			OtherTax = ISNULL(
-				ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+				ISNULL(ISNULL(sopc.NetSaleAmount,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN 
 										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
@@ -243,7 +247,7 @@ BEGIN
 				WHERE CustomerId=cust.CustomerId AND SiteId=posadd.SiteId AND (TT.Code != 'SALES TAX' OR TT.Code is null) AND CTTR.IsDeleted=0 AND CTTR.IsActive=1) / 100
 			,0),
 			Total =  --ISNULL((ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0)) 
-						ISNULL(ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+						ISNULL(ISNULL(ISNULL(sopc.NetSaleAmount,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN 
 										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
@@ -259,7 +263,7 @@ BEGIN
 							END END,0)
 										,0)
 						+ 
-					 ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+					 ISNULL((ISNULL(ISNULL(sopc.NetSaleAmount,0) 
 											+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 											ELSE CASE WHEN 
 											(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
@@ -270,7 +274,7 @@ BEGIN
 					INNER JOIN dbo.TaxType TT WITH(NOLOCK) ON CTTR.TaxTypeId = TT.TaxTypeId
 					INNER JOIN dbo.TaxRate TR WITH(NOLOCK) ON CTTR.TaxRateId = TR.TaxRateId
 					WHERE CustomerId=cust.CustomerId AND SiteId = posadd.SiteId AND TT.Code='SALES TAX' AND CTTR.IsDeleted=0 AND CTTR.IsActive=1) / 100 ),0) + 
-					ISNULL((ISNULL(ISNULL(sp.UnitSalesPricePerUnit, 0) * ISNULL(sp.Qty,0) 
+					ISNULL((ISNULL(ISNULL(sopc.NetSaleAmount,0) 
 										+ CASE WHEN so.FreightBilingMethodId = 3 THEN so.TotalFreight 
 										ELSE CASE WHEN 
 										(SELECT SUM(sof.BillingAmount) FROM dbo.SalesOrderFreight sof WITH(NOLOCK) WHERE sof.SalesOrderId = so.SalesOrderId AND sof.ItemMasterId = sp.ItemMasterId AND sof.IsActive = 1 AND sof.IsDeleted = 0)
@@ -292,13 +296,16 @@ BEGIN
 			--IdNumber = (SELECT stli.IdNumber FROM dbo.StockLine stli
 			--				  WHERE stli.StockLineId = sp.StockLineId)
 		FROM
-			dbo.SalesOrderPart sp WITH(NOLOCK)
-			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON sp.StockLineId = sl.StockLineId
+			dbo.SalesOrderPartV1 sp WITH(NOLOCK)
+			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sp.SalesOrderPartId
+			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sp.SalesOrderPartId
+			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON sp.ItemMasterId = im.ItemMasterId
 			LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN dbo.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sp.ConditionId = cp.ConditionId
-			LEFT JOIN dbo.SalesOrderQuote q WITH(NOLOCK) ON sp.SalesOrderQuoteId = q.SalesOrderQuoteId
+			LEFT JOIN dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = sp.SalesOrderQuotePartId
+			LEFT JOIN dbo.SalesOrderQuote q WITH(NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
 			LEFT JOIN dbo.UnitOfMeasure iu WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 			LEFT JOIN dbo.SalesOrderReserveParts rPart WITH(NOLOCK) ON sp.SalesOrderPartId = rPart.SalesOrderPartId
 			LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
@@ -318,8 +325,6 @@ BEGIN
 			sp.SalesOrderId = @salesOrderId
 			AND sp.IsDeleted = 0
 			--AND rop.isAsset = 0
-		ORDER BY
-			sp.ItemNo;
 
    END              
              

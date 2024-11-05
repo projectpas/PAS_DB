@@ -19,7 +19,7 @@
 
 --   EXEC sp_GetSalesOrderBillingInvoiceList 20845
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
+CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -147,7 +147,7 @@ BEGIN
 				--SELECT * FROM #tmpSalesOrderPart
 
 				INSERT INTO #tmpSalesOrderPart(SalesOrderId, SalesOrderPartId, ConditionId, ItemMasterId)
-				SELECT SalesOrderId, SalesOrderPartId, ConditionId, ItemMasterId FROM DBO.SalesOrderPart WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId
+				SELECT SalesOrderId, SalesOrderPartId, ConditionId, ItemMasterId FROM DBO.SalesOrderPartV1 WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId
 				
 				SELECT @COUNT = MAX(ID) FROM #tmpSalesOrderPart 
 

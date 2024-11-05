@@ -1,5 +1,19 @@
-﻿
-CREATE     Procedure [dbo].[sp_GetExchangePickTicketApproveList]
+﻿/*************************************************************           
+ ** File:   [sp_GetExchangePickTicketApproveList]
+ ** Author: unknown
+ ** Description:
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+	1	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+
+************************************************************************/
+CREATE      PROCEDURE [dbo].[sp_GetExchangePickTicketApproveList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN
@@ -11,7 +25,9 @@ BEGIN
 		;WITH CTE AS (select DISTINCT 0 AS ExchangeSalesOrderPartId, sop.ItemMasterId, sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
 		(SELECT TOP 1 QtyQuoted FROM ExchangeSalesOrderPart WITH(NOLOCK) Where ExchangeSalesOrderId = @ExchangeSalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
 		'' AS SerialNumber, 
-		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN SalesOrderPart sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
+		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) 
+		INNER JOIN SalesOrderPartV1 sp WITH(NOLOCK) ON sp.SalesOrderId = @ExchangeSalesOrderId
+		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.StockLineId = sll.StockLineId 
 		AND sll.ItemMasterId = sop.ItemMasterId Where sp.SalesOrderId = @ExchangeSalesOrderId) AS QuantityAvailable,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber 
 		,SUM(ISNULL(sopt.QtyToShip,0))as QtyToShip,

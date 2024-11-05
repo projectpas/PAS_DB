@@ -10,13 +10,14 @@
  ** Change History           
  **************************************************************           
  ** PR   	Date			Author					Change Description            
- ** --   	--------		-------				--------------------------------     
+ ** --   	--------		-------					--------------------------------     
 	1		 
 	2		05/30/2024		Devendra Shekh			stopped updating PO status to Fulfilling
+	3		11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
 	
 --- exec sp_UpdatePurchaseOrderDetail  214
 **************************************************************/ 
-CREATE   Procedure [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
+CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
 @PurchaseOrderId  bigint,
 @WorkOrderMaterialsIds VARCHAR(MAX) = NULL,
 @WorkOrderMaterialsKitIds VARCHAR(MAX) = NULL
@@ -101,7 +102,7 @@ BEGIN
 		--Qty = POP.QuantityOrdered, 
 		PONumber = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.NeedByDate
 		from dbo.PurchaseOrderPart POP
-		INNER JOIN dbo.SalesOrderPart SOP ON SOP.SalesOrderId = POP.SalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId
+		INNER JOIN dbo.SalesOrderPartV1 SOP ON SOP.SalesOrderId = POP.SalesOrderId and SOP.ConditionId = POP.ConditionId and SOP.ItemMasterId = POP.ItemMasterId
 		JOIN dbo.PurchaseOrder P ON P.PurchaseOrderId = POP.PurchaseOrderId
 		where POP.PurchaseOrderId = @PurchaseOrderId  AND POP.isParent = 1 AND POP.SalesOrderId > 0
 

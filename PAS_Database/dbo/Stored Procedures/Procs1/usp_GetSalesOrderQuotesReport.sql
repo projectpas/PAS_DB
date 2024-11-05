@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetSalesOrderQuotesReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuotes Report 
@@ -18,10 +17,11 @@
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	4	11/04/2024    Vishal Suthar Modified to make use of new SOQ-SO new tables
      
 EXECUTE   [dbo].[usp_GetSalesOrderQuotesReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderQuotesReport] @customername varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuotesReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
@@ -97,12 +97,12 @@ BEGIN
         UPPER(SOQ.Versionnumber) 'Version',
         UPPER(SOQ.statusname) 'QuoteStatus',
         CONVERT(varchar, SOQ.OpenDate, 101) 'QuoteDate',
-        ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Revenue',
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Direct Cost',
-        ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) -
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Margin',
-        (((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) -
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0))) /
+        ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Revenue',
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Direct Cost',
+        ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) -
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) 'Quoted Margin',
+        (((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) -
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0))) /
         NULLIF(((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)), 0) 'Margin % ',
         SOQ.QuoteSentDate 'Date Sent',
         UPPER(SOQ.CustomerContactName) 'ContactName',
@@ -154,16 +154,15 @@ BEGIN
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
         ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
-        LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK)
-          ON SO.SalesOrderId = SOP.SalesOrderId
-        LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
-          ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-        LEFT JOIN DBO.Customer C WITH (NOLOCK)
-          ON SOQ.CustomerId = C.CustomerId
+        LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+        LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON SOQP.ItemMasterId = IM.ItemMasterId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON SOQP.stocklineId = STL.StockLineId
+          ON STK.stocklineId = STL.StockLineId
         LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
           ON SO.SalesOrderId = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN DBO.Employee E WITH (NOLOCK)

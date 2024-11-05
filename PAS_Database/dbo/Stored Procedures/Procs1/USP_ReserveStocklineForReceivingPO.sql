@@ -30,7 +30,7 @@
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE    PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,
@@ -1353,7 +1353,7 @@ BEGIN
 					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
 					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
 
-					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 					BEGIN
 						SET @Qty = 0;
 						SET @stkQty = 0;
@@ -1384,7 +1384,7 @@ BEGIN
 						)
 
 						INSERT INTO #tmpSalesOrderPart ([SalesOrderPartId])
-						SELECT [SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
+						SELECT [SalesOrderPartId] FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
 						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
 						WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
@@ -1400,17 +1400,17 @@ BEGIN
 
 							SELECT @SelectedSalesOrderPartId = [SalesOrderPartId] FROM #tmpSalesOrderPart WHERE ID = @SOPLoopID;
 							
-							SELECT @QtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SelectedSalesOrderPartId;
+							SELECT @QtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SelectedSalesOrderPartId;
 
 							IF (@POReferenceQty < @QtyRequested)
 							BEGIN
 								SET @QtyRequested = @POReferenceQty;
 							END
 
-							IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL)
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 							BEGIN
 								DECLARE @SalesOrderPartIdToUpdate BIGINT = 0;
-								SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId IS NULL;
+								SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
 								SET @Qty = 0;
 								SET @SOPQty = 0;
@@ -1425,18 +1425,44 @@ BEGIN
 
 								IF (@Qty > 0)
 								BEGIN
+									--UPDATE SOP
+									--SET SOP.StockLineId = @StkStocklineId,
+									--SOP.Qty = @Qty,
+									--SOP.UnitCost = @stkPurchaseOrderUnitCost,
+									--SOP.UnitCostExtended = (@stkPurchaseOrderUnitCost * @Qty),
+									--SOP.MarginAmount = @StkUnitSalePrice - @stkPurchaseOrderUnitCost,
+									--SOP.MarginAmountExtended = (@StkUnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty,
+									--SOP.MarginPercentage = CASE WHEN SOP.UnitSalePrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,
+									--SOP.UnitSalesPricePerUnit = SOP.GrossSalePricePerUnit - SOP.DiscountAmount,
+									--SOP.NetSales = ISNULL(SOP.UnitSalesPricePerUnit, 0) * SOP.Qty
+									--,SOP.StatusId = @soPartFulfilledStatusId
+									--FROM DBO.SalesOrderPartV1 SOP
+									--WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+									UPDATE SOPC
+									SET 
+									SOPC.UnitCost = @stkPurchaseOrderUnitCost,
+									SOPC.UnitCostExtended = (@stkPurchaseOrderUnitCost * @Qty),
+									SOPC.MarginAmount = @StkUnitSalePrice - @stkPurchaseOrderUnitCost,
+									SOPC.MarginPercentage = CASE WHEN SOPC.UnitSalesPrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END,
+									SOPC.UnitSalesPrice = SOPC.NetSaleAmount,
+									SOPC.NetSaleAmount = ISNULL(SOPC.NetSaleAmount, 0)
+									FROM DBO.SalesOrderPartV1 SOP
+									INNER JOIN DBO.SalesOrderPartCost SOPC ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+									WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
 									UPDATE SOP
-									SET SOP.StockLineId = @StkStocklineId,
-									SOP.Qty = @Qty,
-									SOP.UnitCost = @stkPurchaseOrderUnitCost,
-									SOP.UnitCostExtended = (@stkPurchaseOrderUnitCost * @Qty),
-									SOP.MarginAmount = @StkUnitSalePrice - @stkPurchaseOrderUnitCost,
-									SOP.MarginAmountExtended = (@StkUnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty,
-									SOP.MarginPercentage = CASE WHEN SOP.UnitSalePrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,
-									SOP.UnitSalesPricePerUnit = SOP.GrossSalePricePerUnit - SOP.DiscountAmount,
-									SOP.NetSales = ISNULL(SOP.UnitSalesPricePerUnit, 0) * SOP.Qty
-									,SOP.StatusId = @soPartFulfilledStatusId
-									FROM DBO.SalesOrderPart SOP
+									SET 
+									SOP.QtyOrder = @Qty,
+									SOP.StatusId = @soPartFulfilledStatusId
+									FROM DBO.SalesOrderPartV1 SOP
+									WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+									UPDATE STK
+									SET 
+									STK.StockLineId = @StkStocklineId
+									FROM DBO.SalesOrderPartV1 SOP
+									LEFT JOIN DBO.SalesOrderStocklineV1 STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
 									WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
 
 									SET @POReferenceQty = @POReferenceQty - @Qty;
@@ -1448,11 +1474,11 @@ BEGIN
 									@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 									@SalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
 
-									INSERT INTO DBO.SalesOrderStockLine ([SalesOrderId],[SalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
-									[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
+									INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+									[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-									SELECT @ReferenceId, @SalesOrderPartIdToUpdate, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
-									NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
+									SELECT @SalesOrderPartIdToUpdate, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
+									NULL, NULL, NULL, 1, @stkMasterCompanyId, @UpdatedBy,
 									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
 
 									SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
@@ -1501,107 +1527,110 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId AND SOP.StockLineId = @StkStocklineId)
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
 								BEGIN
-									IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPart SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
-									BEGIN
-										SET @Qty = 0;
-										SET @SOPQty = 0;
+									SET @Qty = 0;
+									SET @SOPQty = 0;
 
-										DECLARE @qtySumAlreadyAdded AS INT = 0;
-										DECLARE @SOPQtyRequested AS INT = 0;
+									DECLARE @qtySumAlreadyAdded AS INT = 0;
+									DECLARE @SOPQtyRequested AS INT = 0;
 										
-										SELECT @SOPQtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
-										LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
-										WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId
+									SELECT @SOPQtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+									LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+									WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId
 
-										SELECT @qtySumAlreadyAdded = SUM(SOP.Qty) FROM DBO.SalesOrderPart SOP WITH (NOLOCK) 
-										LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
-										Where SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
+									SELECT @qtySumAlreadyAdded = SUM(SOP.QtyOrder) FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+									LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+									Where SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
 
-										SET @QtyRequested = @SOPQtyRequested - @qtySumAlreadyAdded;
+									SET @QtyRequested = @SOPQtyRequested - @qtySumAlreadyAdded;
 
-										IF (@stkQuantityAvailable > 0)
+									IF (@stkQuantityAvailable > 0)
+									BEGIN
+										IF (@stkQuantityAvailable >= @QtyRequested)
+											SET @Qty = @QtyRequested;
+										ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										DECLARE @InsertedSalesOrderPartId BIGINT = 0;
+
+										--INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
+										--[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],[SalesPriceExtended],
+										--[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],[ConditionId],[SalesOrderQuoteId],
+										--[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
+										--[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
+										--[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
+										--SELECT TOP 1 [SalesOrderId],[ItemMasterId],@StkStocklineId,[FxRate],@Qty,[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
+										--[Discount],[DiscountAmount],(ISNULL((SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount), 0) * @Qty),[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsDeleted],@stkPurchaseOrderUnitCost,[MethodType],[SalesPriceExtended],
+										--[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],(@stkPurchaseOrderUnitCost * @Qty),(SOP.UnitSalePrice - @stkPurchaseOrderUnitCost),((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty),CASE WHEN SOP.UnitSalePrice > 0 THEN (((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,[ConditionId],[SalesOrderQuoteId],
+										--[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],@soPartFulfilledStatusId,[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
+										--[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
+										--[PONextDlvrDate], (SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount),[LotId],[IsLotAssigned]
+										--FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+
+										INSERT INTO DBO.SalesOrderPartV1 ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],
+										[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
+										[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],
+										[PartDescription],[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId])
+										SELECT TOP 1 [SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],@Qty,0,[CurrencyId],
+										[PriorityId],@soPartFulfilledStatusId,[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
+										[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsActive],[IsDeleted],NULL,NULL,
+										NULL,NULL,NULL,NULL,NULL,NULL
+										FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+
+										SELECT @InsertedSalesOrderPartId = SCOPE_IDENTITY();
+
+										SET @POReferenceQty = @POReferenceQty - @Qty;
+
+										SET @stkSalesOrderPartId = @InsertedSalesOrderPartId;
+
+										INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
+										[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+										[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+										SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
+										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
+										@InsertedSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
+
+										INSERT INTO DBO.SalesOrderStockLine ([SalesOrderId],[SalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
+										[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
+										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+										SELECT @ReferenceId, @InsertedSalesOrderPartId, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
+										NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
+										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+
+										SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+										SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+
+										UPDATE TOP (@Qty) StkDraft
+										SET StkDraft.SOQty = @Qty,
+										StkDraft.SalesOrderId = @ReferenceId,
+										--StkDraft.WOQty = CASE WHEN StkDraft.WOQty IS NULL THEN 0 ELSE StkDraft.WOQty END,
+										StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+										FROM DBO.StocklineDraft StkDraft
+										WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+										UPDATE Stk
+										SET Stk.Quantity = @stkQty,
+										Stk.QuantityAvailable = @stkQuantityAvailable,
+										Stk.QuantityReserved = @stkQuantityReserved,
+										Stk.QuantityOnOrder = @stkQuantityOnOrder
+										FROM DBO.Stockline Stk 
+										WHERE Stk.StockLineId = @StkStocklineId;
+
+										SET @QuantityReservedForPoPart = @Qty; 
+
+										EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+										IF (@stkSalesOrderPartId > 0)
 										BEGIN
-											IF (@stkQuantityAvailable >= @QtyRequested)
-												SET @Qty = @QtyRequested;
-											ELSE IF (@QtyRequested >= @stkQuantityAvailable)
-												SET @Qty = @stkQuantityAvailable;
-										END
-
-										IF (@Qty > 0)
-										BEGIN
-											DECLARE @InsertedSalesOrderPartId BIGINT = 0;
-
-											INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
-											[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],[SalesPriceExtended],
-											[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],[ConditionId],[SalesOrderQuoteId],
-											[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
-											[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
-											[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-											SELECT TOP 1 [SalesOrderId],[ItemMasterId],@StkStocklineId,[FxRate],@Qty,[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
-											[Discount],[DiscountAmount],(ISNULL((SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount), 0) * @Qty),[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsDeleted],@stkPurchaseOrderUnitCost,[MethodType],[SalesPriceExtended],
-											[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],(@stkPurchaseOrderUnitCost * @Qty),(SOP.UnitSalePrice - @stkPurchaseOrderUnitCost),((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty),CASE WHEN SOP.UnitSalePrice > 0 THEN (((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,[ConditionId],[SalesOrderQuoteId],
-											[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],@soPartFulfilledStatusId,[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
-											[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
-											[PONextDlvrDate], (SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount),[LotId],[IsLotAssigned]
-											FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
-
-											SELECT @InsertedSalesOrderPartId = SCOPE_IDENTITY();
-
-											SET @POReferenceQty = @POReferenceQty - @Qty;
-
-											SET @stkSalesOrderPartId = @InsertedSalesOrderPartId;
-
-											INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
-											[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
-											[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
-											SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
-											@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
-											@InsertedSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
-
-											INSERT INTO DBO.SalesOrderStockLine ([SalesOrderId],[SalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
-											[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
-											[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-											SELECT @ReferenceId, @InsertedSalesOrderPartId, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
-											NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
-											@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
-
-											SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
-											SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
-
-											UPDATE TOP (@Qty) StkDraft
-											SET StkDraft.SOQty = @Qty,
-											StkDraft.SalesOrderId = @ReferenceId,
-											--StkDraft.WOQty = CASE WHEN StkDraft.WOQty IS NULL THEN 0 ELSE StkDraft.WOQty END,
-											StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
-											FROM DBO.StocklineDraft StkDraft
-											WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
-
 											UPDATE Stk
-											SET Stk.Quantity = @stkQty,
-											Stk.QuantityAvailable = @stkQuantityAvailable,
-											Stk.QuantityReserved = @stkQuantityReserved,
-											Stk.QuantityOnOrder = @stkQuantityOnOrder
+											SET Stk.SalesOrderPartId = @stkSalesOrderPartId
 											FROM DBO.Stockline Stk 
 											WHERE Stk.StockLineId = @StkStocklineId;
-
-											SET @QuantityReservedForPoPart = @Qty; 
-
-											EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
-
-											IF (@stkSalesOrderPartId > 0)
-											BEGIN
-												UPDATE Stk
-												SET Stk.SalesOrderPartId = @stkSalesOrderPartId
-												FROM DBO.Stockline Stk 
-												WHERE Stk.StockLineId = @StkStocklineId;
-											END
 										END
-									END
-									ELSE
-									BEGIN
-										GOTO NextStockline;
 									END
 								END
 								ELSE

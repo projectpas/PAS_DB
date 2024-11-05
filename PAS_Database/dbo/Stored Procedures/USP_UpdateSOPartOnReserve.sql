@@ -8,13 +8,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
-    1    12 Jan 2024   Rajesh Gami     Created
+ ** PR   Date			Author  		Change Description            
+ ** --   --------		-------			---------------------------     
+    1    12 Jan 2024	Rajesh Gami     Created
+	2    11/05/2024		Vishal Suthar	Modified to make use of new SO Part tables
 **************************************************************
  EXEC USP_UpdateSOPartOnReserve 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateSOPartOnReserve] 
+CREATE    PROCEDURE [dbo].[USP_UpdateSOPartOnReserve] 
 @StockLineId bigint,
 @Qty int,
 @UnitCost decimal(10,2) NULL,
@@ -34,18 +35,18 @@ BEGIN
   BEGIN TRANSACTION
 	BEGIN
 			   		
-			UPDATE [dbo].[SalesOrderPart]
+			UPDATE [dbo].[SalesOrderStocklineV1]
 			   SET [StockLineId] = @StockLineId
-			      ,[Qty] = @Qty
-			      ,[UnitCost] = @UnitCost
+			      ,[QtyOrder] = @Qty
+			      ,[UpdatedDate] = GETUTCDATE()			      
+			 WHERE [SalesOrderPartId] = @SalesOrderPartId
+
+			 UPDATE [dbo].[SalesOrderStockLineCost]
+			   SET [UnitCost] = @UnitCost
 			      ,[UnitCostExtended] = @UnitCostExtended
 			      ,[MarginAmount] = @MarginAmount
-			      ,[MarginAmountExtended] = @MarginAmountExtended
-			      ,[MarginPercentage] = @MarginPercentage		
-				  ,[GrossSalePrice] = @GrossSalePrice	
-				  ,[SalesPriceExtended] = @SalesPriceExtended	
-				  ,[SalesBeforeDiscount] = @SalesBeforeDiscount	
-			      ,[UpdatedDate] = GETUTCDATE()			      
+			      ,[MarginPercentage] = @MarginPercentage
+				  ,[UpdatedDate] = GETUTCDATE()			      
 			 WHERE [SalesOrderPartId] = @SalesOrderPartId
 
 	END

@@ -15,11 +15,12 @@
 	11	 16-FEB-2024	  Devendra Shekh    removed isperforma Flage for WO
 	12	 21-FEB-2024	  Devendra Shekh    added proformadeposit for balance calculation
 	13	 21-FEB-2024	  AMIT GHEDIYA      removed isperforma Flage for SO
+	14   11/05/2024		  Vishal Suthar		Modified to make use of new SO Part tables
 
 **************************************************************/  
 --exec GetCustomerInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'CustName',@SortOrder=1,@GlobalFilter=N'',@StatusId=2,@CustName='Fast',@CustomerCode=NULL,@CustomertType=NULL,@currencyCode=NULL,@BalanceAmount=NULL,@CurrentlAmount=NULL,@Amountpaidbylessthen0days=NULL,@Amountpaidby30days=NULL,@Amountpaidby60days=NULL,@Amountpaidby90days=NULL,@Amountpaidby120days=NULL,@Amountpaidbymorethan120days=NULL,@LegelEntity=NULL,@EmployeeId=2,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@viewType=N'Deatils',@MasterCompanyId=1,@InvoiceDate=NULL,@CustomerRef=NULL,@InvoiceNo=NULL,@DocType=NULL,@Salesperson=NULL,@Terms=NULL,@DueDate=NULL,@FixRateAmount=NULL,@InvoiceAmount=NULL,@InvoicePaidAmount=NULL,@InvoicePaidDate=NULL,@PaymentRef=NULL,@CMAmount=NULL,@CMDate=NULL,@AdjustMentAmount=NULL,@AdjustMentDate=NULL,@SOMSModuleID=17,@WOMSModuleID=12
 
-CREATE   PROCEDURE [dbo].[GetCustomerInvoiceList]
+CREATE    PROCEDURE [dbo].[GetCustomerInvoiceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -256,7 +257,7 @@ BEGIN
                        (C.UpdatedBy) AS UpdatedBy,
 					   (SO.ManagementStructureId) AS ManagementStructureId,
 					   'AR-Inv' AS 'DocType',
-					   sop.CustomerReference AS 'CustomerRef',
+					   SO.CustomerReference AS 'CustomerRef',
 					   ISNULL(SO.SalesPersonName,'Unassigned') AS 'Salesperson',
 					   ctm.[Name] AS 'Terms',
 					   A.FxRate AS 'FixRateAmount',
@@ -280,7 +281,7 @@ BEGIN
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+			   INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			   INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId
@@ -452,7 +453,7 @@ BEGIN
                        (CM.UpdatedBy) AS UpdatedBy,
 					   (CM.ManagementStructureId) AS ManagementStructureId,
 					   'Credit Memo' AS 'DocType',
-					   sop.CustomerReference AS 'CustomerRef',
+					   SO.CustomerReference AS 'CustomerRef',
 					   ISNULL(SO.SalesPersonName,'Unassigned') AS 'Salesperson',
 					   ctm.Name AS 'Terms',
 					   A.FxRate AS 'FixRateAmount',
@@ -480,7 +481,7 @@ BEGIN
 			   INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId
 			    LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId
 			   INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-			   INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+			   INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			   INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId 
 			   INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId			  		 	  
 			   --INNER JOIN [dbo].[RMACreditMemoManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @CMMSModuleID AND MSD.ReferenceID = CM.CreditMemoHeaderId			  

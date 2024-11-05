@@ -17,11 +17,12 @@
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
 	3    08/12/2023   Jevik Raiyani			add @statusValue
 	4    06/18/2024   Vishal Suthar         Added @UnitSalesPrice column
+	5    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
 **************************************************************/
-CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderList]
+CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -88,10 +89,10 @@ BEGIN
 				SO.[OpenDate],
 				SO.[CustomerReference],
 				STL.[SerialNumber],
-				CAST(ISNULL(SP.[UnitSalesPricePerUnit], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
-				ISNULL(SP.[UnitCost], 0) AS [UnitCost],
-				ISNULL(SP.[Qty], 0) AS [Qty],
-				ISNULL(SP.[UnitCostExtended], 0) AS [UnitCostExtended],
+				CAST(ISNULL(SPC.[UnitSalesPrice], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
+				ISNULL(SPC.[UnitCost], 0) AS [UnitCost],
+				ISNULL(SP.[QtyOrder], 0) AS [Qty],
+				ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
 				SO.[SalesPersonName],
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,
@@ -110,12 +111,14 @@ BEGIN
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId
 			   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-			   LEFT JOIN [dbo].[SalesOrderPart] SP WITH (NOLOCK) ON SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
+			   LEFT JOIN [dbo].[SalesOrderPartV1] SP WITH (NOLOCK) ON SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
+			   LEFT JOIN [dbo].[SalesOrderStocklineV1] SPS WITH (NOLOCK) ON SPS.SalesOrderPartId = SP.SalesOrderPartId
+			   LEFT JOIN [dbo].[SalesOrderPartCost] SPC WITH (NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
 			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SPS.StockLineId = STL.StockLineId
 			   LEFT JOIN [dbo].[MasterSalesOrderStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.Id
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId

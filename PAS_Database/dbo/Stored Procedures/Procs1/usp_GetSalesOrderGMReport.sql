@@ -16,11 +16,12 @@
  ** --   --------     -------    --------------------------------          
     1                 Swetha			Created
     2                 Swetha			Added Transaction & NO LOCK
-	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
-     
+	3	 01/02/2024	  AMIT GHEDIYA	    added isperforma Flage for SO
+    4    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderGMReport] @name varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderGMReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -86,9 +87,9 @@ BEGIN
         CONVERT(varchar, SO.opendate, 101) ' Open Date',
         UPPER(SOBI.invoiceno) 'Invoice Num',
         SOBI.invoicedate 'InvoiceDate',
-        SOP.netsales 'Netsales',
+        SOPC.NetSaleAmount 'Netsales',
         UPPER(SOMS.misc) 'Misc',
-        (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
+        (SOPC.UnitSalesPrice * SOP.QtyOrder) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Revenue',
         SOMS.productcost 'Direct Cost',
         ((SOMS.productcost) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) '%TD of Rev',
         SOMS.marginamount 'Gross Margin',
@@ -108,10 +109,10 @@ BEGIN
         UPPER(E1.firstname + ' ' + E1.lastname)
         'CSR'
       FROM dbo.salesorder SO WITH (NOLOCK)
-      LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK)
-        ON So.salesorderid = SOP.salesorderid
-        LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)
-          ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
+      LEFT JOIN dbo.salesorderpartV1 SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
+      LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
+      LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+        LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
           ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
         LEFT JOIN dbo.somarginsummary SOMS WITH (NOLOCK)
@@ -121,7 +122,7 @@ BEGIN
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)
           ON SOP.itemmasterid = IM.itemmasterid
         LEFT JOIN dbo.stockline STL WITH (NOLOCK)
-          ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1
+          ON SOPS.stocklineid = STL.stocklineid and stl.IsParent=1
         LEFT JOIN dbo.workorder WO WITH (NOLOCK)
           ON STL.workorderid = WO.workorderid
         LEFT JOIN dbo.condition CDTN WITH (NOLOCK)

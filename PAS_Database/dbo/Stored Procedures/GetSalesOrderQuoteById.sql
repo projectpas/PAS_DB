@@ -16,13 +16,12 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2024   Vishal Suthar Created
      
- -- EXEC DBO.GetSalesOrderQuoteById 851
+ -- EXEC DBO.GetSalesOrderQuoteById 873
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteById]
+CREATE    PROCEDURE [dbo].[GetSalesOrderQuoteById]
     @SalesOrderQuoteId INT
 AS
 BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 	
 	BEGIN TRY
@@ -173,8 +172,6 @@ BEGIN
 		WHERE soq.SalesOrderQuoteId = @SalesOrderQuoteId;
 	END TRY
 	BEGIN CATCH
-		IF @@trancount > 0
-			ROLLBACK TRANSACTION;
 		DECLARE @ErrorLogID int,
         @DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

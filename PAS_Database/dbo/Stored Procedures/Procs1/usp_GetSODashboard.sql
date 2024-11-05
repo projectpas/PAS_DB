@@ -17,11 +17,12 @@
     1                 Swetha		Created
 	2	        	  Swetha		Added Transaction & NO LOCK
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
-     
+    4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetSODashboard] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetSODashboard]
+CREATE      PROCEDURE [dbo].[usp_GetSODashboard]
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -34,7 +35,7 @@ BEGIN
         (C.Name) AS Customer,
         IM.partnumber AS Part,
         SOQ.SalesPersonName AS Salesperson,
-        (SOP.netsales + SOMS.Misc) 'Revenue',
+        (SOPC.NetSaleAmount + SOMS.Misc) 'Revenue',
         SOBI.InvoiceDate,
         SO.OpenDate,
         SOA.customerapproveddate,
@@ -56,8 +57,8 @@ BEGIN
           ON SOBI.CustomerId = C.CustomerId
         LEFT OUTER JOIN dbo.SalesOrderQuote AS SOQ WITH (NOLOCK)
           ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-        LEFT OUTER JOIN dbo.SalesOrderPart AS SOP WITH (NOLOCK)
-          ON SOBI.SalesOrderId = SOP.SalesOrderId
+        LEFT OUTER JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SOBI.SalesOrderId = SOP.SalesOrderId
+        LEFT OUTER JOIN dbo.SalesOrderPartCost AS SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT OUTER JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON SOP.ItemMasterId = IM.ItemMasterId
         LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)

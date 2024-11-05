@@ -11,14 +11,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/13/2021   Vishal Suthar Created
-     
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    07/13/2021		Vishal Suthar	Created
+    2	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+
 --EXEC [SalesOrderSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SalesOrderSummarizedHistoryByCustomer]
+CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -47,8 +48,8 @@ BEGIN
 						Cond.Description AS Condition,
 						0 AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOP.UnitSalePrice, 0) * ISNULL(SOP.Qty, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						((ISNULL(SOP.UnitCost, 0) * ISNULL(SOP.Qty, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
+						((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
+						((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
 						SO.SalesOrderNumber,
 						SOQ.SalesOrderQuoteNumber,
 						SO.VersionNumber,
@@ -61,7 +62,9 @@ BEGIN
 						ELSE
 							''
 						END AS TracableToName
-					FROM dbo.SalesOrderPart SOP WITH(NOLOCK)
+					FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK)
+						LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH(NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+						LEFT JOIN dbo.SalesOrderPartCost SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 						LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
@@ -71,7 +74,7 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.Customer Cust WITH (NOLOCK) ON Cust.CustomerId = SO.CustomerId
 						LEFT JOIN dbo.MasterSalesOrderStatus St WITH (NOLOCK) ON St.Id = SO.StatusId
-						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = SOP.StockLineId
+						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId
 						LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 						LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 						LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId

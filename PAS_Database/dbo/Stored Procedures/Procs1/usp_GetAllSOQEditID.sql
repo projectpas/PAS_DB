@@ -1,5 +1,20 @@
-﻿
-CREATE Procedure [dbo].[usp_GetAllSOQEditID]
+﻿/*************************************************************           
+ ** File:   [usp_GetAllSOQEditID]           
+ ** Author:  Vishal Suthar
+ ** Description: This stored procedure is used to get all Inventory Upload records
+ ** Purpose:         
+ ** Date:   11/04/2024      
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   ----------  -----------	--------------------------------          
+    1    11/04/2024  Vishal Suthar	Modified to make use of new SOQ part tables
+     
+************************************************************************/
+CREATE      PROCEDURE [dbo].[usp_GetAllSOQEditID]
  @soqID  bigint
 AS
 BEGIN
@@ -39,10 +54,10 @@ BEGIN
 		SELECT ISNULL( CustomerSeviceRepId, 0) , 'CUSTOMERSERVICEREP' FROM dbo.SalesOrderQuote WITH(NOLOCK) Where SalesOrderQuoteId = @soqID
 
 		INSERT INTO #SOQEditList ([Value],Label)
-		SELECT ISNULL( ItemMasterId, 0) , 'ITEMMASTER' FROM dbo.SalesOrderQuotePart WITH(NOLOCK) Where SalesOrderQuoteId = @soqID
+		SELECT ISNULL( ItemMasterId, 0) , 'ITEMMASTER' FROM dbo.SalesOrderQuotePartV1 WITH(NOLOCK) Where SalesOrderQuoteId = @soqID
 
 		INSERT INTO #SOQEditList ([Value],Label)
-		SELECT  ISNULL( StockLineId, 0) , 'STOCKLINEID' FROM dbo.SalesOrderQuotePart WITH(NOLOCK) Where SalesOrderQuoteId = @soqID
+		SELECT  ISNULL(Stk.StockLineId, 0) , 'STOCKLINEID' FROM dbo.SalesOrderQuotePartV1 SOP WITH(NOLOCK) LEFT JOIN dbo.SalesOrderQuoteStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderQuotePartId = STK.SalesOrderQuotePartId Where SOP.SalesOrderQuoteId = @soqID
 
 
 		INSERT INTO #SOQEditList ([Value],Label)

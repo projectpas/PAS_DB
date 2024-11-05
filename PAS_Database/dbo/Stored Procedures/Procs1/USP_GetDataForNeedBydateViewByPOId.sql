@@ -10,13 +10,14 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author   Change Description              
- ** --   --------     -------   --------------------------------            
-    1   02-11-2023   Shrey Chandegara  Created  
-       
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1   02-11-2023   Shrey Chandegara	Created  
+    2   11/05/2024	 Vishal Suthar		Modified to make use of new SO Part tables
+	
  EXECUTE USP_GetDataForNeedBydateViewByPOId 1658
 **************************************************************/   
-Create   PROCEDURE [dbo].[USP_GetDataForNeedBydateViewByPOId]
+CREATE    PROCEDURE [dbo].[USP_GetDataForNeedBydateViewByPOId]
 @PurchaseOrderId BIGINT
 AS
 BEGIN
@@ -51,7 +52,7 @@ BEGIN
 				LEFT JOIN [DBO].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOP.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [DBO].[RepairOrder] ro WITH (NOLOCK) ON ro.RepairOrderId = POR.ReferenceId
 				LEFT JOIN [DBO].[SalesOrder] so WITH (NOLOCK) ON so.SalesOrderId = POR.ReferenceId
-				LEFT JOIN [DBO].[SalesOrderPart] SOP WITH (NOLOCK) ON SOP.SalesOrderId = so.SalesOrderId
+				LEFT JOIN [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) ON SOP.SalesOrderId = so.SalesOrderId
 				LEFT JOIN [DBO].[ExchangeSalesOrder] eso WITH (NOLOCK) ON eso.ExchangeSalesOrderId =  eso.ExchangeSalesOrderId
 				LEFT JOIN [DBO].[ExchangeSalesOrderPart] ESP WITH (NOLOCK) ON ESP.ExchangeSalesOrderId = POR.ReferenceId
 				LEFT JOIN [DBO].[Lot] l WITH (NOLOCK) ON l.LotId = POR.ReferenceId

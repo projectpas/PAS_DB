@@ -17,10 +17,11 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 5    08-11-2023      Amit Ghediya            pick ticket issue for multipele part resolved
 ** 6    18-12-2023		Rajesh Gami			    Remove SalesOrderPart Status from here, As per new requirement we are using only Open, Fulfilled, Order, Shipped and Billed Status. 
 ** 7    29-10-2024		Vishal Suthar			Modified to add one more column SalesOrderStocklineId
+** 8    11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
 
 EXEC Usp_savePickTicketItemInterface
 ********************************************************************************/
-CREATE PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
+CREATE      PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
 (      
   @SOPickTicketId bigint = 0,  
   @SOPickTicketNumber varchar(100)='',  
@@ -56,14 +57,14 @@ BEGIN
   IF(@SOPickTicketId = 0)  
   BEGIN  
 
-	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM SalesOrderPart sopp WITH(NOLOCK)
+	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 	INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 	WHERE sorpp.SalesOrderId = @SalesOrderId
 
 	IF(@TotalRervePart > 1)
 	BEGIN
 		SELECT @QtyRemaining = (SUM(sorpp.QtyToReserve) - @QtyToShip - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPart sopp WITH(NOLOCK)
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId --GROUP BY sorpp.QtyToReserve
@@ -71,7 +72,7 @@ BEGIN
 	ELSE
 	BEGIN
 		SELECT @QtyRemaining = (sorpp.QtyToReserve - @QtyToShip - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPart sopp WITH(NOLOCK)
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.QtyToReserve
@@ -95,14 +96,14 @@ BEGIN
   BEGIN  
    UPDATE [dbo].[SOPickTicket] SET QtyToShip = @QtyToShip,UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE SOPickTicketId = @SOPickTicketId; 
 
-   	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM SalesOrderPart sopp WITH(NOLOCK)
+   	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 	INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId  
 	WHERE sorpp.SalesOrderId = @SalesOrderId
 
 	IF(@TotalRervePart > 1)
 	BEGIN
 		SELECT @QtyRemaining = (SUM(sorpp.QtyToReserve) - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPart sopp WITH(NOLOCK)
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sorpp.SalesOrderId = @SalesOrderId -- GROUP BY sorpp.QtyToReserve
@@ -110,7 +111,7 @@ BEGIN
 	ELSE
 	BEGIN
 		SELECT @QtyRemaining = (sorpp.QtyToReserve - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPart sopp WITH(NOLOCK)
+		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.QtyToReserve

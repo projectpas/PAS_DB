@@ -12,32 +12,32 @@
  **************************************************************                   
   ** Change History                   
  *************************************************************************************************                   
- ** S NO   Date            Author          Change Description                    
- ** --   --------         -------          --------------------------------   
-	1    13-JULY-2022  Subhash saliya      Created        
-    2    20-JUNE-2023  Devendra Shekh      Changes for the total 
-	3    10-JULY-2023  Moin Bloch          change date todate range >= to <=
-    4    13-JULY-2023  Ayesha Sultana      Credit Memo in ARAgaing REport  
-	5    17-JULY-2023  Moin Bloch          Added Credit Memo in ARAgaing REport For WO     
-	6    02-AUG-2023   Moin Bloch          Grouping Wise Amount	
-	7    10-AUG-2023   Moin Bloch          Comment Credit Memo Terms and Conditions
-	8    11-AUG-2023   Moin Bloch          Comment Due Date for Credit memo
-    9    25-AUG-2023   EKta Chandegra      Convert text into uppercase 
-	10   15-SEP-2023   Moin Bloch          Added Manual Journal Entry  
-	11   21-SEP-2023   Moin Bloch          Added Status Status With 'Invoiced' Amount From Billing and Invoicing of WO/SO  
-	12   22-SEP-2023   Moin Bloch          Manual Journal Entry Posted Status and Posted date
-	13   10-OCT-2023   Moin Bloch          Added Exclude Credit Bal condition in CreditMemo and Manual JE
-	14   16-OCT-2023   Moin Bloch          Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
-	15   17-OCT-2023   Moin Bloch          Modify(Added Stand Alone Credit Memo)
-	16   16-NOV-2023   Moin Bloch          Modify(Added Exchange SO Invoice Records)
-	17   01-DEC-2023   Moin Bloch          Modify(Added 6 decimal IN FixRateAmount)
-	18   31-JAN-2024   Devendra Shekh      changes for performInvoice
-	19	 01/02/2024	   AMIT GHEDIYA	       added isperforma Flage for SO
-	19	 08-MAR-2024   Hemant Saliya       Started to Review Changes
-	20   29-Mar-2024   Bhargav Saliya   Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
-
+ ** S NO   Date            Author			Change Description                    
+ ** --   --------         -------			--------------------------------   
+	1    13-JULY-2022  Subhash saliya		Created        
+    2    20-JUNE-2023  Devendra Shekh		Changes for the total 
+	3    10-JULY-2023  Moin Bloch			change date todate range >= to <=
+    4    13-JULY-2023  Ayesha Sultana		Credit Memo in ARAgaing REport  
+	5    17-JULY-2023  Moin Bloch			Added Credit Memo in ARAgaing REport For WO     
+	6    02-AUG-2023   Moin Bloch			Grouping Wise Amount	
+	7    10-AUG-2023   Moin Bloch			Comment Credit Memo Terms and Conditions
+	8    11-AUG-2023   Moin Bloch			Comment Due Date for Credit memo
+    9    25-AUG-2023   EKta Chandegra		Convert text into uppercase 
+	10   15-SEP-2023   Moin Bloch			Added Manual Journal Entry  
+	11   21-SEP-2023   Moin Bloch			Added Status Status With 'Invoiced' Amount From Billing and Invoicing of WO/SO  
+	12   22-SEP-2023   Moin Bloch			Manual Journal Entry Posted Status and Posted date
+	13   10-OCT-2023   Moin Bloch			Added Exclude Credit Bal condition in CreditMemo and Manual JE
+	14   16-OCT-2023   Moin Bloch			Modify(Added Posted Status Insted of Fulfilling Credit Memo Status)
+	15   17-OCT-2023   Moin Bloch			Modify(Added Stand Alone Credit Memo)
+	16   16-NOV-2023   Moin Bloch			Modify(Added Exchange SO Invoice Records)
+	17   01-DEC-2023   Moin Bloch			Modify(Added 6 decimal IN FixRateAmount)
+	18   31-JAN-2024   Devendra Shekh		changes for performInvoice
+	19	 01/02/2024	   AMIT GHEDIYA			added isperforma Flage for SO
+	19	 08-MAR-2024   Hemant Saliya        Started to Review Changes
+	20   29-Mar-2024   Bhargav Saliya		Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
+	21   11/05/2024	   Vishal Suthar		Modified to make use of new SO Part tables
 ***************************************************************************************************/        
-CREATE   PROCEDURE [dbo].[usprpt_GetARAgingReport]       
+CREATE    PROCEDURE [dbo].[usprpt_GetARAgingReport]       
 @PageNumber int = 1,      
 @PageSize int = NULL,      
 @mastercompanyid int,      
@@ -168,7 +168,7 @@ BEGIN
 				INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId  AND ISNULL(sobii.IsProforma,0) = 0    
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId      
 				INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
@@ -232,7 +232,7 @@ BEGIN
 				INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0     
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) on CR.CurrencyId = sobi.CurrencyId      
 				INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
@@ -519,7 +519,7 @@ BEGIN
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(SO.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
-					UPPER(sop.CustomerReference) AS 'CustomerRef',      
+					UPPER(SO.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
 					UPPER(SO.[CreditTermName]) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
@@ -548,7 +548,7 @@ BEGIN
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				  INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
@@ -754,7 +754,7 @@ BEGIN
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('Credit-Memo') AS 'DocType',        
-					UPPER(sop.CustomerReference) AS 'CustomerRef',      
+					UPPER(SO.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
 					SO.[CreditTermName] AS 'Terms',  
 					--'-' AS 'Terms',  
@@ -788,7 +788,7 @@ BEGIN
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				  INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  --INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
@@ -1477,7 +1477,7 @@ BEGIN
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(SO.ManagementStructureId) AS ManagementStructureId,      
 					UPPER('AR-Inv') AS 'DocType',      
-					UPPER(sop.CustomerReference) AS 'CustomerRef',      
+					UPPER(SO.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
 					UPPER(SO.[CreditTermName]) AS 'Terms',      
 					'0.000000' AS 'FixRateAmount',      
@@ -1506,7 +1506,7 @@ BEGIN
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				  INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      
@@ -1714,7 +1714,7 @@ BEGIN
                     UPPER(C.UpdatedBy) AS UpdatedBy,      
 					(CM.ManagementStructureId) AS ManagementStructureId,      					 
 					UPPER('Credit-Memo') AS 'DocType',    
-					UPPER(sop.CustomerReference) AS 'CustomerRef',      
+					UPPER(SO.CustomerReference) AS 'CustomerRef',      
 					UPPER(ISNULL(SO.SalesPersonName,'Unassigned')) AS 'Salesperson',      
 					--ctm.[Name] AS 'Terms',  
 					'-' AS 'Terms',  
@@ -1748,7 +1748,7 @@ BEGIN
 				  INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId=SO.CustomerId      
 				   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = SO.CreditTermId      
 				  INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId      
-				  INNER JOIN [dbo].[SalesOrderPart] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
+				  INNER JOIN [dbo].[SalesOrderPartV1] sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId      
 				  INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] sobii WITH (NOLOCK) ON sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId AND sobii.SalesOrderPartId = sop.SalesOrderPartId AND ISNULL(sobii.IsProforma,0) = 0      
 				  INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = sobi.CurrencyId      
 				  --INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = SOBI.SalesOrderId      

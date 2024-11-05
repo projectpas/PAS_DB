@@ -9,15 +9,16 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
+ ** PR   Date         Author		  Change Description            
+ ** --   --------     -------		  --------------------------------          
     1    04/21/2023   Amit Ghediya    Created
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
-	
+	3    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
+
  -- exec RPT_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
 
-CREATE     Procedure [dbo].[RPT_GetCustomerRMAPartsDetails]
+CREATE      PROCEDURE [dbo].[RPT_GetCustomerRMAPartsDetails]
 	@InvoicingId bigint,
 	@IsWorkOrder  bit,
 	@RMAHeaderId  BIGINT,
@@ -42,7 +43,7 @@ BEGIN
 					SOBI.SOBillingInvoicingId AS InvoiceId,SOBI.InvoiceNo [InvoiceNo],SOBII.SOBillingInvoicingItemId AS BillingInvoicingItemId,
 					SOBI.InvoiceStatus [InvoiceStatus],SOBI.InvoiceDate [InvoiceDate],SO.SalesOrderNumber AS ReferenceNo,
 					SOBI.GrandTotal [InvoiceAmt],IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' AS CustPartNumber,
-					SOPN.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber AS StocklineNumber ,st.Stocklineid AS StocklineId,
+					SO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber AS StocklineNumber ,st.Stocklineid AS StocklineId,
 					ST.ControlNumber AS ControlNumber,ST.IdNumber AS ControlId,SOBII.NoofPieces AS Qty,SOBII.UnitPrice AS UnitPrice,(SOBII.NoofPieces * SOBII.UnitPrice)  AS Amount,
 					IsWorkOrder=0,SOBI.SalesOrderId AS [ReferenceId],
 					RMAC.RMAReasonId,RMAC.RMAReason,RMAC.RMAStatusId,RMAC.RMAStatus,RMAC.RMAValiddate,
@@ -79,11 +80,12 @@ BEGIN
 					) 
 					FROM [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK)
 					LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0
-					LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+					LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+					LEFT JOIN [dbo].[SalesOrderStocklineV1] STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOPN.SalesOrderPartId
 					LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 					LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-					LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ST.IsParent = 1
+					LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = STK.StockLineId AND ST.IsParent = 1
 					LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE SOBI.SOBillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsProforma,0) = 0		
 

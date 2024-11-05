@@ -15,10 +15,11 @@
  ** --   --------     -------		--------------------------------          
     1    01/29/2024   Moin Bloch    Created
 	2    02/21/2024   Moin Bloch    Flat SO Freigh AND Charge Amount Tax 
-     
+    3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 20843
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
+CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
 AS
 BEGIN
@@ -109,9 +110,10 @@ BEGIN
 				   SO.[SalesOrderId],
 				   SOP.[SalesOrderPartId]
 			  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	    INNER JOIN [dbo].[SalesOrderPart] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
+	    INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
+	     LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) ON SOPS.[SalesOrderPartId] = SOP.[SalesOrderPartId] 
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
-		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
+		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[SalesOrderId] = @SalesOrderId AND SOP.SalesOrderPartId NOT IN (SELECT SOSI.SalesOrderPartId FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
@@ -195,8 +197,9 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOP.UnitSalesPricePerUnit, 0) * ISNULL(SOP.Qty,0))
-			FROM [dbo].[SalesOrderPart] SOP WITH(NOLOCK)
+		SELECT @Total = (ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOP.QtyOrder,0))
+			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK)
+			INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
 			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;
 			  

@@ -102,10 +102,14 @@
 
 
 
+
+
 GO
+
+
 ----------------------------------------------
 
-CREATE TRIGGER [dbo].[Trg_WorkOrderPartNumAudit]
+CREATE   TRIGGER [dbo].[Trg_WorkOrderPartNumAudit]
 
    ON  [dbo].[WorkOrderPartNumber]
 
@@ -307,7 +311,15 @@ BEGIN
 
       ,[TechName]
 
-      ,[TechStation])
+      ,[TechStation]
+
+	  ,[WorkOrderStatus]
+
+      ,[WorkOrderStage]
+
+      ,[ManufacturerName]
+
+      ,[EmployeeStation])
 
     SELECT [ID],
 
@@ -390,6 +402,14 @@ BEGIN
 	,@PartNum,@PartDesc,@RevisedPartNum,@ItemGroup,@CustRefNo,@MangLevel1,@MangLevel2,@MangLevel3,@MangLevel4,
 
 	@Condition,@StockLineNum,@SerialNum,@PublicationNum,@WorkflowNum,@Stage,@Status,@Priority,@TechName,@TechStation
+
+	  ,[WorkOrderStatus]
+
+      ,[WorkOrderStage]
+
+      ,[ManufacturerName]
+
+      ,[EmployeeStation]
 
 	FROM INSERTED 
 

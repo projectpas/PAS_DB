@@ -33,8 +33,12 @@
     [PriorityName]          VARCHAR (100)   NULL,
     [StatusName]            VARCHAR (100)   NULL,
     [SalesOrderQuotePartId] BIGINT          NULL,
+    [LotId]                 BIGINT          NULL,
+    [IsLotAssigned]         BIT             NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 
 
 

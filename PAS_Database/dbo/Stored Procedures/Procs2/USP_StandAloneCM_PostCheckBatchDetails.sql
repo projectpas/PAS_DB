@@ -19,6 +19,7 @@
 	3    09/15/2023   Amit Ghediya	Update for management stucture add in common table.
     4    04/22/2024   Moin Bloch	Updated Removed Static StandAloneCMModuleId
 	5    04/23/2024   Moin Bloch	Updated Added Document Number For List 
+	6    11/05/2024   Amit Ghediya	Handle bypass accounting entry.
 **************************************************************/
 
 CREATE        PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
@@ -77,6 +78,7 @@ BEGIN
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
 		DECLARE @tmpVendorRMADetailId BIGINT;
+		DECLARE @IsAccountByPass BIT = 0;
 
 		SET @DistributionCodeName = 'CMDISACC';
 
@@ -87,6 +89,9 @@ BEGIN
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @CodeTypeId = CodeTypeId FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE CodeType = 'JournalType';
+
+		--Get bypass flag from mastercompany.
+		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -104,7 +109,7 @@ BEGIN
 			StartsFrom BIGINT NULL,
 		)    
 
-		IF(ISNULL(@Amount,0) <> 0)
+		IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@IsAccountByPass,0) = 0)
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('CMDISACC')
 			
@@ -290,7 +295,10 @@ BEGIN
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		IF(ISNULL(@JournalBatchDetailId, 0) <> 0)
+		BEGIN
+			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		END
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 	END TRY

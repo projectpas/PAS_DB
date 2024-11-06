@@ -34,6 +34,7 @@
 	17  06/26/2024	  Moin Bloch        added condtion to removed Refund and Refund Requested credit memo invoices from invoice list 
 	18  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
 	19  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	20  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
 
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
@@ -264,7 +265,7 @@ BEGIN
 				   C.Name [CustomerName],
 				   CT.CustomerTypeName [CustomerType],
 				   SOBI.GrandTotal [InvoiceAmt],
-				   ISNULL(SOBI.GrandTotal,0) RemainingAmount,
+				   ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
 				   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
 				   '' as [QuoteNumber],
 				   SO.CustomerReference as CustomerReference,

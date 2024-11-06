@@ -18,11 +18,12 @@
 	2    14/02/2023		     Moin Bloch			 Updated Used Distribution Setup Code Insted of Name 
 	3    07/23/2024			 AMIT GHEDIYA		 Update new Destribution.
 	4    20/09/2024	         AMIT GHEDIYA		 Added for AutoPost Batch
-	5	 18/10/2024		Devendra Shekh			Added new fields for [CommonBatchDetails]
+	5	 18/10/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
+	6	 11/04/2024			 Devendra Shekh		 Added ReferenceId, ReferenceModule For [CommonBatchDetails]
      
     EXEC USP_PostManualAssetInventoryBatchDetails 551,0,1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
+CREATE   PROCEDURE [dbo].[USP_PostManualAssetInventoryBatchDetails]
 @AssetInventoryId BIGINT,
 @OldUnitCost DECIMAL(18,2),
 @IsCreate BIT
@@ -101,6 +102,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'ASSET';
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -415,7 +417,7 @@ BEGIN
 						 [UpdatedDate],
 						 [IsActive],
 						 [IsDeleted]
-						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -445,7 +447,7 @@ BEGIN
 						 GETUTCDATE(),
 						 1,
 						 0
-						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 			SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -551,7 +553,7 @@ BEGIN
 						 [UpdatedDate],
 						 [IsActive],
 						 [IsDeleted]
-						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -581,7 +583,7 @@ BEGIN
 						 GETUTCDATE(),
 						 1,
 						 0
-						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+						 ,@InventoryNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@AssetInventoryId,@ReferenceModule)
 
 			 SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

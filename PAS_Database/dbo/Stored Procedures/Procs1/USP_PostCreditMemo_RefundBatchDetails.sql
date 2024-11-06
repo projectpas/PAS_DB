@@ -15,6 +15,7 @@
     2    14/02/2023		Moin Bloch			     Updated Used Distribution Setup Code Insted of Name 
 	3    03/04/2024	    HEMANT SALIYA	         Updated for Restrict Accounting Entry by Master Company
 	4    25/09/2024		AMIT GHEDIYA			 Added for AutoPost Batch
+	5	 11/04/2024		Devendra Shekh			 Added new fields for [CommonBatchDetails]
 
  -- exec USP_PostCreditMemo_RefundBatchDetails 
 **********************/   
@@ -74,6 +75,12 @@ BEGIN
 		DECLARE @SumAmount decimal(18,2); 
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'CRFD';
+		DECLARE @VendorName VARCHAR(100);
+		DECLARE @CreditMemoHeaderId BIGINT = 0;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 			BEGIN
@@ -125,6 +132,13 @@ BEGIN
 				AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
 
 				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId 
+
+				SELECT	@VendorName = VendorName, @LocalCurrencyCode = ISNULL(CU.Code, ''), @ForeignCurrencyCode = ISNULL(CU.Code, '') 
+				FROM [dbo].[CustomerRefund] CF WITH(NOLOCK) 
+				LEFT JOIN [DBO].[Vendor] V WITH(NOLOCK) ON CF.VendorId = V.VendorId
+				LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON V.CurrencyId = CU.CurrencyId WHERE CF.CustomerRefundId = @CustomerRefundId;
+
+				SELECT TOP 1 @CreditMemoHeaderId = RFCM.CreditMemoHeaderId FROM [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) WHERE RFCM.CustomerRefundId = @CustomerRefundId;
 
 				IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 				BEGIN 
@@ -220,7 +234,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				 VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -228,7 +242,7 @@ BEGIN
 					CASE WHEN @CRDRType = 1 THEN @SumAmount ELSE 0 END,
 					CASE WHEN @CRDRType = 1 THEN 0 ELSE @SumAmount END,
 					@CurrentManagementStructureId ,'CustomerRefund',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'',@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@CreditMemoHeaderId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -252,7 +266,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -260,7 +274,7 @@ BEGIN
 					CASE WHEN @CRDRType = 1 THEN @SumAmount ELSE 0 END,
 					CASE WHEN @CRDRType = 1 THEN 0 ELSE @SumAmount END,
 					@CurrentManagementStructureId ,'CustomerRefund',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'',@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@CreditMemoHeaderId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

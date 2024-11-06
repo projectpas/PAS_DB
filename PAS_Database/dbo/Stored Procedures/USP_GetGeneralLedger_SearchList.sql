@@ -15,6 +15,7 @@
 	4    10/08/2024   Devendra Shekh	     Modifed (Managed Null values)
 	5    10/09/2024   Devendra Shekh	     Modifed (Added new fields [BatchName], [JournalTypeName], [ReferenceId], [ReferenceModule])
 	6    10/25/2024   Devendra Shekh	     Modifed (Added customerId to select)
+	7    11/04/2024   Devendra Shekh	     Modifed (Commented unnecessary joins)
 
 exec USP_GetGeneralLedger_SearchList 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@FromEffectiveDate='2024-09-09 00:00:00',@ToEffectiveDate='2024-10-09 00:00:00',@FromJournalId=N'0',@ToJournalId=N'0',
@@ -180,72 +181,74 @@ BEGIN
 				CBD.MasterCompanyId
 				,ISNULL(BH.BatchName, '') AS 'BatchName'
 				,ISNULL(CBD.JournalTypeName, '') AS 'JournalTypeName'
-				,CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-					OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' OR UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN WBD.ReferenceId
-					WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-					OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CBD.ModuleName) = 'CREDITMEMO') THEN CMBD.ReferenceId	
-					WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN SBD.SalesOrderId  
-					WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName)  = 'CREDITMEMO') THEN CMBD.ReferenceId	
-					WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN SD.PoId  
-					WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN SD.RoId
-					WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.ReferenceId 
-					WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
-					WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN AST.StocklineId
-					WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN AST.StocklineId
-					WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN AST.StocklineId
-					WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN VRBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN VRBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN VRBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN SD.StocklineId		
-					WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
-					WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.ExchangeSalesOrderId
-					WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN CMBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN VPBD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
-					WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
-					WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN RFCM.CreditMemoHeaderId
-					WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
-							OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN BSAD.ReferenceId
-					ELSE '' END
-				,CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-					OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT')  AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN 'WO' 
-					WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
-					OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT')  AND (UPPER(CBD.ModuleName) = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
-					WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN 'SO'    
-					WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName)  = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
-					WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN 'RPO'  
-					WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN 'RRO' 
-					WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN 'WO' 
-					WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN 'CHEQUE' 
-					WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 'ASSET'
-					WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN 'ASSET'
-					WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN 'ASSET'
-					WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN 'ASSET'
-					WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN 'VENDOR RMA - SHIPPING'
-					WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN 'VENDOR CREDIT MEMO'
-					WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN 'VENDOR-RMA-PRODUCT-REPLACED'
-					WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 'STOCKLINE'
-					WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN 'CASH RECEIPT'
-					WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 'STKADJ'
-					WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN 'EXCH'
-					WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 'CMDISACC'
-					WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 'WIRETRAN'
-					WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 'ACHTRAN'
-					WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 'CCPAY'
-					WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN 'MANUALJOURNAL'
-					WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
-					WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
-					WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
-					WHEN UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN' THEN 'TEARDOWN_WO'
-					WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
-					OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
-					ELSE '' END
+				,CBD.ReferenceId
+				,CBD.ReferenceModule
+				--,CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+				--	OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' OR UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN WBD.ReferenceId
+				--	WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+				--	OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT') AND (UPPER(CBD.ModuleName) = 'CREDITMEMO') THEN CMBD.ReferenceId	
+				--	WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN SBD.SalesOrderId  
+				--	WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName)  = 'CREDITMEMO') THEN CMBD.ReferenceId	
+				--	WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN SD.PoId  
+				--	WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN SD.RoId
+				--	WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN WBD.ReferenceId 
+				--	WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN VPBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN SD.PoId
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN AST.StocklineId
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN AST.StocklineId
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN AST.StocklineId
+				--	WHEN UPPER(DM.DistributionCode) = 'VENDORRMA' THEN VRBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN VRBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN VRBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN VRBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN SD.StocklineId		
+				--	WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN CRBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 0
+				--	WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.ExchangeSalesOrderId
+				--	WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN CMBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN VPBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN VPBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN MJSD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN VPBD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN SD.ReferenceId
+				--	WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN NPOBD.NonPOInvoiceId
+				--	WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN RFCM.CreditMemoHeaderId
+				--	WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
+				--			OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN BSAD.ReferenceId
+				--	ELSE '' END
+				--,CASE WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+				--	OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT')  AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN 'WO' 
+				--	WHEN (UPPER(DM.DistributionCode) = 'WOMATERIALGRIDTAB' OR UPPER(DM.DistributionCode) = 'WOLABORTAB' OR UPPER(DM.DistributionCode) = 'WOSETTLEMENTTAB' 
+				--	OR UPPER(DM.DistributionCode) = 'WOINVOICINGTAB' OR UPPER(DM.DistributionCode) = 'MROWOSHIPMENT')  AND (UPPER(CBD.ModuleName) = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
+				--	WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName) <> 'CREDITMEMO') THEN 'SO'    
+				--	WHEN (UPPER(DM.DistributionCode) = 'SOINVOICE' OR UPPER(DM.DistributionCode) = 'SO_SHIPMENT') AND (UPPER(CBD.ModuleName)  = 'CREDITMEMO') THEN 'CUSTOMER CREDIT MEMO' 
+				--	WHEN UPPER(DM.DistributionCode) = 'RECEIVINGPOSTOCKLINE' THEN 'RPO'  
+				--	WHEN UPPER(DM.DistributionCode) = 'RECEIVINGROSTOCKLINE' THEN 'RRO' 
+				--	WHEN UPPER(DM.DistributionCode) = 'MROWOSHIPMENT' THEN 'WO' 
+				--	WHEN UPPER(DM.DistributionCode) = 'CHECKPAYMENT' THEN 'CHEQUE' 
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETINVENTORY' THEN 'ASSET'
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETACQUISITION' THEN 'ASSET'
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETPERIODICDEPRECIATION' THEN 'ASSET'
+				--	WHEN UPPER(DM.DistributionCode) = 'ASSETSALEWRITEDOWNWRITEOFF' THEN 'ASSET'
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMACS' THEN 'VENDOR RMA - SHIPPING'
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMACA' THEN 'VENDOR CREDIT MEMO'
+				--	WHEN UPPER(DM.DistributionCode) = 'VRMAPR' THEN 'VENDOR-RMA-PRODUCT-REPLACED'
+				--	WHEN UPPER(DM.DistributionCode) = 'MANUALSTOCKLINE' THEN 'STOCKLINE'
+				--	WHEN UPPER(DM.DistributionCode) = 'CASHRECEIPTSTRADERECEIVABLE' THEN 'CASH RECEIPT'
+				--	WHEN UPPER(DM.DistributionCode) = 'STOCKLINEADJUSTMENT' THEN 'STKADJ'
+				--	WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN 'EXCH'
+				--	WHEN UPPER(DM.DistributionCode) = 'CMDISACC' THEN 'CMDISACC'
+				--	WHEN UPPER(DM.DistributionCode) = 'WIRETRANSFER' THEN 'WIRETRAN'
+				--	WHEN UPPER(DM.DistributionCode) = 'ACHTRANSFER' THEN 'ACHTRAN'
+				--	WHEN UPPER(DM.DistributionCode) = 'CREDITCARDPAYMENT' THEN 'CCPAY'
+				--	WHEN UPPER(DM.DistributionCode) = 'MANUALJOURNAL' THEN 'MANUALJOURNAL'
+				--	WHEN UPPER(DM.DistributionCode) = 'RECONCILIATIONRO' OR UPPER(DM.DistributionCode) = 'RECONCILIATIONPO'  THEN 'RECONCILIATION'
+				--	WHEN UPPER(DM.DistributionCode) = 'NONPOINVOICE' THEN 'NONPO'
+				--	WHEN UPPER(DM.DistributionCode) = 'CRFD' THEN 'CRFD'
+				--	WHEN UPPER(DM.DistributionCode) = 'INTERNALWORKORDERTEARDOWN' THEN 'TEARDOWN_WO'
+				--	WHEN UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTQTY' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTUNITCOST' 
+				--	OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTERCOTRANSLE' OR UPPER(DM.DistributionCode) = 'BULKSTOCKLINEADJUSTMENTINTRACOTRANSDIV' THEN 'BSADJ'
+				--	ELSE '' END
 				,CASE WHEN UPPER(DM.DistributionCode) = 'EX-ShIPMENT' OR UPPER(DM.DistributionCode) = 'EX-FEEBILLING' OR UPPER(DM.DistributionCode) = 'EX-REPAIRBILLING' THEN EXBD.CustomerId ELSE 0 END AS 'CustomerId'
 		FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)
 		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
@@ -264,23 +267,23 @@ BEGIN
 
 		JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = CBD.DistributionSetupId
 		JOIN [dbo].[DistributionMaster] DM WITH (NOLOCK) ON DS.DistributionMasterId = DM.ID
-		LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = WBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[StocklineBatchDetails] AST WITH (NOLOCK) ON CBD.JournalBatchDetailId = AST.JournalBatchDetailId AND AST.StockType = 'ASSET'
-		LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON CBD.JournalBatchDetailId = MJSD.JournalBatchDetailId
-		LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = VPBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = VRBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CRBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON CBD.JournalBatchDetailId = BSAD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CMBD.JournalBatchDetailId
-		LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
-			(
-				SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
-			)	AND CMBD.ModuleId = @CustomerRefundModuleId			  			  
+		--LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = WBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[StocklineBatchDetails] AST WITH (NOLOCK) ON CBD.JournalBatchDetailId = AST.JournalBatchDetailId AND AST.StockType = 'ASSET'
+		--LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON CBD.JournalBatchDetailId = MJSD.JournalBatchDetailId
+		--LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = VPBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = VRBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CRBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON CBD.JournalBatchDetailId = BSAD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CMBD.JournalBatchDetailId
+		--LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
+		--	(
+		--		SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
+		--	)	AND CMBD.ModuleId = @CustomerRefundModuleId			  			  
 		LEFT JOIN [dbo].[ExchangeBatchDetails] EXBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = EXBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = NPOBD.JournalBatchDetailId 
-		LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SPBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SPBD.JournalBatchDetailId 		
+		--LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = NPOBD.JournalBatchDetailId 
+		--LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SPBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = SPBD.JournalBatchDetailId 		
 
 		WHERE	CAST(CBD.TransactionDate AS date) BETWEEN CAST(@FromEffectiveDate AS date) AND CAST(@ToEffectiveDate AS date) AND
 				((ISNULL(@FromJournalId, '') = '0' OR ISNULL(@ToJournalId, '') = '0') OR 

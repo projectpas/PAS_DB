@@ -23,7 +23,6 @@
     
 NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=98,@MasterCompanyId=11,@VendorId=NULL,@ViewType=N'poview',@PartNumberType=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@RepairOrderNumbe
   
-    
 rType=NULL,@QuantityOrdered=NULL,@QuantityBackOrdered=NULL,@QuantityReceived=NULL      
 **************************************************************/      
 CREATE PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -115,57 +114,16 @@ BEGIN
 					SUM(ISNULL(POP.QuantityBackOrdered,0)) AS QuantityBackOrdered,
 					SUM(ISNULL(POP.QuantityBackOrdered,0)) - SUM(ISNULL(POP.QuantityOrdered,0)) AS QuantityReceived,
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(POP.PartNumber) End) as 'PartNumberType',
-					--POP.PartNumber,
-					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  
-					-- POP.Manufacturer,
-					--(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND MAX(WorkOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(WorkOrderRefNumber.RefNumber) End)  as 'WorkOrderNumType',
-					---- I.WorkOrderNum, 
-					--(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND MAX(SalesOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse MAX(SalesOrderRefNumber.RefNumber) End)  as 'SalesOrderNumberType',
-					---- S.SalesOrderNumber,
-					--(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND MAX(RepairOrderRefNumber.RefNumber) = 'Multiple' Then 'Multiple' ELse  MAX(RepairOrderRefNumber.RefNumber) End)  as 'RepairOrderNumberType',
-					
+					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.Manufacturer) END) AS 'ManufacturerType',  					
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.WorkOrderId) > 1 THEN 'Multiple' ELse MAX(POP.WorkOrderNo) End)  as 'WorkOrderNumType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.SalesOrderId) > 1 THEN 'Multiple' ELse MAX(POP.SalesOrderNo) End)  as 'SalesOrderNumberType', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumberType', 
-					--RepairOrderRefNumber.RONum AS 'RepairOrderNumber',
-					--WorkOrderRefNumber.WONum AS 'WorkOrderNum',
-					--SalesOrderRefNumber.SONum AS 'SalesOrderNumber', 
 					POP.ReapairOrderNo AS 'RepairOrderNumber',
 					POP.WorkOrderNo AS 'WorkOrderNum',
 					POP.SalesOrderNo AS 'SalesOrderNumber',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType'--,
-				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
-					--INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId      
-					--INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
-					--INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId       
+				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
 					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
-					--OUTER APPLY(      
-					--	SELECT SUM(popt.QuantityOrdered) AS QuantityOrdered,
-					--	SUM(popt.QuantityBackOrdered) AS QuantityBackOrdered,
-					--	SUM(popt.QuantityOrdered) - SUM(popt.QuantityBackOrdered) AS QuantityReceived       
-					--	FROM dbo.PurchaseOrderPart popt WITH (NOLOCK) WHERE popt.PurchaseOrderId = PO.PurchaseOrderId and popt.isParent=1 AND popt.MasterCompanyId = @MasterCompanyId      
-					--) AS A    
-					--OUTER APPLY(      
-					--	SELECT case when COUNT(*) > 1 then 'Multiple' else MAX(I.WorkOrderNum) end 'RefNumber'   ,STRING_AGG(I.WorkOrderNum, ',') as 'WONum'  
-					--	FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
-					--	LEFT JOIN  [DBO].[WorkOrder] I WITH (NOLOCK) On POPR.ReferenceId = I.WorkOrderId    
-					--	WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
-					--	and POPR.ModuleId = 1 
-					--) AS WorkOrderRefNumber   
-					--OUTER APPLY(      
-					--	SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(S.SalesOrderNumber) end 'RefNumber'   ,STRING_AGG(S.SalesOrderNumber, ',') as 'SONum'
-					--	FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
-					--	LEFT JOIN  [DBO].[SalesOrder] S WITH (NOLOCK) On POPR.ReferenceId = S.SalesOrderId   
-					--	WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId -- and pop.PurchaseOrderPartRecordId = POPR.PurchaseOrderPartId   
-					--	and POPR.ModuleId = 3
-					--) AS SalesOrderRefNumber   
-					--OUTER APPLY(      
-					--	SELECT  case when COUNT(*) > 1 then 'Multiple' else MAX(RO.RepairOrderNumber) end 'RefNumber'  ,STRING_AGG(RO.RepairOrderNumber, ',') as 'RONum'
-					--	FROM dbo.PurchaseOrderPartReference popr WITH (NOLOCK)   
-					--	LEFT JOIN  [DBO].[RepairOrder] RO WITH (NOLOCK) On POPR.ReferenceId = RO.RepairOrderId    
-					--	WHERE POPR.PurchaseOrderId = PO.PurchaseOrderId
-					--	and POPR.ModuleId = 2 
-					--) AS RepairOrderRefNumber
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId      
 				GROUP BY PO.PurchaseOrderId, PO.PurchaseOrderNumber,
@@ -185,14 +143,10 @@ BEGIN
 					PO.[Status],
 					PO.Requisitioner,
 					PO.ApprovedBy,
-					--A.QuantityOrdered,
-					--A.QuantityBackOrdered,
-					--A.QuantityReceived  ,
 					POP.ReapairOrderNo,
 					POP.WorkOrderNo,
 					POP.SalesOrderNo
-				)    
- 
+				)   
 	,ResultData AS(      
 		SELECT M.PurchaseOrderId,M.PurchaseOrderNumber,M.PurchaseOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
 			M.CreatedBy, M.UpdatedDate, M.UpdatedBy, M.IsActive, M.IsDeleted,
@@ -300,7 +254,6 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='estDeliveryType')  THEN estDeliveryType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC 
 
-  
 		OFFSET @RecordFrom ROWS       
 		FETCH NEXT @PageSize ROWS ONLY      
 	END      
@@ -337,13 +290,6 @@ BEGIN
 			POP.WorkOrderNo as WorkOrderNumType,
 			POP.ReapairOrderNo AS RepairOrderNumber,
 			POP.ReapairOrderNo as RepairOrderNumberType,
-
-			--SO.SalesOrderNumber,
-			--SO.SalesOrderNumber as SalesOrderNumberType,
-			--WO.WorkOrderNum,
-			--WO.WorkOrderNum as WorkOrderNumType,
-			--RO.RepairOrderNumber,
-			--RO.RepairOrderNumber as RepairOrderNumberType,
 			CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,
 			CAST(POP.EstDeliveryDate AS VARCHAR(MAX)) as EstDeliveryType,
 			POP.PurchaseOrderPartRecordId,
@@ -351,14 +297,7 @@ BEGIN
 			ISNULL(POP.QuantityBackOrdered,0) AS QuantityBackOrdered,
 			ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived      
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)      
-			--INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId      
-			--INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId      
-			--INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId      
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
-			--LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON POP.SalesOrderId = SO.SalesOrderId      
-			--LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON POP.WorkOrderId = WO.WorkOrderId      
-			--LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON POP.RepairOrderId = RO.RepairOrderId      
-			--LEFT JOIN [dbo].[Manufacturer] M WITH (NOLOCK) ON POP.ManufacturerId = M.ManufacturerId      
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId           
 		
 		), ResultCount AS(
@@ -439,13 +378,9 @@ BEGIN
 	  OFFSET @RecordFrom ROWS       
 	  FETCH NEXT @PageSize ROWS ONLY      
  END      
- END      
- --COMMIT  TRANSACTION      
+ END           
  END TRY          
- BEGIN CATCH            
-  --IF @@trancount > 0      
-  -- PRINT 'ROLLBACK'      
-  -- ROLLBACK TRAN;      
+ BEGIN CATCH         
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()       
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------      
             , @AdhocComments     VARCHAR(150)    = 'GetPublicationViewList'       

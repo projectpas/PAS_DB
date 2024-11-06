@@ -125,11 +125,23 @@ BEGIN
         (CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.UnitSalesPrice, 0) ELSE ISNULL(PS.UnitSalesPrice, 0) END) UnitSalesPricePerUnit,
         itemMaster.ItemClassificationName AS ItemClassification,
         itemMaster.ItemGroup,
-        rop.EstRecordDate AS roNextDlvrDate
+        rop.EstRecordDate AS roNextDlvrDate,
+		(SELECT SUM(Stk.QuantityAvailable) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1) qtyAvailable,
+		(SELECT SUM(Stk.QuantityOnHand) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = part.ItemMasterId AND Stk.ConditionId = part.ConditionId AND Stk.IsParent = 1) quantityOnHand,
+		(SELECT SUM(sosi.QtyShipped) FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) qtyShipped,
+		(SELECT SUM(sobi.NoofPieces) FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) qtyInvoiced,
+		(SELECT TOP 1 sob.InvoiceDate FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) invoiceDate,
+		(SELECT TOP 1 sob.InvoiceNo FROM DBO.SalesOrderBillingInvoicing sob WITH (NOLOCK) LEFT JOIN DBO.SalesOrderBillingInvoicingItem sobi WITH (NOLOCK) ON sob.SOBillingInvoicingId = sobi.SOBillingInvoicingId
+		WHERE sob.SalesOrderId = @SalesOrderId AND sobi.SalesOrderPartId = part.SalesOrderPartId AND sob.IsActive = 1 AND sob.IsDeleted = 0 AND sobi.IsVersionIncrease = 0 AND sobi.IsProforma = 0) invoiceNumber,
+		(SELECT TOP 1 sos.SOShippingNum FROM DBO.SalesOrderShipping sos WITH (NOLOCK) LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId
+		WHERE sos.SalesOrderId = @SalesOrderId AND sosi.SalesOrderPartId = part.SalesOrderPartId AND sos.IsActive = 1 AND sos.IsDeleted = 0) shipReference
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
-	LEFT JOIN SalesOrderPartCost PS ON PS.SalesOrderPartId = part.SalesOrderPartId
-    LEFT JOIN SalesOrderStockLineCost SC ON SC.SalesOrderStocklineId = Stk.SalesOrderStocklineId
+	LEFT JOIN DBO.SalesOrderPartCost PS WITH (NOLOCK) ON PS.SalesOrderPartId = part.SalesOrderPartId
+    LEFT JOIN DBO.SalesOrderStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderStocklineId = Stk.SalesOrderStocklineId
     LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON part.SalesOrderId = SO.SalesOrderId
     LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON Stk.StockLineId = qs.StockLineId
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId

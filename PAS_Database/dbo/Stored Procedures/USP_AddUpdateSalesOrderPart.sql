@@ -12,8 +12,8 @@
     1    09/24/2024   Vishal Suthar	 Created
 
 declare @p1 dbo.SOPartListType
-insert into @p1 values(1,1103,3,7,2,180079,NULL,1,1,1,NULL,NULL,1,1,120,0,0,120,0,90,0,'2024-09-24 00:00:00','2024-09-25 00:00:00','2024-09-26 00:00:00',120.00,0,0,120,90,85.4839,0,NULL,N'',N'<p>Note1</p>',1,N'ADMIN User')
-insert into @p1 values(2,1103,7,7,2,NULL,NULL,1,1,1,NULL,NULL,1,1,2000,0,0,2000,0,2000,0,'2024-09-27 00:00:00','2024-09-28 00:00:00','2024-09-29 00:00:00',2000.00,0,0,2000,2000,0,0,NULL,N'',N'<p>Note21</p>',1,N'ADMIN User')
+insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
+insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,900,0,0,900,0,0,900.00,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
 
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
@@ -223,8 +223,6 @@ BEGIN
 			DiscountAmount = @DiscAmt_U,
 			NetSaleAmount = ISNULL(@NetSalesAmt_U, 0)
 			WHERE SalesOrderPartId = @SalesOrderPartId
-
-			PRINT @SalesOrderStocklineId;
 
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level
 			BEGIN

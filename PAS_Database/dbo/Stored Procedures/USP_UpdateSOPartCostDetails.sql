@@ -233,7 +233,8 @@ SET NOCOUNT ON
 				IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
 				BEGIN
 					UPDATE DBO.SalesOrderPartV1 
-					SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
+					SET QtyOrder = (SELECT SUM(ISNULL(SOS.QtyOrder, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId),
+					QtyReserved = (SELECT SUM(ISNULL(SOS.QtyReserved, 0)) FROM DBO.SalesOrderStocklineV1 SOS WHERE SOS.SalesOrderPartId = @SalesOrderPartId)
 					WHERE SalesOrderPartId = @SalesOrderPartId;
 				END
 

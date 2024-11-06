@@ -13,10 +13,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	 1    01/29/2024   AMIT GHEDIYA			Created
-	 2    10/16/2024   Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	 1   01/29/2024		AMIT GHEDIYA		Created
+	 2   10/16/2024		Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
      
  EXEC [dbo].[sp_GetSalesOrderPerformaInvoiceChildList] 814, 318, 15  
 **************************************************************/
@@ -43,7 +43,7 @@ BEGIN
 				(SELECT b.NoofPieces FROM SalesOrderBillingInvoicing a WITH (NOLOCK) 
 					INNER JOIN SalesOrderBillingInvoicingItem b WITH (NOLOCK) ON a.SOBillingInvoicingId = b.SOBillingInvoicingId 
 					WHERE b.SOBillingInvoicingItemId = SOBII.SOBillingInvoicingItemId AND ISNULL(b.IsProforma,0) = 1 AND ISNULL(a.IsProforma,0) = 1) AS QtyBilled,  
-				'' AS ItemNo,  
+				0 AS ItemNo,  
 				sop.SalesOrderId, sop.SalesOrderPartId, cond.Description AS 'Condition',   
 				curr.Code as 'CurrencyCode',  
 				sobi.GrandTotal as 'TotalSales',  

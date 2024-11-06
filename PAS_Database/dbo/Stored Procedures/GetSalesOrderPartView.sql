@@ -31,6 +31,7 @@ BEGIN
     SELECT 
         part.SalesOrderId,
         part.SalesOrderPartId,
+		stk.SalesOrderStocklineId,
         SO.SalesOrderQuoteId,
         part.ItemMasterId,
         Stk.StockLineId,
@@ -99,7 +100,7 @@ BEGIN
         ISNULL(part.StatusId, @DefaultStatusId) AS StatusId,
         ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = part.StatusId), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
-        part.Notes,
+        CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.Notes ELSE part.Notes END Notes,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpAmount, 0) ELSE ISNULL(PS.MarkUpAmount, 0) END MarkupPerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePricePerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePrice,

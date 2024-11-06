@@ -141,9 +141,6 @@ BEGIN
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
 
-				PRINT 'NEW ID'
-				PRINT @SalesOrderQuotePartId;
-
 				DECLARE @SalesPrice AS decimal(18,4);
 				DECLARE @MarkUpAmt AS decimal(18,4);
 				DECLARE @DiscAmt AS decimal(18,4);
@@ -172,59 +169,27 @@ BEGIN
 			IF (@StockLineId IS NOT NULL AND @StockLineId > 0) -- Added at Stockline Level
 			BEGIN
 				DECLARE @InsertedSalesOrderQuoteStocklineId BIGINT;
-				--DECLARE @MasterLoopID AS INT;
+				INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
+				SELECT @SalesOrderQuotePartId, STK.StockLineId, @ConditionId, @QuantityToQuote, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOQPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes
+				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
-				--IF OBJECT_ID(N'tempdb..#SOQPartStocklineDetails') IS NOT NULL
-				--BEGIN
-				--  DROP TABLE #SOQPartStocklineDetails
-				--END
+				SET @InsertedSalesOrderQuoteStocklineId = SCOPE_IDENTITY();
 
-				--CREATE TABLE #SOQPartStocklineDetails (
-				--  ID bigint NOT NULL IDENTITY,
-				--  [SalesOrderQuoteId] bigint NULL,
-				--  [SalesOrderQuotePartId] bigint NULL,
-				--  [SalesOrderQuoteStocklineId] bigint NULL,
-				--  [StockLineId] bigint NULL,
-				--  [QuantityToQuote] int NULL
-				--)
+				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
+				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
+				SET @DiscAmt = ISNULL(@DiscountAmount, 0);
+				SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyQuoted;
+				SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyQuoted);
 
-				--INSERT INTO #SOQPartStocklineDetails (SalesOrderQuoteId, SalesOrderQuotePartId, SalesOrderQuoteStocklineId, StockLineId, QuantityToQuote)
-				--SELECT SalesOrderQuoteId, SalesOrderQuotePartId, SalesOrderQuoteStocklineId, StockLineId, QuantityToQuoted FROM @tbl_SalesOrderQuoteStocklineList;
-
-				--SELECT @MasterLoopID = MAX(ID) FROM #SOQPartStocklineDetails;
-
-				--WHILE (@MasterLoopID > 0)
-				--BEGIN
-					--SELECT @StockLineId = StockLineId, @QtyQuoted = QuantityToQuote FROM #SOQPartStocklineDetails WHERE ID  = @MasterLoopID
-
-					PRINT 'INSERT @SalesOrderQuotePartId'
-					PRINT @SalesOrderQuotePartId
-
-					INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-					SELECT @SalesOrderQuotePartId, STK.StockLineId, @ConditionId, @QuantityToQuote, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOQPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
-					FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
-
-					SET @InsertedSalesOrderQuoteStocklineId = SCOPE_IDENTITY();
-
-					SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
-					SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
-					SET @DiscAmt = ISNULL(@DiscountAmount, 0);
-					SET @GrossAmt = (@SalesPrice + @MarkUpAmt) * @QtyQuoted;
-					SET @NetSalesAmt = @GrossAmt - (@DiscAmt * @QtyQuoted);
-
-					INSERT INTO [dbo].[SalesOrderQuoteStockLineCost] ([SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
-					[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
-					[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
+				INSERT INTO [dbo].[SalesOrderQuoteStockLineCost] ([SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
+				[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
+				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
 				
-					SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @InsertedSalesOrderQuoteStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QuantityToQuote), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyQuoted), 0), @NetSalesAmt,
-					@UnitCost, ISNULL((@UnitCost * @QuantityToQuote), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyQuoted), 0), 
-					@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
-					FROM [DBO].[StockLine] Stkl 
-					--LEFT JOIN #SOQPartStocklineDetails S_Stkl ON S_Stkl.StockLineId = Stkl.StockLineId
-					WHERE Stkl.StockLineId = @StockLineId
-
-					--SET @MasterLoopID = @MasterLoopID - 1;
-				--END
+				SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @InsertedSalesOrderQuoteStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QuantityToQuote), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyQuoted), 0), @NetSalesAmt,
+				@UnitCost, ISNULL((@UnitCost * @QuantityToQuote), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyQuoted), 0), 
+				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+				FROM [DBO].[StockLine] Stkl
+				WHERE Stkl.StockLineId = @StockLineId;
 			END
 		END
 		ELSE
@@ -267,7 +232,8 @@ BEGIN
 				UPDATE [DBO].[SalesOrderQuoteStocklineV1]
 				SET CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
-				EstimatedShipDate = @EstimatedShipDate
+				EstimatedShipDate = @EstimatedShipDate,
+				Notes = @Notes
 				WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 
 				UPDATE [DBO].[SalesOrderQuoteStockLineCost]
@@ -288,10 +254,6 @@ BEGIN
 			FROM [DBO].[SalesOrderQuotePartV1] SOP
 			INNER JOIN QuotedSums QS ON SOP.SalesOrderQuotePartId = QS.SalesOrderQuotePartId
 			WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
-			--UPDATE [DBO].[SalesOrderQuotePartV1]
-			--SET QtyRequested = @QtyRequested,
-			--QtyQuoted = @QtyQuoted_U
-			--WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 		END
 
 		SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;

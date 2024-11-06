@@ -13,7 +13,7 @@
 
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
-insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,900,0,0,900,0,0,900.00,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
+insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
 
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
@@ -168,8 +168,8 @@ BEGIN
 			BEGIN
 				DECLARE @InsertedSalesOrderStocklineId BIGINT;
 
-				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted])
-				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0
+				INSERT INTO [dbo].[SalesOrderStocklineV1] ([SalesOrderPartId], [StockLineId], [ConditionId], [QtyOrder], [QtyReserved], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
+				SELECT @SalesOrderPartId, STK.StockLineId, @ConditionId, @QtyOrder, 0, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes
 				FROM DBO.Stockline STK WHERE STK.StockLineId = @StockLineId;
 
 				SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
@@ -226,12 +226,11 @@ BEGIN
 
 			IF (@SalesOrderStocklineId IS NOT NULL AND @SalesOrderStocklineId > 0) -- Added at Stockline Level
 			BEGIN
-				SELECT @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SalesOrderStocklineId;
-
 				UPDATE [DBO].[SalesOrderStocklineV1]
 				SET CustomerRequestDate = @CustomerRequestDate,
 				PromisedDate = @PromisedDate,
-				EstimatedShipDate = @EstimatedShipDate
+				EstimatedShipDate = @EstimatedShipDate,
+				Notes = @Notes
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 				UPDATE [DBO].[SalesOrderStockLineCost]

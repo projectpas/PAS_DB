@@ -84,7 +84,7 @@ BEGIN
         ISNULL(part.StatusId, 1) AS StatusId, -- Assuming 1 represents 'Open'
         ISNULL(st.Description, 'Open') AS StatusName,
         soq.CustomerReference CustomerReference,
-        part.Notes AS Notes,
+        CASE WHEN stk.SalesOrderQuoteStocklineId IS NOT NULL THEN stk.Notes ELSE part.Notes END AS Notes,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkupPerUnit,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePricePerUnit,
         CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePrice,

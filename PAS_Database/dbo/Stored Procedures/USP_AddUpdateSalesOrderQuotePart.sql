@@ -12,7 +12,8 @@
     1    07/25/2024   Vishal Suthar	 Created
 
 declare @p1 dbo.SOQPartListType
-insert into @p1 values(NULL,867,3,9,3,181902,1,NULL,1,2,1,1,NULL,1,1.000000,330,0,0,330,49.5,10,320.00,NULL,NULL,NULL,330.00,0,0,330,10,96.97,15,NULL,N'',NULL,1,N'ADMIN User')
+insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
+insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
 
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
@@ -194,6 +195,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
+			PRINT 'IN ELSE'
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
 			CustomerRequestDate = @CustomerRequestDate,
@@ -216,6 +218,9 @@ BEGIN
 			SET @DiscAmt_U = ISNULL(@DiscountAmount, 0) * @QtyQuoted;
 			SET @GrossAmt_U = (@SalesPrice_U + @MarkUpAmt_U) * @QtyQuoted;
 			SET @NetSalesAmt_U = @GrossAmt_U - (@DiscAmt_U * @QtyQuoted);
+
+			PRINT '@MarkUpAmt_U'
+			PRINT @MarkUpAmt_U
 
 			UPDATE [DBO].[SalesOrderQuotePartCost]
 			SET UnitSalesPrice = @SalesPrice_U,

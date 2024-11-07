@@ -233,8 +233,34 @@ BEGIN
 				Notes = @Notes
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
+				DECLARE @GrossAmt_S AS decimal(18,4);
+				DECLARE @NetSalesAmt_S AS decimal(18,4);
+
+				PRINT '11 @MarkUpAmount'
+				PRINT @MarkUpAmount
+				PRINT '11 @DiscountAmount'
+				PRINT @DiscountAmount
+				PRINT '11 @QtyOrder'
+				PRINT @QtyOrder
+
+				SET @MarkUpAmount = ISNULL(@MarkUpAmount, 0) * @QtyOrder;
+				SET @DiscountAmount = ISNULL(@DiscountAmount, 0) * @QtyOrder;
+
+				PRINT '12 @MarkUpAmount'
+				PRINT @MarkUpAmount
+				PRINT '12 @DiscountAmount'
+				PRINT @DiscountAmount
+
+				SET @GrossAmt_S = (@UnitSalesPrice + @MarkUpAmount);
+				SET @NetSalesAmt_S = @GrossAmt_S - (@DiscountAmount);
+
 				UPDATE [DBO].[SalesOrderStockLineCost]
-				SET UnitSalesPrice = @UnitSalesPrice
+				SET UnitSalesPrice = @UnitSalesPrice,
+				MarkUpPercentage = @MarkUpPercentage,
+				MarkUpAmount = @MarkUpAmount,
+				DiscountPercentage = @DiscountPercentage,
+				DiscountAmount = @DiscountAmount,
+				NetSaleAmount = ISNULL(@NetSalesAmt_S, 0)
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
 
@@ -242,6 +268,7 @@ BEGIN
 				SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
 				FROM [DBO].[SalesOrderPartV1] SOP
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
+				WHERE SOS.SalesOrderPartId IS NOT NULL
 				GROUP BY SOP.SalesOrderPartId
 			)
 			UPDATE SOP

@@ -13,7 +13,7 @@
  ** --   --------     -------			--------------------------------          
     1    09/26/2024   Vishal Suthar     Created
      
--- EXEC [DBO].[GetSalesOrderPartView] 1267
+-- EXEC [DBO].[GetSalesOrderPartView] 1269
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT
@@ -43,7 +43,7 @@ BEGIN
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpPercentage, 0) ELSE ISNULL(PS.MarkUpPercentage, 0) END MarkUpPercentage,
         0 SalesBeforeDiscount,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.DiscountPercentage, 0) ELSE ISNULL(PS.DiscountPercentage, 0) END Discount,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.DiscountAmount, 0) ELSE ISNULL(PS.DiscountAmount, 0) END DiscountAmount,
+        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (ISNULL(SC.DiscountAmount, 0) / stk.QtyOrder) ELSE (ISNULL(PS.DiscountAmount, 0) / part.QtyOrder) END DiscountAmount,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS NetSales,
         part.MasterCompanyId,
         part.CreatedBy,
@@ -101,7 +101,7 @@ BEGIN
         ISNULL((SELECT Description FROM SOPartStatus WHERE SOPartStatusId = part.StatusId), @DefaultStatusName) AS StatusName,
         ISNULL((SELECT SUM(QtyToShip) FROM DBO.SOPickTicket WHERE SalesOrderId = part.SalesOrderId AND SalesOrderPartId = part.SalesOrderPartId AND IsActive = 1 AND IsDeleted = 0), 0) AS QtyToShip,
         CASE WHEN Stk.SalesOrderStocklineId IS NOT NULL THEN Stk.Notes ELSE part.Notes END Notes,
-        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarkUpAmount, 0) ELSE ISNULL(PS.MarkUpAmount, 0) END MarkupPerUnit,
+        CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN (ISNULL(SC.MarkUpAmount, 0) / stk.QtyOrder) ELSE (ISNULL(PS.MarkUpAmount, 0) / part.QtyOrder) END MarkupPerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePricePerUnit,
         CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END AS GrossSalePrice,
         0 AS TaxPercentage,

@@ -155,6 +155,9 @@ SET NOCOUNT ON
 						DECLARE @QtyRequested AS INT;
 						SELECT @QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
 
+						PRINT '@QtyRequested'
+						PRINT @QtyRequested
+
 						SELECT @SalesPriceExtended_S = (@QtyRequested * ISNULL(UnitSalesPrice, 0)),
 						@UnitCostExtended_S = (@QtyRequested * ISNULL(UnitCost, 0)),
 						@DiscountAmount_S = DiscountAmount
@@ -173,16 +176,17 @@ SET NOCOUNT ON
 
 					UPDATE DBO.SalesOrderQuotePartCost
 					SET 
-					GrossSaleAmount = ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0),
-					NetSaleAmount = (UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount,
+					UnitSalesPriceExtended = @SalesPriceExtended_S,
+					GrossSaleAmount = ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0),
+					NetSaleAmount = (@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount,
 					Freight = ISNULL(@Freight_S, 0),
 					MiscCharges = ISNULL(@Charges_S, 0),
-					MarkUpAmount = ISNULL(MarkUpAmount, 0),
-					MarginAmount = (((ISNULL(UnitSalesPriceExtended, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
-					TotalRevenue = ((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S,
-					MarginPercentage = CASE WHEN UnitSalesPriceExtended > 0 THEN ((((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
+					--MarkUpAmount = ISNULL(MarkUpAmount, 0),
+					MarginAmount = (((ISNULL(@SalesPriceExtended_S, 0) + ISNULL(MarkUpAmount, 0)) - ISNULL(DiscountAmount, 0)) + ISNULL(@Charges_S, 0)) - ISNULL(UnitCostExtended, 0),
+					TotalRevenue = ((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S,
+					MarginPercentage = CASE WHEN @SalesPriceExtended_S > 0 THEN ((((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) + @Charges_S) - UnitCostExtended) * 100) / (((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) + @Charges_S)) ELSE 0 END,
 					TaxPercentage = @SalesTax,
-					TaxAmount = ((((UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)
+					TaxAmount = ((((@SalesPriceExtended_S + MarkUpAmount) - DiscountAmount) * @SalesTax) / 100)
 					WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 				END
 				ELSE

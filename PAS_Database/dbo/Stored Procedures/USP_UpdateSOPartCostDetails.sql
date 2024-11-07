@@ -130,9 +130,10 @@ SET NOCOUNT ON
 
 							UPDATE DBO.SalesOrderStockLineCost
 							SET UnitSalesPriceExtended = (ISNULL(UnitSalesPrice, 0) * @StockLineQty),
-							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
-							MarginAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0),
-							MarginPercentage = CASE WHEN (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) > 0 THEN ((((ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0)) * 100) / (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges)) ELSE 0 END
+							UnitCostExtended = (ISNULL(UnitCost, 0) * @StockLineQty),
+							NetSaleAmount = ((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount--, --(ISNULL(UnitSalesPrice, 0) * @StockLineQty),
+							--MarginAmount = (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0),
+							--MarginPercentage = CASE WHEN (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) > 0 THEN ((((ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges) - ISNULL(UnitCostExtended, 0)) * 100) / (ISNULL((ISNULL(UnitSalesPrice, 0) * @StockLineQty), 0) + @calculatedCharges)) ELSE 0 END
 							WHERE SalesOrderPartId = @SOPartId AND SalesOrderStocklineId = @SOStocklineId;
 
 							SET @MasterLoopID = @MasterLoopID - 1;
@@ -159,11 +160,8 @@ SET NOCOUNT ON
 						SET QtyRequested = [QtyRequested] FROM [DBO].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
-					DECLARE @CustomerId bigint = 0;
 					DECLARE @SalesTax AS [decimal](18, 4) = 0;
 
-					SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrder] WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId;
-					
 					UPDATE DBO.SalesOrderPartCost
 					SET 
 					NetSaleAmount = (UnitSalesPriceExtended + MarkUpAmount) - DiscountAmount,

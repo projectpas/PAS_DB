@@ -98,7 +98,7 @@ BEGIN
 			WHILE (@MasterLoopID <= @Day)
 			BEGIN
 				DECLARE @SelectedDate DATE;
-				SELECT * FROM #tmpDateOfMonth;
+				--SELECT * FROM #tmpDateOfMonth;
 				SELECT @SelectedDate = DateOfMonth FROM #tmpDateOfMonth WHERE ID = @MasterLoopID;
 
 				PRINT '@SelectedDate'

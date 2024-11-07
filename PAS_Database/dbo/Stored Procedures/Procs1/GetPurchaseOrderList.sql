@@ -58,8 +58,7 @@ CREATE PROCEDURE [dbo].[GetPurchaseOrderList]
 	@QuantityReceived varchar(50)= null      
 AS      
 BEGIN      
-	SET NOCOUNT ON;      
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED       
+	SET NOCOUNT ON;       
 	DECLARE @RecordFrom int;      
 	DECLARE @IsActive bit=1      
 	DECLARE @Count Int;      

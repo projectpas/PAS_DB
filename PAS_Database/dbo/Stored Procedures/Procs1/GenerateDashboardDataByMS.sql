@@ -42,7 +42,7 @@ BEGIN
 		DECLARE @WOQProcessed AS INT;
 		DECLARE @SQProcessed AS INT;
 		DECLARE @SOQProcessed AS DECIMAL(20, 2);
-		--DECLARE @BacklogStartDt AS DateTime;
+		DECLARE @BacklogStartDt AS DateTime;
 		DECLARE @RecevingModuleID AS INT =1;
 		DECLARE @wopartModuleID AS INT =12
 		DECLARE @woqModuleID AS INT =15

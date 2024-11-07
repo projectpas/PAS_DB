@@ -16,6 +16,7 @@
 	2	 31 JAN 2024    Devendra Shekh			   added isperforma Flage for WO 
 	3	 01 FEB 2024	AMIT GHEDIYA	           added isperforma Flage for SO
 	4    27 Sept 2024  Abhishek Jirawla				Added @StartDate parameter to SP instead of GETUTCDATE
+	5	 30 Oct 2024   HEMANT SALIYA				Verify the count 
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 1, 2, '08/31/2024'
@@ -24,7 +25,7 @@ CREATE   PROCEDURE [dbo].[GetYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@ChartType INT = NULL,
 	@EmployeeId BIGINT = NULL,
-	@StartDate DATETIME2 = NULL
+	@StartDate DATETIME = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -47,11 +48,11 @@ BEGIN
 			SET @Month = CASE WHEN MONTH(@StartDate) = 12 THEN 1 ELSE (MONTH(@StartDate) + 1) END;
 			SET @Year = CASE WHEN MONTH(@StartDate) = 12 THEN YEAR(@StartDate) ELSE YEAR(@StartDate) - 1 END;
 			
-			DECLARE @SelectedDate DateTime;
+			DECLARE @SelectedDate DATETIME;
 
 			SET @SelectedDate = DATEFROMPARTS(@Year, @Month, 1)
 
-			DECLARE @BacklogStartDt AS DateTime;
+			DECLARE @BacklogStartDt AS DATETIME;
 
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
@@ -71,10 +72,10 @@ BEGIN
 
 			WHILE (@MasterLoopID <= 12)
 			BEGIN
-				SET @Month = MONTH(CONVERT(DATE, @SelectedDate));
-				PRINT (@Month)
-				SET @Year = YEAR(CONVERT(DATE, @SelectedDate));
-				PRINT (@Year)
+				SET @Month = MONTH(CAST(@SelectedDate AS DATE));
+				--PRINT (@Month)
+				SET @Year = YEAR(CAST(@SelectedDate AS DATE));
+				--PRINT (@Year)
 
 				IF (@ChartType = 1)
 				BEGIN
@@ -82,20 +83,20 @@ BEGIN
 
 					;WITH cte(Total, Mnth) AS (
 						SELECT SUM(Quantity), @Month FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
-						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
-	                    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
-	                    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
+							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
+							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE MONTH(Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(ReceivedDate, TZ.[Description]) as Date)) = @Year
-						AND RC.MasterCompanyId = @MasterCompanyId
+							AND RC.MasterCompanyId = @MasterCompanyId
 					)
 
 					SELECT @Cnts = SUM(Total) FROM cte GROUP BY Mnth
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
-					SELECT CONVERT(DATE, @SelectedDate) AS DateProcess, ISNULL(@Cnts, 0)
+					SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@Cnts, 0)
 				END
 				ELSE IF (@ChartType = 2)
 				BEGIN
@@ -104,24 +105,24 @@ BEGIN
 					;WITH cte(Total, Mnth) AS (
 						SELECT SUM(WOBI.GrandTotal), @Month Total
 						FROM DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) 
-						LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
-						INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
-						INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
-						WHERE WOBI.IsVersionIncrease = 0 
-						AND MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
-						AND WOBI.MasterCompanyId = @MasterCompanyId
-						AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
+							LEFT JOIN DBO.WorkOrderBillingInvoicingItem wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId
+							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.WorkOrderPartId
+							INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
+							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
+							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+						WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
+							AND MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
+							AND WOBI.MasterCompanyId = @MasterCompanyId
+							AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
 					)
 
 					SELECT @Amt = SUM(Total) FROM cte GROUP BY Mnth
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
-					SELECT CONVERT(DATE, @SelectedDate) AS DateProcess, ISNULL(@Amt, 0)
+					SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@Amt, 0)
 				END
 				ELSE IF (@ChartType = 3)
 				BEGIN
@@ -129,22 +130,22 @@ BEGIN
 
 					;WITH cte(Total, Mnth) AS (
 						SELECT SUM(GrandTotal), @Month FROM DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) 
-						INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
-						INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-	                    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-	                    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-						INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
-						INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
-						INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
+							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
+							INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+							INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+							INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							INNER JOIN dbo.Employee E  WITH (NOLOCK) ON E.EmployeeId = EUR.EmployeeId
+							INNER JOIN LegalEntity LE  WITH (NOLOCK) ON LE.LegalEntityId  =  E.LegalEntityId
+							INNER JOIN TimeZone TZ  WITH (NOLOCK) ON TZ.TimeZoneId = LE.TimeZoneId
 						WHERE 
 						MONTH(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Month AND YEAR(Cast(DBO.ConvertUTCtoLocal(InvoiceDate, TZ.[Description]) as Date)) = @Year
-						AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
+							AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsProforma,0) = 0
 					)
 
 					SELECT @SOAmt = SUM(Total) FROM cte GROUP BY Mnth
 
 					INSERT INTO #tmpMonthlyData (DateProcess, ResultData)
-					SELECT CONVERT(DATE, @SelectedDate) AS DateProcess, ISNULL(@SOAmt, 0)
+					SELECT CAST(@SelectedDate AS DATE) AS DateProcess, ISNULL(@SOAmt, 0)
 				END
 				
 				SELECT @SelectedDate = DATEADD(MONTH, 1, @SelectedDate);

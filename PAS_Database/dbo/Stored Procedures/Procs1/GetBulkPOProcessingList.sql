@@ -12,7 +12,8 @@
 	6    14/10/2024              RAJESH GAMI						Increase datatype length for the some fields in temp table (#TEMPBulkPORecords)
 	7    21/10/2024              RAJESH GAMI						Change the logic to deleted WO and WO Material should not be in the list
 	8    24/10/2024              RAJESH GAMI						Getting UNIT COST from the Purchase and sales based on WO Material ItemmasterId and ConditionId
-	9    29/10/2024              RAJESH GAMI						Restrict the AR condition 
+	9    29/10/2024              RAJESH GAMI						Restrict the AR condition
+	10   07/11/2024              RAJESH GAMI						Latet generated PO/RFQ on the top (Generated in last 10 mins)
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -65,7 +66,7 @@ BEGIN
 		DECLARE @StageId BIGINT = 0;
 		DECLARE @POOpenStatusId INT;
 		DECLARE @POOpenStatus VARCHAR(10);
-		DECLARE @RFQPOOpenStatusId INT;
+		DECLARE @RFQPOOpenStatusId INT, @PreferedTime DATETIME =(SELECT dateadd(minute,-10,GETUTCDATE()));
 		DECLARE @RFQPOOpenStatus VARCHAR(10),@ARConditionCode varchar(50) = (SELECT TOP 1 Code FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND MasterCompanyId = @MasterCompanyId);
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 		
@@ -194,8 +195,8 @@ BEGIN
 			    INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 			    INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 			    INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-			    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
-			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+			    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId AND WOM.POId = Pop.PurchaseOrderId
+			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 												
 		   WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0
 		   AND Cond.Code != @ARConditionCode
@@ -267,8 +268,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId
-					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId AND WOM.POId = Pop.PurchaseOrderId
+					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
@@ -416,8 +417,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
-					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId AND WOM.POId = Pop.PurchaseOrderId
+					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0 
 			   AND Cond.Code != @ARConditionCode
 			  
@@ -489,8 +490,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId
-					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId AND WOM.POId = Pop.PurchaseOrderId
+					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
@@ -589,7 +590,7 @@ BEGIN
 				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
-
+			UPDATE #TEMPBulkPORecords SET OrderNo = 0 WHERE CreatedDate >= @PreferedTime AND ISNULL(PurchaseOrderId,0) > 0
 			SELECT *  INTO #TempResult111 FROM #TEMPBulkPORecords		
 			--SELECT *  INTO #TempResult111 FROM Result		
 			 WHERE Quantity > 0 
@@ -741,8 +742,8 @@ BEGIN
 			    INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 			    INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 			    INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-			    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
-			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+			    INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId AND WOM.POId = Pop.PurchaseOrderId
+			    INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 
 		WHERE	WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 		   AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
@@ -795,8 +796,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId
-					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND WOM.WorkOrderMaterialsId = POP.WorkOrderMaterialsId AND WOM.POId = Pop.PurchaseOrderId
+					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
 
@@ -910,8 +911,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId
-					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId AND POP.ConditionId = COND.ConditionId AND WOM.POId = Pop.PurchaseOrderId
+					INNER JOIN [dbo].[PurchaseOrder] PO WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId AND PO.IsFromBulkPO  = 1 
 			        AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
 					 AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
@@ -964,8 +965,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 					INNER JOIN [dbo].[ItemMaster] IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 					INNER JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId				
-					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId  AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId
-					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1
+					LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on WOM.ItemMasterId = POP.ItemMasterId AND WO.WorkOrderId = POP.WorkOrderId  AND WOM.WorkOrderMaterialsKitId = POP.WorkOrderMaterialsId AND WOM.POId = Pop.PurchaseOrderId
+					LEFT JOIN  [dbo].[PurchaseOrder] PO WITH(NOLOCK) on POP.PurchaseOrderId = PO.PurchaseOrderId AND PO.IsFromBulkPO = 1 AND WOM.POId = Po.PurchaseOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrderPart] POPRFQ WITH(NOLOCK) on WOM.ItemMasterId = POPRFQ.ItemMasterId AND WO.WorkOrderId = POPRFQ.WorkOrderId
 					LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] PORFQ WITH(NOLOCK) on POPRFQ.VendorRFQPurchaseOrderId = PORFQ.VendorRFQPurchaseOrderId AND PORFQ.IsFromBulkPO = 1
 			  WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @StageId
@@ -1048,7 +1049,7 @@ BEGIN
 				JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId				
 			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 											
-
+			UPDATE #TEMPBulkPORecords SET OrderNo = 0 WHERE CreatedDate >= @PreferedTime AND ISNULL(PurchaseOrderId,0) > 0
 			SELECT *  INTO #TempResult222 FROM #TEMPBulkPORecords		
 			 WHERE Quantity > 0 
 					 AND

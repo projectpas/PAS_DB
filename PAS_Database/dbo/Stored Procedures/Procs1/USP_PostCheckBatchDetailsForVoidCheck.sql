@@ -18,6 +18,7 @@
 	2    08/09/2023	  Satish Gohil		Modify(Dynamic distribution set and discount taken distribution added)
 	3    22/01/2024	  Moin Bloch		Modify(Added PdfPath Null when IsVoidedCheck Is True)
 	4	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	5	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
      
 **************************************************************/
 
@@ -80,6 +81,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
 
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL          
 		BEGIN          
@@ -282,7 +284,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -290,7 +292,7 @@ BEGIN
 					CASE WHEN @CrDrType = 0 THEN @TotalAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 0 THEN 0 ELSE @TotalAmount END,
 					@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			
@@ -317,7 +319,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -325,7 +327,7 @@ BEGIN
 						CASE WHEN @CrDrType = 0 THEN @CheckAmount ELSE 0 END,
 						CASE WHEN @CrDrType = 0 THEN 0 ELSE @CheckAmount END,
 						@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			
@@ -347,7 +349,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -355,7 +357,7 @@ BEGIN
 						CASE WHEN @CrDrType = 0 THEN @DiscountAmount ELSE 0 END,
 						CASE WHEN @CrDrType = 0 THEN 0 ELSE @DiscountAmount END,
 						@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 			

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_ReserveStocklineForReceivingPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to reserve stocklines for receiving PO
@@ -25,6 +26,7 @@
 	9    08/27/2024   Vishal Suthar		Fixed issue with reserving higer qty than assigned and also Removed few unwanted code
     10   10/08/2024   RAJESH GAMI 	    Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
 	11   10/14/2024   Vishal Suthar		Fixed issue with reserving and adding the wrong stockline under different WO material
+	12   10/29/2024   RAJESH GAMI		Restrict the AR condition to reserve
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=2718,@SelectedPartsToReserve=N'862',@UpdatedBy=N'ADMIN User',@AllowAutoIssue=default
 **************************************************************/  
@@ -123,7 +125,8 @@ BEGIN
 			--SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId
 			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
-			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 ORDER BY StocklineId DESC; 
+			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
+			AND STK.ConditionId NOT IN (SELECT ConditionId FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND Stk.MasterCompanyId = cond.MasterCompanyId) ORDER BY StocklineId DESC; 
 		
 			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
 

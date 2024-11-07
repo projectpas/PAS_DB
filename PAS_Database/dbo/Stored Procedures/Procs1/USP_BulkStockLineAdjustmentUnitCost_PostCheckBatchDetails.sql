@@ -12,16 +12,18 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		 Change Description            
- ** --   --------     -------		 --------------------------------          
-    1    16/10/2023   Amit Ghediya	 Created	
-	2    08/11/2023   Amit Ghediya	 Updated for unitcost in child stockline.	
-	3    22/11/2023   Moin Bloch	 Modified Added MS Accounting Id	
-	4    24/11/2023   Moin Bloch	 Modified Added [ReferenceId]
-	5	 01/03/2024   Bhargav Saliya Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
-	6	 16/04/2024   Amit Ghediya   Updates memo text.
-	7    20/09/2024	  AMIT GHEDIYA	 Added for AutoPost Batch
-	8	 14/10/2024	  Devendra Shekh Added new fields for [CommonBatchDetails]
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    16/10/2023   Amit Ghediya		Created	
+	2    08/11/2023   Amit Ghediya		Updated for unitcost in child stockline.	
+	3    22/11/2023   Moin Bloch		Modified Added MS Accounting Id	
+	4    24/11/2023   Moin Bloch		Modified Added [ReferenceId]
+	5	 01/03/2024   Bhargav Saliya	Updates "UpdatedDate" and "UpdatedBy" When Update the Stockline
+	6	 16/04/2024   Amit Ghediya		Updates memo text.
+	7    20/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
+	8	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	9    29/10/2024   AMIT GHEDIYA		Handle bypass accounting entry.
+	10	 11/05/2024	  Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
      
 **************************************************************/
 
@@ -105,6 +107,8 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @ReferenceNumber VARCHAR(50) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @IsAccountByPass BIT = 0;
+		DECLARE @ReferenceModule VARCHAR(100) = 'BSADJ';
 	
 		SET @DistributionCodeName = 'BulkStockLineAdjustmentUnitCost';
 
@@ -116,6 +120,9 @@ BEGIN
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @ReferenceNumber = [BulkStkLineAdjNumber] FROM [dbo].[BulkStockLineAdjustment] WITH(NOLOCK) WHERE [BulkStkLineAdjId] = @BulkStkLineAdjHeaderId;
+
+		--Get bypass flag from mastercompany.
+		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -137,7 +144,7 @@ BEGIN
 		FROM [DBO].[BulkStockLineAdjustmentDetails] WITH(NOLOCK) 
 		WHERE BulkStkLineAdjId = @BulkStkLineAdjHeaderId AND IsActive = 1;
 
-		IF(ISNULL(@Amount,0) <> 0)
+		IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@IsAccountByPass,0) = 0)
 		BEGIN 
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('BulkStockLineAdjustmentUnitCost')
 			
@@ -309,7 +316,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -317,7 +324,7 @@ BEGIN
 						ABS(@AdjustmentAmount),
 						0,
 						@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule);
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY();
 					END
@@ -327,7 +334,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -335,7 +342,7 @@ BEGIN
 						0,
 						ABS(@AdjustmentAmount),
 						@BlkManagementStructureId ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule);
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY();
 					END
@@ -365,7 +372,7 @@ BEGIN
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 							[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 							VALUES	
 							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -373,7 +380,7 @@ BEGIN
 							0,
 							ABS(@AdjustmentAmount),
 							@ManagementStructureIds ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 
 							SET @CommonBatchDetailId = SCOPE_IDENTITY();
 					  END
@@ -383,7 +390,7 @@ BEGIN
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 								[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 								[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-								[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+								[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 								VALUES	
 								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 								,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -391,7 +398,7 @@ BEGIN
 								ABS(@AdjustmentAmount),
 								0,
 								@ManagementStructureIds ,'BulkStocklineAdjustment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-								@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+								@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@BulkStkLineAdjHeaderId,@ReferenceNumber,'',@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 
 								SET @CommonBatchDetailId = SCOPE_IDENTITY();
 					  END
@@ -460,7 +467,11 @@ BEGIN
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		IF(ISNULL(@JournalBatchDetailId, 0) <> 0)
+		BEGIN
+			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		END
+		
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 		--Post the bulkstockline adj.

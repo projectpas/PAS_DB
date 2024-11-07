@@ -24,6 +24,7 @@
 	8    01/25/2024   Hemant Saliya  Remove Manual Journal from Reports
 	9    07/24/2024   MOIN BLOCH     ADDED IS ISDELETED FLAG
 	10   07/25/2024   MOIN BLOCH     ADDED ReportLayoutId 
+	11   10/30/2024   Devendra Shekh ADDED MasterCompanyId join for GLAccount for #TempResults insert
 
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=1,@AccountingPeriodId=135,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'1!2,7!3,11,10!4,12'
 exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,@managementStructureId=5,@AccountingPeriodId=194,@IsSupressZero=1,@IsShortMS=1,@strFilter=N'5!8!11,10!12'
@@ -413,7 +414,7 @@ BEGIN
 				CASE WHEN (ISNULL(YTD.Debit,0) - ISNULL(YTD.Credit,0)) > 0 THEN 0 ELSE ABS(ISNULL(YTD.Debit,0) - ISNULL(YTD.Credit,0)) END,
 				YTD.SequenceNumber
 			FROM #TEMP YTD
-				INNER JOIN GLAccount GL WITH (NOLOCK) ON YTD.GlAccountId = GL.GLAccountId
+				INNER JOIN GLAccount GL WITH (NOLOCK) ON YTD.GlAccountId = GL.GLAccountId AND YTD.MasterCompanyId = GL.MasterCompanyId
 
 			UPDATE #TempResults SET MonthlyCreditAmount = results.CreditAmount  FROM(
 						SELECT T1.GlAccountId, T1.EntityStructureId,  CASE WHEN (SUM(ISNULL(T2.DebitAmount,0)) - SUM(ISNULL(T2.CreditAmount,0))) > 0 THEN 0 
@@ -457,7 +458,7 @@ BEGIN
 				CASE WHEN (ISNULL(YTD.Debit,0) - ISNULL(YTD.Credit,0)) > 0 THEN 0 ELSE ABS(ISNULL(YTD.Debit,0) - ISNULL(YTD.Credit,0)) END,
 				YTD.SequenceNumber
 			FROM #TEMP YTD
-				INNER JOIN GLAccount GL WITH (NOLOCK) ON YTD.GlAccountId = GL.GLAccountId
+				INNER JOIN GLAccount GL WITH (NOLOCK) ON YTD.GlAccountId = GL.GLAccountId AND YTD.MasterCompanyId = GL.MasterCompanyId
 
 			UPDATE #TempResults SET MonthlyCreditAmount = results.CreditAmount  FROM(
 						SELECT T1.GlAccountId, T1.EntityStructureId,  CASE WHEN (SUM(ISNULL(T2.DebitAmount,0)) - SUM(ISNULL(T2.CreditAmount,0))) > 0 THEN 0 

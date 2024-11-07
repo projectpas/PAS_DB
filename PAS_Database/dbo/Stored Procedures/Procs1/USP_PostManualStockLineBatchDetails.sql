@@ -22,6 +22,7 @@
 	6    28-AUG-2024	     Devendra Shekh		    JE Number reset to Zero Issue resolved
 	7    20/09/2024			 AMIT GHEDIYA			Added for AutoPost Batch
 	8	 09/10/2024			 Devendra Shekh			Added new fields for [CommonBatchDetails]
+	9	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
@@ -103,6 +104,7 @@ BEGIN
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @CurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'STOCKLINE';
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -256,7 +258,7 @@ BEGIN
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 				[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 				[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES	
 				(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 				,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -265,7 +267,7 @@ BEGIN
 				CASE WHEN @CRDRType = 1 THEN 0 ELSE @CheckAmount END,
 				--1,@CheckAmount,0
 				@ManagementStructureId ,'Stockline',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-				@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@StocklineNumber,'',@CurrencyCode,@FXRate,@CurrencyCode)
+				@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@StocklineNumber,'',@CurrencyCode,@FXRate,@CurrencyCode,@StocklineId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -294,13 +296,13 @@ BEGIN
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 				[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 				[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+				[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				VALUES	
 				(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 				,@StkGlAccountId ,@StkGlAccountNumber ,@StkGlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,				
 				1,@CheckAmount,0,
 				@ManagementStructureId ,'Stockline',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-				@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@StocklineNumber,'',@CurrencyCode,@FXRate,@CurrencyCode)
+				@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@StocklineNumber,'',@CurrencyCode,@FXRate,@CurrencyCode,@StocklineId,@ReferenceModule)
 
 				SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

@@ -44,6 +44,12 @@
     [CMMWarning]                 BIT           DEFAULT ((0)) NOT NULL,
     [CMMWarningAtReceiving]      BIT           DEFAULT ((0)) NOT NULL,
     [CMMWarningAtShipping]       BIT           DEFAULT ((0)) NOT NULL,
+    [CMMRestriction]             BIT           NULL,
+    [NoCMMWarning]               BIT           NULL,
+    [CapesRestriction]           BIT           NULL,
+    [CapesWarningAtReceiving]    BIT           NULL,
+    [CapesWarningAtShipping]     BIT           NULL,
+    [NoCapesWarning]             BIT           NULL,
     CONSTRAINT [PK_WorkOrderSettings] PRIMARY KEY CLUSTERED ([WorkOrderSettingId] ASC),
     CONSTRAINT [FK_WorkOrderSettings_ConditionId] FOREIGN KEY ([DefaultConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

@@ -20,6 +20,7 @@
 	4    08/29/2024   Devendra Shekh	JE Number sequence issue resolved
 	5    26/09/2024	  AMIT GHEDIYA		Added for AutoPost Batch
 	6	 14/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	7	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -90,6 +91,10 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @WIRETRANReferenceModule VARCHAR(100) = 'WIRETRAN';
+		DECLARE @ACHTRANSFERReferenceModule VARCHAR(100) = 'ACHTRAN';
+		DECLARE @CCPAYReferenceModule VARCHAR(100) = 'CCPAY';
+		DECLARE @ReferenceModule VARCHAR(100);
 
 		DECLARE @Check INT;
 		DECLARE @DomesticWire INT;
@@ -260,19 +265,19 @@ BEGIN
 			  
 				IF(@PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire)
 				BEGIN
-					SELECT @DistributionMasterId = [ID], 
+					SELECT @DistributionMasterId = [ID], @ReferenceModule = @WIRETRANReferenceModule,
 					       @DistributionCode = [DistributionCode] 
 				      FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode])= UPPER('WIRETRANSFER');	
 				END
 				IF(@PaymentMethodId = @ACHTransfer)
 				BEGIN
-					SELECT @DistributionMasterId = [ID], 
+					SELECT @DistributionMasterId = [ID], @ReferenceModule = @ACHTRANSFERReferenceModule,
 					       @DistributionCode = [DistributionCode] 
 				      FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode])= UPPER('ACHTRANSFER');	
 				END
 				IF(@PaymentMethodId = @CreditCard)
 				BEGIN
-					SELECT @DistributionMasterId = [ID], 
+					SELECT @DistributionMasterId = [ID], @ReferenceModule = @CCPAYReferenceModule,
 					       @DistributionCode = [DistributionCode] 
 				      FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE UPPER([DistributionCode])= UPPER('CREDITCARDPAYMENT');	
 				END		
@@ -536,7 +541,7 @@ BEGIN
 							   ,[UpdatedDate] 
 							   ,[IsActive] 
 							   ,[IsDeleted]
-							   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+							   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					    VALUES	
 							   (@JournalBatchDetailId
 							   ,@JournalTypeNumber
@@ -566,7 +571,7 @@ BEGIN
 							   ,GETUTCDATE()
 							   ,1
 							   ,0
-							   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+							   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayDetailsId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -642,7 +647,7 @@ BEGIN
 							       ,[UpdatedDate] 
 							       ,[IsActive] 
 							       ,[IsDeleted]
-								   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+								   ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 							VALUES	
 							       (@JournalBatchDetailId
 							       ,@JournalTypeNumber
@@ -672,7 +677,7 @@ BEGIN
 							       ,GETUTCDATE()
 							       ,1
 							       ,0
-								   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+								   ,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayDetailsId,@ReferenceModule)
 					      
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -748,7 +753,7 @@ BEGIN
 							        ,[UpdatedDate] 
 							        ,[IsActive] 
 							        ,[IsDeleted]
-									,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+									,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 							VALUES	
 							        (@JournalBatchDetailId
 							        ,@JournalTypeNumber
@@ -778,7 +783,7 @@ BEGIN
 							        ,GETUTCDATE()
 							        ,1
 							        ,0
-									,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+									,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayDetailsId,@ReferenceModule);
 
 						SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

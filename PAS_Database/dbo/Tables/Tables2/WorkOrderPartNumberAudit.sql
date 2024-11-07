@@ -78,8 +78,18 @@
     [RevisedSerialNumber]        VARCHAR (50)    NULL,
     [IsROCreated]                BIT             NULL,
     [PartNumber]                 VARCHAR (200)   NULL,
+    [WorkOrderStatus]            VARCHAR (256)   NULL,
+    [WorkOrderStage]             VARCHAR (150)   NULL,
+    [ManufacturerName]           VARCHAR (250)   NULL,
+    [EmployeeStation]            VARCHAR (100)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
+
+
+
+
+
+
 
 
 

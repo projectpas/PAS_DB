@@ -3207,6 +3207,18 @@
     <Build Include="dbo\User Defined Types\PriceMasterType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateInvoicePayment.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSetup_ById.sql" />
+    <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderAwaitingPartsReport.sql" />
+    <Build Include="dbo\Tables\CycleCountApproval.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_UpdateColumnsWithId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_GetDetailsById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountDetail_AddUpdate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_GetCycleCountApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_ApprovalList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdateCycleCountApproval.sql" />
+    <Build Include="dbo\User Defined Types\CycleCountDetailType.sql" />
+    <Build Include="dbo\User Defined Types\CycleCountApprovalType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountReviewDetail_GetDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

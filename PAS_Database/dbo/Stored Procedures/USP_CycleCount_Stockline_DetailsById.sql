@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    21/10/2024   Moin Bloch    Created
+	2    06/11/2024   Moin Bloch    Added IsDeleted and IsActive Flag
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -98,7 +99,7 @@ BEGIN
 		  LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SL.[ShelfId] = SF.[ShelfId]
 		  LEFT JOIN [dbo].[Bin] BI WITH(NOLOCK) ON SL.[BinId] = BI.[BinId]
 		  LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON  IM.[PurchaseCurrencyId] = CR.[CurrencyId]
-		 WHERE SL.[IsParent] = 1 AND SL.[QuantityOnHand] > 0 AND
+		 WHERE SL.[IsParent] = 1 AND SL.[QuantityOnHand] > 0 AND SL.isDeleted = 0 AND SL.isActive = 1 AND
 			   (@MasterCompanyId IS NULL OR SL.[MasterCompanyId] = @MasterCompanyId) AND
 		       (@UnitCost IS NULL OR SL.[UnitCost] >= @UnitCost) AND
 		       (@IsCustomerStock IS NULL OR SL.[IsCustomerStock] = @IsCustomerStock) AND

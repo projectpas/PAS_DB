@@ -3218,7 +3218,7 @@
     <Build Include="dbo\Stored Procedures\USP_CycleCount_AddUpdateCycleCountApproval.sql" />
     <Build Include="dbo\User Defined Types\CycleCountDetailType.sql" />
     <Build Include="dbo\User Defined Types\CycleCountApprovalType.sql" />
-    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsItemPriceMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CycleCountReviewDetail_GetDetailsById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

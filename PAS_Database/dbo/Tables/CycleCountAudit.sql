@@ -1,0 +1,23 @@
+﻿CREATE TABLE [dbo].[CycleCountAudit] (
+    [CycleCountAuditId]     BIGINT        IDENTITY (1, 1) NOT NULL,
+    [CycleCountId]          BIGINT        NOT NULL,
+    [CycleCountNumber]      VARCHAR (50)  NOT NULL,
+    [EntryDate]             DATETIME2 (7) NOT NULL,
+    [EntryTime]             TIME (7)      NOT NULL,
+    [StatusId]              INT           NOT NULL,
+    [ManagementStructureId] BIGINT        NOT NULL,
+    [IsEnforce]             BIT           NULL,
+    [RequestedById]         BIGINT        NULL,
+    [ApproverId]            BIGINT        NULL,
+    [ApprovedBy]            VARCHAR (50)  NULL,
+    [DateApproved]          DATETIME2 (7) NULL,
+    [MasterCompanyId]       INT           NOT NULL,
+    [CreatedBy]             VARCHAR (256) NOT NULL,
+    [UpdatedBy]             VARCHAR (256) NOT NULL,
+    [CreatedDate]           DATETIME2 (7) CONSTRAINT [DF_CycleCountAudit_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]           DATETIME2 (7) CONSTRAINT [DF_CycleCountAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]              BIT           CONSTRAINT [DF_CycleCountAudit_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]             BIT           CONSTRAINT [DF_CycleCountAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_CycleCountAudit] PRIMARY KEY CLUSTERED ([CycleCountAuditId] ASC)
+);
+

@@ -23,3 +23,28 @@
 
 
 
+
+
+
+GO
+/*************************************************************             
+ ** File:  Trg_CycleCountAudit      
+ ** Author:   Moin Bloch
+ ** Description: Trigger For Audit Table
+ ** Purpose:           
+ ** Date:   07/11/2024         
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author		Change Description              
+ ** --   --------     -------		-------------------------------            
+    1    07/11/2024   Moin Bloch    Created
+**************************************************************/
+CREATE   TRIGGER [dbo].[Trg_CycleCountAudit] ON [dbo].[CycleCount]
+AFTER INSERT,DELETE,UPDATE
+AS 
+BEGIN
+	INSERT INTO [dbo].[CycleCountAudit]
+	SELECT * FROM INSERTED
+	SET NOCOUNT ON;
+END

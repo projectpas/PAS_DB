@@ -80,8 +80,6 @@ BEGIN
 			SELECT TOP 1 @BacklogStartDt = BacklogStartDate FROM [dbo].[DashboardSettings] WITH (NOLOCK) 
 			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
-			--PRINT @BacklogStartDt
-
 			IF OBJECT_ID(N'tempdb..#tmpMonthlyData') IS NOT NULL
 			BEGIN
 				DROP TABLE #tmpMonthlyData
@@ -98,11 +96,8 @@ BEGIN
 			WHILE (@MasterLoopID <= @Day)
 			BEGIN
 				DECLARE @SelectedDate DATE;
-				SELECT * FROM #tmpDateOfMonth;
+				
 				SELECT @SelectedDate = DateOfMonth FROM #tmpDateOfMonth WHERE ID = @MasterLoopID;
-
-				PRINT '@SelectedDate'
-				PRINT @SelectedDate;
 
 				IF (@ChartType = 1)
 				BEGIN

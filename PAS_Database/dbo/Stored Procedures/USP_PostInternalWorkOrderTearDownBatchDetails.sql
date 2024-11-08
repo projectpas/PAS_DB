@@ -17,6 +17,7 @@
 	1    26/03/2024          Moin Bloch          Created
 	2    04/04/2024          Moin Bloch          changed logic for unit cost
 	3    12/04/2024          Devendra Shekh      added case to set @ManagementStructureId  
+	4    04/11/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -74,6 +75,9 @@ BEGIN
 		DECLARE @UnitCost DECIMAL(18, 2) =0;
 		DECLARE @WorkOrderTypeId INT=0;
 		DECLARE @TeardownType INT=0;		
+		DECLARE @CurrencyCode VARCHAR(20) = '';
+		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'TEARDOWN_WO';
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -109,6 +113,11 @@ BEGIN
 			   @CustomerId=CustomerId,
 			   @CustomerName= CustomerName 
 			FROM [dbo].[WorkOrder] wo WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+
+		IF(ISNULL(@CustomerId, 0) > 0)
+		BEGIN
+			SELECT @CurrencyCode = ISNULL(CY.Code, '') FROM [dbo].[Customer] CU WITH(NOLOCK) LEFT JOIN [DBO].[CustomerFinancial] CF WITH(NOLOCK) ON CU.CustomerId = CF.CustomerId LEFT JOIN [DBO].[Currency] CY WITH(NOLOCK) ON CF.CurrencyId = CY.CurrencyId WHERE CU.CustomerId = @CustomerId;
+		END
 		
 		IF(ISNULL(@UnitCost,0) > 0 AND @WorkOrderTypeId = @TeardownType)
 		BEGIN
@@ -380,7 +389,8 @@ BEGIN
 						 [CreatedDate],
 						 [UpdatedDate],
 						 [IsActive],
-						 [IsDeleted])
+						 [IsDeleted]
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -409,7 +419,8 @@ BEGIN
 						 GETUTCDATE(),
 						 GETUTCDATE(),
 						 1,
-						 0)
+						 0
+						 ,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@WorkOrderId,@ReferenceModule)
 
 			SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -506,7 +517,8 @@ BEGIN
 						 [CreatedDate],
 						 [UpdatedDate],
 						 [IsActive],
-						 [IsDeleted])
+						 [IsDeleted]
+						 ,[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 				  VALUES	
 				        (@JournalBatchDetailId,
 						 @JournalTypeNumber,
@@ -535,7 +547,8 @@ BEGIN
 						 GETUTCDATE(),
 						 GETUTCDATE(),
 						 1,
-						 0)
+						 0
+						 ,@WorkOrderNumber,@CustomerName,@CurrencyCode,@FXRate,@CurrencyCode,@WorkOrderId,@ReferenceModule)
 
 			 SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

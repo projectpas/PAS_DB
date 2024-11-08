@@ -16,7 +16,8 @@
  ** --   --------     -------			-----------------------
     1    Unknown     Unknown		    Created
 	2    20-03-2024  Abhishek Jirawla   Adding detail regarding BulStockAdjustment Module
-	2    20-03-2024  Rajesh Gami        Added StockAdjustments 
+	3    20-03-2024  Rajesh Gami        Added StockAdjustments 
+	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
 	
 **************************************************************/
 CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
@@ -96,6 +97,10 @@ BEGIN
 		BEGIN
 			SELECT @ReferenceNumber = Stk.BulkStkLineAdjNumber FROM DBO.BulkStockLineAdjustment Stk WITH (NOLOCK) WHERE Stk.BulkStkLineAdjId = @ReferenceId;
 		END
+		IF (@ModuleName = 'CycleCount')
+		BEGIN
+			SELECT @ReferenceNumber = CC.[CycleCountNumber] FROM [dbo].[CycleCount] CC WITH (NOLOCK) WHERE CC.[CycleCountId] = @ReferenceId;
+		END		
 	END
 
 	IF (@ModuleOrSubModule = 2)

@@ -26,6 +26,7 @@
 	10   08/28/2024   Devendra Shekh		JE Number reset to Zero Issue resolved
 	11   20/09/2024	  AMIT GHEDIYA			Added for AutoPost Batch
 	12	 09/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
+	13	 04/11/2024		 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
 (
@@ -91,6 +92,10 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @RMANumber VARCHAR(100) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @VENDORRMAReferenceModule VARCHAR(100) = 'VENDOR CREDIT MEMO';
+		DECLARE @VENDORRMASHIPPINGReferenceModule VARCHAR(100) = 'VENDOR RMA - SHIPPING';
+		DECLARE @VENDORRMAPRODUCTREPLACEDReferenceModule VARCHAR(100) = 'VENDOR-RMA-PRODUCT-REPLACED';
+		DECLARE @ReferenceModule VARCHAR(100) = '';
 
 		--SET @DistributionCodeName = 'VendorRMA';
 
@@ -299,7 +304,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -307,7 +312,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMASHIPPINGReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -330,7 +335,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -338,7 +343,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMASHIPPINGReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -363,7 +368,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -371,7 +376,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMAReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -393,7 +398,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -401,7 +406,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMAReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -427,7 +432,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -435,7 +440,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMAPRODUCTREPLACEDReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 
@@ -458,7 +463,7 @@ BEGIN
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 					[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+					[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 					VALUES	
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -466,7 +471,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN @ExtAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @ExtAmount END,
 					@ManagementStructureId ,'VendorRMAPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode)
+					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@RMANumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@VendorCreditMemoId,@VENDORRMAPRODUCTREPLACEDReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()
 

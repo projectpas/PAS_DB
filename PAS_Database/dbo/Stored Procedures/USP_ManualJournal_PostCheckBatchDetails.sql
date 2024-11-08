@@ -20,6 +20,8 @@
 	4	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	5	 25/10/2024	  Devendra Shekh	Added ReferenceName and Currency for CommonBatchDetails
 	6	 28/10/2024	  Devendra Shekh	Modified(get currency from header if referenceName is not there)
+	7	 04/11/2024	  Devendra Shekh	Added ReferenceModule For [CommonBatchDetails]
+	8    11/05/2024   Amit Ghediya		Handle bypass accounting entry.
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -111,6 +113,7 @@ BEGIN
 		DECLARE @JournalNumber VARCHAR(100) = '';
 		DECLARE @ReferenceName VARCHAR(100) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
+		DECLARE @ReferenceModule VARCHAR(100) = 'MANUALJOURNAL';		
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
@@ -140,6 +143,11 @@ BEGIN
 		DECLARE @IsAccountByPass BIT;
 
 		EXEC dbo.USP_GetGeneralLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
+
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
+
+		--Get bypass flag from mastercompany.
+		SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK)  WHERE [MasterCompanyId] = @MasterCompanyId;
 
 		IF(ISNULL(@Amount,0) <> 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 		BEGIN 
@@ -353,7 +361,7 @@ BEGIN
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
 						[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],
-						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency])
+						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
@@ -361,7 +369,7 @@ BEGIN
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,
 						@ManualJorManagementStructureId ,@DistributionCodeName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
-						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,@ReferenceName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode);
+						@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ManualJournalHeaderId,@JournalNumber,@ReferenceName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule);
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY();
 
@@ -410,7 +418,11 @@ BEGIN
 		WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 
 		SET @TotalBalance =@TotalDebit-@TotalCredit
 
-		UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		IF(ISNULL(@JournalBatchDetailId, 0) <> 0)
+		BEGIN
+			UPDATE [DBO].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+		END
+
 	    UPDATE [DBO].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 		SELECT @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where UPPER([Name]) = UPPER(@StatusPosted)

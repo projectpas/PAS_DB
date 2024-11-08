@@ -3209,7 +3209,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAccountingIntegrationSetup_ById.sql" />
     <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetWorkOrderAwaitingPartsReport.sql" />
-
+    <Build Include="dbo\Stored Procedures\GetStocklineReservedIssuedReportByStocklineId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

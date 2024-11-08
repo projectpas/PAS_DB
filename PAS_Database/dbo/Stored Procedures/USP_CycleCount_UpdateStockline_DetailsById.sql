@@ -49,7 +49,7 @@ BEGIN
 		CREATE TABLE #tmpCycleCountStocklineDetails
 		(
 			[ID] BIGINT NOT NULL IDENTITY, 
-			[StockLineId] INT NULL,
+			[StockLineId] BIGINT NULL,
 			[UnitCost] DECIMAL(18,2) NULL,
 			[CurrentStockQuantity] INT NULL,
 			[CountedQuantity] INT NULL,

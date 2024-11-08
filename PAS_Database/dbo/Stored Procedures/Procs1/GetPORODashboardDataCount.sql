@@ -10,7 +10,9 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		-------------------------------            
-    1    18/05/2023   Satish Gohil  Count Showing issue fixed
+    1    18/05/2023   Satish Gohil    Count Showing issue fixed
+	2	 08 NOV 2024  HEMANT SALIYA	  Verify the count AND removed un used code 
+
 **************************************************************/ 
 
 --exec DBO.GetPORODashboardDataCount @MasterCompanyId=1,@EmployeeId=2
@@ -54,122 +56,121 @@ BEGIN
      
   
   SELECT  @POOpenCount=count(PO.PurchaseOrderId)  FROM   
-    DBO.PurchaseOrder PO   
+    DBO.PurchaseOrder PO WITH (NOLOCK)   
        INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-	   LEFT JOIN dbo.PurchaseOrderPart POP ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
-    Where  (PO.IsDeleted = 0) and (PO.StatusId =@POOpenStatusId)  
+	   LEFT JOIN dbo.PurchaseOrderPart POP  WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
+    WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND (PO.StatusId =@POOpenStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
-  SELECT @POOpenAmount = SUM(POP.ExtendedCost) FROM   
-    DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId  
-    INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId  
-             INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId  
-             INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    Where  (PO.IsDeleted = 0) and POP.isParent=1 and (POP.IsDeleted = 0) and (PO.StatusId =@POOpenStatusId)  
-    AND PO.MasterCompanyId = @MasterCompanyId  
+  SELECT @POOpenAmount = SUM(POP.ExtendedCost) 
+	FROM DBO.PurchaseOrderPart POP  WITH (NOLOCK) 
+		INNER JOIN DBO.PurchaseOrder PO  WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  
+		INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId  
+        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId  
+        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
+    WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND ISNULL(POP.isParent, 0) = 1 AND ISNULL(POP.IsDeleted, 0) = 0 AND (PO.StatusId =@POOpenStatusId)  
+		AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
     SELECT  @POApprovedCount=count(PO.PurchaseOrderId)  FROM   
-    DBO.PurchaseOrder PO   
-    INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
-       INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
-       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
-	   LEFT JOIN dbo.PurchaseOrderPart POP ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
-    Where  (PO.IsDeleted = 0) and (PO.StatusId =@POApprovedStatusId)  
+    DBO.PurchaseOrder PO WITH (NOLOCK)   
+		INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
+		INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
+		INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
+		LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
+    WHERE ISNULL(PO.IsDeleted, 0) = 0 AND (PO.StatusId =@POApprovedStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
    SELECT @POApprovedAmount = SUM(POP.ExtendedCost)  FROM   
-    DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId  
+    DBO.PurchaseOrderPart POP WITH (NOLOCK) INNER JOIN DBO.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  
     INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId  
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId  
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-    Where (PO.IsDeleted = 0) and POP.isParent=1 and (POP.IsDeleted = 0) and (PO.StatusId =@POApprovedStatusId)  
+    WHERE ISNULL(PO.IsDeleted, 0) = 0 AND ISNULL(POP.isParent, 0) = 1 AND ISNULL(POP.IsDeleted, 0) = 0 AND (PO.StatusId =@POApprovedStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
   SELECT  @POFulfillmentCount=count(PO.PurchaseOrderId)  FROM   
-    DBO.PurchaseOrder PO   
+    DBO.PurchaseOrder PO WITH (NOLOCK)   
     INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POMSModuleID AND MSD.ReferenceID = PO.PurchaseOrderId  
        INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
        INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
 	   LEFT JOIN dbo.PurchaseOrderPart POP ON PO.PurchaseOrderId = POP.PurchaseOrderId  AND isParent = 1
-    Where  (PO.IsDeleted = 0) and (PO.StatusId =@POFulfillingStatusId)  
+    WHERE  ISNULL(PO.IsDeleted, 0) = 0 AND (PO.StatusId =@POFulfillingStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
        SELECT @POFulfillmentAmount = SUM(POP.ExtendedCost)  FROM   
-    DBO.PurchaseOrderPart POP INNER JOIN DBO.PurchaseOrder PO ON PO.PurchaseOrderId = POP.PurchaseOrderId  
+    DBO.PurchaseOrderPart POP WITH (NOLOCK) INNER JOIN DBO.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId  
     INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @POModuleId AND MSD.ReferenceID = POP.PurchaseOrderPartRecordId  
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON POP.ManagementStructureId = RMS.EntityStructureId  
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    Where (PO.IsDeleted = 0) and POP.isParent=1 and (POP.IsDeleted = 0) and (PO.StatusId =@POFulfillingStatusId)  
+    WHERE ISNULL(PO.IsDeleted, 0) = 0 AND ISNULL(POP.isParent, 0) = 1 AND ISNULL(POP.IsDeleted, 0) = 0 AND (PO.StatusId =@POFulfillingStatusId)  
     AND PO.MasterCompanyId = @MasterCompanyId  
     GROUP BY PO.StatusId  
   
       
     SELECT @ROOpenCount=count(RO.RepairOrderId)  FROM   
-       DBO.RepairOrder RO  
+       DBO.RepairOrder RO WITH (NOLOCK)  
       INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
       INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = 0
-    Where (RO.IsDeleted = 0) and (RO.StatusId = @ROOpenStatusId)  
+	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+    WHERE ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROOpenStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
   
     SELECT @ROOpenAmount = SUM(ROP.ExtendedCost) FROM   
-    DBO.RepairOrderPart ROP INNER JOIN DBO.RepairOrder RO ON RO.RepairOrderId = ROP.RepairOrderId  
+    DBO.RepairOrderPart ROP WITH (NOLOCK) INNER JOIN DBO.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  
     INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = ROP.RepairOrderPartRecordId  
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId  
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    Where (RO.IsDeleted = 0) and ROP.isParent=1 and (ROP.IsDeleted = 0) and (RO.StatusId = @ROOpenStatusId)  
+    WHERE ISNULL(RO.IsDeleted, 0) = 0 AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND (RO.StatusId = @ROOpenStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
   
    SELECT @ROApprovedCount=count(RO.RepairOrderId)  FROM   
-       DBO.RepairOrder RO  
+       DBO.RepairOrder RO WITH (NOLOCK) 
       INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
       INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = 0
-    Where (RO.IsDeleted = 0) and (RO.StatusId = @ROApprovedStatusId)  
+	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+    WHERE ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROApprovedStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
   
    SELECT @ROApprovedAmount = SUM(ROP.ExtendedCost)  FROM   
-    DBO.RepairOrderPart ROP INNER JOIN DBO.RepairOrder RO ON RO.RepairOrderId = ROP.RepairOrderId  
+    DBO.RepairOrderPart ROP WITH (NOLOCK) INNER JOIN DBO.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  
     INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = ROP.RepairOrderPartRecordId  
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId  
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    Where (RO.IsDeleted = 0) and ROP.isParent=1 and (ROP.IsDeleted = 0) and (RO.StatusId = @ROApprovedStatusId)  
+    WHERE ISNULL(RO.IsDeleted, 0) = 0 AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND (RO.StatusId = @ROApprovedStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
    
  SELECT @ROFulfillmentCount=count(RO.RepairOrderId)  FROM   
-       DBO.RepairOrder RO  
+       DBO.RepairOrder RO WITH (NOLOCK)  
       INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROMSModuleID AND MSD.ReferenceID = RO.RepairOrderId  
       INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId  
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId 
-	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ROP.isParent = 1 AND ROP.IsDeleted = 0
-    Where (RO.IsDeleted = 0) and (RO.StatusId = @ROFulfillingStatusId)  
+	  LEFT JOIN  DBO.RepairOrderPart ROP WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0
+    Where ISNULL(RO.IsDeleted, 0) = 0 AND (RO.StatusId = @ROFulfillingStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
   
   
   SELECT @ROFulfillmentAmount = SUM(ROP.ExtendedCost)  FROM   
-    DBO.RepairOrderPart ROP INNER JOIN DBO.RepairOrder RO ON RO.RepairOrderId = ROP.RepairOrderId  
+    DBO.RepairOrderPart ROP WITH (NOLOCK) INNER JOIN DBO.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  
     INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ROModuleId AND MSD.ReferenceID = ROP.RepairOrderPartRecordId  
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId  
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
-    Where (RO.IsDeleted = 0) and ROP.isParent=1 and (ROP.IsDeleted = 0) and (RO.StatusId = @ROFulfillingStatusId)  
+    WHERE ISNULL(RO.IsDeleted, 0) = 0 AND ISNULL(ROP.isParent, 0) = 1 AND ISNULL(ROP.IsDeleted, 0) = 0 AND (RO.StatusId = @ROFulfillingStatusId)  
     AND RO.MasterCompanyId = @MasterCompanyId  
     GROUP BY RO.StatusId  
-  
-    
   
   SELECT ISNULL(@POOpenCount, 0) AS 'POOpenCount', ISNULL(@POApprovedCount, 0) AS 'POApprovedCount', ISNULL(@POFulfillmentCount, 0) AS 'POFulfillmentCount',   
   ISNULL(@ROOpenCount, 0) AS 'ROOpenCount', ISNULL(@ROApprovedCount, 0) AS 'ROApprovedCount', ISNULL(@ROFulfillmentCount, 0) AS 'ROFulfillmentCount',   

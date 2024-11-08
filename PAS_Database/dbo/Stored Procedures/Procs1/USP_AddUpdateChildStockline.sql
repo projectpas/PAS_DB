@@ -26,7 +26,9 @@
 	9    10/09/2024  Rajesh Gami	    Add ActionId 20 and 21 for the IssueReserve & UnIssueUnReserve
 	10   13/09/2024 Rajesh Gami			Add logic for ActionId = 15 /**** Create SUB WORK ORDER*****/
 	11   27/09/2024 Rajesh Gami			Add logic for ActionId = 16 /**** CLOSED SUB WORKORDER*****/
-	
+	12   07/11/2024  Moin Bloch         Add logic for ActionId = 22,23 Cycle Count Adjustment
+
+	EXEC USP_AddUpdateChildStockline 180043,23,6,'CycleCount','CC-000026','','','ADMIN User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
 (
@@ -203,7 +205,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			IF (@RemainingQtyToCreate > 0 AND @ActionId = 8)
+			IF (@RemainingQtyToCreate > 0 AND (@ActionId = 8 OR @ActionId = 22))
 			BEGIN
 				SELECT @Qty = QuantityAvailable,   
 				@RemainingAvailableQty = QuantityAvailable,  
@@ -427,9 +429,8 @@ BEGIN
 					SET @CurrentIndex = @CurrentIndex + 1;
 				END
 			END
-
-
-			IF ((@AvailQtyCount >= @QtyOnAction) AND @ActionId = 9)
+			
+			IF ((@AvailQtyCount >= @QtyOnAction) AND (@ActionId = 9 OR @ActionId = 23))
 			BEGIN
 				DECLARE @MasterLoop_DeleteID INT;
 
@@ -507,8 +508,7 @@ BEGIN
 					IF (@ActionId = 2) -- Reserve
 					BEGIN
 						IF (@PrevReservedQty = 0 AND @PrevAvailableQty > 0 AND @PrevIssuedQty = 0 AND @PrevOHQty > 0)
-						BEGIN
-							PRINT @StocklineToUpdate;
+						BEGIN							
 							Update DBO.ChildStockline SET QuantityReserved = 1, QuantityAvailable = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 
@@ -545,7 +545,7 @@ BEGIN
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END
-					ELSE IF (@ActionId = 8) -- Adjustment-Increase
+					ELSE IF (@ActionId = 8 OR @ActionId = 22) -- Adjustment-Increase
 					BEGIN
 						IF ((@PrevOHQty = 0 AND @PrevAvailableQty = 0) OR @PrevChildQty = 0)
 						BEGIN
@@ -555,7 +555,7 @@ BEGIN
 							SET @QtyOnAction = @QtyOnAction - 1;
 						END
 					END
-					ELSE IF (@ActionId = 9) -- Adjustment-Decrease
+					ELSE IF (@ActionId = 9 OR @ActionId = 23) -- Adjustment-Decrease
 					BEGIN
 						IF (@PrevOHQty > 0 AND @PrevAvailableQty > 0)
 						BEGIN
@@ -578,8 +578,7 @@ BEGIN
 					ELSE IF (@ActionId = 15) -- CREATE SUB WO
 					BEGIN
 						IF (@PrevReservedQty = 0 AND @PrevAvailableQty > 0 AND @PrevIssuedQty = 0 AND @PrevOHQty > 0)
-						BEGIN
-							PRINT @StocklineToUpdate;
+						BEGIN							
 							Update DBO.ChildStockline SET QuantityReserved = 1, QuantityAvailable = 0, ModuleName = @ModuleName, ReferenceName = @ReferenceNumber, SubModuleName = @SubModuleName, SubReferenceName = @SubReferenceNumber, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
 							WHERE ChildStockLineId = @StocklineToUpdate;
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_CycleCountReviewDetail_GetDetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to get Cycle Count Review Details 
@@ -12,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    06/11/2024   Moin Bloch    Created
+	2    07/11/2024   Moin Bloch    Added IsActive,IsDeleted
 	     
     EXEC USP_CycleCountReviewDetail_GetDetailsById 23,1
 ************************************************************************/    
@@ -81,7 +83,8 @@ BEGIN
 				INNER JOIN [dbo].[CycleCountApproval] CA WITH(NOLOCK) ON CA.[CycleCountDetailId] = CC.[CycleCountDetailId] AND CA.[StatusId] = @ApprovalStatusId
 				LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
 			WHERE CC.[MasterCompanyId] = @MasterCompanyId 
-				AND CC.[CycleCountId] = @CycleCountId			
+				AND CC.[CycleCountId] = @CycleCountId	
+				AND CC.[IsActive] = 1 AND CC.IsDeleted = 0;				
 		END
 		ELSE
 		BEGIN
@@ -135,6 +138,7 @@ BEGIN
 		 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 
 		    AND CC.[CycleCountId] = @CycleCountId	
+			AND CC.[IsActive] = 1 AND CC.IsDeleted = 0;		
 		END
  END TRY        
  BEGIN CATCH  

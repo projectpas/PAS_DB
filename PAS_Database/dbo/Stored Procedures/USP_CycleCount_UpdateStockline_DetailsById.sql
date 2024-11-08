@@ -16,7 +16,7 @@
          
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
-create   PROCEDURE [dbo].[USP_CycleCount_UpdateStockline_DetailsById]
+CREATE   PROCEDURE [dbo].[USP_CycleCount_UpdateStockline_DetailsById]
 @CycleCountId BIGINT,
 @UpdatedBy VARCHAR(50),
 @MasterCompanyId INT
@@ -83,7 +83,8 @@ BEGIN
 				UPDATE [dbo].[Stockline] 
 				   SET [QuantityOnHand] = @CountedQuantity,
 					   [QuantityAvailable] = [QuantityAvailable] - @DifferenceQty,	 
-				       [UpdatedBy] = @UpdatedBy
+				       [UpdatedBy] = @UpdatedBy,
+					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId;
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
 			END
@@ -94,7 +95,8 @@ BEGIN
 				UPDATE [dbo].[Stockline] 
 				   SET [QuantityOnHand] = @CountedQuantity,
 					   [QuantityAvailable] = [QuantityAvailable] + @DifferenceQty,	 
-				       [UpdatedBy] = @UpdatedBy
+				       [UpdatedBy] = @UpdatedBy,
+					   [UpdatedDate] = GETUTCDATE()
 				 WHERE [StockLineId] = @StockLineId;
 				EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@CCModuleId,@CycleCountId,NULL,NULL,@ActionId,@DifferenceQty,@UpdatedBy;
 			END

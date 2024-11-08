@@ -9,7 +9,7 @@
     [IsEnforce]             BIT           NULL,
     [RequestedById]         BIGINT        NULL,
     [ApproverId]            BIGINT        NULL,
-    [ApprovedBy]            VARCHAR (50)  NULL,
+    [ApprovedBy]            VARCHAR (100) NULL,
     [DateApproved]          DATETIME2 (7) NULL,
     [MasterCompanyId]       INT           NOT NULL,
     [CreatedBy]             VARCHAR (256) NOT NULL,
@@ -20,4 +20,6 @@
     [IsDeleted]             BIT           CONSTRAINT [DF_CycleCountAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CycleCountAudit] PRIMARY KEY CLUSTERED ([CycleCountAuditId] ASC)
 );
+
+
 

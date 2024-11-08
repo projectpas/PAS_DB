@@ -8,7 +8,7 @@
     [IsEnforce]             BIT           NULL,
     [RequestedById]         BIGINT        NULL,
     [ApproverId]            BIGINT        NULL,
-    [ApprovedBy]            VARCHAR (50)  NULL,
+    [ApprovedBy]            VARCHAR (100) NULL,
     [DateApproved]          DATETIME2 (7) NULL,
     [MasterCompanyId]       INT           NOT NULL,
     [CreatedBy]             VARCHAR (256) NOT NULL,
@@ -20,6 +20,8 @@
     CONSTRAINT [PK_CycleCount] PRIMARY KEY CLUSTERED ([CycleCountId] ASC),
     CONSTRAINT [FK_CycleCount_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

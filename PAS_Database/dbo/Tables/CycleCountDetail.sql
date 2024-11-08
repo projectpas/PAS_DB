@@ -10,7 +10,7 @@
     [PartNumber]            VARCHAR (50)    NOT NULL,
     [PartDescription]       NVARCHAR (MAX)  NULL,
     [ManufacturerId]        BIGINT          NULL,
-    [ManufacturerName]      VARCHAR (50)    NULL,
+    [ManufacturerName]      VARCHAR (100)   NULL,
     [ConditionId]           BIGINT          NOT NULL,
     [ConditionName]         VARCHAR (50)    NULL,
     [UnitOfMeasureId]       BIGINT          NOT NULL,
@@ -49,6 +49,8 @@
     CONSTRAINT [FK_CycleCountDetail_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_CycleCountDetail_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

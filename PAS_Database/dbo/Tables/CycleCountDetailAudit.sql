@@ -11,7 +11,7 @@
     [PartNumber]              VARCHAR (50)    NOT NULL,
     [PartDescription]         NVARCHAR (MAX)  NULL,
     [ManufacturerId]          BIGINT          NULL,
-    [ManufacturerName]        VARCHAR (50)    NULL,
+    [ManufacturerName]        VARCHAR (100)   NULL,
     [ConditionId]             BIGINT          NOT NULL,
     [ConditionName]           VARCHAR (50)    NULL,
     [UnitOfMeasureId]         BIGINT          NOT NULL,
@@ -44,4 +44,6 @@
     [IsDeleted]               BIT             CONSTRAINT [DF_CycleCountDetailAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_CycleCountDetailAudit] PRIMARY KEY CLUSTERED ([CycleCountDetailAuditId] ASC)
 );
+
+
 

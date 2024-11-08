@@ -16,11 +16,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/12/2021   Vishal Suthar Created
+    2    11/04/2024   Vishal Suthar Modified to make use of new tables
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
+CREATE      PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -48,9 +49,9 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost
-					FROM dbo.SalesOrderQuotePart SOQP WITH(NOLOCK)
+						((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
+						((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost
+					FROM dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 						LEFT JOIN dbo.SalesOrderQuoteApproval APPR WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = APPR.SalesOrderQuotePartId
@@ -59,9 +60,10 @@ BEGIN
 							AND Charges.ItemMasterId = SOQP.ItemMasterId AND Charges.IsDeleted = 0 AND Charges.IsActive = 1
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = SOQ.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
+						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
 					GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
-					SOQP.UnitSalePrice, SOQP.QtyQuoted, SOQP.UnitCost
+					SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost
 					)
 
 					SELECT PartNumber, ItemMasterId, Condition, MIN(CustApproved) CustApproved, CurrencyName, SUM(Revenue) AS Revenue,

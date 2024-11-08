@@ -1,4 +1,19 @@
-﻿CREATE PROCEDURE [dbo].[GetPickTicketForEdit]
+﻿/*************************************************************           
+ ** File:   [GetPickTicketForEdit]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------
+	1	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+
+************************************************************************/
+CREATE      PROCEDURE [dbo].[GetPickTicketForEdit]
 @SOPickTicketId bigint,
 @SalesOrderId bigint,
 @SalesOrderPartId bigint
@@ -40,12 +55,13 @@ BEGIN
 						''
 					END
 				 AS TracableToName,
-				 ISNULL(sop.Qty, 0) - ISNULL(cte.TotalQtyToShip, 0) as QtyToPick from cte
+				 ISNULL(sop.QtyOrder, 0) - ISNULL(cte.TotalQtyToShip, 0) as QtyToPick from cte
 		INNER JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = cte.SalesOrderId AND sopt.SalesOrderPartId = cte.SalesOrderPartId
 		INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sopt.SalesOrderId
-		INNER JOIN DBO.SalesOrderPart sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		INNER JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		INNER JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId

@@ -7,16 +7,17 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 **************************************************************
 ** Change History
 **************************************************************  
-** PR   Date        Author          Change Description  
-** --   --------    -------         --------------------------------
-** 1    01/09/2024  AMIT GHEDIYA    Created
-** 2    09/04/2024  Shrey Chandegara  Updated For ItemNo (Add outer Apply for That.)
-** 3    16-Apr-2024	Bhargav Saliya   CreditTerms Changes
+** PR   Date        Author				Change Description  
+** --   --------    -------				--------------------------------
+** 1    01/09/2024  AMIT GHEDIYA		Created
+** 2    09/04/2024  Shrey Chandegara	Updated For ItemNo (Add outer Apply for That.)
+** 3    16-Apr-2024	Bhargav Saliya		CreditTerms Changes
+** 4	11/04/2024	Vishal Suthar		Modified to make use of new SO Part tables
 
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
+CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -62,7 +63,7 @@ BEGIN
 				WHEN so.ChargesBilingMethodId = 3 THEN so.TotalCharges
 				ELSE ISNULL(soCharges.BillingAmount, 0)
 			END AS MiscCharges,
-			ISNULL(sop.TaxPercentage, 0) AS TaxRate,
+			ISNULL(sopc.TaxPercentage, 0) AS TaxRate,
 			0 AS ShippingAndHandling,
 			so.ManagementStructureId,
 			UPPER(so.CustomerReference) AS CustomerReference,
@@ -72,7 +73,9 @@ BEGIN
 				  LEFT JOIN dbo.ShippingVia sv WITH(NOLOCK) ON sos.ShipViaId = sv.ShippingViaId
 					WHERE sos.SalesOrderId = @salesOrderId)
 		FROM dbo.SalesOrder so WITH(NOLOCK)
-			LEFT JOIN dbo.SalesOrderPart sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+			LEFT JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
 			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
@@ -84,13 +87,13 @@ BEGIN
 			LEFT JOIN dbo.Countries cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
 			LEFT JOIN dbo.Currency cur WITH(NOLOCK) ON so.CurrencyId = cur.CurrencyId
 			INNER JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.SalesOrderFreight soFreight WITH(NOLOCK) ON so.SalesOrderId = soFreight.SalesOrderId AND soFreight.IsDeleted = 0 AND soFreight.IsActive = 1
 			LEFT JOIN dbo.SalesOrderCharges soCharges WITH(NOLOCK) ON so.SalesOrderId = soCharges.SalesOrderId AND soCharges.IsDeleted = 0 AND soCharges.IsActive = 1
-			LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON sop.StockLineId = qs.StockLineId
+			LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
 			LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
-			OUTER APPLY (SELECT COUNT(SP.ItemNo) AS 'ItemNo' FROM DBO.SalesOrderPart SP WITH(NOLOCK) WHERE SP.SalesOrderId = so.SalesOrderId GROUP BY SP.SalesOrderId) PartCount
+			OUTER APPLY (SELECT COUNT(SP.SalesOrderPartId) AS 'ItemNo' FROM DBO.SalesOrderPartV1 SP WITH(NOLOCK) WHERE SP.SalesOrderId = so.SalesOrderId GROUP BY SP.SalesOrderId) PartCount
 		WHERE so.SalesOrderId = @salesOrderId AND so.IsActive = 1 AND so.IsDeleted = 0
    END              
   END TRY                  

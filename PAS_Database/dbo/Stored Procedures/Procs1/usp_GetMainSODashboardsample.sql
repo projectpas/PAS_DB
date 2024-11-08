@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3   16-OCT-2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
      
 EXECUTE   [dbo].[usp_GetMainSODashboardsample] 
 **************************************************************/
@@ -31,15 +32,17 @@ BEGIN
 
       SELECT
         SOP.EstimatedShipDate 'SALE DATE',
-        SOP.NetSales + SOMS.misc AS PartsSaleBilling,
+        SOPC.NetSaleAmount + SOMS.misc AS PartsSaleBilling,
         SOQ.StatusName
       FROM dbo.SalesOrder AS SO WITH (NOLOCK)
       LEFT JOIN dbo.SalesOrderQuote AS SOQ WITH (NOLOCK)
         ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-        LEFT JOIN dbo.SalesOrderPart AS SOP WITH (NOLOCK)
+        LEFT JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK)
           ON SO.SalesOrderId = SOP.SalesOrderId
-        LEFT OUTER JOIN dbo.SalesOrderQuotePart SOQP WITH (NOLOCK)
+        LEFT OUTER JOIN dbo.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
           ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		LEFT JOIN SalesOrderPartCost SOPC WITH (NOLOCK) 
+			ON SOPC.SalesOrderPartId=SOP.SalesOrderPartId and SOPC.IsDeleted=0
         LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
           ON SO.SalesOrderId = SOMS.SalesOrderId
     COMMIT TRANSACTION

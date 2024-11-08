@@ -21,11 +21,12 @@
 	8	 28/02/2024	    Devendra Shekh	   changes for amount calculation based on isproforma for wo and so
 	9    07/03/2024	    Devendra Shekh	   Amount Calculation issue resolved
 	10   07/03/2024	    Hemant Saliya	   Verify SP and Joins
-	11   19/03/2024     Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
-	
+	11   19/03/2024     Bhargav Saliya		Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
+	12   11/04/2024		Vishal Suthar		Modified to make use of new SO Part tables
+
     EXEC [dbo].[GetCustomerAccountList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',61,'',NULL,'',NULL,'arbalanceonly',1
 ***************************************************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetCustomerAccountList]
+CREATE    PROCEDURE [dbo].[GetCustomerAccountList]
   @PageNumber                  INT = NULL,
   @PageSize                    INT = NULL,
   @SortColumn                  VARCHAR(50)=NULL,
@@ -92,7 +93,7 @@ BEGIN
 			;WITH NEWDepositAmt AS(
 						 SELECT nso.SalesOrderId AS Id,nso.customerid, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
 												FROM [dbo].SalesOrder nso WITH (NOLOCK)  
-													INNER JOIN [dbo].SalesOrderPart nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
+													INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
 													INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SalesOrderPartId AND ISNULL(nsobii.IsProforma, 0) = 1
 													INNER JOIN [dbo].[SalesOrderBillingInvoicing] nsobi WITH(NOLOCK) on nsobii.SOBillingInvoicingId = nsobi.SOBillingInvoicingId AND ISNULL(nsobi.IsProforma, 0) = 1
 													AND nsobii.SalesOrderPartId = nsop.SalesOrderPartId GROUP BY nso.SalesOrderId,nso.customerid

@@ -18,10 +18,11 @@
 	2	        	  Swetha			Added Transaction & NO LOCK
 	3	01/31/2024	  Devendra Shekh	added isperforma Flage for WO
 	4	02/1/2024	  AMIT GHEDIYA		added isperforma Flage for SO
-     
+    5   11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetSalespersonReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usp_GetSalespersonReport]
+CREATE    PROCEDURE [dbo].[usp_GetSalespersonReport]
 --@Salesperson varchar(40)=null,
 @Techname varchar(40) = NULL,
 @Fromdate datetime,
@@ -97,10 +98,10 @@ BEGIN
         WOBI.GrandTotal 'Revenue',
         WOBI.GrandTotal - WOMPN.DirectCost 'Margin',
         (WOBI.GrandTotal - WOMPN.DirectCost) / NULLIF(WOBI.GrandTotal, 0) 'Margin %',
-        (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'SO Revenue',
+        (SOPC.UnitSalesPrice * SOP.QtyOrder) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'SO Revenue',
         SOMS.marginamount 'SO Margin',
         ((SOMS.marginamount) / NULLIF((SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) 'SO Margin %',
-        WOBI.GrandTotal + (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Total Revenue',
+        WOBI.GrandTotal + (SOPC.UnitSalesPrice * SOP.QtyOrder) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2) 'Total Revenue',
         (WOBI.GrandTotal - WOMPN.DirectCost) + (SOMS.marginamount) 'Total Margin',
         (((WOBI.GrandTotal - WOMPN.DirectCost) + (SOMS.marginamount)) / NULLIF((WOBI.GrandTotal) + (SOP.unitsaleprice * SOP.qty) + (SOBI.freight) + SOBI.misccharges + (SOBI.salestax / 2), 0)) 'Total Margin %',
 
@@ -156,7 +157,8 @@ BEGIN
 			LEFT JOIN DBO.Salesorder SO WITH (NOLOCK) ON C.customerid = SO.customerid
 			LEFT JOIN DBO.WorkOrderMPNCostDetails WOMPN WITH (NOLOCK) ON WO.WorkOrderId = WOMPN.WorkOrderId
             LEFT JOIN DBO.WorkOrderBillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.WorkOrderId and WOBI.IsVersionIncrease=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-            LEFT JOIN DBO.Salesorderpart SOP WITH (NOLOCK) ON SO.salesorderid = SOP.salesorderid
+            LEFT JOIN DBO.Salesorderpartv1 SOP WITH (NOLOCK) ON SO.salesorderid = SOP.salesorderid
+            LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		  --LEFT JOIN DBO.CustomerSales CS WITH (NOLOCK) ON C.customerid = CS.customerid
             LEFT JOIN DBO.Employee E WITH (NOLOCK) ON SO.SalesPersonId = E.EmployeeId
             LEFT JOIN DBO.Employee E1 WITH (NOLOCK) ON SO.CustomerSeviceRepId = E1.employeeid

@@ -11,15 +11,16 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    01/31/2024   Moin Bloch    Created
-	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    01/31/2024   Moin Bloch		Created
+	2    05/03/2024   Moin Bloch		Updated changed join ItemMaster To [Stockline]
+	3    09/23/2024   Vishal Suthar		Modified for Old tables with new tables
      
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 423
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 766
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ] 
-@SalesOrderQuoteId bigint
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
+	@SalesOrderQuoteId bigint
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -103,8 +104,9 @@ BEGIN
 				   SOQ.[SalesOrderQuoteId],
 				   SOQP.[SalesOrderQuotePartId]
 			FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
-			INNER JOIN [dbo].[SalesOrderQuotePart] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
-			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQP.[StockLineId] = STK.[StockLineId]
+			INNER JOIN [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQP.[SalesOrderQuoteId] 
+			 LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQS WITH(NOLOCK) ON SOQS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId]
+			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQS.[StockLineId] = STK.[StockLineId]
 			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
 			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
 			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
@@ -186,12 +188,16 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOQP.UnitSalesPricePerUnit, 0) * ISNULL(SOQP.QtyQuoted,0))
-			FROM [dbo].[SalesOrderQuotePart] SOQP WITH(NOLOCK)
-			WHERE [SOQP].[SalesOrderQuoteId] = @SalesOrderQuoteId 
-			  AND [SOQP].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
+		--SELECT @Total = (ISNULL(SOQP.UnitSalesPricePerUnit, 0) * ISNULL(SOQP.QtyQuoted,0))
+		--	FROM [dbo].[SalesOrderQuotePart] SOQP WITH(NOLOCK)
+		--	WHERE [SOQP].[SalesOrderQuoteId] = @SalesOrderQuoteId 
+		--	  AND [SOQP].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
 
-	    SET @SubTotal += ISNULL(@Total,0);
+		SELECT @Total = ISNULL(SOQC.SubTotal, 0)
+			FROM [dbo].[SalesOrderQuoteCost] SOQC WITH(NOLOCK)
+			WHERE [SOQC].[SalesOrderQuoteId] = @SalesOrderQuoteId;
+
+	    SET @SubTotal = ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
 	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
 

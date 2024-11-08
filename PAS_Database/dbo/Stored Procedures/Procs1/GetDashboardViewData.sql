@@ -16,10 +16,12 @@
 	4   03/06/2024      Bhargav Saliya  Convert  Into Temp table SP
 	5	03/28/2024		Bhargav Saliya  Resolve Snapshot: MRO Billing amount issue
 	6	16/10/2024		Shrey Chandegara  add new @DashboardType for workorder dashboard
+	7   11/04/2024		Vishal Suthar	Modified to make use of new SOQ new tables
+
 -- EXEC GetDashboardViewData 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetDashboardViewData]
+CREATE    PROCEDURE [dbo].[GetDashboardViewData]
 	@MasterCompanyId BIGINT = NULL,
 	@Date DATETIME = NULL,
 	@DashboardType INT = NULL,
@@ -105,7 +107,8 @@ BEGIN
 					LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON sobi.SalesOrderId = so.SalesOrderId
 					LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON so.SalesPersonId = emp.EmployeeId
 					LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-					LEFT JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+					LEFT JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+					LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 					LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON sop.ItemMasterId = item.ItemMasterId
 					INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
@@ -113,7 +116,7 @@ BEGIN
 					INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 					WHERE sobi.IsActive = 1
 					AND sobi.IsDeleted = 0
-					AND ISNULL(sop.StockLineId,0) > 0
+					AND ISNULL(stk.StockLineId, 0) > 0
 					AND CONVERT(DATE, sobi.InvoiceDate) = CONVERT(DATE, @Date)
 					AND sobi.MasterCompanyId = @MasterCompanyId
 					AND ISNULL(sobi.IsProforma,0) = 0
@@ -146,8 +149,9 @@ BEGIN
 			BEGIN
 				SELECT 
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SUM(SOP.NetSales) AS GrandTotal, cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
-				FROM DBO.SalesOrderPart SOP WITH (NOLOCK)
+				SUM(SOPC.NetSaleAmount) AS GrandTotal, cust.Name AS CustomerName, SO.SalesOrderNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
+				INNER JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOP.ConditionId = cond.ConditionId
@@ -223,11 +227,12 @@ BEGIN
 			BEGIN
 				SELECT DISTINCT
 				item.PartNumber, item.PartDescription, cond.[Description] AS Condition, item.ItemGroup,
-				SOQM.NetSales AS GrandTotal,SOQP.NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
+				SOQM.NetSales AS GrandTotal,SOQPC.NetSaleAmount NetSales, cust.Name AS CustomerName, SOQ.SalesOrderQuoteNumber AS QuoteNumber, (emp.FirstName + ' ' + emp.LastName) AS SalesPerson 
 				FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
 				INNER JOIN DBO.SOQuoteMarginSummary SOQM WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQM.SalesOrderQuoteId
 				INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQA.SalesOrderQuoteId
-				INNER JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+				INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+				INNER JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 				LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON SOQ.CustomerId = cust.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON SOQP.ConditionId = cond.ConditionId
 				LEFT JOIN DBO.ItemMaster item WITH (NOLOCK) ON SOQP.ItemMasterId = item.ItemMasterId

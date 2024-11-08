@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    08/17/2023   Vishal Suthar Created
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
+	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
      
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
@@ -29,12 +30,13 @@ BEGIN
 			BEGIN
 				SELECT UPPER(IM.partnumber) AS PN, UPPER(IM.PartDescription) AS PNDescription, 
 				UPPER(IM.ItemGroup) AS ItemGroup, UPPER(CON.Memo) AS Condition, UPPER(C.Name) AS Customer, SOB.InvoiceDate,
-				UPPER(SO.SalesOrderNumber) SONum, UPPER(SO.SalesPersonName) AS SalesPersonName, (SOP.UnitSalesPricePerUnit * SOP.Qty) AS SalesAmount, SOP.UnitCostExtended AS Cost, 
-				(SOP.UnitSalesPricePerUnit - SOP.UnitCostExtended) AS MarginAmount, 
-				CASE WHEN ISNULL(SOP.UnitSalesPricePerUnit, 0) > 0 THEN (((ISNULL(SOP.UnitSalesPricePerUnit, 0) - ISNULL(SOP.UnitCostExtended, 0)) / ISNULL(SOP.UnitSalesPricePerUnit, 0)) * 100)
+				UPPER(SO.SalesOrderNumber) SONum, UPPER(SO.SalesPersonName) AS SalesPersonName, (SOPC.UnitSalesPrice * SOP.QtyOrder) AS SalesAmount, SOPC.UnitCostExtended AS Cost, 
+				(SOPC.UnitSalesPrice - SOPC.UnitCostExtended) AS MarginAmount, 
+				CASE WHEN ISNULL(SOPC.UnitSalesPrice, 0) > 0 THEN (((ISNULL(SOPC.UnitSalesPrice, 0) - ISNULL(SOPC.UnitCostExtended, 0)) / ISNULL(SOPC.UnitSalesPrice, 0)) * 100)
 				ELSE 0 END AS MarginPercentage
 				FROM DBO.SalesOrder SO WITH (NOLOCK) 
-				LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOP.SalesOrderPartId and SOPC.IsDeleted=0
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId

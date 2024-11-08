@@ -13,8 +13,9 @@
     1    17/09/2024   RAJESH GAMI			Created
 	2    14/10/2024   RAJESH GAMI			Implemented logic: IsKit and IsSubWO flag for the identify the WOMaterial is kit and from SUWO or not. 
 	3    16/10/2024   RAJESH GAMI			Implemented logic: IsKitType and IsSubWOType flag in the StocklineDraft
+	4	 11/04/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE      PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -369,7 +370,7 @@ BEGIN
 						
 						IF(ISNULL(@SalesOrderId,0) > 0)
 						BEGIN --START: IF  SalesOrderPart
-							SELECT TOP 1 @SalesOrderPartId = SalesOrderPartId FROM Dbo.SalesOrderPart WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId
+							SELECT TOP 1 @SalesOrderPartId = SalesOrderPartId FROM Dbo.SalesOrderPartV1 WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId
 							IF(ISNULL(@SalesOrderPartId,0) > 0 )
 							BEGIN
 								EXEC dbo.[SP_SaveSOPartStatusByPartId] @SalesOrderPartId, @OrderPartStatusId

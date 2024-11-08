@@ -16,8 +16,10 @@
  ** --   --------     -------				--------------------------------          
 	1    09/11/2023   Vishal Suthar			Added new column 'ConditionId'
 	2    06/12/2023   Jevik Raiyani         Added @StatusValue
+	3    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
+
 **************************************************************/
-CREATE  PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
+CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -80,10 +82,10 @@ BEGIN
 		            SOD.[SalesOrderNumber],
 					SOQ.[OpenDate],
 					SOQ.[CustomerReference],
-					ISNULL(SP.[UnitSalesPricePerUnit],0) AS [UnitSalesPrice],
-					ISNULL(SP.[UnitCost],0) AS [UnitCost],
+					ISNULL(SOPC.[UnitSalesPrice],0) AS [UnitSalesPrice],
+					ISNULL(SOPC.[UnitCost],0) AS [UnitCost],
 					ISNULL(SP.[QtyRequested],0) AS [Qty],
-					ISNULL(SP.[UnitCostExtended],0) AS [UnitCostExtended],
+					ISNULL(SOPC.[UnitCostExtended],0) AS [UnitCostExtended],
 					CO.[Description] AS [ConditionName],
 					SP.ConditionId,
 					SOQ.[SalesPersonName],
@@ -102,11 +104,12 @@ BEGIN
 			   INNER JOIN [dbo].[SalesOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 			   INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-			    LEFT JOIN [dbo].[SalesOrderQuotePart] SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
+			    LEFT JOIN [dbo].[SalesOrderQuotePartV1] SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
 			    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
 				LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 		 	    LEFT JOIN [dbo].[SalesOrder] SOD WITH (NOLOCK) on SOD.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOD.SalesOrderQuoteId IS NOT NULL
-			    LEFT JOIN [dbo].[SalesOrderPart] SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOP.SalesOrderQuotePartId IS NOT NULL
+			    LEFT JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOP.SalesOrderQuotePartId IS NOT NULL
+			    LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SOP.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId								
 			WHERE SOQ.MasterCompanyId = @MasterCompanyId

@@ -17,10 +17,11 @@
 	3    12/06/2023   Vishal Suthar			Modified to see work order from material KIT
 	4    13/12/2023   Devendra Shekh		added kit details for subwo
 	5    13/08/2023   Vishal Suthar			Modified to allow Alt and Equ parts to map
-             
+    6    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables         
+
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
-CREATE   PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
+CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
 	@viewType VARCHAR (50) = NULL,      
 	@ItemMasterId BIGINT,      
 	@ConditionId BIGINT,      
@@ -72,7 +73,7 @@ BEGIN
 				SOP.CustomerRequestDate AS 'EstimatedCompletionDate',      
 				SOP.EstimatedShipDate 'EstimatedShipDate',      
 				@viewType AS 'ViewType'      
-			FROM [SalesOrderPart] SOP WITH(NOLOCK)      
+			FROM [SalesOrderPartV1] SOP WITH(NOLOCK)      
 			LEFT JOIN [DBO].[SalesOrderReserveParts] SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
@@ -128,7 +129,7 @@ BEGIN
                 SOP.CustomerRequestDate AS 'EstimatedCompletionDate',      
                 SOP.EstimatedShipDate 'EstimatedShipDate',      
 				@viewType AS 'ViewType'      
-			FROM [SalesOrderPart] SOP WITH(NOLOCK)      
+			FROM [SalesOrderPartV1] SOP WITH(NOLOCK)      
             LEFT JOIN [DBO].[SalesOrderReserveParts] SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = SOP.SalesOrderPartId      
             LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      

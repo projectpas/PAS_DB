@@ -12,6 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1					unknown			Created
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
+	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetSOSOQDashboardDataCount]
@@ -88,8 +89,10 @@ BEGIN
 				AND SOQ.MasterCompanyId = @MasterCompanyId
 				GROUP BY SOQ.StatusId
 
-		SELECT @SOQReceivedAmount = SUM(POP.NetSales) FROM 
-				DBO.SalesOrderQuotePart POP INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+		SELECT @SOQReceivedAmount = SUM(SOQPC.NetSaleAmount) FROM 
+				DBO.SalesOrderQuotePartV1 POP 
+				INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = PO.SalesOrderQuoteId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -100,7 +103,7 @@ BEGIN
 
 	   SELECT  @SOQApprovedInternalCount=count(distinct PO.SalesOrderQuoteId)  FROM 
 				DBO.SalesOrderQuote PO 
-				INNER JOIN DBO.SalesOrderQuotePart SOQP ON SOQP.SalesOrderQuoteId = PO.SalesOrderQuoteId
+				INNER JOIN DBO.SalesOrderQuotePartV1 SOQP ON SOQP.SalesOrderQuoteId = PO.SalesOrderQuoteId
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = PO.SalesOrderQuoteId
 			    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -111,8 +114,9 @@ BEGIN
 				AND PO.MasterCompanyId = @MasterCompanyId
 				--GROUP BY PO.StatusId
 
-	  SELECT @SOQApprovedInternalAmount = SUM(POP.NetSales)  FROM 
-				DBO.SalesOrderQuotePart POP INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+	  SELECT @SOQApprovedInternalAmount = SUM(SOQPC.NetSaleAmount)  FROM 
+				DBO.SalesOrderQuotePartV1 POP INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = PO.SalesOrderQuoteId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -125,7 +129,7 @@ BEGIN
 
 	 SELECT  @SOQApprovedCustomerCount=count(distinct PO.SalesOrderQuoteId)  FROM 
 				DBO.SalesOrderQuote PO 
-				INNER JOIN DBO.SalesOrderQuotePart SOQP ON SOQP.SalesOrderQuoteId = PO.SalesOrderQuoteId
+				INNER JOIN DBO.SalesOrderQuotePartV1 SOQP ON SOQP.SalesOrderQuoteId = PO.SalesOrderQuoteId
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = PO.SalesOrderQuoteId
 			    INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 			    INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -136,8 +140,9 @@ BEGIN
 				AND PO.MasterCompanyId = @MasterCompanyId
 				--GROUP BY PO.StatusId
 
-       SELECT @SOQApprovedCustomerAmount = SUM(POP.NetSales)  FROM 
-				DBO.SalesOrderQuotePart POP INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+       SELECT @SOQApprovedCustomerAmount = SUM(SOQPC.NetSaleAmount)  FROM 
+				DBO.SalesOrderQuotePartV1 POP INNER JOIN DBO.SalesOrderQuote PO ON PO.SalesOrderQuoteId = POP.SalesOrderQuoteId
+				LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId=POP.SalesOrderQuotePartId and SOQPC.IsDeleted=0
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOQMSModuleID AND MSD.ReferenceID = PO.SalesOrderQuoteId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -151,7 +156,7 @@ BEGIN
 				
 	   SELECT @SOApprovedInternalCount=count(distinct RO.SalesOrderId)  FROM 
 			    DBO.SalesOrder RO
-			   INNER JOIN DBO.SalesOrderPart SOP ON SOP.SalesOrderId = RO.SalesOrderId
+			   INNER JOIN DBO.SalesOrderPartV1 SOP ON SOP.SalesOrderId = RO.SalesOrderId
 			   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = RO.SalesOrderId
 			   INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -162,8 +167,9 @@ BEGIN
 			   AND RO.MasterCompanyId = @MasterCompanyId
 			   --GROUP BY RO.StatusId
 
-	   SELECT @SOApprovedInternalAmount = SUM(ROP.NetSales) FROM 
-				DBO.SalesOrderPart ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+	   SELECT @SOApprovedInternalAmount = SUM(SOPC.NetSaleAmount) FROM 
+				DBO.SalesOrderPartV1 ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = ROP.SalesOrderId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -176,7 +182,7 @@ BEGIN
 
 	  SELECT @SOApprovedCustomerCount=count(distinct RO.SalesOrderId)  FROM 
 			    DBO.SalesOrder RO
-			   INNER JOIN DBO.SalesOrderPart SOP ON SOP.SalesOrderId = RO.SalesOrderId
+			   INNER JOIN DBO.SalesOrderPartV1 SOP ON SOP.SalesOrderId = RO.SalesOrderId
 			   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = RO.SalesOrderId
 			   INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -187,9 +193,10 @@ BEGIN
 				AND RO.MasterCompanyId = @MasterCompanyId
 				--GROUP BY RO.StatusId
 
-	  SELECT @SOApprovedCustomerAmount = SUM(ROP.NetSales)  FROM 
-				DBO.SalesOrderPart ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+	  SELECT @SOApprovedCustomerAmount = SUM(SOPC.NetSaleAmount)  FROM 
+				DBO.SalesOrderPartV1 ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = ROP.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				INNER JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = RO.CustomerId
@@ -201,7 +208,7 @@ BEGIN
 	
 	SELECT @SOFullfillingStatusCount=count(distinct RO.SalesOrderId)  FROM 
 			    DBO.SalesOrder RO
-			   INNER JOIN DBO.SalesOrderPart SOP ON SOP.SalesOrderId = RO.SalesOrderId
+			   INNER JOIN DBO.SalesOrderPartV1 SOP ON SOP.SalesOrderId = RO.SalesOrderId
 			   INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = RO.SalesOrderId
 			   INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			   INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -227,9 +234,10 @@ BEGIN
 				--GROUP BY F.shippingcount
 
 
-	 SELECT @SOFullfillingAmount = SUM(ROP.NetSales)  FROM 
-				DBO.SalesOrderPart ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+	 SELECT @SOFullfillingAmount = SUM(SOPC.NetSaleAmount)  FROM 
+				DBO.SalesOrderPartV1 ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
 				--INNER JOIN DBO.SalesOrderPart SOP ON SOP.SalesOrderId = RO.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SOMSModuleID AND MSD.ReferenceID = ROP.SalesOrderId
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -255,7 +263,7 @@ BEGIN
 
 	SELECT @SOShippingStatusCount=count(distinct RO.SalesOrderId)  FROM 
 			    DBO.SalesOrder RO
-			   INNER JOIN DBO.SalesOrderPart ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
+			   INNER JOIN DBO.SalesOrderPartV1 ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 			   --INNER JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId
 			   --INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId AND ROP.SalesOrderPartId = SOSI.SalesOrderPartId
 			   INNER JOIN DBO.SalesOrderApproval SOAPR WITH (NOLOCK) ON RO.SalesOrderId = SOAPR.SalesOrderId AND ROP.SalesOrderPartId = SOAPR.SalesOrderPartId AND SOAPR.CustomerStatusId=2
@@ -272,8 +280,9 @@ BEGIN
 				--GROUP BY RO.StatusId
 
 
-	 SELECT @SOShippingAmount = SUM(ROP.NetSales)  FROM 
-				DBO.SalesOrder RO INNER JOIN DBO.SalesOrderPart ROP ON RO.SalesOrderId = ROP.SalesOrderId
+	 SELECT @SOShippingAmount = SUM(SOPC.NetSaleAmount)  FROM 
+				DBO.SalesOrder RO INNER JOIN DBO.SalesOrderPartV1 ROP ON RO.SalesOrderId = ROP.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				--INNER JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId
 			    --INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId AND ROP.SalesOrderPartId = SOSI.SalesOrderPartId
 				--INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId AND SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND ROP.SalesOrderPartId = SOSI.SalesOrderPartId
@@ -291,7 +300,7 @@ BEGIN
 
 	SELECT @SOInvoicedStatusCount=count(distinct RO.SalesOrderId)  FROM 
 			    DBO.SalesOrder RO
-			   INNER JOIN DBO.SalesOrderPart ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
+			   INNER JOIN DBO.SalesOrderPartV1 ROP WITH (NOLOCK) ON RO.SalesOrderId = ROP.SalesOrderId
 			   --INNER JOIN DBO.SalesOrderBillingInvoicing SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId
 			   INNER JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId
 			   INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId AND ROP.SalesOrderPartId = SOSI.SalesOrderPartId
@@ -306,8 +315,9 @@ BEGIN
 				--GROUP BY RO.StatusId
 
 
-	 SELECT @SOInvoicedAmount = SUM(ROP.NetSales)  FROM 
-				DBO.SalesOrderPart ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+	 SELECT @SOInvoicedAmount = SUM(SOPC.NetSaleAmount)  FROM 
+				DBO.SalesOrderPartV1 ROP INNER JOIN DBO.SalesOrder RO ON RO.SalesOrderId = ROP.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=ROP.SalesOrderPartId and SOPC.IsDeleted=0
 				--INNER JOIN DBO.SalesOrderBillingInvoicing SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId
 			 --   INNER JOIN DBO.SalesOrderBillingInvoicingItem SOSI WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId AND ROP.SalesOrderPartId = SOSI.SalesOrderPartId AND SOS.SOBillingInvoicingId = SOSI.SOBillingInvoicingId
 				--INNER JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON RO.SalesOrderId = SOS.SalesOrderId

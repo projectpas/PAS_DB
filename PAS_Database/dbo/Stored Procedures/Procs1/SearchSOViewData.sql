@@ -17,39 +17,39 @@
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
  -- Add the parameters for the stored procedure here    
- @PageNumber int,    
- @PageSize int,    
- @SortColumn varchar(50)=null,    
- @SortOrder int,    
- @StatusID int,    
- @GlobalFilter varchar(50) = null,    
- @SOQNumber varchar(50)=null,    
- @SalesOrderNumber varchar(50)=null,    
- @CustomerName varchar(50)=null,    
- @Status varchar(50)=null,    
-    @QuoteAmount numeric(18,4)=null,    
-    @SoAmount numeric(18,4)=null,    
-    @QuoteDate datetime=null,    
-    @SalesPerson varchar(50)=null,    
-    @PriorityType varchar(50)=null,    
-    @PartNumberType varchar(50)=null,    
-    @PartDescriptionType varchar(50)=null,    
-    @CustomerReference varchar(50)=null,    
-    @CustomerType varchar(50)=null,    
- @VersionNumber varchar(50)=null,    
-    @CreatedDate datetime=null,    
-    @UpdatedDate  datetime=null,    
- @CreatedBy  varchar(50)=null,    
- @UpdatedBy  varchar(50)=null,    
-    @IsDeleted bit= null,    
- @MasterCompanyId int = null,    
- @OpenDate datetime=null,    
- @ShippedDate varchar(50)=null,    
- @RequestedDateType varchar(50)=null,    
- @EstimatedShipDateType varchar(50)=null,    
- @EmployeeId bigint ,  
- @ManufacturerType varchar(50)=null,
- @ContractReference varchar(50)=null
+ @PageNumber int,
+ @PageSize int,
+ @SortColumn varchar(50) = null,
+ @SortOrder int,
+ @StatusID int,
+ @GlobalFilter varchar(50) = null,
+ @SOQNumber varchar(50) = null,
+ @SalesOrderNumber varchar(50) = null,
+ @CustomerName varchar(50) = null,
+ @Status varchar(50) = null,
+ @QuoteAmount numeric(18,4) = null,
+ @SoAmount numeric(18,4) = null,
+ @QuoteDate datetime = null,
+ @SalesPerson varchar(50) = null,
+ @PriorityType varchar(50) = null,
+ @PartNumberType varchar(50) = null,
+ @PartDescriptionType varchar(50) = null,
+ @CustomerReference varchar(50) = null,
+ @CustomerType varchar(50) = null,
+ @VersionNumber varchar(50) = null,
+ @CreatedDate datetime = null,
+ @UpdatedDate  datetime = null,
+ @CreatedBy  varchar(50) = null,
+ @UpdatedBy  varchar(50) = null,
+ @IsDeleted bit = null,
+ @MasterCompanyId int = null,
+ @OpenDate datetime = null,
+ @ShippedDate varchar(50) = null,
+ @RequestedDateType varchar(50) = null,
+ @EstimatedShipDateType varchar(50) = null,
+ @EmployeeId bigint,
+ @ManufacturerType varchar(50) = null,
+ @ContractReference varchar(50) = null
 AS    
 BEGIN    
  -- SET NOCOUNT ON added to prevent extra result sets from    
@@ -60,40 +60,39 @@ BEGIN
   BEGIN TRANSACTION    
    BEGIN    
     DECLARE @RecordFrom int;    
-    SET @RecordFrom = (@PageNumber-1)*@PageSize;    
+    SET @RecordFrom = (@PageNumber - 1) * @PageSize;    
     IF @IsDeleted is null    
     Begin    
-     Set @IsDeleted=0    
+     Set @IsDeleted = 0
     End    
     print @IsDeleted     
-    IF @SortColumn is null    
+    IF @SortColumn is null
     Begin    
-     Set @SortColumn=Upper('SalesOrderId')    
+     Set @SortColumn = Upper('SalesOrderId')    
     End     
     Else    
     Begin     
-     Set @SortColumn=Upper(@SortColumn)    
+     Set @SortColumn = Upper(@SortColumn)    
     End    
     
-    If @QuoteAmount=0    
+    If @QuoteAmount = 0
     Begin     
-     Set @QuoteAmount=null    
+     Set @QuoteAmount = null    
     End    
       
-    If @SoAmount=0    
+    If @SoAmount = 0
     Begin     
-     Set @SoAmount=null    
+     Set @SoAmount = null
     End    
     
-    
-    If @StatusID=0    
+    If @StatusID = 0    
     Begin     
-     Set @StatusID=null    
+     Set @StatusID = null    
     End     
     
-    If @Status='0'    
+    If @Status = '0'
     Begin    
-     Set @Status=null    
+     Set @Status = null    
     End    
     DECLARE @MSModuleID INT = 17; -- Sales Order Management Structure Module ID    
     
@@ -109,7 +108,7 @@ BEGIN
       Inner Join Customer C WITH (NOLOCK) on SO.CustomerId = C.CustomerId    
       Inner Join CustomerType CT WITH (NOLOCK) on SO.AccountTypeId = CT.CustomerTypeId    
       Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId   
-   Left Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId
+   Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId
    Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId    
       LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId   
       Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId and SOQ.SalesOrderQuoteId is not Null    
@@ -117,11 +116,11 @@ BEGIN
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId    
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId    
       Outer Apply(    
-       Select SUM(NetSales) as SoAmount from SalesOrderPart WITH (NOLOCK)     
+       Select SUM(NetSaleAmount) as SoAmount from DBO.SalesOrderPartCost WITH (NOLOCK)     
        Where SalesOrderId = SO.SalesOrderId    
       ) A    
       Outer Apply (    
-       Select SUM(S.UnitCost) as 'Cost', SUM(S.NetSales) as 'NetSales' from SalesOrderPart S WITH (NOLOCK)    
+       Select SUM(S.UnitCost) as 'Cost', SUM(S.NetSaleAmount) as 'NetSales' from DBO.SalesOrderPartCost S WITH (NOLOCK)    
        Where S.SalesOrderId = SO.SalesOrderId    
       ) B        Where (SO.IsDeleted = @IsDeleted) and (@StatusID is null or SO.StatusId = @StatusID) AND SO.MasterCompanyId = @MasterCompanyId),    
       DatesCTE AS(    
@@ -132,19 +131,19 @@ BEGIN
        A.EstimatedShipDate,    
        (Case When Count(SP.SalesOrderId) > 1 Then 'Multiple' ELse A.EstimatedShipDate End)  as 'EstimatedShipDateType'    
        from SalesOrder SO WITH (NOLOCK)    
-       Left Join SalesOrderPart SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
+       Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
        Outer Apply(    
         SELECT     
            STUFF((SELECT ',' + CONVERT(VARCHAR, CustomerRequestDate, 101)--CAST(CustomerRequestDate as varchar)    
-            FROM SalesOrderPart S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
+            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
             AND S.IsActive = 1 AND S.IsDeleted = 0    
             FOR XML PATH('')), 1, 1, '') RequestedDate,    
            STUFF((SELECT ',' + CONVERT(VARCHAR, PromisedDate, 101)--CAST(PromisedDate as varchar)    
-            FROM SalesOrderPart S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
+            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
             AND S.IsActive = 1 AND S.IsDeleted = 0    
             FOR XML PATH('')), 1, 1, '') PromisedDate,    
            STUFF((SELECT ',' + CONVERT(VARCHAR, EstimatedShipDate, 101)--CAST(EstimatedShipDate as varchar)    
-            FROM SalesOrderPart S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
+            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK) Where S.SalesOrderId = SO.SalesOrderId    
             AND S.IsActive = 1 AND S.IsDeleted = 0    
             FOR XML PATH('')), 1, 1, '') EstimatedShipDate    
        ) A    
@@ -154,11 +153,11 @@ BEGIN
       ),    
       PartCTE AS(    
       Select SO.SalesOrderId,(Case When Count(SP.SalesOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from SalesOrder SO WITH (NOLOCK)    
-      Left Join SalesOrderPart SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
+      Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
       Outer Apply(    
        SELECT     
           STUFF((SELECT ',' + I.partnumber    
-           FROM SalesOrderPart S WITH (NOLOCK)    
+           FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)    
            Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
            Where S.SalesOrderId = SO.SalesOrderId    
            AND S.IsActive = 1 AND S.IsDeleted = 0    
@@ -170,11 +169,11 @@ BEGIN
       ),    
       PartDescCTE AS(    
       Select SO.SalesOrderId, (Case When Count(SP.SalesOrderId) > 1 Then 'Multiple' ELse A.PartDescription End)  as 'PartDescriptionType', A.PartDescription from SalesOrder SO WITH (NOLOCK)    
-      Left Join SalesOrderPart SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
+      Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
       Outer Apply(    
        SELECT     
           STUFF((SELECT ', ' + I.PartDescription    
-           FROM SalesOrderPart S WITH (NOLOCK)    
+           FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)    
            Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
            Where S.SalesOrderId = SO.SalesOrderId    
            AND S.IsActive = 1 AND S.IsDeleted = 0    
@@ -185,12 +184,12 @@ BEGIN
       Group By SO.SalesOrderId,A.PartDescription    
       ),PartMFCTE AS(
       Select SO.SalesOrderId, (Case When Count(SP.SalesOrderId) > 1 Then 'Multiple' ELse A.Manufacturer End)  as 'ManufacturerType', A.Manufacturer from SalesOrder SO WITH (NOLOCK)    
-     Left Join SalesOrderPart SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId
+     Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId
       Outer Apply(    
        SELECT     
           STUFF((SELECT ',' + MA.Name    
            FROM SalesOrder S WITH (NOLOCK)    
-          Left Join SalesOrderPart SP WITH (NOLOCK) on S.SalesOrderId = SP.SalesOrderId
+          Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) on S.SalesOrderId = SP.SalesOrderId
 	   	  Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId    
 		 LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId   
            Where S.SalesOrderId = SO.SalesOrderId    
@@ -202,11 +201,11 @@ BEGIN
       Group By SO.SalesOrderId,A.Manufacturer), 
 	  PriorityCTE AS(    
       Select SO.SalesOrderId,(Case When Count(SP.SalesOrderId) > 1 Then 'Multiple' ELse A.PriorityDescription End)  as 'PriorityType',A.PriorityDescription from SalesOrder SO WITH (NOLOCK)    
-      Left Join SalesOrderPart SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
+      Left Join DBO.SalesOrderPartV1 SP WITH (NOLOCK) On SO.SalesOrderId = SP.SalesOrderId    
       Outer Apply(    
        SELECT     
           STUFF((SELECT ', ' + P.Description    
-           FROM SalesOrderPart S WITH (NOLOCK)    
+           FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)    
            Left Join Priority P WITH (NOLOCK) On P.PriorityId = S.PriorityId    
            Where S.SalesOrderId = SO.SalesOrderId    
            AND S.IsActive = 1 AND S.IsDeleted = 0    
@@ -283,7 +282,7 @@ BEGIN
       ORDER BY      
       CASE WHEN (@SortOrder=1 and @SortColumn='SALESORDERID')  THEN SalesOrderId END DESC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,    
-      CASE WHEN (@SortOrder=1 and @SortColumn='SalesOrderQuoteNumber')  THEN SalesOrderQuoteNumber END ASC,    
+      CASE WHEN (@SortOrder=1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='OPENDATE')  THEN OpenDate END ASC,    
       CASE WHEN (@SortOrder=1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END ASC,    
@@ -307,7 +306,7 @@ BEGIN
 	  CASE WHEN (@SortOrder=1 and @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END ASC,
 
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END Desc,    
-      CASE WHEN (@SortOrder=-1 and @SortColumn='SalesOrderQuoteNumber')  THEN SalesOrderQuoteNumber END Desc,    
+      CASE WHEN (@SortOrder=-1 and @SortColumn='SALESQUOTENUMBER')  THEN SalesOrderQuoteNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='VERSIONNUMBER')  THEN VersionNumber END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='OPENDATE')  THEN OpenDate END Desc,    
       CASE WHEN (@SortOrder=-1 and @SortColumn='QUOTEDATE')  THEN QuoteDate END Desc,    

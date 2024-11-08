@@ -1,10 +1,23 @@
-﻿
--- =============================================
--- Author:		Vishal Suthar
--- Create date: 23-Dec-2020
--- Description:	Update name columns into corrosponding reference Id values from respective master table
--- =============================================
---  EXEC [dbo].[UpdateSOQNameColumnsWithId] 5
+﻿/*************************************************************           
+ ** File:   [UpdateSOQChargeNameColumnsWithId]           
+ ** Author: Vishal Suthar
+ ** Description: Update name columns into corrosponding reference Id values from respective master table
+ ** Purpose:         
+ ** Date: 23-Dec-2020
+          
+ ** PARAMETERS:
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/17/2024   Vishal Suthar		Modified to make use of new SOQ tables
+     
+--  EXEC [dbo].[UpdateSOQChargeNameColumnsWithId] 5
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateSOQChargeNameColumnsWithId]
 	@SalesOrderQuoteId int
 AS
@@ -25,7 +38,7 @@ BEGIN
 		LEFT JOIN DBO.Vendor v WITH (NOLOCK) ON soqc.VendorId = v.VendorId
 		LEFT JOIN DBO.Charge c WITH (NOLOCK) ON soqc.ChargesTypeId = c.ChargeId
 		LEFT JOIN DBO.[Percent] p WITH (NOLOCK) ON soqc.MarkupPercentageId = p.PercentId
-		LEFT JOIN DBO.[SalesOrderQuotePart] sop WITH (NOLOCK) ON soqc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
+		LEFT JOIN DBO.[SalesOrderQuotePartV1] sop WITH (NOLOCK) ON soqc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
 		Where soqc.SalesOrderQuoteId = @SalesOrderQuoteId
 	END
 	COMMIT  TRANSACTION

@@ -17,11 +17,12 @@
 	1	 17-06-2024		HEMANT SALIYA  		Created
 	2    02-07-2024     Shrey Chandegara    Changes for sorting and filer and global filter
 	3    05-07-2024     Moin Bloch          Fixed Legel Entity sorting ,filer and global filter issue.
+	4    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetPrintStatementCustomerBalanceList]
+CREATE    PROCEDURE [dbo].[usprpt_GetPrintStatementCustomerBalanceList]
   @PageNumber                  INT = NULL,
   @PageSize                    INT = NULL,
   @SortColumn                  VARCHAR(50)=NULL,
@@ -292,7 +293,7 @@ BEGIN
 			SELECT SO.SalesOrderId, SO.customerid, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
 			INTO #SOProformaDepositAmt
 			FROM [dbo].SalesOrder SO WITH (NOLOCK)  
-				INNER JOIN [dbo].SalesOrderPart nsop WITH(NOLOCK) on nsop.SalesOrderId = SO.SalesOrderId
+				INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = SO.SalesOrderId
 				INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SalesOrderPartId AND ISNULL(nsobii.IsProforma, 0) = 1
 				INNER JOIN [dbo].[SalesOrderBillingInvoicing] nsobi WITH(NOLOCK) on nsobii.SOBillingInvoicingId = nsobi.SOBillingInvoicingId AND ISNULL(nsobi.IsProforma, 0) = 1
 				AND nsobii.SalesOrderPartId = nsop.SalesOrderPartId 

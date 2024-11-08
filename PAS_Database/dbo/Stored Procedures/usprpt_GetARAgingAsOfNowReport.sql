@@ -19,10 +19,11 @@
 	3	 07-05-2024		Moin Bloch 		    Modified Added Deposit logic
 	4    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
 	5    16-05-2024		Moin Bloch 		    Modified Added Total Amounts For Footer
-	     
+	6    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables     
+
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=10,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2024-05-02 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=1,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=2,@MasterCompanyId=1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
+CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -414,8 +415,9 @@ BEGIN
 							   @SOModuleTypeId,  --'SalesOrder',
 							   LegalEntityName = (SELECT   
 								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+									 FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
+										LEFT JOIN [dbo].[SalesOrderStocklineV1] STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+										JOIN [dbo].[Stockline] SL ON SL.StockLineId = STK.StockLineId
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
@@ -1236,7 +1238,7 @@ BEGIN
 								CASE WHEN SOBI.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, SOBI.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
 								DATEADD(DAY, SO.[NetDays],SOBI.[InvoiceDate]), -- 'DueDate',     
 								STUFF((SELECT DISTINCT ',' + UPPER(SOP.[CustomerReference]) 
-									FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)									 
+									FROM [dbo].[SalesOrder] SOP WITH (NOLOCK)									 
 									WHERE SOP.[SalesOrderId] = SO.[SalesOrderId]
 									FOR XML PATH('')), 1, 1, ''),
 								UPPER(ISNULL(SO.[SalesPersonName],'Unassigned')),
@@ -1300,8 +1302,9 @@ BEGIN
 							   @SOModuleTypeId,  --'SalesOrder',
 							   LegalEntityName = (SELECT   
 								STUFF((SELECT DISTINCT ',' + LE.[Name]  
-									 FROM [dbo].[SalesOrderPart] SOP WITH (NOLOCK)
-										JOIN [dbo].[Stockline] SL ON SL.StockLineId = SOP.StockLineId
+									 FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
+										LEFT JOIN [dbo].[SalesOrderStocklineV1] STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+										JOIN [dbo].[Stockline] SL ON SL.StockLineId = STK.StockLineId
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  

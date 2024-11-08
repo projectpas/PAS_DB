@@ -1,7 +1,20 @@
-﻿-------------------------------------------------------------------------------------------
+﻿/*************************************************************           
+ ** File:   [SearchShippingDashboardData]
+ ** Author: unknown
+ ** Description: 
+ ** Purpose:         
+ ** Date:          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date          Author			Change Description            
+ ** --   --------      -------			--------------------------------
+	1    11/04/2024	   Vishal Suthar	Modified to make use of new SO Part tables
 
 -- EXEC [dbo].[SearchPORODashboardData] 1, 10, null, 1, 1
-CREATE   PROCEDURE [dbo].[SearchShippingDashboardData]
+************************************************************************/
+CREATE    PROCEDURE [dbo].[SearchShippingDashboardData]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -99,7 +112,7 @@ BEGIN
 						'' as ShippingMethod,
 						'Ready to ship' as'Status',
 						Max(sopt.ConfirmedDate) as timeHrs
-				        FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+				        FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId

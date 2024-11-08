@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetSalesOrderQuoteHistoryReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuote History Report 
@@ -15,12 +14,13 @@
  **************************************************************           
  ** S NO   Date         Author  	Change Description            
  ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
+    1                 Swetha		Created
+	2	        	  Swetha		Added Transaction & NO LOCK
+	3	        	  Vishal Suthar Modified to make use of new SOQ-SO new tables
      
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteHistoryReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderQuoteHistoryReport] @customername varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuoteHistoryReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -95,7 +95,7 @@ BEGIN
         SOQP.conditionname 'Condition',
         SOQ.salesorderquotenumber 'SO Quote Num',
         SOQ.statusname 'QuoteStatus',
-        ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) AS 'Quote Amount',
+        ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(Charges.BillingAmount, 0)) AS 'Quote Amount',
         E.firstname + ' ' + E.lastname 'Sales Person',
         CONVERT(varchar, SOQ.opendate, 101) 'QuoteDate',
         SOQ.leadsourcename 'Lead Source',
@@ -146,14 +146,12 @@ BEGIN
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
         ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-        LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK)
-          ON SO.SalesOrderId = SOP.SalesOrderId
-        LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
-          ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-        LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
-          ON SOQP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON SOQP.stocklineId = STL.StockLineId
+        LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+        LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
+        LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON STK.stocklineId = STL.StockLineId
         LEFT JOIN DBO.CustomerType CT WITH (NOLOCK)
           ON SOQ.AccountTypeId = CT.CustomerTypeId
         --LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId

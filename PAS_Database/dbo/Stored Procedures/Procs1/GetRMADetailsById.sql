@@ -18,10 +18,11 @@
     1    22/04/2022   Moin Bloch      Created
 	2    03/27/2024   Hemant Saliya   Updated for Part wise Billing Amy Details
 	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
-     
+    4    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables 
+
 -- EXEC GetRMADetailsById 36
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetRMADetailsById]
+CREATE    PROCEDURE [dbo].[GetRMADetailsById]
 @RMAHeaderId bigint
 AS
 BEGIN
@@ -72,15 +73,16 @@ BEGIN
 			  (SOBII.OtherTax * -1) As OtherTax, 
 			  (SOBII.GrandTotal * -1) AS GrandTotal, 
 			  (SOBII.GrandTotal * -1) AS [InvoiceAmt],
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
-			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPN.UnitSalesPricePerUnit, 0)) AS [COGSInventory], ISNULL(SOPN.UnitSalesPricePerUnit, 0) AS [COGSPartsUnitCost],
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSParts], 0 AS [COGSLabor], 0 AS [COGSOverHeadCost], --SOF.BillingAmount, SOC.BillingAmount,
+			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOPC.UnitSalesPrice, 0)) AS [COGSInventory], ISNULL(SOPC.UnitSalesPrice, 0) AS [COGSPartsUnitCost],
 			  CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END AS UnitPrice,
 			  (ISNULL(SOBII.NoofPieces, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN [dbo].[SalesOrderBillingInvoicingItem] SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CRD.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
 				LEFT JOIN [dbo].[SalesOrderBillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.SOBillingInvoicingId = CRD.InvoiceId AND SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
-				LEFT JOIN [dbo].[SalesOrderPart] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [dbo].[SalesOrderFreight] SOF WITH (NOLOCK) ON SOF.SalesOrderPartId = SOPN.SalesOrderPartId
 				LEFT JOIN [dbo].[SalesOrderCharges] SOC WITH (NOLOCK) ON SOC.SalesOrderPartId = SOPN.SalesOrderPartId

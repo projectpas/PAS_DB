@@ -15,10 +15,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
-     
+    2	 11/04/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+
 --EXEC [SalesOrderSummarizedHistoryByPN] 246,0
 **************************************************************/
-CREATE PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
+CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
 @ItemMasterId BIGINT=3,
 @IsTwelveMonth BIT = 1
 AS
@@ -47,9 +48,10 @@ BEGIN
 						Cond.Description AS Condition,
 						Cond.ConditionId,
 						C.Code AS CurrencyName,
-						((ISNULL(SOP.UnitSalePrice, 0) * ISNULL(SOP.Qty, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						((ISNULL(SOP.UnitCost, 0) * ISNULL(SOP.Qty, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost
-					FROM dbo.SalesOrderPart SOP WITH(NOLOCK)
+						((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
+						((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost
+					FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK)
+						JOIN dbo.SalesOrderPartCost SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrder SO WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 						JOIN dbo.Condition Cond WITH(NOLOCK) ON SOP.ConditionId = Cond.ConditionId

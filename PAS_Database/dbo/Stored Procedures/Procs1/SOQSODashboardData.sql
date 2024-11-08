@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SOQSODashboardData]
  ** Author: Deep Patel
  ** Description: This stored procedure is used to Get SOQSO Dashboard Details
@@ -13,6 +12,7 @@
  ** --   --------      -------		--------------------------------          
     1	19-July-2022	Deep Patel		Created
 	2	01-JAN-2024		AMIT GHEDIYA	added isperforma Flage for SO
+	3   16-OCT-2024		Abhishek JirawlaImplemented the new tables for SalesOrderQuotePart related tables (Needs to be revisited)
 
 ************************************************************************/
 CREATE PROCEDURE [dbo].[SOQSODashboardData]
@@ -109,19 +109,15 @@ BEGIN
 			;With Result AS(
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
-				SO.SalesOrderNumber,
-				--ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
-				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
-				--,ISNULL(SUM(SOQF.BillingAmount),0) AS Freight,ISNULL(SUM(SOQC.BillingAmount),0) AS Charges
-				--,SOQF.BillingAmount AS Freight,SOQC.BillingAmount AS Charges
-				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SP.NetSales),0)as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				SO.SalesOrderNumber,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
+				,ISNULL(SUM(SPC.NetSaleAmount),0)as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId
-				LEFT Join SalesOrderQuotePart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				LEFT Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
@@ -208,22 +204,20 @@ BEGIN
 			;With Result AS(
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
-				SO.SalesOrderNumber
-				--,ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
-				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SP.NetSales),0)as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				SO.SalesOrderNumber ,ISNULL(SUM(SPC.NetSaleAmount),0)as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId
-				INNER Join SalesOrderQuotePart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				INNER Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
-				Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
+				--Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -306,21 +300,20 @@ BEGIN
 				Select SOQ.SalesOrderQuoteId as 'RefId',SOQ.SalesOrderQuoteNumber,SOQ.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				--,ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
-				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrderQuote SOQ WITH (NOLOCK)
 				Inner Join MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SOQ.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId
-				INNER Join SalesOrderQuotePart SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				INNER Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
-				Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
+				--Left Join SalesOrderPart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -403,16 +396,15 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber
-				--,ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost'
-				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
-				INNER Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
@@ -502,14 +494,15 @@ BEGIN
 				SO.SalesOrderNumber
 				--,ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost'
 				--,ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				,ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue'
+				,ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue'
 				,SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
-				INNER Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0				
+				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0			
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
@@ -599,19 +592,20 @@ BEGIN
 				SO.SalesOrderNumber,
 				--ISNULL(SUM(SP.NetSales),0)as 'EstRevenue',ISNULL(SUM(SP.NetSales),0) as 'EstCost',
 				--ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(SUM(B.Charges),0)as 'EstRevenue',
+				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(SUM(B.Charges),0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate',
 				SP.ConditionId,SP.ItemMasterId
 				from SalesOrder SO WITH (NOLOCK)
-				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
-				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
-				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
-				INNER Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
-				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
-				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
-				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
+				INNER JOIN MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
+				INNER JOIN Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
+				INNER JOIN CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
+				INNER JOIN SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
+				LEFT JOIN ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
+				LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				LEFT JOIN Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
+				LEFT JOIN SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				--Left Join SalesOrderQuotePart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSSOModuleID AND MSD.ReferenceID = SO.SalesOrderId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
@@ -705,18 +699,19 @@ BEGIN
 				SO.SalesOrderNumber,
 				--ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
 				--ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
-				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
-				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
-				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
-				INNER Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
-				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
-				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
-				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
+				INNER JOIN MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
+				INNER JOIN Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
+				INNER JOIN CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
+				INNER JOIN SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
+				LEFT JOIN ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
+				LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				LEFT JOIN Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
+				LEFT JOIN SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				--Left Join SalesOrderQuotePart SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SOP.SalesOrderQuotePartId is not null
 				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSSOModuleID AND MSD.ReferenceID = SO.SalesOrderId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
@@ -805,16 +800,15 @@ BEGIN
 				Select SO.SalesOrderId as 'RefId',SOQ.SalesOrderQuoteNumber,SO.OpenDate as 'OpenDate',C.CustomerId,C.Name as 'CustomerName',MST.Name as 'Status',IsNull(P.Description,'') as 'Priority',(E.FirstName+' '+E.LastName)as SalesPerson,
 				IsNull(IM.partnumber,'') as 'PartNumber',IsNull(im.PartDescription,'') as 'PartDescription',
 				SO.SalesOrderNumber,
-				--ISNULL(SP.NetSales,0)as 'EstRevenue',ISNULL(SP.NetSales,0) as 'EstCost',
-				--ISNULL(SUM(SP.NetSales),0) + ISNULL(A.Freight,0)as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) as 'EstCost',
-				ISNULL(SUM(SP.NetSales),0) + ISNULL(B.Charges,0)as 'EstRevenue',
+				ISNULL(SUM(SPC.NetSaleAmount),0) as 'EstCost',
+				ISNULL(SUM(SPC.NetSaleAmount),0) + ISNULL(B.Charges,0)as 'EstRevenue',
 				SP.EstimatedShipDate,SP.CustomerRequestDate as 'RequestedDate'
 				from SalesOrder SO WITH (NOLOCK)
 				Inner Join MasterSalesOrderStatus MST WITH (NOLOCK) on SO.StatusId=MST.Id
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId=SO.CustomerId
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SO.AccountTypeId
-				INNER Join SalesOrderPart SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
+				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
 				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId

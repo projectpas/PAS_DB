@@ -19,7 +19,8 @@
 	6    19 March 2024  Bhargav Saliya		Resolved Count Issue(MRO Inputs) in MRO Dashboard 
 	7	 28 March 2024  Bhargav Saliya		Resolve Snapshot: MRO Billing amount issue
 	8	 28 June 2024   Vishal Suthar		Added login entry in LogInLog table for employee when they login into the system
-	9	 30 Oct 2024   HEMANT SALIYA		Verify the count 
+	9    16 OCT 2024	Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
+	10	 30 Oct 2024    HEMANT SALIYA		Verify the count 
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -98,18 +99,20 @@ BEGIN
 		AND WOP.IsClosed = 0 AND WOP.MasterCompanyId = @MasterCompanyId AND
 		CONVERT(DATE, WOP.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) AND CONVERT(DATE, WOP.CreatedDate) <= CONVERT(DATE, @SelectedDate) 
 
-		SELECT @PartsSaleWorkable = SUM(SOM.NetSales) FROM DBO.SalesOrderPart SOM WITH (NOLOCK) 
-			INNER JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOM.SalesOrderId
-			INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-			INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-			INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-		WHERE SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
+		SELECT @PartsSaleWorkable = SUM(SOPC.NetSaleAmount) 
+		FROM DBO.SalesOrderPartV1 SOM WITH (NOLOCK) 
+				INNER JOIN DBO.SalesOrder SO ON SO.SalesOrderId = SOM.SalesOrderId
+				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOM.SalesOrderPartId and SOPC.IsDeleted=0
+				INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
+				INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
+				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+			WHERE SO.StatusId NOT IN (SELECT Id FROM DBO.MasterSalesOrderStatus WITH (NOLOCK) WHERE [Name] = 'Closed')
 			AND SOM.SalesOrderPartId NOT IN (SELECT SalesOrderPartId FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
-									INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
-									WHERE SOS.SalesOrderId = SO.SalesOrderId)
-		AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) 
-		AND CONVERT(DATE, SO.CreatedDate) <= CONVERT(DATE, @SelectedDate)
-		AND SO.MasterCompanyId = @MasterCompanyId
+			INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
+			Where SOS.SalesOrderId = SO.SalesOrderId)
+			--AND CONVERT(DATE, SO.CreatedDate) >= CONVERT(DATE, @BacklogStartDt) 
+			AND CONVERT(DATE, SO.CreatedDate) <= CONVERT(DATE, @SelectedDate)
+			AND SO.MasterCompanyId = @MasterCompanyId
 
 		SELECT @WOQProcessed = COUNT(WOQD.WorkOrderQuoteId) FROM DBO.WorkOrderQuote WOQ WITH (NOLOCK) 
 			INNER JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId

@@ -25,9 +25,10 @@
     CONSTRAINT [FK_SalesOrderUnReservedStock_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderUnReservedStock_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderUnReservedStock_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
-    CONSTRAINT [FK_SalesOrderUnReservedStock_SalesOrderPart] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPart] ([SalesOrderPartId]),
     CONSTRAINT [FK_SalesOrderUnReservedStock_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

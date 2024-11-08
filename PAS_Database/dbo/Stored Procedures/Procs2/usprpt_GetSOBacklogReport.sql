@@ -17,7 +17,8 @@
     1    05-May-2022		Mahesh Sorathiya	Created  
 	2    20-JUNE-203		Devendra Shekh		made changes for total unitcost and extcost
 	3    28-MARCH-2024		Ekta Chandegra		IsActive and IsDelete flag is added 
-	3    17-MAY-2024		Vishal Suthar		Modified Unit Cost, Ext. Cost to Unit Price and Ext. Price
+	4    17-MAY-2024		Vishal Suthar		Modified Unit Cost, Ext. Cost to Unit Price and Ext. Price
+	5    10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -94,7 +95,10 @@ BEGIN
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN dbo.MasterSalesOrderQuoteStatus ST WITH (NOLOCK) ON SO.StatusId = ST.id
 			LEFT JOIN DBO.SalesOrderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-			LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
+		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 		  WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		        AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid  
@@ -113,7 +117,7 @@ BEGIN
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 		  GROUP BY 
 			SO.SalesOrderNumber, FORMAT(SO.openDate, 'MM/dd/yyyy'), SOQ.SalesOrderQuoteNumber, ST.name, IM.partnumber,IM.PartDescription, SO.CustomerName, SO.customerreference,
-			FORMAT(SOP.unitcost,'#,0.00'),FORMAT(SOP.qty * SOP.unitcost,'#,0.00') ,FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy'),FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy'),
+			FORMAT(SOPC.UnitCost,'#,0.00'),FORMAT(SOP.QtyOrder * SOPC.UnitCost,'#,0.00') ,FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy'),FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy'),
 			MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name
 			) TEMP
 	  END
@@ -131,12 +135,12 @@ BEGIN
 			UPPER(IM.PartDescription) AS 'pndescription',
 			UPPER(SO.CustomerName) AS 'customer',
 			UPPER(SO.customerreference) 'custref',
-			SUM(SOP.qty) 'qty',
+			SUM(SOP.QtyOrder) 'qty',
 			--ISNULL(SUM(SOP.qty * SOP.unitcost) , 0) 'extcost',
-			SUM(ISNULL(SOP.qty, 0) * (ISNULL(SOP.UnitSalesPricePerUnit, 0))) + 
+			SUM(ISNULL(SOP.QtyOrder, 0) * (ISNULL(SOPC.UnitSalesPrice, 0))) + 
 			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = SOP.SalesOrderId AND socg.ItemMasterId = SOP.ItemMasterId AND socg.ConditionId = SOP.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0) 'extcost',
 			--ISNULL(SOP.unitcost , 0) 'unitcost',
-			ISNULL(SOP.UnitSalesPricePerUnit , 0) +
+			ISNULL(SOPC.UnitSalesPrice , 0) +
 			(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderCharges socg WITH (NOLOCK) WHERE socg.SalesOrderId = SOP.SalesOrderId AND socg.ItemMasterId = SOP.ItemMasterId AND socg.ConditionId = SOP.ConditionId AND socg.IsActive = 1 AND socg.IsDeleted = 0)
 			AS 'unitcost',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
@@ -158,7 +162,10 @@ BEGIN
 			LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN dbo.MasterSalesOrderQuoteStatus ST WITH (NOLOCK) ON SO.StatusId = ST.id
 			LEFT JOIN DBO.SalesOrderquote SOQ WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-			LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			--LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
+		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
       WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		    AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid
@@ -181,8 +188,8 @@ BEGIN
 			SOP.ItemMasterId, SOP.ConditionId, SOP.SalesOrderId,
 			--ISNULL(SOP.unitcost , 0),
 			--ISNULL((SOP.qty * SOP.unitcost) , 0),
-			ISNULL(SOP.UnitSalesPricePerUnit , 0),
-			ISNULL((SOP.qty * SOP.UnitSalesPricePerUnit) , 0),
+			ISNULL(SOPC.UnitSalesPrice , 0),
+			ISNULL((SOP.QtyOrder * SOPC.UnitSalesPrice) , 0),
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END ,
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END,

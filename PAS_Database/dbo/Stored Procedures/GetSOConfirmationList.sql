@@ -14,12 +14,13 @@
  **************************************************************                 
  ** SN   Date             Author           Change Description                  
  ** --  -----------    -------------    --------------------------------                
-    01  06-August-2024  Ayushi Patel          Created      
+    01  06-August-2024  Ayushi Patel    Created      
+	02  11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
 **************************************************************/     
-CREATE   PROCEDURE [dbo].[GetSOConfirmationList]
+CREATE    PROCEDURE [dbo].[GetSOConfirmationList]
 @PageNumber int = 1,
 @PageSize int = 20,
 @SortColumn varchar(50)=NULL,
@@ -66,9 +67,9 @@ BEGIN
 			part.SalesOrderId AS SOConformationNumber,
 			part.SalesOrderId,
 			part.SalesOrderPartId,
-			part.SalesOrderQuoteId,
+			soqp.SalesOrderQuoteId,
 			part.ItemMasterId,
-			part.StockLineId,
+			stk.StockLineId,
 			so.SalesOrderNumber,
 			ISNULL(q.SalesOrderQuoteNumber, '') AS SalesOrderQuoteNumber,
 			--CONVERT(VARCHAR, so.OpenDate, 101) AS OpenDate,
@@ -76,7 +77,7 @@ BEGIN
 			ISNULL(cust.Name, '') AS CustomerName,
 			ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
 			part.FxRate,
-			part.Qty,
+			part.QtyOrder Qty,
 			part.CreatedBy,
 			part.CreatedDate,
 			part.UpdatedBy,
@@ -91,20 +92,22 @@ BEGIN
 			ISNULL(iu.ShortName, '') AS UOM,
 			ISNULL(rPart.QtyToReserve, 0) AS QtyReserved,
 			CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved,
-			ISNULL(part.CustomerReference, '') AS CustomerReference,
+			ISNULL(so.CustomerReference, '') AS CustomerReference,
 			ISNULL(st.Name, '') AS StatusName,
 			ISNULL(con.FirstName + ' ' + con.LastName, '') AS ConfirmedBy,
 			ISNULL(soc.CustomerMemo, '') AS CustomerMemo,
 			ISNULL(soc.InternalMemo, '') AS InternalMemo
     FROM
-        [dbo].[SalesOrderPart] part WITH (NOLOCK)
+        [dbo].[SalesOrderPartV1] part WITH (NOLOCK)
+		LEFT JOIN [SalesOrderStocklineV1] stk ON stk.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN SalesOrderApproval soc ON part.SalesOrderPartId = soc.SalesOrderPartId
 		INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON part.SalesOrderId = so.SalesOrderId
 		LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-		LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON part.StockLineId = qs.StockLineId
+		LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
 		INNER JOIN dbo.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 		LEFT JOIN dbo.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
-		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON part.SalesOrderQuoteId = q.SalesOrderQuoteId
+		LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN dbo.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN dbo.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
 		LEFT JOIN dbo.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
@@ -186,9 +189,9 @@ BEGIN
         part.SalesOrderId AS SOConformationNumber,
         part.SalesOrderId,
         part.SalesOrderPartId,
-        part.SalesOrderQuoteId,
+        soqp.SalesOrderQuoteId,
         part.ItemMasterId,
-        part.StockLineId,
+        stk.StockLineId,
         so.SalesOrderNumber,
         CASE WHEN q.SalesOrderQuoteNumber IS NOT NULL THEN q.SalesOrderQuoteNumber ELSE '' END AS SalesOrderQuoteNumber,
         --CONVERT(VARCHAR(10), so.OpenDate, 101) AS OpenDate,
@@ -196,7 +199,7 @@ BEGIN
         ISNULL(cust.Name, '') AS CustomerName,
         ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
         part.FxRate,
-        part.Qty,
+        part.QtyOrder Qty,
         part.CreatedBy,
 		part.EstimatedShipDate,
         CONVERT(VARCHAR(19), part.CreatedDate, 120) AS CreatedDate,
@@ -211,20 +214,22 @@ BEGIN
         ISNULL(iu.ShortName, '') AS UOM,
         ISNULL(rPart.QtyToReserve, 0) AS QtyReserved,
         CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved, -- Assuming 2 is the ID for 'Approved'
-        ISNULL(part.CustomerReference, '') AS CustomerReference,
+        ISNULL(so.CustomerReference, '') AS CustomerReference,
         ISNULL(st.Name, '') AS StatusName,
         ISNULL(con.FirstName + ' ' + con.LastName, '') AS ConfirmedBy,
         ISNULL(soc.CustomerMemo, '') AS CustomerMemo,
         ISNULL(soc.InternalMemo, '') AS InternalMemo
     FROM
-        SalesOrderPart part
+        DBO.SalesOrderPartV1 part
+        LEFT JOIN SalesOrderStocklineV1 stk ON part.SalesOrderPartId = stk.SalesOrderPartId
         LEFT JOIN SalesOrderApproval soc ON part.SalesOrderPartId = soc.SalesOrderPartId
         INNER JOIN SalesOrder so ON part.SalesOrderId = so.SalesOrderId
         LEFT JOIN Customer cust ON so.CustomerId = cust.CustomerId
-        LEFT JOIN StockLine qs ON part.StockLineId = qs.StockLineId
+        LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
         LEFT JOIN ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
         LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
-        LEFT JOIN SalesOrderQuote q ON part.SalesOrderQuoteId = q.SalesOrderQuoteId
+        LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
+		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
         LEFT JOIN SalesOrderReserveParts rPart ON part.SalesOrderPartId = rPart.SalesOrderPartId
         LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId

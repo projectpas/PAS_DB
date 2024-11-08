@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetSOBacklogReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SOBacklog Report  
@@ -13,14 +12,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** S NO   Date         Author    Change Description            
- ** --   --------     -------    --------------------------------          
-    1                 Swetha Created
-  2              Swetha Added Transaction & NO LOCK
-     
+ ** S NO   Date         Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+    1					Swetha			Created
+    2					Swetha			Added Transaction & NO LOCK
+	3	11/05/2024		Vishal Suthar	Modified to make use of new SOQ-SO new tables
+
 EXECUTE   [dbo].[usp_GetSOBacklogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSOBacklogReport] @Customername varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSOBacklogReport] @Customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -96,9 +96,9 @@ BEGIN
         UPPER(IM.PartDescription) AS 'PNDescription',
         UPPER(C.Name) AS 'Customer',
         UPPER(SO.customerreference) 'Cust Ref',
-        SOP.qty 'Qty',
-        SOP.unitcost 'Unit Cost',
-        SOP.qty * SOP.unitcost 'Ext cost',
+        SOP.QtyOrder 'Qty',
+        SOPC.unitcost 'Unit Cost',
+        SOP.QtyOrder * SOPC.unitcost 'Ext cost',
         SOP.CustomerRequestDate AS 'Cust Request Date',
         SOP.EstimatedShipDate AS ' Ship Date',
         SO.Statuschangedate 'SO Approved Date',
@@ -110,16 +110,13 @@ BEGIN
 	  JOIN dbo.MasterSalesOrderQuoteStatus ST WITH (NOLOCK) ON SO.StatusId = ST.id
       LEFT JOIN DBO.SalesOrderquote SOQ WITH (NOLOCK)
         ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-        LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
-          ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-        LEFT JOIN DBO.Customer C WITH (NOLOCK)
-          ON SOQ.CustomerId = C.CustomerId
-        LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
-          ON SOQP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK)
-          ON SO.SalesOrderId = SOP.SalesOrderId
-        LEFT JOIN DBO.Salesorderapproval SOA WITH (NOLOCK)
-          ON So.SalesOrderId = SOA.SalesOrderId
+        LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+        LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
+        LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
+        LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+        LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+        LEFT JOIN DBO.Salesorderapproval SOA WITH (NOLOCK) ON So.SalesOrderId = SOA.SalesOrderId
         LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK)
           ON SOA.SalesOrderId = SOS.SalesOrderId
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)

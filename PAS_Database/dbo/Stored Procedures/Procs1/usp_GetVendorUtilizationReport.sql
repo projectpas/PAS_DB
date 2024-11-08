@@ -15,12 +15,13 @@
  **************************************************************           
  ** S NO   Date         Author  	Change Description            
  ** --   --------     -------		--------------------------------          
-    1                 Swetha Created
-	2	        	  Swetha Added Transaction & NO LOCK
-     
+    1                 Swetha		Created
+	2	        	  Swetha		Added Transaction & NO LOCK
+    3   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetVendorUtilizationReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetVendorUtilizationReport] @status varchar(20),
+CREATE      PROCEDURE [dbo].[usp_GetVendorUtilizationReport] @status varchar(20),
 @vendorname varchar(40) = NULL,
 @fromdate datetime,
 @todate datetime,
@@ -204,9 +205,8 @@ BEGIN
         POP.QuantityOrdered,
         ((SELECT
               SUM(SORP.QtyToReserve)
-            FROM dbo.SalesOrderPart SOP
-            INNER JOIN dbo.SalesOrderReserveParts SORP
-              ON SOP.SalesOrderPartId = SORP.SalesOrderPartId
+            FROM dbo.SalesOrderPartV1 SOP
+            INNER JOIN dbo.SalesOrderReserveParts SORP ON SOP.SalesOrderPartId = SORP.SalesOrderPartId
             WHERE SOP.SalesOrderId = POP.SalesOrderId
             AND SOP.ItemMasterId = POP.ItemMasterId
             AND SOP.ConditionId = POP.ConditionId)) AS QTY,
@@ -229,8 +229,7 @@ BEGIN
           ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1
 	   LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
           ON POP.salesorderid = SO.SalesOrderId
-	    LEFT JOIN DBO.salesorderpart SOP WITH (NOLOCK)
-          ON POP.salesorderid = SOP.SalesOrderId
+	    LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON POP.salesorderid = SOP.SalesOrderId
         LEFT JOIN DBO.Customer C WITH (NOLOCK)
           ON SO.CustomerId = C.CustomerId
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK)

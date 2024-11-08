@@ -57,8 +57,11 @@
     [UnitSalesPricePerUnit] NUMERIC (9, 2) NULL,
     [LotId]                 BIGINT         NULL,
     [IsLotAssigned]         BIT            NULL,
+    [NewSalesOrderPartId]   BIGINT         NULL,
     CONSTRAINT [PK_SalesOrderPartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
+
+
 
 
 

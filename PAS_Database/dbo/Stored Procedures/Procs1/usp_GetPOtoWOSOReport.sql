@@ -1,4 +1,21 @@
-﻿CREATE PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
+﻿/*************************************************************               
+ ** File:   [usp_GetPOtoWOSOReport]               
+ ** Author:       
+ ** Description:         
+ ** Purpose:             
+ ** Date:   11/05/2024            
+              
+ ** RETURN VALUE:               
+      
+ **************************************************************               
+  ** Change History               
+ **************************************************************               
+ ** PR   Date         Author		Change Description                
+ ** --   --------     -------		--------------------------------              
+    1  11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+         
+**************************************************************/ 
+CREATE      PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
 @vendorname varchar(40) = NULL,
 @fromdate datetime,
 @todate datetime,
@@ -104,7 +121,7 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.Salesorder SO WITH (NOLOCK)
           ON POP.salesorderid = SO.salesorderid
-        LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK)
+        LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK)
           ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.ItemMaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.ItemMasterId

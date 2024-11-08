@@ -13,11 +13,12 @@
 	2	 01/02/2024	  AMIT GHEDIYA	  added isperforma Flage for SO
 	3	 04/01/2024	  HEMANT SALIYA	  added isperforma Flage for SO
 	4    04/12/2024   HEMANT SALIYA   Updated Status Id 
+	5	 11/04/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
 	
  --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
 
-CREATE   PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
+CREATE    PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
 @InvoicingId bigint,
 @IsWorkOrder bit,
 @CreditMemoHeaderId bigint
@@ -37,7 +38,7 @@ BEGIN
 					   CM.PartDescription,
 					   CO.Code AS 'Codition',
 					   SOBI.InvoiceNo,
-					   SOPN.CustomerReference,
+					   SO.CustomerReference,
 					   IM.PurchaseUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   --ABS(CM.UnitPrice) UnitPrice,
@@ -49,7 +50,9 @@ BEGIN
 				FROM dbo.CreditMemoDetails CM WITH (NOLOCK)		
 					LEFT JOIN  dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingItemId = CM.BillingInvoicingItemId AND ISNULL(SOBII.IsProforma,0) = 0
 					LEFT JOIN dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId AND ISNULL(SOBI.IsProforma,0) = 0
-					LEFT JOIN  dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPN.StockLineId
+					LEFT JOIN  dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+					LEFT JOIN  dbo.SalesOrderStocklineV1 SOPStk WITH (NOLOCK) ON SOPStk.SalesOrderPartId = SOBII.SalesOrderPartId AND CM.StocklineId = SOPStk.StockLineId
+					LEFT JOIN  dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.SalesOrderId
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId = IM.ItemMasterId
 				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId;

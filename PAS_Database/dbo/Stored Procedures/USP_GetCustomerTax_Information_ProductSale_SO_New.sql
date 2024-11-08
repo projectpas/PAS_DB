@@ -14,10 +14,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/26/2024   Moin Bloch    Created
-     
+    2    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 638,983,3383
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] 
+CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_New] 
 @SalesOrderId BIGINT,
 @SalesOrderPartId BIGINT,
 @CustomerId BIGINT
@@ -68,8 +69,9 @@ BEGIN
 				   SO.[SalesOrderId],
 				   SOP.[SalesOrderPartId]
 			  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
-	    INNER JOIN [dbo].[SalesOrderPart] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
-		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
+	    INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
+	    LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) ON SOPS.[SalesOrderPartId] = SOP.[SalesOrderPartId] 
+		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1

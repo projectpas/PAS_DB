@@ -13,8 +13,9 @@
 	3    06/12/2023   Vishal Suthar Updated the SP to handle invoice before shipping and versioning
 	4    01/31/2024   AMIT GHEDIYA	Updated to Added IsPerforma for Billing
 	5	 03/29/2024	  Bhargav Saliya Get CreditTerms From SO instead of CreditTerms
+	6	 11/04/2024	  Vishal Suthar  Modified to make use of new SO Part tables
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetBillingInvoiceByShipping]
+CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
 	@SalesOrderPartId bigint
 AS
@@ -29,7 +30,7 @@ SET NOCOUNT ON;
 				so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
 				so.TypeId, sotype.[Name] as RevType, sosi.QtyShipped as NoofPieces
 			FROM DBO.SalesOrderShipping sos WITH (NOLOCK) 
-			INNER JOIN DBO.SalesOrderPart sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
+			INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderId = sos.SalesOrderId
 			INNER JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderShippingId = sos.SalesOrderShippingId AND sosi.SalesOrderPartId = sop.SalesOrderPartId
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
@@ -46,7 +47,7 @@ SET NOCOUNT ON;
 				so.EmployeeId, so.OpenDate, so.CustomerReference as CustomerRef, so.CustomerId, CONCAT(empsp.FirstName, ' ', empsp.LastName) as SalesPerson,
 				so.SalesPersonId, cf.CreditLimit, cf.CreditTermsId, so.[CreditTermName] as CreditTerm, cf.CurrencyId,
 				so.TypeId, sotype.[Name] as RevType, (ISNULL(SOR.QtyToReserve, 0) - ISNULL(sobii.NoofPieces, 0)) as NoofPieces
-			FROM DBO.SalesOrderPart sop WITH (NOLOCK)
+			FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 			INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId
 			LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON cf.CustomerId = co.CustomerId

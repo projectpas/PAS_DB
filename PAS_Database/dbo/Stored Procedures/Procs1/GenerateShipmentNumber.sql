@@ -1,7 +1,24 @@
-﻿/*************************************************************
+﻿/*************************************************************           
+ ** File:   [GenerateShipmentNumber]           
+ ** Author:   Vishal Suthar  
+ ** Description: 
+ ** Purpose:         
+ ** Date:   11/04/2024       
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date         Author  	Change Description            
+ ** --   --------     -------		--------------------------------
+	1	11/04/2024    Vishal Suthar Modified to make use of new SOQ new tables
+     
 EXEC [dbo].[GenerateShipmentNumber]  10
-**************************************************************/ 
-CREATE PROCEDURE [dbo].[GenerateShipmentNumber]  
+**************************************************************/
+CREATE      PROCEDURE [dbo].[GenerateShipmentNumber]  
   @SalesOrderId BIGINT
 AS
 BEGIN
@@ -21,7 +38,7 @@ BEGIN
 			UPDATE Ranked
 			SET SmentNum = row_num;
 
-			SELECT CustomerReference as [value] FROM SalesOrderPart Where SalesOrderId = @SalesOrderId
+			SELECT CustomerReference as [value] FROM SalesOrder Where SalesOrderId = @SalesOrderId
 		END
 	END TRY    
 	BEGIN CATCH      

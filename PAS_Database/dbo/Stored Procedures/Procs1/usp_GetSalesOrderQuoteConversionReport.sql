@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_GetSalesOrderQuoteConversionReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuote Conversion Report 
@@ -18,10 +17,11 @@
     1                 Swetha			 Created
 	2	        	  Swetha			 Added Transaction & NO LOCK
 	3	 01/02/2024	  AMIT GHEDIYA	     added isperforma Flage for SO
+	4	 11/04/2024	  VISHAL SUTHAR	     Modified to make use of new SOQ-SO part tables
      
 EXECUTE   [dbo].[usp_GetSalesOrderQuoteConversionReport] '','2020-06-15','2021-06-15','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderQuoteConversionReport] @customername varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuoteConversionReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
@@ -96,16 +96,16 @@ BEGIN
         SOQ.versionnumber 'Version',
         CONVERT(varchar, SOQ.opendate, 101) 'QuoteDate',
         SO.salesordernumber 'SONum',
-        ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) AS 'QuotedRevenue',
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) AS 'QuotedDirectCost',
-        ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) -
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) 'Quoted Margin',
-        (((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) -
-        ((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0))) /
+        ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) AS 'QuotedRevenue',
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) AS 'QuotedDirectCost',
+        ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) -
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) 'Quoted Margin',
+        (((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) -
+        ((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0))) /
         NULLIF(((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)), 0) 'Margin % ',
-        ((ISNULL(SOP.UnitSalePrice, 0) * ISNULL(SOP.Qty, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) 'SO Rev ',
-        ((ISNULL(SOP.UnitSalePrice, 0) * ISNULL(SOP.Qty, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) - ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) 'Rev Amt',
-        (((ISNULL(SOP.UnitSalePrice, 0) * ISNULL(SOP.Qty, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) - ((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0))) / NULLIF(((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)), 0) 'Rev %',
+        ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) 'SO Rev ',
+        ((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) - ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)) 'Rev Amt',
+        (((ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL((select sum(sc.billingamount) from SalesOrderCharges  sc where sc.SalesOrderId =SO.SalesOrderId and SOP.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ), 0)) - ((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0))) / NULLIF(((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL((select isnull(sum(soqc.BillingAmount),0) from SalesOrderQuoteCharges soqc where soqc.SalesOrderQuoteId = SOQ.SalesOrderQuoteId and soqc.IsActive=1 and soqc.IsDeleted=0 and soqc.SalesOrderQuotePartId= SOQP.SalesOrderQuotePartId ), 0)), 0) 'Rev %',
         SOBI.invoiceno 'InvoiceNum',
         CASE
           WHEN SOQ.salesorderquotenumber IS NOT NULL AND
@@ -159,16 +159,16 @@ BEGIN
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)
       LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
         ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
-        LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK)
-          ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-        LEFT JOIN DBO.Customer C WITH (NOLOCK)
-          ON SOQ.CustomerId = C.CustomerId
+        LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+        LEFT JOIN DBO.SalesOrderQuoteStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+        LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON SOQP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK)
-          ON SO.SalesOrderId = SOP.SalesOrderId
+        LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+        LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON SOQP.stocklineId = STL.StockLineId and STL.IsParent=1
+          ON STK.stocklineId = STL.StockLineId and STL.IsParent=1
         --left join DBO.SOMarginSummary SOMS WITH(NOLOCK) ON so.SalesOrderId=SOMS.SalesOrderId
         LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
           ON SO.SalesOrderId = SOBI.SalesOrderId AND ISNULL(SOBI.IsProforma,0) = 0

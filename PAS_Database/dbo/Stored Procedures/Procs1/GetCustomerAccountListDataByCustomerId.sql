@@ -28,12 +28,12 @@
 	15   19/03/2024        Bhargav Saliya  Get Days And NetDays From WO,SO and ESO Table instead of CreditTerms Table
 	16   19/03/2024        Devendra Shekh  amount mismatch issue resolved
 	17	 06/21/2024		   Hemant Saliya  added Un Applied Cash Details
-
+	18   11/04/2024		   Vishal Suthar	Modified to make use of new SO Part tables
 exec dbo.GetCustomerAccountListDataByCustomerId @customerId=3389,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',@OpenTransactionsOnly=1,
 @IncludeCredits=1,@SiteId=4527,@LegalEntityId=1
 
 ***************************************************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
+CREATE    PROCEDURE [dbo].[GetCustomerAccountListDataByCustomerId]
 	@CustomerId BIGINT = NULL,
 	@StartDate DATETIME = NULL,
 	@EndDate DATETIME = NULL,
@@ -62,7 +62,7 @@ BEGIN
 			;WITH NEWDepositAmt AS(
 						 SELECT nso.SalesOrderId AS Id, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
 												FROM [dbo].SalesOrder nso WITH (NOLOCK)  
-													INNER JOIN [dbo].SalesOrderPart nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
+													INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
 													INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SalesOrderPartId AND ISNULL(nsobii.IsProforma, 0) = 1
 													INNER JOIN [dbo].[SalesOrderBillingInvoicing] nsobi WITH(NOLOCK) on nsobii.SOBillingInvoicingId = nsobi.SOBillingInvoicingId AND ISNULL(nsobi.IsProforma, 0) = 1
 													AND nsobii.SalesOrderPartId = nsop.SalesOrderPartId GROUP BY nso.SalesOrderId
@@ -323,7 +323,7 @@ BEGIN
 			;WITH NEWDepositAmt AS(
 						 SELECT nso.SalesOrderId AS Id, SUM(ISNULL(nsobi.UsedDeposit,0)) as UsedDepositAmt, SUM(ISNULL(nsobi.DepositAmount,0)) as OriginalDepositAmt  
 												FROM [dbo].SalesOrder nso WITH (NOLOCK)  
-													INNER JOIN [dbo].SalesOrderPart nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
+													INNER JOIN [dbo].SalesOrderPartV1 nsop WITH(NOLOCK) on nsop.SalesOrderId = nso.SalesOrderId
 													INNER JOIN [dbo].[SalesOrderBillingInvoicingItem] nsobii WITH(NOLOCK) on nsop.SalesOrderPartId = nsobii.SalesOrderPartId AND ISNULL(nsobii.IsProforma, 0) = 1
 													INNER JOIN [dbo].[SalesOrderBillingInvoicing] nsobi WITH(NOLOCK) on nsobii.SOBillingInvoicingId = nsobi.SOBillingInvoicingId AND ISNULL(nsobi.IsProforma, 0) = 1
 													AND nsobii.SalesOrderPartId = nsop.SalesOrderPartId GROUP BY nso.SalesOrderId

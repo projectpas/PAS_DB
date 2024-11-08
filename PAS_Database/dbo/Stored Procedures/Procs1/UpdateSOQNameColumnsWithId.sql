@@ -63,17 +63,18 @@ BEGIN
 		Where SOQ.SalesOrderQuoteId = @SalesOrderQuoteId
 
 		Update SOQP
-		SET StockLineName = sl.StockLineNumber,
+		SET 
+		--StockLineName = sl.StockLineNumber,
 		PartNumber = im.partnumber,
 		PartDescription = im.PartDescription,
 		ConditionName = c.Description,
 		CurrencyName = Curr.Code,
 		PriorityName = P.Description,
-		StatusName = st.Description,
-		UnitSalesPricePerUnit = (soqp.GrossSalePricePerUnit - soqp.DiscountAmount)
-		FROM [dbo].[SalesOrderQuotePart] soqp WITH (NOLOCK)
+		StatusName = st.Description
+		FROM [dbo].[SalesOrderQuotePartV1] soqp WITH (NOLOCK)
+		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON soqp.StockLineId = sl.StockLineId
+		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = soqp.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON soqp.ConditionId = c.ConditionId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON soqp.StatusId = st.Id

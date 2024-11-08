@@ -19,9 +19,9 @@
 	3    08/17/2023	  Devendra SHekh		REMOVED ReadyToPick and added QtyRemaining
 	4    09/25/2023	  Devendra SHekh		PICKTICKET issue resolved
 	5    11/08/2023   Amit Ghediya          pick ticket issue for multipele part resolved
+	6    10/15/2024   Vishal Suthar			Modified SP to get Pick ticket print data from new SO Part tables
      
 -- -- EXEC [dbo].[GetPickTicketPrint] 503, 747, 290
-
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPickTicketPrint]
 	@SalesOrderId bigint,
@@ -41,7 +41,7 @@ BEGIN
 
 		;WITH TResrvePart as (
 		SELECT COUNT(SalesOrderReservePartId) as TotalResrvePart, sopp.SalesOrderId,  MIN(QtyRemaining)as MinQty, QtyToShip as NewTotalQtyToShip
-			FROM SalesOrderPart sopp WITH(NOLOCK)
+			FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 			INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 			LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 			WHERE sorpp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo AND sopt.SalesOrderPartId = @SalesOrderPartId
@@ -49,14 +49,14 @@ BEGIN
 		,cte as(
 				select SUM(QtyToShip)as TotalQtyToShip, SOPick.SalesOrderId, SOPick.SalesOrderPartId
 				FROM DBO.SOPickTicket SOPick WITH(NOLOCK) 
-				JOIN dbo.SalesOrderPart SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
+				JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPick.SalesOrderPartId
 				WHERE SOPick.SalesOrderId = @SalesOrderId 
 				AND SOPickTicketNumber = @pickTicketNo
 				AND SOPick.SalesOrderPartId = @SalesOrderPartId
 				GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
 		)
 		SELECT sopt.SOPickTicketId, sopt.CreatedDate as SOPickTicketDate, sopt.SalesOrderId, sl.StockLineNumber, 
-		sop.Qty, 
+		sop.QtyOrder Qty, 
 		--sopt.QtyToShip as QtyShipped, 
 		--cte.TotalQtyToShip as QtyShipped, 
 		TResrvePart.NewTotalQtyToShip as QtyToPick, 
@@ -73,9 +73,10 @@ BEGIN
 		WHEN MinQty > 0 THEN MinQty ELSE sopt.QtyRemaining END AS QtyRemaining
 		from SOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
-		INNER JOIN SalesOrderPart sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		INNER JOIN SalesOrderPartV1 sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+		LEFT JOIN SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
 		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId

@@ -19,13 +19,14 @@
     2					Swetha Added		 Transaction & NO LOCK
 	3	13-Dec 2021		Hemant Added		 Updated for Upper Case
 	4	02-FEB 2024	    AMIT GHEDIYA	     added isperforma Flage for SO
-     
+    5   11/04/2024		Vishal Suthar		 Modified to make use of new SO Part tables
+
 EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 --select * from dbo.ManagementStructure WHERE ParentId in (1,4,43,44,45,80,84,88) 
 --select * from dbo.ManagementStructure WHERE ParentId in (46,47,66) 
 --select * from dbo.ManagementStructure WHERE ParentId in (48,49,50,58,59,67,68,69) 
-CREATE PROCEDURE [dbo].[usp_GetSalesOrderBillingReport] @name varchar(40) = NULL,
+CREATE      PROCEDURE [dbo].[usp_GetSalesOrderBillingReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -102,7 +103,7 @@ BEGIN
         SO.opendate ' Open Date',
         UPPER(SOBI.invoiceno) 'Invoice Num',
         SOBI.invoicedate 'InvoiceDate',
-		(isnull(SOP.SalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges sc WITH (NOLOCK) where sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) )as  'Revenue',
+		(isnull(SOPC.UnitSalesPriceExtended,0) + (select isnull(sum(sc.billingamount),0) from SalesOrderCharges sc WITH (NOLOCK) where sc.SalesOrderId =SO.SalesOrderId and sop.SalesOrderPartId=sc.SalesOrderPartId and sc.isdeleted=0 and sc.isactive =1 ) )as  'Revenue',
         SOQ.OpenDate 'Quote Date',
 		soq.ApprovedDate AS 'Quote Approval Date',
         SOBI.shipdate 'Ship Date',
@@ -113,7 +114,9 @@ BEGIN
         UPPER(E.firstname + ' ' + E.lastname) 'Sales Person',
         UPPER(E1.firstname + ' ' + E1.lastname) 'CSR'
       FROM dbo.salesorder SO WITH (NOLOCK)
-      LEFT JOIN dbo.salesorderpart SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
+      LEFT JOIN dbo.salesorderpartV1 SOP WITH (NOLOCK) ON So.salesorderid = SOP.salesorderid
+        LEFT JOIN dbo.salesorderstocklineV1 SOPS WITH (NOLOCK)  ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
+        LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK)  ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN dbo.salesorderquote SOQ WITH (NOLOCK)  ON SO.SalesOrderQuoteId = SOQ.salesorderquoteid
         LEFT JOIN dbo.salesorderbillinginvoicing SOBI WITH (NOLOCK)
           ON SO.salesorderid = SOBI.salesorderid AND ISNULL(SOBI.IsProforma,0) = 0
@@ -122,7 +125,7 @@ BEGIN
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)
           ON SOP.itemmasterid = IM.itemmasterid
         LEFT JOIN dbo.stockline STL WITH (NOLOCK)
-          ON SOP.stocklineid = STL.stocklineid and stl.IsParent=1
+          ON SOPS.stocklineid = STL.stocklineid and stl.IsParent=1
         LEFT JOIN dbo.workorder WO WITH (NOLOCK)
           ON STL.workorderid = WO.workorderid
         LEFT JOIN dbo.condition CDTN WITH (NOLOCK)

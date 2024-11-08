@@ -33,14 +33,15 @@
 	16  06/13/2024	  Devendra Shekh    not getting SO Invoices data issue resolved
 	17  06/26/2024	  Moin Bloch        added condtion to removed Refund and Refund Requested credit memo invoices from invoice list 
 	18  07/23/2024	  Devendra Shekh    optimized SP and Removed unnecessary commented Data
-	19  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
+	19  11/04/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	20  11/05/2024	  AMIT GHEDIYA		Update to get remaining amount for ExSO.
 
 exec dbo.USP_SearchCustomerInvoices 
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
 @CustomerReference=NULL,@MasterCompanyId=1,@SerialNumber=NULL,@StockType=NULL,@ViewType=N'invoice',@EmployeeId=2,@RemainingAmount=NULL,@LastMSLevel=NULL,@Status=N''
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_SearchCustomerInvoices]
+CREATE    PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @PageSize int,  
 @PageNumber int,  
 @SortColumn varchar(50),  
@@ -208,8 +209,8 @@ BEGIN
 					   SMS.EntityMSID AS ManagementStructureId
 					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SQ.VersionNumber) END) AS 'VersionNo'
 					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SQ.VersionNumber) END) AS 'VersionNoType'
-					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SOPN.CustomerReference) END) AS 'CustomerReference'
-					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SOPN.CustomerReference) END) AS 'CustomerReferenceType'
+					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustomerReference'
+					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustomerReferenceType'
 					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumber'
 					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumberType'
 					   ,(CASE WHEN COUNT(SOBII.SOBillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PN'
@@ -226,12 +227,13 @@ BEGIN
 						 ELSE 'OEM' END ) END) AS 'StockTypeType'
 			FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId =SOBI.SOBillingInvoicingId AND ISNULL(SOBII.[IsBilling], 0) != 1
-				LEFT JOIN dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
+				LEFT JOIN dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId
+				LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOPN.SalesOrderPartId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
@@ -506,7 +508,7 @@ BEGIN
 				   IM.PartDescription [PNDescription],
 				   SQ.VersionNumber [VersionNo],
 				   SQ.SalesOrderQuoteNumber [QuoteNumber],
-				   SOPN.CustomerReference [CustomerReference],
+				   SO.CustomerReference [CustomerReference],
 				   ST.SerialNumber [SerialNumber],
 				   ST.stocklineid,
 				   CASE WHEN IM.IsPma = 1 and IM.IsDER = 1 THEN 'PMA&DER'
@@ -524,13 +526,14 @@ BEGIN
 					   SMS.EntityMSID AS ManagementStructureId
 			FROM dbo.SalesOrderBillingInvoicing SOBI WITH (NOLOCK)
 				LEFT JOIN dbo.SalesOrderBillingInvoicingItem SOBII WITH (NOLOCK) ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
-				LEFT JOIN dbo.SalesOrderPart SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN dbo.SalesOrderPartV1 SOPN WITH (NOLOCK) ON SOPN.SalesOrderId =SOBI.SalesOrderId AND SOPN.SalesOrderPartId = SOBII.SalesOrderPartId
+				LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOPN.SalesOrderPartId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.SOBillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND SOBII.IsVersionIncrease=0 AND ISNULL(SOBI.[IsBilling], 0) != 1 AND ISNULL(SOBI.RemainingAmount,0) > 0
@@ -539,7 +542,7 @@ BEGIN
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 					C.Name ,CT.CustomerTypeName , SOBI.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
-					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SOPN.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
+					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
 					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.SalesOrderId, SOBI.IsProforma,SMS.EntityMSID
 
 			UNION ALL

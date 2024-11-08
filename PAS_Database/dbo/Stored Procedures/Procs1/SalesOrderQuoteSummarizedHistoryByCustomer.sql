@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used for SOQ Summarized History By Customer.    
@@ -14,11 +13,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
+    2    11/04/2024   Vishal Suthar Modified to make use of new tables
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByCustomer]
+CREATE      PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -47,8 +47,8 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOQP.UnitSalePrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((ISNULL(SOQP.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost,
+						((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
+						((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost,
 						SOQ.SalesOrderQuoteNumber,
 						SOQ.VersionNumber,
 						SOQ.OpenDate AS SOQDate,
@@ -62,10 +62,12 @@ BEGIN
 						END AS TracableToName,
 						CASE WHEN SO.SalesOrderNumber IS NULL THEN '' ELSE SO.SalesOrderNumber END AS SalesOrderNum,
 						ISNULL(SO.SalesOrderId, 0) SalesOrderId
-					FROM dbo.SalesOrderQuotePart SOQP WITH(NOLOCK)
+					FROM dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = SOQP.StockLineId
+						LEFT JOIN dbo.SalesOrderQuoteStocklineV1 STK WITH(NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH(NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId
 						LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 						LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 						LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -80,7 +82,7 @@ BEGIN
 						GROUP BY SOQ.CustomerName,
 						SOQ.CustomerId,
 						SOQ.SalesOrderQuoteId,
-						Cond.Description, APPR.ApprovalActionId, C.Code, SOQP.UnitSalePrice, SOQP.QtyQuoted, SOQP.UnitCost,
+						Cond.Description, APPR.ApprovalActionId, C.Code, SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost,
 						SOQ.SalesOrderQuoteNumber,
 						SOQ.VersionNumber,
 						SOQ.OpenDate, SO.SalesOrderNumber, SO.SalesOrderId,

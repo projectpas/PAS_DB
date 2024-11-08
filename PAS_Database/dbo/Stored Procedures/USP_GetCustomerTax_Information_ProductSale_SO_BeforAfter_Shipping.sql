@@ -15,10 +15,11 @@
  ** --   --------     -------		--------------------------------          
     1    02/11/2024   Moin Bloch    Created
 	2    02/21/2024   Moin Bloch    Flat SO Freigh AND Charge Amount Tax 
-     
+    3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 10381,10835,77,1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
+CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_BeforAfter_Shipping] 
 @SOBillingInvoicingId BIGINT,
 @SalesOrderId BIGINT,
 @CustomerId BIGINT,
@@ -245,9 +246,10 @@ BEGIN
 		     @TotalSalesTax = @TotalSalesTax OUTPUT,
 		     @TotalOtherTax = @TotalOtherTax OUTPUT	
 			 
-		SELECT @Total = (ISNULL(SOP.UnitSalesPricePerUnit, 0) * ISNULL(SOBI.NoofPieces,0))
+		SELECT @Total = (ISNULL(SOPC.UnitSalesPrice, 0) * ISNULL(SOBI.NoofPieces,0))
 			FROM [dbo].[SalesOrderBillingInvoicingItem]  SOBI WITH(NOLOCK)
-			INNER JOIN [dbo].[SalesOrderPart] SOP WITH(NOLOCK) on SOBI.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) on SOBI.SalesOrderPartId = SOP.SalesOrderPartId
+			INNER JOIN [dbo].[SalesOrderPartCost] SOPC WITH(NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			WHERE [SOP].[SalesOrderId] = @SalesOrderId 
 			  AND [SOP].[SalesOrderPartId] = @SalesOrderPartId;			  
 			  

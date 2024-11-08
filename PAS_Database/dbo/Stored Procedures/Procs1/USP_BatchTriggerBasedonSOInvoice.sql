@@ -15,11 +15,12 @@
  ** --   --------     -------		--------------------------------          
     1    08/11/2022  Deep Patel     Created
 	2	 02/1/2024	 AMIT GHEDIYA	added isperforma Flage for SO
-     
+    3    11/05/2024	 Vishal Suthar	Modified to make use of new SO Part tables
+
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoice]
+CREATE      PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoice]
 @DistributionMasterId bigint=NULL,
 @ReferenceId bigint=NULL,
 @ReferencePartId bigint=NULL,
@@ -121,7 +122,7 @@ BEGIN
 							INNER JOIN dbo.CustomerAffiliation caf WITH(NOLOCK) on c.CustomerAffiliationId = caf.CustomerAffiliationId Where c.CustomerId=@CustomerId;
 		              --select @partId=WorkOrderPartNoId from WorkOrderWorkFlow where WorkFlowWorkOrderId=@ReferencePartId
 					  SET @partId = @ReferencePartId;
-	                  select @ItemmasterId=ItemMasterId from SalesOrderPart WITH(NOLOCK)  where SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
+	                  select @ItemmasterId=ItemMasterId from SalesOrderPartV1 WITH(NOLOCK)  where SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
 	                  select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
 					  select @StocklineNumber=StockLineNumber from Stockline  where StockLineId=@StockLineId
@@ -238,7 +239,7 @@ BEGIN
 					 Declare @UnitSalesPricePerUnit decimal(18,2)=0;
 					 Declare @AccountsReceivablesAmount decimal(18,2)=0;
 					 Declare @UnitSalesPrice decimal(18,2)=0;
-					 SELECT @UnitSalesPricePerUnit=UnitSalesPricePerUnit,@UnitSalesPrice=UnitSalePrice from dbo.SalesOrderPart WITH(NOLOCK) where SalesOrderPartId=@ReferencePartId;
+					 SELECT @UnitSalesPricePerUnit = NetSaleAmount, @UnitSalesPrice=UnitSalesPrice from dbo.SalesOrderPartCost WITH(NOLOCK) where SalesOrderPartId=@ReferencePartId;
 
 					 IF(@FreightBillingMethodId = 3)
 					 BEGIN

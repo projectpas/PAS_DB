@@ -1,5 +1,24 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [UpdateChargeNameColumnsWithId]           
+ ** Author:   
+ ** Description: 
+ ** Purpose:         
+ ** Date: 
+          
+ ** PARAMETERS:           
+ @MasterCompanyId BIGINT   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    10/17/2024   Vishal Suthar		Modified to make use of new SO tables
+     
 --  EXEC [dbo].[UpdateChargeNameColumnsWithId] 5
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateChargeNameColumnsWithId]
 	@SalesOrderId int
 AS
@@ -20,7 +39,7 @@ BEGIN
 			LEFT JOIN DBO.Vendor v WITH (NOLOCK) ON soc.VendorId = v.VendorId
 			LEFT JOIN DBO.Charge c WITH (NOLOCK) ON soc.ChargesTypeId = c.ChargeId
 			LEFT JOIN DBO.[Percent] p WITH (NOLOCK) ON soc.MarkupPercentageId = p.PercentId
-			LEFT JOIN DBO.[SalesOrderPart] sop WITH (NOLOCK) ON soc.SalesOrderPartId = sop.SalesOrderPartId
+			LEFT JOIN DBO.[SalesOrderPartV1] sop WITH (NOLOCK) ON soc.SalesOrderPartId = sop.SalesOrderPartId
 			Where soc.SalesOrderId = @SalesOrderId
 		END
 		COMMIT  TRANSACTION

@@ -1,6 +1,21 @@
-﻿------------------------------------------------------------------------------------------------------------
+﻿/*************************************************************           
+ ** File:   [usp_GetApprovalListByTaskIdRoleWise]           
+ ** Author:  Vishal Suthar
+ ** Description: 
+ ** Purpose:         
+ ** Date:        
+          
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    11/04/2024  Vishal Suthar		Modified to make use of new SOQ-SO part tables
+     
 --exec [dbo].[usp_GetApprovalListByTaskIdRoleWise] 3, 143
-CREATE Procedure [dbo].[usp_GetApprovalListByTaskIdRoleWise]
+************************************************************************/
+CREATE      PROCEDURE [dbo].[usp_GetApprovalListByTaskIdRoleWise]
 @TaskId  BIGINT,
 @ID BIGINT
 AS
@@ -65,8 +80,9 @@ DECLARE @BillingMethod INT;
 
 SELECT @BillingMethod = soq.ChargesBilingMethodId, @FlatCharges = soq.TotalCharges FROM dbo.SalesOrderQuote soq WITH(NOLOCK) WHERE soq.SalesOrderQuoteId = @ID
 
-SELECT @TotalCost = sum(soqp.NetSales)
-      FROM dbo.SalesOrderQuotePart soqp  WITH(NOLOCK)
+SELECT @TotalCost = sum(soqpc.NetSaleAmount)
+      FROM dbo.SalesOrderQuotePartV1 soqp  WITH(NOLOCK)
+      INNER JOIN dbo.SalesOrderQuotePartCost soqpc WITH(NOLOCK) ON soqp.SalesOrderQuotePartId = soqpc.SalesOrderQuotePartId
 	  WHERE soqp.SalesOrderQuoteId = @ID
 
 IF @BillingMethod = 3
@@ -98,8 +114,9 @@ DECLARE @BillingMethod_SO INT;
 
 SELECT @BillingMethod_SO = so.ChargesBilingMethodId, @FlatCharges_SO = so.TotalCharges FROM dbo.SalesOrder so WITH(NOLOCK) WHERE so.SalesOrderId = @ID
 
-SELECT @TotalCost = sum(sop.NetSales)
-      FROM dbo.SalesOrderPart sop WITH(NOLOCK)
+SELECT @TotalCost = sum(sopc.NetSaleAmount)
+      FROM dbo.SalesOrderPartV1 sop WITH(NOLOCK)
+      JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
 	  WHERE sop.SalesOrderId = @ID
 
 IF @BillingMethod_SO = 3

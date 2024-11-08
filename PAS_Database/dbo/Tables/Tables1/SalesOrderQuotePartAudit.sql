@@ -64,8 +64,11 @@
     [LotId]                      BIGINT         NULL,
     [SalesPriceExpiryDate]       DATETIME2 (7)  NULL,
     [IsNoQuote]                  BIT            NULL,
+    [NewSalesOrderQuotePartId]   BIGINT         NULL,
     CONSTRAINT [PK_SalesOrderQuotePartAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
+
+
 
 
 

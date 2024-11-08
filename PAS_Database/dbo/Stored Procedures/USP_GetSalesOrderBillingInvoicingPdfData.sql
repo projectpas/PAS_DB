@@ -17,6 +17,7 @@
 	2	 29/03/2024   Bhargav Saliya  Get CreditTermsName and NetDays From SO instead of CreditTerms
 	3	 27/07/2024   Bhargav Saliya  Get/added ShippingTerms
 	4	 19/09/2024   AMIT GHEDIYA    Get Cur from header for pdf.
+	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
      
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 765
 ************************************************************************/
@@ -152,7 +153,8 @@ BEGIN
 			FunctionalCurrency = scur.Code
 		FROM [dbo].[SalesOrderBillingInvoicing] bi WITH(NOLOCK)
 		INNER JOIN	[dbo].[SalesOrder] so WITH(NOLOCK) ON bi.SalesOrderId = so.SalesOrderId
-		 LEFT JOIN  [dbo].[SalesOrderPart] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		 LEFT JOIN  [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		 LEFT JOIN  [dbo].[SalesOrderStocklineV1] sov WITH(NOLOCK) ON sop.SalesOrderPartId = sov.SalesOrderPartId
 		 LEFT JOIN  [dbo].[Customer] cust WITH(NOLOCK) ON bi.CustomerId = cust.CustomerId
 		 LEFT JOIN  [dbo].[Address] custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId
 		 LEFT JOIN  [dbo].[CustomerContact] cust_cont WITH(NOLOCK) ON so.CustomerContactId = cust_cont.CustomerContactId
@@ -181,7 +183,7 @@ BEGIN
 		 LEFT JOIN  [dbo].[Currency] AS cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
 		 LEFT JOIN  [dbo].[Currency] AS scur WITH(NOLOCK) ON so.FunctionalCurrencyId = scur.CurrencyId
 		 --LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId
 		 LEFT JOIN  [dbo].[SalesOrderBillingInvoicingItem] AS sabi WITH(NOLOCK) ON bi.SOBillingInvoicingId = sabi.SOBillingInvoicingId
 		 LEFT JOIN  [dbo].[SalesOrderShipping] AS saos WITH(NOLOCK) ON sabi.SalesOrderShippingId = saos.SalesOrderShippingId AND saos.SalesOrderId = @SalesOrderId
 		 LEFT JOIN  [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON saos.ShipviaId = sipVia.ShippingViaId

@@ -15,6 +15,7 @@
  ** --   --------         -------          --------------------------------            
    1   16/08/2023       Ekta Chandegra     Convert text into uppercase   
    2   01/02/2024	    AMIT GHEDIYA	   added isperforma Flage for SO
+   3   10-OCT-2024      Abhishek Jirawla   Implemented the new tables for SalesOrderQuotePart related tables(Need to be revisited again)
 
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -95,10 +96,14 @@ BEGIN
 		  FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 			  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 			  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			  LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
-			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQP.stocklineId = STL.StockLineId   
+			  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
+			  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		      LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
+			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
 			  LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId   
-			  LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			  LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+			  LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
+			  --LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			  LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 			  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
@@ -131,7 +136,9 @@ BEGIN
 	  SET @SOConvertedCount = (SELECT COUNT(*) from DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 		  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		  LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
 		   WHERE SOQP.IsConvertedToSalesOrder = 1 AND SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)
 				AND  SOQP.ItemMasterId = ISNULL(@partnumber,SOQP.ItemMasterId)
 				--AND SOQ.SalesPersonId=ISNULL(@salesperson,SOQ.SalesPersonId)  
@@ -162,24 +169,24 @@ BEGIN
 			UPPER(SOQ.CustomerName) 'customerName',  
 			UPPER(SOQ.CustomerCode) 'customerCode',  
 			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN (A.partnumber) 
-			ELSE UPPER(SOQP.PartNumber) END as 'pn',  
+			ELSE UPPER(IMQ.PartNumber) END as 'pn',  
 			CASE WHEN SOQP.IsConvertedToSalesOrder = 1 THEN (A.PartDescription) 
-			ELSE UPPER(SOQP.PartDescription) END as 'pndescription', 
+			ELSE UPPER(IMQ.PartDescription) END as 'pndescription', 
 			--UPPER(SOQP.PartNumber) 'pn',
 			--UPPER(SOQP.PartDescription) 'pndescription', 
 			UPPER(STL.SerialNumber) 'serialnumber',  
-			UPPER(SOQP.ConditionName) 'condition',  
+			UPPER(CON.Description) 'condition',  
 			UPPER(SOQ.SalesOrderQuoteNumber) 'quotenumber',  
 			UPPER(SOQ.Versionnumber) 'quoteversion',  
 			UPPER(SOQ.statusname) 'quoteStatus',  
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.QuoteSentDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.QuoteSentDate, 107) END 'datesent', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOQ.OpenDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), SOQ.OpenDate, 107) END 'quotedate', 
-			ISNULL((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0)), 0) 'quoterevenue',
-			ISNULL((ISNULL(A.NetSales, 0) + ISNULL(A.BillingAmount, 0)), 0) 'sorevenue',
-			FORMAT(ISNULL(SOQP.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
-			FORMAT(((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
-		    FORMAT((((ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQP.UnitCostExtended, 0)))*100) /  
-			CASE WHEN (ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0))>0 THEN ISNULL(SOQP.NetSales, 0) + ISNULL(Charges.BillingAmount, 0) ELSE 1 END,'#,0.00')+'%' 'marginperc',  
+			ISNULL((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0)), 0) 'quoterevenue',
+			ISNULL((ISNULL(A.NetSaleAmount, 0) + ISNULL(A.BillingAmount, 0)), 0) 'sorevenue',
+			FORMAT(ISNULL(SOQPC.UnitCostExtended, 0),'#,0.00') 'qtedirectcost',  
+			FORMAT(((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0))),'#,0.00') 'qtemarginamt',  
+		    FORMAT((((ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))-(ISNULL(SOQPC.UnitCostExtended, 0)))*100) /  
+			CASE WHEN (ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0))>0 THEN ISNULL(SOQPC.NetSaleAmount, 0) + ISNULL(Charges.BillingAmount, 0) ELSE 1 END,'#,0.00')+'%' 'marginperc',  
 			UPPER(SOQ.CustomerContactName) 'contactname',  
 			UPPER(SOQ.CustomerContactemail) 'email',  
 			UPPER(MSD.Level1Name) AS level1,  
@@ -204,17 +211,16 @@ BEGIN
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)   
 		  INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
 		  LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		  LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId  
-		  --AND SOQP.SalesOrderQuotePartId in (SELECT SalesOrderQuotePartId FROM SalesOrderPart)
-		  --AND NOT EXISTS (SELECT SalesOrderQuotePartId FROM SalesOrderPart where SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId)
-		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQP.stocklineId = STL.StockLineId   
-		  --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId   
-		  --LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId not in (SELECT SalesOrderQuotePartId FROM SalesOrderQuotePart)
-		  ----AND SOP.SalesOrderQuotePartId not in (SELECT SalesOrderQuotePartId FROM SalesOrderQuotePart where IsConvertedToSalesOrder=1)
-		  --LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
+		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
+		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
+		  LEFT JOIN DBO.ItemMaster IMQ WITH (NOLOCK) ON SOQP.ItemMasterId = IMQ.ItemMasterId
+		  LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
+		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
 		  OUTER APPLY(
-			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOP.NetSales,SOBilling.InvoiceNo from DBO.SalesOrder SO WITH (NOLOCK)   
-			INNER JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.NetSaleAmount,SOBilling.InvoiceNo from DBO.SalesOrder SO WITH (NOLOCK)   
+			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId --AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SO.SalesOrderId = SOPC.SalesOrderId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN (SELECT InvoiceNo,SOBII.SalesOrderPartId FROM  DBO.SalesOrderBillingInvoicing SOBI
 				LEFT JOIN DBO.SalesOrderBillingInvoicingItem SOBII ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId AND ISNULL(SOBII.IsProforma,0) = 0

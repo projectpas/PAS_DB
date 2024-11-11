@@ -16,6 +16,7 @@
  ** --   --------		-------			--------------------------------  
 	1    08/06/2020   HEMANT SALIYA	     CREATED
 	2    29/10/2024   Devendra Shekh	 Modified(added RedirectUrl,IntigrationStatus to select)
+	3    11/11/2024   Devendra Shekh	 Modified(resolved column filter issue)
 
 
 EXEC USP_GetAccontingIntegrationDetailsList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@IntegrationWith=NULL,
@@ -34,8 +35,12 @@ CREATE   PROCEDURE [dbo].[USP_GetAccontingIntegrationDetailsList]
 	@ModuleName VARCHAR(50)=null,
 	@MasterCompanyId bigint = NULL,
 	@LastSycDate datetime=null,
-	@IntigrationStatus VARCHAR(50)=null
-
+	@IntigrationStatus VARCHAR(50)=null,
+	@ProgressPercent decimal(9,2) = NULL,
+	@Interval int = NULL,
+	@TotalCount int = NULL,
+	@PendingSyncRecords int = NULL,
+	@SyncRecords int = NULL
 AS
 BEGIN
 	
@@ -189,29 +194,31 @@ BEGIN
 			WHERE ACI.MasterCompanyId = @MasterCompanyId --AND ( AND (@IsActive IS NULL OR ACI.IsActive = @IsActive))
 			), ResultCount AS(SELECT COUNT(AccountingIntegrationSettingsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
-			WHERE (
-			(@GlobalFilter <>'' AND
-					(IntegrationWith LIKE '%' +@GlobalFilter+'%') OR
-					((LastRun LIKE '%' +@GlobalFilter+'%' ) OR
+			WHERE ((@GlobalFilter <>'' AND ((IntegrationWith LIKE '%' +@GlobalFilter+'%') OR
+			        (LastRun LIKE '%' +@GlobalFilter+'%') OR	
 					(Interval LIKE '%' +@GlobalFilter+'%') OR
 					(ModuleName LIKE '%' +@GlobalFilter+'%') OR
 					(SyncRecords LIKE '%' +@GlobalFilter+'%') OR
 					(PendingSyncRecords LIKE '%' +@GlobalFilter+'%') OR
 					(TotalCount LIKE '%' +@GlobalFilter+'%') OR
-					(IntigrationStatus LIKE '%' +@GlobalFilter+'%') 
-					))
-					OR   
-					(@GlobalFilter='' AND 
-					(ISNULL(@IntegrationWith,'') ='' OR cast(IntegrationWith as VARCHAR) LIKE '%' + @IntegrationWith+'%') AND
+					(IntigrationStatus LIKE '%' +@GlobalFilter+'%'))) OR   
+					(@GlobalFilter='' AND (ISNULL(@IntegrationWith,'') ='' OR IntegrationWith LIKE '%' + @IntegrationWith+'%') AND
 					(ISNULL(@LastRun,'') ='' OR CAST(LastRun as Date)=CAST(@LastRun as date))AND
-					(ISNULL(@ModuleName,'') ='' OR ModuleName LIKE '%' + @ModuleName+'%') AND
-					(ISNULL(@IntigrationStatus,'') ='' OR IntigrationStatus LIKE '%' + @IntigrationStatus+'%') AND
-					(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun as date)=CAST(@LastSycDate as date))))
+					(ISNULL(@ModuleName,'') ='' OR ModuleName LIKE '%' + @ModuleName + '%') AND	
+					(ISNULL(@IntigrationStatus,'') ='' OR IntigrationStatus LIKE '%' + @IntigrationStatus + '%') AND
+					(ISNULL(@SyncRecords,'') ='' OR CAST(SyncRecords AS VARCHAR) LIKE '%' + CAST(@SyncRecords AS VARCHAR) + '%') AND	
+					(ISNULL(@PendingSyncRecords,'') ='' OR CAST(PendingSyncRecords AS VARCHAR) LIKE '%' + CAST(@PendingSyncRecords AS VARCHAR) + '%') AND	
+					(ISNULL(@TotalCount,'') ='' OR CAST(TotalCount AS VARCHAR) LIKE '%' + CAST(@TotalCount AS VARCHAR) + '%') AND
+					--(ISNULL(@LastSycDate,'') ='' OR CAST(LastRun AS date) LIKE '%' + CAST(@LastSycDate AS date) + '%') AND						
+					(ISNULL(@Interval,'') ='' OR CAST(Interval as VARCHAR)=CAST(@Interval as VARCHAR))))
 
 			Select @Count = COUNT(AccountingIntegrationSettingsId) FROM #TempResult			
 
-			SELECT *, CASE WHEN ISNULL(TotalCount, 0) > 0 THEN (CAST(100.00 AS decimal(18,2)) - ((100 * CAST(ISNULL(PendingSyncRecords, 0) AS DECIMAL(18,2)))/CAST(ISNULL(TotalCount, 0) AS decimal(18,2)))) ELSE 0 END AS ProgressPercent , 
-			@Count AS NumberOfItems FROM #TempResult
+			SELECT	* ,CASE WHEN ISNULL(TotalCount, 0) > 0 THEN (CAST(100.00 AS decimal(18,2)) - ((100 * CAST(ISNULL(PendingSyncRecords, 0) AS DECIMAL(18,2)))/CAST(ISNULL(TotalCount, 0) AS decimal(18,2)))) ELSE 0 END AS ProgressPercent
+			INTO #FinalResult FROM #TempResult
+
+			SELECT *,
+			@Count AS NumberOfItems FROM #FinalResult
 			ORDER BY  
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='LASTRUN')  THEN LastRun END ASC,
@@ -220,6 +227,8 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='INTERVAL')  THEN Interval END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END ASC,
 
             CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IntegrationWith END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTRUN')  THEN LastRun END DESC,
@@ -227,7 +236,9 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN SyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN PendingSyncRecords END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN TotalCount END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTIGRATIONSTATUS')  THEN IntigrationStatus END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='INTERVAL')  THEN Interval END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PROGRESSPERCENT')  THEN ProgressPercent END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 	END TRY    

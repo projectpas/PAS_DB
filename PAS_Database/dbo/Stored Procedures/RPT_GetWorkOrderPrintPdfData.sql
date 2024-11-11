@@ -14,6 +14,8 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 3    06/28/2024  Vishal Suthar		Added IsActive and IsDeleted check in WorkOrderQuote join
 ** 4    09/03/2024  Ekta Chandegra		Retrieve merged address using common function
 ** 5	17 Sep 2024 Bhargav Saliya      address convert into single string value
+** 6    08 Nov 2024 Sahdev Saliya       Added New Field RevisedSerialNumber
+
 EXEC RPT_GetWorkOrderPrintPdfData 4398,3937
 
 **************************************************************/
@@ -154,7 +156,8 @@ BEGIN
 		   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 		   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
 		   FOR XML PATH('')              
-		   ), 1, 1, '')              
+		   ), 1, 1, '')     
+		   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
 		FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 		INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 		INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId
@@ -208,5 +211,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;              
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)              
               RETURN(1);              
-  END CATCH              
+  END CATCH              
 END
